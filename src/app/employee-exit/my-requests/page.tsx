@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Dropdown, Select, notification } from 'antd';
-import { Search, Plus, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Table, Button, Dropdown, Select, notification, Modal } from 'antd';
+import { Search, Plus, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle, Trash2, Edit2, Eye } from 'lucide-react';
 import { EmployeeExitService } from '@/services/employeeExitService';
 import dayjs from 'dayjs';
 import { CreateExitRequestDrawer } from '@/components/employee-exit/CreateExitRequestDrawer';
+import { ExitRequestDetailsDrawer } from '@/components/employee-exit/ExitRequestDetailsDrawer';
 import { useAuth } from '@/context/AuthContext';
 
 export default function MyRequestsPage() {
@@ -13,6 +14,9 @@ export default function MyRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [detailsDrawerVisible, setDetailsDrawerVisible] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -149,7 +153,40 @@ export default function MyRequestsPage() {
       align: 'center' as const,
       render: (_: any, record: any) => (
         <Dropdown
-          menu={{ items: [{ key: '1', label: 'View Timeline' }, { key: '2', label: 'Withdraw Request', danger: true }] }}
+          menu={{
+            items: [
+              { key: 'view',   label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Eye size={13} /> View Details</span> },
+              { key: 'edit',   label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Edit2 size={13} /> Edit</span> },
+              { type: 'divider' as const },
+              { key: 'delete', label: <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#ef4444' }}><Trash2 size={13} /> Delete</span>, danger: true },
+            ],
+            onClick: ({ key }) => {
+              if (key === 'view') {
+                setSelectedRequestId(record.id);
+                setDetailsDrawerVisible(true);
+              } else if (key === 'edit') {
+                setEditingRecord(record);
+                setDrawerVisible(true);
+              } else if (key === 'delete') {
+                Modal.confirm({
+                  title: 'Delete Exit Request',
+                  content: 'Are you sure you want to delete this exit request? This cannot be undone.',
+                  okText: 'Delete',
+                  okButtonProps: { danger: true },
+                  cancelText: 'Cancel',
+                  onOk: async () => {
+                    try {
+                      await EmployeeExitService.deleteExitRequest(record.id);
+                      notificationApi.success({ message: 'Exit request deleted.' });
+                      fetchData();
+                    } catch (e: any) {
+                      notificationApi.error({ message: e.message || 'Failed to delete.' });
+                    }
+                  }
+                });
+              }
+            }
+          }}
           trigger={['click']}
           placement="bottomRight"
         >
@@ -254,9 +291,19 @@ export default function MyRequestsPage() {
 
       <CreateExitRequestDrawer
         visible={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
-        onSuccess={() => { setDrawerVisible(false); fetchData(); }}
+        initialData={editingRecord}
+        onClose={() => { setDrawerVisible(false); setEditingRecord(null); }}
+        onSuccess={() => { setDrawerVisible(false); setEditingRecord(null); fetchData(); }}
         isSelfService={true}
+      />
+
+      <ExitRequestDetailsDrawer
+        visible={detailsDrawerVisible}
+        requestId={selectedRequestId}
+        onClose={() => {
+          setDetailsDrawerVisible(false);
+          setSelectedRequestId(null);
+        }}
       />
     </>
   );

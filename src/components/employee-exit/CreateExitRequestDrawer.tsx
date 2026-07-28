@@ -22,6 +22,7 @@ export interface CreateExitRequestDrawerProps {
   onSuccess: () => void;
   defaultEmployeeId?: string; 
   isSelfService?: boolean;
+  initialData?: any; // If provided, drawer is in edit mode
 }
 
 export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = ({
@@ -29,8 +30,10 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
   onClose,
   onSuccess,
   defaultEmployeeId,
-  isSelfService = false
+  isSelfService = false,
+  initialData
 }) => {
+  const isEditMode = !!initialData;
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -51,14 +54,33 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
       form.resetFields();
       setBuyoutEnabled(false);
       setResignationLetter([]);
-      
-      const empIdToUse = defaultEmployeeId || (isSelfService ? user?.employeeId : undefined);
-      if (empIdToUse) {
-        form.setFieldsValue({ employeeId: empIdToUse });
-        handleEmployeeChange(empIdToUse);
+
+      if (initialData) {
+        // Edit mode: pre-fill all existing values
+        setTimeout(() => {
+          form.setFieldsValue({
+            employeeId: initialData.employeeId,
+            exitTypeId: initialData.exitTypeId,
+            exitReasonId: initialData.exitReasonId,
+            resignationDate: initialData.resignationDate ? dayjs(initialData.resignationDate) : undefined,
+            proposedLastWorkingDay: initialData.proposedLastWorkingDay ? dayjs(initialData.proposedLastWorkingDay) : undefined,
+            noticePeriodDay: initialData.noticePeriodDay ? dayjs(initialData.noticePeriodDay) : undefined,
+            waiveNoticePeriod: initialData.waiveNoticePeriod || false,
+            buyoutRequired: initialData.buyoutRequired || false,
+            buyoutAmount: initialData.buyoutAmount || undefined,
+            explanation: initialData.explanation || '',
+          });
+          setBuyoutEnabled(!!initialData.buyoutRequired);
+        }, 100);
+      } else {
+        const empIdToUse = defaultEmployeeId || (isSelfService ? user?.employeeId : undefined);
+        if (empIdToUse) {
+          form.setFieldsValue({ employeeId: empIdToUse });
+          handleEmployeeChange(empIdToUse);
+        }
       }
     }
-  }, [visible, defaultEmployeeId, user]);
+  }, [visible, defaultEmployeeId, user, initialData]);
 
   const fetchData = async () => {
     try {
@@ -189,8 +211,13 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
         };
       }
       
-      await EmployeeExitService.createExitRequest(payload);
-      notification.success({ message: 'Success', description: 'Exit request submitted successfully' });
+      if (isEditMode) {
+        await EmployeeExitService.updateExitRequest(initialData.id, payload);
+        notification.success({ message: 'Updated', description: 'Exit request updated successfully' });
+      } else {
+        await EmployeeExitService.createExitRequest(payload);
+        notification.success({ message: 'Success', description: 'Exit request submitted successfully' });
+      }
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -218,7 +245,7 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
             onClick={handleSubmit} 
             style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
           >
-            Submit Exit Request
+            {isEditMode ? 'Save Changes' : 'Submit Request'}
           </Button>
         </div>
       }

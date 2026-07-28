@@ -157,6 +157,17 @@ export class EmployeeExitService {
     }
   }
 
+  static async updateExitRequest(id: string, payload: any): Promise<any> {
+    try {
+      return await api.put(`/api/exit/request/${id}`, payload);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to update exit request");
+    }
+  }
+
 
   /**
    * Update exit request status

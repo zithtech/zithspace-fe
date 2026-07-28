@@ -126,7 +126,7 @@ export default function EmployeeExitLayout({ children }: { children: React.React
           .pv-shell {
             display: flex;
             height: calc(100vh - var(--header-height, 60px));
-            background: var(--bg-slate-50);
+            background: var(--bg-primary);
             overflow: hidden;
             position: relative;
           }
@@ -134,8 +134,8 @@ export default function EmployeeExitLayout({ children }: { children: React.React
           /* --- SIDEBAR --- */
           .pv-sidebar {
             width: 260px;
-            background: var(--bg-pure-white);
-            border-right: 1px solid var(--border-slate-200);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
@@ -229,13 +229,13 @@ export default function EmployeeExitLayout({ children }: { children: React.React
           }
 
           .pv-view-item:hover:not(.is-soon) {
-            background: var(--bg-slate-50);
-            color: var(--text-slate-900);
+            background: rgba(59, 130, 246, 0.08);
+            color: #60a5fa;
           }
 
           .pv-view-item.is-active {
-            background: #f0f9ff;
-            color: #0369a1;
+            background: rgba(59, 130, 246, 0.12);
+            color: #3b82f6;
             font-weight: 600;
           }
 
@@ -259,8 +259,8 @@ export default function EmployeeExitLayout({ children }: { children: React.React
             margin-left: auto;
             font-size: 10px;
             font-weight: 600;
-            background: var(--bg-slate-100);
-            color: var(--text-slate-500);
+            background: rgba(59, 130, 246, 0.08);
+            color: var(--text-slate-400);
             padding: 2px 6px;
             border-radius: 4px;
             text-transform: uppercase;
@@ -272,15 +272,15 @@ export default function EmployeeExitLayout({ children }: { children: React.React
             display: flex;
             flex-direction: column;
             min-width: 0;
-            background: var(--bg-slate-50);
+            background: var(--bg-primary);
             overflow: hidden;
           }
 
           .pv-mobile-header {
             display: none;
             height: 56px;
-            background: var(--bg-pure-white);
-            border-bottom: 1px solid var(--border-slate-200);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
             align-items: center;
             padding: 0 16px;
             gap: 12px;

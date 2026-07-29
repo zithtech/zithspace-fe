@@ -97,6 +97,7 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -462,6 +463,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {

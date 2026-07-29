@@ -14,6 +14,7 @@ import {
   Popover,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
   Building2,
   Edit,
@@ -576,10 +577,8 @@ export default function DepartmentsPage() {
                     label="Employment context"
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select employment type"
-                      loading={employmentTypesLoading}
-                      allowClear
                       options={employmentTypes
                         .filter((et) => et.isActive)
                         .map((t) => ({ value: t.name, label: t.name }))}
@@ -590,12 +589,9 @@ export default function DepartmentsPage() {
                     label="Department head"
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select leader"
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      options={members.map((m) => ({ value: m.value, label: m.label }))}
+                      options={members.map((m) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl }))}
                     />
                   </Form.Item>
                 </SectionCard>

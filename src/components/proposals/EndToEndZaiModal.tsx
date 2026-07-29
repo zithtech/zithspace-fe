@@ -1,13 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Modal, Input, message, Typography, Progress, Checkbox } from 'antd';
-import { Sparkles, Wand2, Zap } from 'lucide-react';
+import { Button, Modal, Input, message, Typography, Progress, Checkbox, Dropdown, Popover, Select } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { Sparkles, Wand2, Zap, User, Mail, Phone, MapPin, Building, Briefcase, Link } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { nanoid } from 'nanoid';
 import { BLOCK_META } from './BlockPalette';
-
+import { PALETTE } from './library/composerComponents';
+import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { useActiveCompany, useCompanies } from '@/hooks/useCompanies';
+import { useQuery } from '@tanstack/react-query';
+import { CompanyLocationService } from '@/services/companyLocationService';
 
 const { Text } = Typography;
 
@@ -137,7 +143,7 @@ const distributeDeadlines = (start?: string, end?: string, count = 4): string[] 
   return dates;
 };
 
-const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any => {
+const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief, coverDetails?: any): any => {
   const data = raw && typeof raw === 'object' ? { ...raw } : {};
 
   if (type === 'cover') {
@@ -148,7 +154,22 @@ const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any 
     if (!data.date && brief.startDate) data.date = brief.startDate;
     if (!data.validUntil && brief.endDate) data.validUntil = brief.endDate;
     if (!data.senderWebsite) data.senderWebsite = '';
-    if (!data.senderPosition) data.senderPosition = '';
+
+    if (coverDetails?.senderName) data.senderName = coverDetails.senderName;
+    if (coverDetails?.senderPosition) data.senderPosition = coverDetails.senderPosition;
+    if (coverDetails?.senderEmail) data.senderEmail = coverDetails.senderEmail;
+    if (coverDetails?.senderCompany) data.senderCompany = coverDetails.senderCompany;
+    if (coverDetails?.senderContact) data.senderContact = coverDetails.senderContact;
+    if (coverDetails?.senderAddress) data.senderAddress = coverDetails.senderAddress;
+    if (coverDetails?.senderWebsite) data.senderWebsite = coverDetails.senderWebsite;
+    if (coverDetails?.theme) data.theme = coverDetails.theme;
+    
+    if (coverDetails?.clientName) data.clientName = coverDetails.clientName;
+    if (coverDetails?.clientCompany) data.clientCompany = coverDetails.clientCompany;
+    if (coverDetails?.clientEmail) data.clientEmail = coverDetails.clientEmail;
+    if (coverDetails?.clientPhone) data.clientPhone = coverDetails.clientPhone;
+    if (coverDetails?.clientAddress) data.clientAddress = coverDetails.clientAddress;
+
     return data;
   }
 
@@ -273,9 +294,9 @@ const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any 
     if (!data.revisionClause) data.revisionClause = '<p>Includes 2 rounds of revisions per milestone. Major scope changes require a change order.</p>';
     if (!data.terminationClause) data.terminationClause = '<p>Either party may terminate with 7 days written notice. Work completed up to that date will be invoiced.</p>';
     if (!data.ndaClause) data.ndaClause = '<p>Both parties agree to keep proprietary information confidential.</p>';
-    if (!data.companyName) data.companyName = 'Your Agency LLC';
-    if (!data.clientName) data.clientName = brief.projectName ? `${brief.projectName} (Client)` : 'Client Company';
-    if (!data.companySigner) data.companySigner = 'Authorized Signer';
+    data.companyName = coverDetails?.senderCompany || data.companyName || 'Your Agency LLC';
+    data.clientName = coverDetails?.clientName || data.clientName || (brief.projectName ? `${brief.projectName} (Client)` : 'Client Company');
+    data.companySigner = coverDetails?.senderName || data.companySigner || 'Authorized Signer';
     if (!data.clientSigner) data.clientSigner = 'Authorized Signer';
     return data;
   }
@@ -283,7 +304,7 @@ const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief): any 
   return data;
 };
 
-const buildPhasesOrder = (brief: ParsedBrief, userPrompt: string, extraTerms: string): { type: BlockType; label: string; hint: string }[] => {
+const buildPhasesOrder = (brief: ParsedBrief, userPrompt: string, extraTerms: string, coverDetails?: any): { type: BlockType; label: string; hint: string }[] => {
   const briefSummary = [
     brief.projectName ? `Project: ${brief.projectName}` : null,
     brief.phaseCount ? `Phase count: ${brief.phaseCount}` : null,
@@ -298,6 +319,20 @@ const buildPhasesOrder = (brief: ParsedBrief, userPrompt: string, extraTerms: st
   const currentDate = new Date().toISOString().split('T')[0];
   const baseContext = `User brief: "${userPrompt}"\n\nParsed brief: ${briefSummary || 'none'}\n\nIMPORTANT CONTEXT:\n- The current date is ${currentDate}, and the current year is ${currentYear}.\n- All timelines, dates, and deadlines you generate MUST be set in the current year (${currentYear}) or later.\n- NEVER generate a deadline in the past (before ${currentDate}).`;
 
+  const senderName = coverDetails?.senderName || "<your contact name>";
+  const senderPosition = coverDetails?.senderPosition || "<your position/designation>";
+  const senderCompany = coverDetails?.senderCompany || "<your agency name>";
+  const senderContact = coverDetails?.senderContact || "<your phone>";
+  const senderEmail = coverDetails?.senderEmail || "<your email>";
+  const senderAddress = coverDetails?.senderAddress || "<your address>";
+  const senderWebsite = coverDetails?.senderWebsite || "<your website url>";
+
+  const clientName = coverDetails?.clientName || "<best-guess client contact name>";
+  const clientCompany = coverDetails?.clientCompany || "<best-guess client company>";
+  const clientEmail = coverDetails?.clientEmail || "<plausible email>";
+  const clientPhone = coverDetails?.clientPhone || "<plausible phone>";
+  const clientAddress = coverDetails?.clientAddress || "<plausible single-line address>";
+
   return [
     {
       type: 'cover',
@@ -308,18 +343,18 @@ Return JSON for a "cover" block with EXACTLY these fields, all required and non-
 {
   "title": "<concise project title — max 8 words>",
   "projectSummary": "<1-2 short paragraphs (HTML <p> tags) — describe goal, scope, expected outcome>",
-  "clientName": "<best-guess client contact name>",
-  "clientCompany": "<best-guess client company>",
-  "clientEmail": "<plausible email>",
-  "clientPhone": "<plausible phone>",
-  "clientAddress": "<plausible single-line address>",
-  "senderName": "<your contact name>",
-  "senderPosition": "<your position/designation>",
-  "senderCompany": "<your agency name>",
-  "senderContact": "<your phone>",
-  "senderEmail": "<your email>",
-  "senderWebsite": "<your website url>",
-  "senderAddress": "<your address>",
+  "clientName": "${clientName}",
+  "clientCompany": "${clientCompany}",
+  "clientEmail": "${clientEmail}",
+  "clientPhone": "${clientPhone}",
+  "clientAddress": "${clientAddress}",
+  "senderName": "${senderName}",
+  "senderPosition": "${senderPosition}",
+  "senderCompany": "${senderCompany}",
+  "senderContact": "${senderContact}",
+  "senderEmail": "${senderEmail}",
+  "senderWebsite": "${senderWebsite}",
+  "senderAddress": "${senderAddress}",
   "date": "${brief.startDate || ''}",
   "validUntil": "${brief.endDate || ''}"
 }
@@ -416,16 +451,109 @@ interface EndToEndZaiModalProps {
   visible: boolean;
   onClose: () => void;
   onComplete?: () => void;
+  defaultTheme?: string;
 }
 
-export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onClose, onComplete }) => {
+export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onClose, onComplete, defaultTheme = 'elegant-classic' }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  const { user } = useAuth();
+  const { data: activeCompany } = useActiveCompany();
+  const { data: companiesData } = useCompanies({});
+  const { data: locations } = useQuery({
+    queryKey: ['company-locations'],
+    queryFn: () => CompanyLocationService.getAll(),
+  });
+  
+  const company = activeCompany || (companiesData?.data && companiesData.data.length > 0 ? companiesData.data[0] : null);
+
+  const handleTextChange = (val: string, field: keyof typeof coverDetails) => {
+    setCoverDetails({ ...coverDetails, [field]: val.replace(/[^a-zA-Z0-9\s]/g, '') });
+  };
+
+  const handlePhoneChange = (val: string, field: keyof typeof coverDetails) => {
+    setCoverDetails({ ...coverDetails, [field]: val.replace(/[^0-9+\-()\s]/g, '') });
+  };
+
+  const isValidEmail = (email: string) => {
+    if (!email) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const isCoverDetailsValid = () => {
+    return !!(
+      coverDetails.clientName && coverDetails.clientCompany && 
+      coverDetails.clientEmail && isValidEmail(coverDetails.clientEmail) && 
+      coverDetails.clientPhone && coverDetails.clientAddress &&
+      coverDetails.senderName && coverDetails.senderPosition && 
+      coverDetails.senderCompany && coverDetails.senderContact && 
+      coverDetails.senderEmail && isValidEmail(coverDetails.senderEmail) && 
+      coverDetails.senderAddress
+    );
+  };
+
   const [prompt, setPrompt] = useState('');
   const [extraTerms, setExtraTerms] = useState(DEFAULT_TERMS_HINT);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stepLabel, setStepLabel] = useState('');
   const [step, setStep] = useState<'prompt' | 'components'>('prompt');
-  const [selectedComponents, setSelectedComponents] = useState<string[]>(BLOCK_META.filter(b => b.type !== 'section').map(b => b.type));
+  const [activePhases, setActivePhases] = useState<{ id: string; type: string; checked: boolean }[]>(
+    BLOCK_META.filter(b => b.type !== 'section').map(b => ({ id: nanoid(), type: b.type, checked: true }))
+  );
+
+  const [coverDetails, setCoverDetails] = useState({
+    theme: defaultTheme,
+    clientName: '',
+    clientCompany: '',
+    clientEmail: '',
+    clientPhone: '',
+    clientAddress: '',
+    senderName: '',
+    senderPosition: '',
+    senderCompany: '',
+    senderContact: '',
+    senderEmail: '',
+    senderAddress: '',
+    senderWebsite: '',
+  });
+
+  React.useEffect(() => {
+    if (!visible) {
+      setCoverDetails(prev => ({
+        ...prev,
+        theme: defaultTheme,
+        clientName: '',
+        clientCompany: '',
+        clientEmail: '',
+        clientPhone: '',
+        clientAddress: '',
+      }));
+    }
+  }, [visible]);
+
+  React.useEffect(() => {
+    let bestAddress = '';
+    if (locations && locations.length > 0) {
+      const loc = locations[0];
+      bestAddress = [loc.flatNumber, loc.street, loc.area, loc.city, loc.state, loc.country, loc.pincode].filter(Boolean).join(', ');
+    }
+    if (!bestAddress) {
+      bestAddress = [company?.plotNo, company?.street, company?.city, company?.country].filter(Boolean).join(', ');
+    }
+
+    setCoverDetails(prev => ({
+      ...prev,
+      senderName: prev.senderName || user?.name || '',
+      senderPosition: prev.senderPosition || user?.position?.title || user?.role || '',
+      senderCompany: prev.senderCompany || user?.tenantName || company?.name || '',
+      senderContact: prev.senderContact || user?.phone || company?.phone || '',
+      senderEmail: prev.senderEmail || user?.email || '',
+      senderAddress: prev.senderAddress || bestAddress || '',
+      senderWebsite: prev.senderWebsite || (company as any)?.website || '',
+    }));
+  }, [user, company, locations]);
 
   const { setBlocks } = useProposalStore();
 
@@ -460,7 +588,19 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
     setProgress(0);
 
     const brief = parseBrief(prompt);
-    const phases = buildPhasesOrder(brief, prompt, extraTerms).filter(p => selectedComponents.includes(p.type));
+    const defaultPhases = buildPhasesOrder(brief, prompt, extraTerms, coverDetails);
+    const phases = activePhases.filter(p => p.checked).map(p => {
+      const dp = defaultPhases.find(d => d.type === p.type);
+      if (dp) return { ...dp, id: p.id };
+      const meta = BLOCK_META.find(b => b.type === p.type);
+      const pal = PALETTE.find(b => b.kind === p.type);
+      const label = meta?.label || pal?.label || p.type;
+      return {
+        type: p.type as BlockType,
+        label: `Generating ${label}…`,
+        hint: `Return JSON for a "${p.type}" block relevant to the project brief. Ensure it follows standard structure. Keep it short.`
+      };
+    });
 
     if (phases.length === 0) {
       message.warning('Please select at least one component to generate.');
@@ -478,7 +618,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
       setStepLabel(phase.label);
 
       const data = await callRefineSafely(phase.type, phase.hint);
-      const normalised = normaliseBlockData(phase.type, data || {}, brief);
+      const normalised = normaliseBlockData(phase.type, data || {}, brief, coverDetails);
       generated.push({ type: phase.type, data: normalised });
 
       runningProgress += stepIncrement;
@@ -549,11 +689,12 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                 </p>
               </div>
             </div>
+
             <button className="zai-close" onClick={() => !generating && onClose()} aria-label="Close">×</button>
           </div>
         </div>
 
-        <div className="zai-body">
+        <div className="zai-body" style={{ display: 'flex', flexDirection: 'column', maxHeight: '75vh', overflow: 'hidden' }}>
           {generating ? (
             <div style={{ padding: '12px 4px 8px 4px' }}>
               <div className="zai-loading" style={{ height: 220 }}>
@@ -583,6 +724,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
             <>
               {step === 'prompt' ? (
                 <>
+                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div className="zai-prompt">
                     <div className="zai-prompt__label">
                       <Wand2 size={14} />
@@ -640,7 +782,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                     </div>
                   </div>
 
-                  <div className="zai-prompt" style={{ marginTop: 14 }}>
+                  <div className="zai-prompt">
                     <div className="zai-prompt__label">
                       <Wand2 size={14} />
                       <span>Terms & Conditions Directive</span>
@@ -654,8 +796,9 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                       bordered={false}
                     />
                   </div>
+                  </div>
 
-                  <div className="zai-footer">
+                  <div className="zai-footer" style={{ flexShrink: 0, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
                     <div className="zai-footer__hint">
                       Zai will generate Cover · Summary · Scope · Timeline · Pricing · T&Cs in sequence.
                     </div>
@@ -666,37 +809,234 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                 </>
               ) : (
                 <>
-                  <div className="zai-components-selection" style={{ padding: '24px 0' }}>
-                    <div style={{ marginBottom: 12, fontWeight: 600, color: 'var(--text-slate-900)' }}>Select Components to Generate</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      {BLOCK_META.filter(meta => meta.type !== 'section').map(meta => (
-                        <Checkbox
-                          key={meta.type}
-                          checked={selectedComponents.includes(meta.type)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedComponents([...selectedComponents, meta.type]);
-                            } else {
-                              setSelectedComponents(selectedComponents.filter(t => t !== meta.type));
-                            }
-                          }}
-                        >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: meta.color }}>{meta.icon}</span>
-                            {meta.label}
-                          </span>
-                        </Checkbox>
-                      ))}
+                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }}>
+                    <div className="zai-components-selection" style={{ padding: '24px 0' }}>
+                    {activePhases.some(p => p.type === 'cover' && p.checked) && (
+                      <div
+                        style={{
+                          marginBottom: 32,
+                          padding: "16px 20px",
+                          background: isDark 
+                            ? '#1e293b'
+                            : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                          border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
+                          boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 8px 32px -4px rgba(148,163,184,0.15)',
+                          borderRadius: 16,
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute',
+                          top: -50,
+                          right: -50,
+                          width: 150,
+                          height: 150,
+                          background: isDark ? 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, rgba(255,255,255,0) 70%)',
+                          borderRadius: '50%',
+                          pointerEvents: 'none'
+                        }} />
+                        
+                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: isDark ? '#60a5fa' : '#2563eb', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                          <div style={{ padding: 6, background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', borderRadius: 8 }}>
+                            <Wand2 size={16} />
+                          </div>
+                          Cover Page Details
+                        </div>
+                        
+                        {/* Theme Selector */}
+                        <div style={{ marginBottom: 16, position: 'relative' }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 6 }}>Cover Theme</div>
+                          <Select 
+                            value={coverDetails.theme} 
+                            onChange={(val) => setCoverDetails({ ...coverDetails, theme: val })}
+                            style={{ width: '100%', borderRadius: 8 }}
+                          >
+                            <Select.Option value="modern-blue">Modern Blue</Select.Option>
+                            <Select.Option value="minimalist-light">Minimalist Light</Select.Option>
+                            <Select.Option value="bold-dark">Bold Dark</Select.Option>
+                            <Select.Option value="elegant-classic">Elegant Wave (Default)</Select.Option>
+                          </Select>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, position: 'relative' }}>
+                          <div style={{ 
+                            padding: 12, 
+                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
+                            borderRadius: 12, 
+                            border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
+                            boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
+                          }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#8b5cf6' }} />
+                              Prepared For (Client) <span style={{color: '#ef4444'}}>*</span>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              <Input size="small" prefix={<Building size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Company Name *" value={coverDetails.clientCompany} onChange={(e) => handleTextChange(e.target.value, 'clientCompany')} status={!coverDetails.clientCompany ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<User size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Contact Person *" value={coverDetails.clientName} onChange={(e) => handleTextChange(e.target.value, 'clientName')} status={!coverDetails.clientName ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Mail size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Email Address *" value={coverDetails.clientEmail} onChange={(e) => setCoverDetails({...coverDetails, clientEmail: e.target.value})} status={!isValidEmail(coverDetails.clientEmail) ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Phone size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Phone Number *" value={coverDetails.clientPhone} onChange={(e) => handlePhoneChange(e.target.value, 'clientPhone')} status={!coverDetails.clientPhone ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<MapPin size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Business Address *" value={coverDetails.clientAddress} onChange={(e) => setCoverDetails({...coverDetails, clientAddress: e.target.value})} status={!coverDetails.clientAddress ? 'error' : ''} style={{ borderRadius: 6 }} />
+                            </div>
+                          </div>
+                          
+                          <div style={{ 
+                            padding: 12, 
+                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
+                            borderRadius: 12, 
+                            border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
+                            boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
+                          }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
+                              Prepared By (You) <span style={{color: '#ef4444'}}>*</span>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              <Input size="small" prefix={<Building size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Organization / Company *" value={coverDetails.senderCompany} onChange={(e) => handleTextChange(e.target.value, 'senderCompany')} status={!coverDetails.senderCompany ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<User size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Your Name *" value={coverDetails.senderName} onChange={(e) => handleTextChange(e.target.value, 'senderName')} status={!coverDetails.senderName ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Briefcase size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Your Position *" value={coverDetails.senderPosition} onChange={(e) => handleTextChange(e.target.value, 'senderPosition')} status={!coverDetails.senderPosition ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Mail size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Email Address *" value={coverDetails.senderEmail} onChange={(e) => setCoverDetails({...coverDetails, senderEmail: e.target.value})} status={!isValidEmail(coverDetails.senderEmail) ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Phone size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Phone Number *" value={coverDetails.senderContact} onChange={(e) => handlePhoneChange(e.target.value, 'senderContact')} status={!coverDetails.senderContact ? 'error' : ''} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<Link size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Website URL" value={coverDetails.senderWebsite} onChange={(e) => setCoverDetails({...coverDetails, senderWebsite: e.target.value})} style={{ borderRadius: 6 }} />
+                              <Input size="small" prefix={<MapPin size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Business Address *" value={coverDetails.senderAddress} onChange={(e) => setCoverDetails({...coverDetails, senderAddress: e.target.value})} status={!coverDetails.senderAddress ? 'error' : ''} style={{ borderRadius: 6 }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? '#f8fafc' : '#1e293b' }}>Select Components to Generate</div>
+                      <Dropdown
+                        overlayStyle={{ minWidth: 220 }}
+                        trigger={['click']}
+                        menu={{
+                          style: { maxHeight: 340, overflowY: 'auto', padding: '8px', borderRadius: 12, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' },
+                          items: Object.entries(
+                            PALETTE
+                              .filter(meta => !activePhases.some(p => p.type === meta.kind))
+                              .reduce((acc, meta) => {
+                                const g = meta.group || 'Other';
+                                if (!acc[g]) acc[g] = [];
+                                acc[g].push({
+                                  key: meta.paletteId || meta.kind,
+                                  style: { padding: '8px 12px', margin: '2px 4px', borderRadius: 8 },
+                                  label: (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 500, color: 'inherit' }}>
+                                      <span style={{ color: meta.accent || '#3b82f6', display: 'flex', opacity: 0.9 }}>{meta.icon}</span>
+                                      {meta.label}
+                                    </span>
+                                  ),
+                                  onClick: () => {
+                                    setActivePhases([...activePhases, { id: nanoid(), type: meta.kind, checked: true }]);
+                                  }
+                                });
+                                return acc;
+                              }, {} as Record<string, any[]>)
+                          ).map(([groupName, children]) => ({
+                            type: 'group',
+                            label: <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 4 }}>{groupName}</span>,
+                            children
+                          }))
+                        }}
+                        placement="bottomRight"
+                      >
+                        <Button type="primary" ghost size="small" icon={<PlusOutlined />} style={{ borderRadius: 6, fontWeight: 500, padding: '0 12px' }}>
+                          Add Components
+                        </Button>
+                      </Dropdown>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
+                      {activePhases.map((phase) => {
+                        const meta = BLOCK_META.find(b => b.type === phase.type);
+                        const pal = PALETTE.find(b => b.kind === phase.type);
+                        const label = meta?.label || pal?.label || phase.type;
+                        const icon = meta?.icon || pal?.icon || <Zap size={16} />;
+                        const color = meta?.color || pal?.accent || '#3b82f6';
+
+                        return (
+                          <div
+                            key={phase.id}
+                            onClick={() => {
+                              setActivePhases(activePhases.map(p =>
+                                p.id === phase.id ? { ...p, checked: !p.checked } : p
+                              ));
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 12,
+                              padding: '12px 16px',
+                              borderRadius: 12,
+                              border: phase.checked ? `2px solid ${color}` : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                              backgroundColor: phase.checked ? (isDark ? `${color}15` : `${color}08`) : (isDark ? '#1e293b' : '#ffffff'),
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxShadow: phase.checked ? `0 4px 12px ${color}15` : '0 1px 2px rgba(0,0,0,0.02)',
+                              opacity: phase.checked ? 1 : 0.7
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!phase.checked) {
+                                e.currentTarget.style.borderColor = isDark ? '#475569' : '#cbd5e1';
+                                e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f8fafc';
+                                e.currentTarget.style.opacity = '1';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!phase.checked) {
+                                e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
+                                e.currentTarget.style.backgroundColor = isDark ? '#1e293b' : '#ffffff';
+                                e.currentTarget.style.opacity = '0.7';
+                              }
+                            }}
+                          >
+                            <span style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              backgroundColor: phase.checked ? `${color}15` : (isDark ? '#334155' : '#f1f5f9'),
+                              color: phase.checked ? color : (isDark ? '#94a3b8' : '#64748b'),
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {icon}
+                            </span>
+                            <span style={{
+                              fontSize: 14,
+                              fontWeight: phase.checked ? 600 : 500,
+                              color: phase.checked ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#cbd5e1' : '#475569'),
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {label}
+                            </span>
+                            <div style={{ marginLeft: 'auto' }}>
+                              <Checkbox
+                                checked={phase.checked}
+                                className="zai-round-checkbox"
+                                style={{ pointerEvents: 'none' }} // Let the parent div handle the click
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                  </div>
 
-                  <div className="zai-footer">
+                  <div className="zai-footer" style={{ flexShrink: 0, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
                     <div className="zai-footer__hint">
-                      Zai will automatically build the selected components in sequence.
+                      {activePhases.some(p => p.type === 'cover' && p.checked) && !isCoverDetailsValid() ? (
+                        <span style={{color: '#ef4444'}}>Please provide a valid email and fill all required Cover Page Details to proceed.</span>
+                      ) : (
+                        "Zai will automatically build the selected components in sequence."
+                      )}
                     </div>
                     <div className="zai-footer__actions">
                       <Button onClick={() => setStep('prompt')} className="zai-btn-ghost">Back</Button>
-                      <Button type="primary" onClick={handleGenerate} className="zai-cta" icon={<Sparkles size={14} />}>Start Generation</Button>
+                      {(!activePhases.some(p => p.type === 'cover' && p.checked) || isCoverDetailsValid()) && (
+                        <Button type="primary" onClick={handleGenerate} className="zai-cta" icon={<Sparkles size={14} />}>Start Generation</Button>
+                      )}
                     </div>
                   </div>
                 </>

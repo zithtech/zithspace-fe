@@ -105,10 +105,12 @@ export default function DailyUpdatesSection({
   const toStr = range[1].format('YYYY-MM-DD');
   // YYYY-MM-DD compares lexicographically = chronologically.
   const inRange = (d: string) => d >= fromStr && d <= toStr;
-  // The work date as the table shows it (createdAt for real, missed date for
-  // placeholders) — what the user actually counts as "the day she posted".
+  // The work date the update belongs to — use dueDate (the day it was *due*)
+  // as the authoritative work day. Fall back to createdAt only when dueDate is
+  // absent so that late-night / next-morning submissions are still counted on
+  // the correct calendar day rather than the submission day.
   const postedDate = (u: DailyStatusUpdate) =>
-    norm((u.is_missed && u.missed_updateAt ? u.missed_updateAt : u.createdAt) as any);
+    norm((u.dueDate || u.createdAt) as any);
 
   // Drop anything outside the range (the backend can leak a boundary day via a
   // timezone edge, e.g. Mar 31 on an April query).
@@ -135,36 +137,52 @@ export default function DailyUpdatesSection({
   );
 
   const stats = useMemo(() => {
-    // Posted working-days she actually submitted (counted independently — NOT
-    // intersected with attendance, which can mis-key dates and undercount).
+    // ── Posted & Missed ─────────────────────────────────────────────────────
+    // Derived directly from update records (matches the table rows).
+    //   Posted = unique due-date keys for NON-missed updates in the range.
+    //   Missed = unique due-date keys for is_missed updates in the range.
     const postedKeys = new Set<string>();
-    for (const u of visible) {
-      const d = postedDate(u);
-      if (isWeekend(d) || holidays.has(d)) continue;
-      postedKeys.add(`${u.userId}_${d}`);
+    const missedKeys = new Set<string>();
+
+    for (const u of updates) {
+      const t = u.updateType || 'EOD';
+      if (t === 'BOD' && !bodEnabled) continue;
+      if (t === 'EOD' && !eodEnabled) continue;
+
+      const d = norm((u.dueDate || u.missed_updateAt || u.createdAt) as any);
+      if (!inRange(d) || isWeekend(d) || holidays.has(d)) continue;
+
+      const key = `${u.userId}_${d}`;
+      if (u.is_missed) {
+        missedKeys.add(key);
+      } else {
+        postedKeys.add(key);
+      }
     }
 
-    // Expected = present working days (attendance present, weekday, not holiday,
-    // in range). Leave days are excluded because the member isn't present.
+    const posted = postedKeys.size + missedKeys.size; // all records (non-missed + missed)
+    const missed = missedKeys.size;
+
+    // ── Expected ─────────────────────────────────────────────────────────────
+    // Based on attendance: count working days (weekday, not holiday, in range)
+    // where the employee was present (not absent / on leave).
     const expectedKeys = new Set<string>();
     for (const a of attendance) {
       if (a.status === 'absent') continue;
       const d = norm(a.date);
       if (!inRange(d) || isWeekend(d) || holidays.has(d)) continue;
-      // API returns `userId` as the id string + a separate `member` object.
       const aUserId = (a as any).userId ?? (a as any).member?.id;
       expectedKeys.add(`${aUserId}_${d}`);
     }
-
     const expected = expectedKeys.size;
-    const postedCount = postedKeys.size;
-    // Posted can't exceed expected (keeps Posted + Missed = Expected).
-    const postedCapped = expected ? Math.min(postedCount, expected) : postedCount;
-    const missed = Math.max(0, expected - postedCapped);
-    const score = expected ? Math.round((postedCapped / expected) * 100) : postedCount ? 100 : null;
-    return { expected, posted: postedCapped, missed, score };
+
+    // ── Avg % ────────────────────────────────────────────────────────────────
+    // Posted (non-missed) out of Expected (attendance-based present days).
+    const score = expected ? Math.round((posted / expected) * 100) : posted ? 100 : null;
+
+    return { expected, posted, missed, score };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, attendance, holidays, fromStr, toStr]);
+  }, [updates, attendance, bodEnabled, eodEnabled, holidays, fromStr, toStr]);
 
   const rangeLabel = `${range[0].format('MMM D')} – ${range[1].format('MMM D, YYYY')}`;
 

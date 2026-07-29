@@ -67,6 +67,7 @@ import { MembersService } from "@/services/membersService";
 import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -638,7 +639,7 @@ export default function RolesPage() {
   const [membersDrawerOpen, setMembersDrawerOpen] = useState(false);
   const [membersDrawerLoading, setMembersDrawerLoading] = useState(false);
   const [roleMembers, setRoleMembers] = useState<RBACRoleDetail["userRoles"]>([]);
-  const [allMembers, setAllMembers] = useState<Array<{ value: string; label: string }>>([]);
+  const [allMembers, setAllMembers] = useState<Array<{ value: string; label: string; avatarUrl?: string | null }>>([]);
   const [assigningMemberId, setAssigningMemberId] = useState<string | undefined>(undefined);
   const [assignLoading, setAssignLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState<string>('');
@@ -781,7 +782,7 @@ export default function RolesPage() {
         MembersService.getMembersForSelect(),
       ]);
       setRoleMembers(fullRole.userRoles);
-      setAllMembers(selectMembers.map((m) => ({ value: m.value, label: m.label })));
+      setAllMembers(selectMembers.map((m) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl })));
     } catch {
       messageApi.error("Failed to load role members");
     } finally {
@@ -2127,43 +2128,22 @@ export default function RolesPage() {
                       </div>
 
                       <div className="rp-mb-assign__row">
-                        <Select
-                          className="rp-mb-select"
-                          placeholder="Search by name…"
-                          showSearch
-                          allowClear
-                          value={assigningMemberId}
-                          onChange={setAssigningMemberId}
-                          disabled={availableMembers.length === 0}
-                          style={{ flex: 1 }}
-                          optionFilterProp="label"
-                          filterOption={(input, option: any) =>
-                            (option?.label || '').toLowerCase().includes(input.toLowerCase())
-                          }
-                          options={availableMembers.map((m) => ({
-                            value: m.value,
-                            label: m.label,
-                            rich: (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <Avatar
-                                  size={24}
-                                  style={{
-                                    background: gradientFor(m.value),
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    color: '#fff',
-                                  }}
-                                >
-                                  {initialsOf(m.label)}
-                                </Avatar>
-                                <span style={{ fontWeight: 600, color: 'var(--text-slate-800)', fontSize: 13 }}>
-                                  {m.label}
-                                </span>
-                              </div>
-                            ),
-                          }))}
-                          optionRender={(option) => (option.data as any).rich}
-                        />
+                        <div style={{ flex: 1 }}>
+                          <SearchableDropdown
+                            className="rp-mb-select"
+                            placeholder="Search by name…"
+                            value={assigningMemberId}
+                            onChange={setAssigningMemberId}
+                            disabled={availableMembers.length === 0}
+                            style={{ width: '100%' }}
+                            showSelectedAvatar={true}
+                            options={availableMembers.map((m) => ({
+                              value: m.value,
+                              label: m.label,
+                              avatarUrl: (m as any).avatarUrl,
+                            }))}
+                          />
+                        </div>
                         <Button
                           type="primary"
                           icon={<PlusOutlined />}

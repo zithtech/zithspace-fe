@@ -176,7 +176,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
         {/* ── Top bar ──────────────────────────────────────────────── */}
         <div className="cmp-topbar">
           <div className="cmp-topbar__brand">
-            <span className="cmp-topbar__logo"><Layers size={18} /></span>
+            <span className="cmp-topbar__logo" style={{ borderRadius: '12px' }}><Layers size={18} /></span>
             <div>
               <div className="cmp-topbar__title">Section Composer</div>
               <div className="cmp-topbar__sub">Assemble UI components · content is filled in the builder</div>
@@ -184,6 +184,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
           </div>
           <div className="cmp-topbar__actions">
             <Segmented
+              style={{ borderRadius: '12px' }}
               value={mode}
               onChange={(v) => setMode(v as 'edit' | 'preview')}
               options={[
@@ -191,8 +192,8 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
                 { label: <span className="cmp-seg"><Eye size={13} /> Preview</span>, value: 'preview' },
               ]}
             />
-            <Button onClick={onClose}>Cancel</Button>
-            <Button type="primary" icon={<Sparkles size={14} />} onClick={handleSave}>
+            <Button style={{ borderRadius: '12px' }} onClick={onClose}>Cancel</Button>
+            <Button style={{ borderRadius: '12px' }} type="primary" icon={<Sparkles size={14} />} onClick={handleSave}>
               {initial ? 'Save Section' : 'Create Section'}
             </Button>
           </div>
@@ -202,6 +203,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
         <div className="cmp-meta">
           <Input
             className="cmp-meta__name"
+            style={{ borderRadius: '12px' }}
             placeholder="Untitled section name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -230,7 +232,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
               style={{ minWidth: 150 }}
               options={SECTION_TYPES.map((t) => ({ value: t, label: SECTION_TYPE_META[t].label, description: SECTION_TYPE_PURPOSE[t] }))}
             />
-            <span className="cmp-meta__global">
+            <span className="cmp-meta__global" style={{ borderRadius: '12px' }}>
               <Switch size="small" checked={isGlobal} onChange={setIsGlobal} />
               Global
             </span>
@@ -243,6 +245,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
           <div className="cmp-palette">
             <div className="cmp-palette__search">
               <Input
+                style={{ borderRadius: '12px' }}
                 size="small" allowClear placeholder="Search components"
                 value={paletteQuery} onChange={(e) => setPaletteQuery(e.target.value)}
               />
@@ -253,7 +256,7 @@ export const SectionComposerDrawer: React.FC<Props> = ({ open, initial, onClose,
                   <div className="cmp-palette__label">{group}</div>
                   {items.map((p) => (
                     <button key={p.paletteId} type="button" className="cmp-palette__item" onClick={() => addComponent(p.kind, p.preset)}>
-                      <span className="cmp-palette__ic" style={{ color: p.accent, background: `${p.accent}14` }}>{p.icon}</span>
+                      <span className="cmp-palette__ic" style={{ color: p.accent, background: `${p.accent}14`, borderRadius: '10px' }}>{p.icon}</span>
                       <span className="cmp-palette__text">
                         <span className="cmp-palette__name">{p.label}</span>
                         <span className="cmp-palette__blurb">{p.blurb}</span>

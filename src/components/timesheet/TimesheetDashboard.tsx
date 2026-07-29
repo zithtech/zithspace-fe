@@ -41,33 +41,55 @@ const { Title, Text } = Typography;
 
 const STATUS_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // Match Leave Management colors
 
-const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
-  <Card
-    bodyStyle={{ padding: "16px 20px" }}
-    style={{
-      borderRadius: 16,
-      background: "var(--bg-pure-white)",
-      border: "1px solid var(--border-color)",
-      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-      height: "100%"
-    }}
-  >
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div>
-        <Text style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{value}</div>
-        {subText && (
-          <div style={{ marginTop: 2 }}>
-            <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>
-          </div>
-        )}
+const AreaSparkline = ({ values, color }: { values: number[]; color: string }) => {
+  const w = 96;
+  const h = 34;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const stepX = n > 1 ? w / (n - 1) : w;
+  const pts = values.map((v, i) => {
+    const x = i * stepX;
+    const y = h - 3 - (v / max) * (h - 8);
+    return [x, y] as const;
+  });
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spk-${color.replace(/[^a-z0-9]/gi, '')}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} aria-hidden="true" style={{ display: 'block', width: '100%', maxWidth: '96px', height: 'auto' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+const StatBox = ({ label, value, icon: Icon, color, subText }: any) => {
+  // Use a pseudo-random trend for visual effect, or static
+  const trend = [3, 4, 7, 5, 8, 6, 9];
+  return (
+    <div className="pp-stat-card" style={{ borderRadius: 0 }}>
+      <div className="pp-stat-top">
+        <div className="pp-stat-left">
+          <span className="pp-stat-icon" style={{ background: `${color}15`, color: color }}><Icon size={16} /></span>
+          <span className="pp-stat-label">{label}</span>
+        </div>
       </div>
-      <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
-        <Icon size={20} />
+      <div className="pp-stat-bottom">
+        <div className="pp-stat-value-wrap">
+          <span className="pp-stat-value">{value}</span>
+          <span className="pp-stat-period">{subText}</span>
+        </div>
+        <div className="pp-stat-spark"><AreaSparkline values={trend} color={color} /></div>
       </div>
     </div>
-  </Card>
-);
+  );
+};
 
 export default function DashboardTab() {
   const [weekFilter, setWeekFilter] = useState<"all" | "thisWeek" | "lastWeek">(
@@ -239,7 +261,7 @@ export default function DashboardTab() {
           <Col xs={24} lg={10}>
             <Card
               title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Status Breakdown</span>}
-              style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+              style={{ borderRadius: 0, background: "transparent", border: "1px solid var(--border-color)", height: "100%" }}
               headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
               bodyStyle={{ padding: "12px 20px" }}
             >
@@ -289,14 +311,14 @@ export default function DashboardTab() {
           <Col xs={24} lg={14}>
             <Card
               title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Weekly Hours Trend</span>}
-              style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+              style={{ borderRadius: 0, background: "transparent", border: "1px solid var(--border-color)", height: "100%" }}
               headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
               bodyStyle={{ padding: "12px 20px" }}
             >
               <div style={{ height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={weeklyHoursData} barCategoryGap={6}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+
                     <XAxis
                       dataKey="week"
                       axisLine={false}
@@ -325,12 +347,26 @@ export default function DashboardTab() {
 
         <style dangerouslySetInnerHTML={{
           __html: `
+        .pp-stat-card {
+          background: transparent; border: 1px solid var(--border-slate-200);
+          border-radius: 0 !important; padding: 12px 14px; min-height: 92px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .pp-stat-value { font-size: 23px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 11px; color: var(--text-slate-400); font-weight: 500; white-space: nowrap; }
+        .pp-stat-spark { opacity: 0.95; }
+        
         .ant-table-thead > tr > th {
           background-color: var(--bg-secondary) !important;
           color: var(--text-secondary) !important;
           font-weight: 600 !important;
-        }
-          box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
         }
       `}} />
       </div>

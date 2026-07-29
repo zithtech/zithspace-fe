@@ -39,6 +39,7 @@ const { Title, Text } = Typography;
 function BuilderContent() {
   useActivitySource({ section: "WORK", module: "Proposals", page: "ProposalBuilder" });
   const { theme } = useTheme();
+  const defaultThemeFallback = 'elegant-classic';
   const searchParams = useSearchParams();
   const router = useRouter();
   const [messageApi, messageHolder] = message.useMessage();
@@ -114,6 +115,13 @@ function BuilderContent() {
   const [railPosition, setRailPosition] = useState<'top' | 'left'>('top');
 
   const isInitialized = useRef(false);
+
+  // Auto-open ZAI modal if directed from the themes gallery
+  useEffect(() => {
+    if (searchParams.get('openZai') === 'true') {
+      setEndToEndOpen(true);
+    }
+  }, [searchParams]);
 
   // 1. Fetch existing proposal if ID is present
   useEffect(() => {
@@ -833,8 +841,8 @@ function BuilderContent() {
 
       const coverBlock = cover?.data || {};
       const payload = {
-        title: coverBlock.title.trim(),
-        client_name: coverBlock.clientName.trim(),
+        title: coverBlock.title?.trim() || 'Untitled Proposal',
+        client_name: coverBlock.clientName?.trim() || 'Unknown Client',
         blocks: blocks,
         status: 'draft',
         lead_id: pendingLeadId // Link to the lead if we have it
@@ -971,21 +979,25 @@ function BuilderContent() {
               <Text className="pb-header__sub premium-text-sec">{isTemplateMode ? 'Compose a reusable template' : 'Draft and design your perfect proposal'}</Text>
             </div>
             {!isTemplateMode && (
-              <span className="pb-status-pill">
+              <Button
+                size="small"
+                onClick={() => handleSave()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6 }}
+              >
                 <span className="pb-status-pill__dot" />
                 Auto-saved
-              </span>
+              </Button>
             )}
           </div>
         </div>
         <div className="pb-header__actions">
-          <Segmented
+          {/* <Segmented
             className="pb-seg"
             options={[{ label: 'Top', value: 'top' }, { label: 'Left', value: 'left' }]}
             value={railPosition}
             onChange={(val) => setRailPosition(val as 'top' | 'left')}
-          />
-          <button
+          /> */}
+          {/* <button
             type="button"
             className="pb-cmd-trigger"
             onClick={() => setCommandOpen(true)}
@@ -997,15 +1009,15 @@ function BuilderContent() {
               <kbd>⌘</kbd>
               <kbd>K</kbd>
             </span>
-          </button>
-          {!isTemplateMode && canUpdateProposal && hasPrime && (
-          <Button
-            className="pb-zai-cta"
-            onClick={() => setEndToEndOpen(true)}
-            icon={<Wand2 size={14} />}
-          >
-            Create with Zai
-          </Button>
+          </button> */}
+          {!isTemplateMode && canUpdateProposal && hasPrime &&  (
+            <Button
+              className="pb-zai-cta"
+              onClick={() => setEndToEndOpen(true)}
+              icon={<Wand2 size={14} />}
+            >
+              Create with Zai
+            </Button>
           )}
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
@@ -1069,7 +1081,7 @@ function BuilderContent() {
         >
           {isRailVisible && railPosition === 'top' && hasGrid && (
             <div className="builder-top-rail">
-               <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
+              <LeftRail onJumpToBlock={jumpToBlock} layout="horizontal" />
             </div>
           )}
 
@@ -1121,6 +1133,7 @@ function BuilderContent() {
       <EndToEndZaiModal
         visible={endToEndOpen}
         onClose={() => setEndToEndOpen(false)}
+        defaultTheme={searchParams.get('theme') || defaultThemeFallback}
       />
 
       <SaveAsTemplateModal

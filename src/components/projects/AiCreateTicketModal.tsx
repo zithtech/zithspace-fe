@@ -12,9 +12,9 @@ import {
   Avatar,
   Upload,
   Tooltip,
-  Select,
   App,
 } from "antd";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
   ThunderboltOutlined,
   SendOutlined,
@@ -442,7 +442,15 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
       </div>
 
       {/* Body */}
-      <div style={{ padding: "20px 24px 24px" }}>
+      <div 
+        style={{ 
+          padding: "20px 24px 24px", 
+          height: step === "input" ? "min(520px, calc(100vh - 160px))" : "min(680px, calc(100vh - 160px))",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }}
+      >
         {step === "input" && (
           <InputStep
             titleInput={titleInput}
@@ -569,7 +577,7 @@ const InputStep: React.FC<{
   onFilesChange: (f: UploadFile[]) => void;
 }> = ({ titleInput, description, files, onTitleChange, onDescriptionChange, onFilesChange }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720, margin: "0 auto", height: "100%", width: "100%" }}>
       {/* Hint banner */}
       <div
         style={{
@@ -603,8 +611,8 @@ const InputStep: React.FC<{
       </div>
 
       {/* Description (required) — same Tiptap editor used by the manual create flow */}
-      <div>
-        <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)", flexShrink: 0 }}>
           Description <Text style={{ color: "#ef4444" }}>*</Text>
         </Text>
         <div
@@ -615,15 +623,20 @@ const InputStep: React.FC<{
             border: "1px solid var(--border-color)",
             overflow: "hidden",
             background: "var(--bg-pure-white, #fff)",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <TiptapEditor
-            content={description}
-            placeholder="Explain the issue or requirement in plain English..."
-            minHeight={140}
-            maxHeight={320}
-            onChange={onDescriptionChange}
-          />
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            <TiptapEditor
+              content={description}
+              placeholder="Explain the issue or requirement in plain English..."
+              minHeight={140}
+              maxHeight={9999} // Let the parent scroll instead
+              onChange={onDescriptionChange}
+            />
+          </div>
         </div>
       </div>
 
@@ -881,7 +894,7 @@ const PreviewStep: React.FC<{
   const showSuggestionBanner =
     suggestionStatus === "pending" && draft.totalHours > 12 && suggestionCount > 0;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
       {source === "mock" && (
         <div
           style={{
@@ -892,6 +905,7 @@ const PreviewStep: React.FC<{
             padding: "6px 10px",
             borderRadius: 8,
             gridColumn: "1 / -1",
+            flexShrink: 0
           }}
         >
           {fallbackReason
@@ -902,8 +916,8 @@ const PreviewStep: React.FC<{
 
       {/* Two-column layout: form fields left, subtasks panel right.
           Cap heights on each column so the modal stops growing tall. */}
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        <div style={{ flex: "1.15", display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flex: 1, minHeight: 0 }}>
+        <div style={{ flex: "1.15", display: "flex", flexDirection: "column", gap: 16, minWidth: 0, height: "100%", overflowY: "auto", paddingRight: 8 }}>
 
       {/* Title */}
       <div>
@@ -943,26 +957,23 @@ const PreviewStep: React.FC<{
           <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Priority
           </Text>
-          <Select
+          <SearchableDropdown
             value={draft.priority}
             onChange={(v) => onChange("priority", v as AiPriority)}
-            style={{ marginTop: 6, width: "100%" }}
-            size="middle"
+            style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
             options={(["High", "Medium", "Low"] as AiPriority[]).map((p) => ({
               value: p,
-              label: (
-                <Space size={8}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: PRIORITY_DOT[p],
-                      display: "inline-block",
-                    }}
-                  />
-                  {p}
-                </Space>
+              label: p,
+              badge: (
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: PRIORITY_DOT[p],
+                    display: "inline-block",
+                  }}
+                />
               ),
             }))}
           />
@@ -972,27 +983,15 @@ const PreviewStep: React.FC<{
           <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Assignee
           </Text>
-          <Select
+          <SearchableDropdown
             value={assigneeId}
             onChange={(v) => onAssigneeChange(v as string | undefined)}
             placeholder="Select assignee"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ marginTop: 6, width: "100%" }}
-            size="middle"
+            style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
             options={projectMembers.map((m) => ({
               value: m.value,
               label: m.label,
             }))}
-            optionRender={(opt) => (
-              <Space size={8}>
-                <Avatar size={20} style={{ fontSize: 10, backgroundColor: "#3b82f6" }}>
-                  {String(opt.label || "?")[0]?.toUpperCase()}
-                </Avatar>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{opt.label}</span>
-              </Space>
-            )}
           />
         </div>
       </div>
@@ -1009,6 +1008,9 @@ const PreviewStep: React.FC<{
             paddingLeft: 20,
             borderLeft: "1px solid var(--border-color)",
             alignSelf: "stretch",
+            height: "100%",
+            overflowY: "auto",
+            paddingRight: 8
           }}
         >
 

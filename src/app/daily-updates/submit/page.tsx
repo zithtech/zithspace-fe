@@ -1639,7 +1639,7 @@ function SubmitDailyUpdateContent() {
                               needConfirm={false}
                               disabledDate={(current) => {
                                 if (isMissedUpdate) {
-                                  if (missedDate) return !current.isSame(missedDate, "day");
+                                  if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
                                   return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
                                 }
 
@@ -1659,7 +1659,7 @@ function SubmitDailyUpdateContent() {
                               onChange={(value) => handleTimeChange(projectIndex, "endTime", value)}
                               disabledDate={(current) => {
                                 if (isMissedUpdate) {
-                                  if (missedDate) return !current.isSame(missedDate, "day");
+                                  if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
                                   return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
                                 }
                                 return current && current.isBefore(dayjs(), "day");

@@ -97,6 +97,7 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -157,101 +158,6 @@ export const STANDALONE_PAGES: StandalonePage[] = [
 ];
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
-  // ============================ MY HUB ============================
-  // Personal, employee-centric launcher. Visible to everyone (it only needs a
-  // self-service permission). Its items DEEP-LINK into the existing feature
-  // routes — this is a shortcut menu, not a set of duplicated pages. Placed
-  // first so /my-hub resolves to this module. NOTE: the shortcut items point at
-  // routes owned by other modules, so activeModule flips to that module once you
-  // navigate into a feature — that's expected; /my-hub is the home base.
-  {
-    key: "MY_HUB",
-    label: "My Hub",
-    icon: I(LayoutGrid),
-    pathPrefixes: ["/my-hub"],
-    defaultPath: "/my-hub",
-    requiredSubscriptionFeature: ["my_hub"],
-    // Gated by the dedicated My Hub permissions (one per page). These are
-    // auto-granted to every role, so My Hub is visible to everyone by default.
-    requiredAnyPermission: [
-      Permissions.MY_HUB_OVERVIEW_READ,
-      Permissions.MY_HUB_APPLY_LEAVE_READ,
-      Permissions.MY_HUB_ATTENDANCE_READ,
-      Permissions.MY_HUB_ESCALATION_READ,
-      Permissions.MY_HUB_PERFORMANCE_READ,
-      Permissions.MY_HUB_PAYSLIPS_READ,
-      Permissions.MY_HUB_PROFILE_READ,
-      Permissions.MY_HUB_CLAIMS_READ,
-    ],
-    items: [
-      {
-        key: "/my-hub",
-        label: "Overview",
-        icon: I(LayoutGrid),
-        path: "/my-hub",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
-      },
-      {
-        key: "/my-hub/profile",
-        label: "My Profile",
-        icon: I(CircleUser),
-        path: "/my-hub/profile",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
-      },
-      {
-        key: "/my-hub/apply-leave",
-        label: "Apply Leave",
-        icon: I(CalendarPlus),
-        path: "/my-hub/apply-leave",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_APPLY_LEAVE_READ,
-      },
-      {
-        key: "/my-hub/attendance",
-        label: "Attendance",
-        icon: I(CalendarCheck),
-        path: "/my-hub/attendance",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_ATTENDANCE_READ,
-      },
-      {
-        // Escalations targeting me (not the ones I raised) — the page locks to
-        // this personal view when under /my-hub.
-        key: "/my-hub/escalations",
-        label: "Escalations",
-        icon: I(Siren),
-        path: "/my-hub/escalations",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_ESCALATION_READ,
-      },
-      {
-        key: "/my-hub/performance",
-        label: "Performance Report",
-        icon: I(TrendingUp),
-        path: "/my-hub/performance",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_PERFORMANCE_READ,
-      },
-      {
-        key: "/my-hub/payslips",
-        label: "My Payslips",
-        icon: I(Banknote),
-        path: "/my-hub/payslips",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
-      },
-      {
-        key: "/my-hub/claims",
-        label: "My Claims",
-        icon: I(ReceiptText),
-        path: "/my-hub/claims",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
-        requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
-      },
-    ],
-  },
   {
     key: "HOME",
     label: "HOME",
@@ -430,46 +336,46 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ]
       },
-      // {
-      //   key: "timesheet-group",
-      //   label: "Timesheet",
-      //   icon: I(CalendarClock),
-      //   requiredAnyPermission: [
-      //     Permissions.TIMESHEET_READ,
-      //     Permissions.TIMESHEET_CREATE,
-      //     Permissions.TIMESHEET_APPROVE,
-      //   ],
-      //   children: [
-      //     {
-      //       key: "/timesheet/dashboard",
-      //       label: "Dashboard",
-      //       icon: I(Gauge),
-      //       path: "/timesheet/dashboard",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet",
-      //       label: "My Timesheets",
-      //       icon: I(FileClock),
-      //       path: "/timesheet",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet/submit",
-      //       label: "Submit Timesheet",
-      //       icon: I(Send),
-      //       path: "/timesheet/submit",
-      //       requiredPermission: Permissions.TIMESHEET_CREATE,
-      //     },
-      //     {
-      //       key: "/timesheet/teams",
-      //       label: "Teams",
-      //       icon: I(Users),
-      //       path: "/timesheet/teams",
-      //       requiredPermission: Permissions.TIMESHEET_APPROVE,
-      //     },
-      //   ],
-      // },
+      {
+        key: "timesheet-group",
+        label: "Timesheet",
+        icon: I(CalendarClock),
+        requiredAnyPermission: [
+          Permissions.TIMESHEET_READ,
+          Permissions.TIMESHEET_CREATE,
+          Permissions.TIMESHEET_APPROVE,
+        ],
+        children: [
+          {
+            key: "/timesheet/dashboard",
+            label: "Dashboard",
+            icon: I(Gauge),
+            path: "/timesheet/dashboard",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet",
+            label: "My Timesheets",
+            icon: I(FileClock),
+            path: "/timesheet",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet/submit",
+            label: "Submit Timesheet",
+            icon: I(Send),
+            path: "/timesheet/submit",
+            requiredPermission: Permissions.TIMESHEET_CREATE,
+          },
+          {
+            key: "/timesheet/teams",
+            label: "Teams",
+            icon: I(Users),
+            path: "/timesheet/teams",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
+        ],
+      },
       {
         key: "time-tracking",
         label: "Time Tracking",
@@ -563,6 +469,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -928,7 +841,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
-      {
+/* {
         key: "employee-exit",
         icon: I(LogOut),
         label: "Employee Exit",
@@ -958,7 +871,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/opening-management",
         requiredSubscriptionFeature: ["hrms_opening_management"],
         requiredPermission: Permissions.OPENING_READ,
-      },
+      }, */
     ],
   },
   {
@@ -1136,6 +1049,101 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           // scopes what a self-service user actually sees.
           Permissions.PAYROLL_MY_PAYSLIPS_READ,
         ],
+      },
+    ],
+  },
+  // ============================ MY HUB ============================
+  // Personal, employee-centric launcher. Visible to everyone (it only needs a
+  // self-service permission). Its items DEEP-LINK into the existing feature
+  // routes — this is a shortcut menu, not a set of duplicated pages. Placed
+  // first so /my-hub resolves to this module. NOTE: the shortcut items point at
+  // routes owned by other modules, so activeModule flips to that module once you
+  // navigate into a feature — that's expected; /my-hub is the home base.
+  {
+    key: "MY_HUB",
+    label: "My Hub",
+    icon: I(LayoutGrid),
+    pathPrefixes: ["/my-hub"],
+    defaultPath: "/my-hub",
+    requiredSubscriptionFeature: ["my_hub"],
+    // Gated by the dedicated My Hub permissions (one per page). These are
+    // auto-granted to every role, so My Hub is visible to everyone by default.
+    requiredAnyPermission: [
+      Permissions.MY_HUB_OVERVIEW_READ,
+      Permissions.MY_HUB_APPLY_LEAVE_READ,
+      Permissions.MY_HUB_ATTENDANCE_READ,
+      Permissions.MY_HUB_ESCALATION_READ,
+      Permissions.MY_HUB_PERFORMANCE_READ,
+      Permissions.MY_HUB_PAYSLIPS_READ,
+      Permissions.MY_HUB_PROFILE_READ,
+      Permissions.MY_HUB_CLAIMS_READ,
+    ],
+    items: [
+      {
+        key: "/my-hub",
+        label: "Overview",
+        icon: I(LayoutGrid),
+        path: "/my-hub",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
+      },
+      {
+        key: "/my-hub/profile",
+        label: "My Profile",
+        icon: I(CircleUser),
+        path: "/my-hub/profile",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_PROFILE_READ,
+      },
+      {
+        key: "/my-hub/apply-leave",
+        label: "Apply Leave",
+        icon: I(CalendarPlus),
+        path: "/my-hub/apply-leave",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_APPLY_LEAVE_READ,
+      },
+      {
+        key: "/my-hub/attendance",
+        label: "Attendance",
+        icon: I(CalendarCheck),
+        path: "/my-hub/attendance",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_ATTENDANCE_READ,
+      },
+      {
+        // Escalations targeting me (not the ones I raised) — the page locks to
+        // this personal view when under /my-hub.
+        key: "/my-hub/escalations",
+        label: "Escalations",
+        icon: I(Siren),
+        path: "/my-hub/escalations",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_ESCALATION_READ,
+      },
+      {
+        key: "/my-hub/performance",
+        label: "Performance Report",
+        icon: I(TrendingUp),
+        path: "/my-hub/performance",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_PERFORMANCE_READ,
+      },
+      {
+        key: "/my-hub/payslips",
+        label: "My Payslips",
+        icon: I(Banknote),
+        path: "/my-hub/payslips",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
+      },
+      {
+        key: "/my-hub/claims",
+        label: "My Claims",
+        icon: I(ReceiptText),
+        path: "/my-hub/claims",
+        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
       },
     ],
   },

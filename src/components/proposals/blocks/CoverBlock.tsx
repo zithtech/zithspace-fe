@@ -1,4 +1,4 @@
-import { Space, Typography, Form, Input, DatePicker, Row, Col, Divider, Upload, Button, message, Tag } from 'antd';
+import { Space, Typography, Form, Input, DatePicker, Row, Col, Divider, Upload, Button, message, Tag, Select } from 'antd';
 import {
   UploadOutlined,
   EditOutlined,
@@ -10,7 +10,8 @@ import {
   GlobalOutlined,
   MailOutlined,
   PhoneOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  BgColorsOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import TiptapEditor from '@/components/common/TiptapEditor';
@@ -178,6 +179,7 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
       layout="vertical"
       initialValues={{
         ...data,
+        theme: data.theme || 'elegant-classic',
         date: data.date ? dayjs(data.date) : null,
         validUntil: data.validUntil ? dayjs(data.validUntil) : null
       }}
@@ -205,6 +207,24 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         });
       }}
     >
+
+      {/* Visuals & Styling Section */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <BgColorsOutlined style={{ color: '#8b5cf6' }} />
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Visuals & Styling</Text>
+        </div>
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <Form.Item label={<span style={labelStyle}>Cover Theme</span>} name="theme" style={{ marginBottom: 0 }}>
+            <Select style={{ width: '100%' }}>
+              <Select.Option value="modern-blue">Modern Blue</Select.Option>
+              <Select.Option value="minimalist-light">Minimalist Light</Select.Option>
+              <Select.Option value="bold-dark">Bold Dark</Select.Option>
+              <Select.Option value="elegant-classic">Elegant Wave (Default)</Select.Option>
+            </Select>
+          </Form.Item>
+        </div>
+      </div>
 
       {/* Identity & Summary Section */}
       <div style={{ marginBottom: '24px' }}>

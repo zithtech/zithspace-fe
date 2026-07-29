@@ -312,6 +312,7 @@ export interface Decision {
 export interface ScopeOption {
   value: string;
   label: string;
+  avatarUrl?: string | null;
 }
 
 // Org endpoints reused to resolve policy-assignment targets (same as leaves-v2).
@@ -549,7 +550,7 @@ export const ReimbursementV2Service = {
     const res = await apiClient.get(ep);
     const items = toArray(res.data);
     if (scopeType === 'user') {
-      return items.map((m: any) => ({ value: m.value ?? m.id, label: m.label ?? m.name ?? m.workEmail }));
+      return items.map((m: any) => ({ value: m.value ?? m.id, label: m.label ?? m.name ?? m.workEmail, avatarUrl: m.avatarUrl }));
     }
     if (scopeType === 'position') {
       return items.map((p: any) => ({

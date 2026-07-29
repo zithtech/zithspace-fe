@@ -10,6 +10,7 @@ import {
     HistoryOutlined,
 } from '@ant-design/icons';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
+import ConfirmDialog from './ConfirmDialog';
 
 interface HistoryEntry {
     id: string;
@@ -90,22 +91,6 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({
             okText: 'Restore',
             cancelText: 'Cancel',
             onOk: () => onRestoreVersion?.(entry),
-        });
-    };
-
-    const confirmDelete = (entry: HistoryEntry) => {
-        if (entry.id === latestId) {
-            messageApi.warning("Can't delete the latest version.");
-            return;
-        }
-        modal.confirm({
-            title: 'Delete this version?',
-            content:
-                'This will permanently remove this version from the history. The action cannot be undone.',
-            okText: 'Delete',
-            okType: 'danger',
-            cancelText: 'Cancel',
-            onOk: () => onDeleteVersion?.(entry),
         });
     };
 
@@ -330,27 +315,38 @@ const DocumentHistory: React.FC<DocumentHistoryProps> = ({
                                             )}
                                             <div className="ml-auto" />
                                             {!isLatest && onDeleteVersion && canDelete && (
-                                                <button
-                                                    onClick={() => confirmDelete(entry)}
-                                                    className="flex items-center justify-center w-7 h-7 rounded-md transition-colors"
-                                                    style={{
-                                                        color: 'var(--text-slate-400)',
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
+                                                <ConfirmDialog
+                                                    tone="danger"
+                                                    title="Delete this version?"
+                                                    description="This will permanently remove this version from the history. The action cannot be undone."
+                                                    confirmText="Delete"
+                                                    onConfirm={async () => {
+                                                        await Promise.resolve(onDeleteVersion(entry));
                                                     }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = 'var(--bg-red-50)';
-                                                        e.currentTarget.style.color = 'var(--text-leave)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = 'transparent';
-                                                        e.currentTarget.style.color = 'var(--text-slate-400)';
-                                                    }}
-                                                    aria-label="Delete version"
+                                                    placement="left"
                                                 >
-                                                    <DeleteOutlined style={{ fontSize: 12 }} />
-                                                </button>
+                                                    <button
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+                                                        style={{
+                                                            color: 'var(--text-slate-400)',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = 'var(--bg-red-50)';
+                                                            e.currentTarget.style.color = 'var(--text-leave)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = 'transparent';
+                                                            e.currentTarget.style.color = 'var(--text-slate-400)';
+                                                        }}
+                                                        aria-label="Delete version"
+                                                    >
+                                                        <DeleteOutlined style={{ fontSize: 12 }} />
+                                                    </button>
+                                                </ConfirmDialog>
                                             )}
                                         </div>
                                     </div>

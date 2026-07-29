@@ -14,6 +14,7 @@ import {
   Popover,
 } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
   GitBranch,
   Edit,
@@ -271,7 +272,7 @@ export default function SubDepartmentsPage() {
       departments.find((d) => d.id === record.parentDepartmentId)?.name;
       
     const actionContent = (
-      <div className="ant-dropdown-menu" style={{ border: 'none', boxShadow: 'none' }}>
+      <div className="ant-dropdown-menu" style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 4, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
         {canManageOrg && (
           <>
             <div 
@@ -549,11 +550,8 @@ export default function SubDepartmentsPage() {
                     rules={[{ required: true, message: "Required" }]}
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select parent department"
-                      loading={departmentsLoading}
-                      showSearch
-                      optionFilterProp="label"
                       options={departments.map((d) => ({ value: d.id, label: d.name }))}
                     />
                   </Form.Item>

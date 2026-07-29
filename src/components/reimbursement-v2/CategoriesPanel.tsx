@@ -12,6 +12,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import { Permissions } from '@/types/permissions';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ReimbursementV2Service, {
   ExpenseCategory, SaveCategoryInput,
 } from '@/services/reimbursementV2Service';
@@ -324,17 +325,16 @@ export default function CategoriesPanel() {
           <SectionCard icon={<InfoCircleOutlined />}
             title="Basics" subtitle="Identity and type" step="STEP 1">
             <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
-              <AutoComplete
+              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+              <SearchableDropdown
+                freeText
                 placeholder="Start typing, e.g. Flight Travel"
-                options={NAME_SUGGESTIONS.map((v) => ({ value: v }))}
-                filterOption={(input, option) =>
-                  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
+                options={NAME_SUGGESTIONS.map((v) => ({ value: v, label: v }))}
                 onChange={(val) => {
                   const s = String(val || '');
-                  const patch: any = { code: toCode(s) };
+                  const patch: any = { name: s, code: toCode(s) };
                   const gl = guessGl(s);
-                  if (gl) patch.glCode = gl; // suggest; don't clear a manual value
+                  if (gl) patch.glCode = gl;
                   form.setFieldsValue(patch);
                 }}
               />
@@ -348,19 +348,17 @@ export default function CategoriesPanel() {
               label={labelInfo('GL / accounting code', 'General Ledger code that maps this expense to your finance books (e.g. 5001-Travel). Suggested from the name — edit or pick your own. Optional.')}
               rules={[{ max: 60, message: 'Max 60 characters' },
                 { pattern: /^[A-Za-z0-9 _./-]*$/, message: 'Letters, numbers and . _ / - only' }]}>
-              <AutoComplete
+              <SearchableDropdown
+                freeText
                 placeholder="Suggested from the name — or pick / type your own"
                 options={GL_CATALOG.map((g) => ({ value: g.code, label: g.label }))}
-                filterOption={(input, option) =>
-                  String(option?.label ?? '').toLowerCase().includes(input.toLowerCase()) ||
-                  String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())}
               />
             </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}>
+            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
               <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
             </Form.Item>
             <Form.Item name="kind" label="Type">
-              <Select options={[{ value: 'amount', label: 'Amount (normal expense)' }, { value: 'mileage', label: 'Mileage (per distance)' }]} />
+              <SearchableDropdown options={[{ value: 'amount', label: 'Amount (normal expense)' }, { value: 'mileage', label: 'Mileage (per distance)' }]} />
             </Form.Item>
             {kind === 'mileage' && (
               <>

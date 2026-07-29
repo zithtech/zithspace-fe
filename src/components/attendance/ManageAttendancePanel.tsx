@@ -420,10 +420,30 @@ export default function ManageAttendancePanel() {
       // Fold the timeline into normalized work sessions. Each work row becomes a
       // session; a break row attaches its type/reason to the preceding work
       // session (the gap to the next session IS the break duration).
-      const rows = (values.timeline || [])
-        .filter((r: any) => r && r.start)
-        .map((r: any) => ({ ...r, s: atDate(r.start), e: r.end ? atDate(r.end) : null }))
-        .sort((a: any, b: any) => a.s.valueOf() - b.s.valueOf());
+      const rawRows = (values.timeline || []).filter((r: any) => r && r.start);
+      
+      let currentDayOffset = 0;
+      let lastTime = 0;
+
+      const mappedRows = rawRows.map((r: any) => {
+        let s = atDate(r.start).add(currentDayOffset, 'day');
+        
+        if (s.valueOf() < lastTime) {
+          currentDayOffset += 1;
+          s = s.add(1, 'day');
+        }
+        
+        let e = r.end ? atDate(r.end).add(currentDayOffset, 'day') : null;
+        if (e && e.isBefore(s)) {
+          e = e.add(1, 'day');
+          currentDayOffset += 1;
+        }
+        
+        lastTime = e ? e.valueOf() : s.valueOf();
+        return { ...r, s, e };
+      });
+
+      const rows = mappedRows.sort((a: any, b: any) => a.s.valueOf() - b.s.valueOf());
 
       const sessions: { clockIn: string; clockOut: string | null; breakType: string | null; breakReason: string | null }[] = [];
       for (const r of rows) {
@@ -571,8 +591,8 @@ export default function ManageAttendancePanel() {
         );
       },
     },
-    { title: 'Clock In', dataIndex: 'clockIn', key: 'clockIn', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
-    { title: 'Clock Out', dataIndex: 'clockOut', key: 'clockOut', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
+    { title: 'Clock In', dataIndex: 'clockIn', key: 'clockIn', render: (v) => (v ? dayjs(v).format('h:mm a') : '-') },
+    { title: 'Clock Out', dataIndex: 'clockOut', key: 'clockOut', render: (v) => (v ? dayjs(v).format('h:mm a') : '-') },
     {
       title: 'Work Hours',
       key: 'workHours',
@@ -634,7 +654,7 @@ export default function ManageAttendancePanel() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.isOpen ? PALETTE.green : PALETTE.blue }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-slate-700)', minWidth: 78 }}>Session {i + 1}</span>
                 <span style={{ fontSize: 12.5, color: 'var(--text-slate-900)', fontVariantNumeric: 'tabular-nums' }}>
-                  {dayjs(s.clockIn).format('HH:mm')} → {s.clockOut ? dayjs(s.clockOut).format('HH:mm') : 'ongoing'}
+                  {dayjs(s.clockIn).format('h:mm a')} → {s.clockOut ? dayjs(s.clockOut).format('h:mm a') : 'ongoing'}
                 </span>
                 <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: 'var(--text-slate-700)' }}>{formatDuration(s.workMinutes)}</span>
               </div>
@@ -1115,7 +1135,10 @@ export default function ManageAttendancePanel() {
                                                 const s = getFieldValue(['timeline', field.name, 'start']);
                                                 if (!value || !s) return Promise.resolve();
                                                 const normS = dayjs().hour(dayjs(s).hour()).minute(dayjs(s).minute()).second(0).millisecond(0);
-                                                const normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
+                                                let normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
+                                                if (normE.isBefore(normS)) {
+                                                  normE = normE.add(1, 'day');
+                                                }
                                                 if (normE.isAfter(normS)) return Promise.resolve();
                                                 return Promise.reject(new Error('After start'));
                                               },
@@ -1287,7 +1310,7 @@ export default function ManageAttendancePanel() {
                   Completed
                 </div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: PALETTE.red, fontVariantNumeric: 'tabular-nums' }}>
-                  {dayjs(reopenTarget.clockOut).format('HH:mm')}
+                  {dayjs(reopenTarget.clockOut).format('h:mm a')}
                 </div>
               </div>
             )}

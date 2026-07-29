@@ -71,6 +71,17 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
             explanation: initialData.explanation || '',
           });
           setBuyoutEnabled(!!initialData.buyoutRequired);
+          
+          if (initialData.resignationLetterUrl || initialData.resignationLetter) {
+            setResignationLetter([{
+              uid: '-1',
+              name: initialData.resignationLetter || 'resignation-letter.pdf',
+              status: 'done',
+              url: initialData.resignationLetterUrl || initialData.resignationLetter,
+            }]);
+          }
+          
+          handleEmployeeChange(initialData.employeeId, true);
         }, 100);
       } else {
         const empIdToUse = defaultEmployeeId || (isSelfService ? user?.employeeId : undefined);
@@ -116,7 +127,7 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
     }
   };
 
-  const handleEmployeeChange = async (employeeId: string) => {
+  const handleEmployeeChange = async (employeeId: string, skipNoticePeriodUpdate = false) => {
     try {
       setDetailsLoading(true);
       const data = await EmployeeService.getWorkDetailByEmployee(employeeId);
@@ -148,13 +159,15 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
         form.setFieldsValue(formValues);
 
         // Notice period handling
-        const noticeDays = data.noticePeriodDays || data.noticePeriod || 0;
-        if (noticeDays > 0) {
-          form.setFieldsValue({ noticePeriodDays: noticeDays });
-          const resignationDate = form.getFieldValue('resignationDate');
-          if (resignationDate) {
-            const noticeDate = dayjs(resignationDate).add(noticeDays, 'day');
-            form.setFieldsValue({ noticePeriodDay: noticeDate });
+        if (!skipNoticePeriodUpdate) {
+          const noticeDays = data.noticePeriodDays || data.noticePeriod || 0;
+          if (noticeDays > 0) {
+            form.setFieldsValue({ noticePeriodDays: noticeDays });
+            const resignationDate = form.getFieldValue('resignationDate');
+            if (resignationDate) {
+              const noticeDate = dayjs(resignationDate).add(noticeDays, 'day');
+              form.setFieldsValue({ noticePeriodDay: noticeDate });
+            }
           }
         }
       }
@@ -390,6 +403,30 @@ export const CreateExitRequestDrawer: React.FC<CreateExitRequestDrawerProps> = (
                 fileList={resignationLetter}
                 beforeUpload={() => false}
                 onChange={({ fileList }) => setResignationLetter(fileList)}
+                onPreview={async (file) => {
+                  if (!file.url && !file.preview && file.originFileObj) {
+                    file.preview = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.readAsDataURL(file.originFileObj as Blob);
+                      reader.onload = () => resolve(reader.result as string);
+                    });
+                  }
+                  
+                  let url = file.url || file.preview || '';
+                  if (url.includes("r2.cloudflarestorage.com")) {
+                    url = url.replace(
+                      /https:\/\/[^/]+\.r2\.cloudflarestorage\.com\/[^/]+/,
+                      "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev"
+                    );
+                  }
+                  if (url.includes(".r2.dev") && !url.includes(".r2.dev/")) {
+                    url = url.replace(".r2.dev", ".r2.dev/");
+                  }
+                  
+                  if (url) {
+                    window.open(url, '_blank');
+                  }
+                }}
               >
                 <Button icon={<UploadOutlined />} style={{ borderRadius: 8 }}>Click to Upload</Button>
               </Upload>

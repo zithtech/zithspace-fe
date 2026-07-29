@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Dropdown, Select, notification } from 'antd';
+import {  Table, Button, Dropdown, Select, App } from 'antd';
 import { Search, Plus, MoreVertical, CheckCircle, Clock, XCircle, ArrowUpRight, Trash2, Edit2, Eye } from 'lucide-react';
 import { EmployeeExitService } from '@/services/employeeExitService';
 import dayjs from 'dayjs';
@@ -17,7 +17,7 @@ export default function AllRequestsPage() {
   const [detailsDrawerVisible, setDetailsDrawerVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -164,7 +164,7 @@ export default function AllRequestsPage() {
             placement="bottomRight"
             onConfirm={async () => {
               await EmployeeExitService.deleteExitRequest(record.id);
-              notificationApi.success({ message: 'Exit request deleted.' });
+              messageApi.success('Exit request deleted.');
               fetchData();
             }}
           >
@@ -183,7 +183,7 @@ export default function AllRequestsPage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
 
       {/* Header */}
       <div className="exit-page-header">

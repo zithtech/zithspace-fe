@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Dropdown, Select, notification, Modal } from 'antd';
+import {  Table, Button, Dropdown, Select, Modal , App } from 'antd';
 import { Search, Plus, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle, Trash2, Edit2, Eye } from 'lucide-react';
 import { EmployeeExitService } from '@/services/employeeExitService';
 import dayjs from 'dayjs';
@@ -17,7 +17,7 @@ export default function MyRequestsPage() {
   const [detailsDrawerVisible, setDetailsDrawerVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { user } = useAuth();
@@ -177,10 +177,10 @@ export default function MyRequestsPage() {
                   onOk: async () => {
                     try {
                       await EmployeeExitService.deleteExitRequest(record.id);
-                      notificationApi.success({ message: 'Exit request deleted.' });
+                      messageApi.success('Exit request deleted.');
                       fetchData();
                     } catch (e: any) {
-                      notificationApi.error({ message: e.message || 'Failed to delete.' });
+                      messageApi.error(e.message || 'Failed to delete.');
                     }
                   }
                 });
@@ -198,7 +198,7 @@ export default function MyRequestsPage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
 
       {/* Header */}
       <div className="exit-page-header">

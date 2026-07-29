@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Space, notification, Drawer, Form, Input, Rate, Row, Col, Select } from 'antd';
+import {  Button, Table, Space, Drawer, Form, Input, Rate, Row, Col, Select , App } from 'antd';
 import { 
   Search, 
   ArrowUpRight, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 
 export default function ExitInterviewsPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function ExitInterviewsPage() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<EmployeeExitRequest | null>(null);
   const [form] = Form.useForm();
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
 
@@ -31,14 +32,11 @@ export default function ExitInterviewsPage() {
       const data = await EmployeeExitService.getExitRequests();
       setRequests((data || []).filter(r => r.status === 'APPROVED'));
     } catch (error) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to fetch exit interviews'
-      });
+      messageApi.error('Failed to fetch exit interviews');
     } finally {
       setLoading(false);
     }
-  }, [notificationApi]);
+  }, [messageApi]);
 
   useEffect(() => {
     fetchInterviews();
@@ -66,17 +64,11 @@ export default function ExitInterviewsPage() {
     try {
       await EmployeeExitService.submitExitInterview(selectedRequest.id, values);
       setRequests(prev => prev.map(r => r.id === selectedRequest.id ? { ...r, hasInterview: true } : r));
-      notificationApi.success({
-        message: 'Interview Submitted',
-        description: `Exit interview recorded for ${selectedRequest.employee?.first_name}`
-      });
+      messageApi.success(`Exit interview recorded for ${selectedRequest.employee?.first_name}`);
       setIsDrawerVisible(false);
       form.resetFields();
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Submission Failed',
-        description: error.message || 'Failed to submit interview'
-      });
+      messageApi.error(error.message || 'Failed to submit interview');
     }
   };
 
@@ -100,10 +92,10 @@ export default function ExitInterviewsPage() {
           });
         }, 100);
       } else {
-        notificationApi.warning({ message: 'Debug', description: 'existing is null' });
+        messageApi.warning('existing is null');
       }
     } catch (e) {
-      notificationApi.error({ message: 'Error', description: String(e) });
+      messageApi.error(String(e));
     }
   };
 
@@ -185,7 +177,7 @@ export default function ExitInterviewsPage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
@@ -233,41 +225,98 @@ export default function ExitInterviewsPage() {
       )}
 
       <Drawer
-        title={<span style={{ color: 'var(--text-primary)' }}>Exit Interview: {selectedRequest?.employee?.first_name || ''}</span>}
-        width={600}
-        onClose={() => setIsDrawerVisible(false)}
+        {...commonDrawerProps}
         open={isDrawerVisible}
-        style={{ background: 'var(--bg-primary)' }}
-        headerStyle={{ borderBottom: '1px solid var(--border-color)' }}
-        extra={
-          <Space>
-            <Button onClick={() => setIsDrawerVisible(false)} style={{ background: 'transparent', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-400)' }}>Cancel</Button>
-            <Button type="primary" onClick={() => form.submit()} style={{ background: '#3b82f6', border: 'none', fontWeight: 600 }}>Submit Feedback</Button>
-          </Space>
+        onClose={() => setIsDrawerVisible(false)}
+        footer={
+          <div
+            className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+          >
+            <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
+            <Button 
+              type="primary" 
+              onClick={() => form.submit()} 
+              style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+            >
+              Submit Feedback
+            </Button>
+          </div>
         }
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmitInterview}>
-          <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16, marginBottom: 16 }}>Experience Ratings</div>
-          <Row gutter={16}>
-            <Col span={12}><Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Company Culture</span>} name="cultureRating" rules={[{ required: true }]}><Rate /></Form.Item></Col>
-            <Col span={12}><Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Management</span>} name="managementRating" rules={[{ required: true }]}><Rate /></Form.Item></Col>
-            <Col span={12}><Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Career Growth</span>} name="growthRating" rules={[{ required: true }]}><Rate /></Form.Item></Col>
-            <Col span={12}><Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Compensation</span>} name="compensationRating" rules={[{ required: true }]}><Rate /></Form.Item></Col>
-          </Row>
-          <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16, marginTop: 16, marginBottom: 16 }}>Detailed Feedback</div>
-          <Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Primary reason for leaving</span>} name="reasonDetail" rules={[{ required: true }]}>
-            <Input.TextArea rows={3} placeholder="Please elaborate..." style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
-          </Form.Item>
-          <Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>What did you like most?</span>} name="positiveFeedback">
-            <Input.TextArea rows={3} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
-          </Form.Item>
-          <Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>What could be improved?</span>} name="constructiveFeedback">
-            <Input.TextArea rows={3} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
-          </Form.Item>
-          <Form.Item label={<span style={{ color: 'var(--text-slate-400)' }}>Interviewer Notes (Private)</span>} name="interviewerNotes">
-            <Input.TextArea rows={3} placeholder="Private notes for HR..." style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
-          </Form.Item>
-        </Form>
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
+        <div
+          className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+          style={{
+            background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'var(--bg-blue-50)',
+                color: 'var(--text-blue-700)',
+                border: '1px solid var(--border-blue-200)',
+              }}
+            >
+              <MessageSquare size={18} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                Exit Interview
+              </div>
+              <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                {selectedRequest?.employee?.first_name || ''} {selectedRequest?.employee?.last_name || ''}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDrawerVisible(false)}
+            className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)] cursor-pointer"
+            style={{ color: 'var(--text-secondary)', border: 'none', background: 'transparent' }}
+          >
+            <XCircle size={16} />
+          </button>
+        </div>
+
+        <div className="px-6 py-6" style={{ background: 'var(--bg-primary)' }}>
+          <Form form={form} layout="vertical" onFinish={handleSubmitInterview}>
+            <SectionCard title="Experience Ratings" icon={<CheckCircle size={16} />}>
+              <Row gutter={16}>
+                <Col span={12}><Form.Item label="Company Culture" name="cultureRating" rules={[{ required: true }]}><Rate style={{ color: '#f59e0b' }} /></Form.Item></Col>
+                <Col span={12}><Form.Item label="Management" name="managementRating" rules={[{ required: true }]}><Rate style={{ color: '#f59e0b' }} /></Form.Item></Col>
+                <Col span={12}><Form.Item label="Career Growth" name="growthRating" rules={[{ required: true }]}><Rate style={{ color: '#f59e0b' }} /></Form.Item></Col>
+                <Col span={12}><Form.Item label="Compensation" name="compensationRating" rules={[{ required: true }]}><Rate style={{ color: '#f59e0b' }} /></Form.Item></Col>
+              </Row>
+            </SectionCard>
+
+            <SectionCard title="Detailed Feedback" icon={<MessageSquare size={16} />}>
+              <Form.Item label="Primary reason for leaving" name="reasonDetail" rules={[{ required: true }]}>
+                <Input.TextArea rows={3} placeholder="Please elaborate on the main reason..." className="custom-textarea" />
+              </Form.Item>
+              
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="What did you like most?" name="positiveFeedback">
+                    <Input.TextArea rows={4} placeholder="Positive highlights..." className="custom-textarea" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="What could be improved?" name="constructiveFeedback">
+                    <Input.TextArea rows={4} placeholder="Areas for improvement..." className="custom-textarea" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              
+              <Form.Item label="Interviewer Notes (Private)" name="interviewerNotes" style={{ marginBottom: 0 }}>
+                <Input.TextArea rows={3} placeholder="Private notes for HR internal use..." className="custom-textarea" />
+              </Form.Item>
+            </SectionCard>
+          </Form>
+        </div>
       </Drawer>
     </>
   );

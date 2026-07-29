@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Space, notification, Drawer, Form, InputNumber, Row, Col, Card, Select, Tag, Collapse } from 'antd';
+import {  Button, Table, Space, Drawer, Form, InputNumber, Row, Col, Card, Select, Tag, Collapse , App } from 'antd';
 import { 
   Search, 
   ArrowUpRight, 
@@ -23,7 +23,7 @@ export default function FnFPage() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<EmployeeExitRequest | null>(null);
   const [form] = Form.useForm();
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
   const [totalSettlement, setTotalSettlement] = useState<number>(0);
@@ -36,14 +36,11 @@ export default function FnFPage() {
       // Only show requests that are approved or completed
       setRequests((data || []).filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED'));
     } catch (error) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to fetch FnF records'
-      });
+      messageApi.error('Failed to fetch FnF records');
     } finally {
       setLoading(false);
     }
-  }, [notificationApi]);
+  }, [messageApi]);
 
   useEffect(() => {
     fetchFnFRequests();
@@ -93,18 +90,12 @@ export default function FnFPage() {
       if (!selectedRequest?.id) return;
       
       await EmployeeExitService.processFnFSettlement(selectedRequest.id, values);
-      notificationApi.success({
-        message: 'Settlement Processed',
-        description: `Final settlement of $${totalSettlement} processed for ${selectedRequest?.employee?.first_name}`
-      });
+      messageApi.success(`Final settlement of $${totalSettlement} processed for ${selectedRequest?.employee?.first_name}`);
       setIsDrawerVisible(false);
       form.resetFields();
       fetchFnFRequests();
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: error.message || 'Failed to process FnF settlement'
-      });
+      messageApi.error(error.message || 'Failed to process FnF settlement');
       setLoading(false);
     }
   };
@@ -145,10 +136,7 @@ export default function FnFPage() {
       
       setTotalSettlement(netPayable);
     } catch (err: any) {
-      notificationApi.error({
-        message: 'Calculation Error',
-        description: err.message || 'Failed to fetch payroll calculation'
-      });
+      messageApi.error(err.message || 'Failed to fetch payroll calculation');
     } finally {
       setLoading(false);
     }
@@ -244,7 +232,7 @@ export default function FnFPage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
@@ -337,14 +325,19 @@ export default function FnFPage() {
                         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {Object.entries(c.checklist).map(([item, isChecked]) => (
                             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-slate-300)' }}>
-                              {isChecked === true || isChecked === 'RETURNED' ? (
+                              {isChecked === true || (typeof isChecked === 'string' && ['RETURNED', 'YES', 'CLEARED'].includes(isChecked.toUpperCase())) ? (
                                 <CheckCircle size={14} color="#10b981" />
-                              ) : isChecked === 'NA' ? (
+                              ) : isChecked === 'NA' || (typeof isChecked === 'string' && isChecked.toUpperCase() === 'N/A') ? (
                                 <MinusCircle size={14} color="var(--text-slate-400)" />
                               ) : (
                                 <XCircle size={14} color="#f87171" />
                               )}
-                              <span>{item} {isChecked === 'NA' && <span style={{ color: 'var(--text-slate-400)', fontSize: 10 }}>(N/A)</span>}</span>
+                              <span>
+                                {item}{' '}
+                                {(isChecked === 'NA' || (typeof isChecked === 'string' && isChecked.toUpperCase() === 'N/A')) && (
+                                  <span style={{ color: 'var(--text-slate-400)', fontSize: 10 }}>(N/A)</span>
+                                )}
+                              </span>
                             </div>
                           ))}
                         </div>

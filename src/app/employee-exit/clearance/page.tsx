@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Space, notification, Tabs, Popconfirm, Select, Checkbox } from 'antd';
+import {  Button, Table, Space, Tabs, Popconfirm, Select, Checkbox , App } from 'antd';
 import { 
   Search, 
   ArrowUpRight, 
@@ -10,10 +10,12 @@ import {
   XCircle,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
+import { DepartmentService } from '@/services/departmentService';
 
 export default function ClearancePage() {
   const router = useRouter();
@@ -21,7 +23,7 @@ export default function ClearancePage() {
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState('it');
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
 
@@ -31,17 +33,17 @@ export default function ClearancePage() {
       const data = await EmployeeExitService.getClearances();
       setRequests(data || []);
     } catch (error) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to fetch clearance requests'
-      });
+      messageApi.error('Failed to fetch clearance requests');
     } finally {
       setLoading(false);
     }
-  }, [notificationApi]);
+  }, [messageApi]);
+
+  const [departments, setDepartments] = useState<any[]>([]);
 
   useEffect(() => {
     fetchClearances();
+    DepartmentService.getAll().then(setDepartments).catch(console.error);
   }, [fetchClearances]);
 
   const [clearanceModalVisible, setClearanceModalVisible] = useState(false);
@@ -84,20 +86,14 @@ export default function ClearancePage() {
         clearanceRemarks || 'Cleared via portal',
         checklistState
       );
-      notificationApi.success({
-        message: 'Success',
-        description: `${selectedClearance.department} clearance completed successfully`
-      });
+      messageApi.success(`${selectedClearance.department} clearance completed successfully`);
       setClearanceModalVisible(false);
       setClearanceRemarks('');
       setChecklistState({});
       setSelectedClearance(null);
       fetchClearances();
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: error.message || 'Failed to update clearance status'
-      });
+      messageApi.error(error.message || 'Failed to update clearance status');
       setLoading(false);
     }
   };
@@ -109,7 +105,10 @@ export default function ClearancePage() {
     // Initialize checklist
     const checklistItems = dynamicChecklists[department] || [];
     const initialState: Record<string, string> = {};
-    checklistItems.forEach(item => initialState[item.itemName] = 'RETURNED');
+    checklistItems.forEach(item => {
+      const isYesNo = department.toUpperCase() === 'HR' || item.itemName.toLowerCase().includes('completed') || item.itemName.toLowerCase().includes('interview');
+      initialState[item.itemName] = isYesNo ? 'YES' : 'RETURNED';
+    });
     setChecklistState(initialState);
     
     setClearanceModalVisible(true);
@@ -175,6 +174,12 @@ export default function ClearancePage() {
             displayDep = obj.label || obj.value || dep;
           }
         } catch (e) {}
+
+        const deptObj = departments.find(d => d.id === displayDep);
+        if (deptObj) {
+          displayDep = deptObj.name;
+        }
+
         return (
           <span style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
             {displayDep}
@@ -243,7 +248,7 @@ export default function ClearancePage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="exit-search-bar" style={{ display: 'flex', alignItems: 'center', padding: '0 10px', width: 300, height: 32 }}>
@@ -311,7 +316,15 @@ export default function ClearancePage() {
       {clearanceModalVisible && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--bg-primary)', padding: 24, borderRadius: 8, width: 450, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)' }}>Complete {selectedClearance?.department} Clearance</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Complete {selectedClearance?.department} Clearance</h3>
+              <button 
+                onClick={() => setClearanceModalVisible(false)} 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
             
             {/* Checklist */}
             <div style={{ marginBottom: 20 }}>
@@ -325,11 +338,19 @@ export default function ClearancePage() {
                       style={{ width: 140 }}
                       value={checklistState[item.itemName]}
                       onChange={(val) => setChecklistState(prev => ({ ...prev, [item.itemName]: val }))}
-                      options={[
-                        { label: 'Returned', value: 'RETURNED' },
-                        { label: 'Not Returned', value: 'NOT_RETURNED' },
-                        { label: 'N/A', value: 'NA' }
-                      ]}
+                      options={
+                        (selectedClearance?.department.toUpperCase() === 'HR') || item.itemName.toLowerCase().includes('completed') || item.itemName.toLowerCase().includes('interview')
+                          ? [
+                              { label: 'Yes', value: 'YES' },
+                              { label: 'No', value: 'NO' },
+                              { label: 'N/A', value: 'NA' }
+                            ]
+                          : [
+                              { label: 'Returned', value: 'RETURNED' },
+                              { label: 'Not Returned', value: 'NOT_RETURNED' },
+                              { label: 'N/A', value: 'NA' }
+                            ]
+                      }
                     />
                   </div>
                 </div>

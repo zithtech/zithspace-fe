@@ -230,6 +230,49 @@ export class EmployeeExitService {
   }
 
   /**
+   * Upload Document (Relieving or Experience Letter)
+   */
+  static async uploadDocument(id: string, payload: { documentType: string; fileBase64: string; fileName: string; employeeId: string }): Promise<any> {
+    try {
+      const response = await api.post<any>(`/api/exit/request/${id}/document`, payload);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to upload document`);
+    }
+  }
+
+  /**
+   * Download Document (Proxy via backend)
+   */
+  static async downloadDocument(url: string, filename: string): Promise<void> {
+    try {
+      const response = await api.get('/api/exit/request/download/document', {
+        params: { url, filename, mode: 'attachment' },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error: any) {
+      console.error("Download error", error);
+      throw new Error('Failed to download document');
+    }
+  }
+
+  /**
    * Get assets for an employee
    */
   static async getEmployeeAssets(employeeId: string): Promise<EmployeeAsset[]> {
@@ -328,9 +371,8 @@ export class EmployeeExitService {
   
   static async getExitInterview(id: string): Promise<any> {
     try {
-      // It is /api/exit/request/:id/interview based on routes mount, wait no, employeeExit routes are mounted at /api/exit/request
       const response = await api.get(`/api/exit/request/${id}/interview`);
-      return response.data?.data || null;
+      return response.data?.data || response.data || response;
     } catch (error: any) {
       console.warn("No exit interview found or error:", error);
       return null;

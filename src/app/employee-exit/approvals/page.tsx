@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Button, Table, Dropdown, notification, Select } from 'antd';
+import {  Button, Table, Dropdown, Select , App } from 'antd';
 import { Search, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
@@ -9,7 +9,7 @@ export default function ApprovalsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -19,11 +19,11 @@ export default function ApprovalsPage() {
       const data = await EmployeeExitService.getPendingApprovals();
       setRequests(data || []);
     } catch (error) {
-      notificationApi.error({ message: 'Error', description: 'Failed to fetch pending approvals' });
+      messageApi.error('Failed to fetch pending approvals');
     } finally {
       setLoading(false);
     }
-  }, [notificationApi]);
+  }, [messageApi]);
 
   useEffect(() => { fetchApprovals(); }, [fetchApprovals]);
 
@@ -31,10 +31,10 @@ export default function ApprovalsPage() {
     try {
       setLoading(true);
       await EmployeeExitService.updateExitStatus(id, status);
-      notificationApi.success({ message: 'Success', description: `Exit request marked as ${status}` });
+      messageApi.success(`Exit request marked as ${status}`);
       fetchApprovals();
     } catch (error: any) {
-      notificationApi.error({ message: 'Error', description: error.message || 'Failed to update status' });
+      messageApi.error(error.message || 'Failed to update status');
       setLoading(false);
     }
   };
@@ -151,7 +151,7 @@ export default function ApprovalsPage() {
 
   return (
     <>
-      {notificationContextHolder}
+      
 
       <div className="exit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

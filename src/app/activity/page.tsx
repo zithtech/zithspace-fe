@@ -60,9 +60,13 @@ const ACTION_COLOR: Record<string, string> = {
   create: "green",
   update: "blue",
   delete: "red",
+  trash: "red",
+  move_to_trash: "red",
   archive: "orange",
   restore: "cyan",
   permanent_delete: "red",
+  trash: "red",
+  move_to_trash: "red",
   status_change: "purple",
   move: "geekblue",
   convert: "magenta",
@@ -591,7 +595,21 @@ export default function ActivityPage() {
 
   const pagesForModule = filters.module
     ? filterOpts?.pages.filter((p) => p.module === filters.module).map((p) => p.page)
+    : filters.section
+    ? filterOpts?.pages.filter((p) => modulesForSection?.includes(p.module)).map((p) => p.page)
     : filterOpts?.pages.map((p) => p.page);
+
+  let actionsForPage = filterOpts?.actions || [];
+  if (filters.page) {
+    const dbActions = filterOpts?.pageActions?.filter((pa) => pa.page === filters.page).map((pa) => pa.action) || [];
+    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+  } else if (filters.module) {
+    const dbActions = filterOpts?.pageActions?.filter((pa) => pagesForModule?.includes(pa.page)).map((pa) => pa.action) || [];
+    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+  } else if (filters.section) {
+    const dbActions = filterOpts?.pageActions?.filter((pa) => pagesForModule?.includes(pa.page)).map((pa) => pa.action) || [];
+    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+  }
 
   return (
     <MainLayout>
@@ -717,11 +735,11 @@ export default function ActivityPage() {
               value={filters.action}
               placeholder="All Actions"
               options={
-                filterOpts?.actions.map((a) => ({
+                actionsForPage.map((a) => ({
                   value: a,
                   label: humanize(a),
                   description: `Action type: ${a}`,
-                })) ?? []
+                }))
               }
               onSelect={(action) => setFilters((p) => ({ ...p, action }))}
               searchPlaceholder="Search actions..."
@@ -945,7 +963,7 @@ function ActivityRow({ row, isLast }: { row: TransactionRow; isLast: boolean }) 
             {row.actor?.name || row.actor?.email || "Unknown"}
           </Text>
           <Tag color={actionColor(row.action)} className="ax-action-tag">
-            {row.action}
+            {row.action.replace(/_/g, ' ')}
           </Tag>
           <span className="ax-crumb">
             <span className="ax-crumb-section">{row.section}</span>

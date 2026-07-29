@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
@@ -2562,6 +2563,7 @@ function MailPageContent() {
 }
 
 export default function MailPage() {
+  useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationMail" });
   return (
     <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>}>
       <MailPageContent />

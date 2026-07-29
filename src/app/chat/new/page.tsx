@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect } from 'react';
 import { Typography, Input, Avatar, List, Spin, theme } from 'antd';
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ interface Member {
 }
 
 export default function NewChatPage() {
+  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     const { token } = theme.useToken();
     const router = useRouter();
     const { setChannels, channels } = useChatStore();

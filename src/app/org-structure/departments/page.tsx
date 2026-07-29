@@ -46,7 +46,7 @@ import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/co
 
 
 export default function DepartmentsPage() {
-  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureDepartments" });
+  useActivitySource({ section: "ADMIN", module: "OrgStructure", page: "OrgStructureDepartments" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const {

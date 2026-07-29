@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -101,6 +102,7 @@ const getExperienceBlocks = (yrs?: number) => {
 };
 
 export default function SkillsPage() {
+  useActivitySource({ section: "HOME", module: "Skills", page: "SkillsView" });
   const {
     skills,
     experience,

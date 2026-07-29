@@ -179,7 +179,7 @@ const HierarchyTree: React.FC<{
 /* -------------------------------------------------------------------------- */
 
 export default function OverviewPage() {
-  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureOverview" });
+  useActivitySource({ section: "ADMIN", module: "OrgStructure", page: "OrgStructureOverview" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrgDashboard, canReadActivityLog } = usePermission();

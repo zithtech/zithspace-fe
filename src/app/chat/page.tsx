@@ -1,11 +1,13 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React from 'react';
 import { Empty, Typography } from 'antd';
 
 const { Text } = Typography;
 
 export default function ChatPage() {
+  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     return (
         <div style={{
             display: 'flex',

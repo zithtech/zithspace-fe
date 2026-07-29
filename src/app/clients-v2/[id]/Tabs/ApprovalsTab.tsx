@@ -1641,6 +1641,12 @@ function CreateApprovalModal({
             name="previewUrl"
             label="Preview URL (Figma, Loom, etc.)"
             style={{ marginBottom: 0 }}
+            rules={[
+              {
+                type: 'url',
+                message: 'Please enter a valid URL',
+              },
+            ]}
           >
             <Input
               prefix={<Link2 size={13} color={c.textFaint} />}

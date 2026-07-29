@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Spin } from 'antd';
+import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Spin, Tabs } from 'antd';
 import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -29,6 +29,7 @@ import LeaveV2Service, {
   LeavePolicyListItem,
   LeaveTypeV2,
 } from '@/services/leaveV2Service';
+import MailConfiguration from './MailConfiguration';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -188,7 +189,13 @@ export default function ConfigurationPanel() {
         <Tooltip title="Refresh"><button type="button" className="lvc-ghost-btn" onClick={load}><ReloadOutlined spin={polLoading} /></button></Tooltip>
       </div>
 
-      {/* SETTINGS ROW */}
+      <Tabs defaultActiveKey="general" items={[
+        {
+          key: 'general',
+          label: 'General',
+          children: (
+            <>
+              {/* SETTINGS ROW */}
       <div className="lvc-cards">
         <div className="lvc-card">
           <div className="lvc-card-head"><CalendarOutlined style={{ color: PALETTE.blue }} /> Leave Year</div>
@@ -296,6 +303,15 @@ export default function ConfigurationPanel() {
           />
         </div>
       </div>
+            </>
+          )
+        },
+        {
+          key: 'mail',
+          label: 'Mail Configuration',
+          children: <MailConfiguration />
+        }
+      ]} />
 
       <style jsx global>{`
         .lvc { display: flex; flex-direction: column; }

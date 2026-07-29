@@ -310,8 +310,8 @@ export default function PaySchedulePanel() {
       {/* TABLE */}
       <div className="pvg-table-wrap">
         {view === 'schedules'
-          ? <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} />
-          : <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} />}
+          ? <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />
+          : <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />}
       </div>
 
       {total > 0 && (
@@ -410,8 +410,8 @@ export default function PaySchedulePanel() {
 
       <style jsx global>{`
         .pvg { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); }
-        .pvg-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pvg-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
+        .pvg-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
         .pvg-header-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; background: ${TINT.amber}; color: ${PALETTE.amber}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
         .pvg-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
         .pvg-header-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 2px; }

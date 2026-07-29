@@ -12,6 +12,17 @@ function unwrap<T>(data: any): T {
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+export interface ReimbMailConfig {
+  replyToMode: 'logged_in_user' | 'custom';
+  customReplyToEmail?: string;
+  reportsToEnabled: boolean;
+  additionalToEmails: string[];
+  customToEmails: string[];
+  officeCcEnabled: boolean;
+  additionalCcEmails: string[];
+  customCcEmails: string[];
+}
+
 export type CategoryKind = 'amount' | 'mileage';
 
 export interface ExpenseCategory {
@@ -301,6 +312,7 @@ export interface Decision {
 export interface ScopeOption {
   value: string;
   label: string;
+  avatarUrl?: string | null;
 }
 
 // Org endpoints reused to resolve policy-assignment targets (same as leaves-v2).
@@ -538,7 +550,7 @@ export const ReimbursementV2Service = {
     const res = await apiClient.get(ep);
     const items = toArray(res.data);
     if (scopeType === 'user') {
-      return items.map((m: any) => ({ value: m.value ?? m.id, label: m.label ?? m.name ?? m.workEmail }));
+      return items.map((m: any) => ({ value: m.value ?? m.id, label: m.label ?? m.name ?? m.workEmail, avatarUrl: m.avatarUrl }));
     }
     if (scopeType === 'position') {
       return items.map((p: any) => ({
@@ -547,6 +559,16 @@ export const ReimbursementV2Service = {
       }));
     }
     return items.map((e: any) => ({ value: e.id, label: e.name ?? e.title ?? e.label ?? e.code }));
+  },
+
+  // ── Settings ────────────────────────────────────────────────────────────────
+  async getMailSettings(): Promise<ReimbMailConfig> {
+    const res = await apiClient.get(`${BASE}/settings/mail`);
+    return unwrap<ReimbMailConfig>(res.data);
+  },
+  async updateMailSettings(data: ReimbMailConfig): Promise<ReimbMailConfig> {
+    const res = await apiClient.put(`${BASE}/settings/mail`, data);
+    return unwrap<ReimbMailConfig>(res.data);
   },
 };
 

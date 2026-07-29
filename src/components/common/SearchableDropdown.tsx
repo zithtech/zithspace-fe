@@ -70,6 +70,8 @@ export interface SearchableDropdownProps {
   customTrigger?: React.ReactElement;
   /** Show the avatar of the selected option in the trigger field. */
   showSelectedAvatar?: boolean;
+  /** Custom container for the popover (fixes mobile scroll/keyboard layout shifts) */
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
 }
 
 export const initialsFor = (s: string): string => {
@@ -115,10 +117,19 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   onOpenChange,
   customTrigger,
   showSelectedAvatar,
+  getPopupContainer,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      setTriggerWidth(triggerRef.current.offsetWidth);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -228,8 +239,9 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     );
   };
 
+  const finalWidth = width === "100%" ? (triggerWidth || 'auto') : width;
   const overlay = (
-    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width }}>
+    <div className="sd-overlay" onClick={(e) => e.stopPropagation()} style={{ width: triggerWidth || width }}>
       <div className="sd-search-box">
         <Search size={14} className="sd-search-icon" />
         <input
@@ -322,11 +334,14 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       placement="bottomLeft"
       overlayClassName="sd-overlay-popover"
       destroyOnHidden
+      getPopupContainer={getPopupContainer}
     >
       {customTrigger ? (
-        customTrigger
+        <div ref={triggerRef} style={{ display: 'inline-block', width: '100%' }}>
+          {customTrigger}
+        </div>
       ) : (
-        <div className={triggerClasses} style={style}>
+        <div ref={triggerRef} className={triggerClasses} style={style}>
           <div className="sd-trigger-content">
             {triggerLabel && (
               <span className="sd-trigger-label">{triggerLabel}</span>
@@ -495,7 +510,7 @@ const SEARCHABLE_DROPDOWN_CSS = `
 [data-theme='dark'] .sd-trigger-value { color: #e2e8f0; }
 [data-theme='dark'] .sd-trigger.is-active .sd-trigger-value { color: #f8fafc; }
 
-.sd-overlay-popover.ant-popover { padding-top: 4px; }
+.sd-overlay-popover.ant-popover { padding-top: 4px; z-index: 10000 !important; }
 .sd-overlay-popover .ant-popover-content {
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
   border-radius: 8px !important;

@@ -795,7 +795,7 @@ export default function MeetingsTab({
         }
         [data-theme='dark'] .ptab-segmented {
           border-color: var(--border-slate-800);
-          background: var(--bg-secondary);
+          background: transparent;
         }
         [data-theme='dark'] .ptab-segmented button.is-active {
           background: rgba(59, 130, 246, 0.15) !important;
@@ -809,7 +809,7 @@ export default function MeetingsTab({
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
-          white-space: nowrap !important;
+          white-space: nowrap !important; border-radius: 0 !important;
         }
         .pp-table .ant-table-thead > tr > th::before { display: none !important; }
         .pp-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 6.5px 10px !important; }
@@ -891,18 +891,20 @@ export default function MeetingsTab({
 
         /* Dark Theme Support */
         [data-theme="dark"] .pp-table-wrap {
-          border-color: var(--border-slate-800);
-          background: var(--bg-secondary);
+          border-color: #1F2937;
+          background: #0B0F1A;
         }
         [data-theme="dark"] .pp-table .ant-table-thead > tr > th {
-          background: var(--bg-slate-800) !important;
-          border-color: var(--border-slate-700) !important;
+          background: #161B22 !important;
+          border-color: #374151 !important;
+          color: #94A3B8 !important;
         }
         [data-theme="dark"] .pp-table .ant-table-tbody > tr > td {
-          border-color: var(--border-slate-800) !important;
+          border-color: #1F2937 !important;
+          color: #F1F5F9 !important;
         }
         [data-theme="dark"] .pp-table .ant-table-tbody > tr:hover > td {
-          background: var(--bg-slate-800) !important;
+          background: #161B22 !important;
         }
         [data-theme="dark"] .pc-card {
           border-color: var(--border-slate-800);

@@ -218,7 +218,7 @@ export default function StatutoryPanel() {
 
       <style jsx global>{`
         .pvst-page { display: flex; flex-direction: column; gap: 14px; padding-bottom: 32px; }
-        .pvst-header { display: flex; align-items: center; gap: 14px; padding: 4px 2px 16px; border-bottom: 1px solid var(--border-slate-100); }
+        .pvst-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 4px 2px 16px; border-bottom: 1px solid var(--border-slate-100); }
         .pvst-head-chip { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
         .pvst-head-text { flex: 1; min-width: 0; }
         .pvst-head-title { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; }
@@ -254,7 +254,7 @@ export default function StatutoryPanel() {
         .pvst-preview-cells strong { font-size: 16px; font-weight: 800; color: var(--text-slate-900); }
         .pvst-page .ant-input-number, .pvst-page .ant-input, .pvst-page .ant-input-affix-wrapper { border-radius: 6px !important; }
 
-        .pvst-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pvst-header-about { display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 250px; }
 
         @media (max-width: 900px) {
           .pvst-header {

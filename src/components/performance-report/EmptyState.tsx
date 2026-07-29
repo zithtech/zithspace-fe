@@ -41,8 +41,8 @@ export default function EmptyState({
           background:
             radial-gradient(
               130% 90% at 50% 0%,
-              color-mix(in srgb, var(--accent) 7%, #fff) 0%,
-              #ffffff 58%
+              color-mix(in srgb, var(--accent) 7%, var(--bg-pure-white)) 0%,
+              var(--bg-pure-white) 58%
             );
           position: relative;
           overflow: hidden;
@@ -75,7 +75,6 @@ export default function EmptyState({
           top: 50%;
           background: var(--bg-secondary);
           border: 1px solid var(--border-slate-200);
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
         }
         .pes-card--l {
           transform: translate(-50%, -52%) rotate(-11deg) translateX(-16px);
@@ -98,11 +97,10 @@ export default function EmptyState({
           color: var(--accent);
           background: linear-gradient(
             180deg,
-            color-mix(in srgb, var(--accent) 16%, #fff),
-            color-mix(in srgb, var(--accent) 8%, #fff)
+            color-mix(in srgb, var(--accent) 16%, var(--bg-pure-white)),
+            color-mix(in srgb, var(--accent) 8%, var(--bg-pure-white))
           );
-          border: 1px solid color-mix(in srgb, var(--accent) 24%, #fff);
-          box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 24%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--bg-pure-white));
           z-index: 2;
         }
         .pes-glow {

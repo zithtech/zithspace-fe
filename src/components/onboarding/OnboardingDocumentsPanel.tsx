@@ -41,6 +41,7 @@ import {
   FileText,
   FolderOpen,
   Plus,
+  Menu,
 } from 'lucide-react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
@@ -492,9 +493,18 @@ export default function OnboardingDocumentsPanel() {
     <div className="ob-doc-wrap">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="ob-doc-header">
-        <div>
-          <h1 className="ob-doc-title">Documents</h1>
-          <p className="ob-doc-subtitle">Manage HR documents for employees</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            className="ob-mobile-menu-btn"
+            onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+          <div>
+            <h1 className="ob-doc-title">Documents</h1>
+            <p className="ob-doc-subtitle">Manage HR documents for employees</p>
+          </div>
         </div>
         <Button
           type="primary"
@@ -800,7 +810,7 @@ export default function OnboardingDocumentsPanel() {
           gap: 10px;
           flex-wrap: wrap;
           padding: 12px 14px;
-          background: var(--bg-secondary);
+          background: transparent;
           border: 1px solid var(--border-slate-200);
           border-radius: 0px;
         }
@@ -823,7 +833,8 @@ export default function OnboardingDocumentsPanel() {
           border: 1px solid var(--border-slate-200);
           border-radius: 0px;
           background: var(--bg-pure-white);
-          overflow: hidden;
+          overflow-x: auto;
+          overflow-y: hidden;
           flex: 1;
         }
         .ob-doc-table-head {
@@ -833,6 +844,7 @@ export default function OnboardingDocumentsPanel() {
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
           min-height: 42px;
+          min-width: 850px;
         }
         .ob-doc-row {
           display: flex;
@@ -840,6 +852,7 @@ export default function OnboardingDocumentsPanel() {
           padding: 10px 14px;
           border-bottom: 1px solid var(--border-slate-100);
           transition: background 0.12s ease;
+          min-width: 850px;
         }
         .ob-doc-row:last-child { border-bottom: none; }
         .ob-doc-row:hover { background: var(--bg-slate-50); }

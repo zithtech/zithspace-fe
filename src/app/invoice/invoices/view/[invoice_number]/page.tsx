@@ -225,7 +225,6 @@ export default function ViewInvoicePage() {
       title: columnLabels.projectId || "Project",
       dataIndex: "projectId",
       key: "projectId",
-      width: 120,
       render: (val: any, record: any) => {
         // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
         const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
@@ -237,7 +236,6 @@ export default function ViewInvoicePage() {
       dataIndex: "quantity",
       key: "quantity",
       align: "center" as const,
-      width: 80,
       render: (val: any, record: any) => val || record.qty
     },
     rate: {
@@ -245,7 +243,6 @@ export default function ViewInvoicePage() {
       dataIndex: "rate",
       key: "rate",
       align: "right" as const,
-      width: 120,
       render: (value: number, record: any) => formatCurrency(value || record.price, currencySymbol),
     },
     taxRate: {
@@ -253,7 +250,6 @@ export default function ViewInvoicePage() {
       dataIndex: "taxRate",
       key: "taxRate",
       align: "center" as const,
-      width: 100,
       render: (val: any, record: any) => {
         const rate = Number(val || record.tax || 0);
         return rate > 0 ? `${rate}%` : "-";
@@ -267,7 +263,6 @@ export default function ViewInvoicePage() {
       title: columnLabels[key] || key.replace(/_/g, ' '),
       key: key,
       dataIndex: ['extraFields', key],
-      width: 120,
       render: (val: any) => val || "-"
     };
   });
@@ -318,7 +313,6 @@ export default function ViewInvoicePage() {
     {
       title: "S.NO",
       key: "sno",
-      width: 60,
       align: "center" as const,
       render: (_: any, __: any, index: number) => index + 1,
     },
@@ -327,7 +321,6 @@ export default function ViewInvoicePage() {
       title: "Total",
       key: "total",
       align: "right" as const,
-      width: 120,
       render: (_: any, record: any) => formatCurrency(record.total, currencySymbol),
     },
   ];

@@ -52,7 +52,7 @@ const labelStyle = {
   fontWeight: 600,
   color: "var(--text-slate-500)",
   marginBottom: "4px",
-  display: "block"
+  display: "inline-block"
 };
 
 const cardStyle: React.CSSProperties = {
@@ -347,7 +347,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             <Select.Option value="reportingManager">Reporting Manager</Select.Option>
           </CustomSelectField>
         </Col>
-        <Col xs={24} md={12}>
+        <Col xs={24} md={24}>
           <CustomInputField
             label={`${label} Name`}
             name={[contactIndex, "contactName"]}
@@ -365,7 +365,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             }}
           />
         </Col>
-        <Col xs={24} md={12}>
+        <Col xs={24} md={24}>
           <CustomInputField
             label={`${label} Email`}
             name={[contactIndex, "contactEmail"]}
@@ -374,7 +374,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
         </Col>
         <Col xs={24} md={24}>
           <CustomInputField
-            label={`${label} Contact Number`}
+            label={label === "Contact" ? "Contact Number" : `${label} Contact Number`}
             name={[contactIndex, "contactNumber"]}
             placeholder="Enter phone number"
             maxLength={10}

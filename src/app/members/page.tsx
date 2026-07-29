@@ -25,6 +25,7 @@ import {
   Skeleton,
   Segmented,
   InputNumber,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
@@ -74,6 +75,7 @@ import { History, Sparkles } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawerProps } from "@/components/common/DrawerSection";
+import { EmployeeOnboardingService } from "@/services/onboardingService";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -271,6 +273,8 @@ interface MemberDrawerContentProps {
   managers: Member[];
   shifts: Shift[];
   availableRoles: RBACRole[];
+  invites: any[];
+  onInviteSelect: (employeeId: string | null) => void;
 }
 
 const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
@@ -285,6 +289,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   managers,
   shifts,
   availableRoles,
+  invites,
+  onInviteSelect,
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
@@ -427,12 +433,63 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           colon={false}
           requiredMark="optional"
         >
+          {/* ── Import from Invites (Add mode only) ── */}
+          {mode === 'add' && (
+            <div
+              style={{
+                padding: '14px 16px',
+                marginBottom: 16,
+                background: 'rgba(59,130,246,0.04)',
+                border: '1px solid rgba(59,130,246,0.2)',
+                borderRadius: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Sparkles size={14} color="#3b82f6" />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Import from Invites
+                </span>
+              </div>
+              <Select
+                showSearch
+                allowClear
+                style={{ width: '100%' }}
+                placeholder="Select an invited employee to auto-fill details…"
+                optionFilterProp="label"
+                options={invites.map((inv: any) => ({
+                  value: inv.employeeId,
+                  label: `${inv.firstName} ${inv.lastName} — ${inv.workEmail}`,
+                }))}
+                onChange={(employeeId: string | undefined) => {
+                  if (!employeeId) {
+                    form.resetFields(['name', 'workEmail', 'personalEmail']);
+                    onInviteSelect(null);
+                    return;
+                  }
+                  const inv = invites.find((i: any) => i.employeeId === employeeId);
+                  if (inv) {
+                    form.setFieldsValue({
+                      name: `${inv.firstName} ${inv.lastName}`.trim(),
+                      workEmail: inv.workEmail || '',
+                      personalEmail: inv.personalEmail || '',
+                    });
+                    onInviteSelect(employeeId);
+                  }
+                }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 8 }}>
+                Selecting an invite will auto-fill Name, Work Email and Personal Email.
+              </div>
+            </div>
+          )}
+
           <SectionCard
             icon={<UserOutlined />}
             title="Profile Details"
             subtitle="Enter the basic information for this member"
             step="STEP 1"
           >
+
 
             <Form.Item
               name="name"
@@ -559,6 +616,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <Form.Item
                 name="position"
                 label="Position"
+                preserve={false}
                 rules={[{ required: true, message: "Please select position" }]}
               >
                 <SearchableDropdown
@@ -574,6 +632,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <Form.Item
                 name="positionTitle"
                 label="Position Title"
+                preserve={false}
                 normalize={(value) => (value || '').replace(/[^a-zA-Z\s]/g, '')}
                 rules={[
                   { required: true, message: "Please enter position title" },
@@ -1307,6 +1366,8 @@ export default function MembersPage() {
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
+  const [invites, setInvites] = useState<any[]>([]);
+  const [selectedInviteEmployeeId, setSelectedInviteEmployeeId] = useState<string | null>(null);
 
   // Layout and Sidebar view states
   const [allMembers, setAllMembers] = useState<Member[]>([]);
@@ -1424,6 +1485,24 @@ export default function MembersPage() {
     }
   };
 
+  const fetchInvites = async () => {
+    try {
+      const res = await EmployeeOnboardingService.listInvites();
+      let list: any[] = [];
+      if (Array.isArray(res)) {
+        list = res;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      }
+      // Only show non-revoked invites in the dropdown
+      setInvites(list.filter((i: any) => i.status !== 'revoked'));
+    } catch (error) {
+      console.error("Failed to fetch onboarding invites:", error);
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !canReadUser) {
       router.push("/dashboard");
@@ -1436,8 +1515,16 @@ export default function MembersPage() {
       fetchShifts();
       fetchRoles();
       fetchAllMembers();
+      fetchInvites();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (isModalVisible && modalType === "add") {
+      fetchInvites();
+    }
+  }, [isModalVisible, modalType]);
+
 
   // Debounce search input — wait 400ms after last keystroke before updating
   useEffect(() => {
@@ -1519,6 +1606,7 @@ export default function MembersPage() {
           isActive: values.isActive !== undefined ? values.isActive : true,
           sendEmailTo: values.sendEmailTo || "work",
           minWorkingHours: values.minWorkingHours !== undefined ? Number(values.minWorkingHours) : 6,
+          employeeId: selectedInviteEmployeeId || null,
         };
         await MembersService.createMember(createPayload);
         messageApi.success("Member created successfully");
@@ -1527,6 +1615,7 @@ export default function MembersPage() {
       setIsModalVisible(false);
       form.resetFields();
       setSelectedMember(null);
+      setSelectedInviteEmployeeId(null);
       fetchMembers();
       fetchAllMembers();
       fetchPositions();
@@ -1625,6 +1714,25 @@ export default function MembersPage() {
       </span>
     </div>
   );
+
+  // Track in-flight AI-access toggles so we can show a per-row spinner.
+  const [aiTogglingId, setAiTogglingId] = useState<string | null>(null);
+
+  const handleToggleAiAccess = async (record: Member, checked: boolean) => {
+    setAiTogglingId(record.id);
+    // Optimistic update.
+    setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: checked } : m)));
+    try {
+      await MembersService.setAiAccess(record.id, checked);
+      messageApi.success(`AI ${checked ? "enabled" : "disabled"} for ${record.name}`);
+    } catch (error: any) {
+      // Revert on failure.
+      setMembers((prev) => prev.map((m) => (m.id === record.id ? { ...m, aiEnabled: !checked } : m)));
+      messageApi.error(error?.message || "Failed to update AI access");
+    } finally {
+      setAiTogglingId(null);
+    }
+  };
 
   const columns: ColumnsType<Member> = [
     {
@@ -1864,6 +1972,31 @@ export default function MembersPage() {
           </span>
         );
       },
+    },
+    {
+      title: "AI Access",
+      key: "aiAccess",
+      width: 110,
+      align: "center",
+      render: (_, record: Member) => (
+        <Tooltip
+          title={
+            !canManageUsers
+              ? "AI access"
+              : record.aiEnabled === false
+                ? "AI disabled — click to enable"
+                : "AI enabled — click to disable"
+          }
+        >
+          <Switch
+            size="small"
+            checked={record.aiEnabled !== false}
+            loading={aiTogglingId === record.id}
+            disabled={!canManageUsers}
+            onChange={(checked) => handleToggleAiAccess(record, checked)}
+          />
+        </Tooltip>
+      ),
     },
     {
       title: "Actions",
@@ -2493,6 +2626,7 @@ export default function MembersPage() {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedMember(null);
+            setSelectedInviteEmployeeId(null);
           }}
           onSubmit={handleSubmit}
           positions={positions}
@@ -2500,6 +2634,8 @@ export default function MembersPage() {
           managers={managers}
           shifts={shifts}
           availableRoles={availableRoles}
+          invites={invites}
+          onInviteSelect={setSelectedInviteEmployeeId}
         />
       </Drawer>
 

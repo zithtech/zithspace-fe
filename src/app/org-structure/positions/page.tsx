@@ -639,11 +639,8 @@ export default function PositionsPage() {
                     rules={[{ required: true, message: "Required" }]}
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select grade"
-                      loading={gradesLoading}
-                      showSearch
-                      optionFilterProp="label"
                       options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
                     />
                   </Form.Item>
@@ -653,11 +650,8 @@ export default function PositionsPage() {
                     rules={[{ required: true, message: "Required" }]}
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select department"
-                      loading={departmentsLoading}
-                      showSearch
-                      optionFilterProp="label"
                       options={departments.map((d) => ({ value: d.id, label: d.name }))}
                     />
                   </Form.Item>
@@ -666,12 +660,8 @@ export default function PositionsPage() {
                     label="Sub-department"
                     style={{ marginBottom: 14 }}
                   >
-                    <Select
+                    <SearchableDropdown
                       placeholder="Select sub-department (optional)"
-                      loading={subDepartmentsLoading}
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
                       options={subDepartments.map((sd) => ({ value: sd.id, label: sd.name }))}
                     />
                   </Form.Item>

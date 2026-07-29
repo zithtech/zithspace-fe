@@ -46,4 +46,22 @@ export class TenantService {
     const response = await api.delete<{ logoUrl: string, logoVersions: string[] }>('/api/tenants/logo-version', { data: { url } });
     return response;
   }
+
+  /**
+   * Get the current Chrome Extension install key for this workspace (admin only).
+   * Returns { installKey: null } when none has been generated yet.
+   */
+  static async getExtensionInstallKey(): Promise<{ installKey: string | null }> {
+    const response = await api.get<{ installKey: string | null }>('/api/tenants/extension-install-key');
+    return response;
+  }
+
+  /**
+   * Generate or rotate the Chrome Extension install key for this workspace (admin only).
+   * Rotating invalidates the previous key.
+   */
+  static async generateExtensionInstallKey(): Promise<{ installKey: string }> {
+    const response = await api.post<{ installKey: string }>('/api/tenants/extension-install-key/generate', {});
+    return response;
+  }
 }

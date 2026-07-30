@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Suspense } from "react";
 import { Spin } from "antd";
-import TimesheetsTab from "@/components/timesheet/TimesheetsTab";
+import TimesheetsTab from "@/components/timesheet/TimesheetTable";
 
 export default function MyTimesheetsPage() {
   const { isLoading: authLoading } = useAuth();
@@ -53,7 +53,7 @@ export default function MyTimesheetsPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <Suspense
         fallback={
           <div

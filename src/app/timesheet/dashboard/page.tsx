@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import DashboardTab from "@/components/timesheet/DashboardTab";
+import TimesheetDashboard from "@/components/timesheet/TimesheetDashboard";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ export default function TimesheetDashboardPage() {
 
   useEffect(() => {
     if (!authLoading && !canReadTimesheet) {
-      router.push('/dashboard');
+      router.push('/timesheet');
     }
   }, [authLoading, canReadTimesheet, router]);
 
@@ -33,8 +33,8 @@ export default function TimesheetDashboardPage() {
   }
 
   return (
-    <MainLayout>
-      <DashboardTab />
+    <MainLayout noPadding>
+      <TimesheetDashboard />
     </MainLayout>
   );
 }

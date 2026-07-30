@@ -97,6 +97,7 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -326,46 +327,46 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ]
       },
-      // {
-      //   key: "timesheet-group",
-      //   label: "Timesheet",
-      //   icon: I(CalendarClock),
-      //   requiredAnyPermission: [
-      //     Permissions.TIMESHEET_READ,
-      //     Permissions.TIMESHEET_CREATE,
-      //     Permissions.TIMESHEET_APPROVE,
-      //   ],
-      //   children: [
-      //     {
-      //       key: "/timesheet/dashboard",
-      //       label: "Dashboard",
-      //       icon: I(Gauge),
-      //       path: "/timesheet/dashboard",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet",
-      //       label: "My Timesheets",
-      //       icon: I(FileClock),
-      //       path: "/timesheet",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet/submit",
-      //       label: "Submit Timesheet",
-      //       icon: I(Send),
-      //       path: "/timesheet/submit",
-      //       requiredPermission: Permissions.TIMESHEET_CREATE,
-      //     },
-      //     {
-      //       key: "/timesheet/teams",
-      //       label: "Teams",
-      //       icon: I(Users),
-      //       path: "/timesheet/teams",
-      //       requiredPermission: Permissions.TIMESHEET_APPROVE,
-      //     },
-      //   ],
-      // },
+      {
+        key: "timesheet-group",
+        label: "Timesheet",
+        icon: I(CalendarClock),
+        requiredAnyPermission: [
+          Permissions.TIMESHEET_READ,
+          Permissions.TIMESHEET_CREATE,
+          Permissions.TIMESHEET_APPROVE,
+        ],
+        children: [
+          {
+            key: "/timesheet/dashboard",
+            label: "Dashboard",
+            icon: I(Gauge),
+            path: "/timesheet/dashboard",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet",
+            label: "My Timesheets",
+            icon: I(FileClock),
+            path: "/timesheet",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet/submit",
+            label: "Submit Timesheet",
+            icon: I(Send),
+            path: "/timesheet/submit",
+            requiredPermission: Permissions.TIMESHEET_CREATE,
+          },
+          {
+            key: "/timesheet/teams",
+            label: "Teams",
+            icon: I(Users),
+            path: "/timesheet/teams",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
+        ],
+      },
       {
         key: "time-tracking",
         label: "Time Tracking",
@@ -455,6 +456,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {

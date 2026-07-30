@@ -735,6 +735,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/pipeline",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -823,6 +824,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PERFORMANCE_REPORT_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
+        ],
+      },
+      {
+        key: "/pipeline",
+        icon: I(Users),
+        label: "Pipeline",
+        path: "/pipeline/candidates",
+        requiredAnyPermission: [
+          Permissions.OPENING_READ, // Or any appropriate permission for pipeline
         ],
       },
 

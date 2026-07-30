@@ -204,8 +204,8 @@ export default function AccountTrashPage() {
           }
         />
 
-        <div className="mt-8 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="mt-8 rounded-xl border overflow-hidden shadow-sm" style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}>
+          <div className="p-4 border-b flex items-center justify-between" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-slate-100)' }}>
             <div className="flex items-center gap-4 flex-1 max-w-md">
               <Input
                 placeholder="Search trash..."

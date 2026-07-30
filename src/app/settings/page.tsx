@@ -1942,12 +1942,30 @@ export default function SettingsPage() {
         />
 
         <div className="settings-tab-container">
+          <style>{`
+            .settings-tabs .ant-tabs-nav-operations {
+              display: none !important;
+            }
+            .settings-tabs .ant-tabs-nav-wrap {
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+            }
+            .settings-tabs .ant-tabs-nav-wrap::-webkit-scrollbar {
+              display: none;
+            }
+            .settings-tabs .ant-tabs-nav-list {
+              transform: none !important;
+              width: 100%;
+            }
+          `}</style>
           {/* Settings Tabs */}
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
             size="large"
             type="line"
+            moreIcon={null}
+
             tabBarStyle={{
               ...styles.tabStyle,
               background: 'transparent',
@@ -2075,8 +2093,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="flatNumber"
                   label="Door / Flat Number"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. 101 or Suite 4" />
                 </Form.Item>
@@ -2084,8 +2103,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="street"
                   label="Street"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. Main St" />
                 </Form.Item>
@@ -2093,8 +2113,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="area"
                   label="Area"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. Downtown" />
                 </Form.Item>
@@ -2102,8 +2123,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="city"
                   label="City"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. San Francisco" />
                 </Form.Item>
@@ -2111,8 +2133,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="state"
                   label="State"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. California" />
                 </Form.Item>
@@ -2120,8 +2143,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="pincode"
                   label="Pincode"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. 94105" />
                 </Form.Item>
@@ -2129,8 +2153,9 @@ export default function SettingsPage() {
                 <Form.Item
                   name="country"
                   label="Country"
-                  rules={[{ required: true, message: 'Required' }]}
+                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
                   <Input placeholder="e.g. USA" />
                 </Form.Item>

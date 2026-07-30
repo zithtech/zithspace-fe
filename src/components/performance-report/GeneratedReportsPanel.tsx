@@ -416,7 +416,7 @@ export default function GeneratedReportsPanel() {
             className="gr-search"
           />
           {canUpdatePerformanceReportSetting && (
-            <Button type="primary" icon={<ThunderboltOutlined />} loading={generating} onClick={openWizard}>
+            <Button type="primary" icon={<ThunderboltOutlined />} loading={generating} onClick={openWizard} style={{ borderRadius: 8 }}>
               Generate report
             </Button>
           )}
@@ -685,7 +685,8 @@ export default function GeneratedReportsPanel() {
         .gr-bar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
         .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
         .gr-bar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
-        .gr-search { width: 100%; max-width: 320px; border-radius: 10px; flex: 1; min-width: 200px; }
+        .gr-bar-actions .ant-btn { border-radius: 8px !important; }
+        .gr-search { width: 100%; max-width: 320px; border-radius: 8px !important; flex: 1; min-width: 200px; }
         .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 0 !important; background: transparent; margin-bottom: 16px; }
         .gr-filters-label {
           display: inline-flex; align-items: center; gap: 7px;
@@ -695,7 +696,7 @@ export default function GeneratedReportsPanel() {
         /* Match the month picker to the 30px compact dropdown height. */
         .gr-filters .gr-month { height: 30px; border-radius: 8px; }
         .gr-filters .gr-month .ant-picker-input > input { font-size: 13px; }
-        .gr-body { flex: 1; min-height: 0; }
+        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; padding-right: 4px; }
         .gr-center { display: flex; align-items: center; justify-content: center; padding: 56px 0; min-height: 280px; }
         .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
         .gr-card { border: 1px solid var(--border-slate-200); border-radius: 16px; background: transparent; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
@@ -716,11 +717,11 @@ export default function GeneratedReportsPanel() {
         .gr-gen { font-size: 11px; color: var(--text-slate-400); }
         .gr-actions { display: flex; align-items: center; gap: 6px; }
         .gr-footer {
-          position: sticky; bottom: 0; z-index: 5;
+          position: sticky; bottom: 0; z-index: 10;
           display: flex; align-items: center; justify-content: flex-end; gap: 12px;
-          padding: 14px 2px; margin: 8px 0 0;
+          padding: 14px 2px; margin-top: 8px;
           border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
-          background: transparent;
+          background: var(--bg-pure-white);
         }
         .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
 

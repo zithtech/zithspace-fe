@@ -99,8 +99,8 @@ export default function LeaveAdjustmentPanel() {
 
   // Load drawer option sources once.
   useEffect(() => {
-    LeaveV2Service.getAdjustmentEmployees().then(setEmployees).catch(() => {});
-    LeaveV2Service.listLeaveTypes(false).then(setLeaveTypes).catch(() => {});
+    LeaveV2Service.getAdjustmentEmployees().then(setEmployees).catch(() => { });
+    LeaveV2Service.listLeaveTypes(false).then(setLeaveTypes).catch(() => { });
   }, []);
 
   // Fetch balance when employee + type selected.
@@ -264,9 +264,9 @@ export default function LeaveAdjustmentPanel() {
     <div className="lvadj">
       <div className="lvadj-header">
         <div className="lvadj-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -435,25 +435,25 @@ export default function LeaveAdjustmentPanel() {
               subtitle="Who, what and how much"
               step="STEP 1"
             >
-                <Form.Item label="User" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined, avatarUrl: e.avatarUrl ?? undefined }))} showSelectedAvatar style={{ width: '100%', height: 38 }} width={300} />
-                </Form.Item>
-                <Form.Item label="Leave type" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Select type" itemNoun="leave types" allowClear={false} value={leaveTypeId} onChange={(v) => setLeaveTypeId(v as string)} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} style={{ width: '100%', height: 38 }} width={240} />
-                </Form.Item>
-                <Form.Item label="Kind" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Kind" itemNoun="kinds" allowClear={false} value={kind} onChange={(v) => setKind(v as AdjustmentKind)} options={KINDS} style={{ width: '100%', height: 38 }} width={220} />
-                </Form.Item>
-                <Form.Item label="Amount (days)" style={{ marginBottom: 0 }}>
-                  <InputNumber style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} min={0.5} max={9999} step={0.5} value={amount} onChange={(v) => setAmount(Number(v ?? 0))} />
-                </Form.Item>
-                <Form.Item label="Effective date" style={{ marginBottom: 0 }}>
-                  <DatePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={effectiveDate} onChange={(d) => d && setEffectiveDate(d)} format="MMM D, YYYY" allowClear={false} />
-                </Form.Item>
-                <Form.Item label="Reason" style={{ marginBottom: 0 }}>
-                  <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={reason} maxLength={500} placeholder="e.g. Comp-off for weekend work" onChange={(e) => setReason(e.target.value)} />
-                </Form.Item>
-              </SectionCard>
+              <Form.Item label="User" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Select user" itemNoun="users" allowClear={false} value={employeeId} onChange={(v) => setEmployeeId(v as string)} options={employees.map((e) => ({ value: e.value, label: e.label, description: e.code ?? undefined, avatarUrl: e.avatarUrl ?? undefined }))} showSelectedAvatar style={{ width: '100%', height: 38 }} width={300} />
+              </Form.Item>
+              <Form.Item label="Leave type" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Select type" itemNoun="leave types" allowClear={false} value={leaveTypeId} onChange={(v) => setLeaveTypeId(v as string)} options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))} style={{ width: '100%', height: 38 }} width={240} />
+              </Form.Item>
+              <Form.Item label="Kind" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Kind" itemNoun="kinds" allowClear={false} value={kind} onChange={(v) => setKind(v as AdjustmentKind)} options={KINDS} style={{ width: '100%', height: 38 }} width={220} />
+              </Form.Item>
+              <Form.Item label="Amount (days)" style={{ marginBottom: 0 }}>
+                <InputNumber style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} min={0.5} max={9999} step={0.5} value={amount} onChange={(v) => setAmount(Number(v ?? 0))} />
+              </Form.Item>
+              <Form.Item label="Effective date" style={{ marginBottom: 0 }}>
+                <DatePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={effectiveDate} onChange={(d) => d && setEffectiveDate(d)} format="MMM D, YYYY" allowClear={false} />
+              </Form.Item>
+              <Form.Item label="Reason" style={{ marginBottom: 0 }}>
+                <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={reason} maxLength={500} placeholder="e.g. Comp-off for weekend work" onChange={(e) => setReason(e.target.value)} />
+              </Form.Item>
+            </SectionCard>
 
             {employeeId && leaveTypeId && (
               <SectionCard

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Tag, Tooltip, message } from 'antd';
+import { Button, Table, Tag, Tooltip, message, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
@@ -48,6 +48,8 @@ export default function GovernmentHolidaysPanel() {
   const [selected, setSelected] = useState<React.Key[]>([]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     if (!canReadLeaveHoliday) return;
@@ -93,6 +95,15 @@ export default function GovernmentHolidaysPanel() {
       return true;
     });
   }, [catalog, search, typeFilter]);
+
+  const total = filtered.length;
+  const pageCount = Math.ceil(total / pageSize) || 1;
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(total, page * pageSize);
+
+  const paginatedData = useMemo(() => {
+    return filtered.slice((page - 1) * pageSize, page * pageSize);
+  }, [filtered, page, pageSize]);
 
   const addSelected = async () => {
     if (selected.length === 0) return;
@@ -209,7 +220,7 @@ export default function GovernmentHolidaysPanel() {
             <input className="lvgh-search" placeholder="Search holiday…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <SearchableDropdown placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-          {(search || typeFilter !== 'all') && <button type="button" className="lvgh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
+          {(search || typeFilter !== 'all') && <button type="button" className="lvgh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); setPage(1); }}><CloseCircleOutlined /> Clear</button>}
         </div>
         {canCreateLeaveHoliday && (
           <Button type="primary" icon={<PlusOutlined />} loading={adding} disabled={selected.length === 0} onClick={addSelected} className="lvgh-add-btn">
@@ -225,8 +236,8 @@ export default function GovernmentHolidaysPanel() {
           className="lvgh-table"
           loading={loading}
           columns={columns}
-          dataSource={filtered}
-          pagination={{ defaultPageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 25, 50, 100] }}
+          dataSource={paginatedData}
+          pagination={false}
           scroll={{ x: 'max-content' }}
           rowSelection={canCreateLeaveHoliday ? {
             selectedRowKeys: selected,
@@ -237,6 +248,54 @@ export default function GovernmentHolidaysPanel() {
           onRow={() => ({ className: 'lvgh-row' })}
         />
       </div>
+
+      {filtered.length > 0 && (
+        <div className="lvgh-footer">
+          <div className="lvgh-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+            {selected.length > 0 && (
+              <span className="lvgh-footer-sel"> · {selected.length} selected</span>
+            )}
+          </div>
+          <div className="lvgh-pager">
+            <button
+              type="button"
+              className="lvgh-pager-btn"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`lvgh-pager-num ${p === page ? "is-active" : ""}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="lvgh-pager-btn"
+              disabled={page >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="lvgh-pagesize"
+              value={pageSize}
+              onChange={(v) => { setPageSize(v); setPage(1); }}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .lvgh { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -264,7 +323,7 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; }
         .lvgh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; }
         .lvgh-add-btn { height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
         .lvgh-table, .lvgh-table.ant-table-wrapper, .lvgh-table .ant-table, .lvgh-table .ant-table-container, .lvgh-table .ant-table-content, .lvgh-table .ant-table-header, .lvgh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lvgh-table .ant-table-thead > tr > th,
         .lvgh-table .ant-table-thead > tr > td {
@@ -276,7 +335,53 @@ export default function GovernmentHolidaysPanel() {
         }
         .lvgh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvgh-table .ant-table-tbody > tr.lvgh-row:hover > td { background: var(--bg-slate-50) !important; }
-        .lvgh-table .ant-pagination { margin: 12px 12px 8px !important; }
+        .lvgh-table .ant-pagination { display: none; }
+        
+        .lvgh-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 0 4px;
+          height: 52px;
+          box-sizing: border-box;
+          background: transparent;
+          flex-shrink: 0;
+        }
+        .lvgh-footer-info {
+          font-size: 12px;
+          color: var(--text-slate-500);
+        }
+        .lvgh-footer-info strong {
+          color: var(--text-slate-700);
+          font-weight: 700;
+        }
+        [data-theme='dark'] .lvgh-footer-info strong { color: #cbd5e1; }
+        .lvgh-footer-sel { color: #3b82f6; font-weight: 600; }
+        .lvgh-pager { display: flex; align-items: center; gap: 3px; }
+        .lvgh-pager-btn, .lvgh-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px;
+          border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600);
+          cursor: pointer; font-size: 12.5px; font-weight: 600;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: all 0.12s ease;
+        }
+        .lvgh-pager-btn:hover:not(:disabled), .lvgh-pager-num:hover:not(.is-active) {
+          background: var(--bg-slate-50); border-color: var(--border-slate-300);
+        }
+        [data-theme='dark'] .lvgh-pager-btn, [data-theme='dark'] .lvgh-pager-num {
+          background: #161b22; border-color: #1f2937; color: #94a3b8;
+        }
+        [data-theme='dark'] .lvgh-pager-btn:hover:not(:disabled),
+        [data-theme='dark'] .lvgh-pager-num:hover:not(.is-active) {
+          background: #1f2937; border-color: #374151;
+        }
+        .lvgh-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .lvgh-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+        .lvgh-pagesize { margin-left: 5px; }
+        .lvgh-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
         @media (max-width: 1024px) {
           .lvgh-stats { grid-template-columns: repeat(2, 1fr); }

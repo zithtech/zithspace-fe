@@ -53,6 +53,7 @@ import {
   // ADMIN
   Building2,
   Settings,
+  Chrome,
   Workflow,
   Handshake,
   TrendingUp,
@@ -97,6 +98,8 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  MessageSquare,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -364,6 +367,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/timesheet/teams",
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
         ],
       },
       {
@@ -455,6 +465,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -598,6 +615,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "General Settings",
         icon: I(Settings),
         path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/settings/chrome-extension",
+        label: "Chrome Extension",
+        icon: I(Chrome),
+        path: "/settings/chrome-extension",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {
@@ -805,24 +829,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
 
 /* {
         key: "employee-exit",
-        icon: I(LogOut),
         label: "Employee Exit",
-        requiredPermission: Permissions.EXIT_READ,
-        children: [
-          {
-            key: "/employee-exit/management",
-            label: "Employee Exit Management",
-            icon: I(UserMinus),
-            path: "/employee-exit/management",
-            requiredPermission: Permissions.EXIT_READ,
-          },
-          {
-            key: "/employee-exit/configuration",
-            label: "Configuration",
-            icon: I(Sliders),
-            path: "/employee-exit/configuration",
-            requiredPermission: Permissions.EXIT_MANAGE,
-          },
+        icon: I(LogOut),
+        path: "/employee-exit/my-requests",
+        requiredAnyPermission: [
+          Permissions.EXIT_MANAGE,
+          Permissions.EXIT_READ,
+          Permissions.EXIT_CONFIG_READ
         ],
       },
       {
@@ -1024,6 +1037,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
       Permissions.MY_HUB_CLAIMS_READ,
+      Permissions.MY_HUB_DOCUMENTS_READ,
     ],
     items: [
       {
@@ -1083,6 +1097,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(ReceiptText),
         path: "/my-hub/claims",
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
+      },
+      {
+        key: "/my-hub/documents",
+        label: "My Documents",
+        icon: I(Folder),
+        path: "/my-hub/documents",
+        requiredPermission: Permissions.MY_HUB_DOCUMENTS_READ,
       },
     ],
   },

@@ -35,6 +35,22 @@ export class ApprovalWorkflowService {
   }
 
   /**
+   * Save a sequence of approval steps for a specific level
+   */
+  static async saveSequence(data: { levelType: string; levelId: string; steps: any[] }): Promise<ExitApprovalStep[]> {
+    try {
+      const response = await api.post<any>("/api/exit/approval-workflow/sequence", data);
+      const body = response.data ? response.data : response;
+      return body.data || body;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to save approval sequence");
+    }
+  }
+
+  /**
    * Create a new approval step
    */
   static async createStep(data: Partial<ExitApprovalStep>): Promise<ExitApprovalStep> {

@@ -152,9 +152,14 @@ export default function LeavesV2Layout({ children }: { children: React.ReactNode
           .lv-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .lv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           /* ---------------- Main ---------------- */
-          .lv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
-          .lv-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; position: relative; }
+          .lv-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; height: calc(100vh - 54px); overflow: hidden; }
+          .lv-content { flex: 1; min-height: 0; padding: 0 32px; display: flex; flex-direction: column; position: relative; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+          .lv-content::-webkit-scrollbar { display: none; }
           
+          /* Force the page component wrapper to fill available height */
+          .lv-content > div { flex: 1; display: flex; flex-direction: column; }
+          .lv-content > div > [class*="-footer--sticky"] { margin-top: auto !important; }
+
           /* Stretch panel headers to the edges and make them sticky */
           .lv-content > * > [class*="-header"] {
             margin-left: -32px !important;

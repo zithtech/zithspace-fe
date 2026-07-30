@@ -67,6 +67,7 @@ export interface TimesheetFilters {
   status?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
   startDate?: string;
   endDate?: string;
+  forApproval?: boolean;
 }
 export const reviewTimesheet = async (
   id: string,
@@ -136,7 +137,7 @@ export class TimesheetsService {
   /** Approve or Reject a timesheet */
   static async approveTimesheet(id: string, status: 'APPROVED' | 'REJECTED', rejectReason?: string): Promise<Timesheet> {
     try {
-      return await api.put<Timesheet>(`/api/timesheets/${id}/approve`, { status, rejectReason });
+      return await api.post<Timesheet>(`/api/timesheets/${id}/review`, { status, rejectReason });
     } catch (error) {
       if (error instanceof ApiError) throw new Error(error.message);
       throw new Error('Failed to approve/reject timesheet');

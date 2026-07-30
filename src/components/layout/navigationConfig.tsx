@@ -53,6 +53,7 @@ import {
   // ADMIN
   Building2,
   Settings,
+  Chrome,
   Workflow,
   Handshake,
   TrendingUp,
@@ -98,6 +99,7 @@ import {
   Folder,
   ReceiptText,
   MessageSquare,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -365,6 +367,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/timesheet/teams",
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
         ],
       },
       {
@@ -456,6 +465,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -599,6 +615,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "General Settings",
         icon: I(Settings),
         path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/settings/chrome-extension",
+        label: "Chrome Extension",
+        icon: I(Chrome),
+        path: "/settings/chrome-extension",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {

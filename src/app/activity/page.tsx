@@ -65,8 +65,6 @@ const ACTION_COLOR: Record<string, string> = {
   archive: "orange",
   restore: "cyan",
   permanent_delete: "red",
-  trash: "red",
-  move_to_trash: "red",
   status_change: "purple",
   move: "geekblue",
   convert: "magenta",
@@ -556,9 +554,14 @@ export default function ActivityPage() {
         next.section = undefined;
         next.module = undefined;
         next.page = undefined;
+        next.action = undefined; // reset action scope
       } else if (key === "module") {
         next.module = undefined;
         next.page = undefined;
+        next.action = undefined; // reset action scope
+      } else if (key === "page") {
+        next.page = undefined;
+        next.action = undefined; // reset action scope
       } else {
         next[key] = undefined as any;
       }
@@ -599,16 +602,34 @@ export default function ActivityPage() {
     ? filterOpts?.pages.filter((p) => modulesForSection?.includes(p.module)).map((p) => p.page)
     : filterOpts?.pages.map((p) => p.page);
 
-  let actionsForPage = filterOpts?.actions || [];
+  // Build the action list scoped to the currently-selected page → module → section.
+  // When a page/module/section is chosen we always restrict to that scope;
+  // only fall back to the global list when nothing is chosen.
+  let actionsForPage: string[];
   if (filters.page) {
-    const dbActions = filterOpts?.pageActions?.filter((pa) => pa.page === filters.page).map((pa) => pa.action) || [];
-    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+    // Exact page match
+    const dbActions =
+      filterOpts?.pageActions
+        ?.filter((pa) => pa.page === filters.page)
+        .map((pa) => pa.action) || [];
+    actionsForPage = Array.from(new Set(dbActions));
   } else if (filters.module) {
-    const dbActions = filterOpts?.pageActions?.filter((pa) => pagesForModule?.includes(pa.page)).map((pa) => pa.action) || [];
-    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+    // All pages that belong to this module
+    const dbActions =
+      filterOpts?.pageActions
+        ?.filter((pa) => pagesForModule?.includes(pa.page))
+        .map((pa) => pa.action) || [];
+    actionsForPage = Array.from(new Set(dbActions));
   } else if (filters.section) {
-    const dbActions = filterOpts?.pageActions?.filter((pa) => pagesForModule?.includes(pa.page)).map((pa) => pa.action) || [];
-    if (dbActions.length > 0) actionsForPage = Array.from(new Set(dbActions));
+    // All pages that belong to any module in this section
+    const dbActions =
+      filterOpts?.pageActions
+        ?.filter((pa) => pagesForModule?.includes(pa.page))
+        .map((pa) => pa.action) || [];
+    actionsForPage = Array.from(new Set(dbActions));
+  } else {
+    // No scope filter — show everything
+    actionsForPage = filterOpts?.actions || [];
   }
 
   return (
@@ -684,7 +705,7 @@ export default function ActivityPage() {
                 label: s,
                 description: "Top navbar section",
               })) ?? []}
-              onSelect={(section) => setFilters((p) => ({ ...p, section, module: undefined, page: undefined }))}
+              onSelect={(section) => setFilters((p) => ({ ...p, section, module: undefined, page: undefined, action: undefined }))}
               searchPlaceholder="Search sections..."
               footerText="Switch section to view its modules"
               footerSummary="sections"
@@ -704,7 +725,7 @@ export default function ActivityPage() {
                   };
                 }) ?? []
               }
-              onSelect={(m) => setFilters((p) => ({ ...p, module: m, page: undefined }))}
+              onSelect={(m) => setFilters((p) => ({ ...p, module: m, page: undefined, action: undefined }))}
               searchPlaceholder="Search modules..."
               footerText="Switch module to view its pages"
               footerSummary="modules"
@@ -724,7 +745,7 @@ export default function ActivityPage() {
                   };
                 }) ?? []
               }
-              onSelect={(page) => setFilters((p) => ({ ...p, page }))}
+              onSelect={(page) => setFilters((p) => ({ ...p, page, action: undefined }))}
               searchPlaceholder="Search pages..."
               footerText="Filter activity log by page"
               footerSummary="pages"
@@ -858,39 +879,39 @@ export default function ActivityPage() {
         </div>
 
         {/* ─── Feed ─── */}
-        <div className="ax-feed-wrapper">
-          {newCount > 0 && pageNum > 1 && (
-            <button className="ax-new-pill" onClick={jumpToTop}>
-              <span className="ax-new-dot" />
-              {newCount} new {newCount === 1 ? "activity" : "activities"} · jump to top
-            </button>
-          )}
-          {loading && rows.length === 0 ? (
-            <div className="ax-feed-card">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="ax-row">
-                  <Skeleton.Avatar active size={26} />
-                  <div style={{ flex: 1 }}>
-                    <Skeleton
-                      active
-                      paragraph={{ rows: 1, width: ["55%", "30%"] }}
-                      title={false}
-                    />
+        <div className="ax-body">
+          <div className="ax-feed-wrapper">
+            {newCount > 0 && pageNum > 1 && (
+              <button className="ax-new-pill" onClick={jumpToTop}>
+                <span className="ax-new-dot" />
+                {newCount} new {newCount === 1 ? "activity" : "activities"} · jump to top
+              </button>
+            )}
+            {loading && rows.length === 0 ? (
+              <div className="ax-feed-card">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="ax-row">
+                    <Skeleton.Avatar active size={26} />
+                    <div style={{ flex: 1 }}>
+                      <Skeleton
+                        active
+                        paragraph={{ rows: 1, width: ["55%", "30%"] }}
+                        title={false}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="ax-feed-card ax-empty">
-              <Empty description={error} />
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="ax-feed-card ax-empty">
-              <Empty description="No activity matches these filters." />
-            </div>
-          ) : (
-            <>
-              {grouped.map(([label, items]) => (
+                ))}
+              </div>
+            ) : error ? (
+              <div className="ax-feed-card ax-empty">
+                <Empty description={error} />
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="ax-feed-card ax-empty">
+                <Empty description="No activity matches these filters." />
+              </div>
+            ) : (
+              grouped.map(([label, items]) => (
                 <div key={label} className="ax-group">
                   <div className="ax-group-header">
                     <span className="ax-group-label">{label}</span>
@@ -909,28 +930,30 @@ export default function ActivityPage() {
                     ))}
                   </div>
                 </div>
-              ))}
-              <div className="ax-pager">
-                <Pagination
-                  current={pageNum}
-                  pageSize={pageSize}
-                  total={total}
-                  showSizeChanger
-                  pageSizeOptions={[10, 20, 25, 50, 100]}
-                  showTotal={(t, [from, to]) =>
-                    `${from.toLocaleString()}–${to.toLocaleString()} of ${t.toLocaleString()}`
-                  }
-                  onChange={(p, size) => {
-                    setPageNum(p);
-                    if (size !== pageSize) setPageSize(size);
-                  }}
-                  size="small"
-                  disabled={loading}
-                />
-              </div>
-            </>
-          )}
+              ))
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* ─── Fixed footer pagination ─── */}
+      <div className="ax-footer">
+        <Pagination
+          current={pageNum}
+          pageSize={pageSize}
+          total={total}
+          showSizeChanger
+          pageSizeOptions={[10, 20, 25, 50, 100]}
+          showTotal={(t, [from, to]) =>
+            `${from.toLocaleString()}–${to.toLocaleString()} of ${t.toLocaleString()}`
+          }
+          onChange={(p, size) => {
+            setPageNum(p);
+            if (size !== pageSize) setPageSize(size);
+          }}
+          size="small"
+          disabled={loading}
+        />
       </div>
     </MainLayout>
   );
@@ -1029,38 +1052,94 @@ function ActivityStyles() {
         border-color: rgba(167, 139, 250, 0.25);
       }
 
+      /* Activity page header — sticky, full-bleed divider, no left/right gap */
       .saas-header-container {
         position: sticky !important;
         top: 0 !important;
         z-index: 1000 !important;
+        /* Negative margins escape the Content's 8px padding so the border spans edge-to-edge */
         margin: 0 -8px 14px -8px !important;
-        padding: 8.5px 32px !important;
+        padding: 8.5px 0 !important;
         background: var(--bg-pure-white, #ffffff) !important;
         backdrop-filter: none !important;
+        border-bottom: 1px solid var(--border-color, #e2e8f0) !important;
       }
-      [data-theme='dark'] .saas-header-container.saas-header-container {
+      [data-theme='dark'] .saas-header-container {
         background: var(--bg-primary, #0B0F1A) !important;
+        border-bottom-color: var(--border-slate-800, #1f2937) !important;
+      }
+      /* Inner row: keep the content itself padded at 32px */
+      .saas-header-container .ant-row {
+        padding-left: 32px !important;
+        padding-right: 32px !important;
       }
 
       .ax-shell {
-        padding: 0 24px 32px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        flex: 1;
+        padding: 0 24px 0;
+      }
+
+      .ax-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-bottom: 72px; /* space for sticky footer */
+      }
+
+      .ax-footer {
+        position: fixed;
+        bottom: 0;
+        /* align with the main content area, accounting for the sidebar */
+        left: var(--sidebar-width, 56px);
+        right: 0;
+        z-index: 200;
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border-color, #e2e8f0);
+        padding: 10px 24px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        box-shadow: 0 -4px 16px -4px rgba(0, 0, 0, 0.06);
+      }
+      [data-theme='dark'] .ax-footer {
+        background: rgba(11, 15, 26, 0.97);
+        border-top-color: var(--border-slate-800, #1f2937);
+        box-shadow: 0 -4px 16px -4px rgba(0, 0, 0, 0.3);
+      }
+      .ax-footer .ant-pagination {
+        margin: 0;
       }
 
       /* ─── Filter rail ────────────────────────── */
       .ax-filter-card {
+        position: sticky;
+        /* header is ~55px tall; sit flush beneath it */
+        top: 55px;
+        z-index: 500;
         background: var(--bg-pure-white, #ffffff);
         border: 1px solid var(--border-color, #e2e8f0);
-        border-radius: 12px;
-        padding: 12px 14px;
-        margin-bottom: 14px;
+        border-radius: 10px;
+        padding: 7px 10px;
+        margin-bottom: 10px;
+        /* subtle shadow so the card looks elevated over the feed */
+        box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+      }
+      [data-theme='dark'] .ax-filter-card {
+        background: var(--bg-slate-900, #0f1524);
+        border-color: var(--border-slate-800, #1f2937);
+        box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.25);
       }
       .ax-filter-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
+        margin-bottom: 7px;
+        padding-bottom: 7px;
         border-bottom: 1px solid var(--border-color, #f0f0f0);
       }
       .ax-filter-head-left {
@@ -1211,9 +1290,9 @@ function ActivityStyles() {
       .ax-chip-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 5px;
-        margin-top: 12px;
-        padding-top: 10px;
+        gap: 4px;
+        margin-top: 7px;
+        padding-top: 7px;
         border-top: 1px dashed var(--border-color, #e2e8f0);
       }
       .ax-chip {
@@ -1449,35 +1528,11 @@ function ActivityStyles() {
       }
       [data-theme='dark'] .ax-new-dot { background: #a78bfa; }
 
-      .ax-pager {
-        position: sticky;
-        bottom: 0;
-        z-index: 100;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(8px);
-        border-top: 1px solid var(--border-color, #e2e8f0);
-        padding: 14px 24px;
-        margin: 16px -24px -32px -24px;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.05);
-      }
-      .ax-pager .ant-pagination {
-        margin: 0;
-      }
-      .ax-pager .ant-pagination-total-text {
+      .ax-footer .ant-pagination-total-text {
         font-size: 11.5px;
         color: var(--text-slate-500, #64748b);
         font-weight: 600;
         margin-right: 12px;
-      }
-
-      /* Dark mode override for sticky pagination */
-      [data-theme='dark'] .ax-pager {
-        background: rgba(15, 21, 36, 0.95);
-        border-top-color: var(--border-slate-800, #1f2937);
-        box-shadow: 0 -4px 12px -4px rgba(0, 0, 0, 0.2);
       }
 
       /* ─── Dark mode overrides ─── */
@@ -1692,9 +1747,9 @@ function ActivityStyles() {
         background: var(--bg-pure-white, #ffffff);
         border: 1px solid var(--border-color, #e2e8f0);
         border-radius: 8px;
-        padding: 5px 12px;
-        height: 42px;
-        min-width: 150px;
+        padding: 4px 10px;
+        height: 36px;
+        min-width: 140px;
         cursor: pointer;
         transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
         user-select: none;

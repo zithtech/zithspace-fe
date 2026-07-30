@@ -534,6 +534,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [sidebarWidth, setSidebarWidth] = useState<number>(SIDEBAR_DEFAULT_WIDTH);
     const [isResizing, setIsResizing] = useState(false);
     const sidebarRef = useRef<HTMLElement>(null);
+    const isExpandedInitialized = useRef(false);
+
+    // Save persisted expanded state (only after initial load)
+    useEffect(() => {
+        if (isExpandedInitialized.current && typeof window !== 'undefined') {
+            window.localStorage.setItem(`documenthub:expanded:${documentId}`, JSON.stringify(Array.from(expandedIds)));
+        }
+    }, [expandedIds, documentId]);
 
     // Load persisted sidebar width
     useEffect(() => {
@@ -700,11 +708,23 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const isDirty = autosave.isDirty || saveStatus === 'saving';
     const isSaving = saveStatus === 'saving';
 
-    // Expand all nodes by default when data loads and select first document
+    // Expand all nodes by default when data loads OR load from localStorage
     useEffect(() => {
-        if (documentHub?.treeNodes) {
-            const allIds = documentHub.treeNodes.map(n => n.id);
-            setExpandedIds(new Set(allIds));
+        if (documentHub?.treeNodes && !isExpandedInitialized.current) {
+            isExpandedInitialized.current = true;
+            
+            const stored = typeof window !== 'undefined' ? window.localStorage.getItem(`documenthub:expanded:${documentId}`) : null;
+            if (stored) {
+                try {
+                    setExpandedIds(new Set(JSON.parse(stored)));
+                } catch (e) {
+                    const allIds = documentHub.treeNodes.map(n => n.id);
+                    setExpandedIds(new Set(allIds));
+                }
+            } else {
+                const allIds = documentHub.treeNodes.map(n => n.id);
+                setExpandedIds(new Set(allIds));
+            }
 
             // Select first document if currently on placeholder
             if (selectedDoc === 'api-ref') {

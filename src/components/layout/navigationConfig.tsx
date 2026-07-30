@@ -53,6 +53,7 @@ import {
   // ADMIN
   Building2,
   Settings,
+  Chrome,
   Workflow,
   Handshake,
   TrendingUp,
@@ -365,6 +366,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/timesheet/teams",
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
         ],
       },
       {
@@ -606,6 +614,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "General Settings",
         icon: I(Settings),
         path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/settings/chrome-extension",
+        label: "Chrome Extension",
+        icon: I(Chrome),
+        path: "/settings/chrome-extension",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {

@@ -16,6 +16,7 @@ export interface EmployeeExitRequest {
   buyoutRequired: boolean;
   buyoutAmount?: number;
   explanation?: string;
+  resignationLetterUrl?: string;
   status: string;
   createdAt: string;
   employee?: {
@@ -52,6 +53,63 @@ export class EmployeeExitService {
         throw new Error(error.message);
       }
       throw new Error("Failed to fetch exit requests");
+    }
+  }
+
+  /**
+   * Get my exit requests
+   */
+  static async getMyExitRequests(): Promise<EmployeeExitRequest[]> {
+    try {
+      const response = await api.get<any>("/api/exit/request/my-requests");
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch my exit requests");
+    }
+  }
+
+  /**
+   * Get pending approvals
+   */
+  static async getPendingApprovals(): Promise<EmployeeExitRequest[]> {
+    try {
+      const response = await api.get<any>("/api/exit/request/pending-approvals");
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch pending approvals");
+    }
+  }
+
+  static async getClearances(): Promise<any[]> {
+    try {
+      const response = await api.get<any>("/api/exit/request/clearances");
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch clearances");
+    }
+  }
+
+  /**
+   * Get clearances by request ID
+   */
+  static async getClearancesByRequestId(id: string): Promise<any[]> {
+    try {
+      const response = await api.get<any>(`/api/exit/request/${id}/clearances`);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch clearances for request");
     }
   }
 
@@ -96,6 +154,121 @@ export class EmployeeExitService {
         throw new Error(error.message);
       }
       throw new Error("Failed to delete exit request");
+    }
+  }
+
+  static async updateExitRequest(id: string, payload: any): Promise<any> {
+    try {
+      return await api.put(`/api/exit/request/${id}`, payload);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to update exit request");
+    }
+  }
+
+
+  /**
+   * Update exit request status
+   */
+  static async updateExitStatus(id: string, status: string): Promise<EmployeeExitRequest> {
+    try {
+      const response = await api.put<any>(`/api/exit/request/${id}/status`, { status });
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to update exit request status to ${status}`);
+    }
+  }
+
+  /**
+   * Update clearance status
+   */
+  static async updateClearanceStatus(id: string, department: string, isCleared: boolean, comments: string = '', checklist: any = {}): Promise<any> {
+    try {
+      const response = await api.put<any>(`/api/exit/request/${id}/clearance`, { department, isCleared, comments, checklist });
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to update ${department} clearance status`);
+    }
+  }
+
+  /**
+   * Process FnF Settlement
+   */
+  static async processFnFSettlement(id: string, payload: any): Promise<any> {
+    try {
+      const response = await api.put<any>(`/api/exit/request/${id}/fnf`, payload);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to process FnF settlement`);
+    }
+  }
+
+  /**
+   * Calculate FnF Settlement (Integration with Payroll)
+   */
+  static async calculateFnF(id: string): Promise<any> {
+    try {
+      const response = await api.post<any>(`/api/exit/request/${id}/fnf/calculate`);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to calculate FnF`);
+    }
+  }
+
+  /**
+   * Upload Document (Relieving or Experience Letter)
+   */
+  static async uploadDocument(id: string, payload: { documentType: string; fileBase64: string; fileName: string; employeeId: string }): Promise<any> {
+    try {
+      const response = await api.post<any>(`/api/exit/request/${id}/document`, payload);
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error(`Failed to upload document`);
+    }
+  }
+
+  /**
+   * Download Document (Proxy via backend)
+   */
+  static async downloadDocument(url: string, filename: string): Promise<void> {
+    try {
+      const response = await api.get('/api/exit/request/download/document', {
+        params: { url, filename, mode: 'attachment' },
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error: any) {
+      console.error("Download error", error);
+      throw new Error('Failed to download document');
     }
   }
 
@@ -153,6 +326,68 @@ export class EmployeeExitService {
         throw new Error(error.message);
       }
       throw new Error("Failed to delete employee asset");
+    }
+  }
+
+  // Checklist Configs
+  static async getChecklistConfigs(): Promise<any[]> {
+    try {
+      const response = await api.get<any>("/api/exit/request/config/checklist");
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch checklist configs");
+    }
+  }
+
+  static async addChecklistConfig(department: string, itemName: string): Promise<any> {
+    try {
+      const response = await api.post<any>("/api/exit/request/config/checklist", { department, itemName });
+      return response.data?.data || response.data || response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to add checklist config");
+    }
+  }
+
+  static async deleteChecklistConfig(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/exit/request/config/checklist/${id}`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to delete checklist config");
+    }
+  }
+
+  // ==========================================
+  // EXIT INTERVIEWS
+  // ==========================================
+  
+  static async getExitInterview(id: string): Promise<any> {
+    try {
+      const response = await api.get(`/api/exit/request/${id}/interview`);
+      return response.data?.data || response.data || response;
+    } catch (error: any) {
+      console.warn("No exit interview found or error:", error);
+      return null;
+    }
+  }
+
+  static async submitExitInterview(id: string, data: any): Promise<any> {
+    try {
+      const response = await api.post(`/api/exit/request/${id}/interview`, data);
+      return response.data?.data || response.data;
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to submit exit interview');
     }
   }
 }

@@ -1024,6 +1024,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
       Permissions.MY_HUB_CLAIMS_READ,
+      Permissions.MY_HUB_DOCUMENTS_READ,
     ],
     items: [
       {
@@ -1083,6 +1084,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(ReceiptText),
         path: "/my-hub/claims",
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
+      },
+      {
+        key: "/my-hub/documents",
+        label: "My Documents",
+        icon: I(Folder),
+        path: "/my-hub/documents",
+        requiredPermission: Permissions.MY_HUB_DOCUMENTS_READ,
       },
     ],
   },

@@ -4155,6 +4155,23 @@ export default function ClientsV2ListPage() {
               .pp-mobile-toggle { display: flex; }
               .pp-stats { grid-template-columns: repeat(2, 1fr) !important; }
             }
+            @media (max-width: 900px) {
+              .cm-project-row {
+                flex-wrap: wrap;
+                gap: 12px;
+              }
+              .cm-project-row-left {
+                flex: 1 1 100%;
+              }
+              .cm-project-row-right {
+                flex: 1 1 100%;
+                flex-wrap: wrap;
+                gap: 12px 16px;
+              }
+              .cm-project-row-right > div[style*="width: 1"] {
+                display: none;
+              }
+            }
             @media (max-width: 600px) {
               .pp-stats { grid-template-columns: 1fr !important; }
             }

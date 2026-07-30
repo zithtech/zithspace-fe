@@ -428,7 +428,33 @@ export default function TicketsArchivedPage() {
             )}
           </div>
         }
-      >
+      footerSlot={
+        totalArchived > 0 ? (
+          <>
+            <div className="pp-footer-info">
+              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
+              {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
+            </div>
+            <div className="pp-pager">
+              <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1)
+                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                .map((p) => (
+                  <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                ))}
+              <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
+              <Select
+                className="pp-pagesize"
+                value={pageSize}
+                onChange={(v) => { setPageSize(v); setPage(1); }}
+                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                popupMatchSelectWidth={120}
+              />
+            </div>
+          </>
+        ) : undefined
+      }
+    >
         <Table
           columns={columns}
           dataSource={tickets}
@@ -471,57 +497,8 @@ export default function TicketsArchivedPage() {
             ),
           }}
           pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
         />
-
-        {totalArchived > 0 && (
-          <div className="pp-footer pp-footer--sticky">
-            <div className="pp-footer-info">
-              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
-              {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
-            </div>
-            <div className="pp-pager">
-              <button
-                type="button"
-                className="pp-pager-btn"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                ‹
-              </button>
-              {Array.from({ length: pageCount }, (_, i) => i + 1)
-                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
-                .map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`pp-pager-num ${p === page ? 'is-active' : ''}`}
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-              <button
-                type="button"
-                className="pp-pager-btn"
-                disabled={page >= pageCount}
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-              >
-                ›
-              </button>
-              <Select
-                className="pp-pagesize"
-                value={pageSize}
-                onChange={(v) => {
-                  setPageSize(v);
-                  setPage(1);
-                }}
-                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                popupMatchSelectWidth={120}
-              />
-            </div>
-          </div>
-        )}
 
         <style jsx global>{`
           /* ── Table sized + framed ─────────────────────────── */

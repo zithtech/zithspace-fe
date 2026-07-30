@@ -1569,10 +1569,12 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin: 14px -28px -32px;
-            padding: 12px 28px;
+            margin: auto -28px -32px;
+            padding: 0 28px;
             background: var(--bg-pure-white);
             border-top: 1px solid var(--border-slate-100);
+            flex-shrink: 0;
+            height: 56px;
           }
           [data-theme='dark'] .bd2-pagination {
             background: #0d1117 !important;

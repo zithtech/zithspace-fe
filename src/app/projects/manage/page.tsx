@@ -502,9 +502,11 @@ const ProjectsManageContent: React.FC = () => {
           }}>
             <ProjectOutlined style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#3B82F6", background: "var(--bg-blue-50)" }} />
           </div>
-          <div>
-            <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
-            <div style={{ fontSize: 10, color: "var(--text-slate-600)" }}>{record.code}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Text strong style={{ fontSize: 14, lineHeight: '1.2' }}>{record.name}</Text>
+            <div style={{ fontSize: 10, color: "var(--text-slate-600)", marginTop: 2 }}>
+              {record.code || `#${record.id.slice(0, 8)}`}
+            </div>
           </div>
         </Space>
       ),

@@ -174,8 +174,18 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   }, [value, options, placeholder]);
 
   const commit = (next: string | undefined) => {
-    onChange?.(next);
-    setOpen(false);
+    if (mode === "multiple" || Array.isArray(value)) {
+      if (!next) return;
+      const valArray = Array.isArray(value) ? value : [];
+      if (!valArray.includes(next)) {
+        onChange?.([...valArray, next]);
+      }
+      setSearch("");
+      // Intentionally do not close the dropdown for multiple select
+    } else {
+      onChange?.(next);
+      setOpen(false);
+    }
   };
 
   const renderOption = (opt: SearchableDropdownOption) => {

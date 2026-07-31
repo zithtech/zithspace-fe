@@ -2,12 +2,12 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Tooltip, Result, Empty, Table, Tag, Row, Col, Typography, Checkbox, message, Modal, Input } from "antd";
-import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button, Tooltip, Result, Empty, Table, Tag, Row, Col, Typography, Checkbox, message, Modal, Input, Popconfirm, Form, Select, Drawer, Tabs, Dropdown } from "antd";
+import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2 } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
@@ -19,6 +19,30 @@ import dayjs from "dayjs";
 const { Text, Paragraph } = Typography;
 
 type TabKey = "dashboard" | "scopes" | "approvals" | "settings";
+
+function initialsOf(name: string) {
+  if (!name) return 'TS';
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function hashCode(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+}
+
+const CARD_ACCENTS = [
+  ['#3b82f6', '#1d4ed8']
+];
+
+function accentFor(str: string) {
+  const h = Math.abs(hashCode(str || 'default'));
+  return CARD_ACCENTS[h % CARD_ACCENTS.length];
+}
 
 /* Stat tile */
 const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
@@ -62,8 +86,10 @@ const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: any; titl
 export default function TestScopePage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestScope" });
 
+  const searchParams = useSearchParams();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("scopes");
+  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +102,8 @@ export default function TestScopePage() {
   const isDark = theme === "dark";
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerRecord, setDrawerRecord] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -84,10 +112,11 @@ export default function TestScopePage() {
   useEffect(() => {
     if (!isLoading && canReadBug) {
       fetchScopes();
+      fetchScopeSettings();
       axios.get("/api/release-plans").then((res: any) => {
         const data = Array.isArray(res) ? res : (res.data || []);
         const map: Record<string, string> = {};
-        data.forEach((s: any) => { if(s.id) map[s.id] = s.name; });
+        data.forEach((s: any) => { if (s.id) map[s.id] = s.name; });
         setSprintsMap(map);
       }).catch(console.error);
     }
@@ -145,6 +174,80 @@ export default function TestScopePage() {
       message.error(`Failed to ${newStatus === 'Approved' ? 'approve' : 'reject'} Test Scope`);
     }
   };
+
+  // ── Settings State ──────────────────────────────────────────
+  const [scopeSettings, setScopeSettings] = useState<any[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [editingSetting, setEditingSetting] = useState<any>(null);
+  const [settingsActiveCategory, setSettingsActiveCategory] = useState<'scope_type' | 'priority' | 'status'>('scope_type');
+  const [settingsForm] = Form.useForm();
+
+  const CATEGORY_LABELS: Record<string, string> = { scope_type: 'Scope Type', priority: 'Priority', status: 'Status' };
+  const COLOR_OPTIONS = [
+    { value: 'default', label: 'Grey' }, { value: 'blue', label: 'Blue' }, { value: 'green', label: 'Green' },
+    { value: 'orange', label: 'Orange' }, { value: 'red', label: 'Red' }, { value: 'purple', label: 'Purple' },
+    { value: 'cyan', label: 'Cyan' }, { value: 'gold', label: 'Gold' },
+  ];
+
+  const fetchScopeSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res: any = await axios.get(`/api/v2/qa/test-scopes/settings?_t=${Date.now()}`);
+      let data = [];
+      if (Array.isArray(res)) data = res;
+      else if (Array.isArray(res?.data)) data = res.data;
+      else if (Array.isArray(res?.data?.data)) data = res.data.data;
+
+      console.log('Final extracted data:', data);
+      setScopeSettings(data);
+    } catch (err) {
+      console.error("Failed to fetch settings", err);
+    } finally { setSettingsLoading(false); }
+  };
+
+  const openCreateSetting = () => {
+    setEditingSetting(null);
+    settingsForm.resetFields();
+    settingsForm.setFieldsValue({ color: 'default' });
+    setSettingsModalOpen(true);
+  };
+
+  const openEditSetting = (item: any) => {
+    setEditingSetting(item);
+    settingsForm.setFieldsValue({ value: item.value, label: item.label, color: item.color || 'default' });
+    setSettingsModalOpen(true);
+  };
+
+  const handleSaveSetting = async () => {
+    try {
+      const values = await settingsForm.validateFields();
+      if (editingSetting) {
+        await axios.put(`/api/v2/qa/test-scopes/settings/${editingSetting.id}`, values);
+        message.success('Updated successfully');
+      } else {
+        await axios.post('/api/v2/qa/test-scopes/settings', { ...values, category: settingsActiveCategory });
+        message.success('Created successfully');
+      }
+      setSettingsModalOpen(false);
+      fetchScopeSettings();
+    } catch (err: any) {
+      if (err?.errorFields) return;
+      message.error('Failed to save');
+    }
+  };
+
+  const handleDeleteSetting = async (id: string) => {
+    try {
+      await axios.delete(`/api/v2/qa/test-scopes/settings/${id}`);
+      message.success('Deleted');
+      fetchScopeSettings();
+    } catch { message.error('Failed to delete'); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings' && scopeSettings.length === 0) fetchScopeSettings();
+  }, [activeTab]);
 
   /* Dashboard Chart Data */
   const currentYear = dayjs().year();
@@ -240,21 +343,29 @@ export default function TestScopePage() {
 
   const columns = [
     { title: "Test Scope Name", dataIndex: "name", key: "name", render: (t: string) => <strong style={{ color: "var(--text-slate-800)" }}>{t}</strong> },
-    { title: "Description", key: "description", render: (_: any, r: any) => r.details?.description || '-' },
     { title: "Scope Type", dataIndex: "type", key: "type" },
-    { title: "Priority", dataIndex: "priority", key: "priority", render: (t: string) => <Tag color={t === 'Critical' ? 'red' : t === 'High' ? 'orange' : 'blue'}>{t}</Tag> },
-    { title: "Status", dataIndex: "status", key: "status" },
+    {
+      title: "Status", dataIndex: "status", key: "status", render: (t: string) => {
+        const s = scopeSettings.find(set => set.category === 'status' && set.value === t);
+        const color = s?.color && s.color !== 'default' ? s.color : (t === 'Approved' ? 'green' : t === 'Rejected' ? 'red' : t === 'In Review' ? 'orange' : t === 'Draft' ? 'default' : 'blue');
+        return <Tag color={color}>{t}</Tag>;
+      }
+    },
     { title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", render: (t: string) => t || '-' },
     { title: "Reviewer", key: "reviewer", render: (_: any, r: any) => r.details?.reviewer || '-' },
-    { title: "Planned Start Date", dataIndex: "start_date", key: "start_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
-    { title: "Planned End Date", dataIndex: "end_date", key: "end_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
+    { title: "Start Date", dataIndex: "start_date", key: "start_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
+    { title: "End Date", dataIndex: "end_date", key: "end_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, r: any) => (
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button type="link" size="small" style={{ padding: 0 }} onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-scope/edit/${r.id}`); }}>Edit</Button>
-          <Button type="link" danger size="small" style={{ padding: 0 }} onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }}>Delete</Button>
+          <Tooltip title="Edit">
+            <Button type="text" size="small" style={{ color: "var(--text-slate-600)" }} icon={<Pencil size={16} />} onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-scope/edit/${r.id}`); }} />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button type="text" danger size="small" icon={<Trash2 size={16} />} onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} />
+          </Tooltip>
         </div>
       )
     }
@@ -262,51 +373,51 @@ export default function TestScopePage() {
 
   const approvalColumns = [
     { title: "Test Scope Name", dataIndex: "name", key: "name", render: (t: string) => <strong style={{ color: "var(--text-slate-800)" }}>{t}</strong> },
-    { title: "Description", key: "description", render: (_: any, r: any) => r.details?.description || '-' },
     { title: "Scope Type", dataIndex: "type", key: "type" },
-    { title: "Priority", dataIndex: "priority", key: "priority", render: (t: string) => <Tag color={t === 'Critical' ? 'red' : t === 'High' ? 'orange' : 'blue'}>{t}</Tag> },
-    { title: "Status", dataIndex: "status", key: "status" },
+    {
+      title: "Status", dataIndex: "status", key: "status", render: (t: string) => {
+        const s = scopeSettings.find(set => set.category === 'status' && set.value === t);
+        const color = s?.color && s.color !== 'default' ? s.color : (t === 'Approved' ? 'green' : t === 'Rejected' ? 'red' : t === 'In Review' ? 'orange' : t === 'Draft' ? 'default' : 'blue');
+        return <Tag color={color}>{t}</Tag>;
+      }
+    },
     { title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", render: (t: string) => t || '-' },
     { title: "Reviewer", key: "reviewer", render: (_: any, r: any) => r.details?.reviewer || '-' },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, r: any) => {
-        if (r.status === 'Approved') {
-          return (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', color: '#10b981', fontSize: 13, fontWeight: 500 }}>
-              <CheckCircleOutlined style={{ fontSize: 14 }} /> Approved
-            </div>
-          );
-        }
-        if (r.status === 'Rejected') {
-          return (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', fontSize: 13, fontWeight: 500 }}>
-              <CloseCircleOutlined style={{ fontSize: 14 }} /> Rejected
-            </div>
-          );
-        }
+        const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
+        
         return (
-          <div style={{ display: 'flex', gap: 12 }} onClick={(e) => e.stopPropagation()}>
-            <ConfirmDialog
-              tone="success"
-              title="Approve Test Scope?"
-              description="Are you sure you want to approve this test scope?"
-              confirmText="Approve"
-              onConfirm={async () => { await performApprovalAction(r, 'Approved'); }}
-            >
-              <Button type="primary" size="small">Approve</Button>
-            </ConfirmDialog>
+          <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+            {isProcessed ? (
+              <Button type="primary" size="small" disabled style={{ background: "var(--bg-slate-200)", borderColor: "transparent", color: "var(--text-slate-400)" }}>Approve</Button>
+            ) : (
+              <ConfirmDialog
+                tone="success"
+                title="Approve Test Scope?"
+                description="Are you sure you want to approve this test scope?"
+                confirmText="Approve"
+                onConfirm={async () => { await performApprovalAction(r, 'Approved'); }}
+              >
+                <Button type="primary" size="small" style={{ background: "#10b981", borderColor: "#10b981" }}>Approve</Button>
+              </ConfirmDialog>
+            )}
 
-            <ConfirmDialog
-              tone="danger"
-              title="Reject Test Scope?"
-              description="Are you sure you want to reject this test scope?"
-              confirmText="Reject"
-              onConfirm={async () => { await performApprovalAction(r, 'Rejected'); }}
-            >
-              <Button type="primary" danger size="small">Reject</Button>
-            </ConfirmDialog>
+            {isProcessed ? (
+              <Button type="default" danger size="small" disabled>Reject</Button>
+            ) : (
+              <ConfirmDialog
+                tone="danger"
+                title="Reject Test Scope?"
+                description="Are you sure you want to reject this test scope?"
+                confirmText="Reject"
+                onConfirm={async () => { await performApprovalAction(r, 'Rejected'); }}
+              >
+                <Button type="default" danger size="small">Reject</Button>
+              </ConfirmDialog>
+            )}
           </div>
         );
       }
@@ -317,7 +428,143 @@ export default function TestScopePage() {
 
   const filteredScopes = scopes.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const expandedRowRender = (record: any) => {
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, bg: string) => (
+    <div className="pp-menu-item" style={{ padding: 0 }}>
+      <div className="pp-menu-ic" style={{ color, background: bg }}>{icon}</div>
+      <div className="pp-menu-text">
+        <div className="pp-menu-title" style={{ color }}>{title}</div>
+        <div className="pp-menu-desc">{desc}</div>
+      </div>
+    </div>
+  );
+
+  const actionMenu = (r: any, isApprovalTab: boolean) => {
+    const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
+    return {
+      className: 'pp-action-menu',
+      items: isApprovalTab ? [
+        {
+          key: 'approve',
+          disabled: isProcessed,
+          label: (
+            <ConfirmDialog
+              tone="success"
+              title="Approve Test Scope?"
+              description="Are you sure you want to approve this test scope?"
+              confirmText="Approve"
+              onConfirm={() => performApprovalAction(r, 'Approved')}
+            >
+              {menuLabel('Approve', 'Approve test scope', <CheckCircleOutlined />, '#10b981', 'rgba(16,185,129,0.12)')}
+            </ConfirmDialog>
+          )
+        },
+        {
+          key: 'reject',
+          disabled: isProcessed,
+          danger: true,
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              title="Reject Test Scope?"
+              description="Are you sure you want to reject this test scope?"
+              confirmText="Reject"
+              onConfirm={() => performApprovalAction(r, 'Rejected')}
+            >
+              {menuLabel('Reject', 'Reject test scope', <CloseCircleOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </ConfirmDialog>
+          )
+        }
+      ] : [
+        { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
+        { type: 'divider' as const },
+        {
+          key: 'delete',
+          danger: true,
+          label: (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete Test Scope?"
+              description="Are you sure you want to delete this test scope?"
+              confirmText="Delete"
+              onConfirm={() => handleDelete(r.id)}
+            >
+              {menuLabel('Delete', 'Remove from list', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </ConfirmDialog>
+          )
+        }
+      ]
+    };
+  };
+
+  const renderScopeCard = (r: any, isApprovalTab: boolean) => {
+    const accent = accentFor(r.name || r.id);
+    const s = scopeSettings.find(set => set.category === 'status' && set.value === r.status);
+    const color = s?.color && s.color !== 'default' ? s.color : (r.status === 'Approved' ? '#10b981' : r.status === 'Rejected' ? '#ef4444' : r.status === 'In Review' ? '#f59e0b' : r.status === 'Draft' ? '#64748b' : '#3b82f6');
+    const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
+
+    return (
+      <div key={r.id} className="pc-card" onClick={() => { setDrawerRecord(r); setDrawerOpen(true); }}>
+        <div className="pc-top">
+          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+            {initialsOf(r.name)}
+          </div>
+          <div className="pc-identity-body">
+            <div className="pc-title">{r.name}</div>
+            <div className="pc-client-line">
+              <span className="pc-client-key">Type:</span>
+              <span className="pc-client-val">{r.type || 'N/A'}</span>
+            </div>
+          </div>
+          <Dropdown
+            menu={actionMenu(r, isApprovalTab)}
+            overlayClassName="pp-action-pop"
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+              <EllipsisOutlined />
+            </button>
+          </Dropdown>
+        </div>
+
+        <div className="pc-foot">
+          <div className="pc-foot-row">
+            <span className="pc-foot-item">
+              <span className="pc-foot-key">QA Owner:</span>
+              <span className="pc-foot-val">{r.qa_owner || '—'}</span>
+            </span>
+            <span className="pc-foot-div" />
+            <span className="pc-foot-item">
+              <span className="pc-foot-key">Reviewer:</span>
+              <span className="pc-foot-val">{r.details?.reviewer || '—'}</span>
+            </span>
+            <span className="pc-foot-div" />
+            <span className="pc-foot-item">
+              <span className="pc-foot-key">Start:</span>
+              <span className="pc-foot-val">{r.start_date ? new Date(r.start_date).toLocaleDateString() : '—'}</span>
+            </span>
+            <span className="pc-foot-div" />
+            <span className="pc-foot-item">
+              <span className="pc-foot-key">End:</span>
+              <span className="pc-foot-val">{r.end_date ? new Date(r.end_date).toLocaleDateString() : '—'}</span>
+            </span>
+          </div>
+          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="pc-foot-item">
+                <span className="pc-foot-key">Status:</span>
+                <span className="pc-status-tag" style={{ color, background: `${color}1A` }}>
+                  {r.status}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDrawerContent = (record: any) => {
     const d = record.details || {};
     return (
       <div style={{ padding: "16px 24px", background: "var(--bg-slate-50)", borderTop: "1px solid var(--border-slate-200)", borderBottom: "1px solid var(--border-slate-200)" }}>
@@ -544,8 +791,8 @@ export default function TestScopePage() {
                         {files.map((f: any, i: number) => (
                           <div key={i} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <InboxOutlined style={{ color: 'var(--text-slate-400)' }} />
-                            <a 
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPreviewFile(f); }} 
+                            <a
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPreviewFile(f); }}
                               style={{ cursor: 'pointer', color: '#3b82f6', textDecoration: 'none' }}
                             >
                               {f.name}
@@ -701,6 +948,12 @@ export default function TestScopePage() {
                   </span>
                 </>
               )}
+              {activeTab === 'settings' && (
+                <>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>Settings</span>
+                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>Manage dropdown options for Scope Type, Priority, and Status</span>
+                </>
+              )}
               {activeTab === 'approvals' && (
                 <>
                   <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
@@ -711,7 +964,7 @@ export default function TestScopePage() {
                   </span>
                 </>
               )}
-              {!['scopes', 'approvals'].includes(activeTab) && (
+              {!['scopes', 'approvals', 'settings'].includes(activeTab) && (
                 <span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-slate-800)", textTransform: 'capitalize' }}>
                   {activeTab}
                 </span>
@@ -719,14 +972,23 @@ export default function TestScopePage() {
             </div>
 
             <div className="dh-main-controls">
+              {activeTab === 'settings' && (
+                <Button type="primary" icon={<Plus size={15} />} onClick={openCreateSetting}>Add Option</Button>
+              )}
               {['scopes', 'approvals'].includes(activeTab) && (
-                <Input
-                  placeholder="Search scopes..."
-                  prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: 250, borderRadius: 6 }}
-                />
+                <>
+                  <Input
+                    placeholder="Search scopes..."
+                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: 250, borderRadius: 6 }}
+                  />
+                  <div className="pp-segmented">
+                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                    <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -760,22 +1022,39 @@ export default function TestScopePage() {
                   ))}
                 </div>
 
-                {/* Table */}
-                <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
-                  <Table
-                    className="ts-table"
-                    dataSource={filteredScopes}
-                    columns={columns}
-                    rowKey="id"
-                    pagination={false}
-                    loading={loading}
-                    scroll={{ x: 'max-content' }}
-                    expandable={{
-                      expandedRowRender,
-                      expandRowByClick: true,
-                    }}
-                  />
-                </div>
+                {/* Table or Grid */}
+                {viewMode === 'list' ? (
+                  <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                    <Table
+                      className="ts-table"
+                      dataSource={filteredScopes}
+                      columns={columns}
+                      rowKey="id"
+                      pagination={false}
+                      loading={loading}
+                      scroll={{ x: 'max-content' }}
+                      onRow={(record) => ({
+                        onClick: () => {
+                          setDrawerRecord(record);
+                          setDrawerOpen(true);
+                        }
+                      })}
+                    />
+                  </div>
+                ) : (
+                  <div className="pp-grid">
+                    {loading ? (
+                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
+                    ) : filteredScopes.length === 0 ? (
+                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
+                        <SnippetsOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br/>
+                        No scopes found
+                      </div>
+                    ) : (
+                      filteredScopes.map(r => renderScopeCard(r, false))
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -804,21 +1083,38 @@ export default function TestScopePage() {
                   ))}
                 </div>
 
-                <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
-                  <Table
-                    className="ts-table"
-                    dataSource={approvalScopes}
-                    columns={approvalColumns}
-                    rowKey="id"
-                    pagination={false}
-                    loading={loading}
-                    scroll={{ x: 'max-content' }}
-                    expandable={{
-                      expandedRowRender,
-                      expandRowByClick: true,
-                    }}
-                  />
-                </div>
+                {viewMode === 'list' ? (
+                  <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                    <Table
+                      className="ts-table"
+                      dataSource={approvalScopes}
+                      columns={approvalColumns}
+                      rowKey="id"
+                      pagination={false}
+                      loading={loading}
+                      scroll={{ x: 'max-content' }}
+                      onRow={(record) => ({
+                        onClick: () => {
+                          setDrawerRecord(record);
+                          setDrawerOpen(true);
+                        }
+                      })}
+                    />
+                  </div>
+                ) : (
+                  <div className="pp-grid">
+                    {loading ? (
+                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
+                    ) : approvalScopes.length === 0 ? (
+                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
+                        <SendOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br/>
+                        No pending approvals
+                      </div>
+                    ) : (
+                      approvalScopes.map(r => renderScopeCard(r, true))
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -880,7 +1176,88 @@ export default function TestScopePage() {
               </>
             )}
 
-            {!['dashboard', 'scopes', 'approvals'].includes(activeTab) && (
+            {activeTab === 'settings' && (
+              <>
+                {/* Category Tabs */}
+                <Tabs
+                  activeKey={settingsActiveCategory}
+                  onChange={(key: any) => setSettingsActiveCategory(key as any)}
+                  size="large"
+                  type="line"
+                  moreIcon={null}
+                  tabBarStyle={{
+                    background: 'transparent',
+                    borderBottom: '1px solid var(--border-slate-200)',
+                    padding: "0 4px",
+                    marginBottom: 20
+                  }}
+                  items={(["scope_type", "priority", "status"] as const).map(cat => ({
+                    key: cat,
+                    label: (
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>
+                        {CATEGORY_LABELS[cat]}
+                        <Tag style={{ marginLeft: 8, fontSize: 10, padding: '0 6px', background: 'var(--bg-slate-100)', border: 'none', color: 'var(--text-slate-500)', borderRadius: 10 }}>
+                          {scopeSettings.filter(s => s.category === cat).length}
+                        </Tag>
+                      </span>
+                    )
+                  }))}
+                />
+
+                {/* Table */}
+                <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                  {scopeSettings.filter(s => s.category === settingsActiveCategory).length === 0 && !settingsLoading ? (
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-slate-400)' }}>
+                      <Settings size={36} style={{ marginBottom: 12, opacity: 0.25 }} />
+                      <p style={{ margin: 0, fontSize: 14 }}>No options yet for {CATEGORY_LABELS[settingsActiveCategory]}</p>
+                      <p style={{ margin: '4px 0 16px', fontSize: 12, opacity: 0.7 }}>Click "Add Option" to create the first one</p>
+                      <Button type="primary" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
+                    </div>
+                  ) : (
+                    <Table
+                      className="ts-table"
+                      dataSource={scopeSettings.filter(s => s.category === settingsActiveCategory)}
+                      rowKey="id"
+                      loading={settingsLoading}
+                      pagination={false}
+                      size="middle"
+                      columns={[
+                        {
+                          title: 'Label',
+                          dataIndex: 'label',
+                          render: (label: string, record: any) => (
+                            <Tag color={record.color || 'default'} style={{ fontSize: 13 }}>{label}</Tag>
+                          ),
+                        },
+                        {
+                          title: 'Value (Key)',
+                          dataIndex: 'value',
+                          render: (v: string) => <code style={{ fontSize: 12, opacity: 0.7 }}>{v}</code>,
+                        },
+                        {
+                          title: 'Actions',
+                          align: 'right' as const,
+                          render: (_: any, record: any) => (
+                            <span style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                              <Tooltip title="Edit">
+                                <Button type="text" size="small" style={{ color: "var(--text-slate-500)" }} icon={<Pencil size={14} />} onClick={() => openEditSetting(record)} />
+                              </Tooltip>
+                              <Popconfirm title="Delete this option?" onConfirm={() => handleDeleteSetting(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                                <Tooltip title="Delete">
+                                  <Button type="text" danger size="small" icon={<Trash2 size={14} />} />
+                                </Tooltip>
+                              </Popconfirm>
+                            </span>
+                          ),
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+
+            {!['dashboard', 'scopes', 'approvals', 'settings'].includes(activeTab) && (
               <div style={{ padding: 40, background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 8, textAlign: 'center' }}>
                 <Empty description={`${activeTab} view coming soon`} />
               </div>
@@ -888,6 +1265,29 @@ export default function TestScopePage() {
           </div>
         </main>
       </div>
+
+      {/* Settings Modal */}
+      <Modal
+        title={editingSetting ? `Edit ${CATEGORY_LABELS[settingsActiveCategory]} Option` : `Add ${CATEGORY_LABELS[settingsActiveCategory]} Option`}
+        open={settingsModalOpen}
+        onCancel={() => setSettingsModalOpen(false)}
+        onOk={handleSaveSetting}
+        okText={editingSetting ? 'Save Changes' : 'Create'}
+        width={440}
+        destroyOnClose
+      >
+        <Form form={settingsForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="label" label="Display Label" rules={[{ required: true, message: 'Please enter a label' }]}>
+            <Input placeholder="e.g. Feature Release" />
+          </Form.Item>
+          <Form.Item name="value" label="Value (Key)" rules={[{ required: true, message: 'Please enter a value key' }]} extra="Can be same as label or snake_case.">
+            <Input placeholder="e.g. feature_release" />
+          </Form.Item>
+          <Form.Item name="color" label="Badge Color">
+            <Select options={COLOR_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         open={!!previewFile}
@@ -918,6 +1318,17 @@ export default function TestScopePage() {
         )}
       </Modal>
 
+      <Drawer
+        title={drawerRecord?.name ? `Scope Details: ${drawerRecord.name}` : "Scope Details"}
+        placement="right"
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen}
+        width={800}
+        styles={{ body: { padding: 0 } }}
+      >
+        {drawerRecord && renderDrawerContent(drawerRecord)}
+      </Drawer>
+
       <style dangerouslySetInnerHTML={{
         __html: `
         .pp-stat-card {
@@ -926,6 +1337,97 @@ export default function TestScopePage() {
           display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
         }
         .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        
+        /* Grid and Segments */
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); margin-left: 12px; }
+        .pp-segmented button {
+          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+        @media (max-width: 1024px) {
+          .pp-grid { grid-template-columns: 1fr; }
+        }
+
+        .pc-card {
+          border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+
+        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
+        .pc-avatar {
+          width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-weight: 800; font-size: 13px;
+        }
+        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
+        .pc-title {
+          font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+        .pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
+        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+        .pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        .pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+        
+        .pc-status-tag { display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700; }
+        
+        .pp-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0 !important; min-width: 236px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .pp-action-pop .ant-dropdown-menu-item {
+          padding: 7px 9px !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+        .pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+        .pp-menu-item { display: flex; align-items: center; gap: 11px; }
+        .pp-menu-ic {
+          width: 30px; height: 30px; border-radius: 0; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+        .pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        .pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+        .pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+        .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu {
+          background: #0B0F1A !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+          border: 1px solid #1E293B !important;
+        }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover {
+          background: #161B22 !important;
+        }
+        [data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider {
+          background: #1E293B !important;
+        }
+        [data-theme='dark'] .pp-menu-title {
+          color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .pp-menu-desc {
+          color: #64748b !important;
+        }
+
         .pp-stat-left { display: flex; align-items: center; gap: 8px; }
         .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
         .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }

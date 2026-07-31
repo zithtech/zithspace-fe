@@ -748,6 +748,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -760,6 +761,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.RECRUITMENT_READ,
     ],
 
     items: [
@@ -829,10 +831,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/pipeline",
         icon: I(Users),
-        label: "Pipeline",
+        label: "Recruitment Pipeline",
         path: "/pipeline/candidates",
         requiredAnyPermission: [
-          Permissions.OPENING_READ, // Or any appropriate permission for pipeline
+          Permissions.RECRUITMENT_READ,
         ],
       },
 

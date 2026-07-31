@@ -6,15 +6,17 @@ import { usePathname } from 'next/navigation';
 import { Users, Settings, Menu, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
-
-const NAV_ITEMS = [
-  { key: 'candidates', label: 'Candidates', href: '/pipeline/candidates', icon: <Users size={16} /> },
-  { key: 'configs', label: 'Configurations', href: '/pipeline/configurations', icon: <Settings size={16} /> },
-];
+import { usePermission } from '@/hooks/usePermission';
 
 export default function PipelineLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { canReadRecruitmentSetting } = usePermission();
+
+  const NAV_ITEMS = [
+    { key: 'candidates', label: 'Candidates', href: '/pipeline/candidates', icon: <Users size={16} /> },
+    ...(canReadRecruitmentSetting ? [{ key: 'configs', label: 'Configurations', href: '/pipeline/configurations', icon: <Settings size={16} /> }] : []),
+  ];
 
   return (
     <ProtectedRoute>
@@ -120,22 +122,22 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           .pl-view-icon { width: 16px; display: inline-flex; justify-content: center; align-items: center; }
           .pl-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
           .pl-main { flex: 1; min-width: 0; padding: 8px 0 0; display: flex; flex-direction: column; }
-          .pl-content { flex: 1; min-height: 0; padding: 4px 32px 0; display: flex; flex-direction: column; }
+          .pl-content { flex: 1; min-height: 0; padding: 4px 16px 0; display: flex; flex-direction: column; }
           
           .pl-content > * > [class*="-header"],
           .pl-content > * > [class*="-footer"] {
-            margin-left: -32px !important;
-            margin-right: -32px !important;
-            padding-left: 32px !important;
-            padding-right: 32px !important;
+            margin-left: -16px !important;
+            margin-right: -16px !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
           }
 
           .pl-topbar { 
             display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
             position: sticky; top: 0; z-index: 30;
             background: var(--bg-pure-white);
-            margin: -4px -32px 8px -32px;
-            padding: 8px 32px 8px 32px;
+            margin: -4px -16px 8px -16px;
+            padding: 8px 16px 8px 16px;
             border-bottom: 1px solid var(--border-slate-200);
           }
           .pl-search-wrap {
@@ -165,8 +167,8 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
           }
           .pl-footer--sticky {
             position: sticky; bottom: 0; z-index: 30;
-            margin: 8px -32px 0 -32px;
-            padding: 0 32px 0 32px;
+            margin: 8px -16px 0 -16px;
+            padding: 0 16px 0 16px;
             background: var(--bg-pure-white);
             box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
             height: 45px;

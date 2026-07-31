@@ -22,8 +22,8 @@ export const PipelineService = {
     const data = await api.delete(`/api/pipeline/candidates/${id}`);
     return { success: true, data };
   },
-  updateCandidateStatus: async (id: string, status: string) => {
-    const data = await api.put(`/api/pipeline/candidates/${id}/status`, { status });
+  updateCandidateStatus: async (id: string, status: string, rejected_round_id?: string) => {
+    const data = await api.put(`/api/pipeline/candidates/${id}/status`, { status, rejected_round_id });
     return { success: true, data };
   },
   parseResume: async (file: File) => {
@@ -40,6 +40,10 @@ export const PipelineService = {
   },
   resendCandidateEmail: async (emailId: string) => {
     const data = await api.post(`/api/pipeline/emails/${emailId}/resend`);
+    return { success: true, data };
+  },
+  sendDraftEmail: async (emailId: string, payload: { subject: string; body: string }) => {
+    const data = await api.post(`/api/pipeline/emails/${emailId}/send-draft`, payload);
     return { success: true, data };
   },
   getCandidateEmails: async (candidateId: string) => {

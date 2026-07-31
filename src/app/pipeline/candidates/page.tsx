@@ -3,10 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import Link from 'next/link';
-import { Plus, Search, Eye, FileText, X, Edit2, Trash2 } from 'lucide-react';
+import '@/app/proposals/library.css';
+import { Plus, Search, Eye, FileText, X, Edit2, Trash2, LayoutGrid, List, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PositionService, Position } from '@/services/positionService';
-import { AutoComplete, Drawer, Popconfirm } from 'antd';
+import { AutoComplete, Drawer, Table, Dropdown, Button } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
+import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<any[]>([]);
@@ -15,6 +22,8 @@ export default function CandidatesPage() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editCandidate, setEditCandidate] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const { canCreateRecruitment, canUpdateRecruitment, canDeleteRecruitment } = usePermission();
 
   const fetchCandidates = async () => {
     setLoading(true);
@@ -34,6 +43,163 @@ export default function CandidatesPage() {
     fetchCandidates();
   }, [search]);
 
+  const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+    <div className="pp-menu-item">
+      <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+      <span className="pp-menu-text">
+        <span className="pp-menu-title">{title}</span>
+        <span className="pp-menu-desc">{desc}</span>
+      </span>
+    </div>
+  );
+
+  const getMenuItems = (record: any): MenuProps['items'] => [
+    {
+      key: "view",
+      label: menuLabel("View Profile", "Open detailed view", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+      onClick: () => router.push(`/pipeline/candidates/${record.id}`)
+    },
+    ...(canUpdateRecruitment ? [{
+      key: "edit",
+      label: menuLabel("Edit Candidate", "Modify candidate details", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+      onClick: () => { setEditCandidate(record); setIsModalOpen(true); }
+    }] : []),
+    ...(canDeleteRecruitment ? [
+      { type: "divider" as const },
+      {
+        key: "delete",
+        label: (
+          <ConfirmDialog
+            title="Delete candidate?"
+            description="Are you sure you want to delete this candidate?"
+            tone="danger"
+            confirmText="Delete"
+            onConfirm={async () => {
+              try {
+                await pipelineClient.deleteCandidate(record.id);
+                fetchCandidates();
+              } catch (err) {
+                alert('Failed to delete candidate');
+              }
+            }}
+          >
+            <div style={{ margin: '-5px -12px', padding: '5px 12px' }} onClick={e => e.stopPropagation()}>
+              {menuLabel("Delete Candidate", "Remove from pipeline", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+            </div>
+          </ConfirmDialog>
+        )
+      }
+    ] : [])
+  ];
+
+  const columns: ColumnsType<any> = [
+    {
+      title: "CANDIDATE",
+      key: "candidate",
+      width: 250,
+      render: (_, record) => {
+        const initials = record.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+        return (
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="flex h-7.5 w-7.5 items-center justify-center rounded-none text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--bg-blue-50)', color: '#3b82f6', width: 30, height: 30 }}>
+              {initials}
+            </div>
+            <div className="truncate" style={{ lineHeight: 1.25 }}>
+              <div className="font-bold truncate" style={{ color: 'var(--text-slate-900)', fontSize: 12.5 }}>
+                {record.name}
+              </div>
+              <div className="text-[10px] truncate" style={{ color: 'var(--text-slate-400)' }}>
+                {record.email} • {record.mobile}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "ROLE",
+      dataIndex: "role",
+      width: 150,
+      render: (role: string) => (
+        <span style={{ color: "var(--text-slate-700)", fontSize: 12.5, fontWeight: 600 }}>{role}</span>
+      ),
+    },
+    {
+      title: "EXPERIENCE",
+      dataIndex: "total_experience",
+      width: 120,
+      render: (exp: number) => (
+        <span style={{ color: "var(--text-slate-500)", fontSize: 11.5 }}>{exp} Yrs</span>
+      ),
+    },
+    {
+      title: "STATUS",
+      dataIndex: "status",
+      width: 150,
+      render: (status: string) => {
+        let statusColor = '#64748b';
+        let bgColor = 'rgba(100,116,139,0.10)';
+        let ringColor = 'rgba(100,116,139,0.25)';
+        
+        if (status === 'Interviewing') {
+           statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)';
+        }
+        if (status === 'Offered') {
+           statusColor = '#10b981'; bgColor = 'rgba(16,185,129,0.10)'; ringColor = 'rgba(16,185,129,0.25)';
+        }
+        if (status === 'Onboarded') {
+           statusColor = '#059669'; bgColor = 'rgba(5,150,105,0.10)'; ringColor = 'rgba(5,150,105,0.25)';
+        }
+        if (status === 'Rejected') {
+           statusColor = '#ef4444'; bgColor = 'rgba(239,68,68,0.10)'; ringColor = 'rgba(239,68,68,0.25)';
+        }
+
+        return (
+          <span
+            style={{
+              padding: "4px 9px",
+              borderRadius: 6,
+              fontSize: 10.5,
+              fontWeight: 700,
+              lineHeight: "1",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              border: `1px solid ${ringColor}`,
+              color: statusColor,
+              background: bgColor,
+              textTransform: "uppercase",
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {status}
+          </span>
+        );
+      },
+    },
+    {
+      title: "ACTIONS",
+      align: "center",
+      width: 80,
+      fixed: "right" as const,
+      render: (_, record) => {
+        return (
+          <Dropdown menu={{ items: getMenuItems(record) }} trigger={['click']} placement="bottomRight" overlayClassName="pp-action-pop">
+            <button
+              type="button"
+              className="pc-actions hover:bg-slate-100 dark:hover:bg-slate-800"
+              style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: '6px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical size={16} style={{ color: 'var(--text-slate-400)' }} />
+            </button>
+          </Dropdown>
+        );
+      }
+    }
+  ];
+
   return (
     <>
       <div className="pl-topbar">
@@ -49,108 +215,137 @@ export default function CandidatesPage() {
         <div className="pl-topbar-meta">
           <span className="pl-meta-item"><span className="pl-pulse" /><strong>{candidates.length}</strong> candidates</span>
         </div>
-        <div className="pl-topbar-actions">
-          <button
-            onClick={() => { setEditCandidate(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
-          >
-            <Plus size={14} /> Add Candidate
-          </button>
+        <div className="pl-topbar-actions flex items-center gap-3">
+          <div className="pp-segmented">
+            <button
+              type="button"
+              className={viewMode === "table" ? "is-active" : ""}
+              onClick={() => setViewMode("table")}
+              aria-label="Table view"
+            >
+              <List size={14} />
+            </button>
+            <button
+              type="button"
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => setViewMode("card")}
+              aria-label="Card view"
+            >
+              <LayoutGrid size={14} />
+            </button>
+          </div>
+          {canCreateRecruitment && (
+            <button
+              onClick={() => { setEditCandidate(null); setIsModalOpen(true); }}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+            >
+              <Plus size={14} /> Add Candidate
+            </button>
+          )}
         </div>
       </div>
 
       <div className="pl-divider" />
 
       <div className="pl-body">
-        <div className="bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 uppercase tracking-wider text-[11px]">
-              <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400">Candidate</th>
-              <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400">Role</th>
-              <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400">Experience</th>
-              <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400">Status</th>
-              <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        {viewMode === "table" ? (
+          <div className="pp-table-wrap">
+            <Table
+              size="small"
+              columns={columns}
+              dataSource={candidates.map(c => ({ ...c, key: c.id }))}
+              loading={loading}
+              pagination={false}
+              className="pp-table"
+              scroll={{ x: 800 }}
+              onRow={(record) => ({
+                onClick: (e) => {
+                  const t = e.target as HTMLElement;
+                  if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
+                  router.push(`/pipeline/candidates/${record.id}`);
+                },
+                className: 'pp-row',
+                style: { cursor: 'pointer' }
+              })}
+            />
+          </div>
+        ) : (
+          <div className="pp-grid">
             {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">Loading...</td>
-              </tr>
+              <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
             ) : candidates.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">No candidates found.</td>
-              </tr>
+              <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
             ) : (
               candidates.map((c) => {
                 const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                let statusColor = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-                if (c.status === 'Interviewing') statusColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
-                if (c.status === 'Offered') statusColor = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800';
-                if (c.status === 'Rejected') statusColor = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
-                
+                let statusColor = '#64748b'; // default slate
+                if (c.status === 'Interviewing') statusColor = '#3b82f6'; // blue
+                if (c.status === 'Offered') statusColor = '#10b981'; // green
+                if (c.status === 'Onboarded') statusColor = '#059669'; // dark green
+                if (c.status === 'Rejected') statusColor = '#ef4444'; // red
+
                 return (
-                <tr key={c.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition duration-200 group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 dark:from-indigo-900/50 to-blue-100 dark:to-blue-900/50 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
-                        {initials}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-800 dark:text-slate-200 text-sm group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{c.name}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{c.email} <span className="opacity-50 mx-1">•</span> {c.mobile}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{c.role}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 inline-block px-2.5 py-1 rounded-md">{c.total_experience} Yrs</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-block px-3 py-1 text-xs font-bold uppercase tracking-wide rounded-full border ${statusColor}`}>
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                      <Link
-                        href={`/pipeline/candidates/${c.id}`}
-                        className="p-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-600 hover:text-white rounded-lg transition-colors"
-                        title="View Profile"
-                      >
-                        <Eye size={16} />
-                      </Link>
-                      <button onClick={() => { setEditCandidate(c); setIsModalOpen(true); }} className="p-2 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <Popconfirm
-                        title={<span className="dark:text-slate-200">Delete candidate?</span>}
-                        description={<span className="dark:text-slate-400">Are you sure you want to delete this candidate?</span>}
-                        onConfirm={async () => {
-                          try {
-                            await pipelineClient.deleteCandidate(c.id);
-                            fetchCandidates();
-                          } catch (err) {
-                            alert('Failed to delete candidate');
-                          }
+                  <div key={c.id} className="pc-card">
+                    <div className="pc-top">
+                      <div
+                        className="pc-avatar"
+                        style={{
+                          background: `linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)`,
                         }}
                       >
-                        <button className="p-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-600 hover:text-white rounded-lg transition-colors" title="Delete">
-                          <Trash2 size={16} />
+                        {initials}
+                      </div>
+                      <div className="pc-identity-body">
+                        <div className="pc-title" style={{ fontSize: '13px' }}>
+                          {c.name}
+                        </div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Role:</span>
+                          <span className="pc-client-val">{c.role}</span>
+                        </div>
+                      </div>
+                      <Dropdown menu={{ items: getMenuItems(c) }} overlayClassName="pp-action-pop" trigger={["click"]} placement="bottomRight">
+                        <button type="button" className="pc-actions" onClick={e => e.stopPropagation()}>
+                          <MoreVertical size={16} />
                         </button>
-                      </Popconfirm>
+                      </Dropdown>
                     </div>
-                  </td>
-                </tr>
-              );
-            })
+
+                    <div className="pc-foot">
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Exp:</span>
+                          <span className="pc-foot-val">{c.total_experience} Yrs</span>
+                        </span>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Email:</span>
+                          <span className="pc-foot-val" style={{ fontWeight: 500 }}>
+                            {c.email}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Status:</span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              color: statusColor,
+                            }}
+                          >
+                            {c.status.toUpperCase()}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        )}
       </div>
 
       <div className="pl-footer pl-footer--sticky">
@@ -164,12 +359,12 @@ export default function CandidatesPage() {
         </div>
       </div>
 
-      {isModalOpen && <AddCandidateModal editCandidate={editCandidate} onClose={() => { setIsModalOpen(false); fetchCandidates(); }} />}
+      {isModalOpen && <AddCandidateModal editCandidate={editCandidate} onClose={(refresh) => { setIsModalOpen(false); if (refresh) fetchCandidates(); }} />}
     </>
   );
 }
 
-function AddCandidateModal({ onClose, editCandidate }: { onClose: () => void, editCandidate?: any }) {
+function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boolean) => void, editCandidate?: any }) {
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [formData, setFormData] = useState({
@@ -180,6 +375,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: () => void, ed
     total_experience: editCandidate?.total_experience || 0,
     current_ctc: editCandidate?.current_ctc || '',
     expected_ctc: editCandidate?.expected_ctc || '',
+    resume_url: editCandidate?.resume_url || '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -203,6 +399,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: () => void, ed
             ...res.data.parsed,
             current_ctc: res.data.parsed.current_ctc || '',
             expected_ctc: res.data.parsed.expected_ctc || '',
+            resume_url: res.data.file_url || prev.resume_url,
           }));
         }
       } catch (err: any) {
@@ -226,7 +423,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: () => void, ed
       }
       if (res.success) {
         setSuccess(true);
-        setTimeout(() => onClose(), 1500);
+        setTimeout(() => onClose(true), 1500);
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to save candidate');
@@ -235,120 +432,98 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: () => void, ed
 
   return (
     <Drawer
+      {...commonDrawerProps}
       title={editCandidate ? "Edit Candidate" : "Add Candidate"}
-      placement="right"
-      width={500}
-      onClose={onClose}
+      onClose={() => onClose(false)}
       open={true}
-      className="z-[9999]"
-      styles={{ body: { padding: 0 } }}
+      width={600}
     >
-      <div className="flex flex-col h-full">
-        <div className="p-6 overflow-y-auto flex-1">
+      <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-[#0B0F1A]">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A]">
+          <h2 className="text-[15px] font-bold text-slate-800 dark:text-slate-200">{editCandidate ? "Edit Candidate" : "Add Candidate"}</h2>
+          <button type="button" onClick={() => onClose(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+
+        <div className="p-6 overflow-y-auto flex-1 customer-drawer-form">
           {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-md border border-red-100">{error}</div>}
           {success && <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-md border border-green-100">Candidate saved successfully!</div>}
 
-          <form id="candidateForm" onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {!editCandidate && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Step 1: Select Applied Role</label>
-                <AutoComplete
-                  className="w-full"
-                  placeholder="Select or type a role..."
-                  value={formData.role || undefined}
-                  onChange={(val) => setFormData({ ...formData, role: val })}
-                  disabled={!!file}
-                  filterOption={(input, option) =>
-                    (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={positions.map((p) => ({
-                    value: p.title,
-                    label: p.title,
-                  }))}
-                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
-                />
-              </div>
-            )}
+          <form id="candidateForm" onSubmit={handleSubmit} className="flex flex-col">
+            <SectionCard 
+              title={editCandidate ? "Applied Role" : "Select Applied Role"} 
+              step={editCandidate ? undefined : "STEP 1"} 
+              icon={<Search size={14} />}
+            >
+              <SearchableDropdown
+                placeholder="Select a role..."
+                value={formData.role || undefined}
+                onChange={(val) => setFormData({ ...formData, role: val })}
+                options={positions.map((p) => ({ value: p.title, label: p.title }))}
+              />
+            </SectionCard>
 
-            {editCandidate && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Applied Role</label>
-                <AutoComplete
-                  className="w-full"
-                  placeholder="Select or type a role..."
-                  value={formData.role || undefined}
-                  onChange={(val) => setFormData({ ...formData, role: val })}
-                  filterOption={(input, option) =>
-                    (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
-                  }
-                  options={positions.map((p) => ({
-                    value: p.title,
-                    label: p.title,
-                  }))}
-                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
-                />
-              </div>
-            )}
-
-            {(formData.role || editCandidate) ? (
+            {(formData.role || editCandidate) && (
               <>
                 {!editCandidate && (
-                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                    <label className="block text-sm font-bold text-slate-800 mb-2">Step 2: Upload Resume (Optional)</label>
+                  <SectionCard 
+                    title="Upload Resume" 
+                    step="STEP 2" 
+                    icon={<FileText size={14} />} 
+                    subtitle="Uploading a resume will automatically fill in the details below using AI."
+                  >
                     <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-700 rounded-md cursor-pointer hover:bg-blue-50 transition shadow-sm text-sm font-medium">
+                      <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 rounded-md cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition shadow-sm text-sm font-medium">
                         <FileText size={16} /> Choose PDF
                         <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
                       </label>
-                      {file && <span className="text-sm font-medium text-slate-600">{file.name}</span>}
+                      {file && <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{file.name}</span>}
                       {isParsing && <span className="text-sm text-blue-500 font-semibold animate-pulse">Parsing with AI...</span>}
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">Uploading a resume will automatically fill in the details below using AI.</p>
-                  </div>
+                  </SectionCard>
                 )}
                 
-                <div className="mt-2">
-                  <label className="block text-xs font-semibold text-slate-500 mb-3">{editCandidate ? "Edit Details" : "Step 3: Verify Details"}</label>
+                <SectionCard 
+                  title={editCandidate ? "Edit Details" : "Verify Details"} 
+                  step={editCandidate ? undefined : "STEP 3"} 
+                  icon={<Edit2 size={14} />}
+                >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Full Name</label>
-                      <input required type="text" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
+                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Total Experience (Yrs)</label>
-                      <input required type="number" step="0.5" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Experience (Yrs)</label>
+                      <input required type="number" step="0.5" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) })} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Email</label>
-                      <input required type="email" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email</label>
+                      <input required type="email" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Mobile</label>
-                      <input required type="text" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Mobile</label>
+                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Current CTC</label>
-                      <input type="number" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Current CTC</label>
+                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value })} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">Expected CTC</label>
-                      <input type="number" className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value })} />
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Expected CTC</label>
+                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value })} />
                     </div>
                   </div>
-                </div>
+                </SectionCard>
               </>
-            ) : (
-              <div className="text-center p-8 mt-2 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
-                Please select a role to continue...
-              </div>
             )}
           </form>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-md transition-colors">
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A] flex justify-end gap-3">
+          <button type="button" onClick={() => onClose(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700">
             Cancel
           </button>
-          <button type="submit" form="candidateForm" disabled={isParsing} className="px-4 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors disabled:opacity-50">
+          <button type="submit" form="candidateForm" disabled={isParsing} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50">
             Save Candidate
           </button>
         </div>

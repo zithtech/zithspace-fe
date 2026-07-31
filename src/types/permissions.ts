@@ -373,6 +373,17 @@ export const Permissions = {
   PIPELINE_SETTING_READ:   'pipeline.setting.read',
   PIPELINE_SETTING_UPDATE: 'pipeline.setting.update',
 
+  // Recruitment / ATS
+  RECRUITMENT_CREATE: 'recruitment.create',
+  RECRUITMENT_READ:   'recruitment.read',
+  RECRUITMENT_UPDATE: 'recruitment.update',
+  RECRUITMENT_DELETE: 'recruitment.delete',
+  RECRUITMENT_MANAGE: 'recruitment.manage',
+  RECRUITMENT_SETTING_READ:   'recruitment.setting.read',
+  RECRUITMENT_SETTING_CREATE: 'recruitment.setting.create',
+  RECRUITMENT_SETTING_UPDATE: 'recruitment.setting.update',
+  RECRUITMENT_SETTING_DELETE: 'recruitment.setting.delete',
+
   // Squads
   SQUAD_CREATE: 'squad.create',
   SQUAD_READ:   'squad.read',

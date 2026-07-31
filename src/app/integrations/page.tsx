@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip, App } from "antd";
@@ -57,6 +58,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { AlertCircle } from "lucide-react";
 
 export default function IntegrationPage() {
+  useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationPage" });
   const { modal, message: messageApi } = App.useApp();
   const { canReadMail, canReadCalendar } = usePermission();
   const { user, isLoading: authLoading } = useAuth();

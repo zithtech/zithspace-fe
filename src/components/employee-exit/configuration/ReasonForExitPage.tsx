@@ -10,11 +10,13 @@ import {
   Space,
   Typography,
   notification,
-  Popconfirm,
   Tooltip,
   Drawer,
   Tag,
-  Divider,
+  Select,
+  Dropdown,
+  Menu,
+  App,
 } from 'antd';
 import {
   Plus,
@@ -25,19 +27,52 @@ import {
   ShieldCheck,
   MessageSquare,
   X,
+  MoreVertical
 } from 'lucide-react';
+import dayjs from 'dayjs';
 import { ReasonForExit, ReasonForExitService, ReasonForExitPayload } from '@/services/reasonForExitService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import { useMembers } from '@/hooks/useGlobalData';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const { Title, Text } = Typography;
 
-export default function ReasonForExitPage() {
+const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
+
+const getCreatorName = (record: any, members: any[] = []) => {
+  const c = record.createdBy || record.created_by || record.creator || record.createdByUser;
+  if (typeof c === 'object' && c !== null) {
+    return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
+  }
+  
+  const creatorId = record.createdById || record.created_by_id || c;
+  if (typeof creatorId === 'string' && members.length > 0) {
+    const member = members.find(m => m.value === creatorId);
+    if (member) return member.label;
+  }
+  
+  return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
+};
+
+export default function ReasonForExitPage({ searchText = '', createTrigger = 0, layoutMode = 'table' }: { searchText?: string, createTrigger?: number, layoutMode?: 'table' | 'card' }) {
   const [form] = Form.useForm();
+  const { message: messageApi } = App.useApp();
   const [reasons, setReasons] = useState<ReasonForExit[]>([]);
-  const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReason, setEditingReason] = useState<ReasonForExit | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: members = [] } = useMembers();
 
   useEffect(() => {
     fetchReasons();
@@ -49,10 +84,7 @@ export default function ReasonForExitPage() {
       const response = await ReasonForExitService.getAll();
       setReasons(Array.isArray(response) ? response : []);
     } catch (error: any) {
-      notification.error({
-        message: 'Fetch Failed',
-        description: 'Failed to fetch reasons for exit',
-      });
+      messageApi.error('Failed to fetch reasons for exit');
     } finally {
       setLoading(false);
     }
@@ -64,6 +96,12 @@ export default function ReasonForExitPage() {
     form.setFieldsValue({ is_active: true });
     setModalVisible(true);
   };
+
+  useEffect(() => {
+    if (createTrigger > 0) {
+      handleAdd();
+    }
+  }, [createTrigger]);
 
   const handleEdit = (record: ReasonForExit) => {
     setEditingReason(record);
@@ -78,16 +116,10 @@ export default function ReasonForExitPage() {
   const handleDelete = async (id: string) => {
     try {
       await ReasonForExitService.delete(id);
-      notification.success({
-        message: 'Success',
-        description: 'Reason for Exit deleted successfully',
-      });
+      messageApi.success('Reason for Exit deleted successfully');
       fetchReasons();
     } catch (error: any) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to delete reason for exit',
-      });
+      messageApi.error('Failed to delete reason for exit');
     }
   };
 
@@ -102,25 +134,16 @@ export default function ReasonForExitPage() {
 
       if (editingReason) {
         await ReasonForExitService.update(editingReason.id, payload);
-        notification.success({
-          message: 'Success',
-          description: 'Reason for Exit updated successfully',
-        });
+        messageApi.success('Reason for Exit updated successfully');
       } else {
         await ReasonForExitService.create(payload);
-        notification.success({
-          message: 'Success',
-          description: 'Reason for Exit created successfully',
-        });
+        messageApi.success('Reason for Exit created successfully');
       }
       setModalVisible(false);
       fetchReasons();
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || 'Failed to save reason for exit';
-      notification.error({
-        message: 'Error',
-        description: errorMsg,
-      });
+      messageApi.error(errorMsg);
     }
   };
 
@@ -197,14 +220,13 @@ export default function ReasonForExitPage() {
               className="action-btn"
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
             title="Delete this exit reason?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
+            confirmText="Delete"
+            placement="top"
           >
-            <Tooltip title="Remove Reason">
+            <Tooltip title="Delete Reason">
               <Button
                 type="text"
                 danger
@@ -212,7 +234,7 @@ export default function ReasonForExitPage() {
                 className="action-btn-danger"
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </Space>
       ),
     },
@@ -223,38 +245,137 @@ export default function ReasonForExitPage() {
     (reason.code || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
-  return (
-    <div style={{ padding: '8px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Input 
-            placeholder="Search reasons..." 
-            prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-            style={{ width: 280, borderRadius: 10, height: 40 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-          />
-        </div>
-        <Button
-          type="primary"
-          icon={<Plus size={18} />}
-          onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
-        >
-          Add Reason
-        </Button>
-      </div>
+  const total = filteredReasons.length;
+  const pageCount = Math.ceil(total / pageSize);
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = Math.min(currentPage * pageSize, total);
+  const currentData = filteredReasons.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-      <Table
-        columns={columns}
-        dataSource={filteredReasons}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"] }}
-        size="middle"
-        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
-      />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0' }}>
+
+      {layoutMode === 'card' ? (
+        <div className="pp-grid">
+          {currentData.map(record => (
+            <div key={record.id} className="pc-card">
+              <div className="pc-top" style={{ padding: '12px', minHeight: '64px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <div className="pc-avatar" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13 }}>
+                  <MessageSquare size={16} />
+                </div>
+                <div className="pc-identity-body" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.name}</span>
+                    <Tag
+                      style={{ borderRadius: 20, padding: "0 8px", fontWeight: 700, border: 0, fontSize: '10.5px', height: '19px', display: 'inline-flex', alignItems: 'center', margin: 0 }}
+                      color={record.is_active ? "success" : "default"}
+                    >
+                      {record.is_active ? "ACTIVE" : "INACTIVE"}
+                    </Tag>
+                  </div>
+                  <div className="pc-client-line" style={{ fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Ref: <span style={{ color: 'var(--text-slate-700)', fontWeight: 600 }}>{record.code}</span>
+                  </div>
+                </div>
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: '1',
+                        label: menuLabel("Edit Reason", "Modify exit reason", <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                        onClick: () => handleEdit(record)
+                      },
+                      {
+                        type: 'divider'
+                      },
+                      {
+                        key: '2',
+                        onClick: (e) => {
+                          e.domEvent.stopPropagation();
+                        },
+                        label: (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ConfirmDialog
+                              title="Delete this exit reason?"
+                              onConfirm={() => handleDelete(record.id)}
+                              confirmText="Delete"
+                              placement="top"
+                            >
+                              <div style={{ width: '100%' }}>
+                                {menuLabel("Delete Reason", "Remove this exit reason", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                              </div>
+                            </ConfirmDialog>
+                          </div>
+                        )
+                      }
+                    ]
+                  }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                  overlayClassName="pp-action-pop"
+                >
+                  <button className="pc-actions">
+                    <MoreVertical size={16} />
+                  </button>
+                </Dropdown>
+              </div>
+              <div className="pc-foot" style={{ padding: '0', background: 'transparent', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '6px', fontSize: '10px', color: 'var(--text-slate-400)', padding: '8px 12px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    Created by
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>
+                      {getCreatorName(record, members)[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{getCreatorName(record, members)}</strong>
+                  </span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Updated <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).updatedAt ? dayjs((record as any).updatedAt).format("MMM DD, YY") : (record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Created <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                </div>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '6px', fontSize: '11px', color: 'var(--text-slate-500)', borderTop: '1px solid var(--border-slate-200)', padding: '10px 12px', marginTop: 'auto' }}>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>ID: <strong style={{ color: 'var(--text-slate-700)', fontWeight: 600 }}>{record.id.slice(0, 8)}</strong></span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
+            <Table
+              className="pp-table"
+              columns={columns}
+              dataSource={currentData}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="pp-footer pp-footer--sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingLeft: 0, paddingRight: 0, paddingTop: 16 }}>
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
+              <button key={p} type="button" className={`pp-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+            ))}
+            <button type="button" className="pp-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
 
       <Drawer
         {...commonDrawerProps}
@@ -328,7 +449,10 @@ export default function ReasonForExitPage() {
 
         <Form
           form={form}
-          layout="vertical"
+          layout="horizontal"
+          labelAlign="left"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
           requiredMark={false}
           initialValues={{ is_active: true }}
           className="customer-drawer-form"
@@ -364,34 +488,24 @@ export default function ReasonForExitPage() {
             </SectionCard>
 
             <SectionCard title="Operational Status" icon={<ShieldCheck size={16} />}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Status</Text>
-                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Inactive reasons won't be selectable by employees.</Text>
-                </div>
-                <Form.Item name="is_active" valuePropName="checked" noStyle>
-                  <Switch checkedChildren="ON" unCheckedChildren="OFF" />
-                </Form.Item>
-              </div>
+              <Form.Item
+                name="is_active"
+                label={
+                  <div>
+                    <Text strong style={{ fontSize: 13, display: "block" }}>Active Status</Text>
+                    <Text style={{ fontSize: 11, color: "var(--text-slate-500)" }}>Inactive reasons won't appear in the request form.</Text>
+                  </div>
+                }
+                valuePropName="checked"
+                style={{ marginBottom: 0 }}
+              >
+                <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+              </Form.Item>
             </SectionCard>
 
           </div>
         </Form>
       </Drawer>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
-        .action-btn-danger:hover { background: #fff1f2 !important; }
-        .ant-table-thead > tr > th {
-          background: var(--bg-secondary) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          text-transform: uppercase !important;
-          font-size: 11px !important;
-          letter-spacing: 0.05em !important;
-        }
-        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
-      `}} />
     </div>
   );
 }

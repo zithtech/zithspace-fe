@@ -163,7 +163,7 @@ const normaliseBlockData = (type: BlockType, raw: any, brief: ParsedBrief, cover
     if (coverDetails?.senderAddress) data.senderAddress = coverDetails.senderAddress;
     if (coverDetails?.senderWebsite) data.senderWebsite = coverDetails.senderWebsite;
     if (coverDetails?.theme) data.theme = coverDetails.theme;
-    
+
     if (coverDetails?.clientName) data.clientName = coverDetails.clientName;
     if (coverDetails?.clientCompany) data.clientCompany = coverDetails.clientCompany;
     if (coverDetails?.clientEmail) data.clientEmail = coverDetails.clientEmail;
@@ -465,16 +465,46 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
     queryKey: ['company-locations'],
     queryFn: () => CompanyLocationService.getAll(),
   });
-  
+
   const company = activeCompany || (companiesData?.data && companiesData.data.length > 0 ? companiesData.data[0] : null);
 
-  const handleTextChange = (val: string, field: keyof typeof coverDetails) => {
-    setCoverDetails({ ...coverDetails, [field]: val.replace(/[^a-zA-Z0-9\s]/g, '') });
+  const handleNameChange = (val: string, field: keyof typeof coverDetails) => {
+    setCoverDetails({ ...coverDetails, [field]: val.replace(/[^a-zA-Z\s]/g, '') });
   };
 
   const handlePhoneChange = (val: string, field: keyof typeof coverDetails) => {
     setCoverDetails({ ...coverDetails, [field]: val.replace(/[^0-9+\-()\s]/g, '') });
   };
+
+  const handleEmailChange = (val: string, field: keyof typeof coverDetails) => {
+    setCoverDetails({ ...coverDetails, [field]: val.replace(/\s/g, '') });
+  };
+
+  const handleTextChange = (val: string, field: keyof typeof coverDetails) => {
+    setCoverDetails({ ...coverDetails, [field]: val });
+  };
+
+  const renderField = (
+    label: string, 
+    value: string, 
+    onChange: (val: string) => void, 
+    icon: React.ReactNode, 
+    placeholder: string, 
+    validation: { error?: string, isInvalid?: boolean }
+  ) => (
+    <div>
+      <Input 
+        size="small" 
+        prefix={icon} 
+        placeholder={placeholder} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        status={validation.isInvalid ? 'error' : ''} 
+        style={{ borderRadius: 6 }} 
+      />
+      {validation.error && <div style={{ fontSize: 10, color: '#ef4444', paddingLeft: 4, marginTop: 2 }}>{validation.error}</div>}
+    </div>
+  );
 
   const isValidEmail = (email: string) => {
     if (!email) return false;
@@ -483,12 +513,12 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
 
   const isCoverDetailsValid = () => {
     return !!(
-      coverDetails.clientName && coverDetails.clientCompany && 
-      coverDetails.clientEmail && isValidEmail(coverDetails.clientEmail) && 
+      coverDetails.clientName && coverDetails.clientCompany &&
+      coverDetails.clientEmail && isValidEmail(coverDetails.clientEmail) &&
       coverDetails.clientPhone && coverDetails.clientAddress &&
-      coverDetails.senderName && coverDetails.senderPosition && 
-      coverDetails.senderCompany && coverDetails.senderContact && 
-      coverDetails.senderEmail && isValidEmail(coverDetails.senderEmail) && 
+      coverDetails.senderName && coverDetails.senderPosition &&
+      coverDetails.senderCompany && coverDetails.senderContact &&
+      coverDetails.senderEmail && isValidEmail(coverDetails.senderEmail) &&
       coverDetails.senderAddress
     );
   };
@@ -725,77 +755,77 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
               {step === 'prompt' ? (
                 <>
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div className="zai-prompt">
-                    <div className="zai-prompt__label">
-                      <Wand2 size={14} />
-                      <span>Project Brief</span>
+                    <div className="zai-prompt">
+                      <div className="zai-prompt__label">
+                        <Wand2 size={14} />
+                        <span>Project Brief</span>
+                      </div>
+                      <div className="zai-prompt__row">
+                        <Input.TextArea
+                          rows={4}
+                          placeholder='e.g. "Create proposal for driver booking app with start date 01/05/2026 and end 23/07/2026 with 5 phases and 3 lakhs budget"'
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          className="zai-textarea"
+                          bordered={false}
+                        />
+                        <Button
+                          type="primary"
+                          onClick={() => {
+                            if (!prompt.trim()) {
+                              message.warning('Tell Zai what proposal to create');
+                              return;
+                            }
+                            setStep('components');
+                          }}
+                          className="zai-cta"
+                          icon={<Sparkles size={14} />}
+                        >
+                          Build with Zai
+                        </Button>
+                      </div>
+
+                      <div className="zai-template-list">
+                        <div className="zai-template-list__heading">
+                          <span className="zai-suggestions__label">Try one of these</span>
+                        </div>
+                        <div className="zai-template-grid">
+                          {QUICK_TEMPLATES.map((t) => {
+                            const active = prompt === t.body;
+                            return (
+                              <button
+                                key={t.title}
+                                type="button"
+                                className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
+                                onClick={() => setPrompt(t.body)}
+                              >
+                                <div className="zai-template-card__head">
+                                  <span className="zai-template-card__icon">{t.icon}</span>
+                                  <span className="zai-template-card__title">{t.title}</span>
+                                  <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
+                                </div>
+                                <p className="zai-template-card__body">{t.body}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="zai-prompt__row">
+
+                    <div className="zai-prompt">
+                      <div className="zai-prompt__label">
+                        <Wand2 size={14} />
+                        <span>Terms & Conditions Directive</span>
+                      </div>
                       <Input.TextArea
-                        rows={4}
-                        placeholder='e.g. "Create proposal for driver booking app with start date 01/05/2026 and end 23/07/2026 with 5 phases and 3 lakhs budget"'
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                        rows={3}
+                        placeholder="Tell Zai any specific clause guidance for terms & conditions"
+                        value={extraTerms}
+                        onChange={(e) => setExtraTerms(e.target.value)}
                         className="zai-textarea"
                         bordered={false}
                       />
-                      <Button
-                        type="primary"
-                        onClick={() => {
-                          if (!prompt.trim()) {
-                            message.warning('Tell Zai what proposal to create');
-                            return;
-                          }
-                          setStep('components');
-                        }}
-                        className="zai-cta"
-                        icon={<Sparkles size={14} />}
-                      >
-                        Build with Zai
-                      </Button>
                     </div>
-
-                    <div className="zai-template-list">
-                      <div className="zai-template-list__heading">
-                        <span className="zai-suggestions__label">Try one of these</span>
-                      </div>
-                      <div className="zai-template-grid">
-                        {QUICK_TEMPLATES.map((t) => {
-                          const active = prompt === t.body;
-                          return (
-                            <button
-                              key={t.title}
-                              type="button"
-                              className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
-                              onClick={() => setPrompt(t.body)}
-                            >
-                              <div className="zai-template-card__head">
-                                <span className="zai-template-card__icon">{t.icon}</span>
-                                <span className="zai-template-card__title">{t.title}</span>
-                                <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
-                              </div>
-                              <p className="zai-template-card__body">{t.body}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="zai-prompt">
-                    <div className="zai-prompt__label">
-                      <Wand2 size={14} />
-                      <span>Terms & Conditions Directive</span>
-                    </div>
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Tell Zai any specific clause guidance for terms & conditions"
-                      value={extraTerms}
-                      onChange={(e) => setExtraTerms(e.target.value)}
-                      className="zai-textarea"
-                      bordered={false}
-                    />
-                  </div>
                   </div>
 
                   <div className="zai-footer" style={{ flexShrink: 0, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
@@ -811,223 +841,223 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                 <>
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: 8 }}>
                     <div className="zai-components-selection" style={{ padding: '24px 0' }}>
-                    {activePhases.some(p => p.type === 'cover' && p.checked) && (
-                      <div
-                        style={{
-                          marginBottom: 32,
-                          padding: "16px 20px",
-                          background: isDark 
-                            ? '#1e293b'
-                            : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-                          border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
-                          boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 8px 32px -4px rgba(148,163,184,0.15)',
-                          borderRadius: 16,
-                          position: 'relative',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <div style={{
-                          position: 'absolute',
-                          top: -50,
-                          right: -50,
-                          width: 150,
-                          height: 150,
-                          background: isDark ? 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, rgba(255,255,255,0) 70%)',
-                          borderRadius: '50%',
-                          pointerEvents: 'none'
-                        }} />
-                        
-                        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: isDark ? '#60a5fa' : '#2563eb', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-                          <div style={{ padding: 6, background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', borderRadius: 8 }}>
-                            <Wand2 size={16} />
-                          </div>
-                          Cover Page Details
-                        </div>
-                        
-                        {/* Theme Selector */}
-                        <div style={{ marginBottom: 16, position: 'relative' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 6 }}>Cover Theme</div>
-                          <Select 
-                            value={coverDetails.theme} 
-                            onChange={(val) => setCoverDetails({ ...coverDetails, theme: val })}
-                            style={{ width: '100%', borderRadius: 8 }}
-                          >
-                            <Select.Option value="modern-blue">Modern Blue</Select.Option>
-                            <Select.Option value="minimalist-light">Minimalist Light</Select.Option>
-                            <Select.Option value="bold-dark">Bold Dark</Select.Option>
-                            <Select.Option value="elegant-classic">Elegant Wave (Default)</Select.Option>
-                          </Select>
-                        </div>
+                      {activePhases.some(p => p.type === 'cover' && p.checked) && (
+                        <div
+                          style={{
+                            marginBottom: 32,
+                            padding: "16px 20px",
+                            background: isDark
+                              ? '#1e293b'
+                              : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                            border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
+                            boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 8px 32px -4px rgba(148,163,184,0.15)',
+                            borderRadius: 16,
+                            position: 'relative',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            top: -50,
+                            right: -50,
+                            width: 150,
+                            height: 150,
+                            background: isDark ? 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, rgba(255,255,255,0) 70%)',
+                            borderRadius: '50%',
+                            pointerEvents: 'none'
+                          }} />
 
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, position: 'relative' }}>
-                          <div style={{ 
-                            padding: 12, 
-                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
-                            borderRadius: 12, 
-                            border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
-                            boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
-                          }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#8b5cf6' }} />
-                              Prepared For (Client) <span style={{color: '#ef4444'}}>*</span>
+                          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: isDark ? '#60a5fa' : '#2563eb', display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                            <div style={{ padding: 6, background: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)', borderRadius: 8 }}>
+                              <Wand2 size={16} />
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              <Input size="small" prefix={<Building size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Company Name *" value={coverDetails.clientCompany} onChange={(e) => handleTextChange(e.target.value, 'clientCompany')} status={!coverDetails.clientCompany ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<User size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Contact Person *" value={coverDetails.clientName} onChange={(e) => handleTextChange(e.target.value, 'clientName')} status={!coverDetails.clientName ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Mail size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Email Address *" value={coverDetails.clientEmail} onChange={(e) => setCoverDetails({...coverDetails, clientEmail: e.target.value})} status={!isValidEmail(coverDetails.clientEmail) ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Phone size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Phone Number *" value={coverDetails.clientPhone} onChange={(e) => handlePhoneChange(e.target.value, 'clientPhone')} status={!coverDetails.clientPhone ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<MapPin size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Business Address *" value={coverDetails.clientAddress} onChange={(e) => setCoverDetails({...coverDetails, clientAddress: e.target.value})} status={!coverDetails.clientAddress ? 'error' : ''} style={{ borderRadius: 6 }} />
-                            </div>
+                            Cover Page Details
                           </div>
-                          
-                          <div style={{ 
-                            padding: 12, 
-                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
-                            borderRadius: 12, 
-                            border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
-                            boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
-                          }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
-                              Prepared By (You) <span style={{color: '#ef4444'}}>*</span>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              <Input size="small" prefix={<Building size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Organization / Company *" value={coverDetails.senderCompany} onChange={(e) => handleTextChange(e.target.value, 'senderCompany')} status={!coverDetails.senderCompany ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<User size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Your Name *" value={coverDetails.senderName} onChange={(e) => handleTextChange(e.target.value, 'senderName')} status={!coverDetails.senderName ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Briefcase size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Your Position *" value={coverDetails.senderPosition} onChange={(e) => handleTextChange(e.target.value, 'senderPosition')} status={!coverDetails.senderPosition ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Mail size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Email Address *" value={coverDetails.senderEmail} onChange={(e) => setCoverDetails({...coverDetails, senderEmail: e.target.value})} status={!isValidEmail(coverDetails.senderEmail) ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Phone size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Phone Number *" value={coverDetails.senderContact} onChange={(e) => handlePhoneChange(e.target.value, 'senderContact')} status={!coverDetails.senderContact ? 'error' : ''} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<Link size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Website URL" value={coverDetails.senderWebsite} onChange={(e) => setCoverDetails({...coverDetails, senderWebsite: e.target.value})} style={{ borderRadius: 6 }} />
-                              <Input size="small" prefix={<MapPin size={12} style={{color: '#94a3b8', marginRight: 4}} />} placeholder="Business Address *" value={coverDetails.senderAddress} onChange={(e) => setCoverDetails({...coverDetails, senderAddress: e.target.value})} status={!coverDetails.senderAddress ? 'error' : ''} style={{ borderRadius: 6 }} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? '#f8fafc' : '#1e293b' }}>Select Components to Generate</div>
-                      <Dropdown
-                        overlayStyle={{ minWidth: 220 }}
-                        trigger={['click']}
-                        menu={{
-                          style: { maxHeight: 340, overflowY: 'auto', padding: '8px', borderRadius: 12, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' },
-                          items: Object.entries(
-                            PALETTE
-                              .filter(meta => !activePhases.some(p => p.type === meta.kind))
-                              .reduce((acc, meta) => {
-                                const g = meta.group || 'Other';
-                                if (!acc[g]) acc[g] = [];
-                                acc[g].push({
-                                  key: meta.paletteId || meta.kind,
-                                  style: { padding: '8px 12px', margin: '2px 4px', borderRadius: 8 },
-                                  label: (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 500, color: 'inherit' }}>
-                                      <span style={{ color: meta.accent || '#3b82f6', display: 'flex', opacity: 0.9 }}>{meta.icon}</span>
-                                      {meta.label}
-                                    </span>
-                                  ),
-                                  onClick: () => {
-                                    setActivePhases([...activePhases, { id: nanoid(), type: meta.kind, checked: true }]);
-                                  }
-                                });
-                                return acc;
-                              }, {} as Record<string, any[]>)
-                          ).map(([groupName, children]) => ({
-                            type: 'group',
-                            label: <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 4 }}>{groupName}</span>,
-                            children
-                          }))
-                        }}
-                        placement="bottomRight"
-                      >
-                        <Button type="primary" ghost size="small" icon={<PlusOutlined />} style={{ borderRadius: 6, fontWeight: 500, padding: '0 12px' }}>
-                          Add Components
-                        </Button>
-                      </Dropdown>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
-                      {activePhases.map((phase) => {
-                        const meta = BLOCK_META.find(b => b.type === phase.type);
-                        const pal = PALETTE.find(b => b.kind === phase.type);
-                        const label = meta?.label || pal?.label || phase.type;
-                        const icon = meta?.icon || pal?.icon || <Zap size={16} />;
-                        const color = meta?.color || pal?.accent || '#3b82f6';
 
-                        return (
-                          <div
-                            key={phase.id}
-                            onClick={() => {
-                              setActivePhases(activePhases.map(p =>
-                                p.id === phase.id ? { ...p, checked: !p.checked } : p
-                              ));
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 12,
-                              padding: '12px 16px',
+                          {/* Theme Selector */}
+                          <div style={{ marginBottom: 16, position: 'relative' }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 6 }}>Cover Theme</div>
+                            <Select
+                              value={coverDetails.theme}
+                              onChange={(val) => setCoverDetails({ ...coverDetails, theme: val })}
+                              style={{ width: '100%', borderRadius: 8 }}
+                            >
+                              <Select.Option value="modern-blue">Modern Blue</Select.Option>
+                              <Select.Option value="minimalist-light">Minimalist Light</Select.Option>
+                              <Select.Option value="bold-dark">Bold Dark</Select.Option>
+                              <Select.Option value="elegant-classic">Elegant Wave (Default)</Select.Option>
+                            </Select>
+                          </div>
+
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, position: 'relative' }}>
+                            <div style={{
+                              padding: 12,
+                              backgroundColor: isDark ? '#0f172a' : '#ffffff',
                               borderRadius: 12,
-                              border: phase.checked ? `2px solid ${color}` : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
-                              backgroundColor: phase.checked ? (isDark ? `${color}15` : `${color}08`) : (isDark ? '#1e293b' : '#ffffff'),
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              boxShadow: phase.checked ? `0 4px 12px ${color}15` : '0 1px 2px rgba(0,0,0,0.02)',
-                              opacity: phase.checked ? 1 : 0.7
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!phase.checked) {
-                                e.currentTarget.style.borderColor = isDark ? '#475569' : '#cbd5e1';
-                                e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f8fafc';
-                                e.currentTarget.style.opacity = '1';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!phase.checked) {
-                                e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
-                                e.currentTarget.style.backgroundColor = isDark ? '#1e293b' : '#ffffff';
-                                e.currentTarget.style.opacity = '0.7';
-                              }
-                            }}
-                          >
-                            <span style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
-                              backgroundColor: phase.checked ? `${color}15` : (isDark ? '#334155' : '#f1f5f9'),
-                              color: phase.checked ? color : (isDark ? '#94a3b8' : '#64748b'),
-                              transition: 'all 0.2s ease'
+                              border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
+                              boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
                             }}>
-                              {icon}
-                            </span>
-                            <span style={{
-                              fontSize: 14,
-                              fontWeight: phase.checked ? 600 : 500,
-                              color: phase.checked ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#cbd5e1' : '#475569'),
-                              transition: 'all 0.2s ease'
+                              <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#8b5cf6' }} />
+                                Prepared For (Client) <span style={{ color: '#ef4444' }}>*</span>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {renderField('Company Name', coverDetails.clientCompany, (v) => handleNameChange(v, 'clientCompany'), <Building size={12} />, 'Company Name *', { error: !coverDetails.clientCompany ? 'Company Name is required' : undefined, isInvalid: !coverDetails.clientCompany })}
+                                {renderField('Contact Person', coverDetails.clientName, (v) => handleNameChange(v, 'clientName'), <User size={12} />, 'Contact Person *', { error: !coverDetails.clientName ? 'Contact Person is required' : coverDetails.clientName.trim().length < 2 ? 'Name is too short' : undefined, isInvalid: !coverDetails.clientName || coverDetails.clientName.trim().length < 2 })}
+                                {renderField('Email Address', coverDetails.clientEmail, (v) => handleEmailChange(v, 'clientEmail'), <Mail size={12} />, 'Email Address *', { error: !coverDetails.clientEmail ? 'Email Address is required' : !isValidEmail(coverDetails.clientEmail) ? 'Invalid email format' : undefined, isInvalid: !coverDetails.clientEmail || !isValidEmail(coverDetails.clientEmail) })}
+                                {renderField('Phone Number', coverDetails.clientPhone, (v) => handlePhoneChange(v, 'clientPhone'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.clientPhone ? 'Phone Number is required' : coverDetails.clientPhone.replace(/\D/g, '').length < 8 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.clientPhone || coverDetails.clientPhone.replace(/\D/g, '').length < 8 })}
+                                {renderField('Business Address', coverDetails.clientAddress, (v) => handleTextChange(v, 'clientAddress'), <MapPin size={12} />, 'Business Address *', { error: !coverDetails.clientAddress ? 'Business Address is required' : undefined, isInvalid: !coverDetails.clientAddress })}
+                              </div>
+                            </div>
+
+                            <div style={{
+                              padding: 12,
+                              backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                              borderRadius: 12,
+                              border: `1px solid ${isDark ? '#1e293b' : '#f1f5f9'}`,
+                              boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.02)' : '0 1px 3px rgba(0,0,0,0.02)'
                             }}>
-                              {label}
-                            </span>
-                            <div style={{ marginLeft: 'auto' }}>
-                              <Checkbox
-                                checked={phase.checked}
-                                className="zai-round-checkbox"
-                                style={{ pointerEvents: 'none' }} // Let the parent div handle the click
-                              />
+                              <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
+                                Prepared By (You) <span style={{ color: '#ef4444' }}>*</span>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {renderField('Organization', coverDetails.senderCompany, (v) => handleNameChange(v, 'senderCompany'), <Building size={12} />, 'Organization / Company *', { error: !coverDetails.senderCompany ? 'Organization is required' : undefined, isInvalid: !coverDetails.senderCompany })}
+                                {renderField('Your Name', coverDetails.senderName, (v) => handleNameChange(v, 'senderName'), <User size={12} />, 'Your Name *', { error: !coverDetails.senderName ? 'Name is required' : coverDetails.senderName.trim().length < 2 ? 'Name is too short' : undefined, isInvalid: !coverDetails.senderName || coverDetails.senderName.trim().length < 2 })}
+                                {renderField('Your Position', coverDetails.senderPosition, (v) => handleTextChange(v, 'senderPosition'), <Briefcase size={12} />, 'Your Position *', { error: !coverDetails.senderPosition ? 'Position is required' : undefined, isInvalid: !coverDetails.senderPosition })}
+                                {renderField('Email Address', coverDetails.senderEmail, (v) => handleEmailChange(v, 'senderEmail'), <Mail size={12} />, 'Email Address *', { error: !coverDetails.senderEmail ? 'Email Address is required' : !isValidEmail(coverDetails.senderEmail) ? 'Invalid email format' : undefined, isInvalid: !coverDetails.senderEmail || !isValidEmail(coverDetails.senderEmail) })}
+                                {renderField('Phone Number', coverDetails.senderContact, (v) => handlePhoneChange(v, 'senderContact'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.senderContact ? 'Phone Number is required' : coverDetails.senderContact.replace(/\D/g, '').length < 8 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.senderContact || coverDetails.senderContact.replace(/\D/g, '').length < 8 })}
+                                {renderField('Website URL', coverDetails.senderWebsite, (v) => handleTextChange(v, 'senderWebsite'), <Link size={12} />, 'Website URL', {})}
+                                {renderField('Business Address', coverDetails.senderAddress, (v) => handleTextChange(v, 'senderAddress'), <MapPin size={12} />, 'Business Address *', { error: !coverDetails.senderAddress ? 'Business Address is required' : undefined, isInvalid: !coverDetails.senderAddress })}
+                              </div>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? '#f8fafc' : '#1e293b' }}>Select Components to Generate</div>
+                        <Dropdown
+                          overlayStyle={{ minWidth: 220 }}
+                          trigger={['click']}
+                          menu={{
+                            style: { maxHeight: 340, overflowY: 'auto', padding: '8px', borderRadius: 12, boxShadow: '0 10px 40px -10px rgba(0,0,0,0.2)' },
+                            items: Object.entries(
+                              PALETTE
+                                .filter(meta => !activePhases.some(p => p.type === meta.kind))
+                                .reduce((acc, meta) => {
+                                  const g = meta.group || 'Other';
+                                  if (!acc[g]) acc[g] = [];
+                                  acc[g].push({
+                                    key: meta.paletteId || meta.kind,
+                                    style: { padding: '8px 12px', margin: '2px 4px', borderRadius: 8 },
+                                    label: (
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 500, color: 'inherit' }}>
+                                        <span style={{ color: meta.accent || '#3b82f6', display: 'flex', opacity: 0.9 }}>{meta.icon}</span>
+                                        {meta.label}
+                                      </span>
+                                    ),
+                                    onClick: () => {
+                                      setActivePhases([...activePhases, { id: nanoid(), type: meta.kind, checked: true }]);
+                                    }
+                                  });
+                                  return acc;
+                                }, {} as Record<string, any[]>)
+                            ).map(([groupName, children]) => ({
+                              type: 'group',
+                              label: <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: 4 }}>{groupName}</span>,
+                              children
+                            }))
+                          }}
+                          placement="bottomRight"
+                        >
+                          <Button type="primary" ghost size="small" icon={<PlusOutlined />} style={{ borderRadius: 6, fontWeight: 500, padding: '0 12px' }}>
+                            Add Components
+                          </Button>
+                        </Dropdown>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
+                        {activePhases.map((phase) => {
+                          const meta = BLOCK_META.find(b => b.type === phase.type);
+                          const pal = PALETTE.find(b => b.kind === phase.type);
+                          const label = meta?.label || pal?.label || phase.type;
+                          const icon = meta?.icon || pal?.icon || <Zap size={16} />;
+                          const color = meta?.color || pal?.accent || '#3b82f6';
+
+                          return (
+                            <div
+                              key={phase.id}
+                              onClick={() => {
+                                setActivePhases(activePhases.map(p =>
+                                  p.id === phase.id ? { ...p, checked: !p.checked } : p
+                                ));
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 12,
+                                padding: '12px 16px',
+                                borderRadius: 12,
+                                border: phase.checked ? `2px solid ${color}` : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                                backgroundColor: phase.checked ? (isDark ? `${color}15` : `${color}08`) : (isDark ? '#1e293b' : '#ffffff'),
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: phase.checked ? `0 4px 12px ${color}15` : '0 1px 2px rgba(0,0,0,0.02)',
+                                opacity: phase.checked ? 1 : 0.7
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!phase.checked) {
+                                  e.currentTarget.style.borderColor = isDark ? '#475569' : '#cbd5e1';
+                                  e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f8fafc';
+                                  e.currentTarget.style.opacity = '1';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!phase.checked) {
+                                  e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
+                                  e.currentTarget.style.backgroundColor = isDark ? '#1e293b' : '#ffffff';
+                                  e.currentTarget.style.opacity = '0.7';
+                                }
+                              }}
+                            >
+                              <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                backgroundColor: phase.checked ? `${color}15` : (isDark ? '#334155' : '#f1f5f9'),
+                                color: phase.checked ? color : (isDark ? '#94a3b8' : '#64748b'),
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {icon}
+                              </span>
+                              <span style={{
+                                fontSize: 14,
+                                fontWeight: phase.checked ? 600 : 500,
+                                color: phase.checked ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#cbd5e1' : '#475569'),
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {label}
+                              </span>
+                              <div style={{ marginLeft: 'auto' }}>
+                                <Checkbox
+                                  checked={phase.checked}
+                                  className="zai-round-checkbox"
+                                  style={{ pointerEvents: 'none' }} // Let the parent div handle the click
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
                   </div>
 
                   <div className="zai-footer" style={{ flexShrink: 0, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}` }}>
                     <div className="zai-footer__hint">
                       {activePhases.some(p => p.type === 'cover' && p.checked) && !isCoverDetailsValid() ? (
-                        <span style={{color: '#ef4444'}}>Please provide a valid email and fill all required Cover Page Details to proceed.</span>
+                        <span style={{ color: '#ef4444' }}>Please provide a valid email and fill all required Cover Page Details to proceed.</span>
                       ) : (
                         "Zai will automatically build the selected components in sequence."
                       )}

@@ -103,6 +103,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   vendor: "Vendors",
   escalation: "Escalations",
   pipeline: "Sales Pipeline",
+  recruitment: "Recruitment pipeline",
   exit: "Employee Exit",
   performance: "Performance",
   opening: "Opening Management",
@@ -255,7 +256,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile'],
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment'],
     accent: '#10b981',
   },
   {

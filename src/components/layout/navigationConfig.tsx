@@ -736,6 +736,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/pipeline",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -748,6 +749,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -760,6 +762,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.RECRUITMENT_READ,
     ],
 
     items: [
@@ -824,6 +827,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PERFORMANCE_REPORT_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
+        ],
+      },
+      {
+        key: "/pipeline",
+        icon: I(Users),
+        label: "Recruitment Pipeline",
+        path: "/pipeline/candidates",
+        requiredAnyPermission: [
+          Permissions.RECRUITMENT_READ,
         ],
       },
 

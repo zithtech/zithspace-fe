@@ -465,6 +465,16 @@ export const Permissions = {
   MY_HUB_PAYSLIPS_READ:     'my_hub.payslips.read',
   MY_HUB_PROFILE_READ:      'my_hub.profile.read',
   MY_HUB_CLAIMS_READ:       'my_hub.claims.read',
+
+  // ─── Letters & Docs ──────────────────────────────────────────────
+  LETTER_TEMPLATE_CREATE:   'letter_template.create',
+  LETTER_TEMPLATE_READ:     'letter_template.read',
+  LETTER_TEMPLATE_UPDATE:   'letter_template.update',
+  LETTER_TEMPLATE_DELETE:   'letter_template.delete',
+  LETTER_GENERATE:          'letter.generate',
+  LETTER_READ:              'letter.read',
+  LETTER_DELETE:            'letter.delete',
+  LETTER_MANAGE:            'letter.manage',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

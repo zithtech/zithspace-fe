@@ -712,6 +712,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/letters-docs",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -724,6 +725,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -736,6 +739,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
     ],
 
     items: [
@@ -800,6 +805,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PERFORMANCE_REPORT_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_READ,
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
+        ],
+      },
+      {
+        key: "/letters-docs",
+        icon: I(FileText),
+        label: "Letters and Docs",
+        path: "/letters-docs/templates",
+        requiredAnyPermission: [
+          Permissions.LETTER_TEMPLATE_READ,
+          Permissions.LETTER_READ,
         ],
       },
 

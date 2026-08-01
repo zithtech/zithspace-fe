@@ -503,6 +503,16 @@ export const usePermission = () => {
     canReadActivityLog:    hasPermission(Permissions.ACTIVITY_LOG_READ),
     canReadActivityLogAll: hasPermission(Permissions.ACTIVITY_LOG_READ_ALL),
 
+    // ─── Letters & Docs ─────────────────────────────────────────────
+    canCreateLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_CREATE),
+    canReadLetterTemplate:   hasPermission(Permissions.LETTER_TEMPLATE_READ),
+    canUpdateLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_UPDATE),
+    canDeleteLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_DELETE),
+    canGenerateLetter:       hasPermission(Permissions.LETTER_GENERATE),
+    canReadLetter:           hasPermission(Permissions.LETTER_READ),
+    canDeleteLetter:         hasPermission(Permissions.LETTER_DELETE),
+    canManageLetters:        hasPermission(Permissions.LETTER_MANAGE),
+
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */
     can:    hasPermission,

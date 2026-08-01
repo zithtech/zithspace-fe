@@ -736,6 +736,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/letters-docs",
       "/pipeline",
     ],
     defaultPath: "/profile",
@@ -749,6 +750,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
@@ -762,6 +765,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
     ],
 
@@ -830,6 +835,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
+        key: "/letters-docs",
+        icon: I(FileText),
+        label: "Doc Suite",
+        path: "/letters-docs/templates",
+        requiredAnyPermission: [
+          Permissions.LETTER_TEMPLATE_READ,
+          Permissions.LETTER_READ,
+        ],
+      },
+      {
         key: "/pipeline",
         icon: I(Users),
         label: "Recruitment Pipeline",
@@ -839,24 +854,24 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
-/* {
-        key: "employee-exit",
-        label: "Employee Exit",
-        icon: I(LogOut),
-        path: "/employee-exit/my-requests",
-        requiredAnyPermission: [
-          Permissions.EXIT_MANAGE,
-          Permissions.EXIT_READ,
-          Permissions.EXIT_CONFIG_READ
-        ],
-      },
-      {
-        key: "/opening-management",
-        label: "Opening Management",
-        icon: I(Megaphone),
-        path: "/opening-management",
-        requiredPermission: Permissions.OPENING_READ,
-      }, */
+      /* {
+              key: "employee-exit",
+              label: "Employee Exit",
+              icon: I(LogOut),
+              path: "/employee-exit/my-requests",
+              requiredAnyPermission: [
+                Permissions.EXIT_MANAGE,
+                Permissions.EXIT_READ,
+                Permissions.EXIT_CONFIG_READ
+              ],
+            },
+            {
+              key: "/opening-management",
+              label: "Opening Management",
+              icon: I(Megaphone),
+              path: "/opening-management",
+              requiredPermission: Permissions.OPENING_READ,
+            }, */
     ],
   },
   {

@@ -810,7 +810,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/letters-docs",
         icon: I(FileText),
-        label: "Letters and Docs",
+        label: "Doc Suite",
         path: "/letters-docs/templates",
         requiredAnyPermission: [
           Permissions.LETTER_TEMPLATE_READ,
@@ -818,35 +818,35 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
-/* {
-        key: "employee-exit",
-        icon: I(LogOut),
-        label: "Employee Exit",
-        requiredPermission: Permissions.EXIT_READ,
-        children: [
-          {
-            key: "/employee-exit/management",
-            label: "Employee Exit Management",
-            icon: I(UserMinus),
-            path: "/employee-exit/management",
-            requiredPermission: Permissions.EXIT_READ,
-          },
-          {
-            key: "/employee-exit/configuration",
-            label: "Configuration",
-            icon: I(Sliders),
-            path: "/employee-exit/configuration",
-            requiredPermission: Permissions.EXIT_MANAGE,
-          },
-        ],
-      },
-      {
-        key: "/opening-management",
-        label: "Opening Management",
-        icon: I(Megaphone),
-        path: "/opening-management",
-        requiredPermission: Permissions.OPENING_READ,
-      }, */
+      /* {
+              key: "employee-exit",
+              icon: I(LogOut),
+              label: "Employee Exit",
+              requiredPermission: Permissions.EXIT_READ,
+              children: [
+                {
+                  key: "/employee-exit/management",
+                  label: "Employee Exit Management",
+                  icon: I(UserMinus),
+                  path: "/employee-exit/management",
+                  requiredPermission: Permissions.EXIT_READ,
+                },
+                {
+                  key: "/employee-exit/configuration",
+                  label: "Configuration",
+                  icon: I(Sliders),
+                  path: "/employee-exit/configuration",
+                  requiredPermission: Permissions.EXIT_MANAGE,
+                },
+              ],
+            },
+            {
+              key: "/opening-management",
+              label: "Opening Management",
+              icon: I(Megaphone),
+              path: "/opening-management",
+              requiredPermission: Permissions.OPENING_READ,
+            }, */
     ],
   },
   {

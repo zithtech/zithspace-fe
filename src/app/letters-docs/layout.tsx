@@ -29,7 +29,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
     () => [
       {
         key: 'templates',
-        label: 'Template Management',
+        label: 'Template Builder',
         href: '/letters-docs/templates',
         icon: <FileCode size={18} />,
         color: '#3b82f6', // blue-500
@@ -37,7 +37,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
       },
       {
         key: 'generate',
-        label: 'Letter Generation',
+        label: 'Letter Composer',
         href: '/letters-docs/generate',
         icon: <FilePlus size={18} />,
         color: '#3b82f6', // blue-500
@@ -45,7 +45,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
       },
       {
         key: 'repository',
-        label: 'Generated Documents',
+        label: 'Generated Records',
         href: '/letters-docs/repository',
         icon: <Archive size={18} />,
         color: '#3b82f6', // blue-500
@@ -53,7 +53,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
       },
       {
         key: 'structures',
-        label: 'Custom Structures',
+        label: 'Custom Formats',
         href: '/letters-docs/structures',
         icon: <Layers size={18} />,
         color: '#3b82f6', // blue-500

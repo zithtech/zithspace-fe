@@ -43,7 +43,7 @@ import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/co
 
 
 export default function GradesPage() {
-  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureGrades" });
+  useActivitySource({ section: "ADMIN", module: "OrgStructure", page: "OrgStructureGrades" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrgGrade, canCreateOrgGrade, canUpdateOrgGrade, canDeleteOrgGrade, canReadActivityLog } = usePermission();

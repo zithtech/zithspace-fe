@@ -820,7 +820,7 @@ export default function InvoiceInvoicesPage() {
       dataIndex: "grandTotal",
       width: 110,
       render: (v, record) => (
-        <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5 }}>
+        <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
           ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
@@ -918,8 +918,8 @@ export default function InvoiceInvoicesPage() {
       render: (v) => {
         const balance = Number(v || 0);
         return (
-          <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-slate-900)', fontSize: 12.5 }}>
-            ${balance.toFixed(2)}
+          <div className={balance === 0 ? "text-green-600 font-medium" : "font-semibold"} style={{ color: balance === 0 ? '#10b981' : 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+            ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         );
       },

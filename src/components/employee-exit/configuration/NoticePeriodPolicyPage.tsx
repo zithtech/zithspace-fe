@@ -14,11 +14,12 @@ import {
   Row,
   Col,
   Tag,
-  notification,
-  Popconfirm,
   Tooltip,
   Drawer,
   Divider,
+  Dropdown,
+  Menu,
+  App,
 } from 'antd';
 import {
   Clock,
@@ -30,29 +31,61 @@ import {
   Trash2,
   Edit,
   X,
+  MoreVertical
 } from 'lucide-react';
+import dayjs from 'dayjs';
 import { NoticePolicy, NoticePolicyService, NoticePolicyPayload } from '@/services/noticePolicyService';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position } from '@/services/positionService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import { useMembers } from '@/hooks/useGlobalData';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-export default function NoticePeriodPolicyPage() {
+const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
+  <div className="pp-menu-item">
+    <span className="pp-menu-ic" style={{ color, background: tint }}>{icon}</span>
+    <span className="pp-menu-text">
+      <span className="pp-menu-title">{title}</span>
+      <span className="pp-menu-desc">{desc}</span>
+    </span>
+  </div>
+);
+
+const getCreatorName = (record: any, members: any[] = []) => {
+  const c = record.createdBy || record.created_by || record.creator || record.createdByUser;
+  if (typeof c === 'object' && c !== null) {
+    return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
+  }
+  
+  const creatorId = record.createdById || record.created_by_id || c;
+  if (typeof creatorId === 'string' && members.length > 0) {
+    const member = members.find(m => m.value === creatorId);
+    if (member) return member.label;
+  }
+  
+  return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
+};
+
+export default function NoticePeriodPolicyPage({ searchText = '', createTrigger = 0, layoutMode = 'table' }: { searchText?: string, createTrigger?: number, layoutMode?: 'table' | 'card' }) {
   const [form] = Form.useForm();
   const [policies, setPolicies] = useState<NoticePolicy[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<NoticePolicy | null>(null);
   const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: members = [] } = useMembers();
   const [positions, setPositions] = useState<Position[]>([]);
   const [levelOptions, setLevelOptions] = useState<{ label: string; value: string }[]>([]);
   const [levelType, setLevelType] = useState<string>('');
-  const [searchText, setSearchText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
 
   useEffect(() => {
     fetchPolicies();
@@ -65,10 +98,7 @@ export default function NoticePeriodPolicyPage() {
       const data = await NoticePolicyService.getAll();
       setPolicies(data || []);
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to fetch policies: ' + error.message
-      });
+      messageApi.error('Failed to fetch policies: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -105,20 +135,27 @@ export default function NoticePeriodPolicyPage() {
     setLevelType('');
   };
 
-  const handleEdit = (record: NoticePolicy) => {
+  useEffect(() => {
+    if (createTrigger > 0) {
+      handleAdd();
+    }
+  }, [createTrigger]);
+
+  const handleEdit = (record: any) => {
     setEditingPolicy(record);
-    setLevelType(record.levelType);
+    const lvlType = record.levelType || record.level_type;
+    setLevelType(lvlType);
     form.setFieldsValue({
-      policy_name: record.policyName,
-      code: record.code,
+      policy_name: record.policyName || record.policy_name,
+      code: record.code || record.policy_code || record.reference_code || record.notice_period_code,
       description: record.description,
-      level_type: record.levelType,
-      level_id: record.levelId,
-      notice_period_days: record.noticePeriodDays,
-      probotion_period_days: record.probationPeriodDays,
-      probation_notice_days: record.probationNoticeDays,
-      buyout_calculating_type: record.buyoutCalculatingType === 'Gross',
-      status: record.status,
+      level_type: lvlType,
+      level_id: record.levelId || record.level_id,
+      notice_period_days: record.noticePeriodDays ?? record.notice_period_days,
+      probation_period_days: record.probationPeriodDays ?? record.probation_period_days ?? record.probotion_period_days,
+      probation_notice_days: record.probationNoticeDays ?? record.probation_notice_days,
+      buyout_calculating_type: (record.buyoutCalculatingType || record.buyout_calculating_type) === 'Gross',
+      status: record.status ?? record.is_active ?? true,
     });
     setModalVisible(true);
   };
@@ -126,16 +163,10 @@ export default function NoticePeriodPolicyPage() {
   const handleDelete = async (id: string) => {
     try {
       await NoticePolicyService.delete(id);
-      notificationApi.success({
-        message: 'Success',
-        description: 'Policy deleted successfully'
-      });
+      messageApi.success('Notice Policy deleted successfully');
       fetchPolicies();
     } catch (error: any) {
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to delete policy: ' + error.message
-      });
+      messageApi.error('Failed to delete policy: ' + error.message);
     }
   };
 
@@ -143,14 +174,15 @@ export default function NoticePeriodPolicyPage() {
     setIsSaving(true);
     try {
       const values = await form.validateFields();
-      const payload: NoticePolicyPayload = {
+      const payload: any = {
         policy_name: values.policy_name,
         code: values.code,
         description: values.description,
         level_type: values.level_type,
         level_id: values.level_id,
         notice_period_days: values.notice_period_days,
-        probotion_period_days: values.probotion_period_days,
+        probation_period_days: values.probation_period_days,
+        probotion_period_days: values.probation_period_days, // send both just in case
         probation_notice_days: values.probation_notice_days,
         buyout_calculating_type: values.buyout_calculating_type ? 'Gross' : 'Basic',
         status: values.status,
@@ -158,25 +190,16 @@ export default function NoticePeriodPolicyPage() {
 
       if (editingPolicy) {
         await NoticePolicyService.update(editingPolicy.id, payload);
-        notificationApi.success({
-          message: 'Success',
-          description: 'Policy updated successfully'
-        });
+        messageApi.success('Notice Policy updated successfully');
       } else {
         await NoticePolicyService.create(payload);
-        notificationApi.success({
-          message: 'Success',
-          description: 'Policy created successfully'
-        });
+        messageApi.success('Notice Policy created successfully');
       }
       setModalVisible(false);
       fetchPolicies();
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to save policy';
-      notificationApi.error({
-        message: 'Error',
-        description: errorMsg
-      });
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to save notice period policy';
+      messageApi.error(errorMsg);
     } finally {
       setIsSaving(false);
     }
@@ -211,69 +234,109 @@ export default function NoticePeriodPolicyPage() {
       title: 'Policy Name',
       dataIndex: 'policyName',
       key: 'policyName',
-      render: (text: string, record: NoticePolicy) => (
-        <Space size={12}>
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "var(--bg-blue-50)",
-            color: "var(--premium-blue)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
-            fontSize: 14
-          }}>
-            <Clock size={18} />
-          </div>
-          <div>
-            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
-            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.code}</Text>
-          </div>
-        </Space>
-      ),
+      render: (text: string, record: any) => {
+        const policyName = text || record.policy_name || 'Unnamed Policy';
+        const code = record.code || record.policy_code || record.reference_code || record.notice_period_code || '-';
+        return (
+          <Space size={12}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "var(--bg-blue-50)",
+              color: "var(--premium-blue)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: 14
+            }}>
+              <Clock size={18} />
+            </div>
+            <div>
+              <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{policyName}</Text>
+              <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{code}</Text>
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: 'Applicable Level',
       key: 'levelId',
-      render: (record: NoticePolicy) => (
-        <Space direction="vertical" size={0}>
-          <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
-            {record.levelType}
-          </Tag>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            {getLevelName(record.levelType, record.levelId)}
-          </Text>
-        </Space>
-      ),
+      render: (record: any) => {
+        const levelType = record.levelType || record.level_type;
+        const levelId = record.levelId || record.level_id;
+        return (
+          <Space direction="vertical" size={0}>
+            <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
+              {levelType}
+            </Tag>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {getLevelName(levelType, levelId)}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Notice Period',
       key: 'noticePeriodDays',
-      render: (record: NoticePolicy) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "var(--bg-green-50)", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
-            {record.noticePeriodDays} Days
+      render: (record: any) => {
+        const noticePeriodDays = record.noticePeriodDays ?? record.notice_period_days ?? 0;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-green-50)", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
+              {noticePeriodDays} Days
+            </div>
           </div>
-          <ArrowRight size={14} style={{ color: "var(--text-slate-400)" }} />
-          <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Standard</Text>
-        </div>
-      ),
+        );
+      },
+    },
+    {
+      title: 'Probation',
+      key: 'probationPeriodDays',
+      render: (record: any) => {
+        const probationPeriodDays = record.probationPeriodDays ?? record.probation_period_days ?? record.probotion_period_days;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 6, color: "var(--text-slate-700)", fontWeight: 600 }}>
+              {probationPeriodDays != null ? `${probationPeriodDays} Days` : '-'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Prob. Notice',
+      key: 'probationNoticeDays',
+      render: (record: any) => {
+        const probationNoticeDays = record.probationNoticeDays ?? record.probation_notice_days;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "var(--bg-orange-50)", borderRadius: 6, color: "#d97706", fontWeight: 600 }}>
+              {probationNoticeDays != null ? `${probationNoticeDays} Days` : '-'}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: 'Calculation',
       key: 'calculation',
-      render: (record: NoticePolicy) => (
-        <Space size={16}>
-          <Tooltip title="Buyout Calculation Type">
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={14} style={{ color: "var(--premium-blue)" }} />
-              <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{record.buyoutCalculatingType}</Text>
-            </div>
-          </Tooltip>
-        </Space>
-      ),
+      render: (record: any) => {
+        const calcType = record.buyoutCalculatingType || record.buyout_calculating_type || 'Basic';
+        return (
+          <Space size={16}>
+            <Tooltip title="Buyout Calculation Type">
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <ShieldCheck size={14} style={{ color: "var(--premium-blue)" }} />
+                <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{calcType}</Text>
+              </div>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
     {
       title: 'Status',
@@ -302,12 +365,11 @@ export default function NoticePeriodPolicyPage() {
               className="action-btn"
             />
           </Tooltip>
-          <Popconfirm
+          <ConfirmDialog
             title="Delete this policy?"
             onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ danger: true }}
+            confirmText="Delete"
+            placement="top"
           >
             <Tooltip title="Delete Rule">
               <Button
@@ -317,48 +379,160 @@ export default function NoticePeriodPolicyPage() {
                 className="action-btn-danger"
               />
             </Tooltip>
-          </Popconfirm>
+          </ConfirmDialog>
         </Space>
       ),
     },
   ];
 
+  const filteredPolicies = policies.filter(p =>
+    (p.policyName || "").toLowerCase().includes(searchText.toLowerCase()) ||
+    (p.code || "").toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const total = filteredPolicies.length;
+  const pageCount = Math.ceil(total / pageSize);
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = Math.min(currentPage * pageSize, total);
+  const currentData = filteredPolicies.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
-    <div style={{ padding: '8px 0' }}>
-      {notificationContextHolder}
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Input
-            placeholder="Search rules..."
-            prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-            style={{ width: 280, borderRadius: 10, height: 40 }}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-          />
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0' }}>
+      {layoutMode === 'card' ? (
+        <div className="pp-grid">
+          {currentData.map(record => (
+            <div key={record.id} className="pc-card">
+              <div className="pc-top" style={{ padding: '12px', minHeight: '64px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <div className="pc-avatar" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 13 }}>
+                  <Clock size={16} />
+                </div>
+                <div className="pc-identity-body" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.policyName}</span>
+                    <Tag
+                      style={{ borderRadius: 20, padding: "0 8px", fontWeight: 700, border: 0, fontSize: '10.5px', height: '19px', display: 'inline-flex', alignItems: 'center', margin: 0 }}
+                      color={record.status ? "success" : "default"}
+                    >
+                      {record.status ? "ACTIVE" : "INACTIVE"}
+                    </Tag>
+                  </div>
+                  <div className="pc-client-line" style={{ fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Code: <span style={{ color: 'var(--text-slate-700)', fontWeight: 600 }}>{record.code}</span>
+                  </div>
+                </div>
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: '1',
+                        label: menuLabel("Edit Rules", "Modify configurations", <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                        onClick: () => handleEdit(record)
+                      },
+                      {
+                        type: 'divider'
+                      },
+                      {
+                        key: '2',
+                        onClick: (e) => {
+                          e.domEvent.stopPropagation();
+                        },
+                        label: (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <ConfirmDialog
+                              title="Delete this policy?"
+                              onConfirm={() => handleDelete(record.id)}
+                              confirmText="Delete"
+                              placement="top"
+                            >
+                              <div style={{ width: '100%' }}>
+                                {menuLabel("Delete Rule", "Remove this policy", <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                              </div>
+                            </ConfirmDialog>
+                          </div>
+                        )
+                      }
+                    ]
+                  }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                  overlayClassName="pp-action-pop"
+                >
+                  <button className="pc-actions">
+                    <MoreVertical size={16} />
+                  </button>
+                </Dropdown>
+              </div>
+              <div className="pc-foot" style={{ padding: '0', background: 'transparent', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '6px', fontSize: '10px', color: 'var(--text-slate-400)', padding: '8px 12px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    Created by
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700 }}>
+                      {getCreatorName(record, members)[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{getCreatorName(record, members)}</strong>
+                  </span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Updated <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).updatedAt ? dayjs((record as any).updatedAt).format("MMM DD, YY") : (record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                  <span style={{ color: 'var(--border-slate-200)', flexShrink: 0 }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>Created <strong style={{ color: 'var(--text-slate-600)', fontWeight: 600 }}>{(record as any).createdAt ? dayjs((record as any).createdAt).format("MMM DD, YY") : "—"}</strong></span>
+                </div>
+                <div className="pc-foot-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '6px', fontSize: '11px', color: 'var(--text-slate-500)', borderTop: '1px solid var(--border-slate-200)', padding: '10px 12px', marginTop: 'auto' }}>
+                  <span style={{ flexShrink: 0 }}>
+                    Notice: <strong style={{ color: '#16a34a', fontWeight: 700 }}>{record.noticePeriodDays} Days</strong>
+                  </span>
+                  <span style={{ color: 'var(--border-slate-200)' }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Type: <strong style={{ color: 'var(--text-slate-700)', fontWeight: 600 }}>{record.buyoutCalculatingType}</strong>
+                  </span>
+                  <span style={{ color: 'var(--border-slate-200)' }}>|</span>
+                  <span style={{ flexShrink: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Tag color="purple" style={{ borderRadius: 4, margin: 0, fontWeight: 500, fontSize: '10px', padding: '0 4px', height: '16px', lineHeight: '16px' }}>
+                      {record.levelType}
+                    </Tag>
+                    {getLevelName(record.levelType, record.levelId)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={18} />}
-          onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
-        >
-          Add New Rule
-        </Button>
-      </div>
+      ) : (
+        <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
+            <Table
+              className="pp-table"
+              columns={columns}
+              dataSource={currentData}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+              scroll={{ x: 1000 }}
+            />
+          </div>
+        </div>
+      )}
 
-      <Table
-        columns={columns}
-        dataSource={policies.filter(p =>
-          (p.policyName || "").toLowerCase().includes(searchText.toLowerCase()) ||
-          (p.code || "").toLowerCase().includes(searchText.toLowerCase())
-        )}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"] }}
-        size="middle"
-        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
-      />
+      {total > 0 && (
+        <div className="pp-footer pp-footer--sticky" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingLeft: 0, paddingRight: 0, paddingTop: 16 }}>
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button type="button" className="pp-pager-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>‹</button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5).map((p) => (
+              <button key={p} type="button" className={`pp-pager-num ${p === currentPage ? 'is-active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
+            ))}
+            <button type="button" className="pp-pager-btn" disabled={currentPage >= pageCount} onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}>›</button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => { setPageSize(v); setCurrentPage(1); }}
+              options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
 
       <Drawer
         {...commonDrawerProps}
@@ -430,107 +604,99 @@ export default function NoticePeriodPolicyPage() {
           </button>
         </div>
 
-        <Form form={form} layout="vertical" requiredMark={false} className="customer-drawer-form">
+        <Form 
+          form={form} 
+          layout="horizontal" 
+          labelAlign="left" 
+          labelCol={{ span: 8 }} 
+          wrapperCol={{ span: 16 }} 
+          requiredMark={false} 
+          className="customer-drawer-form"
+        >
           <div className="px-6 py-6 space-y-5 pb-24">
             
             <SectionCard title="Notice Strategy" icon={<Settings2 size={16} />}>
-              <Row gutter={16}>
-                <Col span={14}>
-                  <Form.Item
-                    name="policy_name"
-                    label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} style={{ height: 38 }} />
-                  </Form.Item>
-                </Col>
-                <Col span={10}>
-                  <Form.Item
-                    name="code"
-                    label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Input placeholder="Auto-gen" disabled style={{ height: 38 }} />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="policy_name"
+                label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} style={{ height: 38 }} />
+              </Form.Item>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="level_type"
-                    label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      placeholder="Select level"
-                      onChange={(val) => {
-                        setLevelType(val);
-                        form.setFieldsValue({ level_id: undefined });
-                        updateGeneratedCode();
-                      }}
-                      style={{ height: 38 }}
-                    >
-                      <Select.Option value="Grades">Grades</Select.Option>
-                      <Select.Option value="Positions">Positions</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="level_id"
-                    label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select
-                      placeholder="Select value"
-                      showSearch
-                      optionFilterProp="children"
-                      options={levelOptions}
-                      disabled={!levelType}
-                      onChange={updateGeneratedCode}
-                      style={{ height: 38 }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="code"
+                label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input placeholder="Auto-gen" disabled style={{ height: 38 }} />
+              </Form.Item>
+
+              <Form.Item
+                name="level_type"
+                label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <Select
+                  placeholder="Select level"
+                  onChange={(val) => {
+                    setLevelType(val);
+                    form.setFieldsValue({ level_id: undefined });
+                    updateGeneratedCode();
+                  }}
+                  style={{ height: 38 }}
+                >
+                  <Select.Option value="Grades">Grades</Select.Option>
+                  <Select.Option value="Positions">Positions</Select.Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="level_id"
+                label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Select
+                  placeholder="Select value"
+                  showSearch
+                  optionFilterProp="children"
+                  options={levelOptions}
+                  disabled={!levelType}
+                  onChange={updateGeneratedCode}
+                  style={{ height: 38 }}
+                />
+              </Form.Item>
             </SectionCard>
 
             <SectionCard title="Period Durations" icon={<Clock size={16} />}>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    name="notice_period_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
-                    rules={[{ required: true, message: 'Required' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="e.g. 60" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="probotion_period_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="probation_notice_days"
-                    label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="notice_period_days"
+                label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
+                rules={[{ required: true, message: 'Required' }]}
+                style={{ marginBottom: 12 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="e.g. 60" />
+              </Form.Item>
+
+              <Form.Item
+                name="probation_period_days"
+                label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
+                style={{ marginBottom: 12 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+              </Form.Item>
+
+              <Form.Item
+                name="probation_notice_days"
+                label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
+                style={{ marginBottom: 0 }}
+              >
+                <InputNumber style={{ width: '100%', height: 38, paddingTop: 3 }} min={0} placeholder="Days" />
+              </Form.Item>
             </SectionCard>
 
             <SectionCard title="Policy Controls" icon={<ShieldCheck size={16} />}>
@@ -563,20 +729,6 @@ export default function NoticePeriodPolicyPage() {
         </Form>
       </Drawer>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
-        .action-btn-danger:hover { background: #fff1f2 !important; }
-        .ant-table-thead > tr > th {
-          background: var(--bg-secondary) !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 600 !important;
-          text-transform: uppercase !important;
-          font-size: 11px !important;
-          letter-spacing: 0.05em !important;
-        }
-        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
-      `}} />
     </div>
   );
 }

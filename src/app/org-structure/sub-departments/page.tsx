@@ -44,7 +44,7 @@ import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/co
 
 
 export default function SubDepartmentsPage() {
-  useActivitySource({ section: "WORK", module: "OrgStructure", page: "OrgStructureSubDepartments" });
+  useActivitySource({ section: "ADMIN", module: "OrgStructure", page: "OrgStructureSubDepartments" });
   const router = useRouter();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrg, canManageOrg, canReadActivityLog } = usePermission();

@@ -77,6 +77,7 @@ export interface TransactionHistoryFilters {
   modules: { section: string; module: string }[];
   pages: { module: string; page: string }[];
   actions: string[];
+  pageActions: { page: string; action: string }[];
   entityTypes: string[];
 }
 

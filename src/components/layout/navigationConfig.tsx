@@ -53,6 +53,7 @@ import {
   // ADMIN
   Building2,
   Settings,
+  Chrome,
   Workflow,
   Handshake,
   TrendingUp,
@@ -97,6 +98,8 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  MessageSquare,
+  Palette,
 } from "lucide-react";
 
 const I = (Comp: React.ComponentType<any>) => (
@@ -326,46 +329,53 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ]
       },
-      // {
-      //   key: "timesheet-group",
-      //   label: "Timesheet",
-      //   icon: I(CalendarClock),
-      //   requiredAnyPermission: [
-      //     Permissions.TIMESHEET_READ,
-      //     Permissions.TIMESHEET_CREATE,
-      //     Permissions.TIMESHEET_APPROVE,
-      //   ],
-      //   children: [
-      //     {
-      //       key: "/timesheet/dashboard",
-      //       label: "Dashboard",
-      //       icon: I(Gauge),
-      //       path: "/timesheet/dashboard",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet",
-      //       label: "My Timesheets",
-      //       icon: I(FileClock),
-      //       path: "/timesheet",
-      //       requiredPermission: Permissions.TIMESHEET_READ,
-      //     },
-      //     {
-      //       key: "/timesheet/submit",
-      //       label: "Submit Timesheet",
-      //       icon: I(Send),
-      //       path: "/timesheet/submit",
-      //       requiredPermission: Permissions.TIMESHEET_CREATE,
-      //     },
-      //     {
-      //       key: "/timesheet/teams",
-      //       label: "Teams",
-      //       icon: I(Users),
-      //       path: "/timesheet/teams",
-      //       requiredPermission: Permissions.TIMESHEET_APPROVE,
-      //     },
-      //   ],
-      // },
+      {
+        key: "timesheet-group",
+        label: "Timesheet",
+        icon: I(CalendarClock),
+        requiredAnyPermission: [
+          Permissions.TIMESHEET_READ,
+          Permissions.TIMESHEET_CREATE,
+          Permissions.TIMESHEET_APPROVE,
+        ],
+        children: [
+          {
+            key: "/timesheet/dashboard",
+            label: "Dashboard",
+            icon: I(Gauge),
+            path: "/timesheet/dashboard",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet",
+            label: "My Timesheets",
+            icon: I(FileClock),
+            path: "/timesheet",
+            requiredPermission: Permissions.TIMESHEET_READ,
+          },
+          {
+            key: "/timesheet/submit",
+            label: "Submit Timesheet",
+            icon: I(Send),
+            path: "/timesheet/submit",
+            requiredPermission: Permissions.TIMESHEET_CREATE,
+          },
+          {
+            key: "/timesheet/teams",
+            label: "Teams",
+            icon: I(Users),
+            path: "/timesheet/teams",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
+        ],
+      },
       {
         key: "time-tracking",
         label: "Time Tracking",
@@ -455,6 +465,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Template Library",
             icon: I(Layers),
             path: "/proposals/templates",
+            requiredPermission: Permissions.PROPOSAL_READ,
+          },
+          {
+            key: "/proposals/themes",
+            label: "Cover Themes",
+            icon: I(Palette),
+            path: "/proposals/themes",
             requiredPermission: Permissions.PROPOSAL_READ,
           },
           {
@@ -600,6 +617,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/settings",
         requiredPermission: Permissions.SETTINGS_READ,
       },
+      {
+        key: "/settings/chrome-extension",
+        label: "Chrome Extension",
+        icon: I(Chrome),
+        path: "/settings/chrome-extension",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
       // {
       //   key: "pipeline-group",
       //   label: "Pipeline",
@@ -713,6 +737,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance-report",
       "/opening-management",
       "/letters-docs",
+      "/pipeline",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -727,6 +752,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -741,6 +767,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
 
     items: [
@@ -817,27 +844,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.LETTER_READ,
         ],
       },
+      {
+        key: "/pipeline",
+        icon: I(Users),
+        label: "Recruitment Pipeline",
+        path: "/pipeline/candidates",
+        requiredAnyPermission: [
+          Permissions.RECRUITMENT_READ,
+        ],
+      },
 
       /* {
               key: "employee-exit",
-              icon: I(LogOut),
               label: "Employee Exit",
-              requiredPermission: Permissions.EXIT_READ,
-              children: [
-                {
-                  key: "/employee-exit/management",
-                  label: "Employee Exit Management",
-                  icon: I(UserMinus),
-                  path: "/employee-exit/management",
-                  requiredPermission: Permissions.EXIT_READ,
-                },
-                {
-                  key: "/employee-exit/configuration",
-                  label: "Configuration",
-                  icon: I(Sliders),
-                  path: "/employee-exit/configuration",
-                  requiredPermission: Permissions.EXIT_MANAGE,
-                },
+              icon: I(LogOut),
+              path: "/employee-exit/my-requests",
+              requiredAnyPermission: [
+                Permissions.EXIT_MANAGE,
+                Permissions.EXIT_READ,
+                Permissions.EXIT_CONFIG_READ
               ],
             },
             {
@@ -1039,6 +1064,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
       Permissions.MY_HUB_CLAIMS_READ,
+      Permissions.MY_HUB_DOCUMENTS_READ,
     ],
     items: [
       {
@@ -1098,6 +1124,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(ReceiptText),
         path: "/my-hub/claims",
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
+      },
+      {
+        key: "/my-hub/documents",
+        label: "My Documents",
+        icon: I(Folder),
+        path: "/my-hub/documents",
+        requiredPermission: Permissions.MY_HUB_DOCUMENTS_READ,
       },
     ],
   },

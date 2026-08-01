@@ -2900,8 +2900,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           gap: 10px;
         }
 
-        /* ── Sidebar backdrop (only used as overlay on narrow widths) ── */
-        .tl-sidebar-backdrop { display: none; }
 
         /* ── Desktop ≥1100px ────────────────────────────────── */
         @media (min-width: 1100px) {
@@ -2970,23 +2968,6 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           }
           .tl-shell-wrap.is-sidebar-closed > .tl-shell > aside.tl-sidebar {
             transform: translateX(-100%);
-          }
-          .tl-sidebar-backdrop {
-            display: block !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 1040;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-          }
-          .tl-shell-wrap.is-sidebar-open .tl-sidebar-backdrop {
-            opacity: 1;
-            pointer-events: auto;
           }
           /* Main column reclaims full width below the sidebar bar. */
           .tl-main { padding-left: 0; padding-right: 8px; }
@@ -3578,13 +3559,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
       {/* Tickets View — wrapped in a 2-column shell (sidebar + main) */}
       <div className={`tl-shell-wrap ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
-        {/* Mobile backdrop — closes the sidebar drawer when tapped */}
-        <div
-          className="tl-sidebar-backdrop"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-hidden
-        />
         <div className="tl-shell">
+
           {isMobile ? (
             <Drawer
               className={theme === "dark" ? "hb-dark" : "hb-light"}
@@ -3848,14 +3824,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     label: (
                       <div className="pp-menu-item" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 9px' }}>
                         <span className="pp-menu-ic" style={{
-                          width: 30, height: 30, borderRadius: 0, flexShrink: 0,
+                          width: 30, height: 30, borderRadius: 6, flexShrink: 0,
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10,
                           color: p.value === projectId ? '#fff' : 'var(--text-slate-500)',
                           background: p.value === projectId ? 'var(--premium-gradient)' : 'var(--bg-slate-100)',
                           fontWeight: 800,
                           boxShadow: p.value === projectId ? 'var(--premium-shadow)' : 'none',
                         }}>
-                          {p.code?.toUpperCase()}
+                          {(p.code || p.label || "?").slice(0, 3).toUpperCase()}
                         </span>
                         <span className="pp-menu-text" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                           <span className="pp-menu-title" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>{p.label}</span>

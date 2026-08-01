@@ -395,6 +395,14 @@ export const usePermission = () => {
     canReadPipelineSetting:  hasPermission(Permissions.PIPELINE_SETTING_READ),
     canUpdatePipelineSetting: hasPermission(Permissions.PIPELINE_SETTING_UPDATE),
 
+    // ─── Recruitment / ATS ──────────────────────────────────────────
+    canCreateRecruitment: hasPermission(Permissions.RECRUITMENT_CREATE),
+    canReadRecruitment:   hasPermission(Permissions.RECRUITMENT_READ),
+    canUpdateRecruitment: hasPermission(Permissions.RECRUITMENT_UPDATE),
+    canDeleteRecruitment: hasPermission(Permissions.RECRUITMENT_DELETE),
+    canManageRecruitment: hasPermission(Permissions.RECRUITMENT_MANAGE),
+    canReadRecruitmentSetting: hasPermission(Permissions.RECRUITMENT_SETTING_READ),
+
     // ─── Employee Exit ──────────────────────────────────────────────
     canCreateExit: hasPermission(Permissions.EXIT_CREATE),
     canReadExit:   hasPermission(Permissions.EXIT_READ),

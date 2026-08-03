@@ -425,9 +425,9 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
     const companyDetailsCenter = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; text-align: center; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0; text-align: center; line-height: 1.2;">${ph('company_address', 'Company Address')} | ${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
 
     if (type === 'left-details') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: top; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
     } else if (type === 'left-logo') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: top; width: 70%;">${companyDetailsRight}</td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 70%;">${companyDetailsRight}</td></tr></table>`;
     } else if (type === 'top-logo') {
       html = `<div style="text-align: center; margin-bottom: 2px;"><p style="margin: 0 0 10px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
     }
@@ -1223,7 +1223,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
           {editorContent.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map((pageContent, index) => (
-            <div key={index} className="force-light-theme" style={{
+            <div key={index} className="preview-paper-content force-light-theme" style={{
               width: '210mm',
               minHeight: '297mm',
               background: '#ffffff',
@@ -1242,7 +1242,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
               {/* Header */}
               {pageConfig.headerHtml && (
                 <div
-                  style={{ width: '100%', marginBottom: '4px' }}
+                  style={{ width: '100%', marginBottom: '2px' }}
                   dangerouslySetInnerHTML={{ __html: pageConfig.headerHtml }}
                 />
               )}

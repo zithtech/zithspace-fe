@@ -26759,6 +26759,17 @@ select:-webkit-autofill:focus {
   margin-bottom: 0.25em;
 }
 
+.preview-paper-content img[style*="text-align: left"],
+.preview-paper-content img[data-text-align="left"],
+.preview-paper-content p[style*="text-align: left"] img,
+.preview-paper-content p[style*="text-align: left;"] img,
+.preview-paper-content td[style*="text-align: left"] img,
+.preview-paper-content td[style*="text-align: left;"] img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+}
+
 .preview-paper-content img[style*="text-align: center"],
 .preview-paper-content img[data-text-align="center"],
 .preview-paper-content p[style*="text-align: center"] img,

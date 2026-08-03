@@ -254,8 +254,8 @@ export class LettersService {
     return res.data.data;
   }
 
-  static async previewLetter(templateId: string, values: Record<string, string>): Promise<string> {
-    const res = await apiClient.post<ApiResponse<{ renderedHtml: string }>>('/api/hrms/letters/generated/preview', { templateId, values });
+  static async previewLetter(templateId: string, values: Record<string, string>, generatedDocumentId?: string, customContent?: string): Promise<string> {
+    const res = await apiClient.post<ApiResponse<{ renderedHtml: string }>>('/api/hrms/letters/generated/preview', { templateId, values, generatedDocumentId, customContent });
     return res.data.data.renderedHtml;
   }
 
@@ -265,6 +265,7 @@ export class LettersService {
     referenceEntityType?: string;
     documentNumber?: string;
     values: Record<string, string>;
+    customContent?: string;
   }): Promise<GeneratedDocument> {
     const res = await apiClient.post<ApiResponse<GeneratedDocument>>('/api/hrms/letters/generated', data);
     return res.data.data;

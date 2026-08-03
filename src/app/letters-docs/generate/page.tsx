@@ -20,14 +20,18 @@ import {
   Loader2,
   Menu,
   Filter,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { LettersService, DocumentTemplate, GeneratedDocument, DocumentCategory } from '@/services/lettersService';
 import { PositionService, Position } from '@/services/positionService';
 import { DepartmentService, Department } from '@/services/departmentService';
 import { PayrollV2Service, PayStructureListItem } from '@/services/payrollV2Service';
 import { SearchableDropdown, SearchableDropdownOption } from '@/components/common/SearchableDropdown';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { Table, Button, Tooltip, Select } from 'antd';
+import { Table, Button, Tooltip, Select, Switch, Modal } from 'antd';
+import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
@@ -36,6 +40,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons';
 
 function LetterGenerationContent() {
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
@@ -56,9 +61,35 @@ function LetterGenerationContent() {
 
   const [filterPortalNode, setFilterPortalNode] = useState<Element | null>(null);
 
+  const [isFixedStructure, setIsFixedStructure] = useState(false);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+
   useEffect(() => {
     setFilterPortalNode(document.getElementById('letters-docs-sidebar-filters'));
   }, []);
+
+  useEffect(() => {
+    const structId = valuesMap['salary_structure_id'];
+    if (structId) {
+      PayrollV2Service.getStructure(structId).then(struct => {
+        const isFullyFixed = struct.lines.filter(l => l.category === 'earning').every(l => l.calculationType === 'fixed');
+        setIsFixedStructure(isFullyFixed);
+
+        let newCtc = '';
+        if (struct.monthlyCtc) {
+          newCtc = (Number(struct.monthlyCtc) * 12).toString();
+        } else if (struct.totals?.ctc) {
+          newCtc = (struct.totals.ctc * 12).toString();
+        }
+
+        if (newCtc && newCtc !== valuesMap['salary_ctc']) {
+          handleValueChange('salary_ctc', newCtc);
+        }
+      }).catch(console.error);
+    } else {
+      setIsFixedStructure(false);
+    }
+  }, [valuesMap['salary_structure_id']]);
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
@@ -88,6 +119,9 @@ function LetterGenerationContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditMode, setIsEditMode] = useState(!!editId);
   const [initialValuesLoaded, setInitialValuesLoaded] = useState(false);
+  const [generatedDoc, setGeneratedDoc] = useState<GeneratedDocument | null>(null);
+  const [customTemplateContent, setCustomTemplateContent] = useState<string>('');
+  const [isEditingContent, setIsEditingContent] = useState(false);
 
   const fetchTemplates = async () => {
     try {
@@ -128,6 +162,19 @@ function LetterGenerationContent() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchTemplates();
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!deleteTemplateId) return;
+    try {
+      toast.loading('Deleting template...', { id: 'del' });
+      await LettersService.deleteTemplate(deleteTemplateId);
+      toast.success('Template deleted', { id: 'del' });
+      fetchTemplates();
+      setDeleteTemplateId(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete template', { id: 'del' });
+    }
   };
 
   const fetchPositionsAndDepartments = async () => {
@@ -341,6 +388,7 @@ function LetterGenerationContent() {
     setSelectedTemplate(tpl);
 
     if (tpl) {
+      setCustomTemplateContent(tpl.editorContent || '');
       const initialMap: Record<string, string> = {};
       // Populate standard placeholders
       if (tpl.placeholders && tpl.placeholders.length > 0) {
@@ -353,34 +401,41 @@ function LetterGenerationContent() {
               day: 'numeric',
             });
           }
+          if (user) {
+            if (p.placeholderKey === 'company_name' && !initialMap[p.placeholderKey]) initialMap[p.placeholderKey] = user.tenantName || '';
+            if (p.placeholderKey === 'company_address' && !initialMap[p.placeholderKey]) initialMap[p.placeholderKey] = user.companyAddress || '';
+            if (p.placeholderKey === 'company_phone' && !initialMap[p.placeholderKey]) initialMap[p.placeholderKey] = user.companyPhone || '';
+            if (p.placeholderKey === 'company_mail' && !initialMap[p.placeholderKey]) initialMap[p.placeholderKey] = user.companyEmail || '';
+            if (p.placeholderKey === 'company_location' && !initialMap[p.placeholderKey]) initialMap[p.placeholderKey] = user.companyLocation || '';
+          }
         });
       }
 
       if (editId) {
         if (!initialValuesLoaded) {
           LettersService.getGeneratedLetterById(editId).then(doc => {
+            setGeneratedDoc(doc);
+            const loadedContent = (doc as any).snapshotContent || tpl.editorContent || '';
+            setCustomTemplateContent(loadedContent);
             const docValues = { ...initialMap };
             doc.values?.forEach((v: any) => {
               docValues[v.placeholderKey] = v.placeholderValue;
             });
             setValuesMap(docValues);
             setInitialValuesLoaded(true);
-            updatePreview(tpl.id, docValues);
           }).catch(() => {
             setValuesMap(initialMap);
-            updatePreview(tpl.id, initialMap);
           });
         }
       } else {
         setValuesMap(initialMap);
-        updatePreview(tpl.id, initialMap);
       }
     }
   }, [selectedTemplateId, editId, initialValuesLoaded, templates]);
 
   const activePlaceholders = useMemo(() => {
     if (!selectedTemplate || !selectedTemplate.placeholders) return [];
-    const content = selectedTemplate.editorContent || '';
+    const content = (generatedDoc as any)?.snapshotContent || selectedTemplate.editorContent || '';
 
     return selectedTemplate.placeholders.filter((p) => {
       const key = p.placeholderKey;
@@ -408,12 +463,13 @@ function LetterGenerationContent() {
 
       return false;
     });
-  }, [selectedTemplate]);
+  }, [selectedTemplate, generatedDoc]);
 
-  const updatePreview = async (tplId: string, map: Record<string, string>) => {
+  const updatePreview = async (tplId: string, map: Record<string, string>, genDocId?: string, customContentOverride?: string) => {
     try {
       setPreviewLoading(true);
-      const html = await LettersService.previewLetter(tplId, map);
+      const contentToUse = customContentOverride !== undefined ? customContentOverride : customTemplateContent;
+      const html = await LettersService.previewLetter(tplId, map, genDocId, contentToUse);
       setPreviewHtml(html);
     } catch (err: any) {
       console.error('Failed to generate preview', err);
@@ -425,10 +481,18 @@ function LetterGenerationContent() {
   const handleValueChange = (key: string, val: string) => {
     const nextMap = { ...valuesMap, [key]: val };
     setValuesMap(nextMap);
-    if (selectedTemplateId) {
-      updatePreview(selectedTemplateId, nextMap);
-    }
   };
+
+  useEffect(() => {
+    if (!selectedTemplateId || isEditingContent) return;
+
+    const timeoutId = setTimeout(() => {
+      updatePreview(selectedTemplateId, valuesMap, editId || undefined, customTemplateContent);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId, valuesMap, editId, customTemplateContent, isEditingContent]);
 
   const handleGenerateDocument = async (downloadType?: 'pdf' | 'docx') => {
     if (!selectedTemplateId) {
@@ -471,6 +535,7 @@ function LetterGenerationContent() {
           templateId: selectedTemplateId,
           documentNumber: documentNumber.trim(),
           values: valuesMap,
+          customContent: customTemplateContent,
         });
         toast.success('Document updated successfully!', { id: 'gen' });
       } else {
@@ -478,6 +543,7 @@ function LetterGenerationContent() {
           templateId: selectedTemplateId,
           documentNumber: documentNumber.trim(),
           values: valuesMap,
+          customContent: customTemplateContent,
         });
         toast.success('Document generated and saved to repository!', { id: 'gen' });
       }
@@ -513,7 +579,7 @@ function LetterGenerationContent() {
             <FilePlus size={18} />
           </div>
           <div>
-            <div className="lv-header-title">{isEditMode ? 'Edit Generated Document' : 'Letter Generation'}</div>
+            <div className="lv-header-title">{isEditMode ? 'Edit Generated Document' : 'Letter Composer'}</div>
             <div className="lv-header-sub">
               {isEditMode ? 'Update placeholders and regenerate an existing document.' : 'Generate personalized documents from templates with real-time preview and PDF/DOCX export.'}
             </div>
@@ -651,26 +717,79 @@ function LetterGenerationContent() {
                 <div style={{ padding: '16px 20px', background: 'var(--bg-slate-50)', borderBottom: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Eye size={16} style={{ color: '#3b82f6' }} />
-                    Live Document Preview
+                    {isEditingContent ? 'Edit Template Content' : 'Live Document Preview'}
                   </span>
-                  {previewLoading && <span style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>Updating preview...</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {previewLoading && <span style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>Updating preview...</span>}
+                    {selectedTemplateId && (
+                      <Switch
+                        checked={isEditingContent}
+                        onChange={(checked) => setIsEditingContent(checked)}
+                        checkedChildren="Edit Mode"
+                        unCheckedChildren="Preview Mode"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 <div
                   style={{
-                    padding: '36px 40px',
+                    padding: isEditingContent ? '0' : '36px 40px',
                     flex: 1,
                     overflowY: 'auto',
                     background: 'var(--bg-pure-white)',
                     boxShadow: 'inset 0 0 10px rgba(0,0,0,0.02)',
                   }}
                 >
-                  {previewHtml ? (
-                    <div
-                      className="preview-paper-content"
-                      dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  {isEditingContent ? (
+                    <LetterTiptapEditor
+                      content={customTemplateContent}
+                      onChange={setCustomTemplateContent}
+                      minHeight={600}
                     />
-                  ) : (
+                  ) : previewHtml ? (() => {
+                      let parsedConfig = {} as any;
+                      let cleanHtml = previewHtml;
+                      const configRegex = /<script\s+id="zith-page-config"\s+type="application\/json">([\s\S]*?)<\/script>/i;
+                      const match = configRegex.exec(previewHtml);
+                      if (match && match[1]) {
+                        try { parsedConfig = JSON.parse(match[1]); } catch (e) { }
+                        cleanHtml = previewHtml.replace(configRegex, '');
+                      }
+                      const pages = cleanHtml.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map(p => p.trim()).filter(p => !!p);
+                      
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+                          {pages.map((pageContent, index) => (
+                            <div key={index} className="preview-paper-content force-light-theme" style={{
+                              width: '210mm',
+                              minHeight: '297mm',
+                              background: '#ffffff',
+                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                              paddingTop: parsedConfig.marginTop || '20mm',
+                              paddingRight: parsedConfig.marginRight || '20mm',
+                              paddingBottom: parsedConfig.marginBottom || '20mm',
+                              paddingLeft: parsedConfig.marginLeft || '20mm',
+                              position: 'relative',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              borderWidth: parsedConfig.borderWidth || '0px',
+                              borderStyle: parsedConfig.borderStyle || 'solid',
+                              borderColor: parsedConfig.borderColor || '#000000',
+                              margin: '0 auto',
+                            }}>
+                              {parsedConfig.headerHtml && (
+                                <div style={{ width: '100%', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.headerHtml }} />
+                              )}
+                              <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: pageContent }} />
+                              {parsedConfig.footerHtml && (
+                                <div style={{ width: '100%', marginTop: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })() : (
                     <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
                       Select a template to generate live preview.
                     </div>
@@ -687,188 +806,190 @@ function LetterGenerationContent() {
 
                 <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                   <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-slate-100)' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
-                    Document Number / Reference ID <span style={{ color: 'var(--text-leave)' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={documentNumber}
-                    onChange={(e) => {
-                      setDocumentNumber(e.target.value);
-                      if (showValidationErrors && e.target.value.trim()) {
-                        setShowValidationErrors(false);
-                      }
-                    }}
-                    placeholder="e.g. OFF-2026-001"
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: showValidationErrors && !documentNumber.trim() ? '1px solid #ef4444' : '1px solid var(--border-slate-200)',
-                      background: showValidationErrors && !documentNumber.trim() ? 'var(--bg-red-50)' : 'var(--bg-pure-white)',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: 'var(--text-slate-900)',
-                      outline: 'none',
-                    }}
-                  />
-                  {showValidationErrors && !documentNumber.trim() ? (
-                    <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-                      Document Number is required.
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '4px', display: 'block' }}>
-                      Unique reference number for tracking and auditing in repository.
-                    </span>
-                  )}
-                </div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
+                      Document Number / Reference ID <span style={{ color: 'var(--text-leave)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={documentNumber}
+                      onChange={(e) => {
+                        setDocumentNumber(e.target.value);
+                        if (showValidationErrors && e.target.value.trim()) {
+                          setShowValidationErrors(false);
+                        }
+                      }}
+                      placeholder="e.g. OFF-2026-001"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: showValidationErrors && !documentNumber.trim() ? '1px solid #ef4444' : '1px solid var(--border-slate-200)',
+                        background: showValidationErrors && !documentNumber.trim() ? 'var(--bg-red-50)' : 'var(--bg-pure-white)',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text-slate-900)',
+                        outline: 'none',
+                      }}
+                    />
+                    {showValidationErrors && !documentNumber.trim() ? (
+                      <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                        Document Number is required.
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '4px', display: 'block' }}>
+                        Unique reference number for tracking and auditing in repository.
+                      </span>
+                    )}
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {activePlaceholders && activePlaceholders.length > 0 ? (
-                    activePlaceholders.map((p) => {
-                      const isMissing = showValidationErrors && (!valuesMap[p.placeholderKey] || String(valuesMap[p.placeholderKey]).trim() === '');
-                      return (
-                        <div key={p.placeholderKey}>
-                          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
-                            {p.placeholderLabel}{' '}
-                            <span style={{ color: 'var(--text-leave)', fontWeight: 700 }}>*</span>{' '}
-                            <span style={{ fontSize: '11px', color: 'var(--text-slate-400)', fontWeight: 400, fontFamily: 'monospace' }}>
-                              ({p.placeholderKey})
-                            </span>
-                          </label>
-                          {p.placeholderKey === 'designation' ||
-                            p.placeholderKey === 'designation_title' ||
-                            p.placeholderLabel.toLowerCase().includes('designation') ||
-                            p.placeholderLabel.toLowerCase().includes('position') ? (
-                            <SearchableDropdown
-                              value={valuesMap[p.placeholderKey] || null}
-                              onChange={(val) => handleValueChange(p.placeholderKey, val || '')}
-                              options={positionOptions}
-                              placeholder="Select Designation / Position..."
-                              searchPlaceholder="Search by position title, department, or grade..."
-                              freeText={true}
-                              hideAvatar={true}
-                              style={{
-                                width: '100%',
-                                minHeight: '40px',
-                                border: isMissing ? '1px solid #ef4444' : undefined,
-                                background: isMissing ? 'var(--bg-red-50)' : undefined,
-                                borderRadius: '8px',
-                              }}
-                            />
-                          ) : p.placeholderKey === 'department' ||
-                            p.placeholderLabel.toLowerCase().includes('department') ? (
-                            <SearchableDropdown
-                              value={valuesMap[p.placeholderKey] || null}
-                              onChange={(val) => handleValueChange(p.placeholderKey, val || '')}
-                              options={departmentOptions}
-                              placeholder="Select Department..."
-                              searchPlaceholder="Search by department name, code, or associated grades..."
-                              freeText={true}
-                              hideAvatar={true}
-                              style={{
-                                width: '100%',
-                                minHeight: '40px',
-                                border: isMissing ? '1px solid #ef4444' : undefined,
-                                background: isMissing ? 'var(--bg-red-50)' : undefined,
-                                borderRadius: '8px',
-                              }}
-                            />
-                          ) : (
-                            <React.Fragment>
-                              <input
-                                type={p.dataType === 'date' ? 'date' : p.dataType === 'number' ? 'number' : 'text'}
-                                value={valuesMap[p.placeholderKey] || ''}
-                                onChange={(e) => handleValueChange(p.placeholderKey, e.target.value)}
-                                placeholder={`Enter ${p.placeholderLabel}...`}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {activePlaceholders && activePlaceholders.length > 0 ? (
+                      activePlaceholders.map((p) => {
+                        const isMissing = showValidationErrors && (!valuesMap[p.placeholderKey] || String(valuesMap[p.placeholderKey]).trim() === '');
+                        return (
+                          <div key={p.placeholderKey}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
+                              {p.placeholderLabel}{' '}
+                              <span style={{ color: 'var(--text-leave)', fontWeight: 700 }}>*</span>{' '}
+                              <span style={{ fontSize: '11px', color: 'var(--text-slate-400)', fontWeight: 400, fontFamily: 'monospace' }}>
+                                ({p.placeholderKey})
+                              </span>
+                            </label>
+                            {p.placeholderKey === 'designation' ||
+                              p.placeholderKey === 'designation_title' ||
+                              p.placeholderLabel.toLowerCase().includes('designation') ||
+                              p.placeholderLabel.toLowerCase().includes('position') ? (
+                              <SearchableDropdown
+                                value={valuesMap[p.placeholderKey] || null}
+                                onChange={(val) => handleValueChange(p.placeholderKey, val || '')}
+                                options={positionOptions}
+                                placeholder="Select Designation / Position..."
+                                searchPlaceholder="Search by position title, department, or grade..."
+                                freeText={true}
+                                hideAvatar={true}
                                 style={{
                                   width: '100%',
-                                  padding: '10px 14px',
+                                  minHeight: '40px',
+                                  border: isMissing ? '1px solid #ef4444' : undefined,
+                                  background: isMissing ? 'var(--bg-red-50)' : undefined,
                                   borderRadius: '8px',
-                                  border: isMissing ? '1px solid #ef4444' : '1px solid var(--border-slate-200)',
-                                  background: isMissing ? 'var(--bg-red-50)' : 'var(--bg-pure-white)',
-                                  fontSize: '14px',
-                                  outline: 'none',
                                 }}
                               />
-                              {p.placeholderKey === 'salary_ctc' && (
-                                <div style={{ marginTop: '14px' }}>
-                                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
-                                    Salary Structure <span style={{ color: 'var(--text-leave)', fontWeight: 700 }}>*</span> <span style={{ fontSize: '11px', color: 'var(--text-slate-400)', fontWeight: 400, fontFamily: 'monospace' }}>(salary_structure_id)</span>
-                                  </label>
-                                  <SearchableDropdown
-                                    value={valuesMap['salary_structure_id'] || null}
-                                    onChange={(val) => handleValueChange('salary_structure_id', val || '')}
-                                    options={salaryStructureOptions}
-                                    placeholder="Select Salary Structure..."
-                                    searchPlaceholder="Search structures..."
-                                    freeText={false}
-                                    hideAvatar={true}
-                                    emptyComponent={
-                                      <div style={{ padding: '24px 16px', textAlign: 'center' }}>
-                                        <div style={{ color: 'var(--text-slate-500)', fontSize: '13px', marginBottom: '12px' }}>
-                                          No salary structures found.
+                            ) : p.placeholderKey === 'department' ||
+                              p.placeholderLabel.toLowerCase().includes('department') ? (
+                              <SearchableDropdown
+                                value={valuesMap[p.placeholderKey] || null}
+                                onChange={(val) => handleValueChange(p.placeholderKey, val || '')}
+                                options={departmentOptions}
+                                placeholder="Select Department..."
+                                searchPlaceholder="Search by department name, code, or associated grades..."
+                                freeText={true}
+                                hideAvatar={true}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '40px',
+                                  border: isMissing ? '1px solid #ef4444' : undefined,
+                                  background: isMissing ? 'var(--bg-red-50)' : undefined,
+                                  borderRadius: '8px',
+                                }}
+                              />
+                            ) : (
+                              <React.Fragment>
+                                <input
+                                  type={p.dataType === 'date' ? 'date' : p.dataType === 'number' ? 'number' : 'text'}
+                                  value={valuesMap[p.placeholderKey] || ''}
+                                  onChange={(e) => handleValueChange(p.placeholderKey, e.target.value)}
+                                  disabled={p.placeholderKey === 'salary_ctc' && isFixedStructure}
+                                  placeholder={`Enter ${p.placeholderLabel}...`}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    border: isMissing ? '1px solid #ef4444' : '1px solid var(--border-slate-200)',
+                                    background: isMissing ? 'var(--bg-red-50)' : (p.placeholderKey === 'salary_ctc' && isFixedStructure ? 'var(--bg-slate-50)' : 'var(--bg-pure-white)'),
+                                    cursor: p.placeholderKey === 'salary_ctc' && isFixedStructure ? 'not-allowed' : 'text',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                  }}
+                                />
+                                {p.placeholderKey === 'salary_ctc' && (
+                                  <div style={{ marginTop: '14px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-slate-700)', marginBottom: '6px' }}>
+                                      Salary Structure <span style={{ color: 'var(--text-leave)', fontWeight: 700 }}>*</span> <span style={{ fontSize: '11px', color: 'var(--text-slate-400)', fontWeight: 400, fontFamily: 'monospace' }}>(salary_structure_id)</span>
+                                    </label>
+                                    <SearchableDropdown
+                                      value={valuesMap['salary_structure_id'] || null}
+                                      onChange={(val) => handleValueChange('salary_structure_id', val || '')}
+                                      options={salaryStructureOptions}
+                                      placeholder="Select Salary Structure..."
+                                      searchPlaceholder="Search structures..."
+                                      freeText={false}
+                                      hideAvatar={true}
+                                      emptyComponent={
+                                        <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+                                          <div style={{ color: 'var(--text-slate-500)', fontSize: '13px', marginBottom: '12px' }}>
+                                            No salary structures found.
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              // Close any open popovers by blurring the active element
+                                              if (document.activeElement instanceof HTMLElement) {
+                                                document.activeElement.blur();
+                                              }
+                                              router.push('/payroll-v2/structures');
+                                            }}
+                                            style={{
+                                              padding: '6px 14px',
+                                              background: '#3b82f6',
+                                              color: '#ffffff',
+                                              border: 'none',
+                                              borderRadius: '6px',
+                                              fontSize: '13px',
+                                              fontWeight: 600,
+                                              cursor: 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '6px'
+                                            }}
+                                          >
+                                            <FilePlus size={14} />
+                                            Create Salary Structure
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            // Close any open popovers by blurring the active element
-                                            if (document.activeElement instanceof HTMLElement) {
-                                              document.activeElement.blur();
-                                            }
-                                            router.push('/payroll-v2/structures');
-                                          }}
-                                          style={{
-                                            padding: '6px 14px',
-                                            background: '#3b82f6',
-                                            color: '#ffffff',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            fontSize: '13px',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px'
-                                          }}
-                                        >
-                                          <FilePlus size={14} />
-                                          Create Salary Structure
-                                        </button>
-                                      </div>
-                                    }
-                                    style={{
-                                      width: '100%',
-                                      minHeight: '40px',
-                                      border: showValidationErrors && !valuesMap['salary_structure_id'] ? '1px solid #ef4444' : undefined,
-                                      background: showValidationErrors && !valuesMap['salary_structure_id'] ? 'var(--bg-red-50)' : undefined,
-                                      borderRadius: '8px',
-                                    }}
-                                  />
-                                  {showValidationErrors && !valuesMap['salary_structure_id'] && (
-                                    <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-                                      Salary Structure is required.
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </React.Fragment>
-                          )}
-                          {isMissing && (
-                            <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-                              {p.placeholderLabel} is required.
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div style={{ color: 'var(--text-slate-600)', fontSize: '14px', padding: '10px 0' }}>
-                      This template has no defined placeholders. You can generate it directly.
-                    </div>
-                  )}
+                                      }
+                                      style={{
+                                        width: '100%',
+                                        minHeight: '40px',
+                                        border: showValidationErrors && !valuesMap['salary_structure_id'] ? '1px solid #ef4444' : undefined,
+                                        background: showValidationErrors && !valuesMap['salary_structure_id'] ? 'var(--bg-red-50)' : undefined,
+                                        borderRadius: '8px',
+                                      }}
+                                    />
+                                    {showValidationErrors && !valuesMap['salary_structure_id'] && (
+                                      <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                                        Salary Structure is required.
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            )}
+                            {isMissing && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                                {p.placeholderLabel} is required.
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{ color: 'var(--text-slate-600)', fontSize: '14px', padding: '10px 0' }}>
+                        This template has no defined placeholders. You can generate it directly.
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
           </div>
@@ -931,6 +1052,39 @@ function LetterGenerationContent() {
                       key: 'currentVersion',
                       render: (ver: number) => <span style={{ color: '#3b82f6', fontWeight: 600, fontSize: '12px' }}>v{ver}</span>,
                     },
+                    {
+                      title: 'ACTIONS',
+                      key: 'actions',
+                      align: 'right',
+                      render: (_: any, tpl: DocumentTemplate) => (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <Tooltip title="Edit Template">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<Edit2 size={16} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/letters-docs/templates/builder?id=${tpl.id}`);
+                              }}
+                              style={{ color: 'var(--text-slate-500)' }}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Delete Template">
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<Trash2 size={16} />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTemplateId(tpl.id);
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
+                      ),
+                    },
                   ]}
                   dataSource={paginatedTemplates}
                   pagination={false}
@@ -977,12 +1131,39 @@ function LetterGenerationContent() {
                         {isSelected && <CheckCircle2 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
                       </div>
                       <div className="pc-foot">
-                        <div className="pc-foot-row">
+                        <div className="pc-foot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span className="pc-foot-item">
                             <RefreshCw size={12} style={{ color: 'var(--text-slate-400)' }} />
                             <span className="pc-foot-key">Version</span>
                             <span className="pc-foot-val">v{tpl.currentVersion}</span>
                           </span>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Tooltip title="Edit Template">
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<Edit2 size={14} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/letters-docs/templates/builder?id=${tpl.id}`);
+                                }}
+                                style={{ color: 'var(--text-slate-500)', padding: '0 4px' }}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Delete Template">
+                              <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<Trash2 size={14} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTemplateId(tpl.id);
+                                }}
+                                style={{ padding: '0 4px' }}
+                              />
+                            </Tooltip>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1114,7 +1295,7 @@ function LetterGenerationContent() {
 
       <style jsx global>{`
         .pc-card {
-          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          border: 1px solid #cbd5e1; background: var(--bg-pure-white);
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
         }
@@ -1132,9 +1313,9 @@ function LetterGenerationContent() {
           flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer;
           background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
         }
-        .pc-actions:hover { background: var(--border-slate-100); color: var(--text-slate-900); }
+        .pc-actions:hover { background: var(--border-slate-100); color: #0f172a; }
         .pc-title {
-          font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 12px; min-width: 0; }
@@ -1143,11 +1324,11 @@ function LetterGenerationContent() {
 
         .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
         .pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
-        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-700); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #334155; }
         .pc-foot-key { font-size: 11px; font-weight: 600; color: var(--text-slate-400); }
         .pc-foot-div { width: 1px; height: 12px; background: var(--border-slate-200); }
 
-        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
         .pp-segmented button {
           width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
@@ -1172,7 +1353,7 @@ function LetterGenerationContent() {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           font-size: 15px;
           line-height: 1.7;
-          color: var(--text-slate-900);
+          color: #0f172a;
         }
         .preview-paper-content p {
           margin-bottom: 1em;
@@ -1182,21 +1363,21 @@ function LetterGenerationContent() {
           font-weight: 700 !important;
           margin-top: 1.2em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-900) !important;
+          color: #0f172a !important;
         }
         .preview-paper-content h2 {
           font-size: 1.4em !important;
           font-weight: 600 !important;
           margin-top: 1.2em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-900) !important;
+          color: #0f172a !important;
         }
         .preview-paper-content h3 {
           font-size: 1.2em !important;
           font-weight: 600 !important;
           margin-top: 1em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-700) !important;
+          color: #334155 !important;
         }
         .preview-paper-content h4,
         .preview-paper-content h5,
@@ -1205,7 +1386,7 @@ function LetterGenerationContent() {
           font-weight: 600 !important;
           margin-top: 1em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-700) !important;
+          color: #334155 !important;
         }
         .preview-paper-content strong,
         .preview-paper-content b {
@@ -1228,7 +1409,7 @@ function LetterGenerationContent() {
         .preview-paper-content td,
         .preview-paper-content th {
           min-width: 1em;
-          border: 1px solid var(--border-slate-200);
+          border: 1px solid #cbd5e1;
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -1237,7 +1418,7 @@ function LetterGenerationContent() {
         .preview-paper-content th {
           font-weight: 600 !important;
           text-align: left;
-          background-color: var(--border-slate-100);
+          background-color: #f1f5f9;
         }
         .preview-paper-content ul,
         .preview-paper-content ol {
@@ -1254,6 +1435,18 @@ function LetterGenerationContent() {
           margin-bottom: 0.25em;
         }
       `}</style>
+
+      <Modal
+        open={!!deleteTemplateId}
+        title="Delete Document Template?"
+        onOk={handleDeleteTemplate}
+        onCancel={() => setDeleteTemplateId(null)}
+        okText="Delete Template"
+        okButtonProps={{ danger: true }}
+        centered
+      >
+        <p>Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.</p>
+      </Modal>
     </div>
   );
 }

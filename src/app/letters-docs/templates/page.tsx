@@ -453,7 +453,7 @@ export default function TemplateManagementPage() {
             <FileText size={18} />
           </div>
           <div>
-            <div className="lv-header-title">Template Management</div>
+            <div className="lv-header-title">Template Builder</div>
             {/* <div className="lv-header-sub">
               Create and manage reusable templates with dynamic placeholders and version history.
             </div> */}
@@ -791,9 +791,9 @@ export default function TemplateManagementPage() {
                         {cat.description && <div style={{ fontSize: '12px', color: 'var(--text-slate-600)' }}>{cat.description}</div>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <Switch 
-                          size="small" 
-                          checked={cat.status !== 'INACTIVE'} 
+                        <Switch
+                          size="small"
+                          checked={cat.status !== 'INACTIVE'}
                           onChange={(checked) => handleToggleCategoryStatus(cat.id, checked)}
                         />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -803,13 +803,13 @@ export default function TemplateManagementPage() {
                               setEditingCatName(cat.categoryName);
                               setEditingCatDesc(cat.description || '');
                             }}
-                            style={{ 
-                              background: 'transparent', 
-                              border: 'none', 
-                              color: 'var(--text-slate-400)', 
-                              padding: '6px', 
-                              borderRadius: '6px', 
-                              cursor: 'pointer', 
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--text-slate-400)',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -823,13 +823,13 @@ export default function TemplateManagementPage() {
                           </button>
                           <button
                             onClick={() => handleDeleteCategory(cat.id)}
-                            style={{ 
-                              background: 'transparent', 
-                              border: 'none', 
-                              color: 'var(--text-slate-400)', 
-                              padding: '6px', 
-                              borderRadius: '6px', 
-                              cursor: 'pointer', 
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--text-slate-400)',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -862,18 +862,17 @@ export default function TemplateManagementPage() {
           router.push(`/letters-docs/templates/builder?id=${id}`);
         }}
       />
-      {deleteTemplateId && (
-        <ConfirmDialog
-          open={true}
-          title="Delete Document Template?"
-          description="Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it."
-          onConfirm={handleDeleteTemplate}
-          onCancel={() => setDeleteTemplateId(null)}
-          confirmText="Delete Template"
-        >
-          <span />
-        </ConfirmDialog>
-      )}
+      <Modal
+        open={!!deleteTemplateId}
+        title="Delete Document Template?"
+        onOk={handleDeleteTemplate}
+        onCancel={() => setDeleteTemplateId(null)}
+        okText="Delete Template"
+        okButtonProps={{ danger: true }}
+        centered
+      >
+        <p>Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.</p>
+      </Modal>
 
       {/* Settings Modal */}
       {isSettingsModalOpen && (
@@ -885,8 +884,8 @@ export default function TemplateManagementPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-slate-700)' }}>Custom Structures</div>
-              <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsStructureTypeModalOpen(true)}>Add Structure</Button>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-slate-700)' }}>Custom Formats</div>
+              <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsStructureTypeModalOpen(true)}>Add Format</Button>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>

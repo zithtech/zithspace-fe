@@ -59,6 +59,10 @@ interface User {
   department?: string;
   employeeId?: string | null;
   employee_code?: string | null;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyLocation?: string;
   createdAt?: string;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
@@ -142,6 +146,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: response.user.avatarUrl,
         tenantName: response.user.tenantName,
         tenantLogo: (response.user as any).tenantLogo,
+        companyAddress: (response.user as any).generalSettings?.address?.street || '',
+        companyPhone: (response.user as any).generalSettings?.phone || '',
+        companyEmail: (response.user as any).generalSettings?.email || '',
+        companyLocation: (response.user as any).companyLocation?.city || '',
         department: (response.user as any).department,
         employeeId: (response.user as any).employeeId,
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
@@ -343,6 +351,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
+        companyAddress: (userProfile.tenant as any)?.generalSettings?.address?.street || '',
+        companyPhone: (userProfile.tenant as any)?.generalSettings?.phone || '',
+        companyEmail: (userProfile.tenant as any)?.generalSettings?.email || '',
+        companyLocation: (userProfile.tenant as any)?.companyLocation?.city || '',
         department: userProfile.department,
         employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,

@@ -98,7 +98,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
                 <FileText size={24} strokeWidth={1.5} />
               </div>
               <div className="lv-side-head-text">
-                <div className="lv-side-title">Letters & Docs</div>
+                <div className="lv-side-title">Doc Suite</div>
                 <div className="lv-side-subtitle">Templates · Generation</div>
               </div>
               <button className="lv-sidebar-close" onClick={() => setIsMobileOpen(false)}>

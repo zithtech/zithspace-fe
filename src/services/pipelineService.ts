@@ -26,11 +26,25 @@ export const PipelineService = {
     const data = await api.put(`/api/pipeline/candidates/${id}/status`, { status, rejected_round_id });
     return { success: true, data };
   },
-  parseResume: async (file: File) => {
+  /**
+   * Upload a CV and extract its details.
+   *
+   * `onUploadProgress` reports real bytes sent, so the bar tracks the upload
+   * rather than guessing. Once it reaches 100% the server is still parsing —
+   * the caller should switch to an indeterminate state rather than inventing a
+   * percentage for work it cannot measure.
+   */
+  parseResume: async (file: File, onUploadProgress?: (percent: number) => void) => {
     const formData = new FormData();
     formData.append('resume', file);
     const data = await api.post('/api/pipeline/candidates/parse-resume', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onUploadProgress
+        ? (e: any) => {
+            if (!e.total) return;
+            onUploadProgress(Math.min(100, Math.round((e.loaded * 100) / e.total)));
+          }
+        : undefined,
     });
     return { success: true, data };
   },

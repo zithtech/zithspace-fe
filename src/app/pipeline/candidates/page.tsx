@@ -4,10 +4,27 @@ import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import Link from 'next/link';
 import '@/app/proposals/library.css';
-import { Plus, Search, Eye, FileText, X, Edit2, Trash2, LayoutGrid, List, MoreVertical } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Eye,
+  FileText,
+  X,
+  Edit2,
+  Trash2,
+  LayoutGrid,
+  List,
+  MoreVertical,
+  UploadCloud,
+  Check,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PositionService, Position } from '@/services/positionService';
-import { AutoComplete, Drawer, Table, Dropdown, Button } from 'antd';
+import OpeningV2Service, {
+  type OpeningListItem,
+  type SkillMatchResult,
+} from '@/services/openingV2Service';
+import { AutoComplete, Drawer, Table, Dropdown, Button, Progress } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
@@ -380,35 +397,102 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
+  // Openings that can actually receive candidates. A draft or closed opening
+  // would be rejected by the backend, so it is never offered here.
+  const [openings, setOpenings] = useState<OpeningListItem[]>([]);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   useEffect(() => {
     PositionService.getAll().then(setPositions).catch(console.error);
+    OpeningV2Service.list({
+      pageSize: 200,
+      status: ['approved', 'internal_posting', 'external_posting', 'in_progress'],
+    })
+      .then((res) => setOpenings(res.items))
+      // Attaching to an opening is optional, so a failure here must not block
+      // adding a candidate.
+      .catch(() => setOpenings([]));
   }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const f = e.target.files[0];
-      setFile(f);
-      setError('');
-      setIsParsing(true);
-      try {
-        const res = await pipelineClient.parseResume(f);
-        if (res.success && res.data.parsed) {
-          setFormData((prev) => ({
-            ...prev,
-            ...res.data.parsed,
-            current_ctc: res.data.parsed.current_ctc || '',
-            expected_ctc: res.data.parsed.expected_ctc || '',
-            resume_url: res.data.file_url || prev.resume_url,
-          }));
-        }
-      } catch (err: any) {
-        console.error('PARSE ERROR:', err);
-        setError(err.response?.data?.error || err.message || String(err) || 'Failed to parse resume');
-      } finally {
-        setIsParsing(false);
-      }
+  const selectedOpening = openings.find((o) => o.id === openingId) ?? null;
+  // Skills lifted off the resume, and how well they line up with the opening.
+  const [resumeSkills, setResumeSkills] = useState<string[]>([]);
+  // Two distinct phases: the upload has a real percentage, the AI extraction
+  // does not. Showing an invented percentage for the second would be a lie.
+  const [uploadPhase, setUploadPhase] = useState<
+    'idle' | 'uploading' | 'extracting' | 'done' | 'error'
+  >('idle');
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [match, setMatch] = useState<SkillMatchResult | null>(null);
+  const [matching, setMatching] = useState(false);
+
+  const MAX_RESUME_MB = 10;
+
+  const processFile = async (f: File) => {
+    // Reject early with a specific reason rather than letting the server 500.
+    const ext = f.name.toLowerCase().split('.').pop() ?? '';
+    if (!['pdf', 'doc', 'docx'].includes(ext)) {
+      setError('Upload a PDF or Word document');
+      setUploadPhase('error');
+      return;
     }
+    if (f.size > MAX_RESUME_MB * 1024 * 1024) {
+      setError(`That file is ${(f.size / 1024 / 1024).toFixed(1)} MB — the limit is ${MAX_RESUME_MB} MB`);
+      setUploadPhase('error');
+      return;
+    }
+
+    setFile(f);
+    setError('');
+    setResumeSkills([]);
+    setUploadPercent(0);
+    setUploadPhase('uploading');
+    setIsParsing(true);
+
+    try {
+      const res = await pipelineClient.parseResume(f, (percent) => {
+        setUploadPercent(percent);
+        // Bytes are all sent; everything after this is server-side parsing.
+        if (percent >= 100) setUploadPhase('extracting');
+      });
+      if (res.success && res.data.parsed) {
+        const parsed = res.data.parsed;
+        setFormData((prev) => ({
+          ...prev,
+          ...parsed,
+          current_ctc: parsed.current_ctc || '',
+          expected_ctc: parsed.expected_ctc || '',
+          resume_url: res.data.file_url || prev.resume_url,
+        }));
+        setResumeSkills(Array.isArray(parsed.skills) ? parsed.skills : []);
+        setUploadPhase('done');
+      } else {
+        setUploadPhase('error');
+        setError('The resume was uploaded but nothing could be read from it');
+      }
+    } catch (err: any) {
+      console.error('PARSE ERROR:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to parse resume');
+      setUploadPhase('error');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    // Reset the input so re-picking the same file still fires onChange.
+    e.target.value = '';
+    if (f) await processFile(f);
+  };
+
+  const clearResume = () => {
+    setFile(null);
+    setResumeSkills([]);
+    setUploadPhase('idle');
+    setUploadPercent(0);
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -422,6 +506,25 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
         res = await pipelineClient.createCandidate(formData);
       }
       if (res.success) {
+        // Attaching is a second call: the pipeline owns the candidate record,
+        // the opening module owns the application. A failure here must not
+        // silently lose the candidate that was just saved.
+        const newId = res.data?.id ?? res.data?.candidate?.id;
+        if (openingId && newId && !editCandidate) {
+          try {
+            await OpeningV2Service.addApplication(openingId, {
+              pipelineCandidateId: newId,
+              source: 'manual_upload',
+              resumeUrl: formData.resume_url || null,
+            });
+          } catch (attachErr: any) {
+            setError(
+              attachErr?.response?.data?.error ||
+                'Candidate saved, but could not be added to the opening'
+            );
+            return;
+          }
+        }
         setSuccess(true);
         setTimeout(() => onClose(true), 1500);
       }
@@ -450,36 +553,341 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           {success && <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-md border border-green-100">Candidate saved successfully!</div>}
 
           <form id="candidateForm" onSubmit={handleSubmit} className="flex flex-col">
-            <SectionCard 
-              title={editCandidate ? "Applied Role" : "Select Applied Role"} 
-              step={editCandidate ? undefined : "STEP 1"} 
+            <SectionCard
+              title={editCandidate ? "Applied Role" : "Opening or Role"}
+              step={editCandidate ? undefined : "STEP 1"}
               icon={<Search size={14} />}
+              subtitle={
+                editCandidate
+                  ? undefined
+                  : "Attach to a live opening, or pick the position if you are sourcing without one."
+              }
             >
+              {!editCandidate && (
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                    Opening <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <SearchableDropdown
+                    placeholder="Select an active opening…"
+                    value={openingId}
+                    itemNoun="openings"
+                    onChange={(val) => {
+                      setOpeningId(val ?? null);
+                      // The opening's job title IS the applied role — keep the two
+                      // from drifting apart rather than asking twice.
+                      const chosen = openings.find((o) => o.id === val);
+                      if (chosen) setFormData((prev) => ({ ...prev, role: chosen.jobTitle }));
+                    }}
+                    options={openings.map((o) => ({
+                      value: o.id,
+                      label: `${o.openingCode} — ${o.jobTitle}`,
+                      description:
+                        [o.departmentName, o.clientName].filter(Boolean).join(' · ') || undefined,
+                    }))}
+                    emptyComponent={
+                      <div className="p-4 text-xs text-slate-400">
+                        No openings are accepting candidates yet.
+                      </div>
+                    }
+                  />
+                  {openingId && (
+                    <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      This candidate will appear on{' '}
+                      <span className="font-semibold">{selectedOpening?.openingCode}</span> under
+                      its Candidates tab.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Position{!openingId && <span className="text-red-500"> *</span>}
+              </label>
               <SearchableDropdown
                 placeholder="Select a role..."
                 value={formData.role || undefined}
+                // With an opening chosen the role comes from it; without one the
+                // position is what tells the pipeline which interview config applies.
+                disabled={!!openingId}
                 onChange={(val) => setFormData({ ...formData, role: val })}
                 options={positions.map((p) => ({ value: p.title, label: p.title }))}
               />
+              {!openingId && !editCandidate && (
+                <div className="mt-2 text-[11px] text-slate-400">
+                  No opening selected — pick the position this candidate is for.
+                </div>
+              )}
             </SectionCard>
 
             {(formData.role || editCandidate) && (
               <>
                 {!editCandidate && (
-                  <SectionCard 
-                    title="Upload Resume" 
-                    step="STEP 2" 
-                    icon={<FileText size={14} />} 
-                    subtitle="Uploading a resume will automatically fill in the details below using AI."
+                  <SectionCard
+                    title="Upload Resume"
+                    step="STEP 2"
+                    icon={<FileText size={14} />}
+                    subtitle="PDF or Word. The details below are filled in automatically."
                   >
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 rounded-md cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition shadow-sm text-sm font-medium">
-                        <FileText size={16} /> Choose PDF
-                        <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
+                    {uploadPhase === 'idle' || uploadPhase === 'error' ? (
+                      <label
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const f = e.dataTransfer.files?.[0];
+                          if (f) processFile(f);
+                        }}
+                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                          isDragging
+                            ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <span
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}
+                        >
+                          <UploadCloud size={18} />
+                        </span>
+                        <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                          {isDragging ? 'Drop the file here' : 'Drag a resume here, or click to browse'}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          PDF, DOC or DOCX · up to {MAX_RESUME_MB} MB
+                        </span>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={handleUpload}
+                        />
                       </label>
-                      {file && <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{file.name}</span>}
-                      {isParsing && <span className="text-sm text-blue-500 font-semibold animate-pulse">Parsing with AI...</span>}
-                    </div>
+                    ) : (
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={
+                              uploadPhase === 'done'
+                                ? { background: 'rgba(16,185,129,0.10)', color: '#10B981' }
+                                : { background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }
+                            }
+                          >
+                            {uploadPhase === 'done' ? <Check size={17} /> : <FileText size={17} />}
+                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {file?.name}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {file ? `${(file.size / 1024).toFixed(0)} KB` : ''}
+                              {uploadPhase === 'uploading' && ` · Uploading ${uploadPercent}%`}
+                              {uploadPhase === 'extracting' && ' · Extracting details with AI'}
+                              {uploadPhase === 'done' && ' · Details filled in below'}
+                            </div>
+                          </div>
+
+                          {/* Replacing is only safe once the current file is done. */}
+                          {uploadPhase === 'done' && (
+                            <button
+                              type="button"
+                              onClick={clearResume}
+                              className="text-slate-400 hover:text-slate-600 p-1"
+                              title="Remove and upload another"
+                            >
+                              <X size={15} />
+                            </button>
+                          )}
+                        </div>
+
+                        {uploadPhase === 'uploading' && (
+                          <Progress
+                            percent={uploadPercent}
+                            size="small"
+                            strokeColor="#3b82f6"
+                            className="mt-3 mb-0"
+                          />
+                        )}
+
+                        {uploadPhase === 'extracting' && (
+                          // Indeterminate on purpose: the server is parsing and
+                          // we have no honest percentage for it.
+                          <div className="mt-3">
+                            <div className="h-1.5 w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                              <div className="pipe-indeterminate h-full rounded-full" />
+                            </div>
+                            <div className="text-[11px] text-blue-500 font-medium mt-1.5">
+                              Reading the resume — this usually takes a few seconds
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {resumeSkills.length > 0 && (
+                      <div className="mt-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Skills found on the resume ({resumeSkills.length})
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resumeSkills.map((sk) => (
+                            <span
+                              key={sk}
+                              className="px-2 py-0.5 text-[11px] rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                            >
+                              {sk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <style jsx global>{`
+                      .pipe-indeterminate {
+                        width: 40%;
+                        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+                        animation: pipe-slide 1.1s ease-in-out infinite;
+                      }
+                      @keyframes pipe-slide {
+                        0% { margin-left: -40%; }
+                        100% { margin-left: 100%; }
+                      }
+                    `}</style>
+                  </SectionCard>
+                )}
+
+                {/* Skill match — only meaningful once we have both sides. */}
+                {!editCandidate && openingId && resumeSkills.length > 0 && (
+                  <SectionCard
+                    title="Skill Match"
+                    icon={<Search size={14} />}
+                    subtitle={`Against ${selectedOpening?.openingCode ?? 'the opening'}`}
+                  >
+                    {matching ? (
+                      <div className="text-sm text-blue-500 font-medium animate-pulse">
+                        Matching skills…
+                      </div>
+                    ) : !match ? (
+                      <div className="text-sm text-slate-400">Could not score this resume.</div>
+                    ) : match.score === null ? (
+                      <div className="text-sm text-slate-500">{match.reason}</div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div
+                            className="relative flex items-center justify-center flex-shrink-0"
+                            style={{ width: 72, height: 72 }}
+                          >
+                            {/* Ring: conic-gradient avoids pulling in a chart lib. */}
+                            <div
+                              className="absolute inset-0 rounded-full"
+                              style={{
+                                background: `conic-gradient(${
+                                  match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
+                                } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
+                              }}
+                            />
+                            <div
+                              className="absolute rounded-full bg-white dark:bg-[#0B0F1A]"
+                              style={{ inset: 6 }}
+                            />
+                            <span
+                              className="relative text-[18px] font-extrabold"
+                              style={{
+                                color:
+                                  match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#64748B',
+                              }}
+                            >
+                              {match.score}%
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
+                              {match.matchedRequired.length}/
+                              {match.matchedRequired.length + match.missingRequired.length} required
+                              {match.matchedPreferred.length + match.missingPreferred.length > 0 && (
+                                <>
+                                  {' · '}
+                                  {match.matchedPreferred.length}/
+                                  {match.matchedPreferred.length + match.missingPreferred.length}{' '}
+                                  preferred
+                                </>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                              Overlap between the resume and the opening&apos;s skill list — a
+                              sorting aid, not a verdict on the candidate.
+                            </div>
+                          </div>
+                        </div>
+
+                        {match.matchedRequired.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Matched
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[...match.matchedRequired, ...match.matchedPreferred].map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md"
+                                  style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981' }}
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {match.missingRequired.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Missing (required)
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {match.missingRequired.map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md border border-dashed border-slate-300 dark:border-slate-600 text-slate-500"
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {match.additional.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Also brings
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {match.additional.slice(0, 12).map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md text-slate-500 border border-slate-200 dark:border-slate-700"
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                              {match.additional.length > 12 && (
+                                <span className="px-2 py-0.5 text-[11px] text-slate-400">
+                                  +{match.additional.length - 12} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </SectionCard>
                 )}
                 
@@ -520,11 +928,25 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           </form>
         </div>
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A] flex justify-end gap-3">
-          <button type="button" onClick={() => onClose(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700">
+          <button
+            type="button"
+            onClick={() => onClose(false)}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700"
+          >
             Cancel
           </button>
-          <button type="submit" form="candidateForm" disabled={isParsing} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50">
-            Save Candidate
+          <button
+            type="submit"
+            form="candidateForm"
+            disabled={isParsing}
+            title={isParsing ? 'Wait for the resume to finish processing' : undefined}
+            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isParsing
+              ? uploadPhase === 'uploading'
+                ? `Uploading ${uploadPercent}%…`
+                : 'Extracting…'
+              : 'Save Candidate'}
           </button>
         </div>
       </div>

@@ -74,6 +74,8 @@ export interface SearchableDropdownProps {
   showSelectedAvatar?: boolean;
   /** Custom container for the popover (fixes mobile scroll/keyboard layout shifts) */
   getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
+  /** Custom UI to show when there are no matches or options */
+  emptyComponent?: React.ReactNode;
 }
 
 export const initialsFor = (s: string): string => {
@@ -121,6 +123,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   customTrigger,
   showSelectedAvatar,
   getPopupContainer,
+  emptyComponent,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -284,7 +287,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         {loading ? (
           <div className="sd-empty">Loading…</div>
         ) : filtered.length === 0 && !showFreeTextRow ? (
-          <div className="sd-empty">No matches</div>
+          emptyComponent || <div className="sd-empty">No matches</div>
         ) : (
           <>
             {filtered.map((opt) => renderOption(opt))}

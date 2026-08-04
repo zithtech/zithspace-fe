@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState, useCallback } from 'react';
 import { Layout, Typography, Button, Spin, message, theme } from 'antd';
 import {
@@ -24,6 +25,7 @@ const { Header, Content } = Layout;
 const { Text } = Typography;
 
 export default function ChannelPage() {
+  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     const params = useParams();
     const router = useRouter();
     const { user } = useAuth();

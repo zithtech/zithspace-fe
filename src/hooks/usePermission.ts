@@ -396,6 +396,14 @@ export const usePermission = () => {
     canReadPipelineSetting:  hasPermission(Permissions.PIPELINE_SETTING_READ),
     canUpdatePipelineSetting: hasPermission(Permissions.PIPELINE_SETTING_UPDATE),
 
+    // ─── Recruitment / ATS ──────────────────────────────────────────
+    canCreateRecruitment: hasPermission(Permissions.RECRUITMENT_CREATE),
+    canReadRecruitment:   hasPermission(Permissions.RECRUITMENT_READ),
+    canUpdateRecruitment: hasPermission(Permissions.RECRUITMENT_UPDATE),
+    canDeleteRecruitment: hasPermission(Permissions.RECRUITMENT_DELETE),
+    canManageRecruitment: hasPermission(Permissions.RECRUITMENT_MANAGE),
+    canReadRecruitmentSetting: hasPermission(Permissions.RECRUITMENT_SETTING_READ),
+
     // ─── Employee Exit ──────────────────────────────────────────────
     canCreateExit: hasPermission(Permissions.EXIT_CREATE),
     canReadExit:   hasPermission(Permissions.EXIT_READ),
@@ -495,6 +503,16 @@ export const usePermission = () => {
     // ─── Activity Log (transaction history) ─────────────────────────
     canReadActivityLog:    hasPermission(Permissions.ACTIVITY_LOG_READ),
     canReadActivityLogAll: hasPermission(Permissions.ACTIVITY_LOG_READ_ALL),
+
+    // ─── Letters & Docs ─────────────────────────────────────────────
+    canCreateLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_CREATE),
+    canReadLetterTemplate:   hasPermission(Permissions.LETTER_TEMPLATE_READ),
+    canUpdateLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_UPDATE),
+    canDeleteLetterTemplate: hasPermission(Permissions.LETTER_TEMPLATE_DELETE),
+    canGenerateLetter:       hasPermission(Permissions.LETTER_GENERATE),
+    canReadLetter:           hasPermission(Permissions.LETTER_READ),
+    canDeleteLetter:         hasPermission(Permissions.LETTER_DELETE),
+    canManageLetters:        hasPermission(Permissions.LETTER_MANAGE),
 
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */

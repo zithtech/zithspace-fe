@@ -88,8 +88,8 @@ export default function TestScopePage() {
 
   const searchParams = useSearchParams();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [activeTab, setActiveTab] = useState<TabKey>((searchParams.get("tab") as TabKey) || "dashboard");
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -102,12 +102,14 @@ export default function TestScopePage() {
   const isDark = theme === "dark";
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerRecord, setDrawerRecord] = useState<any>(null);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const tabParam = searchParams.get("tab") as TabKey;
+    if (tabParam && ["dashboard", "scopes", "approvals", "settings"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!isLoading && canReadBug) {
@@ -503,7 +505,7 @@ export default function TestScopePage() {
     const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
 
     return (
-      <div key={r.id} className="pc-card" onClick={() => { setDrawerRecord(r); setDrawerOpen(true); }}>
+      <div key={r.id} className="pc-card" onClick={() => router.push(`/qa-workspace/test-scope/${r.id}`)}>
         <div className="pc-top">
           <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
             {initialsOf(r.name)}
@@ -559,254 +561,6 @@ export default function TestScopePage() {
               </span>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderDrawerContent = (record: any) => {
-    const d = record.details || {};
-    return (
-      <div style={{ padding: "16px 24px", background: "var(--bg-slate-50)", borderTop: "1px solid var(--border-slate-200)", borderBottom: "1px solid var(--border-slate-200)" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 1000, margin: "0 auto" }}>
-
-          {/* 1. Product Information */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><Target size={16} /> 1. Product Information</div>
-            <div className="pp-card-body">
-              <Row gutter={[24, 16]}>
-                <Col span={8}>
-                  <div className="ro-label">Product</div>
-                  <div className="ro-value">{d.product || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Modules</div>
-                  <div className="ro-value">{d.modules?.length ? d.modules.join(', ') : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Features</div>
-                  <div className="ro-value">{d.features?.length ? d.features.join(', ') : '-'}</div>
-                </Col>
-                <Col span={12}>
-                  <div className="ro-label">Sprint</div>
-                  <div className="ro-value">{d.sprint ? (sprintsMap[d.sprint] || d.sprint) : '-'}</div>
-                </Col>
-                <Col span={12}>
-                  <div className="ro-label">Release Version</div>
-                  <div className="ro-value">{d.releaseVersion || '-'}</div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-
-          {/* 2. Requirement References */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><Link2 size={16} /> 2. Requirement References</div>
-            <div className="pp-card-body">
-              <Row gutter={[24, 16]}>
-                <Col span={8}>
-                  <div className="ro-label">PRD</div>
-                  <div className="ro-value">{d.reqReferences?.prd ? <a href={d.reqReferences.prd} target="_blank" rel="noreferrer">View PRD</a> : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Figma</div>
-                  <div className="ro-value">{d.reqReferences?.figma ? <a href={d.reqReferences.figma} target="_blank" rel="noreferrer">View Figma</a> : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">API Documentation</div>
-                  <div className="ro-value">{d.reqReferences?.apiDoc ? <a href={d.reqReferences.apiDoc} target="_blank" rel="noreferrer">View API Doc</a> : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">User Story</div>
-                  <div className="ro-value">{d.reqReferences?.userStory ? <a href={d.reqReferences.userStory} target="_blank" rel="noreferrer">View User Story</a> : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Epic</div>
-                  <div className="ro-value">{d.reqReferences?.epic ? <a href={d.reqReferences.epic} target="_blank" rel="noreferrer">View Epic</a> : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Dev Ticket</div>
-                  <div className="ro-value">{d.reqReferences?.devTicket ? <a href={d.reqReferences.devTicket} target="_blank" rel="noreferrer">View Ticket</a> : '-'}</div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-
-          {/* 3. Scope Definition */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><FileText size={16} /> 3. Scope Definition</div>
-            <div className="pp-card-body">
-              <Row gutter={24}>
-                <Col span={12}>
-                  <div className="ro-label" style={{ marginBottom: 8 }}>In Scope</div>
-                  <div className="ro-value">
-                    {d.inScope ? <TiptapViewer content={d.inScope} /> : '-'}
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="ro-label" style={{ marginBottom: 8 }}>Out of Scope</div>
-                  <div className="ro-value">
-                    {d.outScope ? <TiptapViewer content={d.outScope} /> : '-'}
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-
-          {/* 4. Testing Types */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><CheckSquare size={16} /> 4. Testing Types</div>
-            <div className="pp-card-body">
-              <div className="ro-value">
-                {d.testingTypes?.length ? d.testingTypes.map((t: string) => <Tag color="blue" key={t}>{t}</Tag>) : '-'}
-              </div>
-            </div>
-          </div>
-
-          {/* 5. Environment Details */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><Monitor size={16} /> 5. Environment Details</div>
-            <div className="pp-card-body">
-              <Row gutter={[24, 16]}>
-                <Col span={8}>
-                  <div className="ro-label">Environment</div>
-                  <div className="ro-value">{d.environment?.type || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Build Version</div>
-                  <div className="ro-value">{d.environment?.buildVersion || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">API Version</div>
-                  <div className="ro-value">{d.environment?.apiVersion || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Database</div>
-                  <div className="ro-value">{d.environment?.database || '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">Browser</div>
-                  <div className="ro-value">{d.environment?.browser?.length ? d.environment.browser.join(', ') : '-'}</div>
-                </Col>
-                <Col span={8}>
-                  <div className="ro-label">OS</div>
-                  <div className="ro-value">{d.environment?.os?.length ? d.environment.os.join(', ') : '-'}</div>
-                </Col>
-                <Col span={24}>
-                  <div className="ro-label">Device</div>
-                  <div className="ro-value">{d.environment?.device?.length ? d.environment.device.join(', ') : '-'}</div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-
-          {/* 6. Dependencies */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><AlertCircle size={16} /> 6. Dependencies</div>
-            <div className="pp-card-body">
-              {d.dependencies?.length ? (
-                <ul style={{ margin: 0, paddingLeft: 20 }}>
-                  {d.dependencies.map((dep: any, i: number) => (
-                    <li key={i} className="ro-value">
-                      <strong>{dep.name}</strong> — <Tag color={dep.status === 'ready' ? 'green' : dep.status === 'blocked' ? 'red' : 'orange'}>{dep.status}</Tag>
-                    </li>
-                  ))}
-                </ul>
-              ) : '-'}
-            </div>
-          </div>
-
-          {/* 7. Acceptance Criteria */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><CheckCircle size={16} /> 7. Acceptance Criteria</div>
-            <div className="pp-card-body">
-              {d.acceptanceCriteria?.length ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {d.acceptanceCriteria.map((ac: string, i: number) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <Checkbox disabled />
-                      <span className="ro-value" style={{ marginTop: 2, lineHeight: 1.4 }}>{ac}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : '-'}
-            </div>
-          </div>
-
-          {/* 8. Exit Criteria */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><CheckCircle2 size={16} /> 8. Exit Criteria</div>
-            <div className="pp-card-body">
-              <div className="ro-value">
-                {d.exitCriteria?.length ? d.exitCriteria.map((t: string) => <Tag color="purple" key={t}>{t}</Tag>) : '-'}
-              </div>
-            </div>
-          </div>
-
-          {/* 9. Linked Items */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><Link2 size={16} /> 9. Linked Items</div>
-            <div className="pp-card-body">
-              <Row gutter={[24, 16]}>
-                {[
-                  { key: 'testSuites', label: 'Linked Test Suites' },
-                  { key: 'testCases', label: 'Linked Test Cases' },
-                  { key: 'bugSheets', label: 'Linked Bug Sheets' },
-                  { key: 'devTickets', label: 'Linked Development Tickets' },
-                  { key: 'sprints', label: 'Linked Sprints' }
-                ].map(field => {
-                  const item = d.linkedItems?.[field.key];
-                  if (!item?.link && !item?.name) return null;
-                  return (
-                    <Col span={8} key={field.key}>
-                      <div className="ro-label">{field.label}</div>
-                      <div className="ro-value">
-                        {item.link ? <a href={item.link} target="_blank" rel="noreferrer">{item.name || item.link}</a> : item.name}
-                      </div>
-                    </Col>
-                  );
-                })}
-              </Row>
-            </div>
-          </div>
-
-          {/* 10. Attachments */}
-          <div className="pp-detail-card">
-            <div className="pp-card-header"><InboxOutlined style={{ marginRight: 8 }} /> 10. Attachments</div>
-            <div className="pp-card-body">
-              <Row gutter={[24, 16]}>
-                {[
-                  { key: 'screenshots', label: 'Screenshots' },
-                  { key: 'designFiles', label: 'Design Files' },
-                  { key: 'sampleData', label: 'Sample Data' },
-                  { key: 'excelFiles', label: 'Excel Files' },
-                  { key: 'pdfs', label: 'PDFs' }
-                ].map(field => {
-                  const files = d.attachments?.[field.key];
-                  if (!files || !Array.isArray(files) || files.length === 0) return null;
-                  return (
-                    <Col span={8} key={field.key}>
-                      <div className="ro-label">{field.label}</div>
-                      <div className="ro-value" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {files.map((f: any, i: number) => (
-                          <div key={i} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <InboxOutlined style={{ color: 'var(--text-slate-400)' }} />
-                            <a
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPreviewFile(f); }}
-                              style={{ cursor: 'pointer', color: '#3b82f6', textDecoration: 'none' }}
-                            >
-                              {f.name}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    </Col>
-                  );
-                })}
-              </Row>
-            </div>
-          </div>
-
         </div>
       </div>
     );
@@ -1034,10 +788,7 @@ export default function TestScopePage() {
                       loading={loading}
                       scroll={{ x: 'max-content' }}
                       onRow={(record) => ({
-                        onClick: () => {
-                          setDrawerRecord(record);
-                          setDrawerOpen(true);
-                        }
+                        onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
                       })}
                     />
                   </div>
@@ -1094,10 +845,7 @@ export default function TestScopePage() {
                       loading={loading}
                       scroll={{ x: 'max-content' }}
                       onRow={(record) => ({
-                        onClick: () => {
-                          setDrawerRecord(record);
-                          setDrawerOpen(true);
-                        }
+                        onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
                       })}
                     />
                   </div>
@@ -1161,7 +909,7 @@ export default function TestScopePage() {
                     pagination={false}
                     size="middle"
                     scroll={{ x: "max-content" }}
-                    onRow={(record) => ({ onClick: () => router.push(`/qa-workspace/test-scope/edit/${record.id}`), style: { cursor: "pointer" } })}
+                    onRow={(record) => ({ onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`), style: { cursor: "pointer" } })}
                     locale={{
                       emptyText: (
                         <div className="py-10 text-center">
@@ -1274,7 +1022,7 @@ export default function TestScopePage() {
         onOk={handleSaveSetting}
         okText={editingSetting ? 'Save Changes' : 'Create'}
         width={440}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={settingsForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item name="label" label="Display Label" rules={[{ required: true, message: 'Please enter a label' }]}>
@@ -1317,17 +1065,6 @@ export default function TestScopePage() {
           )
         )}
       </Modal>
-
-      <Drawer
-        title={drawerRecord?.name ? `Scope Details: ${drawerRecord.name}` : "Scope Details"}
-        placement="right"
-        onClose={() => setDrawerOpen(false)}
-        open={drawerOpen}
-        width={800}
-        styles={{ body: { padding: 0 } }}
-      >
-        {drawerRecord && renderDrawerContent(drawerRecord)}
-      </Drawer>
 
       <style dangerouslySetInnerHTML={{
         __html: `

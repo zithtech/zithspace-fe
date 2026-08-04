@@ -66,6 +66,8 @@ export interface SearchableDropdownProps {
   defaultOpen?: boolean;
   /** Notified whenever the overlay opens/closes (e.g. for click-outside cancel). */
   onOpenChange?: (open: boolean) => void;
+  /** Notified whenever the user types in the search input */
+  onSearch?: (value: string) => void;
   /** Custom trigger element to render instead of the default styled div. */
   customTrigger?: React.ReactElement;
   /** Show the avatar of the selected option in the trigger field. */
@@ -115,6 +117,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   style,
   defaultOpen = false,
   onOpenChange,
+  onSearch,
   customTrigger,
   showSelectedAvatar,
   getPopupContainer,
@@ -136,6 +139,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       setTimeout(() => inputRef.current?.focus(), 80);
     } else {
       setSearch("");
+      onSearch?.("");
     }
   }, [open]);
 
@@ -258,9 +262,12 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           ref={inputRef}
           className="sd-search-input"
           type="text"
-          placeholder={searchPlaceholder || "Search…"}
+          placeholder={searchPlaceholder || placeholder || "Search…"}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            onSearch?.(e.target.value);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

@@ -659,6 +659,26 @@ export interface CloseOpeningInput {
   rejectRemaining?: boolean;
 }
 
+// ── Referrals ───────────────────────────────────────────────────────────────
+
+export type ReferralStatus = 'pending' | 'converted' | 'rejected';
+
+export interface OpeningReferral {
+  id: string;
+  openingId: string;
+  /** users.id of the referrer */
+  referredBy: string;
+  name: string;
+  email: string;
+  mobile: string;
+  resumeUrl?: string | null;
+  notes?: string | null;
+  skills: string[];
+  totalExperience: number;
+  status: ReferralStatus;
+  createdAt: string;
+}
+
 // ── AI writing assist ───────────────────────────────────────────────────────
 
 export type AssistField = 'job_description' | 'responsibilities';

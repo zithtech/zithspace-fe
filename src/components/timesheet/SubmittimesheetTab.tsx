@@ -2349,6 +2349,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Menu,
 } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ColumnsType } from "antd/es/table";
@@ -2413,14 +2414,15 @@ export default function SubmittimesheetTab({
       bodyStyle={{ padding: "16px 20px" }}
       style={{
         borderRadius: 12,
-        border: "1px solid #f1f5f9",
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-slate-200)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
         </div>
         <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
           <Icon size={20} />
@@ -2434,6 +2436,7 @@ export default function SubmittimesheetTab({
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [saveDraftLoading, setSaveDraftLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -3580,7 +3583,10 @@ export default function SubmittimesheetTab({
     <>
       <div className="du-shell">
         {/* SIDEBAR */}
-        <div className="du-sidebar">
+        {isMobileOpen && (
+          <div className="du-backdrop" onClick={() => setIsMobileOpen(false)} />
+        )}
+        <div className={`du-sidebar ${isMobileOpen ? "is-open" : ""}`}>
           <div className="ts-side-head">
             <div className="ts-side-logo"><Calendar size={20} /></div>
             <div className="ts-side-head-text">
@@ -3611,6 +3617,12 @@ export default function SubmittimesheetTab({
         <div className="du-main">
           <div className="du-main-header">
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <button
+                className="du-mobile-trigger"
+                onClick={() => setIsMobileOpen(true)}
+              >
+                <Menu size={18} />
+              </button>
               <div style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", padding: "4px", borderRadius: 12, border: "1px solid var(--border-slate-200)", height: 38 }}>
                 <Button
                   type="text"
@@ -3787,7 +3799,7 @@ export default function SubmittimesheetTab({
                     bodyStyle={{ padding: 16 }}
                   >
                     <div
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}
                       onClick={() => toggleDayExpand(day.label)}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -3818,7 +3830,7 @@ export default function SubmittimesheetTab({
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                         {isExpanded && !isLeaveDay && !isHoliday && (
                           <Button
                             type="primary"
@@ -3866,7 +3878,8 @@ export default function SubmittimesheetTab({
                     </div>
 
                     {isExpanded && (
-                      <div style={{ marginTop: 20 }}>
+                      <div style={{ marginTop: 20, overflowX: "auto" }}>
+                        <div style={{ minWidth: 700 }}>
                         {dayRows.length > 0 && (
                           <div style={{
                             display: "flex",
@@ -3882,8 +3895,8 @@ export default function SubmittimesheetTab({
                             textTransform: "uppercase",
                             letterSpacing: "0.05em"
                           }}>
-                            <div style={{ width: 150 }}>Project</div>
-                            <div style={{ width: 180 }}>Tasks</div>
+                            <div style={{ width: 100 }}>Project</div>
+                            <div style={{ width: 120 }}>Tasks</div>
                             <div style={{ flex: 1 }}>Description</div>
                             <div style={{ width: 80, textAlign: "center" }}>Hours</div>
                             <div style={{ width: 70, textAlign: "center" }}>Billable</div>
@@ -3902,6 +3915,7 @@ export default function SubmittimesheetTab({
                               </Text>
                             </div>
                           )}
+                        </div>
                         </div>
                       </div>
                     )}
@@ -3947,7 +3961,7 @@ export default function SubmittimesheetTab({
           open={isSubmitOpen}
           onCancel={() => setIsSubmitOpen(false)}
           footer={null}
-          width={460}
+          width={600}
           centered
           styles={{
             body: {
@@ -4009,13 +4023,13 @@ export default function SubmittimesheetTab({
 
           <div
             style={{
-              background: "#f8fafc",
+              background: "var(--bg-slate-50)",
               borderRadius: 10,
               padding: 12,
-              border: "1px solid #f1f5f9"
+              border: "1px solid var(--border-slate-200)"
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 12, color: "#475569" }}>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 12, color: "var(--text-slate-600)" }}>
               Projects (
               {
                 new Set(
@@ -4042,10 +4056,10 @@ export default function SubmittimesheetTab({
                   style={{
                     borderRadius: 999,
                     padding: "2px 10px",
-                    background: "#fff",
+                    background: "var(--bg-pure-white)",
                     fontSize: 11,
-                    border: "1px solid #e2e8f0",
-                    color: "#475569"
+                    border: "1px solid var(--border-slate-200)",
+                    color: "var(--text-slate-700)"
                   }}
                 >
                   {projectName}
@@ -4060,8 +4074,9 @@ export default function SubmittimesheetTab({
                 marginTop: 12,
                 padding: "8px 12px",
                 borderRadius: 8,
-                background: "#fff1f2",
-                color: "#e11d48",
+                background: "rgba(239, 68, 68, 0.12)",
+                border: "1px solid rgba(239, 68, 68, 0.2)",
+                color: "#ef4444",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
@@ -4081,8 +4096,9 @@ export default function SubmittimesheetTab({
                 marginTop: 12,
                 padding: "8px 12px",
                 borderRadius: 8,
-                background: "#f0fdf4",
-                color: "#166534",
+                background: "rgba(34, 197, 94, 0.12)",
+                border: "1px solid rgba(34, 197, 94, 0.2)",
+                color: "#22c55e",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
@@ -4102,8 +4118,9 @@ export default function SubmittimesheetTab({
                 marginTop: 12,
                 padding: "8px 12px",
                 borderRadius: 8,
-                background: "#fffbeb",
-                color: "#b45309",
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.2)",
+                color: "#f59e0b",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
@@ -4141,6 +4158,17 @@ export default function SubmittimesheetTab({
           align-items: stretch;
           min-height: calc(100vh - 64px);
           background: transparent;
+        }
+
+        .du-mobile-trigger {
+          display: none; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-700); cursor: pointer;
+          align-items: center; justify-content: center; flex-shrink: 0; margin-right: 8px;
+        }
+
+        .du-backdrop {
+          display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(2px); z-index: 999;
         }
 
         .du-sidebar {
@@ -4214,8 +4242,11 @@ export default function SubmittimesheetTab({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 24px;
-          height: 52px;
+          padding: 8px 24px;
+          min-height: 52px;
+          height: auto;
+          flex-wrap: wrap;
+          gap: 12px;
           border-bottom: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
         }
@@ -4224,6 +4255,19 @@ export default function SubmittimesheetTab({
           flex: 1;
           overflow-y: auto;
           padding: 24px;
+        }
+
+        @media (max-width: 1024px) {
+          .du-mobile-trigger { display: inline-flex; }
+          .du-sidebar {
+            position: fixed; left: -280px; top: 64px; bottom: 0; height: calc(100vh - 64px);
+            transition: left 0.3s ease; z-index: 1000; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
+            background: var(--bg-pure-white);
+          }
+          .du-sidebar.is-open { left: 0; }
+          .du-backdrop { display: block; }
+          .du-main-header { padding: 8px 16px; }
+          .du-main-scroll { padding: 16px; }
         }
       `}</style>
     </>

@@ -1,30 +1,67 @@
 'use client';
 
 import React, { useState } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
-import { Typography, Tabs, Space, Spin } from 'antd';
+import { Typography, Tabs, Spin, Card, Input, Button, Dropdown } from 'antd';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { 
-  Settings2, 
-  Clock, 
-  ShieldCheck, 
-  FileText, 
+import {
+  Clock,
+  ShieldCheck,
+  FileText,
   MessageSquare,
+  Search,
+  Filter
 } from 'lucide-react';
 import NoticePeriodPolicyPage from '@/components/employee-exit/configuration/NoticePeriodPolicyPage';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 import ApprovalWorkflowPage from '@/components/employee-exit/configuration/ApprovalWorkflowPage';
 import ExitTypePage from '@/components/employee-exit/configuration/ExitTypePage';
 import ReasonForExitPage from '@/components/employee-exit/configuration/ReasonForExitPage';
+import ChecklistConfigPage from '@/components/employee-exit/configuration/ChecklistConfigPage';
+import { GradeService, GradeAPIResponse } from '@/services/gradeService';
+import { PositionService, Position } from '@/services/positionService';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
+
+const tabTitles: Record<string, string> = {
+  'notice-period-policy': 'Notice Period',
+  'approval-workflow': 'Approval Workflow',
+  'exit-type': 'Exit Types',
+  'reason-for-exit': 'Exit Reasons',
+  'checklist-config': 'Department Checklist'
+};
 
 export default function EmployeeExitConfigurationPage() {
   const { isLoading: authLoading } = useAuth();
   const { canReadExitConfig } = usePermission();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notice-period-policy');
+  const [triggers, setTriggers] = useState<Record<string, number>>({});
+  const [searchText, setSearchText] = useState('');
+  
+  const [filterPolicy, setFilterPolicy] = useState<string | null>(null);
+  const [filterLevel, setFilterLevel] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [filterRole, setFilterRole] = useState<string | null>(null);
+
+  const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+
+  React.useEffect(() => {
+    GradeService.getAllGrades().then(res => setGrades(res || [])).catch(() => {});
+    PositionService.getAll().then(res => setPositions(res || [])).catch(() => {});
+  }, []);
+
+  const roleOptions = React.useMemo(() => {
+    if (filterLevel === 'grades') {
+      return grades.map(g => ({ label: (g as any).gradeName || (g as any).name || g.id, value: g.id }));
+    }
+    if (filterLevel === 'positions') {
+      return positions.map(p => ({ label: p.title || (p as any).name || p.id, value: p.id }));
+    }
+    return [];
+  }, [filterLevel, grades, positions]);
 
   React.useEffect(() => {
     if (!authLoading && !canReadExitConfig) {
@@ -34,114 +71,177 @@ export default function EmployeeExitConfigurationPage() {
 
   if (authLoading || !canReadExitConfig) {
     return (
-      <MainLayout>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
-        </div>
-      </MainLayout>
+      <div style={{ padding: 100, textAlign: 'center' }}>
+        <Spin size="large" tip="Loading..." />
+      </div>
     );
   }
 
+  const tabItems = [
+    {
+      key: 'notice-period-policy',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Clock size={16} /> Notice Period
+        </span>
+      ),
+      children: <NoticePeriodPolicyPage createTrigger={triggers['notice-period-policy'] || 0} />
+    },
+    {
+      key: 'approval-workflow',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={16} /> Approval Workflow
+        </span>
+      ),
+      children: <ApprovalWorkflowPage createTrigger={triggers['approval-workflow'] || 0} />
+    },
+    {
+      key: 'exit-type',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileText size={16} /> Exit Types
+        </span>
+      ),
+      children: <ExitTypePage createTrigger={triggers['exit-type'] || 0} />
+    },
+    {
+      key: 'reason-for-exit',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MessageSquare size={16} /> Exit Reasons
+        </span>
+      ),
+      children: <ReasonForExitPage createTrigger={triggers['reason-for-exit'] || 0} />
+    },
+    {
+      key: 'checklist-config',
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={16} /> Department Checklist
+        </span>
+      ),
+      children: <ChecklistConfigPage />
+    }
+  ];
+
   return (
-    <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "var(--bg-secondary)", 
-        minHeight: "calc(100vh - 64px)" 
-      }}>
-        {/* Header Section */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
-            <Space size={12} align="center">
-              <div style={{ 
-                background: "var(--bg-blue-50)", 
-                padding: 10, 
-                borderRadius: 12, 
-                color: "var(--premium-blue)",
-                display: "flex"
-              }}>
-                <Settings2 size={24} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Exit Configuration</Title>
-                <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Configure policies, workflows, and taxonomies for employee offboarding.</Text>
-              </div>
-            </Space>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden' }}>
+      <div className="exit-page-header" style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <strong style={{ fontSize: 16, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', marginRight: 8 }}>
+            {tabTitles[activeTab] || 'Configuration'}
+          </strong>
+          <Input 
+            prefix={<Search size={16} style={{ color: 'var(--text-slate-400)' }} />}
+            placeholder="Search..."
+            style={{ width: 240, borderRadius: 6, height: 36 }}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+          />
+          {activeTab === 'notice-period-policy' && (
+            <>
+              <SearchableDropdown
+                placeholder="Applicable Level"
+                value={filterLevel}
+                onChange={(val) => {
+                  setFilterLevel(val);
+                  setFilterRole(null);
+                }}
+                options={[
+                  { label: 'Positions', value: 'positions' },
+                  { label: 'Grades', value: 'grades' }
+                ]}
+              />
+              <SearchableDropdown
+                placeholder="Role"
+                value={filterRole}
+                onChange={setFilterRole}
+                options={roleOptions}
+                disabled={!filterLevel}
+              />
+              <SearchableDropdown
+                placeholder="Status"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={[
+                  { label: 'Active', value: 'active' },
+                  { label: 'Inactive', value: 'inactive' }
+                ]}
+              />
+            </>
+          )}
+          
+          {(activeTab === 'approval-workflow' || activeTab === 'exit-type' || activeTab === 'reason-for-exit') && (
+            <SearchableDropdown
+              placeholder="Status"
+              value={filterStatus}
+              onChange={setFilterStatus}
+              options={[
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' }
+              ]}
+            />
+          )}
         </div>
         
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab} 
-          size="middle" 
-          tabBarGutter={32}
-          tabBarStyle={{ marginBottom: 24, borderBottom: "1px solid var(--border-slate-100)" }}
-        >
-          <Tabs.TabPane 
-            tab={
-              <Space size={8}>
-                <Clock size={16} />
-                <span style={{ fontWeight: 600 }}>Notice Period</span>
-              </Space>
-            } 
-            key="notice-period-policy"
+        {activeTab !== 'checklist-config' && (
+          <button 
+            type="button" 
+            onClick={() => setTriggers(prev => ({ ...prev, [activeTab]: (prev[activeTab] || 0) + 1 }))}
+            style={{ 
+              background: 'var(--premium-blue)', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: 6, 
+              padding: '8px 16px', 
+              fontSize: 13, 
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
           >
-            <NoticePeriodPolicyPage />
-          </Tabs.TabPane>
-          <Tabs.TabPane 
-            tab={
-              <Space size={8}>
-                <ShieldCheck size={16} />
-                <span style={{ fontWeight: 600 }}>Approval Workflow</span>
-              </Space>
-            } 
-            key="approval-workflow"
-          >
-            <ApprovalWorkflowPage />
-          </Tabs.TabPane>
-          <Tabs.TabPane 
-            tab={
-              <Space size={8}>
-                <FileText size={16} />
-                <span style={{ fontWeight: 600 }}>Exit Type</span>
-              </Space>
-            } 
-            key="exit-type"
-          >
-            <ExitTypePage />
-          </Tabs.TabPane>
-          <Tabs.TabPane 
-            tab={
-              <Space size={8}>
-                <MessageSquare size={16} />
-                <span style={{ fontWeight: 600 }}>Exit Reason</span>
-              </Space>
-            } 
-            key="reason-for-exit" 
-          >
-            <ReasonForExitPage />
-          </Tabs.TabPane>
-        </Tabs>
-
-        <style dangerouslySetInnerHTML={{ __html: `
-          .ant-tabs-nav::before {
-            border-bottom: none !important;
-          }
-          .ant-tabs-tab {
-            padding: 12px 0 !important;
-            transition: all 0.2s ease !important;
-          }
-          .ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: var(--premium-blue) !important;
-          }
-          .ant-tabs-ink-bar {
-            background: var(--premium-blue) !important;
-            height: 3px !important;
-            border-radius: 3px 3px 0 0;
-          }
-        `}} />
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Configuration
+          </button>
+        )}
       </div>
-    </MainLayout>
+
+      <div className="exit-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+            animated={true}
+            size="large"
+            className="config-tabs"
+            tabBarStyle={{ margin: '0 0 16px 0', padding: 0 }}
+            style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+          />
+        </div>
+      </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        .config-tabs .ant-tabs-content-holder {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .config-tabs .ant-tabs-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .config-tabs .ant-tabs-tabpane-active {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+      `}} />
+    </div>
   );
 }

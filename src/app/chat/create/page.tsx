@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState } from 'react';
 import { Typography, Input, Button, Switch, message, theme } from 'antd';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 export default function CreateChannelPage() {
+  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     const { token } = theme.useToken();
     const router = useRouter();
     const { setChannels, channels } = useChatStore();

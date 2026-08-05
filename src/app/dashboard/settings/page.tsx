@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Form, Switch, Button, Row, Col, Typography, message, notification, theme, Spin, Divider, Menu, App } from "antd";
@@ -219,6 +220,7 @@ const SettingRow = ({ title, description, icon: Icon, color, formItemName }: any
 }
 
 export default function DashboardSettingsPage() {
+  useActivitySource({ section: "HOME", module: "Dashboard", page: "DashboardSettings" });
   const { message: messageApi } = App.useApp();
   const { token } = theme.useToken();
   const { user } = useAuth();

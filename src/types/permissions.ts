@@ -373,6 +373,17 @@ export const Permissions = {
   PIPELINE_SETTING_READ:   'pipeline.setting.read',
   PIPELINE_SETTING_UPDATE: 'pipeline.setting.update',
 
+  // Recruitment / ATS
+  RECRUITMENT_CREATE: 'recruitment.create',
+  RECRUITMENT_READ:   'recruitment.read',
+  RECRUITMENT_UPDATE: 'recruitment.update',
+  RECRUITMENT_DELETE: 'recruitment.delete',
+  RECRUITMENT_MANAGE: 'recruitment.manage',
+  RECRUITMENT_SETTING_READ:   'recruitment.setting.read',
+  RECRUITMENT_SETTING_CREATE: 'recruitment.setting.create',
+  RECRUITMENT_SETTING_UPDATE: 'recruitment.setting.update',
+  RECRUITMENT_SETTING_DELETE: 'recruitment.setting.delete',
+
   // Squads
   SQUAD_CREATE: 'squad.create',
   SQUAD_READ:   'squad.read',
@@ -465,6 +476,16 @@ export const Permissions = {
   MY_HUB_PAYSLIPS_READ:     'my_hub.payslips.read',
   MY_HUB_PROFILE_READ:      'my_hub.profile.read',
   MY_HUB_CLAIMS_READ:       'my_hub.claims.read',
+
+  // ─── Letters & Docs ──────────────────────────────────────────────
+  LETTER_TEMPLATE_CREATE:   'letter_template.create',
+  LETTER_TEMPLATE_READ:     'letter_template.read',
+  LETTER_TEMPLATE_UPDATE:   'letter_template.update',
+  LETTER_TEMPLATE_DELETE:   'letter_template.delete',
+  LETTER_GENERATE:          'letter.generate',
+  LETTER_READ:              'letter.read',
+  LETTER_DELETE:            'letter.delete',
+  LETTER_MANAGE:            'letter.manage',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

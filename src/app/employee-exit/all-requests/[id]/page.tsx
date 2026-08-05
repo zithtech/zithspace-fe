@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import {
+import { 
   Card,
   Typography,
   Button,
@@ -21,7 +21,7 @@ import {
   Modal,
   Form,
   Upload,
-  notification,
+  App
 } from 'antd';
 import {
   ArrowLeft,
@@ -145,7 +145,7 @@ const DetailCard = ({ label, value, icon: Icon }: { label: string, value: any, i
 export default function ExitRequestViewPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const [assetForm] = Form.useForm();
 
@@ -185,11 +185,11 @@ export default function ExitRequestViewPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      notificationApi.error({ message: 'Error', description: 'Failed to load details' });
+      messageApi.error('Failed to load details');
     } finally {
       setLoading(false);
     }
-  }, [id, notificationApi]);
+  }, [id, messageApi]);
 
   const fetchAssets = async (employeeId: string) => {
     setAssetsLoading(true);
@@ -248,15 +248,15 @@ export default function ExitRequestViewPage() {
 
       if (editingAsset?.id) {
         await EmployeeExitService.updateEmployeeAsset(request.employeeId, editingAsset.id, payload);
-        notificationApi.success({ message: 'Success', description: "Asset updated" });
+        messageApi.success("Asset updated");
       } else {
         await EmployeeExitService.addEmployeeAsset(request.employeeId, payload);
-        notificationApi.success({ message: 'Success', description: "Asset added" });
+        messageApi.success("Asset added");
       }
       setIsAssetModalOpen(false);
       fetchAssets(request.employeeId);
     } catch (error) {
-      notificationApi.error({ message: 'Error', description: "Failed to save asset" });
+      messageApi.error("Failed to save asset");
     }
   };
 
@@ -409,7 +409,7 @@ export default function ExitRequestViewPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: '24px 32px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
-          {notificationContextHolder}
+          
 
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Space size={16} align="center">

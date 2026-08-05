@@ -1096,6 +1096,7 @@ export default function BucketManagementPage() {
             </div>
 
             {/* List or Cards */}
+            <div className="bh2-main-body">
             {viewMode === "list" ? renderTable() : (
               <div className="bh2-list">
                 {isLoading ? (
@@ -1499,9 +1500,10 @@ export default function BucketManagementPage() {
                 )}
               </div>
             )}
+            </div>
 
             {!isLoading && filteredBuckets.length > 0 && (
-              <div className="bh2-pagination">
+              <div className="bh2-main-foot">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
                     {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredBuckets.length)}
@@ -1610,12 +1612,23 @@ export default function BucketManagementPage() {
         }
         .bh2-main {
           min-width: 0;
-          padding: 14px 24px 32px;
+          padding: 0;
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
           grid-column: 2;
+          height: calc(100vh - 54px);
+          overflow: hidden;
         }
+        .bh2-main-body {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 14px 24px 16px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .bh2-main-body::-webkit-scrollbar { display: none; }
         [data-theme="dark"] .bh2-main {
           background: transparent !important;
         }
@@ -2006,12 +2019,9 @@ export default function BucketManagementPage() {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          flex-shrink: 0;
           background: var(--bg-pure-white);
-          margin: -14px -24px 0;
-          padding: 6px 20px;
+          padding: 10px 24px;
           border-bottom: 1px solid var(--border-slate-200);
         }
         [data-theme="dark"] .bh2-toolbar {
@@ -2244,65 +2254,62 @@ export default function BucketManagementPage() {
           }
         }
 
-        /* ── Sticky pagination footer ──────────────────────────── */
-        .bh2-pagination {
+        /* ── Fixed-height pagination footer ──────────────────────────── */
+        .bh2-main-foot {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 10px 24px;
-          margin: 8px -24px -32px -24px;
+          padding: 0 24px;
           flex-wrap: wrap;
-          position: sticky;
-          bottom: 0;
-          left: 0;
-          right: 0;
+          flex-shrink: 0;
+          height: 52px;
+          box-sizing: border-box;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
-          z-index: 10;
           box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
-        [data-theme="dark"] .bh2-pagination {
+        [data-theme="dark"] .bh2-main-foot {
           background: #0B0F1A !important;
           border-top-color: #1F2937 !important;
         }
-        [data-theme="dark"] .bh2-pagination .ant-pagination-item,
-        [data-theme="dark"] .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
-        [data-theme="dark"] .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+        [data-theme="dark"] .bh2-main-foot .ant-pagination-item,
+        [data-theme="dark"] .bh2-main-foot .ant-pagination-prev .ant-pagination-item-link,
+        [data-theme="dark"] .bh2-main-foot .ant-pagination-next .ant-pagination-item-link {
           background: #161B22 !important;
           border-color: #1F2937 !important;
           color: #94A3B8 !important;
         }
-        [data-theme="dark"] .bh2-pagination .ant-pagination-item-active {
+        [data-theme="dark"] .bh2-main-foot .ant-pagination-item-active {
           background: #3b82f6 !important;
           border-color: #3b82f6 !important;
         }
-        [data-theme="dark"] .bh2-pagination .ant-pagination-item-active a {
+        [data-theme="dark"] .bh2-main-foot .ant-pagination-item-active a {
           color: #ffffff !important;
         }
-        [data-theme="dark"] .bh2-pagination .ant-select-selector {
+        [data-theme="dark"] .bh2-main-foot .ant-select-selector {
           background: #161B22 !important;
           border-color: #1F2937 !important;
           color: #94A3B8 !important;
         }
 
         /* Custom Pagination Styles */
-        .bh2-pagination .ant-pagination-item,
-        .bh2-pagination .ant-pagination-prev .ant-pagination-item-link,
-        .bh2-pagination .ant-pagination-next .ant-pagination-item-link {
+        .bh2-main-foot .ant-pagination-item,
+        .bh2-main-foot .ant-pagination-prev .ant-pagination-item-link,
+        .bh2-main-foot .ant-pagination-next .ant-pagination-item-link {
           border: 1px solid var(--border-slate-200) !important;
           border-radius: 6px !important;
           background: transparent !important;
           color: var(--text-slate-500) !important;
         }
-        .bh2-pagination .ant-pagination-item-active {
+        .bh2-main-foot .ant-pagination-item-active {
           background: #3b82f6 !important;
           border-color: #3b82f6 !important;
         }
-        .bh2-pagination .ant-pagination-item-active a {
+        .bh2-main-foot .ant-pagination-item-active a {
           color: #fff !important;
         }
-        .bh2-pagination .ant-select-selector {
+        .bh2-main-foot .ant-select-selector {
           border: 1px solid var(--border-slate-200) !important;
           border-radius: 6px !important;
           color: var(--text-slate-500) !important;
@@ -3257,7 +3264,7 @@ export default function BucketManagementPage() {
         }
 
         /* ── Proposals Status Cards ────────────────────────────────────────── */
-        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; }
+        .pp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; margin-top: 10px; padding: 0 24px; }
         .pp-stat-card {
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
           border-radius: 0; padding: 12px 14px; min-height: 92px;

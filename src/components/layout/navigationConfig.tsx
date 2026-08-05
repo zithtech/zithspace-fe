@@ -53,6 +53,7 @@ import {
   // ADMIN
   Building2,
   Settings,
+  Chrome,
   Workflow,
   Handshake,
   TrendingUp,
@@ -97,6 +98,7 @@ import {
   Mail,
   Folder,
   ReceiptText,
+  MessageSquare,
   Palette,
 } from "lucide-react";
 
@@ -374,6 +376,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/timesheet/teams",
             requiredPermission: Permissions.TIMESHEET_APPROVE,
           },
+          {
+            key: "/timesheet/approval",
+            label: "Approval",
+            icon: I(CheckCircle2),
+            path: "/timesheet/approval",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
         ],
       },
       {
@@ -628,6 +637,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredSubscriptionFeature: ["admin_settings"],
         requiredPermission: Permissions.SETTINGS_READ,
       },
+      {
+        key: "/settings/chrome-extension",
+        label: "Chrome Extension",
+        icon: I(Chrome),
+        path: "/settings/chrome-extension",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
       // {
       //   key: "pipeline-group",
       //   label: "Pipeline",
@@ -743,6 +759,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/letters-docs",
+      "/pipeline",
     ],
     defaultPath: "/profile",
     requiredSubscriptionFeature: ["hrms"],
@@ -756,6 +774,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -768,6 +789,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
 
     items: [
@@ -840,38 +864,44 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
         ],
       },
-
-/* {
-        key: "employee-exit",
-        icon: I(LogOut),
-        label: "Employee Exit",
-        requiredSubscriptionFeature: ["hrms_employee_exit"],
-        requiredPermission: Permissions.EXIT_READ,
-        children: [
-          {
-            key: "/employee-exit/management",
-            label: "Employee Exit Management",
-            icon: I(UserMinus),
-            path: "/employee-exit/management",
-            requiredPermission: Permissions.EXIT_READ,
-          },
-          {
-            key: "/employee-exit/configuration",
-            label: "Configuration",
-            icon: I(Sliders),
-            path: "/employee-exit/configuration",
-            requiredPermission: Permissions.EXIT_MANAGE,
-          },
+      {
+        key: "/letters-docs",
+        icon: I(FileText),
+        label: "Doc Suite",
+        path: "/letters-docs/templates",
+        requiredAnyPermission: [
+          Permissions.LETTER_TEMPLATE_READ,
+          Permissions.LETTER_READ,
         ],
       },
       {
-        key: "/opening-management",
-        label: "Opening Management",
-        icon: I(Megaphone),
-        path: "/opening-management",
-        requiredSubscriptionFeature: ["hrms_opening_management"],
-        requiredPermission: Permissions.OPENING_READ,
-      }, */
+        key: "/pipeline",
+        icon: I(Users),
+        label: "Recruitment Pipeline",
+        path: "/pipeline/candidates",
+        requiredAnyPermission: [
+          Permissions.RECRUITMENT_READ,
+        ],
+      },
+
+      /* {
+              key: "employee-exit",
+              label: "Employee Exit",
+              icon: I(LogOut),
+              path: "/employee-exit/my-requests",
+              requiredAnyPermission: [
+                Permissions.EXIT_MANAGE,
+                Permissions.EXIT_READ,
+                Permissions.EXIT_CONFIG_READ
+              ],
+            },
+            {
+              key: "/opening-management",
+              label: "Opening Management",
+              icon: I(Megaphone),
+              path: "/opening-management",
+              requiredPermission: Permissions.OPENING_READ,
+            }, */
     ],
   },
   {
@@ -1077,6 +1107,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.MY_HUB_PAYSLIPS_READ,
       Permissions.MY_HUB_PROFILE_READ,
       Permissions.MY_HUB_CLAIMS_READ,
+      Permissions.MY_HUB_DOCUMENTS_READ,
     ],
     items: [
       {
@@ -1144,6 +1175,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/my-hub/claims",
         requiredSubscriptionFeature: ["my_hub_my_hub_general"],
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
+      },
+      {
+        key: "/my-hub/documents",
+        label: "My Documents",
+        icon: I(Folder),
+        path: "/my-hub/documents",
+        requiredPermission: Permissions.MY_HUB_DOCUMENTS_READ,
       },
     ],
   },

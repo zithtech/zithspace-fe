@@ -53,6 +53,8 @@ interface TicketLifecycleShellProps {
   toolbar?: React.ReactNode;
   /** Table slot rendered in the main column. */
   children: React.ReactNode;
+  /** Optional fixed-height footer rendered below the scrollable body (pagination, etc). */
+  footerSlot?: React.ReactNode;
 }
 
 export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
@@ -70,6 +72,7 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
   activeFilterCount = 0,
   toolbar,
   children,
+  footerSlot,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -273,6 +276,7 @@ export const TicketLifecycleShell: React.FC<TicketLifecycleShellProps> = ({
           <main className="tlc-main">
             {toolbar && <div className="tlc-toolbar">{toolbar}</div>}
             <div className="tlc-body">{children}</div>
+            {footerSlot && <div className="tlc-footer-slot">{footerSlot}</div>}
           </main>
         </div>
       </div>
@@ -656,6 +660,27 @@ const TICKET_LIFECYCLE_CSS = `
   gap: 12px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tlc-body::-webkit-scrollbar { display: none; }
+.tlc-footer-slot {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-top: 1px solid var(--border-slate-200);
+  background: var(--bg-pure-white);
+  box-shadow: 0 -4px 14px rgba(15,23,42,0.04);
+  box-sizing: border-box;
+}
+[data-theme='dark'] .tlc-footer-slot {
+  background: #0B0F1A !important;
+  border-top-color: #1F2937 !important;
+  box-shadow: 0 -4px 14px rgba(0,0,0,0.2);
 }
 
 /* ── Desktop ≥ 1024px ────────────────────────────────── */

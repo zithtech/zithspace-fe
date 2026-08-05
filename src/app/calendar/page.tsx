@@ -1,5 +1,6 @@
 "use client";
 
+import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { Suspense, useState, useEffect } from "react";
 import { Layout, Typography, Button, App as AntApp, Spin } from "antd";
 import {
@@ -493,6 +494,7 @@ function EmptyState() {
 }
 
 export default function CalendarPage() {
+  useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationCalendar" });
     return (
         <Suspense fallback={
             <div style={{ padding: 48, textAlign: 'center' }}>

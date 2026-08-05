@@ -18,14 +18,14 @@ import { ApiError } from "@/lib/axios";
 // Extension sync function
 const syncTokenWithExtension = (token: string) => {
   // Replace with the ID found in chrome://extensions/
-  const EXTENSION_ID = "magcgpahmioofihhcfeaaomacdepnhcn"; 
+  const EXTENSION_ID = "magcgpahmioofihhcfeaaomacdepnhcn";
   console.log('=== FRONTEND TOKEN SYNC DEBUG ===');
   console.log('Token to sync:', token.substring(0, 50) + '...');
   console.log('Extension ID:', EXTENSION_ID);
   console.log('Chrome available:', typeof window !== 'undefined' && !!(window as any).chrome);
   console.log('Runtime available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime);
   console.log('SendMessage available:', typeof window !== 'undefined' && !!(window as any).chrome?.runtime?.sendMessage);
-  
+
   if (typeof window !== 'undefined' && (window as any).chrome && (window as any).chrome.runtime && (window as any).chrome.runtime.sendMessage) {
     console.log('Attempting to send message to extension...');
     (window as any).chrome.runtime.sendMessage(EXTENSION_ID, { token }, (response: any) => {
@@ -59,6 +59,10 @@ interface User {
   department?: string;
   employeeId?: string | null;
   employee_code?: string | null;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyLocation?: string;
   createdAt?: string;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
@@ -149,6 +153,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: response.user.avatarUrl,
         tenantName: response.user.tenantName,
         tenantLogo: (response.user as any).tenantLogo,
+        companyAddress: (response.user as any).generalSettings?.address?.street || '',
+        companyPhone: (response.user as any).generalSettings?.phone || '',
+        companyEmail: (response.user as any).generalSettings?.email || '',
+        companyLocation: (response.user as any).companyLocation?.city || '',
         department: (response.user as any).department,
         employeeId: (response.user as any).employeeId,
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
@@ -159,10 +167,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
-      
+
       // Sync token with extension after successful login
       syncTokenWithExtension(response.accessToken);
-      
+
       // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {
@@ -206,9 +214,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
-      
+
       syncTokenWithExtension(response.accessToken);
-      
+
       return true;
     } catch (error) {
       console.error("Google login failed in Context:", error);
@@ -251,9 +259,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(userData);
-      
+
       syncTokenWithExtension(response.accessToken);
-      
+
       return true;
     } catch (error) {
       console.error("Microsoft login failed in Context:", error);
@@ -351,6 +359,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
+        companyAddress: (userProfile.tenant as any)?.generalSettings?.address?.street || '',
+        companyPhone: (userProfile.tenant as any)?.generalSettings?.phone || '',
+        companyEmail: (userProfile.tenant as any)?.generalSettings?.email || '',
+        companyLocation: (userProfile.tenant as any)?.companyLocation?.city || '',
         department: userProfile.department,
         employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,

@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 export default function HotspotLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
-      <MainLayout>
+      <MainLayout hideSideNav>
         {children}
       </MainLayout>
     </ProtectedRoute>

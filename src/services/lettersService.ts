@@ -282,7 +282,7 @@ export class LettersService {
     const contentType = type === 'pdf'
       ? 'application/pdf'
       : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    const blob = new Blob([response.data], { type: response.headers['content-type'] || contentType });
+    const blob = new Blob([response.data], { type: response.headers['content-type']?.toString() || contentType });
     const blobUrl = URL.createObjectURL(blob);
 
     const link = document.createElement('a');

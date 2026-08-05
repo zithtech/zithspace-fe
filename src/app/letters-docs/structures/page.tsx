@@ -192,7 +192,7 @@ export default function StructuresManagementPage() {
             <Layers size={18} />
           </div>
           <div>
-            <div className="lv-header-title">Custom Structures</div>
+            <div className="lv-header-title">Custom Formats</div>
             <div className="lv-header-sub">
               Manage reusable HTML structures for templates.
             </div>
@@ -228,7 +228,7 @@ export default function StructuresManagementPage() {
             onClick={() => router.push('/letters-docs/structures/builder')}
             style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
-            Create Structure
+            Create Format
           </Button>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function StructuresManagementPage() {
               Create your first custom structure to reuse across document templates.
             </div>
             <Button type="primary" onClick={() => router.push('/letters-docs/structures/builder')} icon={<Plus size={15} />}>
-              Create Structure
+              Create Format
             </Button>
           </div>
         ) : view === 'list' ? (
@@ -332,7 +332,10 @@ export default function StructuresManagementPage() {
         ]}
         width={800}
       >
-        <div className="letter-tiptap-content" style={{ padding: '24px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
+        <div 
+          className="letter-tiptap-content bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100" 
+          style={{ padding: '24px', borderRadius: '8px', border: '1px solid', minHeight: '300px' }}
+        >
           <div className="ProseMirror" dangerouslySetInnerHTML={{ __html: previewStructure?.htmlContent || '' }} />
         </div>
       </Modal>

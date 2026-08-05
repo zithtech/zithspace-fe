@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import { Extension, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -50,6 +50,7 @@ import {
   FontColorsOutlined,
   BgColorsOutlined,
   LinkOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { Modal, Radio, Select } from "antd";
 import { toast } from "react-hot-toast";
@@ -166,6 +167,70 @@ const PlaceholderAttr = Extension.create({
         },
       },
     ];
+  },
+});
+
+
+const LogoUploadComponent = (props: any) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Str = reader.result as string;
+      setUploading(true);
+      const toastId = toast.loading("Uploading logo...");
+      try {
+        const url = await LettersService.uploadTemplateImage(base64Str);
+        props.editor.chain().focus().insertContentAt({ from: props.getPos(), to: props.getPos() + 1 }, {
+          type: 'image',
+          attrs: { src: url }
+        }).run();
+        toast.success("Logo uploaded!", { id: toastId });
+      } catch (err) {
+        props.editor.chain().focus().insertContentAt({ from: props.getPos(), to: props.getPos() + 1 }, {
+          type: 'image',
+          attrs: { src: base64Str }
+        }).run();
+        toast.success("Logo embedded!", { id: toastId });
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline-block' }}>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        style={{ padding: '6px 12px', border: '1px dashed #3b82f6', borderRadius: '4px', background: '#eff6ff', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+      >
+        {uploading ? <LoadingOutlined /> : <UploadOutlined />} Upload Logo
+      </button>
+      <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+    </NodeViewWrapper>
+  );
+};
+
+const LogoUploadNode = Node.create({
+  name: 'logoUpload',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  parseHTML() {
+    return [{ tag: 'button[data-type="logo-upload"]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['button', mergeAttributes(HTMLAttributes, { 'data-type': 'logo-upload' })];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(LogoUploadComponent);
   },
 });
 
@@ -297,6 +362,7 @@ export default function LetterTiptapEditor({
           };
         },
       }),
+      LogoUploadNode,
       Image.configure({
         inline: true,
         allowBase64: true,
@@ -329,13 +395,13 @@ export default function LetterTiptapEditor({
       <div
         style={{
           minHeight,
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
+          background: "var(--editor-bg, #ffffff)",
+          border: "1px solid var(--btn-border-color, #e2e8f0)",
           borderRadius: "8px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#94a3b8",
+          color: "var(--btn-icon-color, #94a3b8)",
         }}
       >
         Loading editor...
@@ -346,10 +412,10 @@ export default function LetterTiptapEditor({
   return (
     <div
       style={{
-        border: "1px solid #cbd5e1",
+        border: "1px solid var(--editor-border, #cbd5e1)",
         borderRadius: "10px",
         overflow: "hidden",
-        background: "#ffffff",
+        background: "var(--editor-bg, #ffffff)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         display: "flex",
         flexDirection: "column",
@@ -360,8 +426,8 @@ export default function LetterTiptapEditor({
         <div
           style={{
             padding: "8px 12px",
-            background: "#f8fafc",
-            borderBottom: "1px solid #e2e8f0",
+            background: "var(--toolbar-bg, #f8fafc)",
+            borderBottom: "1px solid var(--editor-border, #e2e8f0)",
             display: "flex",
             flexWrap: "wrap",
             gap: "6px",
@@ -438,9 +504,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("bold") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("bold") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("bold") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("bold") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("bold") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("bold") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Bold"
@@ -454,9 +520,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("italic") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("italic") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("italic") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("italic") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("italic") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("italic") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Italic"
@@ -471,9 +537,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("underline") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("underline") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("underline") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("underline") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("underline") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("underline") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Underline"
@@ -487,9 +553,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("strike") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("strike") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("strike") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("strike") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("strike") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("strike") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Strikethrough"
@@ -504,9 +570,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("subscript") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("subscript") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("subscript") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("subscript") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("subscript") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("subscript") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "12px",
@@ -522,9 +588,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("superscript") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("superscript") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("superscript") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("superscript") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("superscript") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("superscript") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "12px",
@@ -551,15 +617,39 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("link") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("link") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("link") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("link") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("link") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("link") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Link"
           >
             <LinkOutlined />
           </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingImage}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "6px",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
+              cursor: uploadingImage ? "wait" : "pointer",
+            }}
+            title="Insert Picture"
+          >
+            {uploadingImage ? <LoadingOutlined /> : <FileImageOutlined />}
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            style={{ display: "none" }}
+          />
 
           <input
             type="color"
@@ -569,10 +659,10 @@ export default function LetterTiptapEditor({
               width: "28px",
               height: "28px",
               padding: "0",
-              border: "1px solid #cbd5e1",
+              border: "1px solid var(--editor-border, #cbd5e1)",
               borderRadius: "6px",
               cursor: "pointer",
-              background: "#ffffff",
+              background: "var(--editor-bg, #ffffff)",
             }}
             title="Text Color"
           />
@@ -585,10 +675,10 @@ export default function LetterTiptapEditor({
               width: "28px",
               height: "28px",
               padding: "0",
-              border: "1px solid #cbd5e1",
+              border: "1px solid var(--editor-border, #cbd5e1)",
               borderRadius: "6px",
               cursor: "pointer",
-              background: "#ffffff",
+              background: "var(--editor-bg, #ffffff)",
             }}
             title="Highlight Color"
           />
@@ -602,9 +692,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("heading", { level: 1 }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("heading", { level: 1 }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("heading", { level: 1 }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("heading", { level: 1 }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("heading", { level: 1 }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("heading", { level: 1 }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
               fontWeight: 700,
               fontSize: "13px",
@@ -620,9 +710,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("heading", { level: 2 }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("heading", { level: 2 }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("heading", { level: 2 }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("heading", { level: 2 }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("heading", { level: 2 }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("heading", { level: 2 }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
               fontWeight: 700,
               fontSize: "13px",
@@ -638,9 +728,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("heading", { level: 3 }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("heading", { level: 3 }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("heading", { level: 3 }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("heading", { level: 3 }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("heading", { level: 3 }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("heading", { level: 3 }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
               fontWeight: 600,
               fontSize: "13px",
@@ -659,9 +749,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive({ textAlign: "left" }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive({ textAlign: "left" }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive({ textAlign: "left" }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive({ textAlign: "left" }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive({ textAlign: "left" }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive({ textAlign: "left" }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Align Left"
@@ -675,9 +765,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive({ textAlign: "center" }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive({ textAlign: "center" }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive({ textAlign: "center" }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive({ textAlign: "center" }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive({ textAlign: "center" }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive({ textAlign: "center" }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Align Center"
@@ -691,9 +781,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive({ textAlign: "right" }) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive({ textAlign: "right" }) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive({ textAlign: "right" }) ? "#2563eb" : "#475569",
+              borderColor: editor.isActive({ textAlign: "right" }) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive({ textAlign: "right" }) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive({ textAlign: "right" }) ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Align Right"
@@ -710,9 +800,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("bulletList") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("bulletList") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("bulletList") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("bulletList") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("bulletList") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("bulletList") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Bullet List"
@@ -726,9 +816,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("orderedList") ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("orderedList") ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("orderedList") ? "#2563eb" : "#475569",
+              borderColor: editor.isActive("orderedList") ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("orderedList") ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("orderedList") ? "#3b82f6" : "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Numbered List"
@@ -750,9 +840,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Table"
@@ -766,15 +856,15 @@ export default function LetterTiptapEditor({
               editor
                 .chain()
                 .focus()
-                .insertContent(`<table data-layout="side-by-side" style="width: 100%; border: none !important; border-collapse: collapse; margin: 0;"><tbody><tr style="border: none !important; background: transparent !important;"><td style="width: 50%; border: none !important; padding: 4px; vertical-align: top;"><p>Enter left header details here...</p></td><td style="width: 50%; border: none !important; padding: 4px; vertical-align: top; text-align: right;"><p style="text-align: right;">[Insert Logo here ->]</p></td></tr></tbody></table>`)
+                .insertContent(`<table data-layout="side-by-side" style="width: 100%; border: none !important; border-collapse: collapse; margin: 0;"><tbody><tr style="border: none !important; background: transparent !important;"><td style="width: 50%; border: none !important; padding: 4px; vertical-align: top;"><p>Enter left header details here...</p></td><td style="width: 50%; border: none !important; padding: 4px; vertical-align: top; text-align: right;"><p style="text-align: right;"><button data-type="logo-upload"></button></p></td></tr></tbody></table>`)
                 .run()
             }
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Side-by-Side Row (2 Columns)"
@@ -790,9 +880,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#475569" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Insert Row Above"
@@ -806,9 +896,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#475569" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Insert Row Below"
@@ -822,9 +912,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#ef4444" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Delete Row"
@@ -838,9 +928,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#475569" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Insert Column Left"
@@ -854,9 +944,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#475569" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Insert Column Right"
@@ -870,9 +960,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#ef4444" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "#ef4444" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Delete Column"
@@ -886,9 +976,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: editor.isActive("table") ? "#dc2626" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: editor.isActive("table") ? "#dc2626" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Delete Entire Table"
@@ -912,9 +1002,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("table") ? "#2563eb" : "#cbd5e1",
+              borderColor: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("table") && (editor.getAttributes("table")["data-layout"] === "borderless" || editor.getAttributes("table")["data-layout"] === "side-by-side" || (editor.getAttributes("table").style && editor.getAttributes("table").style.includes("border: none"))) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("table") ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Toggle Table Borders (Show / Hide)"
@@ -947,9 +1037,9 @@ export default function LetterTiptapEditor({
               padding: "6px 10px",
               borderRadius: "6px",
               border: "1px solid",
-              borderColor: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "#3b82f6" : "#e2e8f0",
-              background: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "#eff6ff" : "#ffffff",
-              color: editor.isActive("table") ? "#2563eb" : "#cbd5e1",
+              borderColor: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "#3b82f6" : "var(--btn-border-color, #e2e8f0)",
+              background: editor.isActive("table") && ((editor.getAttributes("tableCell").style || "").includes("vertical-align: middle") || (editor.getAttributes("tableHeader").style || "").includes("vertical-align: middle")) ? "var(--btn-active-bg, #eff6ff)" : "var(--btn-inactive-bg, transparent)",
+              color: editor.isActive("table") ? "#3b82f6" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: editor.isActive("table") ? "pointer" : "not-allowed",
             }}
             title="Vertical Align Center"
@@ -957,29 +1047,7 @@ export default function LetterTiptapEditor({
             <VerticalAlignMiddleOutlined />
           </button>
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingImage}
-            style={{
-              padding: "6px 10px",
-              borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
-              cursor: uploadingImage ? "wait" : "pointer",
-            }}
-            title="Insert Picture"
-          >
-            {uploadingImage ? <LoadingOutlined /> : <FileImageOutlined />}
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            style={{ display: "none" }}
-          />
+
 
           <button
             type="button"
@@ -987,9 +1055,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Page Break"
@@ -1003,9 +1071,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Horizontal Line"
@@ -1025,9 +1093,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Callout Box"
@@ -1041,9 +1109,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Auto Page Number (Header/Footer Only)"
@@ -1057,15 +1125,15 @@ export default function LetterTiptapEditor({
               editor
                 .chain()
                 .focus()
-                .insertContent(`<div data-type="textbox" style="border: 1px solid #cbd5e1; padding: 12px 16px; border-radius: 6px; margin: 12px 0; background: #ffffff; display: inline-block; min-width: 250px;"><p>Enter text box content here...</p></div>`)
+                .insertContent(`<div data-type="textbox" style="border: 1px solid var(--editor-border, #cbd5e1); padding: 12px 16px; border-radius: 6px; margin: 12px 0; background: #ffffff; display: inline-block; min-width: 250px;"><p>Enter text box content here...</p></div>`)
                 .run()
             }
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#475569",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: "var(--btn-icon-color, #475569)",
               cursor: "pointer",
             }}
             title="Insert Text Box"
@@ -1080,9 +1148,9 @@ export default function LetterTiptapEditor({
             style={{
               padding: "6px 10px",
               borderRadius: "6px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: structures.length > 0 ? "#475569" : "#cbd5e1",
+              border: "1px solid var(--btn-border-color, #e2e8f0)",
+              background: "var(--editor-bg, #ffffff)",
+              color: structures.length > 0 ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
               cursor: structures.length > 0 ? "pointer" : "not-allowed",
             }}
             title="Insert Custom Structure"
@@ -1098,9 +1166,9 @@ export default function LetterTiptapEditor({
               style={{
                 padding: "6px 10px",
                 borderRadius: "6px",
-                border: "1px solid #e2e8f0",
-                background: editor.can().undo() ? "#ffffff" : "#f1f5f9",
-                color: editor.can().undo() ? "#475569" : "#cbd5e1",
+                border: "1px solid var(--btn-border-color, #e2e8f0)",
+                background: editor.can().undo() ? "var(--btn-inactive-bg, transparent)" : "var(--btn-disabled-bg, #f1f5f9)",
+                color: editor.can().undo() ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
                 cursor: editor.can().undo() ? "pointer" : "not-allowed",
               }}
               title="Undo"
@@ -1114,9 +1182,9 @@ export default function LetterTiptapEditor({
               style={{
                 padding: "6px 10px",
                 borderRadius: "6px",
-                border: "1px solid #e2e8f0",
-                background: editor.can().redo() ? "#ffffff" : "#f1f5f9",
-                color: editor.can().redo() ? "#475569" : "#cbd5e1",
+                border: "1px solid var(--btn-border-color, #e2e8f0)",
+                background: editor.can().redo() ? "var(--btn-inactive-bg, transparent)" : "var(--btn-disabled-bg, #f1f5f9)",
+                color: editor.can().redo() ? "var(--btn-icon-color, #475569)" : "var(--btn-icon-disabled, #cbd5e1)",
                 cursor: editor.can().redo() ? "pointer" : "not-allowed",
               }}
               title="Redo"
@@ -1134,9 +1202,9 @@ export default function LetterTiptapEditor({
           minHeight: `${minHeight}px`,
           maxHeight: "750px",
           overflowY: "auto",
-          background: "#ffffff",
+          background: "var(--editor-bg, #ffffff)",
         }}
-        className="letter-tiptap-content"
+        className="letter-tiptap-content bg-transparent text-slate-800 dark:text-slate-200"
       >
         <EditorContent editor={editor} />
       </div>
@@ -1167,7 +1235,7 @@ export default function LetterTiptapEditor({
         width={750}
       >
         <div style={{ padding: '10px 0' }}>
-          <p style={{ marginBottom: '16px', color: '#475569' }}>
+          <p style={{ marginBottom: '16px', color: 'var(--btn-icon-color, #475569)' }}>
             Choose a custom structure to insert into the editor:
           </p>
           <Radio.Group
@@ -1188,11 +1256,11 @@ export default function LetterTiptapEditor({
           </Radio.Group>
 
           {selectedStructureId && (
-            <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', maxHeight: '400px', overflowY: 'auto' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+            <div style={{ marginTop: '24px', padding: '16px', background: 'var(--toolbar-bg, #f8fafc)', border: '1px solid var(--btn-border-color, #e2e8f0)', borderRadius: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--btn-icon-color, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                 Preview
               </div>
-              <div className="letter-tiptap-content" style={{ background: 'transparent' }}>
+              <div className="letter-tiptap-content bg-transparent text-slate-800 dark:text-slate-200" style={{ background: 'transparent' }}>
                 <div
                   className="ProseMirror"
                   style={{ minHeight: 'auto', outline: 'none' }}
@@ -1213,17 +1281,20 @@ export default function LetterTiptapEditor({
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           font-size: 15px;
           line-height: 1.7;
-          color: #1e293b;
+          color: var(--editor-text, #1e293b);
         }
         .letter-tiptap-content .ProseMirror p {
           margin-bottom: 1em;
+        }
+        .letter-tiptap-content .ProseMirror > *:first-child {
+          margin-top: 1em !important;
         }
         .letter-tiptap-content .ProseMirror h1 {
           font-size: 1.8em;
           font-weight: 700;
           margin-top: 1.2em;
           margin-bottom: 0.5em;
-          color: #0f172a;
+          color: var(--editor-text-heading, #0f172a);
           page-break-before: always;
           break-before: page;
         }
@@ -1236,14 +1307,20 @@ export default function LetterTiptapEditor({
           font-weight: 600;
           margin-top: 1.2em;
           margin-bottom: 0.5em;
-          color: #1e293b;
+          color: var(--editor-text-heading, #1e293b);
         }
         .letter-tiptap-content .ProseMirror h3 {
           font-size: 1.2em;
           font-weight: 600;
           margin-top: 1em;
           margin-bottom: 0.5em;
-          color: #334155;
+          color: var(--editor-text-heading, #334155);
+        }
+        .letter-tiptap-content .ProseMirror hr {
+          margin-top: 4px !important;
+          margin-bottom: 1em;
+          border: 0;
+          border-top: 1px solid var(--editor-border, #cbd5e1);
         }
         .letter-tiptap-content .ProseMirror table {
           border-collapse: collapse;
@@ -1255,7 +1332,7 @@ export default function LetterTiptapEditor({
         .letter-tiptap-content .ProseMirror td,
         .letter-tiptap-content .ProseMirror th {
           min-width: 1em;
-          border: 1px solid #cbd5e1;
+          border: 1px solid var(--editor-border, #cbd5e1);
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -1265,13 +1342,14 @@ export default function LetterTiptapEditor({
         .letter-tiptap-content .ProseMirror table[style*="border: none"] td,
         .letter-tiptap-content .ProseMirror table[style*="border-style: none"] td,
         .letter-tiptap-content .ProseMirror table[style*="border-width: 0"] td {
-          border: 1px dashed #e2e8f0 !important;
+          border: 1px dashed var(--editor-border, #e2e8f0) !important;
+          padding: 2px 4px !important;
           background: transparent !important;
         }
         .letter-tiptap-content .ProseMirror th {
           font-weight: 600;
           text-align: left;
-          background-color: #f1f5f9;
+          background-color: var(--editor-th-bg, #f1f5f9);
         }
         .letter-tiptap-content .ProseMirror ul,
         .letter-tiptap-content .ProseMirror ol {

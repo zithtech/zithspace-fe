@@ -101,18 +101,17 @@ export default function DocumentRepositoryPage() {
       setPreviewHtml('');
 
       const fullDoc = await LettersService.getGeneratedLetterById(doc.id);
-      if (fullDoc.templateId) {
-        const valMap: Record<string, string> = {};
+      const valMap: Record<string, string> = {};
         if (fullDoc.values) {
           fullDoc.values.forEach((v) => {
             valMap[v.placeholderKey] = v.placeholderValue || '';
           });
         }
-        const html = await LettersService.previewLetter(fullDoc.templateId, valMap);
+        // Always preview from snapshot_content using generatedDocumentId.
+        // templateId is only passed when the template still exists (used as fallback source).
+        const html = await LettersService.previewLetter(fullDoc.templateId || '', valMap, fullDoc.id);
         setPreviewHtml(html);
-      } else {
-        setPreviewHtml('<div style="padding: 60px 20px; text-align: center; color: var(--text-slate-600); font-size: 15px;">Template content is no longer available for HTML preview. Please use the download button to view the archived document.</div>');
-      }
+
     } catch (err: any) {
       toast.error(err.message || 'Failed to load document preview');
       setPreviewHtml('<div style="padding: 60px 20px; text-align: center; color: #ef4444; font-size: 15px;">Failed to load live preview for this document.</div>');
@@ -276,12 +275,12 @@ export default function DocumentRepositoryPage() {
           </button>
 
           <button
-            onClick={() => handlePreviewDocument(doc)}
+            onClick={(e) => { e.stopPropagation(); handlePreviewDocument(doc); }}
             style={{
               padding: '4px 8px',
               borderRadius: '4px',
               background: 'var(--bg-blue-50)',
-              border: '1px solid #bfdbfe',
+              border: '1px solid var(--border-blue-200)',
               color: 'var(--text-blue-700)',
               fontSize: '11px',
               fontWeight: 600,
@@ -297,13 +296,13 @@ export default function DocumentRepositoryPage() {
           </button>
 
           <button
-            onClick={() => handleDownload(doc.id, 'pdf', `${doc.documentNumber}.pdf`)}
+            onClick={(e) => { e.stopPropagation(); handleDownload(doc.id, 'pdf', `${doc.documentNumber}.pdf`); }}
             disabled={downloadingDocs[doc.id] === 'pdf'}
             style={{
               padding: '4px 8px',
               borderRadius: '4px',
               background: 'var(--bg-blue-50)',
-              border: '1px solid #bfdbfe',
+              border: '1px solid var(--border-blue-200)',
               color: 'var(--text-blue-700)',
               fontSize: '11px',
               fontWeight: 600,
@@ -324,13 +323,13 @@ export default function DocumentRepositoryPage() {
           </button>
 
           <button
-            onClick={() => handleDownload(doc.id, 'docx', `${doc.documentNumber}.docx`)}
+            onClick={(e) => { e.stopPropagation(); handleDownload(doc.id, 'docx', `${doc.documentNumber}.docx`); }}
             disabled={downloadingDocs[doc.id] === 'docx'}
             style={{
               padding: '4px 8px',
               borderRadius: '4px',
               background: 'var(--bg-green-50)',
-              border: '1px solid #86efac',
+              border: '1px solid var(--border-green-200)',
               color: 'var(--text-holiday)',
               fontSize: '11px',
               fontWeight: 600,
@@ -351,12 +350,12 @@ export default function DocumentRepositoryPage() {
           </button>
 
           <button
-            onClick={() => setDeleteDocId(doc.id)}
+            onClick={(e) => { e.stopPropagation(); setDeleteDocId(doc.id); }}
             style={{
               padding: '4px 8px',
               borderRadius: '4px',
               background: 'var(--bg-red-50)',
-              border: '1px solid #fecaca',
+              border: '1px solid var(--border-red-200)',
               color: 'var(--text-leave)',
               fontSize: '11px',
               fontWeight: 500,
@@ -431,7 +430,7 @@ export default function DocumentRepositoryPage() {
             <Archive size={18} />
           </div>
           <div>
-            <div className="lv-header-title">Generated Document Repository</div>
+            <div className="lv-header-title">Generated Records</div>
             <div className="lv-header-sub">
               Centralized archive of generated HR documents with instant PDF/DOCX export.
             </div>
@@ -523,13 +522,13 @@ export default function DocumentRepositoryPage() {
               dataSource={paginatedDocuments}
               pagination={false}
               scroll={{ x: 'max-content', y: 'calc(100vh - 340px)' }}
-              onRow={() => ({ className: 'att-row' })}
+              onRow={(record) => ({ className: 'att-row', onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })}
             />
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {paginatedDocuments.map((doc) => (
-              <div key={doc.id} className="pc-card" onClick={() => handlePreviewDocument(doc)}>
+              <div key={doc.id} className="pc-card" onClick={(e) => { e.stopPropagation(); handlePreviewDocument(doc); }}>
                 <div className="pc-top">
                   <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
                     {doc.template?.templateName?.substring(0, 2).toUpperCase() || 'DC'}
@@ -649,43 +648,55 @@ export default function DocumentRepositoryPage() {
         extra={
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
-              onClick={() => previewModalDoc && LettersService.downloadLetter(previewModalDoc.id, 'pdf', `${previewModalDoc.documentNumber}.pdf`)}
+              onClick={() => previewModalDoc && handleDownload(previewModalDoc.id, 'pdf', `${previewModalDoc.documentNumber}.pdf`)}
+              disabled={Boolean(previewModalDoc && downloadingDocs[previewModalDoc.id] === 'pdf')}
               style={{
                 padding: '6px 12px',
                 borderRadius: '6px',
                 background: 'var(--bg-blue-50)',
-                border: '1px solid #bfdbfe',
+                border: '1px solid var(--border-blue-200)',
                 color: 'var(--text-blue-700)',
                 fontSize: '13px',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: (previewModalDoc && downloadingDocs[previewModalDoc.id] === 'pdf') ? 'not-allowed' : 'pointer',
+                opacity: (previewModalDoc && downloadingDocs[previewModalDoc.id] === 'pdf') ? 0.7 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
               title="Download PDF"
             >
-              <Download size={14} />
+              {previewModalDoc && downloadingDocs[previewModalDoc.id] === 'pdf' ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
               PDF
             </button>
             <button
-              onClick={() => previewModalDoc && LettersService.downloadLetter(previewModalDoc.id, 'docx', `${previewModalDoc.documentNumber}.docx`)}
+              onClick={() => previewModalDoc && handleDownload(previewModalDoc.id, 'docx', `${previewModalDoc.documentNumber}.docx`)}
+              disabled={Boolean(previewModalDoc && downloadingDocs[previewModalDoc.id] === 'docx')}
               style={{
                 padding: '6px 12px',
                 borderRadius: '6px',
                 background: 'var(--bg-green-50)',
-                border: '1px solid #86efac',
+                border: '1px solid var(--border-green-200)',
                 color: 'var(--text-holiday)',
                 fontSize: '13px',
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: (previewModalDoc && downloadingDocs[previewModalDoc.id] === 'docx') ? 'not-allowed' : 'pointer',
+                opacity: (previewModalDoc && downloadingDocs[previewModalDoc.id] === 'docx') ? 0.7 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
               }}
               title="Download DOCX"
             >
-              <Download size={14} />
+              {previewModalDoc && downloadingDocs[previewModalDoc.id] === 'docx' ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
               DOCX
             </button>
           </div>
@@ -695,24 +706,55 @@ export default function DocumentRepositoryPage() {
           <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px', fontWeight: 500 }}>
             Loading live document preview...
           </div>
-        ) : previewHtml ? (
-          <div
-            className="preview-paper-content"
-            style={{
-              maxWidth: '750px',
-              margin: '0 auto',
-              fontSize: '14px',
-              lineHeight: '1.6',
-              color: 'var(--text-slate-900)',
-            }}
-            dangerouslySetInnerHTML={{ __html: previewHtml }}
-          />
-        ) : null}
+        ) : previewHtml ? (() => {
+                      let parsedConfig = {} as any;
+                      let cleanHtml = previewHtml;
+                      const configRegex = /<script\s+id="zith-page-config"\s+type="application\/json">([\s\S]*?)<\/script>/i;
+                      const match = configRegex.exec(previewHtml);
+                      if (match && match[1]) {
+                        try { parsedConfig = JSON.parse(match[1]); } catch (e) { }
+                        cleanHtml = previewHtml.replace(configRegex, '');
+                      }
+                      const pages = cleanHtml.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map(p => p.trim()).filter(p => !!p);
+                      
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+                          {pages.map((pageContent, index) => (
+                            <div key={index} className="preview-paper-content force-light-theme" style={{
+                              width: '210mm',
+                              minHeight: '297mm',
+                              background: '#ffffff',
+                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                              paddingTop: parsedConfig.marginTop || '20mm',
+                              paddingRight: parsedConfig.marginRight || '20mm',
+                              paddingBottom: parsedConfig.marginBottom || '20mm',
+                              paddingLeft: parsedConfig.marginLeft || '20mm',
+                              position: 'relative',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              borderWidth: parsedConfig.borderWidth || '0px',
+                              borderStyle: parsedConfig.borderStyle || 'solid',
+                              borderColor: parsedConfig.borderColor || '#000000',
+                              margin: '0 auto',
+                              fontSize: '14px', lineHeight: '1.6'
+                            }}>
+                              {parsedConfig.headerHtml && (
+                                <div style={{ width: '100%', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.headerHtml }} />
+                              )}
+                              <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: pageContent }} />
+                              {parsedConfig.footerHtml && (
+                                <div style={{ width: '100%', marginTop: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })() : null}
       </Drawer>
 
       <style jsx global>{`
         .pc-card {
-          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          border: 1px solid #cbd5e1; background: var(--bg-pure-white);
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
         }
@@ -730,9 +772,9 @@ export default function DocumentRepositoryPage() {
           flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer;
           background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
         }
-        .pc-actions:hover { background: var(--border-slate-100); color: var(--text-slate-900); }
+        .pc-actions:hover { background: var(--border-slate-100); color: #0f172a; }
         .pc-title {
-          font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+          font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 12px; min-width: 0; }
@@ -741,11 +783,11 @@ export default function DocumentRepositoryPage() {
 
         .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
         .pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
-        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-700); }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #334155; }
         .pc-foot-key { font-size: 11px; font-weight: 600; color: var(--text-slate-400); }
         .pc-foot-div { width: 1px; height: 12px; background: var(--border-slate-200); }
 
-        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
         .pp-segmented button {
           width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
@@ -756,7 +798,7 @@ export default function DocumentRepositoryPage() {
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           font-size: 15px;
           line-height: 1.7;
-          color: var(--text-slate-900);
+          color: #0f172a;
         }
         .preview-paper-content p {
           margin-bottom: 1em;
@@ -766,21 +808,21 @@ export default function DocumentRepositoryPage() {
           font-weight: 700 !important;
           margin-top: 1.2em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-900) !important;
+          color: #0f172a !important;
         }
         .preview-paper-content h2 {
           font-size: 1.4em !important;
           font-weight: 600 !important;
           margin-top: 1.2em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-900) !important;
+          color: #0f172a !important;
         }
         .preview-paper-content h3 {
           font-size: 1.2em !important;
           font-weight: 600 !important;
           margin-top: 1em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-700) !important;
+          color: #334155 !important;
         }
         .preview-paper-content h4,
         .preview-paper-content h5,
@@ -789,7 +831,7 @@ export default function DocumentRepositoryPage() {
           font-weight: 600 !important;
           margin-top: 1em !important;
           margin-bottom: 0.5em !important;
-          color: var(--text-slate-700) !important;
+          color: #334155 !important;
         }
         .preview-paper-content strong,
         .preview-paper-content b {
@@ -812,7 +854,7 @@ export default function DocumentRepositoryPage() {
         .preview-paper-content td,
         .preview-paper-content th {
           min-width: 1em;
-          border: 1px solid var(--border-slate-200);
+          border: 1px solid #cbd5e1;
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -821,7 +863,7 @@ export default function DocumentRepositoryPage() {
         .preview-paper-content th {
           font-weight: 600 !important;
           text-align: left;
-          background-color: var(--border-slate-100);
+          background-color: #f1f5f9;
         }
         .preview-paper-content ul,
         .preview-paper-content ol {

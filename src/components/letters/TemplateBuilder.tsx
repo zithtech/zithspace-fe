@@ -17,11 +17,12 @@ import {
   AlertCircle,
   Clock,
   RotateCcw,
+  Eye,
 } from 'lucide-react';
 import LetterTiptapEditor from './LetterTiptapEditor';
 import { LettersService, DocumentTemplate, DocumentCategory, TemplatePlaceholder, TemplateVersion, DocumentStructure } from '@/services/lettersService';
 import { toast } from 'react-hot-toast';
-import { Modal, Radio } from 'antd';
+import { Modal, Radio, Drawer, Button } from 'antd';
 
 interface TemplateBuilderProps {
   templateId?: string;
@@ -37,6 +38,10 @@ const DEFAULT_PLACEHOLDERS: Array<{ key: string; label: string; dataType: string
   { key: 'reporting_manager', label: 'Reporting Manager', dataType: 'string' },
   { key: 'current_date', label: 'Current Date', dataType: 'date' },
   { key: 'company_name', label: 'Company Name', dataType: 'string' },
+  { key: 'company_address', label: 'Company Address', dataType: 'string' },
+  { key: 'company_mail', label: 'Company Mail', dataType: 'string' },
+  { key: 'company_phone', label: 'Company Phone', dataType: 'string' },
+  { key: 'company_location', label: 'Company Location', dataType: 'string' },
 ];
 
 const getSalaryStructureTableHtml = (): string => {
@@ -45,11 +50,11 @@ const getSalaryStructureTableHtml = (): string => {
     `<table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13px; text-align: left; background: #ffffff;">` +
     `<thead>` +
     `<tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1; color: #475569;">` +
-    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1;">SALARY COMPONENT</th>` +
-    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1;">CALCULATION TYPE</th>` +
+    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1;">COMPONENT</th>` +
+    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1;">TYPE</th>` +
     `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1;">PERCENTAGE</th>` +
-    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1; text-align: right;">MONTHLY AMOUNT</th>` +
-    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1; text-align: right;">ANNUAL AMOUNT</th>` +
+    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1; text-align: right;">MONTHLY</th>` +
+    `<th style="padding: 10px 14px; font-weight: 600; border: 1px solid #cbd5e1; text-align: right;">ANNUAL</th>` +
     `</tr>` +
     `</thead>` +
     `<tbody>` +
@@ -112,7 +117,7 @@ const getSalaryStructureTableHtml = (): string => {
     `</tr>` +
     `<tr style="background-color: #e2e8f0; font-weight: 800; color: #0f172a; border-top: 2px solid #94a3b8;">` +
     `<td colspan="3" style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; text-transform: uppercase;">Total CTC</td>` +
-    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; color: #10b981;">✓ Balanced (₹10,000)</td>` +
+    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; color: #10b981;">₹10,000 / mon</td>` +
     `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; font-size: 15px;">₹1,20,000 / yr</td>` +
     `</tr>` +
     `</tfoot>` +
@@ -270,6 +275,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
   // Right Drawer Tab State
   const [activeTab, setActiveTab] = useState<'placeholders' | 'layout' | 'history'>('placeholders');
+  const [isPreviewDrawerOpen, setIsPreviewDrawerOpen] = useState(false);
 
   // Page Settings State
   const [pageConfig, setPageConfig] = useState<any>({
@@ -281,7 +287,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
     borderStyle: 'solid',
     borderColor: '#000000',
     headerHtml: '',
-    footerHtml: ''
+    footerHtml: '<div style="border-top: 1px solid #cbd5e1; padding-top: 8px; text-align: right; font-size: 11px; color: #64748b;">Page <span class="pageNumber" style="font-weight: bold; color: #64748b;">[Page #]</span></div>'
   });
 
   // Custom Placeholders State
@@ -409,16 +415,21 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
   const handleInsertHeaderLayout = (type: 'left-details' | 'left-logo' | 'top-logo') => {
     let html = '';
-    const logoPlaceholder = '<img src="" alt="[Insert Logo Here]" style="max-height: 60px;" />';
-    const companyDetails = '<p style="margin: 0; font-weight: bold; font-size: 16px;"><span data-placeholder-key="company_name" style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 500; border: 1px solid #7dd3fc; display: inline-block;">{{Company Name}}</span></p><p style="margin: 0;">123 Business Road, City, Country</p><p style="margin: 0;">contact@company.com | +1 234 567 890</p>';
-    const companyDetailsCenter = '<p style="margin: 0; font-weight: bold; font-size: 16px; text-align: center;"><span data-placeholder-key="company_name" style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 500; border: 1px solid #7dd3fc; display: inline-block;">{{Company Name}}</span></p><p style="margin: 0; text-align: center;">123 Business Road, City, Country | contact@company.com | +1 234 567 890</p>';
+    const logoPlaceholder = '<button data-type="logo-upload"></button>';
+    const ph = (k: string, l: string) => `<span data-placeholder-key="${k}" style="background: #e0f2fe; color: #0369a1; padding: 0px 4px; border-radius: 4px; font-weight: 500; border: 1px solid #7dd3fc; display: inline-block; line-height: 1.2;">{{${l}}}</span>`;
+
+    const companyDetails = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0 0 2px 0; line-height: 1.2;">${ph('company_address', 'Company Address')}</p><p style="margin: 0; line-height: 1.2;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
+
+    const companyDetailsRight = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; text-align: right; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0 0 2px 0; text-align: right; line-height: 1.2;">${ph('company_address', 'Company Address')}</p><p style="margin: 0; text-align: right; line-height: 1.2;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
+
+    const companyDetailsCenter = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; text-align: center; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0; text-align: center; line-height: 1.2;">${ph('company_address', 'Company Address')} | ${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
 
     if (type === 'left-details') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 20px;"><tr><td style="border: none; text-align: left; vertical-align: top; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
     } else if (type === 'left-logo') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 20px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: top; width: 70%;"><p style="margin: 0; font-weight: bold; font-size: 16px; text-align: right;"><span data-placeholder-key="company_name" style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 500; border: 1px solid #7dd3fc; display: inline-block;">{{Company Name}}</span></p><p style="margin: 0; text-align: right;">123 Business Road, City, Country</p><p style="margin: 0; text-align: right;">contact@company.com | +1 234 567 890</p></td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 70%;">${companyDetailsRight}</td></tr></table>`;
     } else if (type === 'top-logo') {
-      html = `<div style="text-align: center; margin-bottom: 20px;"><p style="margin: 0 0 10px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
+      html = `<div style="text-align: center; margin-bottom: 2px;"><p style="margin: 0 0 10px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
     }
 
     if (pageConfig.headerHtml && pageConfig.headerHtml.trim() !== '' && pageConfig.headerHtml.trim() !== '<p></p>') {
@@ -536,14 +547,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
     <div className="template-builder-container" style={{ padding: '20px 28px 40px' }}>
       {/* Top Navigation Bar */}
       <div
+        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#ffffff',
           padding: '16px 24px',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          borderWidth: '1px',
+          borderStyle: 'solid',
           marginBottom: '24px',
           gap: '16px',
           flexWrap: 'wrap',
@@ -553,18 +565,18 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
           <Link
             href="/letters-docs/templates"
+            className="text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              color: '#64748b',
               textDecoration: 'none',
               fontWeight: 600,
               fontSize: '14px',
               padding: '8px 12px',
               borderRadius: '8px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              borderWidth: '1px',
+              borderStyle: 'solid',
             }}
           >
             <ArrowLeft size={16} />
@@ -581,13 +593,13 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                 if (saveError) setSaveError(null);
               }}
               placeholder="Enter Template Title..."
+              className={`text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 ${nameError ? 'bg-red-50 dark:bg-red-900/20' : 'bg-transparent'}`}
               style={{
                 width: '100%',
                 fontSize: '18px',
                 fontWeight: 700,
-                color: nameError ? '#dc2626' : '#1e293b',
+                color: nameError ? '#dc2626' : undefined,
                 border: 'none',
-                background: nameError ? '#fef2f2' : 'transparent',
                 outline: 'none',
                 padding: '4px 8px',
                 borderRadius: '6px',
@@ -597,7 +609,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
               onBlur={(e) => (e.target.style.borderBottom = nameError ? '2px solid #dc2626' : '2px solid transparent')}
             />
             {nameError && (
-              <div style={{ position: 'absolute', top: '100%', left: '4px', color: '#dc2626', fontSize: '12px', fontWeight: 600, marginTop: '4px', background: '#fef2f2', padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50" style={{ position: 'absolute', top: '100%', left: '4px', fontSize: '12px', fontWeight: 600, marginTop: '4px', padding: '4px 10px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '14px' }}>⚠️</span>
                 {nameError}
               </div>
@@ -605,7 +617,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           </div>
           {/* {(user?.role?.toUpperCase() === 'SUPER_ADMIN' || user?.role?.toLowerCase() === 'super_admin') && ( */}
           {user?.tenantId === 'b85c1b5b-77a3-4281-9147-51d6bd3ee94d' && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: '#334155', cursor: 'pointer', marginLeft: '12px' }}>
+            <label className="text-slate-700 dark:text-slate-300" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', marginLeft: '12px' }}>
               <input
                 type="checkbox"
                 checked={isGlobal}
@@ -615,6 +627,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
               Set as Global Template
             </label>
           )}
+
+          <Button
+            type="default"
+            icon={<Eye size={16} />}
+            onClick={() => setIsPreviewDrawerOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '16px' }}
+          >
+            Preview
+          </Button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -671,14 +692,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
       {/* Global Validation Error Banner */}
       {saveError && !isVersionModalOpen && (
-        <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#dc2626', fontSize: '14px', fontWeight: 600 }}>
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50" style={{ borderBottomWidth: '1px', borderBottomStyle: 'solid', padding: '10px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '16px' }}>⚠️</span>
             <span>{saveError}</span>
           </div>
           <button
             onClick={() => setSaveError(null)}
-            style={{ background: 'transparent', border: 'none', color: '#dc2626', fontWeight: 700, cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
+            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            style={{ background: 'transparent', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
           >
             ✕
           </button>
@@ -689,7 +711,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '24px', alignItems: 'start' }}>
         {/* Left: Tiptap Editor */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b' }}>
+          <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400" style={{ padding: '12px 16px', borderRadius: '10px', borderWidth: '1px', borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
             <Sparkles size={16} style={{ color: '#f59e0b' }} />
             <span>
               Tip: Use the placeholder drawer on the right to insert dynamic employee fields (like <code>{"{{Employee Name}}"}</code>).
@@ -707,21 +729,20 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
         </div>
 
         {/* Right: Tabbed Drawer */}
-        <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+        <div className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800" style={{ borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
           {/* Drawer Tabs Header */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+          <div className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800" style={{ display: 'flex', borderBottomWidth: '1px', borderBottomStyle: 'solid' }}>
             <button
               onClick={() => setActiveTab('placeholders')}
+              className={`transition-colors ${activeTab === 'placeholders' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               style={{
                 flex: 1,
                 padding: '14px',
                 border: 'none',
-                background: activeTab === 'placeholders' ? '#ffffff' : 'transparent',
-                color: activeTab === 'placeholders' ? '#2563eb' : '#64748b',
                 fontWeight: activeTab === 'placeholders' ? 700 : 500,
                 fontSize: '13px',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'placeholders' ? '2px solid #2563eb' : '2px solid transparent',
+                borderBottom: activeTab === 'placeholders' ? '2px solid #3b82f6' : '2px solid transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -733,16 +754,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
             </button>
             <button
               onClick={() => setActiveTab('layout')}
+              className={`transition-colors ${activeTab === 'layout' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               style={{
                 flex: 1,
                 padding: '14px',
                 border: 'none',
-                background: activeTab === 'layout' ? '#ffffff' : 'transparent',
-                color: activeTab === 'layout' ? '#2563eb' : '#64748b',
                 fontWeight: activeTab === 'layout' ? 700 : 500,
                 fontSize: '13px',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'layout' ? '2px solid #2563eb' : '2px solid transparent',
+                borderBottom: activeTab === 'layout' ? '2px solid #3b82f6' : '2px solid transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -754,16 +774,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
             </button>
             <button
               onClick={() => setActiveTab('history')}
+              className={`transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
               style={{
                 flex: 1,
                 padding: '14px',
                 border: 'none',
-                background: activeTab === 'history' ? '#ffffff' : 'transparent',
-                color: activeTab === 'history' ? '#2563eb' : '#64748b',
                 fontWeight: activeTab === 'history' ? 700 : 500,
                 fontSize: '13px',
                 cursor: 'pointer',
-                borderBottom: activeTab === 'history' ? '2px solid #2563eb' : '2px solid transparent',
+                borderBottom: activeTab === 'history' ? '2px solid #3b82f6' : '2px solid transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -788,44 +807,48 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Border Width</label>
+                    <label className="text-slate-600 dark:text-slate-300" style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Border Width</label>
                     <input
                       type="text"
                       value={pageConfig.borderWidth}
-                      onChange={(e) => setPageConfig({ ...pageConfig, borderWidth: e.target.value })}
+                      onChange={(e) => setPageConfig((prev: any) => ({ ...prev, borderWidth: e.target.value }))}
                       placeholder="e.g. 4px or 0"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', fontSize: '13px' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Border Color</label>
+                    <label className="text-slate-600 dark:text-slate-300" style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Border Color</label>
                     <input
                       type="color"
                       value={pageConfig.borderColor}
-                      onChange={(e) => setPageConfig({ ...pageConfig, borderColor: e.target.value })}
-                      style={{ width: '100%', height: '36px', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                      onChange={(e) => setPageConfig((prev: any) => ({ ...prev, borderColor: e.target.value }))}
+                      className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600"
+                      style={{ width: '100%', height: '36px', padding: '2px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', cursor: 'pointer' }}
                     />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Top Margin (for tall headers)</label>
+                    <label className="text-slate-600 dark:text-slate-300" style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Top Margin (for tall headers)</label>
                     <input
                       type="text"
                       value={pageConfig.marginTop || '20mm'}
-                      onChange={(e) => setPageConfig({ ...pageConfig, marginTop: e.target.value })}
+                      onChange={(e) => setPageConfig((prev: any) => ({ ...prev, marginTop: e.target.value }))}
                       placeholder="e.g. 40mm"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', fontSize: '13px' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Bottom Margin (for tall footers)</label>
+                    <label className="text-slate-600 dark:text-slate-300" style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Bottom Margin (for tall footers)</label>
                     <input
                       type="text"
                       value={pageConfig.marginBottom || '20mm'}
-                      onChange={(e) => setPageConfig({ ...pageConfig, marginBottom: e.target.value })}
+                      onChange={(e) => setPageConfig((prev: any) => ({ ...prev, marginBottom: e.target.value }))}
                       placeholder="e.g. 40mm"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', fontSize: '13px' }}
                     />
                   </div>
                 </div>
@@ -873,7 +896,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                   </div>
                   <LetterTiptapEditor
                     content={pageConfig.headerHtml}
-                    onChange={(html) => setPageConfig({ ...pageConfig, headerHtml: html })}
+                    onChange={(html) => setPageConfig((prev: any) => ({ ...prev, headerHtml: html }))}
                     minHeight={150}
                   />
                 </div>
@@ -881,7 +904,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Footer Content (Repeats on Bottom)</label>
                   <LetterTiptapEditor
                     content={pageConfig.footerHtml}
-                    onChange={(html) => setPageConfig({ ...pageConfig, footerHtml: html })}
+                    onChange={(html) => setPageConfig((prev: any) => ({ ...prev, footerHtml: html }))}
                     minHeight={150}
                   />
                   <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
@@ -908,23 +931,22 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                     key={p.key}
                     type="button"
                     onClick={() => handleInsertPlaceholder(p.key, p.label)}
+                    className="bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border-sky-100 dark:border-sky-800/50 hover:bg-sky-100 dark:hover:bg-sky-800/50 transition-colors"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      border: '1px solid #e0f2fe',
-                      background: '#f0f9ff',
-                      color: '#0369a1',
+                      borderWidth: '1px',
+                      borderStyle: 'solid',
                       fontWeight: 600,
                       fontSize: '13px',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'all 0.15s',
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = '#e0f2fe')}
-                    onMouseOut={(e) => (e.currentTarget.style.background = '#f0f9ff')}
+                    onMouseOver={(e) => { }}
+                    onMouseOut={(e) => { }}
                   >
                     <span>{p.label}</span>
                     <span style={{ fontSize: '11px', opacity: 0.7, fontFamily: 'monospace' }}>{"{{" + p.key + "}}"}</span>
@@ -942,15 +964,15 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                       key={p.key}
                       type="button"
                       onClick={() => handleInsertPlaceholder(p.key, p.label)}
+                      className="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-100 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-800/50 transition-colors"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '8px 12px',
                         borderRadius: '8px',
-                        border: '1px solid #f3e8ff',
-                        background: '#faf5ff',
-                        color: '#6b21a8',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
                         fontWeight: 600,
                         fontSize: '13px',
                         cursor: 'pointer',
@@ -965,8 +987,8 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
               )}
 
               {/* Add Custom Placeholder Form */}
-              <form onSubmit={handleAddCustomPlaceholder} style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <form onSubmit={handleAddCustomPlaceholder} className="bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700" style={{ padding: '14px', borderRadius: '10px', borderWidth: '1px', borderStyle: 'solid' }}>
+                <div className="text-slate-700 dark:text-slate-300" style={{ fontSize: '12px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Plus size={14} /> Add Custom Field
                 </div>
                 <input
@@ -974,14 +996,16 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                   placeholder="Label (e.g. Bonus Amount)"
                   value={newLabel}
                   onChange={(e) => setNewLabel(e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', marginBottom: '6px' }}
+                  className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', fontSize: '13px', marginBottom: '6px' }}
                 />
                 <input
                   type="text"
                   placeholder="Key (optional, e.g. bonus_amount)"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
-                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', fontFamily: 'monospace', marginBottom: '10px' }}
+                  className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500"
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', borderWidth: '1px', borderStyle: 'solid', fontSize: '12px', fontFamily: 'monospace', marginBottom: '10px' }}
                 />
                 <button
                   type="submit"
@@ -1016,15 +1040,16 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
                   {versions.map((ver) => (
                     <div
                       key={ver.id}
+                      className={ver.versionNumber === currentVersion ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}
                       style={{
                         padding: '12px',
                         borderRadius: '8px',
-                        border: ver.versionNumber === currentVersion ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-                        background: ver.versionNumber === currentVersion ? '#eff6ff' : '#ffffff',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '14px', color: ver.versionNumber === currentVersion ? '#2563eb' : '#1e293b' }}>
+                        <span className={ver.versionNumber === currentVersion ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'} style={{ fontWeight: 700, fontSize: '14px' }}>
                           Version {ver.versionNumber}
                         </span>
                         {ver.versionNumber === currentVersion && (
@@ -1187,6 +1212,61 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           )}
         </div>
       </Modal>
+
+      <Drawer
+        title="Document Preview"
+        placement="right"
+        width={900}
+        onClose={() => setIsPreviewDrawerOpen(false)}
+        open={isPreviewDrawerOpen}
+        bodyStyle={{ background: '#f1f5f9', padding: '40px 24px', overflowY: 'auto' }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+          {editorContent.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map((pageContent, index) => (
+            <div key={index} className="preview-paper-content force-light-theme" style={{
+              width: '210mm',
+              minHeight: '297mm',
+              background: '#ffffff',
+              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+              paddingTop: pageConfig.marginTop || '20mm',
+              paddingRight: pageConfig.marginRight || '20mm',
+              paddingBottom: pageConfig.marginBottom || '20mm',
+              paddingLeft: pageConfig.marginLeft || '20mm',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              borderWidth: pageConfig.borderWidth || '0px',
+              borderStyle: pageConfig.borderStyle || 'solid',
+              borderColor: pageConfig.borderColor || '#000000',
+            }}>
+              {/* Header */}
+              {pageConfig.headerHtml && (
+                <div
+                  style={{ width: '100%', marginBottom: '2px' }}
+                  dangerouslySetInnerHTML={{ __html: pageConfig.headerHtml }}
+                />
+              )}
+
+              {/* Body Content */}
+              <div className="letter-tiptap-content" style={{ flex: 1 }}>
+                <div
+                  className="ProseMirror"
+                  style={{ outline: 'none', padding: 0 }}
+                  dangerouslySetInnerHTML={{ __html: pageContent }}
+                />
+              </div>
+
+              {/* Footer */}
+              {pageConfig.footerHtml && (
+                <div
+                  style={{ width: '100%', marginTop: '4px' }}
+                  dangerouslySetInnerHTML={{ __html: pageConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </Drawer>
     </div>
   );
 }

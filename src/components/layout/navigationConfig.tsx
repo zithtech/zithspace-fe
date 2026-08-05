@@ -197,7 +197,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -577,6 +577,23 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/bidiq",
         requiredPermission: Permissions.BIDIQ_READ,
       },
+      {
+        key: "qa-workspace",
+        label: "QA Workspace",
+        icon: I(Bug),
+        requiredAnyPermission: [
+          Permissions.BUG_READ,
+        ],
+        children: [
+          {
+            key: "/qa-workspace/test-scope",
+            label: "Test Scope",
+            icon: I(ListChecks),
+            path: "/qa-workspace/test-scope",
+            requiredPermission: Permissions.BUG_READ,
+          },
+        ],
+      },
     ],
   },
   {
@@ -736,6 +753,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/openings",
+      "/letters-docs",
+      "/pipeline",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -748,6 +768,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.OPENING_READ,
       Permissions.EXIT_READ,
       Permissions.ONBOARDING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -760,6 +783,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ONBOARDING_READ,
       Permissions.EXIT_READ,
       Permissions.OPENING_READ,
+      Permissions.LETTER_TEMPLATE_READ,
+      Permissions.LETTER_READ,
+      Permissions.RECRUITMENT_READ,
     ],
 
     items: [
@@ -826,25 +852,54 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.PERFORMANCE_REPORT_SETTING_UPDATE,
         ],
       },
-
-/* {
-        key: "employee-exit",
-        label: "Employee Exit",
-        icon: I(LogOut),
-        path: "/employee-exit/my-requests",
+      {
+        key: "/letters-docs",
+        icon: I(FileText),
+        label: "Doc Suite",
+        path: "/letters-docs/templates",
         requiredAnyPermission: [
-          Permissions.EXIT_MANAGE,
-          Permissions.EXIT_READ,
-          Permissions.EXIT_CONFIG_READ
+          Permissions.LETTER_TEMPLATE_READ,
+          Permissions.LETTER_READ,
         ],
       },
       {
-        key: "/opening-management",
-        label: "Opening Management",
+        key: "/pipeline",
+        icon: I(Users),
+        label: "Recruitment Pipeline",
+        path: "/pipeline/candidates",
+        requiredAnyPermission: [
+          Permissions.RECRUITMENT_READ,
+        ],
+      },
+      {
+        key: "/openings",
         icon: I(Megaphone),
-        path: "/opening-management",
-        requiredPermission: Permissions.OPENING_READ,
-      }, */
+        label: "Openings",
+        path: "/openings/dashboard",
+        requiredAnyPermission: [
+          Permissions.OPENING_READ,
+          Permissions.OPENING_MANAGE,
+        ],
+      },
+
+      /* {
+              key: "employee-exit",
+              label: "Employee Exit",
+              icon: I(LogOut),
+              path: "/employee-exit/my-requests",
+              requiredAnyPermission: [
+                Permissions.EXIT_MANAGE,
+                Permissions.EXIT_READ,
+                Permissions.EXIT_CONFIG_READ
+              ],
+            },
+            {
+              key: "/opening-management",
+              label: "Opening Management",
+              icon: I(Megaphone),
+              path: "/opening-management",
+              requiredPermission: Permissions.OPENING_READ,
+            }, */
     ],
   },
   {

@@ -1,0 +1,32 @@
+export const EDUCATION_OPTIONS = [
+  'B.E / B.Tech',
+  'B.Sc',
+  'BCA',
+  'M.E / M.Tech',
+  'MCA',
+  'M.Sc',
+  'BBA / BBM',
+  'MBA / PGDM',
+  'Any Graduate',
+  'Any Post Graduate',
+  'Ph.D',
+  'Diploma',
+].map(l => ({ label: l, value: l }));
+
+export const CERTIFICATION_OPTIONS = [
+  'AWS Certified Solutions Architect',
+  'AWS Certified Developer',
+  'AWS Certified Cloud Practitioner',
+  'Microsoft Certified: Azure Fundamentals',
+  'Microsoft Certified: Azure Developer Associate',
+  'Google Cloud Professional Cloud Architect',
+  'Google Cloud Associate Cloud Engineer',
+  'Certified ScrumMaster (CSM)',
+  'Project Management Professional (PMP)',
+  'ITIL Foundation',
+  'CISSP',
+  'CEH (Certified Ethical Hacker)',
+  'CompTIA Security+',
+  'Cisco Certified Network Associate (CCNA)',
+  'Salesforce Certified Administrator',
+].map(l => ({ label: l, value: l }));

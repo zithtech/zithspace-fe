@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Progress, Dropdown, message, Input, Modal, Drawer, Select, Row, Col, Typography, Space } from "antd";
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, StopOutlined, MinusCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SnippetsOutlined } from "@ant-design/icons";
@@ -45,7 +45,7 @@ function initialsOf(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export default function TestRunsPage() {
+function TestRunsContent() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestRuns" });
 
   const searchParams = useSearchParams();
@@ -727,5 +727,13 @@ export default function TestRunsPage() {
         )}
       </Drawer>
     </MainLayout>
+  );
+}
+
+export default function TestRunsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading test runs...</div>}>
+      <TestRunsContent />
+    </Suspense>
   );
 }

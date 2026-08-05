@@ -5,7 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Input, Modal, Select, Checkbox, Row, Col, Typography, Drawer, Form } from "antd";
 import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, FolderOutlined, InfoCircleOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Layers, Trash2, Pencil, Folder } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
@@ -47,7 +47,6 @@ function initialsOf(name: string) {
 export default function TestSuitesPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestSuites" });
 
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("suites");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');

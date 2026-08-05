@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip, Result, Empty, Table, Tag, Row, Col, Typography, Checkbox, message, Modal, Input, Popconfirm, Form, Select, Drawer, Tabs, Dropdown } from "antd";
 import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined } from "@ant-design/icons";
@@ -83,7 +83,7 @@ const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: any; titl
   </div>
 );
 
-export default function TestScopePage() {
+function TestScopeContent() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestScope" });
 
   const searchParams = useSearchParams();
@@ -1196,5 +1196,13 @@ export default function TestScopePage() {
         }
       `}} />
     </MainLayout>
+  );
+}
+
+export default function TestScopePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading test scopes...</div>}>
+      <TestScopeContent />
+    </Suspense>
   );
 }

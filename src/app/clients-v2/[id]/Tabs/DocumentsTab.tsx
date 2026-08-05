@@ -591,7 +591,7 @@ export default function DocumentsTab({
         { responseType: "blob" }
       );
 
-      const blob = new Blob([response.data], { type: response.headers["content-type"] });
+      const blob = new Blob([response.data], { type: response.headers["content-type"]?.toString() });
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = blobUrl;

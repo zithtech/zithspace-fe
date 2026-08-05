@@ -67,7 +67,7 @@ export default function CreateScopePage() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const router = useRouter();
-  const { canReadBug } = usePermission();
+  const { canUpdateScope } = usePermission();
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
 
@@ -167,7 +167,7 @@ export default function CreateScopePage() {
   });
 
   useEffect(() => {
-    if (!isLoading && canReadBug && id) {
+    if (!isLoading && canUpdateScope && id) {
       fetchSprintsSearch("");
       fetchDevTicketsSearch("");
       fetchBugSheetsSearch("");
@@ -175,7 +175,7 @@ export default function CreateScopePage() {
       fetchScopeSettings();
       fetchScopeData();
     }
-  }, [isLoading, canReadBug, id]);
+  }, [isLoading, canUpdateScope, id]);
 
   const fetchScopeData = async () => {
     try {
@@ -327,7 +327,7 @@ export default function CreateScopePage() {
   );
 
   if (isLoading) return null;
-  if (!canReadBug) return <div>Unauthorized</div>;
+  if (!canUpdateScope) return <div>Unauthorized</div>;
 
   const updateRoot = (field: string, val: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: val }));

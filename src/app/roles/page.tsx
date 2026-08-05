@@ -79,6 +79,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   user: "Users / Members",
   project: "Projects",
   ticket: "Tickets",
+  qa: "QA Space",
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
@@ -249,7 +250,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
@@ -332,7 +333,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
   },
   {
     title: "HRMS",
@@ -681,12 +682,12 @@ export default function RolesPage() {
     try {
       const { grouped } = await RBACService.listPermissions();
 
-      // Merge 'bug' permissions into 'ticket'
-      if (grouped.bug && grouped.ticket) {
-        grouped.ticket = [...grouped.ticket, ...grouped.bug];
+      // Merge 'bug' permissions into 'qa'
+      if (grouped.bug && grouped.qa) {
+        grouped.qa = [...grouped.qa, ...grouped.bug];
         delete grouped.bug;
-      } else if (grouped.bug && !grouped.ticket) {
-        grouped.ticket = grouped.bug;
+      } else if (grouped.bug && !grouped.qa) {
+        grouped.qa = grouped.bug;
         delete grouped.bug;
       }
 

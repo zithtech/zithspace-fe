@@ -96,7 +96,7 @@ export default function TestScopePage() {
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
 
-  const { canReadBug } = usePermission();
+  const { canReadScope, canCreateScope } = usePermission();
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -112,7 +112,7 @@ export default function TestScopePage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!isLoading && canReadBug) {
+    if (!isLoading && canReadScope) {
       fetchScopes();
       fetchScopeSettings();
       axios.get("/api/release-plans").then((res: any) => {
@@ -122,7 +122,7 @@ export default function TestScopePage() {
         setSprintsMap(map);
       }).catch(console.error);
     }
-  }, [isLoading, canReadBug]);
+  }, [isLoading, canReadScope]);
 
   const fetchScopes = async () => {
     try {
@@ -328,7 +328,7 @@ export default function TestScopePage() {
 
   if (isLoading) return null;
 
-  if (!canReadBug) {
+  if (!canReadScope) {
     return (
       <MainLayout>
         <div style={{ padding: "100px 0", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>
@@ -656,12 +656,12 @@ export default function TestScopePage() {
                 <BugOutlined />
               </div>
               <div className="pp-side-head-text">
-                <h1 className="pp-side-title">Test Scope</h1>
-                <p className="pp-side-subtitle">QA Workspace</p>
+                <h1 className="pp-side-title">Scope</h1>
+                <p className="pp-side-subtitle">QA Space</p>
               </div>
             </div>
 
-            {canReadBug && (
+            {canCreateScope && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

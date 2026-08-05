@@ -73,6 +73,9 @@ export default function OpeningsListPanel({
   const [priority, setPriority] = useState<OpeningPriority[]>([]);
   const [employmentType, setEmploymentType] = useState<EmploymentType[]>([]);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
+  const [recruiters, setRecruiters] = useState<string[]>([]);
+  const [experience, setExperience] = useState<string[]>([]);
+  const [jobTitles, setJobTitles] = useState<string[]>([]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -98,6 +101,9 @@ export default function OpeningsListPanel({
         priority: priority.length ? priority : undefined,
         employmentType: employmentType.length ? employmentType : undefined,
         departmentId: departmentId || undefined,
+        recruiters: recruiters.length ? recruiters : undefined,
+        experience: experience.length ? experience : undefined,
+        jobTitles: jobTitles.length ? jobTitles : undefined,
         archived: archived ? 'only' : 'exclude',
       });
       setRows(res.items);
@@ -113,7 +119,7 @@ export default function OpeningsListPanel({
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debouncedSearch, status, priority, employmentType, departmentId, archived]);
+  }, [page, pageSize, debouncedSearch, status, priority, employmentType, departmentId, recruiters, experience, jobTitles, archived]);
 
   useEffect(() => {
     load();
@@ -287,7 +293,7 @@ export default function OpeningsListPanel({
   }, [archived, perms.canDeleteOpening, perms.canManageOpenings]);
 
   const activeFilters =
-    status.length + priority.length + employmentType.length + (departmentId ? 1 : 0);
+    status.length + priority.length + employmentType.length + recruiters.length + experience.length + jobTitles.length + (departmentId ? 1 : 0);
 
   /**
    * Tiles are derived from the status summary and differ by view: the working
@@ -460,7 +466,52 @@ export default function OpeningsListPanel({
           placeholder="Department"
           itemNoun="departments"
           loading={reference.loading}
-          width={260}
+          width={240}
+          style={{ minWidth: 160 }}
+        />
+        <SearchableDropdown
+          mode="multiple"
+          value={recruiters}
+          onChange={(v: any) => {
+            setRecruiters(v ?? []);
+            setPage(1);
+          }}
+          options={reference.people}
+          placeholder="Recruiters"
+          itemNoun="recruiters"
+          width={240}
+          style={{ minWidth: 160 }}
+        />
+        <SearchableDropdown
+          mode="multiple"
+          value={experience}
+          onChange={(v: any) => {
+            setExperience(v ?? []);
+            setPage(1);
+          }}
+          options={[
+            { label: '0 - 2 Years', value: '0-2' },
+            { label: '3 - 5 Years', value: '3-5' },
+            { label: '5+ Years', value: '5+' },
+          ]}
+          placeholder="Experience"
+          itemNoun="ranges"
+          hideAvatar
+          width={200}
+          style={{ minWidth: 150 }}
+        />
+        <SearchableDropdown
+          mode="multiple"
+          value={jobTitles}
+          onChange={(v: any) => {
+            setJobTitles(v ?? []);
+            setPage(1);
+          }}
+          options={Array.from(new Set([...rows.map(r => r.jobTitle), ...jobTitles])).filter(Boolean).map(t => ({ label: t, value: t }))}
+          placeholder="Position"
+          itemNoun="positions"
+          hideAvatar
+          width={240}
           style={{ minWidth: 160 }}
         />
         {activeFilters > 0 && (
@@ -472,6 +523,9 @@ export default function OpeningsListPanel({
               setPriority([]);
               setEmploymentType([]);
               setDepartmentId(null);
+              setRecruiters([]);
+              setExperience([]);
+              setJobTitles([]);
               setPage(1);
             }}
           >

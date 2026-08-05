@@ -40,6 +40,9 @@ export default function CandidatesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editCandidate, setEditCandidate] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [expFilter, setExpFilter] = useState<string>("all");
   const { canCreateRecruitment, canUpdateRecruitment, canDeleteRecruitment } = usePermission();
 
   const fetchCandidates = async () => {
@@ -217,6 +220,27 @@ export default function CandidatesPage() {
     }
   ];
 
+  const filteredCandidates = candidates.filter((c) => {
+    if (statusFilter !== 'all' && c.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (roleFilter !== 'all' && c.role?.toLowerCase() !== roleFilter.toLowerCase()) return false;
+    if (expFilter !== 'all') {
+      const exp = parseFloat(c.total_experience || '0');
+      if (expFilter === '0-2' && exp > 2) return false;
+      if (expFilter === '3-5' && (exp < 3 || exp > 5)) return false;
+      if (expFilter === '5+' && exp < 5) return false;
+    }
+    return true;
+  });
+
+  const roles = Array.from(new Set(candidates.map(c => c.role).filter(Boolean)));
+
+  const stats = [
+    { label: "Total Candidates", value: candidates.length, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
+    { label: "Interviewing", value: candidates.filter(c => c.status === 'Interviewing').length, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: "Offered", value: candidates.filter(c => c.status === 'Offered').length, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Rejected", value: candidates.filter(c => c.status === 'Rejected').length, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
+  ];
+
   return (
     <>
       <div className="pl-topbar">
@@ -264,13 +288,77 @@ export default function CandidatesPage() {
 
       <div className="pl-divider" />
 
+      <div className="pp-stats py-4">
+        {stats.map((s) => (
+          <div key={s.label} className="pp-stat-card">
+            <div className="pp-stat-top">
+              <div className="pp-stat-left">
+                <span className="pp-stat-icon" style={{ background: s.bg, color: s.color }}>
+                  <LayoutGrid size={12} />
+                </span>
+                <span className="pp-stat-label">{s.label}</span>
+              </div>
+            </div>
+            <div className="pp-stat-bottom">
+              <div className="pp-stat-value-wrap">
+                <span className="pp-stat-value">{s.value}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filters</div>
+        <div className="w-48">
+          <SearchableDropdown
+            value={statusFilter}
+            onChange={(val) => setStatusFilter(val)}
+            placeholder="All Statuses"
+            options={[
+              { label: 'All Statuses', value: 'all' },
+              { label: 'Interviewing', value: 'interviewing' },
+              { label: 'Offered', value: 'offered' },
+              { label: 'Onboarded', value: 'onboarded' },
+              { label: 'Rejected', value: 'rejected' },
+            ]}
+          />
+        </div>
+        
+        <div className="w-56">
+          <SearchableDropdown
+            value={roleFilter}
+            onChange={(val) => setRoleFilter(val)}
+            placeholder="All Roles"
+            options={[
+              { label: 'All Roles', value: 'all' },
+              ...roles.map(r => ({ label: r as string, value: r as string }))
+            ]}
+          />
+        </div>
+        
+        <div className="w-48">
+          <SearchableDropdown
+            value={expFilter}
+            onChange={(val) => setExpFilter(val)}
+            placeholder="Any Experience"
+            options={[
+              { label: 'Any Experience', value: 'all' },
+              { label: '0 - 2 Years', value: '0-2' },
+              { label: '3 - 5 Years', value: '3-5' },
+              { label: '5+ Years', value: '5+' },
+            ]}
+          />
+        </div>
+      </div>
+
       <div className="pl-body">
         {viewMode === "table" ? (
           <div className="pp-table-wrap">
             <Table
               size="small"
               columns={columns}
-              dataSource={candidates.map(c => ({ ...c, key: c.id }))}
+              dataSource={filteredCandidates.map(c => ({ ...c, key: c.id }))}
               loading={loading}
               pagination={false}
               className="pp-table"
@@ -290,10 +378,10 @@ export default function CandidatesPage() {
           <div className="pp-grid">
             {loading ? (
               <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
-            ) : candidates.length === 0 ? (
+            ) : filteredCandidates.length === 0 ? (
               <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
             ) : (
-              candidates.map((c) => {
+              filteredCandidates.map((c) => {
                 const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                 let statusColor = '#64748b'; // default slate
                 if (c.status === 'Interviewing') statusColor = '#3b82f6'; // blue
@@ -416,7 +504,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
 
   const selectedOpening = openings.find((o) => o.id === openingId) ?? null;
   // Skills lifted off the resume, and how well they line up with the opening.
-  const [resumeSkills, setResumeSkills] = useState<string[]>([]);
+  const [resumeSkills, setResumeSkills] = useState<string[]>(editCandidate?.skills || []);
   // Two distinct phases: the upload has a real percentage, the AI extraction
   // does not. Showing an invented percentage for the second would be a lie.
   const [uploadPhase, setUploadPhase] = useState<
@@ -426,6 +514,21 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
   const [isDragging, setIsDragging] = useState(false);
   const [match, setMatch] = useState<SkillMatchResult | null>(null);
   const [matching, setMatching] = useState(false);
+
+  useEffect(() => {
+    if (!openingId || resumeSkills.length === 0) {
+      setMatch(null);
+      return;
+    }
+    setMatching(true);
+    OpeningV2Service.skillMatch(openingId, resumeSkills)
+      .then(setMatch)
+      .catch((err) => {
+        console.error('Failed to score skills', err);
+        setMatch(null);
+      })
+      .finally(() => setMatching(false));
+  }, [openingId, resumeSkills]);
 
   const MAX_RESUME_MB = 10;
 
@@ -499,11 +602,12 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
     e.preventDefault();
     setError('');
     try {
+      const payload = { ...formData, skills: resumeSkills };
       let res;
       if (editCandidate) {
-        res = await pipelineClient.updateCandidate(editCandidate.id, formData);
+        res = await pipelineClient.updateCandidate(editCandidate.id, payload);
       } else {
-        res = await pipelineClient.createCandidate(formData);
+        res = await pipelineClient.createCandidate(payload);
       }
       if (res.success) {
         // Attaching is a second call: the pipeline owns the candidate record,

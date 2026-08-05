@@ -42,6 +42,8 @@ export interface SearchableDropdownProps {
   onChange?: (value: any) => void;
   options: SearchableDropdownOption[];
   placeholder?: string;
+  /** Instead of "N selected", render the selected items as visual tags. */
+  renderTags?: boolean;
   /** Small uppercase eyebrow above the value in the trigger (activity-page style). */
   triggerLabel?: string;
   searchPlaceholder?: string;
@@ -121,6 +123,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   showSelectedAvatar,
   getPopupContainer,
   emptyComponent,
+  renderTags,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -313,6 +316,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     open ? "is-open" : "",
     disabled ? "is-disabled" : "",
     triggerLabel ? "" : "is-compact",
+    renderTags ? "has-tags" : "",
     className || "",
   ]
     .filter(Boolean)
@@ -381,7 +385,33 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                   }
                 </div>
               )}
-              <span className="sd-trigger-value">{displayLabel}</span>
+              <span className="sd-trigger-value" style={{ flex: 1 }}>
+                {renderTags && mode === "multiple" && Array.isArray(value) && value.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 0', minWidth: 0 }}>
+                    {value.map(val => {
+                      const opt = options.find((o) => o.value === val);
+                      const label = opt ? opt.label : val;
+                      return (
+                        <span key={val} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: 'var(--bg-blue-50, #eff6ff)', color: 'var(--text-blue-600, #2563eb)', borderRadius: 4, fontSize: 12, border: '1px solid var(--border-blue-100, #dbeafe)' }}>
+                          <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                          <XIcon
+                            size={12}
+                            style={{ cursor: 'pointer', opacity: 0.6 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!disabled) onChange?.(value.filter(v => v !== val));
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
+                          />
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  displayLabel
+                )}
+              </span>
             </div>
           </div>
           {allowClear && (Array.isArray(value) ? value.length > 0 : !!value) ? (
@@ -422,6 +452,10 @@ const SEARCHABLE_DROPDOWN_CSS = `
   cursor: pointer;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
   user-select: none;
+}
+.sd-trigger.has-tags {
+  height: auto;
+  min-height: 42px;
 }
 .sd-trigger.is-compact {
   height: 30px;

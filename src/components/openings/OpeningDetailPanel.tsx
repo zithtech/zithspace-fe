@@ -22,10 +22,11 @@ import toast from 'react-hot-toast';
 
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, {
-  type OpeningApprovalState,
-  type OpeningDetail,
-  type OpeningStatusState,
+  OpeningApprovalState,
+  OpeningDetail,
+  OpeningStatusState,
 } from '@/services/openingV2Service';
+import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import {
   OpeningStyles,
   PALETTE,
@@ -42,7 +43,9 @@ import OverviewTab from './tabs/OverviewTab';
 import ApprovalsTab from './tabs/ApprovalsTab';
 import PostingsTab from './tabs/PostingsTab';
 import CandidatesTab from './tabs/CandidatesTab';
+import ReferralsTab from './tabs/ReferralsTab';
 import TimelineTab from './tabs/TimelineTab';
+import { RoundsTab } from './tabs/RoundsTab';
 
 // The lifecycle cockpit for one opening. The action bar is derived from server
 // state, never from a local guess: `allowedTransitions` comes from the Phase 3
@@ -61,6 +64,15 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
   const [editOpen, setEditOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [postInternalOpen, setPostInternalOpen] = useState(false);
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteValue, setNoteValue] = useState('');
+  const [noteModalConfig, setNoteModalConfig] = useState<{
+    title: string;
+    placeholder: string;
+    required: boolean;
+    action: (note: string) => Promise<unknown>;
+    successMessage: string;
+  } | null>(null);
   const [tab, setTab] = useState('overview');
 
   const load = useCallback(async () => {
@@ -108,28 +120,9 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
     action: (note: string) => Promise<unknown>,
     successMessage: string
   ) => {
-    let value = '';
-    Modal.confirm({
-      title,
-      icon: null,
-      content: (
-        <Input.TextArea
-          rows={3}
-          placeholder={placeholder}
-          onChange={(e) => {
-            value = e.target.value;
-          }}
-        />
-      ),
-      okText: 'Confirm',
-      onOk: async () => {
-        if (required && !value.trim()) {
-          toast.error('A note is required');
-          throw new Error('note required');
-        }
-        await run(() => action(value.trim()), successMessage);
-      },
-    });
+    setNoteModalConfig({ title, placeholder, required, action, successMessage });
+    setNoteValue('');
+    setNoteModalOpen(true);
   };
 
   if (loading && !opening) {
@@ -410,11 +403,23 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
           {primaryActions}
 
           {menuItems.length > 0 && (
-            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button>
-                More <ChevronDown size={13} />
-              </Button>
-            </Dropdown>
+            <SearchableDropdown
+              options={menuItems.filter(m => m.key).map(m => ({ value: m.key, label: m.label, disabled: m.disabled }))}
+              value={null}
+              onChange={(val) => {
+                toast.success(`Clicked: ${val}`);
+                const item = menuItems.find(m => m.key === val);
+                if (item?.onClick) {
+                  setTimeout(() => item.onClick(), 0);
+                }
+              }}
+              searchPlaceholder="Search actions..."
+              customTrigger={
+                <Button>
+                  More <ChevronDown size={13} />
+                </Button>
+              }
+            />
           )}
         </div>
       </div>
@@ -466,6 +471,16 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
             children: <CandidatesTab openingId={openingId} onChanged={load} />,
           },
           {
+            key: 'referrals',
+            label: 'Referrals',
+            children: <ReferralsTab openingId={openingId} />,
+          },
+          {
+            key: 'rounds',
+            label: 'Rounds',
+            children: <RoundsTab opening={opening} />,
+          },
+          {
             key: 'timeline',
             label: 'Timeline',
             children: <TimelineTab history={statusState.history} />,
@@ -502,6 +517,33 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
           load();
         }}
       />
+
+      <Modal
+        title={noteModalConfig?.title}
+        open={noteModalOpen}
+        onCancel={() => {
+          setNoteModalOpen(false);
+          setNoteModalConfig(null);
+        }}
+        okText="Confirm"
+        onOk={async () => {
+          if (!noteModalConfig) return;
+          if (noteModalConfig.required && !noteValue.trim()) {
+            toast.error('A note is required');
+            return;
+          }
+          setNoteModalOpen(false);
+          await run(() => noteModalConfig.action(noteValue.trim()), noteModalConfig.successMessage);
+        }}
+      >
+        <Input.TextArea
+          rows={3}
+          placeholder={noteModalConfig?.placeholder}
+          value={noteValue}
+          onChange={(e) => setNoteValue(e.target.value)}
+          autoFocus
+        />
+      </Modal>
 
       <style jsx global>{`
         .omp-detail-header { align-items: flex-start; }

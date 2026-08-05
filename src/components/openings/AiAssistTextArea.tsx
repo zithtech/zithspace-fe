@@ -68,7 +68,7 @@ export default function AiAssistTextArea({
   };
 
   const runGrammar = async () => {
-    if (!value.trim()) {
+    if (!(value || '').trim()) {
       toast.error('Write something first');
       return;
     }
@@ -165,7 +165,7 @@ export default function AiAssistTextArea({
       setPrevious(value);
       onChange?.(text);
       setPickerOpen(false);
-      toast.success(value.trim() ? 'Content enhanced' : 'Content generated');
+      toast.success((value || '').trim() ? 'Content enhanced' : 'Content generated');
       // Be honest when a selection did not make it in, rather than letting the
       // user discover it by reading.
       if (missing.length) {
@@ -249,25 +249,16 @@ export default function AiAssistTextArea({
         onCancel={() => setPickerOpen(false)}
         onOk={runEnhance}
         confirmLoading={enhanceBusy}
-        okText={value.trim() ? 'Enhance content' : 'Generate content'}
+        okText={(value || '').trim() ? 'Enhance content' : 'Generate content'}
         title={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 7,
-                background: TINT.blue,
-                color: PALETTE.blue,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Sparkles size={14} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px 8px 12px' }}>
+            <div className="omai-title-icon">
+              <Sparkles size={16} />
+            </div>
+            <span className="omai-title-text">
+              Suggestions for “{getContext().jobTitle || 'this role'}”
             </span>
-            Suggestions for “{getContext().jobTitle || 'this role'}”
-          </span>
+          </div>
         }
         width={880}
         className="omai-modal"
@@ -281,7 +272,7 @@ export default function AiAssistTextArea({
               <div className="omai-picker-hint">
                 Tick what you want covered, or select nothing and let it write from the job
                 title alone.
-                {value.trim() && ' Your existing draft is kept and improved.'}
+                {(value || '').trim() && ' Your existing draft is kept and improved.'}
               </div>
               <div className="omai-picker-source">
                 {cached && (
@@ -386,6 +377,9 @@ export default function AiAssistTextArea({
         .omai-bar {
           display: flex; justify-content: flex-end; align-items: center; gap: 6px;
           margin-bottom: 6px;
+          margin-top: -38px;
+          position: relative;
+          z-index: 2;
         }
         .omai-bar .ant-btn { height: 26px; font-size: 11.5px; border-radius: 6px; }
         .omai-enhance.ant-btn { color: ${PALETTE.blue}; border-color: ${PALETTE.blue}55; }
@@ -428,6 +422,32 @@ export default function AiAssistTextArea({
         .omai-picker-foot {
           font-size: 11.5px; color: var(--text-slate-400); border-top: 1px solid var(--border-slate-100);
           padding-top: 12px;
+        }
+        
+        .omai-title-icon {
+          width: 32px; height: 32px; border-radius: 10px;
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          box-shadow: 0 2px 10px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.9);
+          color: #2563eb; display: flex; align-items: center; justify-content: center;
+        }
+        .omai-title-text {
+          font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+          background: linear-gradient(90deg, #0f172a 0%, #3b82f6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        
+        [data-theme='dark'] .omai-title-icon {
+          background: #1e293b;
+          border: 1px solid #334155;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          color: #38bdf8;
+        }
+        [data-theme='dark'] .omai-title-text {
+          background: none;
+          -webkit-background-clip: unset;
+          -webkit-text-fill-color: unset;
+          color: #f1f5f9;
         }
       `}</style>
     </div>

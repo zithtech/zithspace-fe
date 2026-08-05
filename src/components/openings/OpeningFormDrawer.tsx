@@ -57,6 +57,9 @@ import {
   commonDrawerProps,
   drawerFormStyles as formStyles,
 } from '@/components/common/DrawerSection';
+import { SKILLS_DATA } from '@/data/skillsData';
+import { EDUCATION_OPTIONS, CERTIFICATION_OPTIONS } from '@/data/qualificationsData';
+import { useSkills } from '@/hooks/useSkills';
 
 // Create / edit an opening. One drawer for both: `openingId` decides which.
 //
@@ -98,7 +101,25 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
   const [hiringTeam, setHiringTeam] = useState<HiringTeamMemberInput[]>([]);
   const [documents, setDocuments] = useState<RequiredDocumentInput[]>([]);
 
+  const { skills: dynamicSkills, fetchSkills } = useSkills();
+
+  const allSkillsOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    SKILLS_DATA.forEach(s => map.set(s.name, s.name));
+    (dynamicSkills || []).forEach((s: any) => {
+      if (s.name) map.set(s.name, s.name);
+    });
+    return Array.from(map.values()).sort().map(name => ({ label: name, value: name }));
+  }, [dynamicSkills]);
+
   const isEdit = !!openingId;
+
+  const reqSkills = Form.useWatch('requiredSkills', form);
+  const prefSkills = Form.useWatch('preferredSkills', form);
+
+  useEffect(() => {
+    if (open) fetchSkills();
+  }, [open, fetchSkills]);
 
   useEffect(() => {
     if (!open || titleOptions.length) return;
@@ -132,11 +153,11 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
       jobTitle: (v.jobTitle ?? '').trim(),
       departmentName:
         reference.departments.find((d) => d.value === v.departmentId)?.label ?? null,
-      employmentType: v.employmentType ?? null,
-      workMode: v.workMode ?? null,
-      location: v.location ?? null,
-      minExperience: v.minExperience ?? null,
-      maxExperience: v.maxExperience ?? null,
+      employmentType: v.employmentType || null,
+      workMode: v.workMode || null,
+      location: v.location || null,
+      minExperience: v.minExperience === '' ? null : (v.minExperience ?? null),
+      maxExperience: v.maxExperience === '' ? null : (v.maxExperience ?? null),
       requiredSkills: v.requiredSkills ?? [],
       preferredSkills: v.preferredSkills ?? [],
     };
@@ -312,7 +333,10 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
         >
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 8 }}
+        wrapperCol={{ span: 16 }}
+        labelAlign="left"
         disabled={loading}
         className="omf customer-drawer-form"
         colon={false}
@@ -379,7 +403,12 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
           </Form.Item>
         </div>
 
-        <Form.Item name="jobDescription" label="Job description">
+        <Form.Item
+          name="jobDescription"
+          label="Job description"
+          labelCol={{ span: 24 }}
+          wrapperCol={{ span: 24 }}
+        >
           <AiAssistTextArea
             field="job_description"
             getContext={assistContext}
@@ -388,7 +417,12 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
           />
         </Form.Item>
 
-        <Form.Item name="responsibilities" label="Responsibilities">
+        <Form.Item
+          name="responsibilities"
+          label="Responsibilities"
+          labelCol={{ span: 24 }}
+          wrapperCol={{ span: 24 }}
+        >
           <AiAssistTextArea
             field="responsibilities"
             getContext={assistContext}
@@ -398,12 +432,56 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
         </Form.Item>
 
         <div className="omf-grid-2">
-          <Form.Item name="requiredSkills" label="Required skills">
-            <Select mode="tags" placeholder="Type a skill and press Enter" tokenSeparators={[',']} />
+        <Form.Item label="Required skills" style={{ marginBottom: reqSkills?.length ? 4 : 14 }}>
+          <Form.Item name="requiredSkills" noStyle>
+            <SearchableDropdown
+              mode="multiple"
+              freeText
+              options={allSkillsOptions}
+              placeholder="Search or type a skill…"
+              searchPlaceholder="Search skills…"
+              itemNoun="skills"
+            />
           </Form.Item>
-          <Form.Item name="preferredSkills" label="Preferred skills">
-            <Select mode="tags" placeholder="Nice to have" tokenSeparators={[',']} />
+          {reqSkills && reqSkills.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {reqSkills.map((s: string) => {
+                const label = allSkillsOptions.find(o => o.value === s)?.label || s;
+                return (
+                  <span key={s} className="sd-skill-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'var(--bg-blue-50, #eff6ff)', color: 'var(--text-blue-600, #2563eb)', borderRadius: 12, fontSize: 12, border: '1px solid var(--border-blue-100, #dbeafe)' }}>
+                    {label}
+                    <X size={12} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={() => form.setFieldValue('requiredSkills', reqSkills.filter((v: string) => v !== s))} />
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </Form.Item>
+        <Form.Item label="Preferred skills" style={{ marginBottom: prefSkills?.length ? 4 : 14 }}>
+          <Form.Item name="preferredSkills" noStyle>
+            <SearchableDropdown
+              mode="multiple"
+              freeText
+              options={allSkillsOptions}
+              placeholder="Nice to have…"
+              searchPlaceholder="Search skills…"
+              itemNoun="skills"
+            />
           </Form.Item>
+          {prefSkills && prefSkills.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {prefSkills.map((s: string) => {
+                const label = allSkillsOptions.find(o => o.value === s)?.label || s;
+                return (
+                  <span key={s} className="sd-skill-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'var(--bg-blue-50, #eff6ff)', color: 'var(--text-blue-600, #2563eb)', borderRadius: 12, fontSize: 12, border: '1px solid var(--border-blue-100, #dbeafe)' }}>
+                    {label}
+                    <X size={12} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={() => form.setFieldValue('preferredSkills', prefSkills.filter((v: string) => v !== s))} />
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </Form.Item>
         </div>
 
         <div className="omf-grid-3">
@@ -420,10 +498,24 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
 
         <div className="omf-grid-2">
           <Form.Item name="education" label="Education">
-            <Input placeholder="e.g. B.E / B.Tech in Computer Science" />
+            <SearchableDropdown
+              freeText
+              options={EDUCATION_OPTIONS}
+              placeholder="e.g. B.E / B.Tech"
+              searchPlaceholder="Search or type…"
+              itemNoun="degrees"
+            />
           </Form.Item>
           <Form.Item name="certifications" label="Certifications">
-            <Select mode="tags" placeholder="e.g. AWS Solutions Architect" tokenSeparators={[',']} />
+            <SearchableDropdown
+              mode="multiple"
+              renderTags
+              freeText
+              options={CERTIFICATION_OPTIONS}
+              placeholder="e.g. AWS Solutions Architect"
+              searchPlaceholder="Search or type…"
+              itemNoun="certs"
+            />
           </Form.Item>
         </div>
 
@@ -871,12 +963,7 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
         .omf .ant-form-item { margin-bottom: 14px; }
         .omf .customer-drawer-card:last-child { margin-bottom: 0 !important; }
         /* Section headings and separators are now the shared SectionCard's job. */
-        .omf-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
-        .omf-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 14px; }
-        .omf-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 14px; }
-        @media (max-width: 720px) {
-          .omf-grid-2, .omf-grid-3, .omf-grid-4 { grid-template-columns: 1fr; }
-        }
+        .omf-grid-2, .omf-grid-3, .omf-grid-4 { display: block; }
         .omf-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
         .omf-row {
           display: flex; align-items: center; gap: 8px; padding: 6px 10px;

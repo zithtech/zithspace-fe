@@ -452,6 +452,7 @@ export function OpeningStyles() {
       .omp-head-sub { font-size: 12px; color: var(--text-slate-500); font-weight: 500; margin-top: 1px; }
       .omp-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .omp-head-actions .ant-btn { height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+      .omp-head-actions .omp-chip { height: 32px; padding: 0 12px; font-size: 12px; border-radius: 8px; }
       .omp-search.ant-input-affix-wrapper { width: 240px; height: 32px; border-radius: 8px; }
 
       /* Chips — one shape for status, priority and stage. */
@@ -472,10 +473,17 @@ export function OpeningStyles() {
       }
       .omp-title-sub { font-size: 11px; color: var(--text-slate-400); }
 
-      .omp-taglist { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+      .omp-taglist { display: inline-flex; flex-wrap: wrap; gap: 6px; }
       .omp-tag.ant-tag {
-        margin: 0; border-radius: 5px; font-size: 11px; padding: 0 6px; line-height: 18px;
-        background: var(--bg-slate-50); border-color: var(--border-slate-200); color: var(--text-slate-700);
+        margin: 0; border-radius: 0; font-size: 11.5px; padding: 2px 8px; line-height: 20px;
+        background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-700);
+      }
+      
+      .omp-longtext {
+        font-size: 13px; color: var(--text-slate-700); line-height: 1.6;
+        padding: 14px 18px; background: var(--bg-slate-50, #f8fafc);
+        border-left: 3px solid var(--border-slate-300, #cbd5e1);
+        margin-top: 6px; white-space: pre-wrap;
       }
 
       /* Stats */
@@ -496,31 +504,59 @@ export function OpeningStyles() {
       .omp-stat-hint { font-size: 10.5px; color: var(--text-slate-400); margin-top: 1px; }
 
       /* Filters */
-      .omp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-      .omp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; }
+      .omp-filters {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        /* Hide scrollbar for a cleaner look while maintaining scrollability */
+        scrollbar-width: none;
+      }
+      .omp-filters::-webkit-scrollbar { display: none; }
+      .omp-filter-count { font-size: 12px; color: var(--text-slate-500); margin-left: auto; flex-shrink: 0; }
 
       /* Read-only fields */
-      .omp-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 24px; }
+      .omp-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 32px; }
       @media (max-width: 1024px) { .omp-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 640px) { .omp-fields { grid-template-columns: 1fr; } }
       .omp-field.is-span { grid-column: 1 / -1; }
       .omp-field-label {
-        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-        color: var(--text-slate-400); margin-bottom: 4px;
+        font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--text-slate-500); margin-bottom: 6px;
       }
-      .omp-field-value { font-size: 12.5px; color: var(--text-slate-900); font-weight: 500; line-height: 1.5; }
+      .omp-field-value { font-size: 13px; color: var(--text-slate-900); font-weight: 500; line-height: 1.5; }
+
+      /* Footer UI like candidate page */
+      .omp-table-wrap .ant-pagination {
+        position: sticky;
+        left: 0;
+        bottom: 0;
+        margin: auto -16px 0 -16px !important;
+        padding: 12px 16px !important;
+        background: var(--bg-pure-white);
+        border-top: 1px solid var(--border-slate-200);
+        z-index: 20;
+        box-shadow: 0 -4px 14px rgba(15,23,42,0.02);
+      }
 
       /* Section card */
       .omp-section {
         border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-        padding: 18px 20px; margin-bottom: 16px;
+        padding: 24px; margin-bottom: 24px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
       }
       .omp-section-head {
         display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-slate-100);
+        margin: -24px -24px 24px -24px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-slate-200);
+        background: var(--bg-slate-50, #f8fafc);
       }
-      .omp-section-title { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
-      .omp-section-sub { font-size: 11.5px; color: var(--text-slate-500); font-weight: 500; margin-top: 1px; }
+      .omp-section-title { font-size: 14px; font-weight: 700; color: var(--text-slate-900); margin-bottom: 2px; }
+      .omp-section-sub { font-size: 12.5px; color: var(--text-slate-500); font-weight: 400; margin-top: 2px; }
 
       /* Tables — matches the ticket/reimbursement table look */
       .omp-table-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -529,7 +565,7 @@ export function OpeningStyles() {
       .omp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .omp-table-wrap .ant-table {
         flex: 0 1 auto; overflow: auto; background: var(--bg-pure-white);
-        border: 1px solid var(--border-slate-200); border-radius: 0 !important; margin-bottom: 24px;
+        border: 1px solid var(--border-slate-200); border-radius: 0 !important; margin-bottom: 0;
       }
       .omp-table-wrap .ant-table table { min-width: 900px; }
       .omp-table-wrap .ant-table-thead > tr > th,

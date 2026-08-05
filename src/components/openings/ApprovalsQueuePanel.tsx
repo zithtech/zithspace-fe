@@ -180,6 +180,7 @@ export default function ApprovalsQueuePanel() {
       >
         {canSeeAll && (
           <Segmented
+            className="pb-seg"
             size="small"
             value={scope}
             onChange={(v) => setScope(v as 'mine' | 'all')}

@@ -156,6 +156,28 @@ export default function DashboardPanel() {
         <Button icon={<RotateCw size={14} />} loading={loading} onClick={load} />
       </PanelHeader>
 
+      <div className="omp-stats omp-stats-7" style={{ marginBottom: '16px' }}>
+        {[
+          { label: 'Open Positions', value: s?.openPositions ?? 0, tone: 'ash' as const, hint: `${s?.remainingPositions ?? 0} still to fill` },
+          { label: 'Applications', value: s?.applications ?? 0, tone: 'blue' as const },
+          { label: 'Screened', value: s?.screened ?? 0, tone: 'blue' as const },
+          { label: 'Interview', value: s?.interview ?? 0, tone: 'blue' as const },
+          { label: 'Offers', value: s?.offers ?? 0, tone: 'blue' as const },
+          { label: 'Joined', value: s?.joined ?? 0, tone: 'green' as const },
+          { label: 'Rejected', value: s?.rejected ?? 0, tone: 'red' as const },
+        ].map((tile) => (
+          <div className="omp-stat-card" key={tile.label}>
+            <div className="omp-stat-body">
+              <div className="omp-stat-value" style={{ color: PALETTE[tile.tone] }}>
+                {tile.value}
+              </div>
+              <div className="omp-stat-label">{tile.label}</div>
+              {tile.hint && <div className="omp-stat-hint">{tile.hint}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="omp-filters">
         <SearchableDropdown
           mode="multiple"
@@ -191,28 +213,6 @@ export default function DashboardPanel() {
         <Skeleton active paragraph={{ rows: 8 }} />
       ) : (
         <>
-          <div className="omp-stats omp-stats-7">
-            {[
-              { label: 'Open Positions', value: s?.openPositions ?? 0, tone: 'ash' as const, hint: `${s?.remainingPositions ?? 0} still to fill` },
-              { label: 'Applications', value: s?.applications ?? 0, tone: 'blue' as const },
-              { label: 'Screened', value: s?.screened ?? 0, tone: 'blue' as const },
-              { label: 'Interview', value: s?.interview ?? 0, tone: 'blue' as const },
-              { label: 'Offers', value: s?.offers ?? 0, tone: 'blue' as const },
-              { label: 'Joined', value: s?.joined ?? 0, tone: 'green' as const },
-              { label: 'Rejected', value: s?.rejected ?? 0, tone: 'red' as const },
-            ].map((tile) => (
-              <div className="omp-stat-card" key={tile.label}>
-                <div className="omp-stat-body">
-                  <div className="omp-stat-value" style={{ color: PALETTE[tile.tone] }}>
-                    {tile.value}
-                  </div>
-                  <div className="omp-stat-label">{tile.label}</div>
-                  {tile.hint && <div className="omp-stat-hint">{tile.hint}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div className="omp-dash-row">
             <div className="omp-section">
               <div className="omp-section-head">

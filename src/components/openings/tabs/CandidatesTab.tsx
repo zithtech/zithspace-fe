@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { usePermission } from '@/hooks/usePermission';
-import { candidateService } from '@/services/candidateService';
+import { PipelineService } from '@/services/pipelineService';
 import { MembersService } from '@/services/membersService';
 import OpeningV2Service, {
   type ApplicationFunnel,
@@ -111,14 +111,15 @@ export default function CandidatesTab({
     if (!addOpen || candidates.length) return;
     (async () => {
       try {
-        const [cands, members] = await Promise.all([
-          candidateService.getAll(),
+        const [candsRes, members] = await Promise.all([
+          PipelineService.listCandidates({ limit: 500 }),
           MembersService.getMembers({ limit: 500 } as any).catch(() => ({ data: [] } as any)),
         ]);
+        const candsList = candsRes.data?.items || [];
         setCandidates(
-          (Array.isArray(cands) ? cands : []).map((c: any) => ({
+          candsList.map((c: any) => ({
             value: c.id,
-            label: c.fullName ?? c.full_name ?? 'Candidate',
+            label: c.name ?? 'Candidate',
             description: c.email,
           }))
         );
@@ -309,21 +310,24 @@ export default function CandidatesTab({
             onClick={(e) => e.stopPropagation()}
           >
             {!terminal && (
-              <Dropdown
-                trigger={['click']}
-                menu={{
-                  items: STAGE_ORDER.filter((s) => s !== r.stage).map((s) => ({
-                    key: s,
-                    label: STAGE_META[s].label,
-                    danger: s === 'rejected',
-                    onClick: () => moveStage(r, s),
-                  })),
+              <SearchableDropdown
+                options={STAGE_ORDER.filter((s) => s !== r.stage).map((s) => ({
+                  value: s,
+                  label: STAGE_META[s].label,
+                  disabled: false,
+                }))}
+                value={null}
+                onChange={(val) => {
+                  const stage = val as ApplicationStage;
+                  if (stage) moveStage(r, stage);
                 }}
-              >
-                <Button size="small">
-                  Move <ChevronDown size={12} />
-                </Button>
-              </Dropdown>
+                searchPlaceholder="Search stages..."
+                customTrigger={
+                  <Button size="small">
+                    Move <ChevronDown size={12} />
+                  </Button>
+                }
+              />
             )}
             <Popconfirm
               title="Remove from this opening?"

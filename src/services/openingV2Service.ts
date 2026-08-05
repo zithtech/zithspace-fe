@@ -274,6 +274,9 @@ export interface ListOpeningsQuery {
   subDepartmentId?: string;
   hiringManagerId?: string;
   recruiterId?: string;
+  recruiters?: string[];
+  experience?: string[];
+  jobTitles?: string[];
   archived?: 'exclude' | 'include' | 'only';
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -1094,6 +1097,38 @@ export const OpeningV2Service = {
     const res = await apiClient.post(`${BASE}/ai/enhance`, input);
     const data = unwrap<{ text: string; missing?: string[] }>(res.data);
     return { text: data?.text ?? '', missing: data?.missing ?? [] };
+  },
+
+  // ── Referrals ─────────────────────────────────────────────────────────────
+  
+  async addReferral(
+    id: string,
+    input: {
+      name: string;
+      email: string;
+      mobile: string;
+      resumeUrl?: string | null;
+      notes?: string | null;
+      skills?: string[];
+      totalExperience?: number;
+    }
+  ): Promise<OpeningReferral> {
+    const res = await apiClient.post(`${BASE}/${id}/referrals`, input);
+    return unwrap<OpeningReferral>(res.data);
+  },
+
+  async listReferrals(id: string): Promise<OpeningReferral[]> {
+    const res = await apiClient.get(`${BASE}/${id}/referrals`);
+    return unwrap<OpeningReferral[]>(res.data) ?? [];
+  },
+
+  async considerAsCandidate(id: string, refId: string): Promise<OpeningReferral> {
+    const res = await apiClient.post(`${BASE}/${id}/referrals/${refId}/convert`);
+    return unwrap<OpeningReferral>(res.data);
+  },
+
+  async deleteReferral(id: string, refId: string): Promise<void> {
+    await apiClient.delete(`${BASE}/${id}/referrals/${refId}`);
   },
 };
 

@@ -104,4 +104,24 @@ export const PipelineService = {
     const data = await api.get(`/api/pipeline/candidates/${candidateId}/offers`);
     return { success: true, data };
   },
+
+  // Documents
+  requestDocuments: async (candidateId: string, documents: string[]) => {
+    const data = await api.post(`/api/pipeline/candidates/${candidateId}/documents/request`, { documents });
+    return { success: true, data };
+  },
+  getCandidateDocuments: async (candidateId: string) => {
+    const data = await api.get(`/api/pipeline/candidates/${candidateId}/documents`);
+    return { success: true, data };
+  },
+  verifyDocument: async (candidateId: string, documentId: string, payload: { status: string; remarks?: string }) => {
+    const data = await api.put(`/api/pipeline/candidates/${candidateId}/documents/${documentId}/verify`, payload);
+    return { success: true, data };
+  },
+  uploadManualDocument: async (candidateId: string, formData: FormData) => {
+    const data = await api.post(`/api/pipeline/candidates/${candidateId}/documents/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
 };

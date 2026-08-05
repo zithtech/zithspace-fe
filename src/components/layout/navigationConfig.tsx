@@ -753,6 +753,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/openings",
       "/letters-docs",
       "/pipeline",
     ],
@@ -868,6 +869,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/pipeline/candidates",
         requiredAnyPermission: [
           Permissions.RECRUITMENT_READ,
+        ],
+      },
+      {
+        key: "/openings",
+        icon: I(Megaphone),
+        label: "Openings",
+        path: "/openings/dashboard",
+        requiredAnyPermission: [
+          Permissions.OPENING_READ,
+          Permissions.OPENING_MANAGE,
         ],
       },
 

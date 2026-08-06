@@ -10,15 +10,37 @@ import {
   CheckCircle2,
   Clock,
   Menu,
+  Eye,
+  Edit,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { LettersService, DocumentStructure } from '@/services/lettersService';
 import { toast } from 'react-hot-toast';
-import { Table, Button, Tooltip, Select, Modal } from 'antd';
+import { Table, Button, Tooltip, Select, Modal, Dropdown, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
-import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+
+const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
+    <div style={{
+      width: '32px', height: '32px', borderRadius: '6px',
+      background: iconBg, color: iconColor,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+    }}>
+      {icon}
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: isDanger ? 'var(--text-leave)' : 'var(--text-slate-900)', lineHeight: '1.2' }}>{title}</span>
+      <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '2px' }}>{subtitle}</span>
+    </div>
+  </div>
+);
+
+const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : '';
 
 export default function StructuresManagementPage() {
   const router = useRouter();
@@ -125,52 +147,47 @@ export default function StructuresManagementPage() {
       ),
     },
     {
+      title: 'CREATED BY',
+      dataIndex: ['createdBy', 'name'],
+      key: 'createdBy',
+      render: (_: any, record: DocumentStructure) => {
+        const creator = record.createdBy;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Avatar size={20} src={creator?.avatarUrl || creator?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 10, fontWeight: 700 }}>
+              {initialsOf(creator?.name || '—')}
+            </Avatar>
+            <span style={{ fontSize: '13px', color: 'var(--text-slate-700)', fontWeight: 500 }}>
+              {creator?.name || '—'}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       title: 'ACTIONS',
       key: 'actions',
-      align: 'right',
+      align: 'center',
+      width: 72,
+      fixed: 'right',
       render: (_: any, record: DocumentStructure) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <Tooltip title="Preview">
-            <button
-              onClick={(e) => { e.stopPropagation(); setPreviewStructure(record); }}
-              style={{
-                padding: '6px', borderRadius: '4px', background: 'transparent',
-                border: '1px solid var(--border-slate-200)', cursor: 'pointer',
-                color: 'var(--text-slate-600)'
-              }}
-            >
-              <EyeOutlined />
-            </button>
-          </Tooltip>
-          {record.tenantId !== 'GLOBAL' && (
-            <>
-              <Tooltip title="Edit">
-                <button
-                  onClick={(e) => { e.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${record.id}`); }}
-                  style={{
-                    padding: '6px', borderRadius: '4px', background: 'transparent',
-                    border: '1px solid var(--border-slate-200)', cursor: 'pointer',
-                    color: '#3b82f6'
-                  }}
-                >
-                  <EditOutlined />
-                </button>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDeleteStructId(record.id); }}
-                  style={{
-                    padding: '6px', borderRadius: '4px', background: 'transparent',
-                    border: '1px solid var(--border-slate-200)', cursor: 'pointer',
-                    color: '#ef4444'
-                  }}
-                >
-                  <DeleteOutlined />
-                </button>
-              </Tooltip>
-            </>
-          )}
-        </div>
+        <Dropdown
+          overlayClassName="pp-action-pop"
+          trigger={['click']}
+          placement="bottomRight"
+          menu={{
+            items: [
+              { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View structure contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: ({ domEvent }) => { domEvent.stopPropagation(); setPreviewStructure(record); } },
+              ...(record.tenantId !== 'GLOBAL' ? [
+                { type: 'divider' as const },
+                { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${record.id}`); } },
+                { key: 'delete', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(record.id); } },
+              ] : []),
+            ]
+          }}
+        >
+          <Button type="text" className="pp-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
+        </Dropdown>
       )
     },
   ];
@@ -233,7 +250,7 @@ export default function StructuresManagementPage() {
         </div>
       </div>
 
-      <div style={{ padding: '24px 28px 40px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 
         <LetterStatsCards statCells={statCells} />
 
@@ -254,46 +271,88 @@ export default function StructuresManagementPage() {
             </Button>
           </div>
         ) : view === 'list' ? (
-          <div className="att-table-wrap">
+          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
               rowKey="id"
               size="small"
-              className="att-table"
+              className="att-table flex-table"
               columns={columns}
               dataSource={paginatedStructures}
               pagination={false}
               onRow={() => ({ className: 'att-row' })}
-              scroll={{ x: 'max-content', y: 'calc(100vh - 360px)' }}
+              scroll={{ x: 'max-content', y: '100%' }}
             />
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {paginatedStructures.map((s) => (
-              <div key={s.id} className="pc-card">
-                <div className="pc-top">
-                  <div className="pc-avatar" style={{ background: '#3b82f6' }}>
-                    <Layers size={16} />
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+              {paginatedStructures.map((s) => (
+                <div key={s.id} className="pc-card">
+                  <div className="pc-top" style={{ position: 'relative' }}>
+                    <div className="pc-avatar" style={{ background: '#3b82f6' }}>
+                      <Layers size={16} />
+                    </div>
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {s.name}
+                        {s.tenantId === 'GLOBAL' && (
+                          <span style={{ background: '#3b82f6', color: '#fff', fontSize: '9px', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>GLOBAL</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Three-dot dropdown */}
+                    <Dropdown
+                      overlayClassName="pc-dropdown"
+                      trigger={['click']}
+                      placement="bottomRight"
+                      menu={{
+                        items: [
+                          {
+                            key: 'preview',
+                            label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View structure contents', 'var(--bg-blue-50)', '#3b82f6'),
+                            onClick: ({ domEvent }) => { domEvent.stopPropagation(); setPreviewStructure(s); },
+                          },
+                          ...(s.tenantId !== 'GLOBAL' ? [
+                            { type: 'divider' as const },
+                            {
+                              key: 'edit',
+                              label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'),
+                              onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${s.id}`); },
+                            },
+                            {
+                              key: 'delete',
+                              label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true),
+                              onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(s.id); },
+                            },
+                          ] : []),
+                        ],
+                      }}
+                    >
+                      <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                        <EllipsisOutlined />
+                      </button>
+                    </Dropdown>
                   </div>
-                  <div className="pc-identity-body">
-                    <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {s.name}
-                      {s.tenantId === 'GLOBAL' && (
-                        <span style={{ background: '#3b82f6', color: '#fff', fontSize: '9px', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>GLOBAL</span>
-                      )}
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created by</span>
+                        <Avatar size={16} src={s.createdBy?.avatarUrl || s.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                          {initialsOf(s.createdBy?.name || '—')}
+                        </Avatar>
+                        <span className="pc-foot-val">{s.createdBy?.name || '—'}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <div className="pc-foot-item">
+                        <Clock size={12} style={{ color: 'var(--text-slate-400)' }} />
+                        <span className="pc-foot-key">Updated:</span>
+                        {new Date(s.updatedAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="pc-foot">
-                  <div className="pc-foot-row">
-                    <div className="pc-foot-item">
-                      <Clock size={12} style={{ color: 'var(--text-slate-400)' }} />
-                      <span className="pc-foot-key">Updated:</span>
-                      {new Date(s.updatedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -322,18 +381,23 @@ export default function StructuresManagementPage() {
 
       {/* Preview Modal */}
       <Modal
-        title={`Preview: ${previewStructure?.name}`}
+        title={<span style={{ color: 'var(--text-slate-900)' }}>{`Preview: ${previewStructure?.name}`}</span>}
         open={!!previewStructure}
         onCancel={() => setPreviewStructure(null)}
         footer={[
-          <Button key="close" onClick={() => setPreviewStructure(null)}>
+          <Button key="close" onClick={() => setPreviewStructure(null)} style={{ background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)', borderColor: 'var(--border-slate-300)' }}>
             Close
           </Button>
         ]}
         width={800}
+        styles={{
+          content: { background: 'var(--bg-pure-white) !important' },
+          header: { background: 'var(--bg-pure-white) !important', borderBottom: '1px solid var(--border-slate-200) !important' },
+          footer: { background: 'var(--bg-pure-white) !important', borderTop: '1px solid var(--border-slate-200) !important' }
+        }}
       >
-        <div 
-          className="letter-tiptap-content bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100" 
+        <div
+          className="letter-tiptap-content bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
           style={{ padding: '24px', borderRadius: '8px', border: '1px solid', minHeight: '300px' }}
         >
           <div className="ProseMirror" dangerouslySetInnerHTML={{ __html: previewStructure?.htmlContent || '' }} />
@@ -342,28 +406,61 @@ export default function StructuresManagementPage() {
 
       {/* Delete Confirmation Modal */}
       <Modal
-        title="Delete Structure"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle color="#ef4444" size={22} />
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Structure</span>
+            </div>
+          </div>
+        }
         open={!!deleteStructId}
         onOk={handleDelete}
         onCancel={() => setDeleteStructId(null)}
-        okText="Delete"
-        okButtonProps={{ danger: true }}
+        okText="Delete Structure"
+        cancelText="Cancel"
+        okButtonProps={{
+          danger: true,
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
+        }}
+        cancelButtonProps={{
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
+        }}
+        styles={{
+          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
+          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '16px' },
+          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
+          body: { paddingTop: '8px', paddingBottom: '8px' }
+        }}
+        centered
       >
-        <p>Are you sure you want to delete this custom structure? This action cannot be undone.</p>
+        <p style={{ margin: 0, color: 'var(--text-slate-600) !important', fontSize: '14px', lineHeight: '1.6', marginLeft: '52px' }}>
+          Are you sure you want to delete this custom structure? This action cannot be undone and will permanently remove this format template.
+        </p>
       </Modal>
 
       <style jsx global>{`
         .pc-card {
           border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-          border-radius: 12px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+          border-radius: 0px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
         }
         .pc-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.06); border-color: var(--border-slate-300); }
+        .pc-dropdown .ant-dropdown-menu { border-radius: 0 !important; }
+        .pc-actions {
+          flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer;
+          background: transparent; color: var(--text-slate-400); display: inline-flex; align-items: center; justify-content: center;
+          position: absolute; top: 12px; right: 12px;
+        }
+        .pc-actions:hover { background: var(--border-slate-100); color: var(--text-slate-900); }
+        
         .pc-top { display: flex; align-items: flex-start; gap: 12px; padding: 16px; flex: 1; }
         .pc-avatar {
-          width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          color: #fff; font-weight: 800; font-size: 14px;
+          color: #fff; font-weight: 800; font-size: 13px;
         }
         .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 6px; flex: 1; }
         .pc-title {
@@ -431,7 +528,7 @@ export default function StructuresManagementPage() {
         .letter-tiptap-content .ProseMirror td,
         .letter-tiptap-content .ProseMirror th {
           min-width: 1em;
-          border: 1px solid #cbd5e1;
+          border: 1px solid var(--border-slate-200);
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -442,6 +539,20 @@ export default function StructuresManagementPage() {
           text-align: left;
           background-color: #f1f5f9;
         }
+
+        .att-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .att-table, .att-table.ant-table-wrapper, .att-table .ant-table, .att-table .ant-table-container, .att-table .ant-table-content, .att-table .ant-table-header, .att-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .att-table .ant-table-thead > tr > th,
+        .att-table .ant-table-thead > tr > td {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
+          white-space: nowrap !important; border-radius: 0 !important;
+          border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
+        }
+        .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 4px 10px !important; font-size: 12px !important; }
+        .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .att-table .ant-table-tbody > tr.att-row:hover > td { background: var(--bg-slate-50) !important; }
       `}</style>
     </div>
   );

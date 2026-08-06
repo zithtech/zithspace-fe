@@ -31,7 +31,7 @@ export interface TemplateVersion {
   changeNotes?: string;
   createdById: string;
   createdAt: string;
-  createdBy?: { id: string; name: string; workEmail?: string };
+  createdBy?: { id: string; name: string; workEmail?: string; avatar?: string; avatarUrl?: string };
 }
 
 export interface DocumentTemplate {
@@ -51,7 +51,7 @@ export interface DocumentTemplate {
   designation?: { id: string; name: string };
   placeholders?: TemplatePlaceholder[];
   versions?: TemplateVersion[];
-  createdBy?: { id: string; name: string; workEmail?: string };
+  createdBy?: { id: string; name: string; workEmail?: string; avatar?: string; avatarUrl?: string };
   _count?: {
     versions: number;
     generatedDocuments: number;
@@ -86,6 +86,7 @@ export interface GeneratedDocument {
   referenceEntityId?: string;
   referenceEntityType?: string;
   documentNumber: string;
+  documentName?: string;
   status: string;
   generatedById: string;
   generatedAt: string;
@@ -93,7 +94,7 @@ export interface GeneratedDocument {
   pdfFilePath?: string;
   template?: DocumentTemplate;
   category?: DocumentCategory;
-  generatedBy?: { id: string; name: string; workEmail?: string };
+  generatedBy?: { id: string; name: string; workEmail?: string; avatar?: string; avatarUrl?: string };
   values?: GeneratedDocumentValue[];
   files?: DocumentFile[];
   _count?: {
@@ -109,6 +110,7 @@ export interface DocumentStructure {
   htmlContent: string;
   createdAt: string;
   updatedAt: string;
+  createdBy?: { id: string; name: string; workEmail?: string; avatar?: string; avatarUrl?: string };
 }
 
 interface ApiResponse<T> {
@@ -264,6 +266,7 @@ export class LettersService {
     referenceEntityId?: string;
     referenceEntityType?: string;
     documentNumber?: string;
+    documentName?: string;
     values: Record<string, string>;
     customContent?: string;
   }): Promise<GeneratedDocument> {

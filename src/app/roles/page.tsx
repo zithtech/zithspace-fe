@@ -108,6 +108,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   performance: "Performance",
   opening: "Opening Management",
   profile: "User Profile",
+  letter: "Doc Suite",
+  letter_template: "Doc Suite Templates",
   mail: "Mail Settings",
   calendar: "Calendar Settings",
   chat: "Internal Chat",
@@ -256,7 +258,9 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment'],
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'letter',
+      'letter_template'
+    ],
     accent: '#10b981',
   },
   {
@@ -1702,10 +1706,10 @@ export default function RolesPage() {
                           const allExpanded = visibleResources.length > 0 && visibleResources.every((r) => expandedPermGroups.includes(r));
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)', border: '1px solid var(--border-color, #e2e8f0)', padding: '4px 12px', borderRadius: 6, background: 'var(--bg-pure-white, #ffffff)' }}>
-                              <Switch 
-                                size="small" 
-                                checked={allExpanded} 
-                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])} 
+                              <Switch
+                                size="small"
+                                checked={allExpanded}
+                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])}
                               />
                               <span style={{ cursor: 'pointer', fontWeight: 500 }} onClick={() => setExpandedPermGroups(allExpanded ? [] : visibleResources)}>
                                 Expand all
@@ -1854,9 +1858,9 @@ export default function RolesPage() {
                                     className="rp-acc-card__check"
                                   />
                                 </div>
-                                <span style={{ 
-                                  color: 'var(--text-slate-500)', 
-                                  fontSize: 10, 
+                                <span style={{
+                                  color: 'var(--text-slate-500)',
+                                  fontSize: 10,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1885,76 +1889,76 @@ export default function RolesPage() {
                               ),
                               children: (
                                 <div className="rp-acc-card__body" style={{ padding: 0 }}>
-                              {(resource === 'leave'
-                                ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : resource === 'performance'
-                                  ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                  : resource === 'my_hub'
-                                    ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                    : Object.entries(subGroups)
-                              ).map(([subTitle, subPerms]) => (
-                                <div key={subTitle} className="rp-acc-subgroup">
-                                  <div className="rp-acc-subgroup__title">{subTitle}</div>
-                                  <Row gutter={[10, 10]}>
-                                    {subPerms.map((perm) => {
-                                      const isSelected = selectedPermIds.includes(perm.id);
-                                      return (
-                                        <Col key={perm.id} xs={24} sm={12} lg={8}>
-                                          <div
-                                            onClick={() => canUpdateRole && togglePermission(perm.id)}
-                                            className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
-                                          >
-                                            <Checkbox
-                                              checked={isSelected}
-                                              disabled={!canUpdateRole}
-                                              className="rp-acc-perm__check"
-                                            />
-                                            <div className="rp-acc-perm__text">
-                                              <div className="rp-acc-perm__title">
-                                                {(() => {
-                                                  const name = perm.name;
-                                                  const action = perm.action;
-                                                  if (name.startsWith('leave.')) {
-                                                    // Page is the sub-group title; show only the verb.
-                                                    const verb = action.split('.').pop() || action;
-                                                    return verb.charAt(0).toUpperCase() + verb.slice(1);
-                                                  }
-                                                  if (name.startsWith('bug.')) {
-                                                    if (action.includes('trash.')) {
-                                                      const subAction = action.split('.')[1];
-                                                      return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                    }
-                                                    if (action.includes('archive.')) {
-                                                      const subAction = action.split('.')[1];
-                                                      return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                    }
-                                                    return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-                                                  }
-                                                  if (name.startsWith('proposal.')) {
-                                                    return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-                                                  }
-                                                  if (action.includes('.')) {
-                                                    return action
-                                                      .split('.')
-                                                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                                                      .join(' ');
-                                                  }
-                                                  return action.charAt(0).toUpperCase() + action.slice(1);
-                                                })()}
-                                              </div>
-                                              {perm.description && (
-                                                <div className="rp-acc-perm__desc">
-                                                  {perm.description}
+                                  {(resource === 'leave'
+                                    ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                    : resource === 'performance'
+                                      ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                      : resource === 'my_hub'
+                                        ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                        : Object.entries(subGroups)
+                                  ).map(([subTitle, subPerms]) => (
+                                    <div key={subTitle} className="rp-acc-subgroup">
+                                      <div className="rp-acc-subgroup__title">{subTitle}</div>
+                                      <Row gutter={[10, 10]}>
+                                        {subPerms.map((perm) => {
+                                          const isSelected = selectedPermIds.includes(perm.id);
+                                          return (
+                                            <Col key={perm.id} xs={24} sm={12} lg={8}>
+                                              <div
+                                                onClick={() => canUpdateRole && togglePermission(perm.id)}
+                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
+                                              >
+                                                <Checkbox
+                                                  checked={isSelected}
+                                                  disabled={!canUpdateRole}
+                                                  className="rp-acc-perm__check"
+                                                />
+                                                <div className="rp-acc-perm__text">
+                                                  <div className="rp-acc-perm__title">
+                                                    {(() => {
+                                                      const name = perm.name;
+                                                      const action = perm.action;
+                                                      if (name.startsWith('leave.')) {
+                                                        // Page is the sub-group title; show only the verb.
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                      }
+                                                      if (name.startsWith('bug.')) {
+                                                        if (action.includes('trash.')) {
+                                                          const subAction = action.split('.')[1];
+                                                          return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                        }
+                                                        if (action.includes('archive.')) {
+                                                          const subAction = action.split('.')[1];
+                                                          return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
+                                                        }
+                                                        return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                      }
+                                                      if (name.startsWith('proposal.')) {
+                                                        return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                      }
+                                                      if (action.includes('.')) {
+                                                        return action
+                                                          .split('.')
+                                                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                                          .join(' ');
+                                                      }
+                                                      return action.charAt(0).toUpperCase() + action.slice(1);
+                                                    })()}
+                                                  </div>
+                                                  {perm.description && (
+                                                    <div className="rp-acc-perm__desc">
+                                                      {perm.description}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </Col>
-                                      );
-                                    })}
-                                  </Row>
-                                </div>
-                              ))}
+                                              </div>
+                                            </Col>
+                                          );
+                                        })}
+                                      </Row>
+                                    </div>
+                                  ))}
                                 </div>
                               )
                             }]}

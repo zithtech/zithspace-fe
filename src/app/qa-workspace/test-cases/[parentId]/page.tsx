@@ -2,18 +2,72 @@
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrumb, Row, Col, Typography, Form } from "antd";
-import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrumb, Row, Col, Typography, Form, Tooltip } from "antd";
+import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { TextArea } = Input;
+
+/* Product-standard stat tile */
+const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
+  <div className="pp-stat-card">
+    <div className="pp-stat-top">
+      <div className="pp-stat-left">
+        <span className="pp-stat-icon" style={{ background: bgColor, color }}>
+          <Icon size={14} style={{ fontSize: 14 }} />
+        </span>
+        <span className="pp-stat-label">{label}</span>
+      </div>
+    </div>
+    <div className="pp-stat-bottom">
+      <div className="pp-stat-value-wrap">
+        <span className="pp-stat-value">{value}</span>
+      </div>
+      {sub && <span className="pp-stat-period">{sub}</span>}
+    </div>
+  </div>
+);
+
+/** Maps a lifecycle status onto the restricted pill palette. */
+const statusTone = (s?: string) =>
+  (s === 'Active' || s === 'Ready') ? 'green'
+    : s === 'Deprecated' ? 'red'
+      : s === 'Draft' ? 'ash' : 'blue';
+
+const PRIORITY_LEVEL: Record<string, number> = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+
+/** Priority as filled steps — rank without extra accent colours. */
+const PriorityMeter = ({ priority }: { priority?: string }) => {
+  const level = PRIORITY_LEVEL[priority || ''] || 0;
+  if (!level) return <span className="sc-muted">—</span>;
+  return (
+    <Tooltip title={`${priority} priority`}>
+      <span className="sc-prio">
+        <span className="sc-prio__bars">
+          {[1, 2, 3, 4].map(i => (
+            <span key={i} className={`sc-prio__bar${i <= level ? ' is-on' : ''}${level === 4 ? ' is-max' : ''}`} />
+          ))}
+        </span>
+        <span className="sc-prio__label">{priority}</span>
+      </span>
+    </Tooltip>
+  );
+};
+
+function initialsOf(name: string) {
+  if (!name) return 'TC';
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function ParentTestCaseDetailsPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestCaseDetails" });
@@ -28,11 +82,34 @@ export default function ParentTestCaseDetailsPage() {
   const [suitesDrawerOpen, setSuitesDrawerOpen] = useState(false);
   const [selectedCaseForSuites, setSelectedCaseForSuites] = useState<any>(null);
 
+  // Read-only case view, opened by clicking a row
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewCase, setViewCase] = useState<any>(null);
+
+  // Filters + pagination for the module case list
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  /** Set by clicking the Active / Automated / High-priority stat tiles. */
+  const [quickFilter, setQuickFilter] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter]);
+
   // Drawer state for Create / Edit Child Test Case
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [newStepInput, setNewStepInput] = useState("");
+
+  // "Create with Zai" — drafts the case from a plain-language description
+  const [zaiOpen, setZaiOpen] = useState(true);
+  const [zaiPrompt, setZaiPrompt] = useState("");
+  const [zaiGenerating, setZaiGenerating] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -58,6 +135,8 @@ export default function ParentTestCaseDetailsPage() {
   });
 
   const { canReadCase, canCreateCase } = usePermission();
+  // Priority / severity / type come from QA Settings
+  const { priorityOptions, severityOptions, testTypeOptions } = useQaOptions();
 
   const parseSteps = (val: any): string[] => {
     if (!val) return [];
@@ -99,9 +178,55 @@ export default function ParentTestCaseDetailsPage() {
     }
   }, [canReadCase, parentId]);
 
+  /**
+   * Draft the case from the tester's description. Only fills fields the user
+   * hasn't already written in, so a partly-filled form is never clobbered.
+   */
+  const handleZaiGenerate = async () => {
+    const prompt = zaiPrompt.trim();
+    if (!prompt || zaiGenerating) return;
+    setZaiGenerating(true);
+    try {
+      const res: any = await axios.post('/api/v2/qa/generate-ai', {
+        prompt,
+        scenarioTitle: parentData?.title,
+        moduleName: parentData?.module_name,
+        feature: parentData?.feature,
+      });
+      const d = res?.data?.data ?? res?.data ?? res;
+      if (!d?.name && !(d?.steps_to_reproduce?.length)) {
+        message.error('Zai returned nothing usable. Try describing the case in more detail.');
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name.trim() || d.name || prev.name,
+        description: prev.description.trim() || d.description || prev.description,
+        preconditions: prev.preconditions.trim() || d.preconditions || prev.preconditions,
+        steps_to_reproduce: prev.steps_to_reproduce.length ? prev.steps_to_reproduce : (d.steps_to_reproduce || []),
+        expected_result: prev.expected_result.trim() || d.expected_result || prev.expected_result,
+        test_type: prev.test_type || d.test_type || prev.test_type,
+        priority: d.priority || prev.priority,
+        severity: d.severity || prev.severity,
+      }));
+
+      setZaiOpen(false);
+      message.success('Zai drafted the case — review it before saving.');
+    } catch (err: any) {
+      console.error(err);
+      message.error(err?.response?.data?.error || 'Failed to draft the test case');
+    } finally {
+      setZaiGenerating(false);
+    }
+  };
+
   const handleOpenCreateDrawer = () => {
     setEditingCaseId(null);
     setNewStepInput("");
+    setZaiPrompt("");
+    setZaiGenerating(false);
+    setZaiOpen(true);
     setFormData({
       name: "",
       description: "",
@@ -120,6 +245,9 @@ export default function ParentTestCaseDetailsPage() {
   const handleOpenEditDrawer = (record: any) => {
     setEditingCaseId(record.id);
     setNewStepInput("");
+    setZaiPrompt("");
+    setZaiGenerating(false);
+    setZaiOpen(false); // editing starts from existing content, not a blank draft
     setFormData({
       name: record.name || "",
       description: record.description || "",
@@ -203,93 +331,86 @@ export default function ParentTestCaseDetailsPage() {
 
   const childColumns = [
     {
-      title: "Test Case Name",
+      title: "Test Case",
       dataIndex: "name",
       key: "name",
+      width: 380,
+      // Single line by design — the expected result lives in the view drawer
       render: (t: string, record: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <strong style={{ color: "var(--text-slate-900)", fontSize: 14.5, cursor: "pointer", transition: "color 0.15s" }} onClick={() => handleOpenEditDrawer(record)}>
-            {t}
-          </strong>
-          {record.expected_result && (
-            <span style={{ fontSize: 12, color: "var(--text-slate-500)", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-              <span style={{ fontWeight: 600, color: "#10b981" }}>Expected:</span> {record.expected_result}
-            </span>
-          )}
+        <div className="sc-name">
+          <span className="sc-name__badge">{(record.test_case_id || '').slice(-3) || initialsOf(t || '')}</span>
+          <span className="sc-name__title" title={t}>{t || 'Untitled case'}</span>
         </div>
       )
     },
     {
-      title: "Test Type",
+      title: "Type",
       dataIndex: "test_type",
       key: "test_type",
       width: 130,
-      render: (t: string) => <span style={{ color: "var(--text-slate-700)", fontWeight: 500 }}>{t || 'Functional'}</span>
+      render: (t: string) => <span className="cd-plain">{t || 'Functional'}</span>
     },
     {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      width: 110,
-      render: (t: string) => <Tag color={t === 'Critical' ? 'red' : t === 'High' ? 'orange' : t === 'Medium' ? 'blue' : 'default'} style={{ fontWeight: 600 }}>{t || 'Medium'}</Tag>
+      width: 130,
+      render: (t: string) => <PriorityMeter priority={t || 'Medium'} />
     },
     {
       title: "Severity",
       dataIndex: "severity",
       key: "severity",
       width: 110,
-      render: (t: string) => <Tag style={{ fontWeight: 500 }}>{t || 'Major'}</Tag>
+      render: (t: string) => <span className="cd-plain">{t || 'Major'}</span>
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 100,
-      render: (t: string) => <Tag color={t === 'Active' ? 'green' : t === 'Deprecated' ? 'red' : 'default'} style={{ fontWeight: 600 }}>{t || 'Active'}</Tag>
+      width: 120,
+      render: (t: string) => {
+        const v = t || 'Active';
+        return <span className={`sc-pill sc-pill--${statusTone(v)}`}><span className="sc-pill__dot" />{v}</span>;
+      }
     },
     {
-      title: "Linked Suites",
+      title: "Suites",
       dataIndex: "suite_count",
       key: "suite_count",
-      width: 140,
+      width: 110,
       render: (_: any, record: any) => {
         const count = record.test_suites?.length || record.suite_count || 0;
+        if (!count) return <span className="sc-muted">—</span>;
         return (
-          <Tag
-            color="purple"
-            style={{ cursor: "pointer", fontWeight: 600, padding: "2px 10px", display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 12 }}
+          <button
+            type="button"
+            className="tc-suites"
             onClick={(e) => {
               e.stopPropagation();
               setSelectedCaseForSuites(record);
               setSuitesDrawerOpen(true);
             }}
-            title="Click to view linked Test Suites"
+            title="View linked Test Suites"
           >
-            <LinkOutlined style={{ fontSize: 12 }} />
+            <LinkOutlined />
             <span>{count}</span>
-          </Tag>
+          </button>
         );
       }
     },
     {
       title: "Actions",
       key: "actions",
-      width: 90,
-      align: "center" as const,
-      fixed: "right" as const,
+      width: 100,
+      align: "right" as const,
       render: (_: any, record: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
-          <Button
-            type="text"
-            size="small"
-            icon={<Pencil size={15} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenEditDrawer(record);
-            }}
-            style={{ color: "var(--text-slate-600)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-            title="Edit Case"
-          />
+        <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
+          <Tooltip title="Edit">
+            <button onClick={(e) => { e.stopPropagation(); handleOpenEditDrawer(record); }} aria-label="Edit">
+              <Pencil size={15} />
+            </button>
+          </Tooltip>
           <ConfirmDialog
             tone="danger"
             title="Delete Module Test Case?"
@@ -297,44 +418,411 @@ export default function ParentTestCaseDetailsPage() {
             confirmText="Delete"
             onConfirm={() => handleDeleteChild(record.id)}
           >
-            <Button
-              type="text"
-              size="small"
-              icon={<Trash2 size={15} />}
-              onClick={(e) => e.stopPropagation()}
-              style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-              title="Delete Case"
-            />
+            <Tooltip title="Delete">
+              <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                <Trash2 size={15} />
+              </button>
+            </Tooltip>
           </ConfirmDialog>
         </div>
       )
     }
   ];
 
+  // ── Derived: stats, filters, pagination ──────────────────────────────────
+  const activeCount = childCases.filter(t => t.status === 'Active' || t.status === 'Ready').length;
+  const automatedCount = childCases.filter(t => t.automation === 'Automated').length;
+  const highPriorityCount = childCases.filter(t => t.priority === 'High' || t.priority === 'Critical').length;
+
+  const filteredCases = childCases.filter(c => {
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      const hay = [c.name, c.test_case_id, c.expected_result, c.test_type, c.steps]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(s)) return false;
+    }
+    if (typeFilter && (c.test_type || 'Functional') !== typeFilter) return false;
+    if (priorityFilter && (c.priority || 'Medium') !== priorityFilter) return false;
+    if (statusFilter && (c.status || 'Active') !== statusFilter) return false;
+    if (quickFilter === 'active' && !(c.status === 'Active' || c.status === 'Ready')) return false;
+    if (quickFilter === 'automated' && c.automation !== 'Automated') return false;
+    if (quickFilter === 'highPriority' && !(c.priority === 'High' || c.priority === 'Critical')) return false;
+    return true;
+  });
+
+  const uniqueSorted = (values: any[]) =>
+    Array.from(new Set(values.filter(Boolean)))
+      .sort((a, b) => String(a).localeCompare(String(b)))
+      .map(v => ({ value: String(v), label: String(v) }));
+
+  const typeFilterOptions = uniqueSorted(childCases.map(c => c.test_type || 'Functional'));
+  const statusFilterOptions = uniqueSorted(childCases.map(c => c.status || 'Active'));
+
+  const activeFilterCount =
+    (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0) + (quickFilter ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter(undefined);
+    setPriorityFilter(undefined);
+    setStatusFilter(undefined);
+    setQuickFilter(undefined);
+  };
+
+  const pageCount = Math.max(1, Math.ceil(filteredCases.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = filteredCases.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, filteredCases.length);
+  const pagedCases = filteredCases.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   return (
     <MainLayout noPadding>
       <style dangerouslySetInnerHTML={{
         __html: `
         .dh-shell { display: flex; height: calc(100vh - 64px); background: transparent; overflow: hidden; position: relative; }
-        .dh-sidebar { width: 240px; background: transparent; border-right: 1px solid var(--border-slate-200); display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
-        .dh-sidebar-top { padding: 18px 14px 10px; flex-shrink: 0; }
-        .pp-side-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .pp-side-logo { width: 34px; height: 34px; border-radius: 8px; background: var(--bg-blue-50, rgba(59,130,246,0.1)); color: #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .pp-side-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); line-height: 1.2; margin: 0; }
-        .pp-side-subtitle { font-size: 11.5px; color: var(--text-slate-500); font-weight: 500; margin: 0; }
-        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 0 14px 20px; }
+        .dh-sidebar {
+          width: 220px; background: transparent; border-right: 1px solid var(--border-slate-200);
+          display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
+        }
+        .dh-sidebar-top { padding: 12px 10px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border-slate-100); }
+        .pp-side-head { display: flex; align-items: center; gap: 9px; margin-bottom: 0; padding: 0 2px; }
+        .pp-side-logo {
+          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+          background: var(--bg-blue-50, rgba(59,130,246,0.1)); color: #3B82F6;
+          display: flex; align-items: center; justify-content: center; font-size: 15px;
+          border: 1px solid rgba(59,130,246,.16);
+        }
+        .pp-side-title { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); line-height: 1.15; margin: 0; }
+        .pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; margin: 1px 0 0; letter-spacing: .02em; }
+        .pp-side-cta { margin-top: 12px; height: 34px !important; border-radius: 8px !important; font-size: 12.5px; font-weight: 600; }
+
+        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px 8px 16px; }
+        .pp-nav-caption {
+          display: block; padding: 0 8px; margin: 0 0 6px;
+          font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
         .pp-nav-item {
-          display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 12px;
-          border-radius: 6px; border: none; background: transparent; color: var(--text-slate-600);
-          font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: all 0.15s ease;
-          margin-bottom: 4px;
+          position: relative;
+          display: flex; align-items: center; gap: 9px; width: 100%; height: 33px; padding: 0 9px;
+          border-radius: 7px; border: none; background: transparent; color: var(--text-slate-600);
+          font-size: 12.5px; font-weight: 500; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease; margin-bottom: 2px;
+        }
+        .pp-nav-icon { flex-shrink: 0; color: var(--text-slate-400); font-size: 14px; transition: color .15s ease; }
+        .pp-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pp-nav-count {
+          flex-shrink: 0; min-width: 20px; padding: 1px 6px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 700; text-align: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-100); transition: all .15s ease;
         }
         .pp-nav-item:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .pp-nav-item.is-active { background: var(--bg-blue-50, rgba(59,130,246,0.1)); color: #3B82F6; font-weight: 600; }
+        .pp-nav-item:hover .pp-nav-icon { color: var(--text-slate-600); }
+        .pp-nav-item.is-active { background: var(--bg-blue-50, rgba(59,130,246,0.1)); color: #3B82F6; font-weight: 650; }
+        .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
+        .pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
+        .pp-nav-item.is-active::before {
+          content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
+          width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
+        }
+
+        /* Scenario summary card in the rail */
+        .cd-side {
+          margin: 2px 0 0; padding: 11px 10px;
+          border: 1px solid var(--border-slate-200); border-radius: 10px;
+          background: var(--bg-slate-50);
+        }
+        .cd-side__title { font-size: 12.5px; font-weight: 650; color: var(--text-slate-900); line-height: 1.4; word-break: break-word; }
+        .cd-meta { margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px; }
+        .cd-meta__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
+        .cd-meta__row dt { font-size: 11px; color: var(--text-slate-400); font-weight: 500; flex-shrink: 0; }
+        .cd-meta__row dd {
+          margin: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
+          text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar { height: auto; min-height: 64px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; }
-        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 24px; background: transparent; }
+        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; }
+
+        /* ── Topbar: one line ───────────────────────────────────────── */
+        .sc-topbar { min-height: 52px !important; padding: 8px 20px !important; }
+        .sc-topbar__title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+        .sc-topbar__h1 { font-size: 15px; font-weight: 700; color: var(--text-slate-900); }
+        .sc-topbar__div { width: 1px; height: 14px; background: var(--border-slate-200); flex-shrink: 0; }
+        .cd-back { flex-shrink: 0; }
+        .cd-crumb {
+          font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600;
+          color: var(--text-slate-400); white-space: nowrap; flex-shrink: 0;
+        }
+        .cd-crumb--strong { color: var(--text-slate-600); max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+        .cd-sep { color: var(--border-slate-200); flex-shrink: 0; }
+        .cd-title { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sc-topbar .dh-main-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
+        @media (max-width: 900px) { .cd-crumb, .cd-sep, .sc-topbar__div { display: none; } }
+
+        /* ── Stat tiles ─────────────────────────────────────────────── */
+        .pp-stat-card {
+          background: transparent; border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 10px 12px; min-height: 84px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
+        .sc-stat-hit { cursor: pointer; outline: none; }
+        .sc-stat-hit .pp-stat-card { transition: border-color .15s ease, background .15s ease; }
+        .sc-stat-hit:hover .pp-stat-card { border-color: #bfdbfe; background: var(--bg-slate-50); }
+        .sc-stat-hit.is-active .pp-stat-card { border-color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+        .sc-stat-hit:focus-visible .pp-stat-card { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+
+        /* ── Filter row ─────────────────────────────────────────────── */
+        .sc-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .sc-filters__search { width: 240px; }
+        .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
+        .sc-filters__field { min-width: 150px; }
+        .sc-filters .sd-trigger { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; }
+        .sc-clear {
+          height: 32px; display: inline-flex; align-items: center;
+          font-size: 12px; font-weight: 600; color: #3b82f6;
+          padding: 0 11px; border-radius: 8px;
+          border: 1px solid var(--border-slate-200); background: transparent;
+          cursor: pointer; transition: all .15s ease;
+        }
+        .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
+
+        /* ── Table cells ────────────────────────────────────────────── */
+        .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
+        .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
+        .sc-table .ant-table-tbody > tr { cursor: pointer; }
+        .sc-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .sc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .sc-table .ant-table-tbody > tr > td:last-child { padding-right: 12px !important; }
+
+        .sc-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sc-name__badge {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 27px; height: 27px; border-radius: 7px;
+          background: rgba(59,130,246,.1); color: #2563eb;
+          font-size: 10px; font-weight: 700; letter-spacing: .02em;
+        }
+        .sc-name__title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cd-plain { font-size: 12.5px; color: var(--text-slate-700); }
+        .sc-muted { color: var(--text-slate-400); }
+
+        .sc-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+          font-size: 11.5px; font-weight: 600;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-600);
+        }
+        .sc-pill__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+        .sc-pill--blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
+        .sc-pill--green { color: #047857; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
+        .sc-pill--red { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.22); }
+        .sc-pill--ash { color: #64748b; background: rgba(100,116,139,.1); border-color: rgba(100,116,139,.2); }
+
+        .sc-prio { display: inline-flex; align-items: center; gap: 8px; }
+        .sc-prio__bars { display: inline-flex; align-items: flex-end; gap: 2px; }
+        .sc-prio__bar { width: 4px; height: 12px; border-radius: 2px; background: var(--border-slate-200); }
+        .sc-prio__bar.is-on { background: #60a5fa; }
+        .sc-prio__bar.is-on.is-max { background: #2563eb; }
+        .sc-prio__label { font-size: 12px; font-weight: 500; color: var(--text-slate-600); }
+
+        .sc-person { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+        .sc-person__av {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 20px; height: 20px; border-radius: 999px;
+          background: rgba(59,130,246,.12); color: #2563eb; font-size: 8.5px; font-weight: 700;
+        }
+        .sc-person__name { font-size: 11.5px; color: var(--text-slate-700); overflow: hidden; text-overflow: ellipsis; }
+
+        .tc-suites {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 3px 10px; border-radius: 999px; cursor: pointer;
+          font-size: 11.5px; font-weight: 600;
+          color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22);
+          transition: all .15s ease;
+        }
+        .tc-suites:hover { background: rgba(59,130,246,.18); }
+
+        .sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+        .sc-rowactions button {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
+          border: 1px solid transparent; background: transparent; color: var(--text-slate-400);
+          transition: all .15s ease;
+        }
+        .sc-rowactions button:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+        .sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+
+        .sc-empty { padding: 44px 24px; text-align: center; }
+        .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); display: inline-block; }
+        .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
+        .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+        /* ── Case view drawer (compact, read-only) ──────────────────── */
+        .cv { display: flex; flex-direction: column; height: 100%; background: var(--bg-pure-white); }
+        .cv__head {
+          display: flex; align-items: center; gap: 9px;
+          padding: 12px 16px; border-bottom: 1px solid var(--border-slate-100);
+          background: var(--bg-slate-50); flex-shrink: 0;
+        }
+        .cv__id {
+          font-size: 11px; font-weight: 700; letter-spacing: .06em;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          padding: 3px 8px; border-radius: 6px;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        .cv__close {
+          margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+          width: 26px; height: 26px; border-radius: 7px; font-size: 12px;
+          color: var(--text-slate-400); background: none; border: none; cursor: pointer;
+          transition: all .15s ease;
+        }
+        .cv__close:hover { color: var(--text-slate-900); background: var(--border-slate-100); }
+
+        .cv__body { flex: 1; overflow-y: auto; padding: 18px 20px; }
+        .cv__titlerow { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+        .cv__titleicon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px; font-size: 13px; margin-top: 1px;
+          background: rgba(59,130,246,.1); color: #2563eb; border: 1px solid rgba(59,130,246,.18);
+        }
+        .cv__title {
+          margin: 0; font-size: 15.5px; font-weight: 700; line-height: 1.4;
+          color: var(--text-slate-900); letter-spacing: -.01em;
+        }
+        .cv__facts {
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+          background: var(--border-slate-100); border: 1px solid var(--border-slate-100);
+          border-radius: 10px; overflow: hidden; margin-bottom: 20px;
+        }
+        @media (max-width: 620px) { .cv__facts { grid-template-columns: repeat(2, 1fr); } }
+        .cv__fact {
+          display: flex; flex-direction: column; gap: 4px;
+          padding: 9px 11px; background: var(--bg-pure-white);
+        }
+        .cv__fact-key { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-slate-400); }
+        .cv__fact-val { font-size: 12.5px; font-weight: 600; color: var(--text-slate-700); }
+
+        .cv__sec { margin-bottom: 20px; }
+        .cv__sec-title {
+          display: flex; align-items: center; gap: 8px; margin: 0 0 9px;
+          font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+          color: var(--text-slate-500);
+        }
+        .cv__sec-icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 20px; height: 20px; border-radius: 6px; font-size: 11px;
+          background: var(--bg-slate-50); color: var(--text-slate-400);
+          border: 1px solid var(--border-slate-100);
+        }
+        .cv__sec-icon--ok { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.2); }
+        /* Dotted rule fills the rest of the heading line */
+        .cv__rule { flex: 1; min-width: 16px; border-top: 1px dashed var(--border-slate-200); }
+        .cv__count {
+          min-width: 18px; padding: 0 6px; border-radius: 999px; letter-spacing: 0;
+          font-size: 10px; font-weight: 700; text-align: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-100);
+        }
+        .cv__text { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text-slate-700); white-space: pre-wrap; }
+        .cv__empty { margin: 0; font-size: 12.5px; color: var(--text-slate-400); font-style: italic; }
+        .cv__steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+        .cv__steps li {
+          display: flex; align-items: flex-start; gap: 9px;
+          padding: 8px 10px; border-radius: 8px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+          font-size: 12.5px; line-height: 1.5; color: var(--text-slate-700);
+        }
+        .cv__step-n {
+          flex-shrink: 0; width: 18px; height: 18px; border-radius: 999px;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 700; margin-top: 1px;
+          background: rgba(59,130,246,.12); color: #2563eb;
+        }
+        .cv__expected {
+          margin: 0; padding: 10px 12px; border-radius: 8px;
+          font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
+          background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.22);
+          color: #065f46;
+        }
+        .cv__foot {
+          display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+          padding: 12px 16px; border-top: 1px solid var(--border-slate-100);
+          background: var(--bg-slate-50);
+        }
+        .cv__foot .ant-btn { height: 32px; border-radius: 8px; font-size: 12.5px; }
+
+        /* ── Create with Zai panel (drawer) ─────────────────────────── */
+        .zai-draft {
+          margin-bottom: 18px; padding: 12px 14px; border-radius: 12px;
+          border: 1px solid rgba(59,130,246,.28); background: rgba(59,130,246,.05);
+        }
+        .zai-draft__head { display: flex; align-items: flex-start; gap: 10px; }
+        .zai-draft__icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 26px; height: 26px; border-radius: 8px;
+          background: rgba(59,130,246,.14); color: #2563eb;
+        }
+        .zai-draft__title { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); }
+        .zai-draft__sub { font-size: 11.5px; color: var(--text-slate-500); margin-top: 1px; line-height: 1.4; }
+        .zai-draft__toggle {
+          margin-left: auto; flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: #2563eb;
+          background: none; border: none; cursor: pointer; padding: 2px 4px;
+        }
+        .zai-draft__input {
+          margin-top: 10px !important; border-radius: 8px !important;
+          background: var(--bg-pure-white) !important; font-size: 12.5px;
+        }
+        .zai-draft__row {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; margin-top: 10px; flex-wrap: wrap;
+        }
+        .zai-draft__chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+        .zai-draft__chip {
+          font-size: 11px; padding: 3px 9px; border-radius: 999px; cursor: pointer;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500); transition: all .15s ease;
+          max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .zai-draft__chip:hover { color: #2563eb; border-color: rgba(59,130,246,.4); }
+        .zai-draft__reopen {
+          display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+          font-size: 11.5px; font-weight: 600; color: #2563eb;
+          background: none; border: none; cursor: pointer; padding: 0;
+        }
+
+        /* ── Pager pinned to the bottom ─────────────────────────────── */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
+          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
+          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
+          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
+          font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
         .ts-table .ant-table-thead > tr > th {
           background: transparent !important;
@@ -426,145 +914,232 @@ export default function ParentTestCaseDetailsPage() {
                 icon={<PlusOutlined />}
                 onClick={handleOpenCreateDrawer}
                 block
-                style={{ marginTop: 16, borderRadius: 8, fontWeight: 500, height: 38 }}
+                className="pp-side-cta"
               >
                 Create Module Case
               </Button>
             )}
           </div>
+
           <div className="dh-sidebar-scroll">
+            <span className="pp-nav-caption">Workspace</span>
+            <button className="pp-nav-item" onClick={() => router.push('/qa-workspace/test-cases')}>
+              <Folder size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Cases</span>
+            </button>
             <button className="pp-nav-item is-active">
-              <FileTextOutlined style={{ fontSize: 15 }} /> Module Test Cases
+              <FileTextOutlined className="pp-nav-icon" />
+              <span className="pp-nav-label">Module Cases</span>
+              {childCases.length > 0 && <span className="pp-nav-count">{childCases.length}</span>}
             </button>
 
-            {/* Parent Scenario Details Side Panel */}
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-slate-400, #94a3b8)' }}>
-                  Scenario Details
+            {/* Scenario summary */}
+            <span className="pp-nav-caption" style={{ marginTop: 18 }}>Scenario</span>
+            <div className="cd-side">
+              <div className="cd-side__title">{parentData?.title || "—"}</div>
+              {parentData?.status && (
+                <span className={`sc-pill sc-pill--${statusTone(parentData.status)}`} style={{ marginTop: 8 }}>
+                  <span className="sc-pill__dot" />{parentData.status}
                 </span>
-                {parentData?.status && (
-                  <Tag color={parentData.status === 'Ready' || parentData.status === 'Active' ? 'success' : parentData.status === 'Deprecated' ? 'error' : 'processing'} style={{ fontSize: 11, fontWeight: 600, margin: 0 }}>
-                    {parentData.status}
-                  </Tag>
-                )}
-              </div>
+              )}
 
-              {/* Title / Scenario Name */}
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary, #f8fafc)', marginBottom: 16, lineHeight: 1.4, wordBreak: 'break-word' }}>
-                {parentData?.title || "—"}
-              </div>
-
-              {/* Metadata Key-Value List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ color: 'var(--text-slate-400, #94a3b8)', fontWeight: 500 }}>Module</span>
-                  <Tag color="blue" style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>
-                    {parentData?.module_name || "Unassigned"}
-                  </Tag>
+              <dl className="cd-meta">
+                <div className="cd-meta__row">
+                  <dt>Module</dt>
+                  <dd>{parentData?.module_name || "Unassigned"}</dd>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ color: 'var(--text-slate-400, #94a3b8)', fontWeight: 500 }}>Feature</span>
-                  <span style={{ color: 'var(--text-primary, #f1f5f9)', fontWeight: 600, textAlign: 'right' }}>
-                    {parentData?.feature || "—"}
-                  </span>
+                <div className="cd-meta__row">
+                  <dt>Feature</dt>
+                  <dd>{parentData?.feature || "—"}</dd>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ color: 'var(--text-slate-400, #94a3b8)', fontWeight: 500 }}>Automation</span>
-                  <Tag color={parentData?.automation === 'Automated' ? 'purple' : 'default'} style={{ margin: 0, fontWeight: 600 }}>
-                    {parentData?.automation || "Manual"}
-                  </Tag>
+                <div className="cd-meta__row">
+                  <dt>Automation</dt>
+                  <dd>{parentData?.automation || "Manual"}</dd>
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  <span style={{ color: 'var(--text-slate-400, #94a3b8)', fontWeight: 500 }}>Owner</span>
-                  <span style={{ color: 'var(--text-primary, #f1f5f9)', fontWeight: 600, textAlign: 'right' }}>
-                    {parentData?.owner_name || parentData?.qa_owner || "—"}
-                  </span>
+                <div className="cd-meta__row">
+                  <dt>Owner</dt>
+                  <dd>
+                    {parentData?.owner_name || parentData?.qa_owner ? (
+                      <span className="sc-person">
+                        <span className="sc-person__av">{initialsOf(parentData.owner_name || parentData.qa_owner)}</span>
+                        <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
+                      </span>
+                    ) : "—"}
+                  </dd>
                 </div>
-              </div>
+              </dl>
             </div>
           </div>
         </aside>
 
         <main className="dh-main">
-          {/* Topbar with scenario title & back button */}
-          <div className="dh-main-topbar">
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Button type="text" size="small" icon={<ArrowLeftOutlined />} onClick={() => router.push("/qa-workspace/test-cases")} style={{ marginRight: 2 }} />
-                <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                  {parentData?.title || "Loading Scenario..."}
+          {/* Back · breadcrumb · scenario name · status — one line */}
+          <div className="dh-main-topbar sc-topbar">
+            <div className="sc-topbar__title">
+              <Button
+                type="text"
+                size="small"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push("/qa-workspace/test-cases")}
+                className="cd-back"
+              />
+              <span className="sc-topbar__div" />
+              <span className="cd-crumb">Cases</span>
+              {parentData?.module_name && (
+                <>
+                  <span className="cd-sep">›</span>
+                  <span className="cd-crumb cd-crumb--strong">{parentData.module_name}</span>
+                </>
+              )}
+              <span className="cd-sep">›</span>
+              <h1 className="sc-topbar__h1 cd-title">{parentData?.title || "Loading scenario…"}</h1>
+              {parentData?.status && (
+                <span className={`sc-pill sc-pill--${statusTone(parentData.status)}`}>
+                  <span className="sc-pill__dot" />{parentData.status}
                 </span>
-                {parentData?.status && (
-                  <Tag color={parentData.status === 'Ready' || parentData.status === 'Active' ? 'green' : 'blue'} style={{ fontSize: 11, fontWeight: 700, margin: 0 }}>
-                    {parentData.status}
-                  </Tag>
-                )}
-              </div>
-              <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginLeft: 34 }}>
-                Module test executions and structured steps under this Business Scenario
-              </span>
+              )}
+            </div>
+
+            <div className="dh-main-controls">
+              {canCreateCase && (
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
+                  New Module Case
+                </Button>
+              )}
             </div>
           </div>
 
           <div className="dh-main-scroll">
-            {/* Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+            {/* Stats — product-standard tiles, Active / Automated filter on click */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
-                { label: "Total Module Cases", value: childCases.length, color: "#3b82f6", tint: "rgba(59,130,246,0.10)", icon: <FileTextOutlined style={{ fontSize: 15 }} /> },
-                { label: "Active Cases", value: childCases.filter(t => t.status === 'Active' || t.status === 'Ready').length, color: "#10b981", tint: "rgba(16,185,129,0.10)", icon: <CheckCircleOutlined style={{ fontSize: 15 }} /> },
-                { label: "Automated Cases", value: childCases.filter(t => t.automation === 'Automated').length, color: "#8b5cf6", tint: "rgba(139,92,246,0.10)", icon: <BugOutlined style={{ fontSize: 15 }} /> },
-                { label: "High/Critical Priority", value: childCases.filter(t => t.priority === 'High' || t.priority === 'Critical').length, color: "#ef4444", tint: "rgba(239,68,68,0.10)", icon: <Zap style={{ width: 15, height: 15 }} /> }
-              ].map((stat) => (
-                <div key={stat.label} style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', padding: '14px 18px', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 0, background: stat.tint, color: stat.color }}>{stat.icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-500)' }}>{stat.label}</span>
+                { key: undefined, label: "Module Cases", value: childCases.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: FileTextOutlined, sub: 'under this scenario' },
+                { key: 'active', label: "Active", value: activeCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${childCases.length ? Math.round((activeCount / childCases.length) * 100) : 0}% of all cases` },
+                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${childCases.length - automatedCount} still manual` },
+                { key: 'highPriority', label: "High / Critical", value: highPriorityCount, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Zap, sub: 'need the most attention' }
+              ].map((stat, i) => {
+                const clickable = !!stat.key;
+                const isActive = stat.key ? quickFilter === stat.key : false;
+                return (
+                  <div
+                    key={`${stat.label}-${i}`}
+                    role={clickable ? 'button' : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={() => clickable && setQuickFilter(quickFilter === stat.key ? undefined : stat.key)}
+                    onKeyDown={(e) => {
+                      if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        setQuickFilter(quickFilter === stat.key ? undefined : stat.key);
+                      }
+                    }}
+                    className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
+                  >
+                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>{stat.value}</span>
-                    </div>
-                    <div style={{ width: 60, height: 3, background: stat.color, borderRadius: 2, opacity: 0.8 }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Module Test Cases Table Section (Border radius 0px) */}
-            <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: '0px', overflow: 'hidden' }}>
+            {/* Filter row */}
+            <div className="sc-filters">
+              <Input
+                className="sc-filters__search"
+                placeholder="Search cases, steps, results…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+              <SearchableDropdown
+                options={typeFilterOptions}
+                value={typeFilter}
+                onChange={(v) => setTypeFilter(v)}
+                placeholder="All test types"
+                itemNoun="types"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={priorityOptions}
+                value={priorityFilter}
+                onChange={(v) => setPriorityFilter(v)}
+                placeholder="Any priority"
+                hideAvatar
+                itemNoun="levels"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={statusFilterOptions}
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v)}
+                placeholder="All statuses"
+                itemNoun="statuses"
+                className="sc-filters__field"
+              />
+              {activeFilterCount > 0 && (
+                <button type="button" className="sc-clear" onClick={clearFilters}>
+                  Clear ({activeFilterCount})
+                </button>
+              )}
+            </div>
+
+            {/* Module Test Cases */}
+            <div className="sc-tablewrap">
               <Table
-                className="ts-table"
-                dataSource={childCases}
+                className="ts-table sc-table"
+                dataSource={pagedCases}
                 columns={childColumns}
                 rowKey="id"
                 loading={loading}
                 pagination={false}
-                scroll={{ x: 'max-content' }}
                 onRow={(record) => ({
-                  onClick: () => handleOpenEditDrawer(record),
-                  style: { cursor: 'pointer', background: 'transparent' }
+                  onClick: () => { setViewCase(record); setViewOpen(true); },
                 })}
                 locale={{
                   emptyText: (
-                    <div style={{ padding: 48, textAlign: 'center' }}>
-                      <div style={{ fontSize: 40, color: 'var(--text-slate-300)', marginBottom: 12 }}><FileTextOutlined /></div>
-                      <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-slate-700)', margin: 0 }}>No module test cases added yet</h3>
-                      <p style={{ color: 'var(--text-slate-400)', fontSize: 13, maxWidth: 380, margin: '8px auto 20px' }}>
-                        Click "Create Module Case" in the sidebar to add specific testing instructions, steps, and expected behaviors for this scenario.
+                    <div className="sc-empty">
+                      <FileTextOutlined className="sc-empty__icon" />
+                      <p className="sc-empty__title">
+                        {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
                       </p>
-                      <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer} style={{ borderRadius: 8 }}>
-                        Create First Module Test Case
-                      </Button>
+                      <p className="sc-empty__desc">
+                        {activeFilterCount > 0
+                          ? 'Try widening your search or clearing the filters.'
+                          : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
+                      </p>
+                      {activeFilterCount > 0
+                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
                     </div>
                   )
                 }}
               />
             </div>
           </div>
+
+          {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
+          {filteredCases.length > 0 && (
+            <div className="pp-footer">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredCases.length}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -631,6 +1206,62 @@ export default function ParentTestCaseDetailsPage() {
 
           {/* Drawer Body */}
           <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
+            {/* Describe the case in plain language and let Zai draft it */}
+            <div className="zai-draft">
+              <div className="zai-draft__head">
+                <span className="zai-draft__icon"><Sparkles size={14} /></span>
+                <div className="min-w-0">
+                  <div className="zai-draft__title">Create with Zai</div>
+                  <div className="zai-draft__sub">Describe the case — Zai fills in the name, steps and expected result.</div>
+                </div>
+                {zaiOpen && (
+                  <button type="button" className="zai-draft__toggle" onClick={() => setZaiOpen(false)}>Hide</button>
+                )}
+              </div>
+
+              {zaiOpen ? (
+                <>
+                  <TextArea
+                    rows={2}
+                    placeholder="e.g. user able to type mail and password with validation"
+                    value={zaiPrompt}
+                    onChange={(e) => setZaiPrompt(e.target.value)}
+                    onPressEnter={(e) => {
+                      if (!e.shiftKey) { e.preventDefault(); handleZaiGenerate(); }
+                    }}
+                    className="zai-draft__input"
+                  />
+                  <div className="zai-draft__row">
+                    <div className="zai-draft__chips">
+                      {[
+                        'user able to type mail and password with validation',
+                        'invalid credentials show an inline error',
+                        'session expires after inactivity',
+                      ].map(s => (
+                        <button key={s} type="button" className="zai-draft__chip" onClick={() => setZaiPrompt(s)}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      type="primary"
+                      size="small"
+                      loading={zaiGenerating}
+                      disabled={!zaiPrompt.trim()}
+                      icon={!zaiGenerating ? <Sparkles size={13} /> : undefined}
+                      onClick={handleZaiGenerate}
+                    >
+                      {zaiGenerating ? 'Zai is drafting…' : 'Generate'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <button type="button" className="zai-draft__reopen" onClick={() => setZaiOpen(true)}>
+                  <Sparkles size={12} /> Draft another with Zai
+                </button>
+              )}
+            </div>
+
             <Form layout="vertical" className="customer-drawer-form">
               {/* STEP 1: Basic Information */}
               <SectionCard
@@ -664,12 +1295,7 @@ export default function ParentTestCaseDetailsPage() {
                   <Col span={8}>
                     <Form.Item label="Priority" style={{ marginBottom: 16 }}>
                       <SearchableDropdown
-                        options={[
-                          { value: "Low", label: "Low" },
-                          { value: "Medium", label: "Medium" },
-                          { value: "High", label: "High" },
-                          { value: "Critical", label: "Critical" },
-                        ]}
+                        options={priorityOptions}
                         value={formData.priority}
                         onChange={(val: any) => setFormData({ ...formData, priority: val })}
                         placeholder="Select Priority"
@@ -681,13 +1307,7 @@ export default function ParentTestCaseDetailsPage() {
                   <Col span={8}>
                     <Form.Item label="Severity" style={{ marginBottom: 16 }}>
                       <SearchableDropdown
-                        options={[
-                          { value: "Blocker", label: "Blocker" },
-                          { value: "Critical", label: "Critical" },
-                          { value: "Major", label: "Major" },
-                          { value: "Minor", label: "Minor" },
-                          { value: "Trivial", label: "Trivial" },
-                        ]}
+                        options={severityOptions}
                         value={formData.severity}
                         onChange={(val: any) => setFormData({ ...formData, severity: val })}
                         placeholder="Select Severity"
@@ -717,14 +1337,7 @@ export default function ParentTestCaseDetailsPage() {
                   <Col span={12}>
                     <Form.Item label="Test Type" style={{ marginBottom: 0 }}>
                       <SearchableDropdown
-                        options={[
-                          { value: "Functional", label: "Functional" },
-                          { value: "Regression", label: "Regression" },
-                          { value: "Integration", label: "Integration" },
-                          { value: "Smoke", label: "Smoke" },
-                          { value: "Performance", label: "Performance" },
-                          { value: "Security", label: "Security" },
-                        ]}
+                        options={testTypeOptions}
                         value={formData.test_type || undefined}
                         onChange={(val: any) => setFormData({ ...formData, test_type: val })}
                         placeholder="Select Test Type"
@@ -892,6 +1505,148 @@ export default function ParentTestCaseDetailsPage() {
             </div>
           </div>
         </div>
+      </Drawer>
+
+      {/* Read-only case view — compact, opens on row click */}
+      <Drawer
+        {...commonDrawerProps}
+        open={viewOpen}
+        onClose={() => setViewOpen(false)}
+        width={640}
+      >
+        {viewCase && (
+          <div className="cv">
+            <div className="cv__head">
+              <span className="cv__id">{viewCase.test_case_id || 'CASE'}</span>
+              <span className={`sc-pill sc-pill--${statusTone(viewCase.status || 'Active')}`}>
+                <span className="sc-pill__dot" />{viewCase.status || 'Active'}
+              </span>
+              <button className="cv__close" onClick={() => setViewOpen(false)} aria-label="Close">
+                <CloseOutlined />
+              </button>
+            </div>
+
+            <div className="cv__body">
+              <div className="cv__titlerow">
+                <span className="cv__titleicon"><FileTextOutlined /></span>
+                <h2 className="cv__title">{viewCase.name || 'Untitled case'}</h2>
+              </div>
+
+              <div className="cv__facts">
+                <div className="cv__fact">
+                  <span className="cv__fact-key">Priority</span>
+                  <PriorityMeter priority={viewCase.priority || 'Medium'} />
+                </div>
+                <div className="cv__fact">
+                  <span className="cv__fact-key">Severity</span>
+                  <span className="cv__fact-val">{viewCase.severity || 'Major'}</span>
+                </div>
+                <div className="cv__fact">
+                  <span className="cv__fact-key">Type</span>
+                  <span className="cv__fact-val">{viewCase.test_type || 'Functional'}</span>
+                </div>
+                <div className="cv__fact">
+                  <span className="cv__fact-key">Automation</span>
+                  <span className="cv__fact-val">{viewCase.automation || 'Manual'}</span>
+                </div>
+              </div>
+
+              {viewCase.description && (
+                <section className="cv__sec">
+                  <h3 className="cv__sec-title">
+                    <span className="cv__sec-icon"><InfoCircleOutlined /></span>
+                    <span>Description</span>
+                    <span className="cv__rule" />
+                  </h3>
+                  <p className="cv__text">{viewCase.description}</p>
+                </section>
+              )}
+
+              {viewCase.preconditions && (
+                <section className="cv__sec">
+                  <h3 className="cv__sec-title">
+                    <span className="cv__sec-icon"><ShieldCheck size={12} /></span>
+                    <span>Preconditions</span>
+                    <span className="cv__rule" />
+                  </h3>
+                  <p className="cv__text">{viewCase.preconditions}</p>
+                </section>
+              )}
+
+              <section className="cv__sec">
+                <h3 className="cv__sec-title">
+                  <span className="cv__sec-icon"><Activity size={12} /></span>
+                  <span>Steps to Reproduce</span>
+                  {parseSteps(viewCase.steps_to_reproduce).length > 0 && (
+                    <span className="cv__count">{parseSteps(viewCase.steps_to_reproduce).length}</span>
+                  )}
+                  <span className="cv__rule" />
+                </h3>
+                {parseSteps(viewCase.steps_to_reproduce).length === 0 ? (
+                  <p className="cv__empty">No steps recorded.</p>
+                ) : (
+                  <ol className="cv__steps">
+                    {parseSteps(viewCase.steps_to_reproduce).map((s, i) => (
+                      <li key={i}><span className="cv__step-n">{i + 1}</span><span>{s}</span></li>
+                    ))}
+                  </ol>
+                )}
+              </section>
+
+              <section className="cv__sec">
+                <h3 className="cv__sec-title">
+                  <span className="cv__sec-icon cv__sec-icon--ok"><CheckCircleOutlined /></span>
+                  <span>Expected Result</span>
+                  <span className="cv__rule" />
+                </h3>
+                {viewCase.expected_result
+                  ? <p className="cv__expected">{viewCase.expected_result}</p>
+                  : <p className="cv__empty">Not recorded.</p>}
+              </section>
+
+              <section className="cv__sec">
+                <h3 className="cv__sec-title">
+                  <span className="cv__sec-icon"><Layers size={12} /></span>
+                  <span>Linked Suites</span>
+                  <span className="cv__rule" />
+                </h3>
+                {(viewCase.test_suites?.length || viewCase.suite_count || 0) === 0 ? (
+                  <p className="cv__empty">Not linked to any suite.</p>
+                ) : (
+                  <button
+                    type="button"
+                    className="tc-suites"
+                    onClick={() => { setSelectedCaseForSuites(viewCase); setSuitesDrawerOpen(true); }}
+                  >
+                    <LinkOutlined />
+                    <span>{viewCase.test_suites?.length || viewCase.suite_count} linked</span>
+                  </button>
+                )}
+              </section>
+            </div>
+
+            <div className="cv__foot">
+              <ConfirmDialog
+                tone="danger"
+                title="Delete Module Test Case?"
+                description={`Are you sure you want to delete "${viewCase.name}" (${viewCase.test_case_id})?`}
+                confirmText="Delete"
+                onConfirm={async () => { await handleDeleteChild(viewCase.id); setViewOpen(false); }}
+              >
+                <Button danger icon={<Trash2 size={14} />}>Delete</Button>
+              </ConfirmDialog>
+              <div style={{ flex: 1 }} />
+              <Button onClick={() => setViewOpen(false)}>Close</Button>
+              <Button
+                type="primary"
+                icon={<Pencil size={14} />}
+                onClick={() => { setViewOpen(false); handleOpenEditDrawer(viewCase); }}
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
       </Drawer>
 
       {/* Linked Suites Drawer */}

@@ -22,6 +22,11 @@ import {
   Archive,
   FolderKanban,
   Bug,
+  // WORK – QA Space
+  Target,
+  ClipboardList,
+  Boxes,
+  PlayCircle,
   // Timesheet / Time tracking
   CalendarClock,
   Gauge,
@@ -588,28 +593,28 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           {
             key: "/qa-workspace/test-scope",
             label: "Scope",
-            icon: I(ListChecks),
+            icon: I(Target),
             path: "/qa-workspace/test-scope",
             requiredPermission: Permissions.QA_SCOPE_READ,
           },
           {
             key: "/qa-workspace/test-cases",
             label: "Cases",
-            icon: I(ListChecks), // Or another icon
+            icon: I(ClipboardList),
             path: "/qa-workspace/test-cases",
             requiredPermission: Permissions.QA_CASE_READ,
           },
           {
             key: "/qa-workspace/test-suites",
             label: "Suites",
-            icon: I(ListChecks), 
+            icon: I(Boxes),
             path: "/qa-workspace/test-suites",
             requiredPermission: Permissions.QA_SUITE_READ,
           },
           {
             key: "/qa-workspace/test-runs",
             label: "Runs",
-            icon: I(ListChecks), 
+            icon: I(PlayCircle),
             path: "/qa-workspace/test-runs",
             requiredPermission: Permissions.QA_RUN_READ,
           },
@@ -618,6 +623,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Bug List",
             icon: I(Bug),
             path: "/tickets/bug-list",
+            requiredPermission: Permissions.BUG_READ,
+          },
+          {
+            key: "/qa-workspace/settings",
+            label: "Settings",
+            icon: I(Settings),
+            path: "/qa-workspace/settings",
             requiredPermission: Permissions.BUG_READ,
           },
         ],

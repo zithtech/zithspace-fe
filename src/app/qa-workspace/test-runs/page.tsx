@@ -2,11 +2,11 @@
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Progress, Dropdown, message, Input, Modal, Drawer, Select, Row, Col, Typography, Space } from "antd";
-import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, StopOutlined, MinusCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SnippetsOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip } from "antd";
+import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, LayoutDashboard, Target, Activity, Trash2, Play } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2 } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -17,6 +17,26 @@ import dayjs from "dayjs";
 const { Text } = Typography;
 
 type TabKey = "dashboard" | "runs";
+
+/* Product-standard stat tile */
+const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
+  <div className="pp-stat-card">
+    <div className="pp-stat-top">
+      <div className="pp-stat-left">
+        <span className="pp-stat-icon" style={{ background: bgColor, color }}>
+          <Icon size={14} style={{ fontSize: 14 }} />
+        </span>
+        <span className="pp-stat-label">{label}</span>
+      </div>
+    </div>
+    <div className="pp-stat-bottom">
+      <div className="pp-stat-value-wrap">
+        <span className="pp-stat-value">{value}</span>
+      </div>
+      {sub && <span className="pp-stat-period">{sub}</span>}
+    </div>
+  </div>
+);
 
 function hashCode(str: string) {
   let hash = 0;
@@ -58,6 +78,14 @@ function TestRunsContent() {
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
+  const [progressFilter, setProgressFilter] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, suiteFilter, progressFilter]);
   
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,10 +97,12 @@ function TestRunsContent() {
     return suites.filter((s: any) => s.module_id === formData.module_id);
   }, [suites, formData?.module_id]);
 
-  // Execute Drawer State
-  const [executeDrawerOpen, setExecuteDrawerOpen] = useState(false);
-  const [activeRun, setActiveRun] = useState<any>(null);
-  const [executing, setExecuting] = useState(false);
+  /** The suite chosen in the create drawer, for the coverage preview. */
+  const selectedSuite = useMemo(
+    () => suites.find((s: any) => s.id === formData?.suite_id),
+    [suites, formData?.suite_id]
+  );
+  const selectedSuiteCases = parseInt(selectedSuite?.case_count || '0', 10) || 0;
 
   const { canReadRun, canCreateRun } = usePermission();
 
@@ -122,18 +152,9 @@ function TestRunsContent() {
     }
   };
 
-  const openExecuteDrawer = async (record: any) => {
-    try {
-      setExecuting(true);
-      const res: any = await axios.get(`/api/v2/qa/runs/${record.id}`);
-      const data = res?.data || res;
-      setActiveRun(data);
-      setExecuteDrawerOpen(true);
-    } catch (error) {
-      message.error("Failed to fetch run details");
-    } finally {
-      setExecuting(false);
-    }
+  /** Execution now lives on its own page, so results survive a refresh. */
+  const openExecuteDrawer = (record: any) => {
+    router.push(`/qa-workspace/test-runs/${record.id}`);
   };
 
   const handleDeleteRun = async (id: string) => {
@@ -146,88 +167,127 @@ function TestRunsContent() {
     }
   };
 
-  const handleUpdateStatus = async (resultId: string, status: string) => {
-    try {
-      await axios.put(`/api/v2/qa/runs/${activeRun.id}/results/${resultId}`, { status });
-      message.success(`Status updated to ${status}`);
-      // Optimistically update UI
-      setActiveRun((prev: any) => ({
-        ...prev,
-        results: prev.results.map((r: any) => r.id === resultId ? { ...r, status } : r)
-      }));
-      // Update background list
-      fetchData();
-    } catch (error) {
-      message.error("Failed to update status");
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pass': return 'green';
-      case 'Fail': return 'red';
-      case 'Blocked': return 'orange';
-      default: return 'default';
-    }
-  };
-
   if (!canReadRun) return null;
 
-  const filteredRuns = runs.filter(r => r.run_name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  /** Which progress bucket a run falls into. */
+  const runState = (r: any) => {
+    const total = parseInt(r.total_cases) || 0;
+    const executed = total - (parseInt(r.not_executed_count) || 0);
+    if (!total || executed === 0) return 'notStarted';
+    return executed >= total ? 'completed' : 'active';
+  };
 
+  const filteredRuns = runs.filter(r => {
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      const hay = [r.run_name, r.suite_name].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (suiteFilter && (r.suite_name || 'Unassigned') !== suiteFilter) return false;
+    if (progressFilter && runState(r) !== progressFilter) return false;
+    return true;
+  });
+
+  const suiteFilterOptions = Array.from(new Set(runs.map(r => r.suite_name).filter(Boolean)))
+    .sort((a, b) => String(a).localeCompare(String(b)))
+    .map(v => ({ value: String(v), label: String(v) }));
+
+  const activeFilterCount =
+    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSuiteFilter(undefined);
+    setProgressFilter(undefined);
+  };
+
+  // Client-side pagination, matching the app-wide sticky pager
+  const pageCount = Math.max(1, Math.ceil(filteredRuns.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = filteredRuns.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, filteredRuns.length);
+  const pagedRuns = filteredRuns.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+
+  const suiteNameOf = (record: any) => {
+    const suite = suites.find(s => s.id === record.suite_id);
+    return record.suite_name || suite?.suite_name || 'Unassigned';
+  };
+
+  const moduleNameOf = (record: any) => {
+    const suite = suites.find(s => s.id === record.suite_id);
+    const mod = modules.find(m => m.id === suite?.module_id);
+    return mod?.module_name || mod?.name || 'Unassigned';
+  };
+
+  /** Executed vs total for a run, plus the derived percentage. */
+  const progressOf = (record: any) => {
+    const total = parseInt(record.total_cases) || 0;
+    const executed = total - (parseInt(record.not_executed_count) || 0);
+    return { total, executed, percent: total > 0 ? Math.round((executed / total) * 100) : 0 };
+  };
 
   const columns = [
     {
-      title: "RUN NAME",
+      title: "Run",
       dataIndex: "run_name",
       key: "run_name",
-      render: (t: string) => <strong style={{ color: "var(--text-slate-900)", fontSize: 13 }}>{t}</strong>
+      width: 300,
+      render: (t: string, record: any) => (
+        <div className="sc-name">
+          <span className="sc-name__badge">{initialsOf(t || '')}</span>
+          <span className="sc-name__text">
+            <span className="sc-name__title" title={t}>{t || 'Untitled run'}</span>
+            <span className="sc-name__meta">{suiteNameOf(record)} · {moduleNameOf(record)}</span>
+          </span>
+        </div>
+      )
     },
     {
-      title: "SUITE",
-      dataIndex: "suite_id",
-      key: "suite_id",
-      render: (id: string, record: any) => {
-        const suite = suites.find(s => s.id === id || s.id === record.suite_id);
-        const name = record.suite_name || suite?.suite_name || 'Unassigned';
-        return <Tag color="blue">{name}</Tag>;
-      }
-    },
-    {
-      title: "MODULE",
-      dataIndex: "suite_id",
-      key: "module_id",
-      render: (id: string, record: any) => {
-        const suite = suites.find(s => s.id === id || s.id === record.suite_id);
-        const mod = modules.find(m => m.id === suite?.module_id);
-        return <Tag color="purple">{mod?.module_name || mod?.name || 'Unassigned'}</Tag>;
-      }
-    },
-    {
-      title: "PROGRESS",
+      title: "Progress",
       key: "progress",
-      width: 200,
+      width: 210,
       render: (_: any, record: any) => {
-        const total = parseInt(record.total_cases) || 0;
-        const executed = total - (parseInt(record.not_executed_count) || 0);
-        const percent = total > 0 ? Math.round((executed / total) * 100) : 0;
-        return <Progress percent={percent} size="small" />;
+        const { total, executed, percent } = progressOf(record);
+        if (!total) return <span className="sc-muted">No cases</span>;
+        return (
+          <div className="rn-progress">
+            <div className="rn-progress__bar">
+              <span className={percent === 100 ? 'is-done' : ''} style={{ width: `${percent}%` }} />
+            </div>
+            <span className="rn-progress__label">{executed}/{total}</span>
+          </div>
+        );
       }
     },
     {
-      title: "STARTED",
+      title: "State",
+      key: "state",
+      width: 130,
+      render: (_: any, record: any) => {
+        const { total, executed, percent } = progressOf(record);
+        if (!total || executed === 0) return <span className="sc-pill sc-pill--ash"><span className="sc-pill__dot" />Not started</span>;
+        if (percent === 100) return <span className="sc-pill sc-pill--green"><span className="sc-pill__dot" />Completed</span>;
+        return <span className="sc-pill sc-pill--blue"><span className="sc-pill__dot" />In progress</span>;
+      }
+    },
+    {
+      title: "Started",
       dataIndex: "started_at",
       key: "started_at",
-      render: (t: string) => <span style={{ color: "var(--text-slate-500)" }}>{t ? dayjs(t).format("MMM DD, HH:mm") : '—'}</span>
+      width: 150,
+      render: (t: string) => (
+        <span className="sc-timeline__range">{t ? dayjs(t).format("D MMM, HH:mm") : '—'}</span>
+      )
     },
     {
-      title: "ACTIONS",
+      title: "Actions",
       key: "actions",
       width: 150,
-      fixed: "right" as const,
+      align: "right" as const,
       render: (_: any, record: any) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }} onClick={e => e.stopPropagation()}>
-          <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => openExecuteDrawer(record)}>
+        <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
+          <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => openExecuteDrawer(record)} className="rn-exec">
             Execute
           </Button>
           <ConfirmDialog
@@ -237,14 +297,11 @@ function TestRunsContent() {
             confirmText="Delete"
             onConfirm={() => handleDeleteRun(record.id)}
           >
-            <Button
-              type="text"
-              size="small"
-              icon={<Trash2 size={15} />}
-              onClick={(e) => e.stopPropagation()}
-              style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-              title="Delete Test Run"
-            />
+            <Tooltip title="Delete">
+              <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                <Trash2 size={15} />
+              </button>
+            </Tooltip>
           </ConfirmDialog>
         </div>
       )
@@ -342,27 +399,238 @@ function TestRunsContent() {
       <style dangerouslySetInnerHTML={{
         __html: `
         .dh-shell { display: flex; height: calc(100vh - 64px); background: transparent; overflow: hidden; position: relative; }
-        .dh-sidebar { width: 240px; background: transparent; border-right: 1px solid var(--border-slate-200); display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
-        .dh-sidebar-top { padding: 18px 14px 10px; flex-shrink: 0; }
-        .pp-side-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .pp-side-logo { width: 34px; height: 34px; border-radius: 8px; background: var(--bg-blue-50); color: #3B82F6; display: flex; align-items: center; justify-content: center; }
-        .pp-side-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); line-height: 1.2; margin: 0; }
-        .pp-side-subtitle { font-size: 11.5px; color: var(--text-slate-500); font-weight: 500; margin: 0; }
-        
-        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 0 14px 20px; }
-        
+        .dh-sidebar {
+          width: 194px; background: transparent; border-right: 1px solid var(--border-slate-200);
+          display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
+        }
+        .dh-sidebar-top { padding: 12px 10px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border-slate-100); }
+        .pp-side-head { display: flex; align-items: center; gap: 9px; margin-bottom: 0; padding: 0 2px; }
+        .pp-side-logo {
+          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+          background: var(--bg-blue-50); color: #3B82F6;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid rgba(59,130,246,.16);
+        }
+        .pp-side-title { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); line-height: 1.15; margin: 0; }
+        .pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; margin: 1px 0 0; letter-spacing: .02em; }
+        .pp-side-cta { margin-top: 12px; height: 34px !important; border-radius: 8px !important; font-size: 12.5px; font-weight: 600; }
+
+        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px 8px 16px; }
+        .pp-nav-caption {
+          display: block; padding: 0 8px; margin: 0 0 6px;
+          font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
         .pp-nav-item {
-          display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 12px;
-          border-radius: 6px; border: none; background: transparent; color: var(--text-slate-600);
-          font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: all 0.15s ease;
-          margin-bottom: 4px;
+          position: relative;
+          display: flex; align-items: center; gap: 9px; width: 100%; height: 33px; padding: 0 9px;
+          border-radius: 7px; border: none; background: transparent; color: var(--text-slate-600);
+          font-size: 12.5px; font-weight: 500; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease; margin-bottom: 2px;
+        }
+        .pp-nav-icon { flex-shrink: 0; color: var(--text-slate-400); transition: color .15s ease; }
+        .pp-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pp-nav-count {
+          flex-shrink: 0; min-width: 20px; padding: 1px 6px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 700; text-align: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-100); transition: all .15s ease;
         }
         .pp-nav-item:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 600; }
-        
+        .pp-nav-item:hover .pp-nav-icon { color: var(--text-slate-600); }
+        .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
+        .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
+        .pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
+        .pp-nav-item.is-active::before {
+          content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
+          width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
+        }
+
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar { height: auto; min-height: 64px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; padding: 12px 24px; justify-content: space-between; }
-        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 24px; background: transparent; }
+        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; }
+
+        /* ── Topbar: title + subtitle on one line ───────────────────── */
+        .sc-topbar { min-height: 52px !important; padding: 8px 20px !important; }
+        .sc-topbar__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sc-topbar__h1 { font-size: 15px; font-weight: 700; color: var(--text-slate-900); white-space: nowrap; }
+        .sc-topbar__div { width: 1px; height: 14px; background: var(--border-slate-200); flex-shrink: 0; }
+        .sc-topbar__sub { font-size: 12px; color: var(--text-slate-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 860px) { .sc-topbar__div, .sc-topbar__sub { display: none; } }
+        .sc-topbar .dh-main-controls { display: flex; align-items: center; gap: 8px; }
+        .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
+        .sc-topbar .pp-segmented { height: 32px; display: inline-flex; align-items: center; border-radius: 8px; overflow: hidden; }
+        .sc-topbar .pp-segmented button { height: 32px; width: 34px; display: inline-flex; align-items: center; justify-content: center; }
+
+        /* ── Stat tiles ─────────────────────────────────────────────── */
+        .pp-stat-card {
+          background: transparent; border: 1px solid var(--border-slate-200);
+          border-radius: 0; padding: 10px 12px; min-height: 84px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+        }
+        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
+        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
+        .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }
+        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
+        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
+        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
+        .sc-stat-hit { cursor: pointer; outline: none; }
+        .sc-stat-hit .pp-stat-card { transition: border-color .15s ease, background .15s ease; }
+        .sc-stat-hit:hover .pp-stat-card { border-color: #bfdbfe; background: var(--bg-slate-50); }
+        .sc-stat-hit.is-active .pp-stat-card { border-color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+        .sc-stat-hit:focus-visible .pp-stat-card { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+
+        /* ── Filter row ─────────────────────────────────────────────── */
+        .sc-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .sc-filters__search { width: 240px; }
+        .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
+        .sc-filters__field { min-width: 150px; }
+        .sc-filters .sd-trigger { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; }
+        .sc-clear {
+          height: 32px; display: inline-flex; align-items: center;
+          font-size: 12px; font-weight: 600; color: #3b82f6;
+          padding: 0 11px; border-radius: 8px;
+          border: 1px solid var(--border-slate-200); background: transparent;
+          cursor: pointer; transition: all .15s ease;
+        }
+        .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
+
+        /* ── Table ──────────────────────────────────────────────────── */
+        .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .sc-table .ant-table { background: transparent; }
+        .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
+        .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
+        .sc-table .ant-table-tbody > tr { cursor: pointer; }
+        .sc-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .sc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .sc-table .ant-table-tbody > tr > td:last-child { padding-right: 12px !important; }
+
+        .sc-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sc-name__badge {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 27px; height: 27px; border-radius: 7px;
+          background: rgba(59,130,246,.1); color: #2563eb;
+          font-size: 10px; font-weight: 700; letter-spacing: .02em;
+        }
+        .sc-name__text { display: flex; flex-direction: column; min-width: 0; }
+        .sc-name__title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .sc-name__meta { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+        .sc-muted { color: var(--text-slate-400); font-size: 12.5px; }
+        .sc-timeline__range { font-size: 12.5px; color: var(--text-slate-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        .sc-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+          font-size: 11.5px; font-weight: 600;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-600);
+        }
+        .sc-pill__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+        .sc-pill--blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
+        .sc-pill--green { color: #047857; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
+        .sc-pill--ash { color: #64748b; background: rgba(100,116,139,.1); border-color: rgba(100,116,139,.2); }
+
+        /* Inline execution progress */
+        .rn-progress { display: flex; align-items: center; gap: 9px; }
+        .rn-progress__bar {
+          flex: 1; min-width: 70px; height: 5px; border-radius: 999px;
+          background: var(--border-slate-100); overflow: hidden;
+        }
+        .rn-progress__bar > span { display: block; height: 100%; background: #3B82F6; transition: width .3s ease; }
+        .rn-progress__bar > span.is-done { background: #10b981; }
+        .rn-progress__label {
+          flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-600);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+        .sc-rowactions .rn-exec { height: 26px; border-radius: 7px; font-size: 11.5px; font-weight: 600; }
+        .sc-rowactions button.is-danger {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
+          border: 1px solid transparent; background: transparent; color: var(--text-slate-400);
+          transition: all .15s ease;
+        }
+        .sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+
+        .sc-empty { padding: 44px 24px; text-align: center; }
+        .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); display: inline-block; }
+        .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
+        .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+        /* ── Create Test Run drawer ────────────────────────────────── */
+        .rd { display: flex; flex-direction: column; height: 100%; background: var(--bg-pure-white); }
+        .rd__head {
+          display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+          padding: 12px 16px; border-bottom: 1px solid var(--border-slate-100);
+        }
+        .rd__icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 32px; height: 32px; border-radius: 9px; font-size: 15px;
+          background: rgba(59,130,246,.1); color: #3B82F6; border: 1px solid rgba(59,130,246,.18);
+        }
+        .rd__headtext { flex: 1; min-width: 0; }
+        .rd__title { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -.01em; }
+        .rd__sub { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.4; color: var(--text-slate-500); }
+        .rd__close {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px; font-size: 12px;
+          color: var(--text-slate-400); background: none; border: none; cursor: pointer;
+          transition: all .15s ease;
+        }
+        .rd__close:hover { color: var(--text-slate-900); background: var(--bg-slate-50); }
+
+        .rd__body { flex: 1; overflow-y: auto; padding: 16px; }
+        .rd__field { margin-bottom: 16px; }
+        .rd__label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; color: var(--text-slate-700); }
+        .rd__req { color: #ef4444; }
+        .rd__hint { margin: 5px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--text-slate-400); }
+        .rd__body .ant-input { height: 34px; border-radius: 8px; font-size: 12.5px; }
+        .rd__control { width: 100%; }
+        .rd__body .sd-trigger { height: 34px !important; min-height: 34px !important; border-radius: 8px !important; padding: 0 12px !important; }
+
+        .rd__preview {
+          padding: 12px 14px; border-radius: 10px;
+          background: rgba(59,130,246,.06); border: 1px solid rgba(59,130,246,.22);
+        }
+        .rd__preview-key {
+          display: block; margin-bottom: 6px;
+          font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+          color: #2563eb;
+        }
+        .rd__preview-row { display: flex; align-items: baseline; gap: 8px; }
+        .rd__preview-count { font-size: 22px; font-weight: 800; line-height: 1; color: var(--text-slate-900); }
+        .rd__preview-label { font-size: 12.5px; color: var(--text-slate-600); }
+        .rd__preview-label strong { color: var(--text-slate-900); font-weight: 650; }
+        .rd__preview-warn { margin: 8px 0 0; font-size: 11.5px; color: #b45309; }
+
+        .rd__foot {
+          display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+          padding: 10px 16px; border-top: 1px solid var(--border-slate-100);
+          background: var(--bg-slate-50);
+        }
+        .rd__foot .ant-btn { height: 32px; border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 0 14px; }
+
+        /* ── Pager pinned to the bottom of the pane ─────────────────── */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
+          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
+          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
+          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
+          font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
         
         .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); margin-left: 12px; }
         .pp-segmented button {
@@ -458,51 +726,48 @@ function TestRunsContent() {
                 icon={<PlusOutlined />}
                 onClick={openCreateModal}
                 block
-                style={{ marginTop: 16, borderRadius: 8, fontWeight: 500, height: 38 }}
+                className="pp-side-cta"
               >
                 Create Test Run
               </Button>
             )}
           </div>
-          
+
           <div className="dh-sidebar-scroll">
+            <span className="pp-nav-caption">Workspace</span>
             <button className={`pp-nav-item ${activeTab === 'runs' ? 'is-active' : ''}`} onClick={() => setActiveTab('runs')}>
-              <PlayCircle size={16} /> Runs
+              <PlayCircle size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Runs</span>
+              {runs.length > 0 && <span className="pp-nav-count">{runs.length}</span>}
             </button>
           </div>
         </aside>
 
         <main className="dh-main">
-          <div className="dh-main-topbar">
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              {activeTab === 'runs' && (
-                <>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>All Test Runs</span>
-                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>Execute test suites and track real-time QA test results</span>
-                </>
-              )}
-              {activeTab === 'dashboard' && (
-                <>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>Dashboard</span>
-                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>Overview of test runs and pass/fail execution progress</span>
-                </>
-              )}
+          <div className="dh-main-topbar sc-topbar">
+            {/* Title and subtitle share one line, split by a divider */}
+            <div className="sc-topbar__title">
+              <span className="sc-topbar__h1">{activeTab === 'runs' ? 'All Test Runs' : 'Dashboard'}</span>
+              <span className="sc-topbar__div" />
+              <span className="sc-topbar__sub">
+                {activeTab === 'runs'
+                  ? 'Execute test suites and track real-time QA test results'
+                  : 'Overview of test runs and pass/fail execution progress'}
+              </span>
             </div>
 
             <div className="dh-main-controls">
               {activeTab === 'runs' && (
                 <>
-                  <Input
-                    placeholder="Search test runs..."
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ width: 250, borderRadius: 6 }}
-                  />
                   <div className="pp-segmented">
                     <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                     <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                   </div>
+                  {canCreateRun && (
+                    <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>
+                      New Run
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -511,44 +776,103 @@ function TestRunsContent() {
           <div className="dh-main-scroll">
             {activeTab === 'runs' && (
               <>
-                {/* Stats Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+                {/* Stats — product-standard tiles, status filter on click */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   {[
-                    { label: "Total Runs", value: totalRuns, color: "#3b82f6", tint: "rgba(59,130,246,0.10)", icon: <SnippetsOutlined style={{ fontSize: 14 }} /> },
-                    { label: "Active Executions", value: activeRuns, color: "#f59e0b", tint: "rgba(245,158,11,0.10)", icon: <Activity size={14} /> },
-                    { label: "Completed Runs", value: completedRuns, color: "#10b981", tint: "rgba(16,185,129,0.10)", icon: <CheckCircleOutlined style={{ fontSize: 14 }} /> },
-                    { label: "Executed Cases", value: totalExecutedCases, color: "#8b5cf6", tint: "rgba(139,92,246,0.10)", icon: <Target size={14} /> }
-                  ].map((stat) => (
-                    <div key={stat.label} style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', padding: '12px 16px', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: stat.tint, color: stat.color }}>{stat.icon}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-500)' }}>{stat.label}</span>
+                    { key: undefined, label: "Total Runs", value: totalRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
+                    { key: 'active', label: "In Progress", value: activeRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
+                    { key: 'completed', label: "Completed", value: completedRuns, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalRuns ? Math.round((completedRuns / totalRuns) * 100) : 0}% of all runs` },
+                    { key: undefined, label: "Executed Cases", value: totalExecutedCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
+                  ].map((stat, i) => {
+                    const clickable = !!stat.key;
+                    const isActive = stat.key ? progressFilter === stat.key : false;
+                    return (
+                      <div
+                        key={`${stat.label}-${i}`}
+                        role={clickable ? 'button' : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        onClick={() => clickable && setProgressFilter(progressFilter === stat.key ? undefined : stat.key)}
+                        onKeyDown={(e) => {
+                          if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            setProgressFilter(progressFilter === stat.key ? undefined : stat.key);
+                          }
+                        }}
+                        className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
+                      >
+                        <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>{stat.value}</span>
-                        </div>
-                        <div style={{ width: 60, height: 2, background: stat.color, borderRadius: 2, opacity: 0.8 }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+
+                {/* Filter row */}
+                <div className="sc-filters">
+                  <Input
+                    className="sc-filters__search"
+                    placeholder="Search runs, suites…"
+                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    allowClear
+                  />
+                  <SearchableDropdown
+                    options={suiteFilterOptions}
+                    value={suiteFilter}
+                    onChange={(v) => setSuiteFilter(v)}
+                    placeholder="All suites"
+                    itemNoun="suites"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={[
+                      { value: 'notStarted', label: 'Not started' },
+                      { value: 'active', label: 'In progress' },
+                      { value: 'completed', label: 'Completed' },
+                    ]}
+                    value={progressFilter}
+                    onChange={(v) => setProgressFilter(v)}
+                    placeholder="Any progress"
+                    hideAvatar
+                    itemNoun="states"
+                    className="sc-filters__field"
+                  />
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="sc-clear" onClick={clearFilters}>
+                      Clear ({activeFilterCount})
+                    </button>
+                  )}
                 </div>
 
                 {/* Table or Grid */}
                 {viewMode === 'list' ? (
-                  <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                  <div className="sc-tablewrap">
                     <Table
-                      className="ts-table"
-                      dataSource={filteredRuns}
+                      className="ts-table sc-table"
+                      dataSource={pagedRuns}
                       columns={columns}
                       rowKey="id"
                       pagination={false}
                       loading={loading}
-                      scroll={{ x: 'max-content' }}
                       onRow={(record) => ({
                         onClick: () => openExecuteDrawer(record),
-                        style: { cursor: 'pointer', background: 'transparent' }
                       })}
+                      locale={{
+                        emptyText: (
+                          <div className="sc-empty">
+                            <SnippetsOutlined className="sc-empty__icon" />
+                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                            <p className="sc-empty__desc">
+                              {activeFilterCount > 0
+                                ? 'Try widening your search or clearing the filters.'
+                                : 'Create a run to execute a suite and record pass/fail results.'}
+                            </p>
+                            {activeFilterCount > 0
+                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                              : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                          </div>
+                        )
+                      }}
                     />
                   </div>
                 ) : (
@@ -556,11 +880,18 @@ function TestRunsContent() {
                     {loading ? (
                       <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
                     ) : filteredRuns.length === 0 ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
-                        No test runs found.
+                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                        <SnippetsOutlined className="sc-empty__icon" />
+                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                        <p className="sc-empty__desc">
+                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
+                        </p>
+                        {activeFilterCount > 0
+                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                          : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
                       </div>
                     ) : (
-                      filteredRuns.map(r => renderRunCard(r))
+                      pagedRuns.map(r => renderRunCard(r))
                     )}
                   </div>
                 )}
@@ -573,159 +904,124 @@ function TestRunsContent() {
               </div>
             )}
           </div>
+
+          {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
+          {activeTab === 'runs' && filteredRuns.length > 0 && (
+            <div className="pp-footer">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredRuns.length}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Create Test Run Modal */}
-      <Modal
-        title={<span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-slate-900)" }}>Create New Test Run</span>}
+      {/* Create Test Run Drawer */}
+      <Drawer
+        {...commonDrawerProps}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
-        onOk={handleCreateRun}
-        confirmLoading={saving}
-        okText="Start Run"
-        width={500}
-        destroyOnClose
-        style={{ top: 60 }}
+        onClose={() => setModalOpen(false)}
+        width={520}
       >
-        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col span={24}>
-            <Text strong style={{ color: "var(--text-slate-800)" }}>Run Name <span style={{ color: "red" }}>*</span></Text>
-            <Input 
-              placeholder="E.g. Release v2.1 Smoke" 
-              value={formData.run_name} 
-              onChange={(e) => setFormData({ ...formData, run_name: e.target.value })} 
-              style={{ marginTop: 6, borderRadius: 0 }}
-            />
-          </Col>
-          
-          <Col span={24}>
-            <Text strong style={{ color: "var(--text-slate-800)" }}>Module</Text>
-            <div style={{ marginTop: 6 }}>
+        <div className="rd">
+          <div className="rd__head">
+            <span className="rd__icon"><PlayCircleOutlined /></span>
+            <div className="rd__headtext">
+              <h3 className="rd__title">Create Test Run</h3>
+              <span className="rd__sub">Pick a suite to execute — every case in it gets a result to record</span>
+            </div>
+            <button className="rd__close" onClick={() => setModalOpen(false)} aria-label="Close"><CloseOutlined /></button>
+          </div>
+
+          <div className="rd__body">
+            <div className="rd__field">
+              <label className="rd__label">Run Name <span className="rd__req">*</span></label>
+              <Input
+                placeholder="E.g. Release v2.1 Smoke"
+                value={formData.run_name}
+                onChange={(e) => setFormData({ ...formData, run_name: e.target.value })}
+                autoFocus
+              />
+              <p className="rd__hint">Name it after what you&apos;re validating, so results stay easy to find later.</p>
+            </div>
+
+            <div className="rd__field">
+              <label className="rd__label">Module</label>
               <SearchableDropdown
                 options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
                 value={formData.module_id}
                 onChange={(val) => setFormData({ ...formData, module_id: val, suite_id: undefined })}
-                placeholder="Select a module to filter test suites"
-                style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
+                placeholder="All modules"
+                itemNoun="modules"
+                className="rd__control"
               />
+              <p className="rd__hint">Optional — narrows the suite list below.</p>
             </div>
-          </Col>
 
-          <Col span={24}>
-            <Text strong style={{ color: "var(--text-slate-800)" }}>Suite Name <span style={{ color: "red" }}>*</span></Text>
-            <div style={{ marginTop: 6 }}>
+            <div className="rd__field">
+              <label className="rd__label">Suite <span className="rd__req">*</span></label>
               <SearchableDropdown
-                options={filteredSuites.map(s => ({ value: s.id, label: s.suite_name }))}
+                options={filteredSuites.map(s => ({
+                  value: s.id,
+                  label: s.suite_name,
+                  description: s.case_count ? `${s.case_count} case${Number(s.case_count) === 1 ? '' : 's'}` : 'No cases linked',
+                }))}
                 value={formData.suite_id}
                 onChange={(val) => setFormData({ ...formData, suite_id: val })}
-                placeholder="Select a suite to execute"
-                style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
+                placeholder={filteredSuites.length ? "Select a suite to execute" : "No suites in this module"}
+                itemNoun="suites"
+                className="rd__control"
               />
             </div>
-          </Col>
-        </Row>
-      </Modal>
 
-      {/* Execute Drawer */}
-      <Drawer
-        title={<span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-slate-900)" }}>Executing: {activeRun?.run_name || ''}</span>}
-        onClose={() => setExecuteDrawerOpen(false)}
-        open={executeDrawerOpen}
-        {...commonDrawerProps}
-        width={750}
-      >
-        {activeRun && (
-          <div>
-            {/* Progress Summary */}
-            <div style={{ background: 'var(--bg-slate-50)', padding: 16, borderRadius: 0, marginBottom: 24, border: '1px solid var(--border-slate-200)' }}>
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Text style={{ color: 'var(--text-slate-500)' }}>Total Cases</Text>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--text-slate-900)' }}>{activeRun.results?.length || 0}</div>
-                </Col>
-                <Col span={6}>
-                  <Text style={{ color: 'var(--text-slate-500)' }}>Passed</Text>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#10b981' }}>
-                    {activeRun.results?.filter((r: any) => r.status === 'Pass').length || 0}
-                  </div>
-                </Col>
-                <Col span={6}>
-                  <Text style={{ color: 'var(--text-slate-500)' }}>Failed</Text>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#ef4444' }}>
-                    {activeRun.results?.filter((r: any) => r.status === 'Fail').length || 0}
-                  </div>
-                </Col>
-                <Col span={6}>
-                  <Text style={{ color: 'var(--text-slate-500)' }}>Blocked</Text>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#f59e0b' }}>
-                    {activeRun.results?.filter((r: any) => r.status === 'Blocked').length || 0}
-                  </div>
-                </Col>
-              </Row>
-            </div>
-
-            {/* Cases List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {activeRun.results?.map((result: any) => (
-                <div key={result.id} style={{ border: '1px solid var(--border-slate-200)', borderRadius: 0, padding: 16, background: 'var(--bg-pure-white)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <Text strong style={{ fontSize: 15, color: 'var(--text-slate-900)' }}>{result.name}</Text>
-                      </div>
-                      <Space size={6}>
-                        {result.priority && <Tag style={{ margin: 0, borderRadius: 0 }}>{result.priority}</Tag>}
-                        {result.test_type && <Tag style={{ margin: 0, borderRadius: 0 }}>{result.test_type}</Tag>}
-                        <Tag color={getStatusColor(result.status)} style={{ margin: 0, fontWeight: 600, borderRadius: 0 }}>{result.status || 'Not Executed'}</Tag>
-                      </Space>
-                    </div>
-                    
-                    <Space size={6} style={{ flexWrap: 'wrap' }}>
-                      <Button 
-                        size="small"
-                        type={result.status === 'Pass' ? 'primary' : 'default'}
-                        icon={<CheckCircleOutlined />} 
-                        onClick={() => handleUpdateStatus(result.id, 'Pass')}
-                        style={{ background: result.status === 'Pass' ? '#10b981' : undefined, borderColor: result.status === 'Pass' ? '#10b981' : undefined }}
-                      >
-                        Pass
-                      </Button>
-                      <Button 
-                        size="small"
-                        type={result.status === 'Fail' ? 'primary' : 'default'}
-                        danger={result.status === 'Fail'}
-                        icon={<CloseCircleOutlined />} 
-                        onClick={() => handleUpdateStatus(result.id, 'Fail')}
-                      >
-                        Fail
-                      </Button>
-                      <Button 
-                        size="small"
-                        type={result.status === 'Blocked' ? 'primary' : 'default'}
-                        icon={<StopOutlined />} 
-                        onClick={() => handleUpdateStatus(result.id, 'Blocked')}
-                        style={{ background: result.status === 'Blocked' ? '#f59e0b' : undefined, borderColor: result.status === 'Blocked' ? '#f59e0b' : undefined, color: result.status === 'Blocked' ? '#fff' : undefined }}
-                      >
-                        Blocked
-                      </Button>
-                      <Button 
-                        size="small"
-                        type="text"
-                        icon={<MinusCircleOutlined />} 
-                        onClick={() => handleUpdateStatus(result.id, 'Not Executed')}
-                        disabled={!result.status || result.status === 'Not Executed'}
-                      >
-                        Reset
-                      </Button>
-                    </Space>
-                  </div>
+            {/* What this run will cover, once a suite is chosen */}
+            {selectedSuite && (
+              <div className="rd__preview">
+                <span className="rd__preview-key">This run will execute</span>
+                <div className="rd__preview-row">
+                  <span className="rd__preview-count">{selectedSuiteCases}</span>
+                  <span className="rd__preview-label">
+                    case{selectedSuiteCases === 1 ? '' : 's'} from <strong>{selectedSuite.suite_name}</strong>
+                  </span>
                 </div>
-              ))}
-            </div>
+                {selectedSuiteCases === 0 && (
+                  <p className="rd__preview-warn">This suite has no linked cases — link some before running it.</p>
+                )}
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="rd__foot">
+            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button
+              type="primary"
+              loading={saving}
+              icon={<PlayCircleOutlined />}
+              disabled={!formData.run_name?.trim() || !formData.suite_id}
+              onClick={handleCreateRun}
+            >
+              Start Run
+            </Button>
+          </div>
+        </div>
       </Drawer>
+
     </MainLayout>
   );
 }

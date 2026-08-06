@@ -47,6 +47,10 @@ import {
   useDeleteBugType,
   useUpdateBugSeverity,
   useUpdateBugType,
+  useBugPriorityOptions,
+  useCreateBugPriority,
+  useUpdateBugPriority,
+  useDeleteBugPriority,
 } from "@/hooks/useBugList";
 import type { BugConfigOption } from "@/services/bugListService";
 import { useTheme } from "@/context/ThemeContext";
@@ -54,12 +58,12 @@ import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
-type EditorKind = "severity" | "type";
+type EditorKind = "severity" | "type" | "priority";
 type EditState =
   | { kind: EditorKind; option: BugConfigOption | null }
   | null;
 
-type SectionKey = "severity" | "type";
+type SectionKey = "severity" | "type" | "priority";
 
 const SECTIONS: {
   key: SectionKey;
@@ -93,6 +97,17 @@ const SECTIONS: {
       accentBg: "rgba(139,92,246,0.12)",
       accentFg: "#8b5cf6",
     },
+    {
+      key: "priority",
+      title: "Priority",
+      description:
+        "Priority levels shared across the QA workspace — test cases, runs and the bug list.",
+      shortDescription: "How urgent the work is",
+      icon: <StarFilled />,
+      accent: "#3b82f6",
+      accentBg: "rgba(59,130,246,0.12)",
+      accentFg: "#3b82f6",
+    },
   ];
 
 export default function BugListConfigManager() {
@@ -109,6 +124,11 @@ export default function BugListConfigManager() {
   const createType = useCreateBugType();
   const updateType = useUpdateBugType();
   const deleteType = useDeleteBugType();
+
+  const priorities = useBugPriorityOptions();
+  const createPriority = useCreateBugPriority();
+  const updatePriority = useUpdateBugPriority();
+  const deletePriority = useDeleteBugPriority();
   const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
   const { useBreakpoint } = Grid;
   const screens = useBreakpoint();
@@ -121,10 +141,12 @@ export default function BugListConfigManager() {
   const counts: Record<SectionKey, number> = {
     severity: severities.data?.length ?? 0,
     type: types.data?.length ?? 0,
+    priority: priorities.data?.length ?? 0,
   };
   const loadingMap: Record<SectionKey, boolean> = {
     severity: severities.isLoading,
     type: types.isLoading,
+    priority: priorities.isLoading,
   };
 
   return (
@@ -181,15 +203,19 @@ export default function BugListConfigManager() {
                   options={
                     s.key === "severity"
                       ? severities.data || []
-                      : types.data || []
+                      : s.key === "priority"
+                        ? priorities.data || []
+                        : types.data || []
                   }
-                  showColor={s.key === "severity"}
+                  showColor={s.key === "severity" || s.key === "priority"}
                   onCreate={() => setEditing({ kind: s.key, option: null })}
                   onEdit={(o) => setEditing({ kind: s.key, option: o })}
                   onDelete={async (id) => {
                     try {
                       if (s.key === "severity") {
                         await deleteSeverity.mutateAsync(id);
+                      } else if (s.key === "priority") {
+                        await deletePriority.mutateAsync(id);
                       } else {
                         await deleteType.mutateAsync(id);
                       }
@@ -200,6 +226,11 @@ export default function BugListConfigManager() {
                   onToggleActive={(o) => {
                     if (s.key === "severity") {
                       updateSeverity.mutate({
+                        id: o.id,
+                        input: { isActive: !o.isActive },
+                      });
+                    } else if (s.key === "priority") {
+                      updatePriority.mutate({
                         id: o.id,
                         input: { isActive: !o.isActive },
                       });
@@ -232,6 +263,15 @@ export default function BugListConfigManager() {
               } else {
                 await createSeverity.mutateAsync(payload);
               }
+            } else if (kind === "priority") {
+              if (editing?.kind === "priority" && editing.option) {
+                await updatePriority.mutateAsync({
+                  id: editing.option.id,
+                  input: payload,
+                });
+              } else {
+                await createPriority.mutateAsync(payload);
+              }
             } else {
               if (editing?.kind === "type" && editing.option) {
                 await updateType.mutateAsync({
@@ -251,7 +291,9 @@ export default function BugListConfigManager() {
           createSeverity.isPending ||
           updateSeverity.isPending ||
           createType.isPending ||
-          updateType.isPending
+          updateType.isPending ||
+          createPriority.isPending ||
+          updatePriority.isPending
         }
       />
     </>
@@ -532,7 +574,7 @@ function OptionEditor({
 
   const open = !!editing;
   const isEdit = !!editing?.option;
-  const showColor = editing?.kind === "severity";
+  const showColor = editing?.kind === "severity" || editing?.kind === "priority";
 
   const handleOk = async () => {
     try {
@@ -550,7 +592,9 @@ function OptionEditor({
   };
 
   const eyebrowKind =
-    editing?.kind === "severity" ? "Severity option" : "Type option";
+    editing?.kind === "severity" ? "Severity option"
+      : editing?.kind === "priority" ? "Priority option"
+        : "Type option";
   const titleText = editing
     ? isEdit
       ? `Edit ${editing.kind}`
@@ -559,7 +603,9 @@ function OptionEditor({
   const subText =
     editing?.kind === "severity"
       ? "Severities surface in the Capture Bug dropdown and the table pill."
-      : "Types categorize bugs (UI / Functional / API and any custom buckets).";
+      : editing?.kind === "priority"
+        ? "Priorities are shared across test cases, runs and the bug list."
+        : "Types categorize bugs (UI / Functional / API and any custom buckets).";
 
   return (
     <Drawer
@@ -656,7 +702,11 @@ function OptionEditor({
                   rules={[{ required: true, message: "Label is required" }]}
                 >
                   <Input
-                    placeholder={editing.kind === "severity" ? "e.g. Showstopper" : "e.g. Performance"}
+                    placeholder={
+                      editing.kind === "severity" ? "e.g. Showstopper"
+                        : editing.kind === "priority" ? "e.g. Urgent"
+                          : "e.g. Performance"
+                    }
                     autoFocus
                   />
                 </Form.Item>

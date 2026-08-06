@@ -65,6 +65,7 @@ export const usePermission = () => {
     canDeleteTicketPlan: hasPermission(Permissions.TICKET_PLAN_DELETE),
     canManageTickets: hasPermission(Permissions.TICKET_MANAGE),
 
+
     // ─── Attendance ─────────────────────────────────────────────────
     canCreateAttendance: hasPermission(Permissions.ATTENDANCE_CREATE),
     canReadAttendance:   hasPermission(Permissions.ATTENDANCE_READ),

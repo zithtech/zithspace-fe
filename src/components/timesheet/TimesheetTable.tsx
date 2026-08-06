@@ -1214,15 +1214,17 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-main { flex: 1; min-width: 0; padding: 8px 32px 0 20px; display: flex; flex-direction: column; }
         .ts-body { flex: 1 0 auto; padding-bottom: 0px; min-width: 0; display: flex; flex-direction: column; }
         .ts-header-sticky {
-          position: sticky;
-          top: 0;
-          z-index: 20;
-          background: var(--bg-pure-white);
-          padding-top: 8px;
-          padding-bottom: 4px;
-          margin-top: -8px;
+          display: contents;
         }
-        .ts-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .ts-topbar { 
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap; 
+          position: sticky; top: 0; z-index: 30;
+          background: var(--bg-pure-white);
+          padding: 16px 32px 16px 20px;
+          margin: -8px -32px 10px -20px;
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme="dark"] .ts-topbar { background: #0B0F1A !important; border-bottom-color: #374151 !important; }
         .ts-mobile-trigger {
           display: none; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white); color: var(--text-slate-700); cursor: pointer;
@@ -1249,7 +1251,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         }
         .ts-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
 
-        .ts-divider { height: 1px; background: var(--border-slate-200); margin: 0 -32px 10px -20px; }
+        .ts-divider { display: none; }
 
         /* Stat cards */
         .ts-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -1270,7 +1272,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-stat-spark { opacity: 0.95; }
 
         /* Table */
-        .ts-table-wrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .ts-table-wrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
         .ts-table-wrap ::-webkit-scrollbar { display: none !important; }
         .ts-table-wrap, .ts-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
         .ts-table, .ts-table.ant-table-wrapper, .ts-table .ant-table, .ts-table .ant-table-container, .ts-table .ant-table-content, .ts-table .ant-table-header, .ts-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
@@ -1287,7 +1289,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
         
         /* Grid view cards */
-        .ts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .ts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 24px; }
         .ts-grid-loading { padding: 40px; text-align: center; color: var(--text-slate-400); grid-column: 1 / -1; }
 
         .tc-card {
@@ -1357,8 +1359,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         @media (max-width: 600px) {
           .ts-stats { grid-template-columns: 1fr; }
         }
-        @media (max-width: 700px) {
-          .ts-grid { grid-template-columns: 1fr; }
+        @media (max-width: 800px) {
+          .ts-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

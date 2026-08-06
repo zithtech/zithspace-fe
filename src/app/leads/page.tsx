@@ -226,7 +226,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
                               params: { url, filename: fileName || 'document', mode: 'inline' },
                               responseType: 'blob'
                             });
-                            const blobUrl = URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+                            const blobUrl = URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type']?.toString() }));
                             window.open(blobUrl, '_blank');
                             messageApi.destroy(loadingKey);
                           } catch (err) {

@@ -197,7 +197,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -577,6 +577,23 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/bidiq",
         requiredPermission: Permissions.BIDIQ_READ,
       },
+      {
+        key: "qa-workspace",
+        label: "QA Workspace",
+        icon: I(Bug),
+        requiredAnyPermission: [
+          Permissions.BUG_READ,
+        ],
+        children: [
+          {
+            key: "/qa-workspace/test-scope",
+            label: "Test Scope",
+            icon: I(ListChecks),
+            path: "/qa-workspace/test-scope",
+            requiredPermission: Permissions.BUG_READ,
+          },
+        ],
+      },
     ],
   },
   {
@@ -736,6 +753,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/performance",
       "/performance-report",
       "/opening-management",
+      "/openings",
       "/letters-docs",
       "/pipeline",
     ],
@@ -851,6 +869,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/pipeline/candidates",
         requiredAnyPermission: [
           Permissions.RECRUITMENT_READ,
+        ],
+      },
+      {
+        key: "/openings",
+        icon: I(Megaphone),
+        label: "Openings",
+        path: "/openings/dashboard",
+        requiredAnyPermission: [
+          Permissions.OPENING_READ,
+          Permissions.OPENING_MANAGE,
         ],
       },
 

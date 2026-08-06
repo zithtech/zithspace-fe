@@ -353,7 +353,11 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
         <Form.Item
           name="jobTitle"
           label="Job title"
-          rules={[{ required: true, message: 'A job title is required' }]}
+          normalize={(v) => typeof v === 'string' ? v.replace(/[^a-zA-Z0-9\s\-&]/g, '') : v}
+          rules={[
+            { required: true, message: 'A job title is required' },
+            { pattern: /^[a-zA-Z0-9\s\-&]*$/, message: 'Job title contains invalid characters' }
+          ]}
         >
           <SearchableDropdown
             options={titleOptions}
@@ -399,7 +403,7 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
             />
           </Form.Item>
           <Form.Item name="numberOfPositions" label="Number of positions">
-            <InputNumber min={1} max={10000} style={{ width: '100%' }} />
+            <InputNumber min={1} max={10000} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
         </div>
 
@@ -433,7 +437,16 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
 
         <div className="omf-grid-2">
         <Form.Item label="Required skills" style={{ marginBottom: reqSkills?.length ? 4 : 14 }}>
-          <Form.Item name="requiredSkills" noStyle>
+          <Form.Item name="requiredSkills" style={{ marginBottom: 0 }} 
+            normalize={(val) => Array.isArray(val) ? val.map((v: string) => v.replace(/[^a-zA-Z0-9\s\+#\.\-]/g, '')) : val}
+            rules={[{
+              validator: async (_, value) => {
+                if (value && value.some((v: string) => !/^[a-zA-Z0-9\s\+#\.\-]*$/.test(v))) {
+                  return Promise.reject(new Error('Contains invalid characters'));
+                }
+                return Promise.resolve();
+              }
+            }]}>
             <SearchableDropdown
               mode="multiple"
               freeText
@@ -458,7 +471,16 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
           )}
         </Form.Item>
         <Form.Item label="Preferred skills" style={{ marginBottom: prefSkills?.length ? 4 : 14 }}>
-          <Form.Item name="preferredSkills" noStyle>
+          <Form.Item name="preferredSkills" style={{ marginBottom: 0 }}
+            normalize={(val) => Array.isArray(val) ? val.map((v: string) => v.replace(/[^a-zA-Z0-9\s\+#\.\-]/g, '')) : val}
+            rules={[{
+              validator: async (_, value) => {
+                if (value && value.some((v: string) => !/^[a-zA-Z0-9\s\+#\.\-]*$/.test(v))) {
+                  return Promise.reject(new Error('Contains invalid characters'));
+                }
+                return Promise.resolve();
+              }
+            }]}>
             <SearchableDropdown
               mode="multiple"
               freeText
@@ -486,18 +508,20 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
 
         <div className="omf-grid-3">
           <Form.Item name="minExperience" label="Min experience (yrs)">
-            <InputNumber min={0} max={60} step={0.5} style={{ width: '100%' }} />
+            <InputNumber min={0} max={60} step={0.5} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9\.]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
           <Form.Item name="maxExperience" label="Max experience (yrs)">
-            <InputNumber min={0} max={60} step={0.5} style={{ width: '100%' }} />
+            <InputNumber min={0} max={60} step={0.5} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9\.]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
           <Form.Item name="noticePeriodDays" label="Notice period (days)">
-            <InputNumber min={0} max={365} style={{ width: '100%' }} />
+            <InputNumber min={0} max={365} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
         </div>
 
         <div className="omf-grid-2">
-          <Form.Item name="education" label="Education">
+          <Form.Item name="education" label="Education" 
+            normalize={(v) => typeof v === 'string' ? v.replace(/[^a-zA-Z0-9\s\.\/]/g, '') : v}
+            rules={[{ pattern: /^[a-zA-Z0-9\s\.\/]*$/, message: 'Contains invalid characters' }]}>
             <SearchableDropdown
               freeText
               options={EDUCATION_OPTIONS}
@@ -531,10 +555,10 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
         {/* ── Compensation ────────────────────────────────────────────── */}
         <div className="omf-grid-4">
           <Form.Item name="salaryMin" label="Salary from">
-            <InputNumber min={0} style={{ width: '100%' }} />
+            <InputNumber min={0} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
           <Form.Item name="salaryMax" label="Salary to">
-            <InputNumber min={0} style={{ width: '100%' }} />
+            <InputNumber min={0} style={{ width: '100%' }} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
           <Form.Item name="salaryCurrency" label="Currency">
             <SearchableDropdown
@@ -563,13 +587,17 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
 
         <div className="omf-grid-3">
           <Form.Item name="budget" label="Budget">
-            <InputNumber min={0} style={{ width: '100%' }} placeholder="Total hiring budget" />
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Total hiring budget" onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} />
           </Form.Item>
-          <Form.Item name="shiftTiming" label="Shift timing">
+          <Form.Item name="shiftTiming" label="Shift timing" 
+            normalize={(v) => typeof v === 'string' ? v.replace(/[^a-zA-Z0-9\s:\-]/g, '') : v}
+            rules={[{ pattern: /^[a-zA-Z0-9\s:\-]*$/, message: 'Contains invalid characters' }]}>
             <Input placeholder="e.g. 10:00 – 19:00 IST" />
           </Form.Item>
-          <Form.Item name="joiningTimeline" label="Joining timeline">
-            <Input placeholder="e.g. Within 30 days" />
+          <Form.Item name="joiningTimeline" label="Joining timeline" 
+            normalize={(v) => typeof v === 'string' ? v.replace(/[^0-9]/g, '') : v}
+            rules={[{ pattern: /^[0-9]*$/, message: 'Only numbers allowed' }]}>
+            <Input placeholder="e.g. 30" />
           </Form.Item>
         </div>
 
@@ -633,6 +661,7 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
                 </Tooltip>
               </span>
             }
+            className="hide-optional"
           >
             <SearchableDropdown
               options={peopleOptions}
@@ -660,7 +689,9 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
               itemNoun="locations"
             />
           </Form.Item>
-          <Form.Item name="location" label="Location (free text)">
+          <Form.Item name="location" label="Location (free text)" 
+            normalize={(v) => typeof v === 'string' ? v.replace(/[^a-zA-Z0-9\s,]/g, '') : v}
+            rules={[{ pattern: /^[a-zA-Z0-9\s,]*$/, message: 'Contains invalid characters' }]}>
             <Input placeholder="e.g. Chennai, IN" />
           </Form.Item>
         </div>
@@ -676,6 +707,11 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
 
         {/* ── Classification ──────────────────────────────────────────── */}
         <div className="omf-grid-3">
+          <style>{`
+            .hide-optional .ant-form-item-optional {
+              display: none !important;
+            }
+          `}</style>
           <Form.Item name="priority" label="Priority">
             <SearchableDropdown
               options={[

@@ -7,18 +7,23 @@ import { MembersService } from '@/services/membersService';
 import { ArrowLeft, Calendar, FileCheck, DollarSign, Clock, FileText, Search, UploadCloud, AlertCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
-import { Drawer, Select, Modal, message } from 'antd';
+import { Drawer, Select, Modal, App, DatePicker, TimePicker } from 'antd';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 import TiptapEditor from '@/components/common/TiptapEditor';
 import { X } from 'lucide-react';
 import { OpeningV2Service } from '@/services/openingV2Service';
 import type { OpeningListItem, SkillMatchResult } from '@/services/openingV2Service';
+import { useMailStatus } from '@/hooks/useMail';
 
 export default function CandidateDetailPage() {
+  const { message } = App.useApp();
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
+
+  const { data: mailStatus, isLoading: isMailStatusLoading } = useMailStatus();
+  const isMailConnected = mailStatus?.isConnected;
 
   const [candidate, setCandidate] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -36,6 +41,7 @@ export default function CandidateDetailPage() {
 
   // Scheduling state
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
   const [config, setConfig] = useState<any>(null);
   const [scheduleData, setScheduleData] = useState({
     round_id: '',
@@ -141,10 +147,11 @@ export default function CandidateDetailPage() {
     }
     try {
       await pipelineClient.updateCandidateStatus(id, newStatus);
+      message.success('Status updated successfully');
       fetchData();
     } catch (err) {
       console.error('Failed to update status', err);
-      alert('Failed to update status');
+      message.error('Failed to update status');
     }
   };
 
@@ -152,10 +159,11 @@ export default function CandidateDetailPage() {
     try {
       await pipelineClient.updateCandidateStatus(id, 'Rejected', rejectRoundId);
       setIsRejectModalOpen(false);
+      message.success('Candidate rejected successfully');
       fetchData();
     } catch (err) {
       console.error('Failed to reject candidate', err);
-      alert('Failed to reject candidate');
+      message.error('Failed to reject candidate');
     }
   };
 
@@ -224,7 +232,7 @@ export default function CandidateDetailPage() {
             <div className="text-[11px] text-slate-500 font-medium mt-1.5 flex items-center gap-3">
               <span className="flex items-center gap-1"><FileText size={12} className="opacity-70" /> {candidate.email}</span>
               <span className="flex items-center gap-1"><Calendar size={12} className="opacity-70" /> {candidate.mobile}</span>
-              <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">{candidate.total_experience} Yrs Exp</span>
+              <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">{candidate.total_experience ?? 0} Yrs Exp</span>
             </div>
           </div>
         </div>
@@ -243,7 +251,17 @@ export default function CandidateDetailPage() {
             />
           </div>
           {candidate.status !== 'Rejected' && (
-            <button onClick={() => setIsScheduleOpen(true)} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all transform hover:-translate-y-0.5">
+            <button onClick={() => {
+              if (isMailStatusLoading) {
+                message.loading({ content: 'Checking integration status...', key: 'mailStatus', duration: 1 });
+                return;
+              }
+              if (!isMailConnected) {
+                setIntegrationError('Please integrate your mail account in the Integrations page to schedule interviews.');
+                return;
+              }
+              setIsScheduleOpen(true);
+            }} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all transform hover:-translate-y-0.5">
               <Calendar size={14} /> Schedule
             </button>
           )}
@@ -590,9 +608,82 @@ export default function CandidateDetailPage() {
           {activeTab === 'resume' && (
             <div className="flex flex-col gap-4 h-full">
               {candidate.resume_url ? (
-                <iframe src={candidate.resume_url.startsWith('http') ? candidate.resume_url : `${process.env.NEXT_PUBLIC_API_URL || ''}${candidate.resume_url}`} className="w-full h-full rounded border border-slate-200" title="Resume" />
+                (() => {
+                  const rawUrl = candidate.resume_url.startsWith('http') 
+                    ? candidate.resume_url 
+                    : `${process.env.NEXT_PUBLIC_API_URL || ''}${candidate.resume_url}`;
+                  
+                  // Extract pathname only — S3 signed URLs have query params like
+                  // ?AWSAccessKeyId=...&Signature=... that break extension detection
+                  let pathOnly = rawUrl;
+                  try { pathOnly = new URL(rawUrl).pathname; } catch {}
+                  const lowerPath = pathOnly.toLowerCase();
+
+                  // Clean filename for download (strip query params)
+                  const fileName = lowerPath.split('/').pop() || 'resume';
+                  
+                  const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerPath);
+                  const isPdf = lowerPath.endsWith('.pdf');
+                  const isWordDoc = /\.(docx?|xlsx?|pptx?)$/i.test(lowerPath);
+
+                  if (isImage) {
+                    return (
+                      <img
+                        src={rawUrl}
+                        alt="Resume"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    );
+                  }
+
+                  if (isPdf) {
+                    // Use the server-side proxy to stream the file inline — same as ticket attachments
+                    const proxyUrl = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent(fileName)}&inline=true`;
+                    return (
+                      <iframe
+                        src={proxyUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none', borderRadius: 8 }}
+                        title="Resume"
+                      />
+                    );
+                  }
+
+                  if (isWordDoc) {
+                    // Use Google Docs viewer for Word/Excel/PowerPoint — same as ticket attachments
+                    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+                    return (
+                      <iframe
+                        src={viewerUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none', borderRadius: 8, background: '#fafafa' }}
+                        title="Resume"
+                      />
+                    );
+                  }
+
+                  // Fallback: show download option for unsupported formats
+                  return (
+                    <div className="flex flex-col items-center justify-center h-full border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-[#0B0F1A]">
+                      <FileText size={48} className="text-slate-400 mb-4" />
+                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Preview not available</h3>
+                      <p className="text-sm text-slate-500 text-center max-w-sm mb-5">This file format cannot be previewed in the browser.</p>
+                      <a
+                        href={`/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent(fileName)}`}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
+                      >
+                        Download Resume
+                      </a>
+                    </div>
+                  );
+                })()
               ) : (
-                <div className="text-slate-500">No resume preview available.</div>
+                <div className="flex flex-col items-center justify-center h-full border border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#0B0F1A]">
+                  <FileText size={40} className="text-slate-400 mb-3 opacity-50" />
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">No resume uploaded yet.</p>
+                </div>
               )}
             </div>
           )}
@@ -621,6 +712,10 @@ export default function CandidateDetailPage() {
             ) : (
               <form id="scheduleForm" className="flex flex-col gap-6" onSubmit={async (e) => {
                 e.preventDefault();
+                if (!isMailConnected) {
+                  setIntegrationError('Please integrate your mail account in the Integrations page to schedule interviews.');
+                  return;
+                }
                 setIsScheduling(true);
                 try {
                   const res = await pipelineClient.scheduleInterview({
@@ -629,7 +724,7 @@ export default function CandidateDetailPage() {
                   });
 
                   if (res.data?.emailStatus && res.data.emailStatus !== 'Sent' && res.data.emailStatus !== 'Draft') {
-                    alert('Interview scheduled, but we could not prepare the email. Please check if your mail account is connected in Zukvo.');
+                    message.warning('Interview scheduled, but we could not prepare the email. Please check if your mail account is connected in Zukvo.');
                     setIsScheduleOpen(false);
                     fetchData();
                   } else if (res.data?.email) {
@@ -639,11 +734,16 @@ export default function CandidateDetailPage() {
                     fetchData(); // refresh timeline for interview
                   } else {
                     setIsScheduleOpen(false);
+                    message.success('Interview scheduled successfully!');
                     fetchData();
                   }
-                } catch (err) {
+                } catch (err: any) {
                   console.error(err);
-                  alert('Failed to schedule interview');
+                  setIsScheduling(false);
+                  setIsScheduleOpen(false);
+                  setTimeout(() => {
+                    setIntegrationError(err.response?.data?.error || err.message || 'Please integrate your account to schedule interviews.');
+                  }, 100);
                 } finally {
                   setIsScheduling(false);
                 }
@@ -677,8 +777,18 @@ export default function CandidateDetailPage() {
                   <div className="grid grid-cols-[140px_1fr] items-center gap-4">
                     <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Date & Time</label>
                     <div className="flex gap-2">
-                      <input required type="date" className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none" value={scheduleData.scheduled_date} onChange={(e) => setScheduleData({ ...scheduleData, scheduled_date: e.target.value })} />
-                      <input required type="time" className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none" value={scheduleData.scheduled_time} onChange={(e) => setScheduleData({ ...scheduleData, scheduled_time: e.target.value })} />
+                      <DatePicker 
+                        className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none hover:border-blue-500 focus:border-blue-500" 
+                        format="YYYY-MM-DD" 
+                        value={scheduleData.scheduled_date ? dayjs(scheduleData.scheduled_date) : null}
+                        onChange={(date, dateString) => setScheduleData({ ...scheduleData, scheduled_date: typeof dateString === 'string' ? dateString : dateString[0] })}
+                      />
+                      <TimePicker 
+                        className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none hover:border-blue-500 focus:border-blue-500" 
+                        format="HH:mm"
+                        value={scheduleData.scheduled_time ? dayjs(`2000-01-01T${scheduleData.scheduled_time}`) : null}
+                        onChange={(time, timeString) => setScheduleData({ ...scheduleData, scheduled_time: typeof timeString === 'string' ? timeString : timeString[0] })}
+                      />
                     </div>
                   </div>
 
@@ -786,7 +896,7 @@ export default function CandidateDetailPage() {
                 setIsDraftEmailOpen(false);
                 fetchData();
               } catch (err) {
-                alert('Failed to send email');
+                message.error('Failed to send email');
               } finally {
                 setIsSendingDraft(false);
               }
@@ -898,11 +1008,12 @@ export default function CandidateDetailPage() {
                 await pipelineClient.evaluateInterview(evalData.interview_id, {
                   evaluations: evaluationsArray
                 });
+                message.success('Evaluation submitted successfully');
                 setIsEvaluateOpen(false);
                 fetchData();
               } catch (err) {
                 console.error(err);
-                alert('Failed to submit evaluation');
+                message.error('Failed to submit evaluation');
               } finally {
                 setIsEvaluating(false);
               }
@@ -987,6 +1098,36 @@ export default function CandidateDetailPage() {
           </div>
         </div>
       </Drawer>
+
+      <Modal
+        open={!!integrationError}
+        onCancel={() => setIntegrationError(null)}
+        footer={null}
+        centered
+        width={420}
+        closeIcon={false}
+        zIndex={100000}
+      >
+        <div className="flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-6">
+            <AlertTriangle className="text-orange-500" size={32} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+            Integration Required
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm mb-8 leading-relaxed px-2">
+            {integrationError}
+          </p>
+          <div className="flex w-full mt-2">
+            <button
+              onClick={() => setIntegrationError(null)}
+              className="w-full py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      </Modal>
       <Modal
         title="Reject Candidate"
         open={isRejectModalOpen}
@@ -1019,12 +1160,13 @@ export default function CandidateDetailPage() {
           setIsRequestingDocs(true);
           try {
             await pipelineClient.requestDocuments(id, selectedDocs);
+            message.success('Documents requested successfully');
             setIsRequestDocsOpen(false);
             setSelectedDocs([]);
             fetchData();
           } catch (err) {
             console.error(err);
-            alert('Failed to request documents');
+            message.error('Failed to request documents');
           } finally {
             setIsRequestingDocs(false);
           }
@@ -1065,6 +1207,7 @@ export default function CandidateDetailPage() {
         onOk={async () => {
           if (rejectReason.trim() && documentToReject) {
             await pipelineClient.verifyDocument(id, documentToReject, { status: 'Resubmission Required', remarks: rejectReason });
+            message.success('Document rejected successfully');
             fetchData();
             setRejectModalOpen(false);
             setDocumentToReject(null);
@@ -1091,6 +1234,7 @@ export default function CandidateDetailPage() {
         onOk={async () => {
           if (documentToVerify) {
             await pipelineClient.verifyDocument(id, documentToVerify, { status: 'Verified' });
+            message.success('Document verified successfully');
             fetchData();
             setVerifyModalOpen(false);
             setDocumentToVerify(null);
@@ -1124,6 +1268,7 @@ export default function CandidateDetailPage() {
             formData.append('document', manualUploadFile);
             
             await pipelineClient.uploadManualDocument(id, formData);
+            message.success('Document uploaded successfully');
             await fetchData();
             setIsUploadManualOpen(false);
             setManualUploadDocType('');

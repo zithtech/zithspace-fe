@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
+import { App } from 'antd';
 import Link from 'next/link';
 import '@/app/proposals/library.css';
 import {
@@ -33,6 +34,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 
 export default function CandidatesPage() {
+  const { message } = App.useApp();
   const [candidates, setCandidates] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -98,8 +100,9 @@ export default function CandidatesPage() {
               try {
                 await pipelineClient.deleteCandidate(record.id);
                 fetchCandidates();
+                message.success('Candidate deleted successfully');
               } catch (err) {
-                alert('Failed to delete candidate');
+                message.error('Failed to delete candidate');
               }
             }}
           >
@@ -149,7 +152,7 @@ export default function CandidatesPage() {
       dataIndex: "total_experience",
       width: 120,
       render: (exp: number) => (
-        <span style={{ color: "var(--text-slate-500)", fontSize: 11.5 }}>{exp} Yrs</span>
+        <span style={{ color: "var(--text-slate-500)", fontSize: 11.5 }}>{exp ?? 0} Yrs</span>
       ),
     },
     {
@@ -420,7 +423,7 @@ export default function CandidatesPage() {
                       <div className="pc-foot-row">
                         <span className="pc-foot-item">
                           <span className="pc-foot-key">Exp:</span>
-                          <span className="pc-foot-val">{c.total_experience} Yrs</span>
+                          <span className="pc-foot-val">{c.total_experience ?? 0} Yrs</span>
                         </span>
                         <span className="pc-foot-div" />
                         <span className="pc-foot-item">
@@ -470,6 +473,7 @@ export default function CandidatesPage() {
 }
 
 function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boolean) => void, editCandidate?: any }) {
+  const { message } = App.useApp();
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [formData, setFormData] = useState({
@@ -629,6 +633,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
             return;
           }
         }
+        message.success(editCandidate ? 'Candidate updated successfully' : 'Candidate created successfully');
         setSuccess(true);
         setTimeout(() => onClose(true), 1500);
       }
@@ -1003,27 +1008,27 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
-                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value.replace(/[^a-zA-Z\s\.\-']/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Experience (Yrs)</label>
-                      <input required type="number" step="0.5" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) })} />
+                      <input required type="number" step="0.5" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onKeyPress={(e) => { if (!/[0-9\.]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) || 0 })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email</label>
-                      <input required type="email" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                      <input required type="email" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Mobile</label>
-                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
+                      <input required type="text" minLength={7} maxLength={15} className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onKeyPress={(e) => { if (!/[0-9\+\-\s]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, mobile: e.target.value.replace(/[^0-9\+\-\s]/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Current CTC</label>
-                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value })} />
+                      <input type="number" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value.replace(/[^0-9]/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Expected CTC</label>
-                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value })} />
+                      <input type="number" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value.replace(/[^0-9]/g, '') })} />
                     </div>
                   </div>
                 </SectionCard>

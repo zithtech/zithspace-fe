@@ -457,6 +457,25 @@ export const usePermission = () => {
     canRestoreBugArchive: hasPermission(Permissions.BUG_ARCHIVE_RESTORE),
     canManageBugs: hasPermission(Permissions.BUG_MANAGE),
 
+    // ─── QA Space ───────────────────────────────────────────────────
+    canCreateScope: hasPermission(Permissions.QA_SCOPE_CREATE),
+    canReadScope:   hasPermission(Permissions.QA_SCOPE_READ),
+    canUpdateScope: hasPermission(Permissions.QA_SCOPE_UPDATE),
+    canDeleteScope: hasPermission(Permissions.QA_SCOPE_DELETE),
+    canCreateCase:  hasPermission(Permissions.QA_CASE_CREATE),
+    canReadCase:    hasPermission(Permissions.QA_CASE_READ),
+    canUpdateCase:  hasPermission(Permissions.QA_CASE_UPDATE),
+    canDeleteCase:  hasPermission(Permissions.QA_CASE_DELETE),
+    canCreateSuite: hasPermission(Permissions.QA_SUITE_CREATE),
+    canReadSuite:   hasPermission(Permissions.QA_SUITE_READ),
+    canUpdateSuite: hasPermission(Permissions.QA_SUITE_UPDATE),
+    canDeleteSuite: hasPermission(Permissions.QA_SUITE_DELETE),
+    canCreateRun:   hasPermission(Permissions.QA_RUN_CREATE),
+    canReadRun:     hasPermission(Permissions.QA_RUN_READ),
+    canUpdateRun:   hasPermission(Permissions.QA_RUN_UPDATE),
+    canDeleteRun:   hasPermission(Permissions.QA_RUN_DELETE),
+    canManageQa:    hasPermission(Permissions.QA_MANAGE),
+
     // ─── System / General ───────────────────────────────────────────
     canCreateMail:   hasPermission(Permissions.MAIL_CREATE),
     canReadMail:     hasPermission(Permissions.MAIL_READ),

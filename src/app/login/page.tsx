@@ -13,6 +13,7 @@ import {
   Typography,
   Alert,
   Spin,
+  Checkbox,
 } from 'antd';
 import {
   UserOutlined,
@@ -20,6 +21,7 @@ import {
   LoginOutlined,
 } from '@ant-design/icons';
 import Image from 'next/image';
+import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
 import Logo from '@/assets/logo/Zukvologo.png';
 
@@ -29,6 +31,7 @@ const { Title, Text } = Typography;
 interface LoginFormData {
   email: string;
   password: string;
+  remember?: boolean;
 }
 
 // Helper to safely determine subdomain and root host for OAuth flows
@@ -500,10 +503,22 @@ function LoginFormWithParams() {
     const passwordParam = searchParams.get('password');
     const subdomainParam = searchParams.get('subdomain');
 
-    if (emailParam || passwordParam) {
+    let defaultEmail = emailParam || '';
+    let rememberMe = false;
+
+    if (!emailParam) {
+      const savedEmail = localStorage.getItem('remembered_email');
+      if (savedEmail) {
+        defaultEmail = savedEmail;
+        rememberMe = true;
+      }
+    }
+
+    if (defaultEmail || passwordParam || rememberMe) {
       form.setFieldsValue({
-        email: emailParam || '',
+        email: defaultEmail,
         password: passwordParam || '',
+        remember: rememberMe,
       });
     }
 
@@ -517,6 +532,12 @@ function LoginFormWithParams() {
       setLoading(true);
       setError('');
       
+      if (values.remember) {
+        localStorage.setItem('remembered_email', values.email);
+      } else {
+        localStorage.removeItem('remembered_email');
+      }
+
       await login(values.email, values.password);
     } catch (error: any) {
       setError(error.message || 'Login failed');
@@ -583,6 +604,15 @@ function LoginFormWithParams() {
             style={{ height: 44 }}
           />
         </Form.Item>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, marginTop: -12 }}>
+          <Form.Item name="remember" valuePropName="checked" noStyle>
+            <Checkbox style={{ fontSize: 14 }}>Remember me</Checkbox>
+          </Form.Item>
+          <Link href="/forgot-password" style={{ color: '#1677ff', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'opacity 0.3s' }}>
+            Forgot password?
+          </Link>
+        </div>
 
         <Form.Item style={{ marginBottom: 12 }}>
           <Button

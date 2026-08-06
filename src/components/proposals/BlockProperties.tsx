@@ -28,7 +28,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; accent?: boolean }> = 
 );
 
 export const BlockProperties = () => {
-  const { blocks, selectedBlockId, updateBlock, setSelectedBlockId, documentTheme, setDocumentTheme } = useProposalStore();
+  const { blocks, selectedBlockId, updateBlock, updateCoverData, setSelectedBlockId, documentTheme, setDocumentTheme } = useProposalStore();
 
   const [emailError, setEmailError] = useState<string>('');
   const [phoneError, setPhoneError] = useState<string>('');
@@ -99,9 +99,7 @@ export const BlockProperties = () => {
   }, [selectedBlockId]);
 
   const handleUpdateBranding = (data: any) => {
-    if (coverBlock) {
-      updateBlock(coverBlock.id, data);
-    }
+    updateCoverData(data);
   };
 
   return (

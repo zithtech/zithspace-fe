@@ -19,9 +19,10 @@ const { Content } = Layout;
 interface MainLayoutProps {
   children: React.ReactNode;
   noPadding?: boolean;
+  hideSideNav?: boolean;
 }
 
-export default function MainLayout({ children, noPadding }: MainLayoutProps) {
+export default function MainLayout({ children, noPadding, hideSideNav }: MainLayoutProps) {
   const { token } = theme.useToken();
   const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission } = useAuth();
   const { notification } = AntApp.useApp();
@@ -247,11 +248,13 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       />
 
       <Layout style={{ marginTop: 60, background: 'var(--bg-pure-white)' }}>
-        <SideNav
-          activeModule={activeModule}
-          collapsed={collapsed}
-          onCollapse={toggleCollapsed}
-        />
+        {!hideSideNav && (
+          <SideNav
+            activeModule={activeModule}
+            collapsed={collapsed}
+            onCollapse={toggleCollapsed}
+          />
+        )}
 
         <Content
           className="fade-in"
@@ -261,7 +264,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
-            marginLeft: collapsed ? 52 : 200,
+            marginLeft: hideSideNav ? 0 : collapsed ? 52 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 60px)",
             overflowY: "auto",

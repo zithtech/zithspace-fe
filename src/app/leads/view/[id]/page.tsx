@@ -215,7 +215,7 @@ export default function LeadProfilePage() {
         responseType: 'blob'
       });
       
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = new Blob([response.data], { type: response.headers['content-type']?.toString() });
       const blobUrl = URL.createObjectURL(blob);
       
       if (mode === 'inline') {

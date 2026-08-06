@@ -24,6 +24,7 @@ const PUBLIC_PATHS = [
   "/api/tenants/resolve",
   "/api/tenants/check-subdomain",
   "/api/public/",
+  "/api/pipeline/portal/",
   "/notification.mp3",
   "/smallLogo.png",
   "/sw.js",
@@ -34,7 +35,7 @@ const PUBLIC_PATHS = [
 // the staff `/login`. Client-portal token storage is localStorage, which the
 // edge can't see, so the client-side guard in `ClientPortalAuthContext` does
 // the actual auth check.
-const PORTAL_PUBLIC = ["/portal"];
+const PORTAL_PUBLIC = ["/portal", "/candidate-portal"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));

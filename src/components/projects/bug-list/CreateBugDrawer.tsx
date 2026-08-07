@@ -1,6 +1,7 @@
 "use client";
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
+import TestCaseDetailsPanel from "./TestCaseDetailsPanel";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar, Drawer, Select, Tooltip, message, App, ConfigProvider, theme as antdTheme, notification, Form, Input, Button, Tag, Space, Typography } from "antd";
 import { BugOutlined, FormatPainterOutlined, LoadingOutlined, AppstoreOutlined, PaperClipOutlined, EyeOutlined, DeleteOutlined, LinkOutlined, HistoryOutlined, UploadOutlined, FileTextOutlined, PlusOutlined, InfoCircleOutlined, TeamOutlined, CheckCircleOutlined } from "@ant-design/icons";
@@ -72,6 +73,19 @@ const fileToBase64 = (file: File) =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+
+/**
+ * Bugs raised from a test run used to have the case definition pasted into
+ * comments. That now lives in the Test Case details panel, so strip those
+ * generated blocks off older bugs and leave only what a person typed.
+ */
+const TEST_CASE_BLOCK = /^(test case|failed in run|steps to reproduce|expected result|preconditions)\s*:/i;
+const stripTestCaseBlocks = (raw?: string | null): string =>
+  (raw || "")
+    .split(/\n\s*\n/)
+    .filter((block) => !TEST_CASE_BLOCK.test(block.trim()))
+    .join("\n\n")
+    .trim();
 
 export default function CreateBugDrawer({
   open,
@@ -146,7 +160,7 @@ export default function CreateBugDrawer({
       setAssigneeId(editingBug.assigneeId || undefined);
       setAttachments(editingBug.attachments || []);
       setLinks(editingBug.externalLinks || []);
-      setComments(editingBug.comments || "");
+      setComments(stripTestCaseBlocks(editingBug.comments));
     } else {
       setTitle("");
       setDescription("");
@@ -494,6 +508,14 @@ export default function CreateBugDrawer({
               className="lead-drawer-form customer-drawer-form"
             >
               <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="General Details" subtitle="Core bug information">
+                {/* Raised from a QA test run — the source case, collapsed by default */}
+                {(editingBug?.testCaseRef || editingBug?.testCaseId) && (
+                  <TestCaseDetailsPanel
+                    testCaseId={editingBug.testCaseId ?? null}
+                    testCaseRef={editingBug.testCaseRef ?? null}
+                  />
+                )}
+
                 <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Bug Title</Text>}>
                   <Input
                     placeholder="Bug title (optional — AI can refine)"

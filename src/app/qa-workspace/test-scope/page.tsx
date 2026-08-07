@@ -2,15 +2,16 @@
 
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Tooltip, Result, Empty, Table, Tag, Row, Col, Typography, Checkbox, message, Modal, Input, Popconfirm, Form, Select, Drawer, Tabs, Dropdown } from "antd";
-import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined } from "@ant-design/icons";
+import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Form, Select, Tabs, Dropdown } from "antd";
+import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2 } from "lucide-react";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useTheme } from "@/context/ThemeContext";
 import { Line } from "@ant-design/plots";
@@ -20,11 +21,44 @@ const { Text, Paragraph } = Typography;
 
 type TabKey = "dashboard" | "scopes" | "approvals" | "settings";
 
+/** The three option lists a workspace admin can curate. */
+const SETTING_CATEGORIES = [
+  {
+    key: 'scope_type' as const,
+    label: 'Scope Type',
+    icon: FileText,
+    blurb: 'Kinds of test scope',
+    help: 'Choices offered in the Scope Type dropdown when creating or editing a test scope.',
+  },
+  {
+    key: 'priority' as const,
+    label: 'Priority',
+    icon: TrendingUp,
+    blurb: 'Urgency levels',
+    help: 'Priority levels available on every test scope, ordered from lowest to highest.',
+  },
+  {
+    key: 'status' as const,
+    label: 'Status',
+    icon: CheckCircle2,
+    blurb: 'Lifecycle states',
+    help: 'Statuses a test scope moves through, from first draft to final approval.',
+  },
+];
+
 function initialsOf(name: string) {
   if (!name) return 'TS';
   const parts = name.split(' ').filter(Boolean);
   if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+/** Label → snake_case key, so admins never have to invent one by hand. */
+function slugify(s: string) {
+  return (s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 function hashCode(str: string) {
@@ -64,6 +98,106 @@ const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: st
   </div>
 );
 
+/* ── Scope list primitives ─────────────────────────────────────────────────── */
+
+const STATUS_TONE: Record<string, string> = {
+  Approved: 'green',
+  Rejected: 'red',
+  'In Review': 'blue',
+  Draft: 'ash',
+};
+
+/** Status as a dotted pill — reads faster than a solid tag in a dense table. */
+const StatusPill = ({ status }: { status?: string }) => {
+  const tone = STATUS_TONE[status || ''] || 'blue';
+  return (
+    <span className={`sc-pill sc-pill--${tone}`}>
+      <span className="sc-pill__dot" />
+      {status || '—'}
+    </span>
+  );
+};
+
+const PRIORITY_LEVEL: Record<string, number> = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+
+/** Priority as filled steps — conveys rank without adding accent colours. */
+const PriorityMeter = ({ priority }: { priority?: string }) => {
+  const level = PRIORITY_LEVEL[priority || ''] || 0;
+  if (!level) return <span className="sc-muted">—</span>;
+  return (
+    <Tooltip title={`${priority} priority`}>
+      <span className="sc-prio">
+        <span className="sc-prio__bars">
+          {[1, 2, 3, 4].map(i => (
+            <span key={i} className={`sc-prio__bar${i <= level ? ' is-on' : ''}${level === 4 ? ' is-max' : ''}`} />
+          ))}
+        </span>
+        <span className="sc-prio__label">{priority}</span>
+      </span>
+    </Tooltip>
+  );
+};
+
+/** Initials avatar + name; falls back to a dash when unassigned. */
+const PersonChip = ({ name, muted }: { name?: string; muted?: boolean }) => {
+  if (!name) return <span className="sc-muted">—</span>;
+  return (
+    <span className="sc-person">
+      <span className={`sc-person__av${muted ? ' is-muted' : ''}`}>{initialsOf(name)}</span>
+      <span className="sc-person__name">{name}</span>
+    </span>
+  );
+};
+
+const fmtDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : null;
+
+const TIMELINE_FILTERS = [
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'active', label: 'Running now' },
+  { value: 'soon', label: 'Due in 7 days' },
+  { value: 'upcoming', label: 'Not started' },
+  { value: 'undated', label: 'No dates set' },
+];
+
+/** Which timeline bucket a scope falls into, for the timeline filter. */
+const timelineBucket = (s: any): string => {
+  const start = s.start_date ? dayjs(s.start_date) : null;
+  const end = s.end_date ? dayjs(s.end_date) : null;
+  if (!start?.isValid() && !end?.isValid()) return 'undated';
+  const now = dayjs();
+  if (end?.isValid() && end.isBefore(now, 'day')) return 'overdue';
+  if (end?.isValid() && end.diff(now, 'day') <= 7) return 'soon';
+  if (start?.isValid() && start.isAfter(now, 'day')) return 'upcoming';
+  return 'active';
+};
+
+/** Planned window plus a relative hint for scopes that are running or overdue. */
+const TimelineCell = ({ start, end }: { start?: string; end?: string }) => {
+  if (!start && !end) return <span className="sc-muted">—</span>;
+  const now = dayjs();
+  const endDay = end ? dayjs(end) : null;
+  const startDay = start ? dayjs(start) : null;
+
+  let hint = '';
+  let tone = 'sc-timeline__hint';
+  if (endDay?.isValid() && endDay.isBefore(now, 'day')) {
+    hint = `${now.diff(endDay, 'day')}d overdue`;
+    tone += ' is-late';
+  } else if (endDay?.isValid()) {
+    hint = `${endDay.diff(now, 'day')}d left`;
+  } else if (startDay?.isValid() && startDay.isAfter(now, 'day')) {
+    hint = `starts in ${startDay.diff(now, 'day')}d`;
+  }
+
+  return (
+    <span className="sc-timeline">
+      <span className="sc-timeline__range">{fmtDate(start) || 'TBD'} – {fmtDate(end) || 'TBD'}</span>
+      {hint ? <span className={tone}>{hint}</span> : null}
+    </span>
+  );
+};
+
 /* Section header */
 const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: any; title: string; subtitle?: string; right?: React.ReactNode; }) => (
   <div className="px-4 py-2 flex items-center justify-between gap-3 border-b" style={{ borderColor: "var(--border-slate-200)", padding: '8px 16px', display: 'flex', borderBottom: '1px solid var(--border-slate-200)' }}>
@@ -93,15 +227,27 @@ function TestScopeContent() {
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
+  const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
+  const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
+  const [sortKey] = useState<string>('recent');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
 
-  const { canReadBug } = usePermission();
+  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa } = usePermission();
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+
+  // Any filter change resets to the first page
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter]);
 
   useEffect(() => {
     setMounted(true);
@@ -112,7 +258,7 @@ function TestScopeContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!isLoading && canReadBug) {
+    if (!isLoading && canReadScope) {
       fetchScopes();
       fetchScopeSettings();
       axios.get("/api/release-plans").then((res: any) => {
@@ -122,7 +268,7 @@ function TestScopeContent() {
         setSprintsMap(map);
       }).catch(console.error);
     }
-  }, [isLoading, canReadBug]);
+  }, [isLoading, canReadScope]);
 
   const fetchScopes = async () => {
     try {
@@ -136,23 +282,16 @@ function TestScopeContent() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    Modal.confirm({
-      title: 'Are you sure you want to delete this test scope?',
-      content: 'This action cannot be undone.',
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      onOk: async () => {
-        try {
-          await axios.delete(`/api/v2/qa/test-scopes/${id}`);
-          message.success('Test Scope deleted successfully');
-          fetchScopes();
-        } catch (error) {
-          console.error(error);
-          message.error('Failed to delete Test Scope');
-        }
-      }
-    });
+  /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
+  const handleDelete = async (id: string) => {
+    try {
+      await axios.delete(`/api/v2/qa/test-scopes/${id}`);
+      message.success('Test Scope deleted successfully');
+      fetchScopes();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to delete Test Scope');
+    }
   };
 
   const performApprovalAction = async (record: any, newStatus: string) => {
@@ -184,8 +323,20 @@ function TestScopeContent() {
   const [editingSetting, setEditingSetting] = useState<any>(null);
   const [settingsActiveCategory, setSettingsActiveCategory] = useState<'scope_type' | 'priority' | 'status'>('scope_type');
   const [settingsForm] = Form.useForm();
+  /** Once the user edits the key by hand we stop deriving it from the label. */
+  const [keyTouched, setKeyTouched] = useState(false);
+  const draftLabel = Form.useWatch('label', settingsForm);
+  const draftColor = Form.useWatch('color', settingsForm);
 
   const CATEGORY_LABELS: Record<string, string> = { scope_type: 'Scope Type', priority: 'Priority', status: 'Status' };
+  const activeCategoryMeta = SETTING_CATEGORIES.find(c => c.key === settingsActiveCategory);
+
+  /** How many scopes currently reference a settings option — shown before deleting. */
+  const usageCountFor = (record: any) => {
+    const field = settingsActiveCategory === 'scope_type' ? 'type'
+      : settingsActiveCategory === 'priority' ? 'priority' : 'status';
+    return scopes.filter(s => s[field] === record.value || s[field] === record.label).length;
+  };
   const COLOR_OPTIONS = [
     { value: 'default', label: 'Grey' }, { value: 'blue', label: 'Blue' }, { value: 'green', label: 'Green' },
     { value: 'orange', label: 'Orange' }, { value: 'red', label: 'Red' }, { value: 'purple', label: 'Purple' },
@@ -210,12 +361,14 @@ function TestScopeContent() {
 
   const openCreateSetting = () => {
     setEditingSetting(null);
+    setKeyTouched(false);
     settingsForm.resetFields();
     settingsForm.setFieldsValue({ color: 'default' });
     setSettingsModalOpen(true);
   };
 
   const openEditSetting = (item: any) => {
+    setKeyTouched(true);
     setEditingSetting(item);
     settingsForm.setFieldsValue({ value: item.value, label: item.label, color: item.color || 'default' });
     setSettingsModalOpen(true);
@@ -328,7 +481,7 @@ function TestScopeContent() {
 
   if (isLoading) return null;
 
-  if (!canReadBug) {
+  if (!canReadScope) {
     return (
       <MainLayout>
         <div style={{ padding: "100px 0", background: "var(--bg-pure-white)", minHeight: "calc(100vh - 64px)" }}>
@@ -344,47 +497,101 @@ function TestScopeContent() {
   }
 
   const columns = [
-    { title: "Test Scope Name", dataIndex: "name", key: "name", render: (t: string) => <strong style={{ color: "var(--text-slate-800)" }}>{t}</strong> },
-    { title: "Scope Type", dataIndex: "type", key: "type" },
     {
-      title: "Status", dataIndex: "status", key: "status", render: (t: string) => {
-        const s = scopeSettings.find(set => set.category === 'status' && set.value === t);
-        const color = s?.color && s.color !== 'default' ? s.color : (t === 'Approved' ? 'green' : t === 'Rejected' ? 'red' : t === 'In Review' ? 'orange' : t === 'Draft' ? 'default' : 'blue');
-        return <Tag color={color}>{t}</Tag>;
+      title: "Test Scope",
+      dataIndex: "name",
+      key: "name",
+      width: 340,
+      render: (t: string, r: any) => {
+        const meta = [r.type, r.details?.product, r.details?.modules?.length ? `${r.details.modules.length} modules` : null]
+          .filter(Boolean).join(' · ');
+        return (
+          <div className="sc-name">
+            <span className="sc-name__badge">{initialsOf(t || '')}</span>
+            <span className="sc-name__text">
+              <span className="sc-name__title">{t || 'Untitled scope'}</span>
+              {meta ? <span className="sc-name__meta">{meta}</span> : null}
+            </span>
+          </div>
+        );
       }
     },
-    { title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", render: (t: string) => t || '-' },
-    { title: "Reviewer", key: "reviewer", render: (_: any, r: any) => r.details?.reviewer || '-' },
-    { title: "Start Date", dataIndex: "start_date", key: "start_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
-    { title: "End Date", dataIndex: "end_date", key: "end_date", render: (d: any) => d ? new Date(d).toLocaleDateString() : '-' },
+    {
+      title: "Status", dataIndex: "status", key: "status", width: 130,
+      render: (t: string) => <StatusPill status={t} />
+    },
+    {
+      title: "Priority", dataIndex: "priority", key: "priority", width: 120,
+      render: (t: string) => <PriorityMeter priority={t} />
+    },
+    {
+      title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", width: 170,
+      render: (t: string) => <PersonChip name={t} />
+    },
+    {
+      title: "Reviewer", key: "reviewer", width: 170,
+      render: (_: any, r: any) => <PersonChip name={r.details?.reviewer} muted />
+    },
+    {
+      title: "Timeline", key: "timeline", width: 170,
+      render: (_: any, r: any) => <TimelineCell start={r.start_date} end={r.end_date} />
+    },
     {
       title: "Actions",
       key: "actions",
+      width: 100,
+      align: 'right' as const,
       render: (_: any, r: any) => (
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Tooltip title="Edit">
-            <Button type="text" size="small" style={{ color: "var(--text-slate-600)" }} icon={<Pencil size={16} />} onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-scope/edit/${r.id}`); }} />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button type="text" danger size="small" icon={<Trash2 size={16} />} onClick={(e) => { e.stopPropagation(); handleDelete(r.id); }} />
-          </Tooltip>
+        <div className="sc-rowactions" onClick={(e) => e.stopPropagation()}>
+          {canUpdateScope && (
+            <Tooltip title="Edit">
+              <button onClick={() => router.push(`/qa-workspace/test-scope/edit/${r.id}`)} aria-label="Edit"><Pencil size={15} /></button>
+            </Tooltip>
+          )}
+          {canDeleteScope && (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete this test scope?"
+              description={<>&ldquo;{r.name || 'Untitled scope'}&rdquo; will be permanently removed. This cannot be undone.</>}
+              confirmText="Delete"
+              onConfirm={() => handleDelete(r.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
+              </Tooltip>
+            </ConfirmDialog>
+          )}
+          {!canUpdateScope && !canDeleteScope && <span className="sc-muted">—</span>}
         </div>
       )
     }
   ];
 
   const approvalColumns = [
-    { title: "Test Scope Name", dataIndex: "name", key: "name", render: (t: string) => <strong style={{ color: "var(--text-slate-800)" }}>{t}</strong> },
-    { title: "Scope Type", dataIndex: "type", key: "type" },
     {
-      title: "Status", dataIndex: "status", key: "status", render: (t: string) => {
-        const s = scopeSettings.find(set => set.category === 'status' && set.value === t);
-        const color = s?.color && s.color !== 'default' ? s.color : (t === 'Approved' ? 'green' : t === 'Rejected' ? 'red' : t === 'In Review' ? 'orange' : t === 'Draft' ? 'default' : 'blue');
-        return <Tag color={color}>{t}</Tag>;
-      }
+      title: "Test Scope", dataIndex: "name", key: "name", width: 320,
+      render: (t: string, r: any) => (
+        <div className="sc-name">
+          <span className="sc-name__badge">{initialsOf(t || '')}</span>
+          <span className="sc-name__text">
+            <span className="sc-name__title">{t || 'Untitled scope'}</span>
+            {r.type ? <span className="sc-name__meta">{r.type}</span> : null}
+          </span>
+        </div>
+      )
     },
-    { title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", render: (t: string) => t || '-' },
-    { title: "Reviewer", key: "reviewer", render: (_: any, r: any) => r.details?.reviewer || '-' },
+    {
+      title: "Status", dataIndex: "status", key: "status", width: 130,
+      render: (t: string) => <StatusPill status={t} />
+    },
+    {
+      title: "Priority", dataIndex: "priority", key: "priority", width: 120,
+      render: (t: string) => <PriorityMeter priority={t} />
+    },
+    {
+      title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", width: 170,
+      render: (t: string) => <PersonChip name={t} />
+    },
     {
       title: "Actions",
       key: "actions",
@@ -428,7 +635,77 @@ function TestScopeContent() {
 
   const approvalScopes = scopes.filter(s => s.details?.approvalWorkflow?.user === user?.id && s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const filteredScopes = scopes.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Search spans name, type and owner so the box behaves the way people expect
+  const filteredScopes = scopes
+    .filter(s => {
+      const q = searchTerm.trim().toLowerCase();
+      if (q) {
+        const haystack = [s.name, s.type, s.qa_owner, s.details?.reviewer, s.details?.product]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (statusFilter && s.status !== statusFilter) return false;
+      if (priorityFilter && s.priority !== priorityFilter) return false;
+      if (ownerFilter && (s.qa_owner || '') !== ownerFilter) return false;
+      if (timelineFilter && timelineBucket(s) !== timelineFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortKey) {
+        case 'name': return (a.name || '').localeCompare(b.name || '');
+        case 'endDate': {
+          const av = a.end_date ? new Date(a.end_date).getTime() : Infinity;
+          const bv = b.end_date ? new Date(b.end_date).getTime() : Infinity;
+          return av - bv;
+        }
+        case 'priority':
+          return (PRIORITY_LEVEL[b.priority] || 0) - (PRIORITY_LEVEL[a.priority] || 0);
+        default: {
+          const av = new Date(a.created_at || a.start_date || 0).getTime();
+          const bv = new Date(b.created_at || b.start_date || 0).getTime();
+          return bv - av;
+        }
+      }
+    });
+
+  const activeFilterCount =
+    (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
+    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter(undefined);
+    setPriorityFilter(undefined);
+    setOwnerFilter(undefined);
+    setTimelineFilter(undefined);
+  };
+
+  const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
+    .sort((a, b) => String(a).localeCompare(String(b)))
+    .map(v => ({ value: String(v), label: String(v) }));
+
+  const overdueCount = scopes.filter(s => timelineBucket(s) === 'overdue').length;
+
+  // Client-side pagination, matching the app-wide sticky pager
+  const pageCount = Math.max(1, Math.ceil(filteredScopes.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = filteredScopes.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, filteredScopes.length);
+  const pagedScopes = filteredScopes.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const statusFilterOpts = (
+    scopeSettings.filter(s => s.category === 'status').map(s => ({ value: s.value, label: s.label }))
+  );
+  const statusOptions = statusFilterOpts.length > 0
+    ? statusFilterOpts
+    : Array.from(new Set(scopes.map(s => s.status).filter(Boolean))).map(v => ({ value: v, label: v }));
+
+  const priorityOptions = (() => {
+    const fromSettings = scopeSettings.filter(s => s.category === 'priority').map(s => ({ value: s.value, label: s.label }));
+    return fromSettings.length > 0
+      ? fromSettings
+      : ['Low', 'Medium', 'High', 'Critical'].map(v => ({ value: v, label: v }));
+  })();
 
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, bg: string) => (
     <div className="pp-menu-item" style={{ padding: 0 }}>
@@ -477,9 +754,12 @@ function TestScopeContent() {
           )
         }
       ] : [
-        { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
-        { type: 'divider' as const },
-        {
+        // Only the actions this role actually holds
+        ...(canUpdateScope ? [
+          { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
+        ] : []),
+        ...(canUpdateScope && canDeleteScope ? [{ type: 'divider' as const }] : []),
+        ...(canDeleteScope ? [{
           key: 'delete',
           danger: true,
           label: (
@@ -493,7 +773,12 @@ function TestScopeContent() {
               {menuLabel('Delete', 'Remove from list', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
             </ConfirmDialog>
           )
-        }
+        }] : []),
+        ...(!canUpdateScope && !canDeleteScope ? [{
+          key: 'none',
+          disabled: true,
+          label: menuLabel('View only', 'No edit access on this scope', <Pencil size={15} />, '#94a3b8', 'rgba(148,163,184,0.12)'),
+        }] : []),
       ]
     };
   };
@@ -605,27 +890,67 @@ function TestScopeContent() {
         }
         
         .dh-shell { display: flex; height: calc(100vh - 64px); background: transparent; overflow: hidden; position: relative; }
-        .dh-sidebar { width: 240px; background: transparent; border-right: 1px solid var(--border-slate-200); display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
-        .dh-sidebar-top { padding: 18px 14px 10px; flex-shrink: 0; }
-        .pp-side-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .pp-side-logo { width: 34px; height: 34px; border-radius: 8px; background: var(--bg-blue-50); color: #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .pp-side-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); line-height: 1.2; margin: 0; }
-        .pp-side-subtitle { font-size: 11.5px; color: var(--text-slate-500); font-weight: 500; margin: 0; }
-        
-        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 0 14px 20px; }
-        
+        .dh-sidebar {
+          width: 194px; background: transparent; border-right: 1px solid var(--border-slate-200);
+          display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
+        }
+        .dh-sidebar-top { padding: 12px 10px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border-slate-100); }
+        .pp-side-head { display: flex; align-items: center; gap: 9px; margin-bottom: 0; padding: 0 2px; }
+        .pp-side-logo {
+          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+          background: var(--bg-blue-50); color: #3B82F6;
+          display: flex; align-items: center; justify-content: center; font-size: 15px;
+          border: 1px solid rgba(59,130,246,.16);
+        }
+        .pp-side-head-text { min-width: 0; }
+        .pp-side-title { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); line-height: 1.15; margin: 0; }
+        .pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; margin: 1px 0 0; letter-spacing: .02em; }
+        .pp-side-cta {
+          margin-top: 12px; height: 34px !important; border-radius: 8px !important;
+          font-size: 12.5px; font-weight: 600;
+        }
+
+        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px 8px 16px; }
+        .pp-nav-caption {
+          display: block; padding: 0 8px; margin: 0 0 6px;
+          font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        .pp-nav-caption + .pp-nav-item { margin-top: 0; }
+        .pp-nav-item ~ .pp-nav-caption { margin-top: 16px; }
+
         .pp-nav-item {
-          display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 12px;
-          border-radius: 6px; border: none; background: transparent; color: var(--text-slate-600);
-          font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: all 0.15s ease;
-          margin-bottom: 4px;
+          position: relative;
+          display: flex; align-items: center; gap: 9px; width: 100%; height: 33px; padding: 0 9px;
+          border-radius: 7px; border: none; background: transparent; color: var(--text-slate-600);
+          font-size: 12.5px; font-weight: 500; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease;
+          margin-bottom: 2px;
+        }
+        .pp-nav-icon { flex-shrink: 0; color: var(--text-slate-400); transition: color .15s ease; }
+        .pp-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pp-nav-count {
+          flex-shrink: 0; min-width: 20px; padding: 1px 6px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 700; text-align: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-100); transition: all .15s ease;
         }
         .pp-nav-item:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 600; }
+        .pp-nav-item:hover .pp-nav-icon { color: var(--text-slate-600); }
+        .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
+        .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
+        .pp-nav-item.is-active .pp-nav-count {
+          background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent;
+        }
+        /* Left rail marker on the active item */
+        .pp-nav-item.is-active::before {
+          content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
+          width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
+        }
         
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar { height: 56px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; padding: 0 18px; justify-content: space-between; }
-        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 24px; background: transparent; }
+        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; }
         
         /* Table Styles for Test Scope */
         .ts-table .ant-table-thead > tr > th {
@@ -641,6 +966,277 @@ function TestScopeContent() {
         .ts-table .ant-table-tbody > tr:hover > td {
           background: rgba(255, 255, 255, 0.05) !important;
         }
+
+        /* ── All Scopes: compact page chrome ────────────────────────── */
+        .sc-topbar { height: auto !important; min-height: 52px; padding: 8px 20px !important; }
+        /* Every control in the topbar shares one 32px height */
+        .sc-topbar .dh-main-controls { display: flex; align-items: center; gap: 8px; }
+        .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
+        .sc-topbar .pp-segmented { height: 32px; display: inline-flex; align-items: center; border-radius: 8px; overflow: hidden; }
+        .sc-topbar .pp-segmented button {
+          height: 32px; width: 34px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .sc-topbar__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sc-topbar__h1 { font-size: 15px; font-weight: 700; color: var(--text-slate-900); white-space: nowrap; }
+        .sc-topbar__div { width: 1px; height: 14px; background: var(--border-slate-200); flex-shrink: 0; }
+        .sc-topbar__sub {
+          font-size: 12px; color: var(--text-slate-500);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        @media (max-width: 860px) { .sc-topbar__div, .sc-topbar__sub { display: none; } }
+
+        /* ── All Scopes: stat tiles (shared StatTile, click to filter) ── */
+        .sc-stat-hit { cursor: pointer; outline: none; }
+        .sc-stat-hit .pp-stat-card { transition: border-color .15s ease, background .15s ease; }
+        .sc-stat-hit:hover .pp-stat-card { border-color: #bfdbfe; background: var(--bg-slate-50); }
+        .sc-stat-hit.is-active .pp-stat-card { border-color: #3b82f6; box-shadow: inset 0 -2px 0 #3b82f6; }
+        .sc-stat-hit:focus-visible .pp-stat-card { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+
+        /* ── All Scopes: filter row — every control on one 32px axis ─── */
+        .sc-filters {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .sc-filters__search { width: 240px; }
+        .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
+        .sc-filters__field { min-width: 150px; }
+        .sc-filters .sd-trigger {
+          height: 32px !important; min-height: 32px !important;
+          border-radius: 8px !important; padding-block: 0 !important;
+        }
+        .sc-clear {
+          height: 32px; display: inline-flex; align-items: center;
+          font-size: 12px; font-weight: 600; color: #3b82f6;
+          padding: 0 11px; border-radius: 8px;
+          border: 1px solid var(--border-slate-200); transition: all .15s ease;
+        }
+        .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
+
+        /* ── All Scopes: pager pinned to the bottom of the pane ─────── */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
+          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
+          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
+          background: var(--bg-pure-white);
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
+          font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        /* ── All Scopes: table ──────────────────────────────────────── */
+        .sc-tablewrap {
+          background: transparent; border: 1px solid var(--border-slate-200);
+          border-radius: 0; overflow: hidden;
+        }
+        .sc-table .ant-table { background: transparent; }
+        .sc-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          letter-spacing: .06em !important; padding: 8px 14px !important;
+        }
+        .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
+        .sc-table .ant-table-tbody > tr { cursor: pointer; }
+        .sc-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+        .sc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .sc-table .ant-table-cell-fix-right { background: inherit !important; }
+        .sc-table .ant-pagination { padding: 12px 16px; margin: 0 !important; border-top: 1px solid var(--border-slate-100); }
+
+        .sc-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .sc-name__badge {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 27px; height: 27px; border-radius: 7px;
+          background: rgba(59,130,246,.1); color: #2563eb;
+          font-size: 10px; font-weight: 700; letter-spacing: .02em;
+        }
+        .sc-name__text { display: flex; flex-direction: column; min-width: 0; }
+        .sc-name__title {
+          font-size: 13px; font-weight: 600; color: var(--text-slate-900);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+        }
+        .sc-name__meta {
+          font-size: 11px; color: var(--text-slate-400); margin-top: 1px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+        }
+
+        .sc-muted { color: var(--text-slate-400); }
+
+        .sc-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+          font-size: 11.5px; font-weight: 600;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-600);
+        }
+        .sc-pill__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+        .sc-pill--blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
+        .sc-pill--green { color: #047857; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
+        .sc-pill--red { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.22); }
+        .sc-pill--ash { color: #64748b; background: rgba(100,116,139,.1); border-color: rgba(100,116,139,.2); }
+
+        .sc-prio { display: inline-flex; align-items: center; gap: 8px; }
+        .sc-prio__bars { display: inline-flex; align-items: flex-end; gap: 2px; }
+        .sc-prio__bar { width: 4px; height: 12px; border-radius: 2px; background: var(--border-slate-200); }
+        .sc-prio__bar.is-on { background: #60a5fa; }
+        .sc-prio__bar.is-on.is-max { background: #2563eb; }
+        .sc-prio__label { font-size: 12px; font-weight: 500; color: var(--text-slate-600); }
+
+        .sc-person { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+        .sc-person__av {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 24px; height: 24px; border-radius: 999px;
+          background: rgba(59,130,246,.12); color: #2563eb; font-size: 9.5px; font-weight: 700;
+        }
+        .sc-person__av.is-muted { background: rgba(100,116,139,.12); color: #64748b; }
+        .sc-person__name {
+          font-size: 12.5px; color: var(--text-slate-700);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;
+        }
+
+        .sc-timeline { display: flex; flex-direction: column; line-height: 1.35; }
+        .sc-timeline__range { font-size: 12.5px; color: var(--text-slate-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .sc-timeline__hint { font-size: 10.5px; color: var(--text-slate-400); }
+        .sc-timeline__hint.is-late { color: #dc2626; font-weight: 600; }
+
+        /* Always visible so the column never looks empty; no fixed column,
+           which was rendering a stray divider over the last data column. */
+        .sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+        .sc-rowactions button {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 7px;
+          border: 1px solid transparent; color: var(--text-slate-400);
+          transition: all .15s ease;
+        }
+        .sc-rowactions button:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+        .sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+        .sc-table .ant-table-tbody > tr > td:last-child { padding-right: 12px !important; }
+
+        /* ── Scope Settings: category tabs ──────────────────────────── */
+        .st-tabs .ant-tabs-nav { margin-bottom: 14px !important; }
+        .st-tabs .ant-tabs-nav::before { border-bottom: 1px solid var(--border-slate-200) !important; }
+        .st-tabs .ant-tabs-nav-list { gap: 4px; }
+        .st-tabs .ant-tabs-tab {
+          padding: 9px 14px !important; margin: 0 !important;
+          border-radius: 8px 8px 0 0; transition: background .15s ease;
+        }
+        .st-tabs .ant-tabs-tab:hover { background: var(--bg-slate-50); }
+        .st-tabs .ant-tabs-tab + .ant-tabs-tab { margin-left: 2px !important; }
+        .st-tabs .ant-tabs-ink-bar { height: 2px !important; border-radius: 2px 2px 0 0; background: #3B82F6 !important; }
+
+        .st-tab { display: inline-flex; align-items: center; gap: 8px; }
+        .st-tab__icon { color: var(--text-slate-400); transition: color .15s ease; }
+        .st-tab__label { font-size: 13px; font-weight: 600; color: var(--text-slate-600); transition: color .15s ease; }
+        .st-tab__count {
+          min-width: 20px; padding: 1px 7px; border-radius: 999px;
+          font-size: 11px; font-weight: 700; text-align: center;
+          background: var(--bg-slate-50); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-200); transition: all .15s ease;
+        }
+        .st-tabs .ant-tabs-tab-active .st-tab__icon { color: #3B82F6; }
+        .st-tabs .ant-tabs-tab-active .st-tab__label { color: #3B82F6; font-weight: 700; }
+        .st-tabs .ant-tabs-tab-active .st-tab__count {
+          background: rgba(59,130,246,.1); color: #2563eb; border-color: rgba(59,130,246,.24);
+        }
+
+        /* ── Scope Settings: table header + cells ───────────────────── */
+        .st-head {
+          display: flex; align-items: center; justify-content: space-between; gap: 12px;
+          padding: 11px 14px; border-bottom: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+        }
+        .st-head__title { font-size: 13px; font-weight: 650; color: var(--text-slate-900); }
+        .st-head__desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 2px; }
+        .st-option { display: flex; align-items: center; gap: 10px; }
+        .st-option__tag { margin: 0 !important; font-size: 12px; border-radius: 6px; }
+        .st-option__hint { font-size: 11px; color: var(--text-slate-400); }
+        .st-code {
+          font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          padding: 2px 7px; border-radius: 6px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+          color: var(--text-slate-600);
+        }
+        .st-usage { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
+        .st-usage.is-empty { font-weight: 500; color: var(--text-slate-400); }
+
+        /* ── Settings option modal ──────────────────────────────────── */
+        .so-modal { background: var(--bg-pure-white); }
+        .so-head {
+          display: flex; align-items: flex-start; gap: 12px;
+          padding: 18px 20px 16px; border-bottom: 1px solid var(--border-slate-100);
+        }
+        .so-head__icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 36px; height: 36px; border-radius: 10px;
+          background: rgba(59,130,246,.1); color: #3B82F6;
+          border: 1px solid rgba(59,130,246,.2);
+        }
+        .so-head__text { flex: 1; min-width: 0; }
+        .so-head__title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -.01em; }
+        .so-head__sub { margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--text-slate-500); }
+        .so-head__close {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px; font-size: 12px;
+          color: var(--text-slate-400); transition: all .15s ease;
+        }
+        .so-head__close:hover { color: var(--text-slate-900); background: var(--bg-slate-50); }
+
+        .so-preview {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 20px; background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-100);
+        }
+        .so-preview__label {
+          font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+          color: var(--text-slate-400);
+        }
+        .so-preview__tag { margin: 0 !important; font-size: 12.5px; border-radius: 6px; }
+
+        .so-form { padding: 18px 20px 4px; }
+        .so-form .ant-form-item { margin-bottom: 16px; }
+        .so-form .ant-input { border-radius: 8px; height: 36px; }
+        .so-label { font-size: 12.5px; font-weight: 600; color: var(--text-slate-700); }
+        .so-req { color: #ef4444; }
+        .so-extra { font-size: 11.5px; color: var(--text-slate-400); line-height: 1.45; }
+
+        .so-colorblock { padding-bottom: 18px; }
+        .so-colorblock .so-label { display: block; margin-bottom: 8px; }
+        .so-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+        .so-swatch {
+          width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: #fff; border: 1px solid rgba(15,23,42,.08);
+          transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .so-swatch:hover { transform: translateY(-1px); }
+        .so-swatch.is-active { box-shadow: 0 0 0 2px var(--bg-pure-white), 0 0 0 4px currentColor; }
+        .so-swatch--default { background: #94a3b8; color: #64748b; }
+        .so-swatch--blue { background: #3b82f6; color: #3b82f6; }
+        .so-swatch--green { background: #10b981; color: #10b981; }
+        .so-swatch--orange { background: #f59e0b; color: #f59e0b; }
+        .so-swatch--red { background: #ef4444; color: #ef4444; }
+        .so-swatch--purple { background: #8b5cf6; color: #8b5cf6; }
+        .so-swatch--cyan { background: #06b6d4; color: #06b6d4; }
+        .so-swatch--gold { background: #d97706; color: #d97706; }
+        .so-swatch.is-active svg { color: #fff; }
+
+        .so-foot {
+          display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+          padding: 14px 20px; border-top: 1px solid var(--border-slate-100);
+          background: var(--bg-slate-50);
+        }
+        .so-foot .ant-btn { height: 34px; border-radius: 8px; }
+
+        .sc-empty { padding: 44px 24px; text-align: center; }
+        .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); }
+        .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
+        .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
       `}} />
       <div className="dh-shell">
         <div
@@ -656,92 +1252,99 @@ function TestScopeContent() {
                 <BugOutlined />
               </div>
               <div className="pp-side-head-text">
-                <h1 className="pp-side-title">Test Scope</h1>
-                <p className="pp-side-subtitle">QA Workspace</p>
+                <h1 className="pp-side-title">Scope</h1>
+                <p className="pp-side-subtitle">QA Space</p>
               </div>
             </div>
 
-            {canReadBug && (
+            {canCreateScope && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => router.push('/qa-workspace/test-scope/create')}
                 block
-                style={{ marginTop: 16, borderRadius: 6, fontWeight: 500, height: 38 }}
+                className="pp-side-cta"
               >
                 Create Scope
               </Button>
             )}
           </div>
+
           <div className="dh-sidebar-scroll">
-            <button className={`pp-nav-item ${activeTab === 'dashboard' ? 'is-active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-              <LayoutDashboard size={16} /> Dashboard
-            </button>
-            <button className={`pp-nav-item ${activeTab === 'scopes' ? 'is-active' : ''}`} onClick={() => setActiveTab('scopes')}>
-              <Target size={16} /> Scopes
-            </button>
-            <button className={`pp-nav-item ${activeTab === 'approvals' ? 'is-active' : ''}`} onClick={() => setActiveTab('approvals')}>
-              <CheckSquare size={16} /> Approvals
-            </button>
+            <span className="pp-nav-caption">Workspace</span>
+            {([
+              { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { key: 'scopes', label: 'Scopes', icon: Target, count: scopes.length },
+              { key: 'approvals', label: 'Approvals', icon: CheckSquare, count: approvalScopes.filter(s => s.status === 'In Review').length },
+            ] as const).map(item => {
+              const Icon = item.icon;
+              const count = 'count' in item ? item.count : undefined;
+              return (
+                <button
+                  key={item.key}
+                  className={`pp-nav-item ${activeTab === item.key ? 'is-active' : ''}`}
+                  onClick={() => setActiveTab(item.key as TabKey)}
+                >
+                  <Icon size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">{item.label}</span>
+                  {count ? <span className="pp-nav-count">{count}</span> : null}
+                </button>
+              );
+            })}
+
+            <span className="pp-nav-caption">Configure</span>
             <button className={`pp-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`} onClick={() => setActiveTab('settings')}>
-              <Settings size={16} /> Settings
+              <Settings size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Settings</span>
             </button>
           </div>
         </aside>
 
         <main className="dh-main">
-          <div className="dh-main-topbar" style={{ height: 'auto', minHeight: 64, padding: '12px 24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div className="dh-main-topbar sc-topbar">
+            {/* Title and subtitle share one line, split by a divider */}
+            <div className="sc-topbar__title">
               {activeTab === 'scopes' && (
                 <>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                    All Scopes
-                  </span>
-                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>
-                    Manage and track your QA test scopes
-                  </span>
+                  <span className="sc-topbar__h1">All Scopes</span>
+                  <span className="sc-topbar__div" />
+                  <span className="sc-topbar__sub">Manage and track your QA test scopes</span>
                 </>
               )}
               {activeTab === 'settings' && (
                 <>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>Settings</span>
-                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>Manage dropdown options for Scope Type, Priority, and Status</span>
+                  <span className="sc-topbar__h1">Settings</span>
+                  <span className="sc-topbar__div" />
+                  <span className="sc-topbar__sub">Dropdown options for Scope Type, Priority and Status</span>
                 </>
               )}
               {activeTab === 'approvals' && (
                 <>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                    Pending Approvals
-                  </span>
-                  <span style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>
-                    Test scopes assigned to you for review and approval
-                  </span>
+                  <span className="sc-topbar__h1">Pending Approvals</span>
+                  <span className="sc-topbar__div" />
+                  <span className="sc-topbar__sub">Scopes assigned to you for review</span>
                 </>
               )}
               {!['scopes', 'approvals', 'settings'].includes(activeTab) && (
-                <span style={{ fontSize: 16, fontWeight: 600, color: "var(--text-slate-800)", textTransform: 'capitalize' }}>
-                  {activeTab}
-                </span>
+                <span className="sc-topbar__h1" style={{ textTransform: 'capitalize' }}>{activeTab}</span>
               )}
             </div>
 
             <div className="dh-main-controls">
-              {activeTab === 'settings' && (
-                <Button type="primary" icon={<Plus size={15} />} onClick={openCreateSetting}>Add Option</Button>
+              {activeTab === 'settings' && canManageQa && (
+                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
               )}
               {['scopes', 'approvals'].includes(activeTab) && (
                 <>
-                  <Input
-                    placeholder="Search scopes..."
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ width: 250, borderRadius: 6 }}
-                  />
                   <div className="pp-segmented">
                     <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                     <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
                   </div>
+                  {canCreateScope && activeTab === 'scopes' && (
+                    <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>
+                      New Scope
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -752,41 +1355,106 @@ function TestScopeContent() {
               <>
 
 
-                {/* Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+                {/* Stats — product-standard StatTile, clickable to filter by status */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   {[
-                    { label: "Total Scopes", value: scopes.length, color: "#3b82f6", tint: "rgba(59,130,246,0.10)", icon: <SnippetsOutlined style={{ fontSize: 14 }} /> },
-                    { label: "In Draft", value: scopes.filter(s => s.status === 'Draft').length, color: "#64748b", tint: "rgba(100,116,139,0.10)", icon: <FileTextOutlined style={{ fontSize: 14 }} /> },
-                    { label: "In Review", value: scopes.filter(s => s.status === 'In Review').length, color: "#3b82f6", tint: "rgba(59,130,246,0.10)", icon: <SendOutlined style={{ fontSize: 14 }} /> },
-                    { label: "Approved", value: scopes.filter(s => s.status === 'Approved').length, color: "#10b981", tint: "rgba(16,185,129,0.10)", icon: <CheckCircleOutlined style={{ fontSize: 14 }} /> }
-                  ].map((stat) => (
-                    <div key={stat.label} style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', padding: '12px 16px', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: stat.tint, color: stat.color }}>{stat.icon}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-500)' }}>{stat.label}</span>
+                    { key: undefined, label: "Total Scopes", value: scopes.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${scopes.filter(s => s.details?.approvalWorkflow?.user).length} routed for approval` },
+                    { key: 'Draft', label: "In Draft", value: scopes.filter(s => s.status === 'Draft').length, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${scopes.filter(s => s.status === 'Draft' && !s.end_date).length} without a due date` },
+                    { key: 'In Review', label: "In Review", value: scopes.filter(s => s.status === 'In Review').length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${overdueCount} past due date` },
+                    { key: 'Approved', label: "Approved", value: scopes.filter(s => s.status === 'Approved').length, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${scopes.length ? Math.round((scopes.filter(s => s.status === 'Approved').length / scopes.length) * 100) : 0}% of all scopes` }
+                  ].map((stat) => {
+                    const isActive = stat.key === undefined ? !statusFilter : statusFilter === stat.key;
+                    return (
+                      <div
+                        key={stat.label}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setStatusFilter(stat.key)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStatusFilter(stat.key); } }}
+                        className={`sc-stat-hit${isActive ? ' is-active' : ''}`}
+                      >
+                        <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>{stat.value}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>this week</span>
-                        </div>
-                        <div style={{ width: 60, height: 2, background: stat.color, borderRadius: 2, opacity: 0.8 }} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+
+                {/* Filter bar — one row, uniform control heights */}
+                <div className="sc-filters">
+                  <Input
+                    className="sc-filters__search"
+                    placeholder="Search scopes…"
+                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    allowClear
+                  />
+                  <SearchableDropdown
+                    options={statusOptions}
+                    value={statusFilter}
+                    onChange={(v) => setStatusFilter(v)}
+                    placeholder="All statuses"
+                    itemNoun="statuses"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={priorityOptions}
+                    value={priorityFilter}
+                    onChange={(v) => setPriorityFilter(v)}
+                    placeholder="All priorities"
+                    itemNoun="priorities"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={ownerOptions}
+                    value={ownerFilter}
+                    onChange={(v) => setOwnerFilter(v)}
+                    placeholder="All QA owners"
+                    itemNoun="owners"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={TIMELINE_FILTERS}
+                    value={timelineFilter}
+                    onChange={(v) => setTimelineFilter(v)}
+                    placeholder="Any timeline"
+                    hideAvatar
+                    itemNoun="ranges"
+                    className="sc-filters__field"
+                  />
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="sc-clear" onClick={clearFilters}>
+                      Clear ({activeFilterCount})
+                    </button>
+                  )}
                 </div>
 
                 {/* Table or Grid */}
                 {viewMode === 'list' ? (
-                  <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                  <div className="sc-tablewrap">
                     <Table
-                      className="ts-table"
-                      dataSource={filteredScopes}
+                      className="ts-table sc-table"
+                      dataSource={pagedScopes}
                       columns={columns}
                       rowKey="id"
-                      pagination={false}
                       loading={loading}
-                      scroll={{ x: 'max-content' }}
+                      pagination={false}
+                      locale={{
+                        emptyText: (
+                          <div className="sc-empty">
+                            <SnippetsOutlined className="sc-empty__icon" />
+                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                            <p className="sc-empty__desc">
+                              {activeFilterCount > 0
+                                ? 'Try widening your search or clearing the filters.'
+                                : 'Create your first scope to define what gets tested and when it\'s done.'}
+                            </p>
+                            {activeFilterCount > 0
+                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                              : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                          </div>
+                        )
+                      }}
                       onRow={(record) => ({
                         onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
                       })}
@@ -797,47 +1465,49 @@ function TestScopeContent() {
                     {loading ? (
                       <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
                     ) : filteredScopes.length === 0 ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
-                        <SnippetsOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br/>
-                        No scopes found
+                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                        <SnippetsOutlined className="sc-empty__icon" />
+                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                        <p className="sc-empty__desc">
+                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
+                        </p>
+                        {activeFilterCount > 0
+                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                          : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
                       </div>
                     ) : (
-                      filteredScopes.map(r => renderScopeCard(r, false))
+                      pagedScopes.map(r => renderScopeCard(r, false))
                     )}
                   </div>
                 )}
+
               </>
             )}
 
             {activeTab === 'approvals' && (
               <>
                 {/* Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-                  {[
-                    { label: "Approved", value: approvalScopes.filter(s => s.status === 'Approved').length, color: "#10b981", tint: "rgba(16,185,129,0.10)", icon: <CheckCircleOutlined style={{ fontSize: 14 }} /> },
-                    { label: "Rejected", value: approvalScopes.filter(s => s.status === 'Rejected').length, color: "#ef4444", tint: "rgba(239,68,68,0.10)", icon: <CloseCircleOutlined style={{ fontSize: 14 }} /> },
-                    { label: "Pending", value: approvalScopes.filter(s => s.status === 'In Review').length, color: "#f59e0b", tint: "rgba(245,158,11,0.10)", icon: <SendOutlined style={{ fontSize: 14 }} /> }
-                  ].map((stat) => (
-                    <div key={stat.label} style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', padding: '12px 16px', borderRadius: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: stat.tint, color: stat.color }}>{stat.icon}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-slate-500)' }}>{stat.label}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>{stat.value}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>this week</span>
-                        </div>
-                        <div style={{ width: 60, height: 2, background: stat.color, borderRadius: 2, opacity: 0.8 }} />
-                      </div>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <StatTile label="Approved" value={approvalScopes.filter(s => s.status === 'Approved').length} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="signed off by you" />
+                  <StatTile label="Rejected" value={approvalScopes.filter(s => s.status === 'Rejected').length} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="sent back for rework" />
+                  <StatTile label="Pending" value={approvalScopes.filter(s => s.status === 'In Review').length} icon={SendOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="waiting on you" />
+                </div>
+
+                <div className="sc-filters">
+                  <Input
+                    className="sc-filters__search"
+                    placeholder="Search scopes…"
+                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    allowClear
+                  />
                 </div>
 
                 {viewMode === 'list' ? (
-                  <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
+                  <div className="sc-tablewrap">
                     <Table
-                      className="ts-table"
+                      className="ts-table sc-table"
                       dataSource={approvalScopes}
                       columns={approvalColumns}
                       rowKey="id"
@@ -926,81 +1596,121 @@ function TestScopeContent() {
 
             {activeTab === 'settings' && (
               <>
-                {/* Category Tabs */}
+                {/* Category tabs */}
                 <Tabs
+                  className="st-tabs"
                   activeKey={settingsActiveCategory}
-                  onChange={(key: any) => setSettingsActiveCategory(key as any)}
-                  size="large"
-                  type="line"
+                  onChange={(key: any) => setSettingsActiveCategory(key)}
                   moreIcon={null}
-                  tabBarStyle={{
-                    background: 'transparent',
-                    borderBottom: '1px solid var(--border-slate-200)',
-                    padding: "0 4px",
-                    marginBottom: 20
-                  }}
-                  items={(["scope_type", "priority", "status"] as const).map(cat => ({
-                    key: cat,
-                    label: (
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>
-                        {CATEGORY_LABELS[cat]}
-                        <Tag style={{ marginLeft: 8, fontSize: 10, padding: '0 6px', background: 'var(--bg-slate-100)', border: 'none', color: 'var(--text-slate-500)', borderRadius: 10 }}>
-                          {scopeSettings.filter(s => s.category === cat).length}
-                        </Tag>
-                      </span>
-                    )
-                  }))}
+                  items={SETTING_CATEGORIES.map(cat => {
+                    const count = scopeSettings.filter(s => s.category === cat.key).length;
+                    const Icon = cat.icon;
+                    return {
+                      key: cat.key,
+                      label: (
+                        <span className="st-tab">
+                          <Icon size={14} className="st-tab__icon" />
+                          <span className="st-tab__label">{cat.label}</span>
+                          <span className="st-tab__count">{count}</span>
+                        </span>
+                      ),
+                    };
+                  })}
                 />
 
-                {/* Table */}
-                <div style={{ background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 0, overflow: 'hidden' }}>
-                  {scopeSettings.filter(s => s.category === settingsActiveCategory).length === 0 && !settingsLoading ? (
-                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-slate-400)' }}>
-                      <Settings size={36} style={{ marginBottom: 12, opacity: 0.25 }} />
-                      <p style={{ margin: 0, fontSize: 14 }}>No options yet for {CATEGORY_LABELS[settingsActiveCategory]}</p>
-                      <p style={{ margin: '4px 0 16px', fontSize: 12, opacity: 0.7 }}>Click "Add Option" to create the first one</p>
-                      <Button type="primary" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
+                {/* Options table for the selected category */}
+                <div className="sc-tablewrap">
+                  <div className="st-head">
+                    <div className="min-w-0">
+                      <div className="st-head__title">{CATEGORY_LABELS[settingsActiveCategory]} options</div>
+                      <div className="st-head__desc">{activeCategoryMeta?.help}</div>
                     </div>
-                  ) : (
-                    <Table
-                      className="ts-table"
-                      dataSource={scopeSettings.filter(s => s.category === settingsActiveCategory)}
-                      rowKey="id"
-                      loading={settingsLoading}
-                      pagination={false}
-                      size="middle"
-                      columns={[
-                        {
-                          title: 'Label',
-                          dataIndex: 'label',
-                          render: (label: string, record: any) => (
-                            <Tag color={record.color || 'default'} style={{ fontSize: 13 }}>{label}</Tag>
-                          ),
+                    {canManageQa && (
+                      <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
+                    )}
+                  </div>
+
+                  <Table
+                    className="ts-table sc-table"
+                    dataSource={scopeSettings.filter(s => s.category === settingsActiveCategory)}
+                    rowKey="id"
+                    loading={settingsLoading}
+                    pagination={false}
+                    locale={{
+                      emptyText: (
+                        <div className="sc-empty">
+                          <Settings size={26} className="sc-empty__icon" />
+                          <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
+                          <p className="sc-empty__desc">{activeCategoryMeta?.help}</p>
+                          {canManageQa && (
+                            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
+                          )}
+                        </div>
+                      )
+                    }}
+                    columns={[
+                      {
+                        title: 'Option',
+                        dataIndex: 'label',
+                        render: (label: string, record: any) => (
+                          <div className="st-option">
+                            <Tag color={record.color && record.color !== 'default' ? record.color : undefined} className="st-option__tag">
+                              {label}
+                            </Tag>
+                            <span className="st-option__hint">as it appears in dropdowns</span>
+                          </div>
+                        ),
+                      },
+                      {
+                        title: 'Value key',
+                        dataIndex: 'value',
+                        width: 220,
+                        render: (v: string) => <code className="st-code">{v}</code>,
+                      },
+                      {
+                        title: 'Used by',
+                        key: 'usage',
+                        width: 140,
+                        render: (_: any, record: any) => {
+                          const n = usageCountFor(record);
+                          return n > 0
+                            ? <span className="st-usage">{n} scope{n === 1 ? '' : 's'}</span>
+                            : <span className="st-usage is-empty">Not used</span>;
                         },
-                        {
-                          title: 'Value (Key)',
-                          dataIndex: 'value',
-                          render: (v: string) => <code style={{ fontSize: 12, opacity: 0.7 }}>{v}</code>,
-                        },
-                        {
-                          title: 'Actions',
-                          align: 'right' as const,
-                          render: (_: any, record: any) => (
-                            <span style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                      },
+                      {
+                        title: 'Actions',
+                        key: 'actions',
+                        width: 100,
+                        align: 'right' as const,
+                        render: (_: any, record: any) => {
+                          const inUse = usageCountFor(record);
+                          // Curating the option lists is a QA-manage action
+                          if (!canManageQa) return <span className="sc-muted">—</span>;
+                          return (
+                            <div className="sc-rowactions">
                               <Tooltip title="Edit">
-                                <Button type="text" size="small" style={{ color: "var(--text-slate-500)" }} icon={<Pencil size={14} />} onClick={() => openEditSetting(record)} />
+                                <button onClick={() => openEditSetting(record)} aria-label="Edit"><Pencil size={15} /></button>
                               </Tooltip>
-                              <Popconfirm title="Delete this option?" onConfirm={() => handleDeleteSetting(record.id)} okText="Delete" okButtonProps={{ danger: true }}>
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete this option?"
+                                description={inUse > 0
+                                  ? `${inUse} scope${inUse === 1 ? '' : 's'} still use this — they'll keep the value but it won't be selectable.`
+                                  : 'It will no longer be selectable on test scopes.'}
+                                confirmText="Delete"
+                                onConfirm={() => handleDeleteSetting(record.id)}
+                              >
                                 <Tooltip title="Delete">
-                                  <Button type="text" danger size="small" icon={<Trash2 size={14} />} />
+                                  <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
                                 </Tooltip>
-                              </Popconfirm>
-                            </span>
-                          ),
+                              </ConfirmDialog>
+                            </div>
+                          );
                         },
-                      ]}
-                    />
-                  )}
+                      },
+                    ]}
+                  />
                 </div>
               </>
             )}
@@ -1011,30 +1721,134 @@ function TestScopeContent() {
               </div>
             )}
           </div>
+
+          {/* Pager sits outside the scroll area, so it stays pinned to the
+              bottom of the pane whether or not the list overflows. */}
+          {activeTab === 'scopes' && filteredScopes.length > 0 && (
+            <div className="pp-footer">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredScopes.length}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
       {/* Settings Modal */}
       <Modal
-        title={editingSetting ? `Edit ${CATEGORY_LABELS[settingsActiveCategory]} Option` : `Add ${CATEGORY_LABELS[settingsActiveCategory]} Option`}
+        title={null}
         open={settingsModalOpen}
         onCancel={() => setSettingsModalOpen(false)}
-        onOk={handleSaveSetting}
-        okText={editingSetting ? 'Save Changes' : 'Create'}
-        width={440}
+        footer={null}
+        closable={false}
+        width={480}
         destroyOnHidden
+        centered
+        styles={{
+          content: { padding: 0, borderRadius: 16, overflow: 'hidden' },
+          body: { padding: 0 },
+          mask: { backdropFilter: 'blur(3px)', background: 'rgba(15,23,42,0.45)' },
+        }}
       >
-        <Form form={settingsForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="label" label="Display Label" rules={[{ required: true, message: 'Please enter a label' }]}>
-            <Input placeholder="e.g. Feature Release" />
-          </Form.Item>
-          <Form.Item name="value" label="Value (Key)" rules={[{ required: true, message: 'Please enter a value key' }]} extra="Can be same as label or snake_case.">
-            <Input placeholder="e.g. feature_release" />
-          </Form.Item>
-          <Form.Item name="color" label="Badge Color">
-            <Select options={COLOR_OPTIONS} />
-          </Form.Item>
-        </Form>
+        <div className="so-modal">
+          <div className="so-head">
+            <span className="so-head__icon">
+              {(() => { const Icon = activeCategoryMeta?.icon || Settings; return <Icon size={17} />; })()}
+            </span>
+            <div className="so-head__text">
+              <div className="so-head__title">
+                {editingSetting ? 'Edit' : 'New'} {CATEGORY_LABELS[settingsActiveCategory]} option
+              </div>
+              <div className="so-head__sub">{activeCategoryMeta?.help}</div>
+            </div>
+            <button className="so-head__close" onClick={() => setSettingsModalOpen(false)} aria-label="Close">
+              <CloseOutlined />
+            </button>
+          </div>
+
+          {/* Live preview of the badge being configured */}
+          <div className="so-preview">
+            <span className="so-preview__label">Preview</span>
+            <Tag
+              color={draftColor && draftColor !== 'default' ? draftColor : undefined}
+              className="so-preview__tag"
+            >
+              {draftLabel?.trim() || `New ${CATEGORY_LABELS[settingsActiveCategory].toLowerCase()}`}
+            </Tag>
+          </div>
+
+          <Form form={settingsForm} layout="vertical" className="so-form" requiredMark={false}>
+            <Form.Item
+              name="label"
+              label={<span className="so-label">Display label <span className="so-req">*</span></span>}
+              rules={[{ required: true, message: 'Please enter a label' }]}
+            >
+              <Input
+                placeholder="e.g. Feature Release"
+                autoFocus
+                onChange={(e) => {
+                  // Keep the key in sync until the user edits it themselves
+                  if (!keyTouched && !editingSetting) {
+                    settingsForm.setFieldsValue({ value: slugify(e.target.value) });
+                  }
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="value"
+              label={<span className="so-label">Value key <span className="so-req">*</span></span>}
+              rules={[{ required: true, message: 'Please enter a value key' }]}
+              extra={<span className="so-extra">Stored on each scope. Auto-filled from the label — edit it if you need a different key.</span>}
+            >
+              <Input placeholder="e.g. feature_release" onChange={() => setKeyTouched(true)} />
+            </Form.Item>
+
+            {/* The field stays registered here; the swatches drive it directly,
+                so antd never injects value/onChange onto a plain element. */}
+            <Form.Item name="color" hidden><Input /></Form.Item>
+            <div className="so-colorblock">
+              <span className="so-label">Badge colour</span>
+              <div className="so-swatches">
+                {COLOR_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    title={opt.label}
+                    aria-label={opt.label}
+                    onClick={() => settingsForm.setFieldsValue({ color: opt.value })}
+                    className={`so-swatch so-swatch--${opt.value}${draftColor === opt.value ? ' is-active' : ''}`}
+                  >
+                    {draftColor === opt.value ? <Check size={12} strokeWidth={3.5} /> : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Form>
+
+          <div className="so-foot">
+            <Button onClick={() => setSettingsModalOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={handleSaveSetting}>
+              {editingSetting ? 'Save changes' : 'Create option'}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal

@@ -146,6 +146,22 @@ export interface RelatedLink {
   addedAt: string;
 }
 
+/** A QA workspace record type that can be attached to a ticket. */
+export type QaEntityType = "scope" | "case" | "run";
+
+export interface TicketQaLink {
+  id: string;
+  entity_type: QaEntityType;
+  entity_id: string;
+  /** Scope name / scenario title / run name, read live from the QA tables. */
+  name: string | null;
+  /** Scope type, scenario module, or the run's suite — whichever applies. */
+  subtitle: string | null;
+  status: string | null;
+  linked_by_name: string | null;
+  created_at: string;
+}
+
 export interface Ticket {
   id: string;
   ticketNumber: string;
@@ -1035,6 +1051,58 @@ class TicketService {
       console.error("Error deleting related link:", error);
       const errorMessage =
         error.response?.data?.error || "Failed to delete related link";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * QA records (test scopes / scenarios / runs) linked to a ticket.
+   * Only ticket-read permission is needed — names arrive denormalized so PMs
+   * without QA workspace access can still open what QA attached.
+   */
+  static async getQaLinks(ticketId: string): Promise<TicketQaLink[]> {
+    try {
+      const response = await apiClient.get(`/api/tickets/${ticketId}/qa-links`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error fetching QA links:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch QA links";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Link a QA record to a ticket. Returns the ticket's full QA link list.
+   */
+  static async addQaLink(
+    ticketId: string,
+    link: { entityType: QaEntityType; entityId: string },
+  ): Promise<TicketQaLink[]> {
+    try {
+      const response = await apiClient.post(
+        `/api/tickets/${ticketId}/qa-links`,
+        link,
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error linking QA record:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to link QA record";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Remove a QA link from a ticket
+   */
+  static async deleteQaLink(ticketId: string, linkId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/tickets/${ticketId}/qa-links/${linkId}`);
+    } catch (error: any) {
+      console.error("Error removing QA link:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to remove QA link";
       throw new Error(errorMessage);
     }
   }

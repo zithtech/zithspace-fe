@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Input, Tag } from 'antd';
+import { App, Input, Tag } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import type {
   ApplicationStage,
@@ -76,6 +76,8 @@ export const STATUS_ORDER: OpeningStatus[] = [
 ];
 
 export function StatusChip({ status }: { status: OpeningStatus }) {
+  const { message } = App.useApp();
+
   const meta = STATUS_META[status] ?? { label: status, tone: 'ash' as Tone };
   return (
     <span className="omp-chip" style={toneStyle(meta.tone)}>
@@ -300,6 +302,7 @@ export function PanelHeader({
   search,
   onSearch,
   searchPlaceholder = 'Search…',
+  hideHamburger = false,
   children,
 }: {
   icon: React.ReactNode;
@@ -310,22 +313,25 @@ export function PanelHeader({
   search?: string;
   onSearch?: (v: string) => void;
   searchPlaceholder?: string;
+  hideHamburger?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <div className="omp-header">
       <div className="omp-head-about">
-        <button
-          className="omp-mobile-toggle"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-openings-sidebar'))}
-          aria-label="Open menu"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
+        {!hideHamburger && (
+          <button
+            className="omp-mobile-toggle"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-openings-sidebar'))}
+            aria-label="Open menu"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        )}
         <span className="omp-head-icon" style={{ background: tint, color }}>
           {icon}
         </span>

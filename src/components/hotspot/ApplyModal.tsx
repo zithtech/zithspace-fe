@@ -159,7 +159,10 @@ export default function ApplyModal({
                 <Form.Item
                   name="name"
                   label={isReferral ? "Candidate's Name" : 'Your Name'}
-                  rules={[{ required: true, message: 'Name is required' }]}
+                  rules={[
+                    { required: true, message: 'Name is required' }
+                  ]}
+                  normalize={(value) => (value ? value.replace(/[^a-zA-Z\s]/g, '') : value)}
                   style={{ marginBottom: 14 }}
                 >
                   <Input placeholder="Enter full name" size="large" />
@@ -180,7 +183,12 @@ export default function ApplyModal({
                 <Form.Item
                   name="mobile"
                   label={isReferral ? "Candidate's Mobile" : 'Your Mobile'}
-                  rules={[{ required: true, message: 'Mobile number is required' }]}
+                  rules={[
+                    { required: true, message: 'Mobile number is required' },
+                    { min: 7, message: 'Mobile number must be at least 7 digits' },
+                    { max: 15, message: 'Mobile number must be at most 15 digits' }
+                  ]}
+                  normalize={(value) => (value ? value.replace(/\D/g, '').slice(0, 15) : value)}
                   style={{ marginBottom: 14 }}
                 >
                   <Input placeholder="Enter mobile number" size="large" />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, Space, message, Drawer, Popconfirm } from 'antd';
+import { Table, Tag, Button, Space, message, Drawer } from 'antd';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import OpeningV2Service, { OpeningReferral } from '@/services/openingV2Service';
 import { commonDrawerProps, drawerFormStyles as formStyles, SectionCard } from '@/components/common/DrawerSection';
 import { User, FileText, Briefcase, Trash2 } from 'lucide-react';
@@ -159,13 +160,13 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
           >
             {record.status === 'converted' ? 'Converted' : 'Consider as Candidate'}
           </Button>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={18} />}
             title="Delete this referral?"
             description="This action cannot be undone."
+            confirmText="Yes, delete"
             onConfirm={() => handleDelete(record)}
-            okText="Yes, delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
           >
             <Button
               danger
@@ -174,7 +175,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
               icon={<Trash2 size={16} />}
               loading={deletingId === record.id}
             />
-          </Popconfirm>
+          </ConfirmDialog>
         </Space>
       ),
     },
@@ -234,13 +235,13 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
         extra={
           selectedReferral && selectedReferral.status === 'pending' && (
             <Space size={8}>
-              <Popconfirm
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={18} />}
                 title="Delete this referral?"
                 description="This action cannot be undone."
+                confirmText="Yes, delete"
                 onConfirm={() => handleDelete(selectedReferral)}
-                okText="Yes, delete"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true }}
               >
                 <Button
                   danger
@@ -248,7 +249,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
                   icon={<Trash2 size={16} />}
                   loading={deletingId === selectedReferral.id}
                 />
-              </Popconfirm>
+              </ConfirmDialog>
               <Button
                 type="primary"
                 loading={convertingId === selectedReferral.id}

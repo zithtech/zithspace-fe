@@ -1,21 +1,20 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
+import { App,
   Button,
   Drawer,
   Empty,
   Input,
   InputNumber,
-  Popconfirm,
   Skeleton,
   Switch,
   Table,
   Tooltip,
 } from 'antd';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { ColumnsType } from 'antd/es/table';
 import { GripVertical, Plus, Settings, Trash2, Bot } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { RBACService } from '@/services/rbacService';
@@ -38,6 +37,8 @@ import { useReferenceData } from './useReferenceData';
 // into, and how long the internal posting window runs.
 
 export default function SettingsPanel() {
+  const { message } = App.useApp();
+
   const reference = useReferenceData();
 
   const [workflows, setWorkflows] = useState<ApprovalWorkflowListItem[]>([]);
@@ -65,7 +66,7 @@ export default function SettingsPanel() {
       setWorkflows(wf);
       setPosting(ps);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load settings');
+      message.error(err?.response?.data?.error || 'Could not load settings');
     } finally {
       setLoading(false);
     }
@@ -97,9 +98,9 @@ export default function SettingsPanel() {
         autoMoveToExternal: patch.autoMoveToExternal,
       });
       setPosting(next);
-      toast.success('Posting settings saved');
+      message.success('Posting settings saved');
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not save posting settings');
+      message.error(err?.response?.data?.error || 'Could not save posting settings');
     } finally {
       setSavingPosting(false);
     }
@@ -111,7 +112,7 @@ export default function SettingsPanel() {
     setSweeping(true);
     try {
       const result = await OpeningV2Service.runAutoMove();
-      toast.success(
+      message.success(
         result.moved
           ? `Moved ${result.moved} of ${result.scanned} due posting(s) to external`
           : result.scanned
@@ -119,10 +120,10 @@ export default function SettingsPanel() {
             : 'Nothing was due'
       );
       if (result.failed?.length) {
-        toast.error(`${result.failed.length} opening(s) failed — check the server logs`);
+        message.error(`${result.failed.length} opening(s) failed — check the server logs`);
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not run the sweep');
+      message.error(err?.response?.data?.error || 'Could not run the sweep');
     } finally {
       setSweeping(false);
     }
@@ -163,31 +164,31 @@ export default function SettingsPanel() {
       );
       setEditorOpen(true);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the workflow');
+      message.error(err?.response?.data?.error || 'Could not load the workflow');
     }
   };
 
   const saveWorkflow = async () => {
     if (!name.trim()) {
-      toast.error('Give the workflow a name');
+      message.error('Give the workflow a name');
       return;
     }
     if (steps.length === 0) {
-      toast.error('A workflow needs at least one step');
+      message.error('A workflow needs at least one step');
       return;
     }
     // The backend enforces these too; catching them here keeps the round trip.
     for (const s of steps) {
       if (!s.stepName?.trim()) {
-        toast.error('Every step needs a name');
+        message.error('Every step needs a name');
         return;
       }
       if (s.approverType === 'role' && !s.roleId) {
-        toast.error(`“${s.stepName}” is a role step — pick the role`);
+        message.error(`“${s.stepName}” is a role step — pick the role`);
         return;
       }
       if (s.approverType === 'specific_user' && !s.specificUserId) {
-        toast.error(`“${s.stepName}” needs a specific person`);
+        message.error(`“${s.stepName}” needs a specific person`);
         return;
       }
     }
@@ -202,11 +203,11 @@ export default function SettingsPanel() {
       };
       if (editingId) await OpeningV2Service.updateWorkflow(editingId, payload);
       else await OpeningV2Service.createWorkflow(payload);
-      toast.success(editingId ? 'Workflow updated' : 'Workflow created');
+      message.success(editingId ? 'Workflow updated' : 'Workflow created');
       setEditorOpen(false);
       load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not save the workflow');
+      message.error(err?.response?.data?.error || 'Could not save the workflow');
     } finally {
       setSaving(false);
     }
@@ -215,10 +216,10 @@ export default function SettingsPanel() {
   const deleteWorkflow = async (id: string) => {
     try {
       await OpeningV2Service.deleteWorkflow(id);
-      toast.success('Workflow deleted');
+      message.success('Workflow deleted');
       load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not delete the workflow');
+      message.error(err?.response?.data?.error || 'Could not delete the workflow');
     }
   };
 
@@ -252,15 +253,16 @@ export default function SettingsPanel() {
           <Button size="small" onClick={() => openEditor(r.id)}>
             Edit
           </Button>
-          <Popconfirm
+          <ConfirmDialog
+            tone="danger"
+            icon={<Trash2 size={18} />}
             title="Delete this workflow?"
             description="Openings mid-approval keep their own copy of the chain."
-            okText="Delete"
-            okButtonProps={{ danger: true }}
+            confirmText="Delete"
             onConfirm={() => deleteWorkflow(r.id)}
           >
             <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
-          </Popconfirm>
+          </ConfirmDialog>
         </div>
       ),
     },

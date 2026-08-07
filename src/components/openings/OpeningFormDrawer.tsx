@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
+import { App,
   Button,
   Drawer,
   Form,
@@ -28,7 +28,6 @@ import {
   FileCheck,
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import toast from 'react-hot-toast';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { PositionService } from '@/services/positionService';
@@ -87,6 +86,8 @@ interface Props {
 }
 
 export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }: Props) {
+  const { message } = App.useApp();
+
   const [form] = Form.useForm();
   const reference = useReferenceData(open);
   const [saving, setSaving] = useState(false);
@@ -210,7 +211,7 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
           }))
         );
       } catch (err: any) {
-        toast.error(err?.response?.data?.error || 'Could not load the opening');
+        message.error(err?.response?.data?.error || 'Could not load the opening');
         onClose();
       } finally {
         setLoading(false);
@@ -234,7 +235,7 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
     try {
       values = await form.validateFields();
     } catch {
-      toast.error('Please fix the highlighted fields');
+      message.error('Please fix the highlighted fields');
       return;
     }
 
@@ -258,15 +259,15 @@ export default function OpeningFormDrawer({ open, openingId, onClose, onSaved }:
       const saved = openingId
         ? await OpeningV2Service.update(openingId, payload)
         : await OpeningV2Service.create(payload);
-      toast.success(openingId ? 'Opening updated' : `Opening ${saved.openingCode} created`);
+      message.success(openingId ? 'Opening updated' : `Opening ${saved.openingCode} created`);
       onSaved(saved);
     } catch (err: any) {
       const data = err?.response?.data;
       // Zod validation errors come back as a details[] of path/message pairs.
       if (data?.details?.length) {
-        toast.error(`${data.details[0].path}: ${data.details[0].message}`);
+        message.error(`${data.details[0].path}: ${data.details[0].message}`);
       } else {
-        toast.error(data?.error || 'Could not save the opening');
+        message.error(data?.error || 'Could not save the opening');
       }
     } finally {
       setSaving(false);

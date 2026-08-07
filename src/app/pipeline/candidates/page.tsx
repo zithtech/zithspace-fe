@@ -164,18 +164,15 @@ export default function CandidatesPage() {
         let bgColor = 'rgba(100,116,139,0.10)';
         let ringColor = 'rgba(100,116,139,0.25)';
         
-        if (status === 'Interviewing') {
-           statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)';
-        }
-        if (status === 'Offered') {
-           statusColor = '#10b981'; bgColor = 'rgba(16,185,129,0.10)'; ringColor = 'rgba(16,185,129,0.25)';
-        }
-        if (status === 'Onboarded') {
-           statusColor = '#059669'; bgColor = 'rgba(5,150,105,0.10)'; ringColor = 'rgba(5,150,105,0.25)';
-        }
-        if (status === 'Rejected') {
-           statusColor = '#ef4444'; bgColor = 'rgba(239,68,68,0.10)'; ringColor = 'rgba(239,68,68,0.25)';
-        }
+        if (status === 'Applied') { statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)'; }
+        if (status === 'Screening') { statusColor = '#6366f1'; bgColor = 'rgba(99,102,241,0.10)'; ringColor = 'rgba(99,102,241,0.25)'; }
+        if (status === 'Shortlisted') { statusColor = '#8b5cf6'; bgColor = 'rgba(139,92,246,0.10)'; ringColor = 'rgba(139,92,246,0.25)'; }
+        if (status === 'Interview') { statusColor = '#f59e0b'; bgColor = 'rgba(245,158,11,0.10)'; ringColor = 'rgba(245,158,11,0.25)'; }
+        if (status === 'Offer') { statusColor = '#10b981'; bgColor = 'rgba(16,185,129,0.10)'; ringColor = 'rgba(16,185,129,0.25)'; }
+        if (status === 'Hired') { statusColor = '#059669'; bgColor = 'rgba(5,150,105,0.10)'; ringColor = 'rgba(5,150,105,0.25)'; }
+        if (status === 'Rejected') { statusColor = '#ef4444'; bgColor = 'rgba(239,68,68,0.10)'; ringColor = 'rgba(239,68,68,0.25)'; }
+        if (status === 'Withdrawn') { statusColor = '#64748b'; bgColor = 'rgba(100,116,139,0.10)'; ringColor = 'rgba(100,116,139,0.25)'; }
+        if (status === 'On Hold') { statusColor = '#f97316'; bgColor = 'rgba(249,115,22,0.10)'; ringColor = 'rgba(249,115,22,0.25)'; }
 
         return (
           <span
@@ -239,8 +236,8 @@ export default function CandidatesPage() {
 
   const stats = [
     { label: "Total Candidates", value: candidates.length, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-    { label: "Interviewing", value: candidates.filter(c => c.status === 'Interviewing').length, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-    { label: "Offered", value: candidates.filter(c => c.status === 'Offered').length, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Interview", value: candidates.filter(c => c.status === 'Interview').length, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: "Hired", value: candidates.filter(c => c.status === 'Hired').length, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
     { label: "Rejected", value: candidates.filter(c => c.status === 'Rejected').length, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
   ];
 
@@ -320,10 +317,15 @@ export default function CandidatesPage() {
             placeholder="All Statuses"
             options={[
               { label: 'All Statuses', value: 'all' },
-              { label: 'Interviewing', value: 'interviewing' },
-              { label: 'Offered', value: 'offered' },
-              { label: 'Onboarded', value: 'onboarded' },
+              { label: 'Applied', value: 'applied' },
+              { label: 'Screening', value: 'screening' },
+              { label: 'Shortlisted', value: 'shortlisted' },
+              { label: 'Interview', value: 'interview' },
+              { label: 'Offer', value: 'offer' },
+              { label: 'Hired', value: 'hired' },
               { label: 'Rejected', value: 'rejected' },
+              { label: 'Withdrawn', value: 'withdrawn' },
+              { label: 'On Hold', value: 'on hold' },
             ]}
           />
         </div>
@@ -386,11 +388,16 @@ export default function CandidatesPage() {
             ) : (
               filteredCandidates.map((c) => {
                 const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                let statusColor = '#64748b'; // default slate
-                if (c.status === 'Interviewing') statusColor = '#3b82f6'; // blue
-                if (c.status === 'Offered') statusColor = '#10b981'; // green
-                if (c.status === 'Onboarded') statusColor = '#059669'; // dark green
-                if (c.status === 'Rejected') statusColor = '#ef4444'; // red
+                let statusColor = '#94a3b8'; // default
+                if (c.status === 'Applied') statusColor = '#3b82f6';
+                if (c.status === 'Screening') statusColor = '#6366f1';
+                if (c.status === 'Shortlisted') statusColor = '#8b5cf6';
+                if (c.status === 'Interview') statusColor = '#f59e0b';
+                if (c.status === 'Offer') statusColor = '#10b981';
+                if (c.status === 'Hired') statusColor = '#059669';
+                if (c.status === 'Rejected') statusColor = '#ef4444';
+                if (c.status === 'Withdrawn') statusColor = '#64748b';
+                if (c.status === 'On Hold') statusColor = '#f97316';
 
                 return (
                   <div key={c.id} className="pc-card">

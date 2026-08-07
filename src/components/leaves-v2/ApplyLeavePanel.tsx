@@ -473,6 +473,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
           columns={columns}
           dataSource={paged}
           pagination={false}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
           expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
           onRow={() => ({ className: 'lva-row' })}
         />
@@ -694,8 +695,11 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
         .lva-filter-label .anticon { color: var(--text-slate-400); }
         .lva-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lva-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .lva-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
         .lva-table, .lva-table.ant-table-wrapper, .lva-table .ant-table, .lva-table .ant-table-container, .lva-table .ant-table-content, .lva-table .ant-table-header, .lva-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lva-table .ant-table-body { min-height: 200px; scrollbar-width: none; -ms-overflow-style: none; }
+        .lva-table .ant-table-body::-webkit-scrollbar, .lva-table .ant-table-content::-webkit-scrollbar, .lva-table .ant-table-container::-webkit-scrollbar { display: none; }
+        .lva-table .ant-table-content, .lva-table .ant-table-container { scrollbar-width: none; -ms-overflow-style: none; }
         .lva-table .ant-table-thead > tr > th,
         .lva-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;

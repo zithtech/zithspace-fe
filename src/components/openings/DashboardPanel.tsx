@@ -2,10 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Empty, Progress, Skeleton, Table, Tooltip } from 'antd';
+import { App, Button, Empty, Progress, Skeleton, Table, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { LayoutDashboard, RotateCw, Users } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import OpeningV2Service, {
@@ -34,6 +33,8 @@ import { useReferenceData } from './useReferenceData';
 // that do not add up.
 
 export default function DashboardPanel() {
+  const { message } = App.useApp();
+
   const router = useRouter();
   const reference = useReferenceData();
 
@@ -57,7 +58,7 @@ export default function DashboardPanel() {
         })
       );
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the dashboard');
+      message.error(err?.response?.data?.error || 'Could not load the dashboard');
     } finally {
       setLoading(false);
     }

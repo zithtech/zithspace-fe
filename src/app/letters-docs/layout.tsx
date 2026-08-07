@@ -99,7 +99,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
               </div>
               <div className="lv-side-head-text">
                 <div className="lv-side-title">Doc Suite</div>
-                <div className="lv-side-subtitle">Templates · Generation</div>
+                <div className="lv-side-subtitle">Templates · Formats</div>
               </div>
               <button className="lv-sidebar-close" onClick={() => setIsMobileOpen(false)}>
                 <X size={20} />
@@ -156,20 +156,23 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             background: var(--bg-pure-white);
             display: flex;
             flex-direction: column;
-            padding: 14px 14px 0;
+            padding: 0;
             position: sticky;
             top: 0;
             height: calc(100vh - 64px);
           }
           .lv-side-head {
-            display: flex; align-items: center; gap: 12px; padding: 2px 2px 14px; margin-bottom: 6px;
-            border-bottom: 1px solid var(--border-slate-100);
+            display: flex; align-items: center; gap: 12px; 
+            padding: 0 14px;
+            height: 53px;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--border-slate-200);
           }
           .lv-side-logo {
             flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-slate-900);
           }
           .lv-side-head-text { display: flex; flex-direction: column; min-width: 0; }
-          .lv-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+          .lv-side-title { font-size: 15px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
           .lv-side-subtitle {
             font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
             text-transform: uppercase; letter-spacing: 0.07em;
@@ -178,7 +181,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             display: none; background: none; border: none; color: var(--text-slate-600); cursor: pointer; margin-left: auto;
           }
           .lv-side-scroll {
-            flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px;
+            flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 14px;
           }
           .lv-side-scroll::-webkit-scrollbar { width: 5px; }
           .lv-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
@@ -222,18 +225,28 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
           }
           .lv-header {
             display: flex; align-items: center; justify-content: space-between; gap: 16px;
-            padding: 12px 28px 14px 28px; border-bottom: 1px solid var(--border-slate-200);
+            padding: 0 14px;
+            height: 53px;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--border-slate-200);
             background: var(--bg-pure-white);
             position: sticky; top: 0; z-index: 30;
           }
           .lv-header-about { display: flex; align-items: center; gap: 12px; min-width: 0; }
+          .lv-header-about > div { min-width: 0; }
           .lv-header-icon {
             width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
             background: rgba(59,130,246,0.10); color: #3b82f6;
             display: inline-flex; align-items: center; justify-content: center;
           }
-          .lv-header-title { font-size: 17px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; }
-          .lv-header-sub { font-size: 12.5px; color: var(--text-slate-600); margin-top: 2px; }
+          .lv-header-title { 
+            font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
+          .lv-header-sub { 
+            font-size: 12.5px; color: var(--text-slate-600); margin-top: 2px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
           .lv-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
           .lv-ghost-btn {
             width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
@@ -278,6 +291,30 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
           .pp-pager-num.is-active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
           .pp-pagesize { margin-left: 5px; }
           .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+          .pp-icon-btn { color: var(--text-slate-400) !important; width: 26px !important; height: 26px !important; min-width: 26px !important; padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center; }
+
+          .pp-action-pop .ant-dropdown-menu, .pc-dropdown .ant-dropdown-menu {
+            padding: 4px 0 !important;
+            border-radius: 0 !important;
+            background: var(--bg-pure-white) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04) !important;
+            border: 1px solid var(--border-slate-200) !important;
+            min-width: 160px;
+          }
+          .pp-action-pop .ant-dropdown-menu-item, .pc-dropdown .ant-dropdown-menu-item {
+            padding: 7px 12px !important;
+            border-radius: 0 !important;
+            transition: all 0.15s ease;
+          }
+          .pp-action-pop .ant-dropdown-menu-item:hover, .pc-dropdown .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+          .pp-action-pop .ant-dropdown-menu-item-divider, .pc-dropdown .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+
+          [data-theme="dark"] .pp-action-pop .ant-dropdown-menu, [data-theme="dark"] .pc-dropdown .ant-dropdown-menu {
+            border-color: var(--border-slate-100) !important;
+          }
+          [data-theme="dark"] .pp-action-pop .ant-dropdown-menu-item:hover, [data-theme="dark"] .pc-dropdown .ant-dropdown-menu-item:hover {
+            background: var(--bg-slate-50) !important;
+          }
         `}</style>
       </MainLayout>
     </ProtectedRoute>

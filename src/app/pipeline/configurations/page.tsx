@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft } from 'lucide-react';
 import { PositionService, Position } from '@/services/positionService';
-import { AutoComplete, Drawer, Table, Dropdown, Button } from 'antd';
+import { AutoComplete, Drawer, Table, Dropdown, Button, message } from 'antd';
 import '@/app/proposals/library.css';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
@@ -111,7 +111,7 @@ export default function ConfigurationsPage() {
                           await pipelineClient.deleteConfig(c.id);
                           fetchConfigs();
                         } catch (err) {
-                          alert('Failed to delete configuration');
+                          message.error('Failed to delete configuration');
                         }
                       }}
                     >
@@ -228,7 +228,7 @@ export default function ConfigurationsPage() {
                                 await pipelineClient.deleteConfig(record.id);
                                 fetchConfigs();
                               } catch (err) {
-                                alert('Failed to delete configuration');
+                                message.error('Failed to delete configuration');
                               }
                             }}
                           >

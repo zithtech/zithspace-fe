@@ -15,6 +15,19 @@ interface PersonalDetailsProps {
   currentUser: any;
 }
 
+const formatDOB = (dobStr?: string) => {
+  if (!dobStr) return "—";
+  try {
+    const date = new Date(dobStr);
+    if (isNaN(date.getTime())) return dobStr;
+    return date.toLocaleDateString("en-GB", {
+      timeZone: "Asia/Kolkata",
+    });
+  } catch {
+    return dobStr;
+  }
+};
+
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   profile,
   personal,
@@ -74,11 +87,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           <Col span={8}>
             <ViewField
               label="Date of Birth"
-              value={
-                profile?.personal?.dob
-                  ? new Date(profile.personal.dob).toLocaleDateString("en-GB")
-                  : "—"
-              }
+              value={formatDOB(profile?.personal?.dob)}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />

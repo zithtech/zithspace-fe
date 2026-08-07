@@ -4,21 +4,26 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import { MembersService } from '@/services/membersService';
-import { ArrowLeft, Calendar, FileCheck, DollarSign, Clock, FileText, Search, UploadCloud, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, FileCheck, DollarSign, Clock, FileText, Search, UploadCloud, AlertCircle, AlertTriangle, UserX } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
-import { Drawer, Select, Modal, message } from 'antd';
+import { Drawer, Select, Modal, App, DatePicker, TimePicker } from 'antd';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 import TiptapEditor from '@/components/common/TiptapEditor';
 import { X } from 'lucide-react';
 import { OpeningV2Service } from '@/services/openingV2Service';
 import type { OpeningListItem, SkillMatchResult } from '@/services/openingV2Service';
+import { useMailStatus } from '@/hooks/useMail';
 
 export default function CandidateDetailPage() {
+  const { message } = App.useApp();
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
+
+  const { data: mailStatus, isLoading: isMailStatusLoading } = useMailStatus();
+  const isMailConnected = mailStatus?.isConnected;
 
   const [candidate, setCandidate] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -36,6 +41,7 @@ export default function CandidateDetailPage() {
 
   // Scheduling state
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
   const [config, setConfig] = useState<any>(null);
   const [scheduleData, setScheduleData] = useState({
     round_id: '',
@@ -76,11 +82,11 @@ export default function CandidateDetailPage() {
   const [isRequestDocsOpen, setIsRequestDocsOpen] = useState(false);
   const [isRequestingDocs, setIsRequestingDocs] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
-  
+
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [documentToReject, setDocumentToReject] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  
+
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [documentToVerify, setDocumentToVerify] = useState<string | null>(null);
 
@@ -89,9 +95,9 @@ export default function CandidateDetailPage() {
   const [manualUploadFile, setManualUploadFile] = useState<File | null>(null);
   const [isUploadingManual, setIsUploadingManual] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  
+
   const [portalLink, setPortalLink] = useState('');
-  
+
   const DEFAULT_DOCS = [
     'Aadhaar Card',
     'PAN Card',
@@ -141,10 +147,11 @@ export default function CandidateDetailPage() {
     }
     try {
       await pipelineClient.updateCandidateStatus(id, newStatus);
+      message.success('Status updated successfully');
       fetchData();
     } catch (err) {
       console.error('Failed to update status', err);
-      alert('Failed to update status');
+      message.error('Failed to update status');
     }
   };
 
@@ -152,10 +159,11 @@ export default function CandidateDetailPage() {
     try {
       await pipelineClient.updateCandidateStatus(id, 'Rejected', rejectRoundId);
       setIsRejectModalOpen(false);
+      message.success('Candidate rejected successfully');
       fetchData();
     } catch (err) {
       console.error('Failed to reject candidate', err);
-      alert('Failed to reject candidate');
+      message.error('Failed to reject candidate');
     }
   };
 
@@ -224,7 +232,7 @@ export default function CandidateDetailPage() {
             <div className="text-[11px] text-slate-500 font-medium mt-1.5 flex items-center gap-3">
               <span className="flex items-center gap-1"><FileText size={12} className="opacity-70" /> {candidate.email}</span>
               <span className="flex items-center gap-1"><Calendar size={12} className="opacity-70" /> {candidate.mobile}</span>
-              <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">{candidate.total_experience} Yrs Exp</span>
+              <span className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">{candidate.total_experience ?? 0} Yrs Exp</span>
             </div>
           </div>
         </div>
@@ -234,20 +242,33 @@ export default function CandidateDetailPage() {
               value={candidate.status}
               onChange={handleStatusChange}
               options={[
-                { value: 'New', label: 'New' },
-                { value: 'Interviewing', label: 'Interviewing' },
-                { value: 'Offered', label: 'Offered' },
-                { value: 'Onboarded', label: 'Onboarded' },
+                { value: 'Screening', label: 'Screening' },
+                { value: 'Shortlisted', label: 'Shortlisted' },
+                { value: 'Interview', label: 'Interview' },
+                { value: 'Offer', label: 'Offer' },
+                { value: 'Hired', label: 'Hired' },
                 { value: 'Rejected', label: 'Rejected' },
+                { value: 'Withdrawn', label: 'Withdrawn' },
+                { value: 'On Hold', label: 'On Hold' },
               ]}
             />
           </div>
           {candidate.status !== 'Rejected' && (
-            <button onClick={() => setIsScheduleOpen(true)} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all transform hover:-translate-y-0.5">
+            <button onClick={() => {
+              if (isMailStatusLoading) {
+                message.loading({ content: 'Checking integration status...', key: 'mailStatus', duration: 1 });
+                return;
+              }
+              if (!isMailConnected) {
+                setIntegrationError('Please integrate your mail account in the Integrations page to schedule interviews.');
+                return;
+              }
+              setIsScheduleOpen(true);
+            }} className="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all transform hover:-translate-y-0.5">
               <Calendar size={14} /> Schedule
             </button>
           )}
-          {candidate.status === 'Interviewing' && (
+          {candidate.status === 'Interview' && (
             <button onClick={() => {
               setEvalData({ interview_id: '', evaluations: {} });
               setIsEvaluateOpen(true);
@@ -275,14 +296,14 @@ export default function CandidateDetailPage() {
               {logs.map((log: any) => {
                 const isError = log.action_type === 'Duplicate_Aadhaar_Attempt';
                 return (
-                <div key={log.id} className="flex gap-4 relative z-10">
-                  <div className={`w-6 h-6 rounded-full border-2 border-white dark:border-[#0B0F1A] flex-shrink-0 mt-0.5 ${isError ? 'bg-red-500' : 'bg-blue-100 dark:bg-blue-900/50'}`}></div>
-                  <div>
-                    <div className={`text-sm font-bold ${isError ? 'text-red-600 dark:text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>{log.action_type.replace(/_/g, ' ')}</div>
-                    <div className={`text-sm ${isError ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>{log.description}</div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{dayjs(log.created_at).format('MMM D, YYYY h:mm A')} {log.user_name && `by ${log.user_name}`}</div>
+                  <div key={log.id} className="flex gap-4 relative z-10">
+                    <div className={`w-6 h-6 rounded-full border-2 border-white dark:border-[#0B0F1A] flex-shrink-0 mt-0.5 ${isError ? 'bg-red-500' : 'bg-blue-100 dark:bg-blue-900/50'}`}></div>
+                    <div>
+                      <div className={`text-sm font-bold ${isError ? 'text-red-600 dark:text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>{log.action_type.replace(/_/g, ' ')}</div>
+                      <div className={`text-sm ${isError ? 'text-red-500 dark:text-red-400 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>{log.description}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{dayjs(log.created_at).format('MMM D, YYYY h:mm A')} {log.user_name && `by ${log.user_name}`}</div>
+                    </div>
                   </div>
-                </div>
                 );
               })}
               {logs.length === 0 && <div className="text-slate-500 dark:text-slate-400 pl-8">No activity recorded yet.</div>}
@@ -346,13 +367,13 @@ export default function CandidateDetailPage() {
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-bold text-slate-800 dark:text-slate-200">Candidate Documents</h3>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => setIsUploadManualOpen(true)}
                     className="bg-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:bg-[#0B0F1A] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
                   >
                     Upload Document
                   </button>
-                  <button 
+                  <button
                     onClick={() => setIsRequestDocsOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all"
                   >
@@ -365,9 +386,9 @@ export default function CandidateDetailPage() {
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-lg p-3 text-sm flex flex-col gap-2">
                   <div className="text-blue-800 dark:text-blue-300 font-medium flex justify-between items-center">
                     <span>Portal Link Generated</span>
-                    <a 
-                      href={`/candidate-portal/${candidate.document_portal_token}`} 
-                      target="_blank" 
+                    <a
+                      href={`/candidate-portal/${candidate.document_portal_token}`}
+                      target="_blank"
                       rel="noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center gap-1"
                     >
@@ -375,13 +396,13 @@ export default function CandidateDetailPage() {
                     </a>
                   </div>
                   <div className="flex items-center gap-2">
-                    <input 
-                      type="text" 
-                      readOnly 
+                    <input
+                      type="text"
+                      readOnly
                       value={`${window.location.origin}/candidate-portal/${candidate.document_portal_token}`}
                       className="flex-1 bg-white dark:bg-[#0B0F1A] border border-blue-200 dark:border-blue-800/50 rounded px-2 py-1 text-slate-600 dark:text-slate-400 text-xs"
                     />
-                    <button 
+                    <button
                       onClick={() => navigator.clipboard.writeText(`${window.location.origin}/candidate-portal/${candidate.document_portal_token}`)}
                       className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700"
                     >
@@ -407,12 +428,11 @@ export default function CandidateDetailPage() {
                         <tr key={d.id} className="bg-white dark:bg-[#0B0F1A]">
                           <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{d.document_type}</td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded border ${
-                              d.status === 'Verified' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' : 
-                              d.status === 'Pending' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
-                              d.status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
-                              'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50'
-                            }`}>
+                            <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded border ${d.status === 'Verified' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
+                                d.status === 'Pending' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                                  d.status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                                    'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50'
+                              }`}>
                               {d.status}
                             </span>
                             {d.remarks && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] truncate" title={d.remarks}>Note: {d.remarks}</div>}
@@ -590,9 +610,82 @@ export default function CandidateDetailPage() {
           {activeTab === 'resume' && (
             <div className="flex flex-col gap-4 h-full">
               {candidate.resume_url ? (
-                <iframe src={candidate.resume_url.startsWith('http') ? candidate.resume_url : `${process.env.NEXT_PUBLIC_API_URL || ''}${candidate.resume_url}`} className="w-full h-full rounded border border-slate-200" title="Resume" />
+                (() => {
+                  const rawUrl = candidate.resume_url.startsWith('http')
+                    ? candidate.resume_url
+                    : `${process.env.NEXT_PUBLIC_API_URL || ''}${candidate.resume_url}`;
+
+                  // Extract pathname only — S3 signed URLs have query params like
+                  // ?AWSAccessKeyId=...&Signature=... that break extension detection
+                  let pathOnly = rawUrl;
+                  try { pathOnly = new URL(rawUrl).pathname; } catch { }
+                  const lowerPath = pathOnly.toLowerCase();
+
+                  // Clean filename for download (strip query params)
+                  const fileName = lowerPath.split('/').pop() || 'resume';
+
+                  const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(lowerPath);
+                  const isPdf = lowerPath.endsWith('.pdf');
+                  const isWordDoc = /\.(docx?|xlsx?|pptx?)$/i.test(lowerPath);
+
+                  if (isImage) {
+                    return (
+                      <img
+                        src={rawUrl}
+                        alt="Resume"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    );
+                  }
+
+                  if (isPdf) {
+                    // Use the server-side proxy to stream the file inline — same as ticket attachments
+                    const proxyUrl = `/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent(fileName)}&inline=true`;
+                    return (
+                      <iframe
+                        src={proxyUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none', borderRadius: 8 }}
+                        title="Resume"
+                      />
+                    );
+                  }
+
+                  if (isWordDoc) {
+                    // Use Google Docs viewer for Word/Excel/PowerPoint — same as ticket attachments
+                    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+                    return (
+                      <iframe
+                        src={viewerUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none', borderRadius: 8, background: '#fafafa' }}
+                        title="Resume"
+                      />
+                    );
+                  }
+
+                  // Fallback: show download option for unsupported formats
+                  return (
+                    <div className="flex flex-col items-center justify-center h-full border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-[#0B0F1A]">
+                      <FileText size={48} className="text-slate-400 mb-4" />
+                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Preview not available</h3>
+                      <p className="text-sm text-slate-500 text-center max-w-sm mb-5">This file format cannot be previewed in the browser.</p>
+                      <a
+                        href={`/api/download?url=${encodeURIComponent(rawUrl)}&name=${encodeURIComponent(fileName)}`}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
+                      >
+                        Download Resume
+                      </a>
+                    </div>
+                  );
+                })()
               ) : (
-                <div className="text-slate-500">No resume preview available.</div>
+                <div className="flex flex-col items-center justify-center h-full border border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-[#0B0F1A]">
+                  <FileText size={40} className="text-slate-400 mb-3 opacity-50" />
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">No resume uploaded yet.</p>
+                </div>
               )}
             </div>
           )}
@@ -621,6 +714,10 @@ export default function CandidateDetailPage() {
             ) : (
               <form id="scheduleForm" className="flex flex-col gap-6" onSubmit={async (e) => {
                 e.preventDefault();
+                if (!isMailConnected) {
+                  setIntegrationError('Please integrate your mail account in the Integrations page to schedule interviews.');
+                  return;
+                }
                 setIsScheduling(true);
                 try {
                   const res = await pipelineClient.scheduleInterview({
@@ -629,7 +726,7 @@ export default function CandidateDetailPage() {
                   });
 
                   if (res.data?.emailStatus && res.data.emailStatus !== 'Sent' && res.data.emailStatus !== 'Draft') {
-                    alert('Interview scheduled, but we could not prepare the email. Please check if your mail account is connected in Zukvo.');
+                    message.warning('Interview scheduled, but we could not prepare the email. Please check if your mail account is connected in Zukvo.');
                     setIsScheduleOpen(false);
                     fetchData();
                   } else if (res.data?.email) {
@@ -639,11 +736,16 @@ export default function CandidateDetailPage() {
                     fetchData(); // refresh timeline for interview
                   } else {
                     setIsScheduleOpen(false);
+                    message.success('Interview scheduled successfully!');
                     fetchData();
                   }
-                } catch (err) {
+                } catch (err: any) {
                   console.error(err);
-                  alert('Failed to schedule interview');
+                  setIsScheduling(false);
+                  setIsScheduleOpen(false);
+                  setTimeout(() => {
+                    setIntegrationError(err.response?.data?.error || err.message || 'Please integrate your account to schedule interviews.');
+                  }, 100);
                 } finally {
                   setIsScheduling(false);
                 }
@@ -677,8 +779,18 @@ export default function CandidateDetailPage() {
                   <div className="grid grid-cols-[140px_1fr] items-center gap-4">
                     <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Date & Time</label>
                     <div className="flex gap-2">
-                      <input required type="date" className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none" value={scheduleData.scheduled_date} onChange={(e) => setScheduleData({ ...scheduleData, scheduled_date: e.target.value })} />
-                      <input required type="time" className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none" value={scheduleData.scheduled_time} onChange={(e) => setScheduleData({ ...scheduleData, scheduled_time: e.target.value })} />
+                      <DatePicker
+                        className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none hover:border-blue-500 focus:border-blue-500"
+                        format="YYYY-MM-DD"
+                        value={scheduleData.scheduled_date ? dayjs(scheduleData.scheduled_date) : null}
+                        onChange={(date, dateString) => setScheduleData({ ...scheduleData, scheduled_date: typeof dateString === 'string' ? dateString : dateString[0] })}
+                      />
+                      <TimePicker
+                        className="flex-1 w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm outline-none hover:border-blue-500 focus:border-blue-500"
+                        format="HH:mm"
+                        value={scheduleData.scheduled_time ? dayjs(`2000-01-01T${scheduleData.scheduled_time}`) : null}
+                        onChange={(time, timeString) => setScheduleData({ ...scheduleData, scheduled_time: typeof timeString === 'string' ? timeString : timeString[0] })}
+                      />
                     </div>
                   </div>
 
@@ -786,7 +898,7 @@ export default function CandidateDetailPage() {
                 setIsDraftEmailOpen(false);
                 fetchData();
               } catch (err) {
-                alert('Failed to send email');
+                message.error('Failed to send email');
               } finally {
                 setIsSendingDraft(false);
               }
@@ -898,11 +1010,12 @@ export default function CandidateDetailPage() {
                 await pipelineClient.evaluateInterview(evalData.interview_id, {
                   evaluations: evaluationsArray
                 });
+                message.success('Evaluation submitted successfully');
                 setIsEvaluateOpen(false);
                 fetchData();
               } catch (err) {
                 console.error(err);
-                alert('Failed to submit evaluation');
+                message.error('Failed to submit evaluation');
               } finally {
                 setIsEvaluating(false);
               }
@@ -987,25 +1100,66 @@ export default function CandidateDetailPage() {
           </div>
         </div>
       </Drawer>
+
       <Modal
-        title="Reject Candidate"
+        open={!!integrationError}
+        onCancel={() => setIntegrationError(null)}
+        footer={null}
+        centered
+        width={420}
+        closeIcon={false}
+        zIndex={100000}
+      >
+        <div className="flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-6">
+            <AlertTriangle className="text-orange-500" size={32} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+            Integration Required
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 text-sm mb-8 leading-relaxed px-2">
+            {integrationError}
+          </p>
+          <div className="flex w-full mt-2">
+            <button
+              onClick={() => setIntegrationError(null)}
+              className="w-full py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-500 text-lg">
+            <UserX size={20} />
+            Reject Candidate
+          </div>
+        }
         open={isRejectModalOpen}
         onOk={submitRejection}
         onCancel={() => setIsRejectModalOpen(false)}
         okText="Confirm Rejection"
-        okButtonProps={{ danger: true }}
+        okButtonProps={{ danger: true, className: "bg-red-600 hover:bg-red-700" }}
       >
-        <div className="flex flex-col gap-4 mt-4">
+        <div className="flex flex-col gap-4 mt-2 mb-4">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            This will update the candidate's status to <strong className="text-slate-800 dark:text-slate-200">Rejected</strong> and record the rejection in their timeline.
+          </p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Which round was the candidate rejected in? (Optional)</label>
-            <Select
-              className="w-full"
-              value={rejectRoundId}
-              onChange={setRejectRoundId}
-              allowClear
-              placeholder="Select a round"
-              options={config?.rounds?.map((r: any) => ({ label: r.round_name, value: r.id })) || []}
-            />
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Which round was the candidate rejected in? (Optional)
+            </label>
+            <div className="w-full relative z-50">
+              <SearchableDropdown
+                value={rejectRoundId || ''}
+                onChange={(val) => setRejectRoundId(val || '')}
+                allowClear
+                placeholder="Select a round"
+                options={config?.rounds?.map((r: any) => ({ label: r.round_name, value: r.id })) || []}
+              />
+            </div>
           </div>
         </div>
       </Modal>
@@ -1019,12 +1173,13 @@ export default function CandidateDetailPage() {
           setIsRequestingDocs(true);
           try {
             await pipelineClient.requestDocuments(id, selectedDocs);
+            message.success('Documents requested successfully');
             setIsRequestDocsOpen(false);
             setSelectedDocs([]);
             fetchData();
           } catch (err) {
             console.error(err);
-            alert('Failed to request documents');
+            message.error('Failed to request documents');
           } finally {
             setIsRequestingDocs(false);
           }
@@ -1039,8 +1194,8 @@ export default function CandidateDetailPage() {
           <div className="grid grid-cols-2 gap-2">
             {DEFAULT_DOCS.map(doc => (
               <label key={doc} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedDocs.includes(doc)}
                   onChange={(e) => {
                     if (e.target.checked) setSelectedDocs([...selectedDocs, doc]);
@@ -1065,6 +1220,7 @@ export default function CandidateDetailPage() {
         onOk={async () => {
           if (rejectReason.trim() && documentToReject) {
             await pipelineClient.verifyDocument(id, documentToReject, { status: 'Resubmission Required', remarks: rejectReason });
+            message.success('Document rejected successfully');
             fetchData();
             setRejectModalOpen(false);
             setDocumentToReject(null);
@@ -1091,6 +1247,7 @@ export default function CandidateDetailPage() {
         onOk={async () => {
           if (documentToVerify) {
             await pipelineClient.verifyDocument(id, documentToVerify, { status: 'Verified' });
+            message.success('Document verified successfully');
             fetchData();
             setVerifyModalOpen(false);
             setDocumentToVerify(null);
@@ -1122,8 +1279,9 @@ export default function CandidateDetailPage() {
             const formData = new FormData();
             formData.append('document_type', manualUploadDocType);
             formData.append('document', manualUploadFile);
-            
+
             await pipelineClient.uploadManualDocument(id, formData);
+            message.success('Document uploaded successfully');
             await fetchData();
             setIsUploadManualOpen(false);
             setManualUploadDocType('');
@@ -1150,7 +1308,7 @@ export default function CandidateDetailPage() {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Document File</label>
             <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 hover:bg-slate-50 dark:hover:bg-[#151a26] hover:border-blue-400 dark:hover:border-blue-600 transition-all flex flex-col items-center justify-center text-center cursor-pointer overflow-hidden group">
@@ -1215,8 +1373,8 @@ export default function CandidateDetailPage() {
             {uploadError}
           </p>
           <div className="mt-8">
-            <button 
-              onClick={() => setUploadError(null)} 
+            <button
+              onClick={() => setUploadError(null)}
               className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl text-sm font-bold shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-red-500/20"
             >
               Acknowledge & Close

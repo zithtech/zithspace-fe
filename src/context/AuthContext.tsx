@@ -41,6 +41,23 @@ const syncTokenWithExtension = (token: string) => {
   }
 };
 
+// Helper to format the full company address
+const formatCompanyAddress = (address: any) => {
+  if (!address) return '';
+  const parts = [
+    address.floor_no,
+    address.building_name || address.flatNumber,
+    address.plot_no,
+    address.street,
+    address.area,
+    address.city,
+    address.state,
+    address.country,
+    address.pincode
+  ].filter(Boolean);
+  return parts.join(', ');
+};
+
 interface User {
   id: string;
   name: string;
@@ -146,7 +163,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: response.user.avatarUrl,
         tenantName: response.user.tenantName,
         tenantLogo: (response.user as any).tenantLogo,
-        companyAddress: (response.user as any).generalSettings?.address?.street || '',
+        companyAddress: formatCompanyAddress((response.user as any).generalSettings?.address),
         companyPhone: (response.user as any).generalSettings?.phone || '',
         companyEmail: (response.user as any).generalSettings?.email || '',
         companyLocation: (response.user as any).companyLocation?.city || '',
@@ -351,7 +368,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
-        companyAddress: (userProfile.tenant as any)?.generalSettings?.address?.street || '',
+        companyAddress: formatCompanyAddress((userProfile.tenant as any)?.generalSettings?.address),
         companyPhone: (userProfile.tenant as any)?.generalSettings?.phone || '',
         companyEmail: (userProfile.tenant as any)?.generalSettings?.email || '',
         companyLocation: (userProfile.tenant as any)?.companyLocation?.city || '',
@@ -380,7 +397,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (
           typeof window !== "undefined" &&
           !window.location.pathname.includes("/login") &&
-          !window.location.pathname.startsWith("/public")
+          !window.location.pathname.startsWith("/public") &&
+          !window.location.pathname.startsWith("/onboard")
         ) {
           router.push("/login?error=session_expired");
         }

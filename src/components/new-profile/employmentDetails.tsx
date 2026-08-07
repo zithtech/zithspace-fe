@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Row, Col, Tag, Space, Typography, Divider } from "antd";
+import { ProjectService } from "@/services/projectService";
 import {
   Briefcase,
   Building2,
@@ -26,14 +27,21 @@ interface EmploymentDetailsProps {
   positions: any;
 }
 
-const formatDate = (d?: string) =>
-  d
-    ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
+const formatDate = (d?: string) => {
+  if (!d) return "—";
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return d;
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+  } catch {
+    return d;
+  }
+};
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 14,
@@ -149,6 +157,32 @@ const EmploymentDetails: React.FC<EmploymentDetailsProps> = ({
   positions,
 }) => {
   const e = employment || {};
+  const [projectMap, setProjectMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const selectList = await ProjectService.getProjectsForSelect();
+        const map: Record<string, string> = {};
+        if (Array.isArray(selectList)) {
+          selectList.forEach((p) => {
+            if (p.value) map[p.value] = p.label || p.value;
+          });
+        }
+        const res = await ProjectService.getProjects({ limit: 1000 });
+        const data = res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(data)) {
+          data.forEach((p: any) => {
+            if (p.id) map[p.id] = p.name || p.title || map[p.id];
+          });
+        }
+        setProjectMap(map);
+      } catch (err) {
+        console.error("Failed to fetch projects in EmploymentDetails:", err);
+      }
+    };
+    loadProjects();
+  }, []);
 
   const positionTitle =
     currentUser?.position?.title ||
@@ -279,7 +313,7 @@ const EmploymentDetails: React.FC<EmploymentDetailsProps> = ({
           <Col span={8}>
             <FieldItem
               label="Training Completion"
-              value={e.trainingCompletion}
+              value={formatDate(e.trainingCompletion)}
               icon={<GraduationCap size={15} />}
             />
           </Col>
@@ -315,7 +349,7 @@ const EmploymentDetails: React.FC<EmploymentDetailsProps> = ({
                   color: "var(--premium-blue)",
                 }}
               >
-                {typeof p === "string" ? p : p?.name || p?.title || "Project"}
+                {typeof p === "string" ? (projectMap[p] || p) : p?.name || p?.title || p?.label || "Project"}
               </Tag>
             ))
           ) : (

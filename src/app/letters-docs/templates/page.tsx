@@ -20,13 +20,14 @@ import {
   Layers,
   Menu,
   Settings,
+  AlertTriangle,
 } from 'lucide-react';
 import { LettersService, DocumentTemplate, DocumentCategory, DocumentStructure } from '@/services/lettersService';
 import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { Table, Button, Dropdown, Tooltip, Select, Modal, Switch } from 'antd';
+import { Table, Button, Dropdown, Tooltip, Select, Modal, Switch, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 import AiCreateTemplateModal from '@/components/letters/AiCreateTemplateModal';
@@ -51,6 +52,8 @@ const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: stri
     </div>
   </div>
 );
+
+const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : '';
 
 export default function TemplateManagementPage() {
   const router = useRouter();
@@ -340,74 +343,45 @@ export default function TemplateManagementPage() {
       ),
     },
     {
+      title: 'CREATED BY',
+      dataIndex: ['createdBy', 'name'],
+      key: 'createdBy',
+      render: (_: any, record: DocumentTemplate) => {
+        const creator = record.createdBy;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Avatar size={20} src={creator?.avatarUrl || creator?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 10, fontWeight: 700 }}>
+              {initialsOf(creator?.name || '—')}
+            </Avatar>
+            <span style={{ fontSize: '13px', color: 'var(--text-slate-700)', fontWeight: 500 }}>
+              {creator?.name || '—'}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       title: 'ACTIONS',
       key: 'actions',
-      align: 'right',
+      align: 'center',
+      width: 72,
       fixed: 'right',
       render: (_: any, tpl: DocumentTemplate) => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-          <Link
-            href={`/letters-docs/templates/builder?id=${tpl.id}`}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              background: 'var(--bg-slate-50)',
-              border: '1px solid var(--border-slate-200)',
-              color: 'var(--text-slate-700)',
-              fontSize: '11px',
-              fontWeight: 500,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-            title="Edit Template"
-          >
-            <Edit size={12} />
-            Edit
-          </Link>
-
-          <button
-            onClick={() => handleDuplicate(tpl)}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              background: 'var(--bg-slate-50)',
-              border: '1px solid var(--border-slate-200)',
-              color: 'var(--text-slate-700)',
-              fontSize: '11px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-            title="Duplicate Template"
-          >
-            <Copy size={12} />
-            Duplicate
-          </button>
-
-          <button
-            onClick={() => setDeleteTemplateId(tpl.id)}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              background: 'var(--bg-red-50)',
-              border: '1px solid #fecaca',
-              color: 'var(--text-leave)',
-              fontSize: '11px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-            title="Delete Template"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
+        <Dropdown
+          overlayClassName="pp-action-pop"
+          trigger={['click']}
+          placement="bottomRight"
+          menu={{
+            items: [
+              { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
+              { key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } },
+              { type: 'divider' },
+              { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+            ]
+          }}
+        >
+          <Button type="text" className="pp-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
+        </Dropdown>
       ),
     },
   ];
@@ -529,7 +503,7 @@ export default function TemplateManagementPage() {
         </div>
       </div>
 
-      <div style={{ padding: '24px 28px 40px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 
         <LetterStatsCards statCells={statCells} />
 
@@ -573,78 +547,88 @@ export default function TemplateManagementPage() {
             </Link>
           </div>
         ) : view === 'list' ? (
-          <div className="att-table-wrap">
+          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
               rowKey="id"
               size="small"
-              className="att-table"
+              className="att-table flex-table"
               columns={columns}
               dataSource={paginatedTemplates}
               pagination={false}
-              scroll={{ x: 'max-content', y: 'calc(100vh - 340px)' }}
+              scroll={{ x: 'max-content', y: '100%' }}
               onRow={() => ({ className: 'att-row' })}
             />
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-            {paginatedTemplates.map((tpl) => (
-              <div key={tpl.id} className="pc-card" onClick={() => router.push(`/letters-docs/templates/builder?id=${tpl.id}`)}>
-                <div className="pc-top">
-                  <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
-                    {tpl.templateName.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="pc-identity-body">
-                    <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {tpl.templateName}
-                      {tpl.tenantId === 'GLOBAL' && (
-                        <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '4px', fontWeight: 600 }}>GLOBAL</span>
-                      )}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', paddingBottom: '16px' }}>
+              {paginatedTemplates.map((tpl) => (
+                <div key={tpl.id} className="pc-card" onClick={() => router.push(`/letters-docs/templates/builder?id=${tpl.id}`)}>
+                  <div className="pc-top">
+                    <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+                      {tpl.templateName.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="pc-client-line">
-                      <span className="pc-client-key">Category:</span>
-                      <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {tpl.templateName}
+                        {tpl.tenantId === 'GLOBAL' && (
+                          <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '4px', fontWeight: 600 }}>GLOBAL</span>
+                        )}
+                      </div>
+                      <div className="pc-client-line">
+                        <span className="pc-client-key">Category:</span>
+                        <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                      </div>
                     </div>
+                    <Dropdown
+                      overlayClassName="pc-dropdown"
+                      menu={{
+                        items: [
+                          { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
+                          { key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } },
+                          { type: 'divider' },
+                          { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+                        ]
+                      }}
+                      trigger={['click']}
+                      placement="bottomRight"
+                    >
+                      <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                        <EllipsisOutlined />
+                      </button>
+                    </Dropdown>
                   </div>
-                  <Dropdown
-                    overlayClassName="pc-dropdown"
-                    menu={{
-                      items: [
-                        { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
-                        { key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } },
-                        { type: 'divider' },
-                        { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
-                      ]
-                    }}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                      <EllipsisOutlined />
-                    </button>
-                  </Dropdown>
-                </div>
-                <div className="pc-foot">
-                  <div className="pc-foot-row">
-                    <span className="pc-foot-item">
-                      <span className="pc-foot-key">Status:</span>
-                      <span style={{ color: tpl.status === 'ACTIVE' ? 'var(--text-holiday)' : 'var(--text-slate-600)', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {tpl.status === 'ACTIVE' ? <CheckCircle2 size={12} /> : null}{tpl.status}
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Created by</span>
+                        <Avatar size={16} src={tpl.createdBy?.avatarUrl || tpl.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                          {initialsOf(tpl.createdBy?.name || '—')}
+                        </Avatar>
+                        <span className="pc-foot-val">{tpl.createdBy?.name || '—'}</span>
                       </span>
-                    </span>
-                    <span className="pc-foot-div" />
-                    <span className="pc-foot-item">
-                      <span className="pc-foot-key">Version:</span>
-                      <span className="pc-foot-val">v{tpl.currentVersion}</span>
-                    </span>
-                    <span className="pc-foot-div" />
-                    <span className="pc-foot-item">
-                      <span className="pc-foot-key">Updated</span>
-                      <span className="pc-foot-val">{new Date(tpl.updatedAt).toLocaleDateString()}</span>
-                    </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Status:</span>
+                        <span style={{ color: tpl.status === 'ACTIVE' ? 'var(--text-holiday)' : 'var(--text-slate-600)', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {tpl.status === 'ACTIVE' ? <CheckCircle2 size={12} /> : null}{tpl.status}
+                        </span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Version:</span>
+                        <span className="pc-foot-val">v{tpl.currentVersion}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Updated</span>
+                        <span className="pc-foot-val">{new Date(tpl.updatedAt).toLocaleDateString()}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -864,14 +848,38 @@ export default function TemplateManagementPage() {
       />
       <Modal
         open={!!deleteTemplateId}
-        title="Delete Document Template?"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle color="#ef4444" size={22} />
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Document Template</span>
+            </div>
+          </div>
+        }
         onOk={handleDeleteTemplate}
         onCancel={() => setDeleteTemplateId(null)}
         okText="Delete Template"
-        okButtonProps={{ danger: true }}
+        cancelText="Cancel"
+        okButtonProps={{
+          danger: true,
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
+        }}
+        cancelButtonProps={{
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
+        }}
+        styles={{
+          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
+          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '10px' },
+          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
+          body: { paddingTop: '2px', paddingBottom: '2px' }
+        }}
         centered
       >
-        <p>Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.</p>
+        <p style={{ margin: 0, color: 'var(--text-slate-600) !important', fontSize: '14px', lineHeight: '1.6', marginLeft: '48px' }}>
+          Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.
+        </p>
       </Modal>
 
       {/* Settings Modal */}
@@ -985,7 +993,7 @@ export default function TemplateManagementPage() {
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
         }
-        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: var(--border-slate-200); }
+        .pc-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.06); border-color: var(--border-slate-300); }
         .pc-dropdown .ant-dropdown-menu { border-radius: 0 !important; }
 
         .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; flex: 1; }
@@ -1033,11 +1041,11 @@ export default function TemplateManagementPage() {
         .att-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important; border-radius: 0 !important;
           border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
-        .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; font-size: 12px !important; }
+        .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 5px 10px !important; font-size: 12px !important; }
         .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .att-table .ant-table-tbody > tr.att-row:hover > td { background: var(--bg-slate-50) !important; }
       `}</style>

@@ -384,7 +384,8 @@ export default function LetterTiptapEditor({
 
   useEffect(() => {
     if (editor && content !== undefined && editor.getHTML() !== content) {
-      if (Math.abs(editor.getHTML().length - content.length) > 5) {
+      // if (Math.abs(editor.getHTML().length - content.length) > 5) {
+      if (!editor.isFocused || Math.abs(editor.getHTML().length - content.length) > 5) {
         editor.commands.setContent(content);
       }
     }
@@ -414,7 +415,6 @@ export default function LetterTiptapEditor({
       style={{
         border: "1px solid var(--editor-border, #cbd5e1)",
         borderRadius: "10px",
-        overflow: "hidden",
         background: "var(--editor-bg, #ffffff)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         display: "flex",
@@ -424,10 +424,15 @@ export default function LetterTiptapEditor({
       {/* Toolbar */}
       {editable && (
         <div
+          className="tiptap-toolbar"
           style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
             padding: "8px 12px",
             background: "var(--toolbar-bg, #f8fafc)",
             borderBottom: "1px solid var(--editor-border, #e2e8f0)",
+            borderRadius: "0px 0px 0px 0px",
             display: "flex",
             flexWrap: "wrap",
             gap: "6px",
@@ -1200,9 +1205,8 @@ export default function LetterTiptapEditor({
         style={{
           padding: "24px 32px",
           minHeight: `${minHeight}px`,
-          maxHeight: "750px",
-          overflowY: "auto",
           background: "var(--editor-bg, #ffffff)",
+          borderRadius: "0 0 10px 10px",
         }}
         className="letter-tiptap-content bg-transparent text-slate-800 dark:text-slate-200"
       >
@@ -1371,6 +1375,27 @@ export default function LetterTiptapEditor({
           display: block;
           margin-left: auto;
           margin-right: 0;
+        }
+
+        .tiptap-toolbar button, .tiptap-toolbar input[type="color"] {
+          width: 26px !important;
+          height: 26px !important;
+          min-width: 26px !important;
+          min-height: 26px !important;
+          padding: 0 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+        }
+        .tiptap-toolbar button svg, .tiptap-toolbar button .anticon {
+          width: 14px !important;
+          height: 14px !important;
+          font-size: 14px !important;
+        }
+        .tiptap-toolbar button[title^="Heading"] {
+          font-size: 13px !important;
+          font-weight: 700 !important;
         }
       `}</style>
     </div>

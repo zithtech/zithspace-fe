@@ -105,20 +105,20 @@ const getSalaryStructureTableHtml = (): string => {
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹1,20,000</td>` +
     `</tr>` +
-    `<tr style="background-color: #f8fafc; font-weight: 600; color: #ef4444;">` +
+    `<tr style="background-color: #f8fafc; font-weight: 600; color: #475569;">` +
     `<td colspan="3" style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">Total Deductions</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹0</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹0</td>` +
     `</tr>` +
-    `<tr style="background-color: #f1f5f9; font-weight: 700; color: #0f172a;">` +
+    `<tr style="background-color: #f8fafc; font-weight: 700; color: #0f172a;">` +
     `<td colspan="3" style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">Net Pay</td>` +
     `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000</td>` +
     `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹1,20,000</td>` +
     `</tr>` +
-    `<tr style="background-color: #e2e8f0; font-weight: 800; color: #0f172a; border-top: 2px solid #94a3b8;">` +
-    `<td colspan="3" style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; text-transform: uppercase;">Total CTC</td>` +
-    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; color: #10b981;">₹10,000 / mon</td>` +
-    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; font-size: 15px;">₹1,20,000 / yr</td>` +
+    `<tr style="background-color: #f8fafc; font-weight: 800; color: #0f172a;">` +
+    `<td colspan="3" style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right; text-transform: uppercase;">Total CTC</td>` +
+    `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000 / mon</td>` +
+    `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right; font-size: 15px;">₹1,20,000 / yr</td>` +
     `</tr>` +
     `</tfoot>` +
     `</table>` +
@@ -272,12 +272,16 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
   );
   const [currentVersion, setCurrentVersion] = useState(1);
   const [versions, setVersions] = useState<TemplateVersion[]>([]);
+  const [hasEdited, setHasEdited] = useState(false);
 
   // Right Drawer Tab State
   const [activeTab, setActiveTab] = useState<'placeholders' | 'layout' | 'history'>('placeholders');
   const [isPreviewDrawerOpen, setIsPreviewDrawerOpen] = useState(false);
   const [isHeaderReplaceModalOpen, setIsHeaderReplaceModalOpen] = useState(false);
   const [pendingHeaderHtml, setPendingHeaderHtml] = useState('');
+  
+  const [isCategoryWarningModalOpen, setIsCategoryWarningModalOpen] = useState(false);
+  const [pendingCategoryChange, setPendingCategoryChange] = useState<string | null>(null);
 
   // Page Settings State
   const [pageConfig, setPageConfig] = useState<any>({
@@ -644,12 +648,19 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           <SearchableDropdown
             value={categoryId || ''}
             onChange={(newCatId) => {
-              setCategoryId(newCatId);
               if (!templateId) {
-                const catObj = categories.find((c) => c.id === newCatId);
-                const newContent = getDefaultContentForCategory(catObj?.categoryName);
-                setEditorContent(newContent);
-                editorRef.current?.commands.setContent(newContent);
+                if (hasEdited) {
+                  setPendingCategoryChange(newCatId);
+                  setIsCategoryWarningModalOpen(true);
+                } else {
+                  setCategoryId(newCatId);
+                  const catObj = categories.find((c) => c.id === newCatId);
+                  const newContent = getDefaultContentForCategory(catObj?.categoryName);
+                  setEditorContent(newContent);
+                  editorRef.current?.commands.setContent(newContent);
+                }
+              } else {
+                setCategoryId(newCatId);
               }
             }}
             placeholder="Select Category (Optional)"
@@ -722,7 +733,10 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
           <LetterTiptapEditor
             content={editorContent}
-            onChange={(html) => setEditorContent(html)}
+            onChange={(html) => {
+              setEditorContent(html);
+              setHasEdited(true);
+            }}
             onEditorReady={(ed) => {
               editorRef.current = ed;
             }}
@@ -1298,6 +1312,31 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           ))}
         </div>
       </Drawer>
+      <Modal
+        title="Replace Content?"
+        open={isCategoryWarningModalOpen}
+        onOk={() => {
+          if (pendingCategoryChange) {
+            setCategoryId(pendingCategoryChange);
+            const catObj = categories.find((c) => c.id === pendingCategoryChange);
+            const newContent = getDefaultContentForCategory(catObj?.categoryName);
+            setEditorContent(newContent);
+            editorRef.current?.commands.setContent(newContent);
+            setHasEdited(false);
+          }
+          setIsCategoryWarningModalOpen(false);
+          setPendingCategoryChange(null);
+        }}
+        onCancel={() => {
+          setIsCategoryWarningModalOpen(false);
+          setPendingCategoryChange(null);
+        }}
+        okText="Replace Content"
+        cancelText="Cancel"
+        okButtonProps={{ danger: true }}
+      >
+        <p>You have unsaved changes. Changing the category will replace your current content with the default template for the new category. Do you want to proceed?</p>
+      </Modal>
     </div>
   );
 }

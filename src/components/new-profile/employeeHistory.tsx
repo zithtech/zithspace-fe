@@ -63,13 +63,20 @@ const isPdfUrl = (url: string) => /\.pdf(\?.*)?$/i.test(url);
 
 const isDocxUrl = (url: string) => /\.(docx?|xlsx?|pptx?)(\?.*)?$/i.test(url);
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+  } catch {
+    return dateStr;
+  }
 };
 
 const formatEmploymentType = (type: string) =>

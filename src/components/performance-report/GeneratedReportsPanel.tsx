@@ -20,7 +20,6 @@ import {
   Button,
   Checkbox,
   DatePicker,
-  Divider,
   Empty,
   Input,
   Modal,
@@ -28,7 +27,6 @@ import {
   Popconfirm,
   Progress,
   Spin,
-  Typography,
   message,
 } from 'antd';
 import {
@@ -36,9 +34,18 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   ThunderboltOutlined,
-  SearchOutlined,
-  FilterOutlined,
 } from '@ant-design/icons';
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  FileText,
+  Users,
+  Gauge,
+  FileSearch,
+  Building2,
+  Briefcase,
+} from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { ProjectService } from '@/services/projectService';
@@ -53,7 +60,6 @@ import { ModuleWeight } from './OverviewSection';
 import { performanceBand, pointsColor } from './moduleScores';
 import { usePermission } from '@/hooks/usePermission';
 
-const { Text } = Typography;
 const { RangePicker } = DatePicker;
 const PAGE_SIZE = 12;
 
@@ -393,117 +399,272 @@ export default function GeneratedReportsPanel() {
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const rangeInfo = total === 0 ? '0 reports' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`;
 
+  // ── header KPIs (computed over the filtered set so they track the filters) ──
+  const kpis = useMemo(() => {
+    const scored = filtered.filter((r) => typeof r.overallScore === 'number');
+    return {
+      reports: filtered.length,
+      members: new Set(filtered.map((r) => r.userId)).size,
+      avg: scored.length
+        ? Math.round(scored.reduce((a, r) => a + (r.overallScore as number), 0) / scored.length)
+        : null,
+    };
+  }, [filtered]);
+
+  // Active filters, rendered as removable chips under the toolbar.
+  const chips = useMemo(() => {
+    const out: Array<{ key: string; label: string; value: string; clear: () => void }> = [];
+    if (search.trim())
+      out.push({ key: 'search', label: 'Search', value: search.trim(), clear: () => setSearch('') });
+    if (dept) out.push({ key: 'dept', label: 'Department', value: dept, clear: () => setDept(undefined) });
+    if (subDept)
+      out.push({ key: 'sub', label: 'Sub-dept', value: subDept, clear: () => setSubDept(undefined) });
+    if (member)
+      out.push({
+        key: 'member',
+        label: 'Member',
+        value: memberOptions.find((o) => o.value === member)?.label ?? '—',
+        clear: () => setMember(undefined),
+      });
+    if (monthRange)
+      out.push({
+        key: 'months',
+        label: 'Period',
+        value: `${monthRange[0].format('MMM YYYY')} – ${monthRange[1].format('MMM YYYY')}`,
+        clear: () => setMonthRange(null),
+      });
+    return out;
+  }, [search, dept, subDept, member, monthRange, memberOptions]);
+
+  const resetFilters = () => {
+    setSearch('');
+    setDept(undefined);
+    setSubDept(undefined);
+    setMember(undefined);
+    setMonthRange(null);
+  };
+
   return (
     <div className="gr-wrap">
-      {/* 1. Title */}
+      {/* 1. Hero band */}
       <div className="gr-header">
-        <div className="gr-titlerow">
-          <h2 className="gr-title">Generated Reports</h2>
-          <Divider type="vertical" className="gr-hdivider" />
-          <span className="gr-sub">Archived monthly performance reports — open or download a member’s saved PDF.</span>
+        <div className="gr-hero-glow" />
+        <div className="gr-hero-inner">
+          <div className="gr-hero-text">
+            <h2 className="gr-title">Generated Reports</h2>
+            <p className="gr-sub">Archived monthly performance PDFs — open, download or regenerate.</p>
+          </div>
+
+          <div className="gr-hero-right">
+            <div className="gr-kpis">
+              <div className="gr-kpi">
+                <span className="gr-kpi-ic gr-kpi-ic--blue">
+                  <FileText size={14} />
+                </span>
+                <span className="gr-kpi-body">
+                  <span className="gr-kpi-num">{kpis.reports}</span>
+                  <span className="gr-kpi-label">Reports</span>
+                </span>
+              </div>
+              <div className="gr-kpi">
+                <span className="gr-kpi-ic gr-kpi-ic--slate">
+                  <Users size={14} />
+                </span>
+                <span className="gr-kpi-body">
+                  <span className="gr-kpi-num">{kpis.members}</span>
+                  <span className="gr-kpi-label">Members</span>
+                </span>
+              </div>
+              <div className="gr-kpi">
+                <span className="gr-kpi-ic gr-kpi-ic--green">
+                  <Gauge size={14} />
+                </span>
+                <span className="gr-kpi-body">
+                  <span className="gr-kpi-num" style={{ color: pointsColor(kpis.avg) }}>
+                    {kpis.avg ?? '—'}
+                  </span>
+                  <span className="gr-kpi-label">Avg score</span>
+                </span>
+              </div>
+            </div>
+
+            {canUpdatePerformanceReportSetting && (
+              <Button
+                type="primary"
+                className="gr-gen-btn"
+                icon={<ThunderboltOutlined />}
+                loading={generating}
+                onClick={openWizard}
+              >
+                Generate report
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 2. Count + search + generate */}
-      <div className="gr-bar">
-        <div className="gr-bar-actions">
+      {/* 2. Command bar: search + filters */}
+      <div className="gr-toolbar">
+        <div className="gr-search-wrap">
           <Input
             allowClear
-            prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+            prefix={<Search size={15} style={{ color: 'var(--text-slate-400)' }} />}
             placeholder="Search by member name or position"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="gr-search"
           />
-          {canUpdatePerformanceReportSetting && (
-            <Button type="primary" icon={<ThunderboltOutlined />} loading={generating} onClick={openWizard} style={{ borderRadius: 8 }}>
-              Generate report
-            </Button>
-          )}
+        </div>
+
+        <span className="gr-tool-divider" />
+
+        <div className="gr-filter-group">
+          <span className="gr-filter-hint">
+            <SlidersHorizontal size={13} />
+          </span>
+          <SearchableDropdown
+            placeholder="All departments"
+            searchPlaceholder="Search departments"
+            itemNoun="departments"
+            value={dept}
+            onChange={(v) => { setDept(v ?? undefined); setSubDept(undefined); setMember(undefined); }}
+            options={deptOptions.map((d) => ({
+              value: d,
+              label: d,
+              badge: (
+                <span className="gr-opt-ic">
+                  <Building2 size={13} />
+                </span>
+              ),
+            }))}
+            width={240}
+            allowClear
+          />
+          <SearchableDropdown
+            placeholder="All sub-departments"
+            searchPlaceholder="Search sub-departments"
+            itemNoun="sub-departments"
+            value={subDept}
+            onChange={(v) => { setSubDept(v ?? undefined); setMember(undefined); }}
+            options={subDeptOptions.map((d) => ({
+              value: d,
+              label: d,
+              badge: (
+                <span className="gr-opt-ic">
+                  <Briefcase size={13} />
+                </span>
+              ),
+            }))}
+            width={240}
+            allowClear
+          />
+          <SearchableDropdown
+            placeholder="All members"
+            searchPlaceholder="Search members"
+            itemNoun="members"
+            value={member}
+            onChange={(v) => setMember(v ?? undefined)}
+            options={memberOptions}
+            width={260}
+            allowClear
+            avatarColor="#3b82f6"
+          />
+          <RangePicker
+            className="gr-month"
+            picker="month"
+            placeholder={['From month', 'To month']}
+            format="MMM YYYY"
+            value={monthRange}
+            onChange={(v) => setMonthRange(v as [Dayjs, Dayjs] | null)}
+          />
         </div>
       </div>
 
-      {/* 3. Filters */}
-      <div className="gr-filters">
-        <span className="gr-filters-label">
-          <FilterOutlined />
-          Filters
-        </span>
-        <SearchableDropdown
-          placeholder="All departments"
-          searchPlaceholder="Search departments"
-          itemNoun="departments"
-          value={dept}
-          onChange={(v) => { setDept(v ?? undefined); setSubDept(undefined); setMember(undefined); }}
-          options={deptOptions.map((d) => ({ value: d, label: d }))}
-          width={180}
-          allowClear
-        />
-        <SearchableDropdown
-          placeholder="All sub-departments"
-          searchPlaceholder="Search sub-departments"
-          itemNoun="sub-departments"
-          value={subDept}
-          onChange={(v) => { setSubDept(v ?? undefined); setMember(undefined); }}
-          options={subDeptOptions.map((d) => ({ value: d, label: d }))}
-          width={190}
-          allowClear
-        />
-        <SearchableDropdown
-          placeholder="All members"
-          searchPlaceholder="Search members"
-          itemNoun="members"
-          value={member}
-          onChange={(v) => setMember(v ?? undefined)}
-          options={memberOptions}
-          width={200}
-          allowClear
-        />
-        <RangePicker
-          className="gr-month"
-          picker="month" placeholder={['From month', 'To month']} format="MMM YYYY"
-          value={monthRange} onChange={(v) => setMonthRange(v as [Dayjs, Dayjs] | null)}
-        />
-        {(search || dept || subDept || member || monthRange) && (
-          <Button
-            type="text"
-            onClick={() => {
-              setSearch(''); setDept(undefined); setSubDept(undefined); setMember(undefined);
-              setMonthRange(null);
-            }}
-          >
-            Clear
-          </Button>
-        )}
-      </div>
+      {/* 3. Active filter chips */}
+      {chips.length > 0 && (
+        <div className="gr-chips">
+          {chips.map((c) => (
+            <span key={c.key} className="gr-chip">
+              <span className="gr-chip-label">{c.label}</span>
+              <span className="gr-chip-value">{c.value}</span>
+              <button
+                type="button"
+                className="gr-chip-x"
+                onClick={c.clear}
+                aria-label={`Clear ${c.label} filter`}
+              >
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+          <button type="button" className="gr-chip-reset" onClick={resetFilters}>
+            Clear all
+          </button>
+        </div>
+      )}
 
       {/* Cards */}
       <div className="gr-body">
         {loading ? (
-          <div className="gr-center"><Spin /></div>
+          <div className="gr-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="gr-skel">
+                <div className="gr-skel-head">
+                  <div className="gr-skel-avatar" />
+                  <div className="gr-skel-lines">
+                    <div className="gr-skel-line" style={{ width: '55%' }} />
+                    <div className="gr-skel-line" style={{ width: '35%' }} />
+                  </div>
+                </div>
+                <div className="gr-skel-block" />
+                <div className="gr-skel-row">
+                  {Array.from({ length: 5 }).map((__, j) => (
+                    <div key={j} className="gr-skel-cell" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : paged.length === 0 ? (
-          <div className="gr-center">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
-                  {allReports.length === 0
-                    ? 'No generated reports yet. Use “Generate this month” or save one from a member’s report.'
-                    : 'No reports match these filters.'}
-                </Text>
-              }
-            />
+          <div className="gr-empty">
+            <span className="gr-empty-ic">
+              <FileSearch size={26} />
+            </span>
+            <div className="gr-empty-title">
+              {allReports.length === 0 ? 'No reports generated yet' : 'No reports match these filters'}
+            </div>
+            <p className="gr-empty-sub">
+              {allReports.length === 0
+                ? 'Generate a month in bulk, or save a report from an individual member’s page.'
+                : 'Try a different department, member or period — or clear the filters.'}
+            </p>
+            {allReports.length === 0
+              ? canUpdatePerformanceReportSetting && (
+                <Button type="primary" icon={<ThunderboltOutlined />} onClick={openWizard} className="gr-gen-btn">
+                  Generate report
+                </Button>
+              )
+              : chips.length > 0 && (
+                <button type="button" className="gr-empty-btn" onClick={resetFilters}>
+                  Clear all filters
+                </button>
+              )}
           </div>
         ) : (
           <div className="gr-grid">
             {paged.map((r) => {
               const band = performanceBand(r.overallScore);
+              const pct = Math.max(0, Math.min(100, r.overallScore ?? 0));
               return (
                 <div key={r.id} className="gr-card">
+                  <span className="gr-card-rail" />
+
                   <div className="gr-card-top">
-                    <Avatar size={44} src={r.userAvatar || undefined} style={{ background: 'linear-gradient(135deg,#60a5fa,#3b82f6)', color: '#fff', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>
-                      {r.userName?.charAt(0)?.toUpperCase()}
-                    </Avatar>
+                    <div className="gr-avatar-ring">
+                      <Avatar size={40} src={r.userAvatar || undefined} style={{ background: 'linear-gradient(135deg,#60a5fa,#2563eb)', color: '#fff', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+                        {r.userName?.charAt(0)?.toUpperCase()}
+                      </Avatar>
+                    </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div className="gr-name">{r.userName || '—'}</div>
                       <div className="gr-pos">{[r.userPosition, r.userDepartment].filter(Boolean).join(' · ') || '—'}</div>
@@ -511,10 +672,18 @@ export default function GeneratedReportsPanel() {
                     <div className="gr-period">{periodLabel(r.periodKey)}</div>
                   </div>
 
-                  <div className="gr-score-row">
-                    <span className="gr-score" style={{ color: pointsColor(r.overallScore) }}>{r.overallScore ?? '—'}</span>
-                    <span className="gr-score-max">/ 100</span>
-                    <span className="gr-band" style={{ color: band.color, background: `${band.color}14` }}>{band.label}</span>
+                  <div className="gr-score-block">
+                    <div className="gr-score-row">
+                      <span className="gr-score" style={{ color: pointsColor(r.overallScore) }}>{r.overallScore ?? '—'}</span>
+                      <span className="gr-score-max">/ 100</span>
+                      <span className="gr-band" style={{ color: band.color, background: `${band.color}14` }}>{band.label}</span>
+                    </div>
+                    <div className="gr-score-bar">
+                      <div
+                        className="gr-score-bar-fill"
+                        style={{ width: `${pct}%`, background: pointsColor(r.overallScore) }}
+                      />
+                    </div>
                   </div>
 
                   <div className="gr-modules">
@@ -524,6 +693,14 @@ export default function GeneratedReportsPanel() {
                         <div key={m.label} className="gr-mod">
                           <div className="gr-mod-val" style={{ color: pointsColor(v) }}>{v ?? '—'}</div>
                           <div className="gr-mod-label">{m.label}</div>
+                          <div className="gr-mod-bar">
+                            <span
+                              style={{
+                                width: `${Math.max(0, Math.min(100, v ?? 0))}%`,
+                                background: pointsColor(v),
+                              }}
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -536,6 +713,7 @@ export default function GeneratedReportsPanel() {
                       <Button
                         size="small"
                         icon={<DownloadOutlined />}
+                        title="Download PDF"
                         onClick={() => {
                           const filename = r.fileUrl.split('/').pop()?.split('?')[0] || 'report.pdf';
                           forceDownload(r.fileUrl, filename);
@@ -543,7 +721,7 @@ export default function GeneratedReportsPanel() {
                       />
                       {canUpdatePerformanceReportSetting && (
                         <Popconfirm title="Delete this report?" onConfirm={() => onDelete(r.id)} okText="Delete" okButtonProps={{ danger: true }}>
-                          <Button size="small" danger icon={<DeleteOutlined />} />
+                          <Button size="small" danger icon={<DeleteOutlined />} title="Delete" />
                         </Popconfirm>
                       )}
                     </div>
@@ -557,7 +735,7 @@ export default function GeneratedReportsPanel() {
 
       {/* 4. Fixed bottom pagination */}
       <div className="gr-footer">
-        <span className="gr-bar-info" style={{ marginRight: 'auto' }}>{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
+        <span className="gr-footer-info">{total === 0 ? 'No reports' : `Showing ${rangeInfo}`}</span>
         <Pagination current={page} pageSize={PAGE_SIZE} total={total} showSizeChanger={false} onChange={setPage} />
       </div>
 
@@ -672,67 +850,293 @@ export default function GeneratedReportsPanel() {
 
       <style jsx global>{`
         .gr-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        .gr-wrap *, .gr-wrap *::before, .gr-wrap *::after { border-radius: 0 !important; }
-        .gr-wrap .ant-avatar { border-radius: 50% !important; }
+
+        /* ── Hero band (full-bleed via the layout's -header rule) ────────────── */
         .gr-header {
-          display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-          padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
+          position: relative; overflow: hidden;
+          margin-top: -12px; padding: 14px 0 13px; margin-bottom: 14px;
+          border-bottom: 1px solid var(--border-slate-100);
+          background:
+            linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
+            var(--bg-pure-white);
         }
-        .gr-titlerow { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
-        .gr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; white-space: nowrap; }
-        .gr-hdivider { height: 20px; border-color: #cbd5e1; margin: 0; }
-        .gr-sub { font-size: 13px; color: var(--text-slate-500); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; }
-        .gr-bar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
-        .gr-bar-info { font-size: 13px; font-weight: 600; color: var(--text-slate-500); white-space: nowrap; }
-        .gr-bar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; flex: 1; }
-        .gr-bar-actions .ant-btn { border-radius: 8px !important; }
-        .gr-search { width: 100%; max-width: 320px; border-radius: 8px !important; flex: 1; min-width: 200px; }
-        .gr-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-slate-200); border-radius: 0 !important; background: transparent; margin-bottom: 16px; }
-        .gr-filters-label {
-          display: inline-flex; align-items: center; gap: 7px;
-          font-size: 13px; font-weight: 700; color: var(--text-slate-700); padding-right: 4px; white-space: nowrap;
+        .gr-hero-glow {
+          position: absolute; top: -130px; right: -60px; width: 380px; height: 240px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 68%);
+          pointer-events: none;
         }
-        .gr-filters-label .anticon { color: var(--text-slate-400); }
-        /* Match the month picker to the 30px compact dropdown height. */
-        .gr-filters .gr-month { height: 30px; border-radius: 8px; }
-        .gr-filters .gr-month .ant-picker-input > input { font-size: 13px; }
-        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; padding-right: 4px; }
-        .gr-center { display: flex; align-items: center; justify-content: center; padding: 56px 0; min-height: 280px; }
-        .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-        .gr-card { border: 1px solid var(--border-slate-200); border-radius: 16px; background: transparent; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow .15s ease, border-color .15s ease; }
-        .gr-card:hover { box-shadow: 0 8px 24px rgba(15,23,42,0.07); border-color: var(--border-slate-200); }
+        .gr-hero-inner {
+          position: relative; z-index: 1;
+          display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+        }
+        .gr-hero-text { min-width: 0; }
+        .gr-title {
+          margin: 0; font-size: 20px; font-weight: 800; color: var(--text-slate-900);
+          letter-spacing: -0.03em; line-height: 1.15;
+        }
+        .gr-sub {
+          margin: 3px 0 0; font-size: 12.5px; color: var(--text-slate-500);
+          line-height: 1.45; max-width: 560px;
+        }
+        .gr-hero-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .gr-kpis { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+        .gr-kpi {
+          display: flex; align-items: center; gap: 9px;
+          padding: 7px 14px 7px 9px; border-radius: 12px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+          min-width: 106px;
+        }
+        .gr-kpi-ic {
+          width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        .gr-kpi-ic--blue  { color: #2563eb; background: rgba(59, 130, 246, 0.11); }
+        .gr-kpi-ic--green { color: #059669; background: rgba(16, 185, 129, 0.12); }
+        .gr-kpi-ic--slate { color: var(--text-slate-500); background: var(--bg-slate-100); }
+        .gr-kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .gr-kpi-num {
+          font-size: 16px; font-weight: 800; color: var(--text-slate-900);
+          line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+        }
+        .gr-kpi-label {
+          font-size: 10px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.07em; color: var(--text-slate-400);
+        }
+        .gr-gen-btn.ant-btn { height: 42px; border-radius: 12px; font-weight: 700; padding: 0 18px; }
+
+        /* ── Command bar ────────────────────────────────────────────────────── */
+        .gr-toolbar {
+          display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+          padding: 10px 12px; margin-bottom: 12px;
+          border: 1px solid var(--border-slate-200); border-radius: 16px;
+          background: var(--bg-pure-white);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+        }
+        .gr-search-wrap { flex: 1 1 240px; min-width: 200px; max-width: 340px; }
+        .gr-toolbar .gr-search { height: 38px; }
+        .gr-toolbar .gr-search,
+        .gr-toolbar .gr-search .ant-input,
+        .gr-toolbar .gr-search.ant-input-affix-wrapper {
+          border-radius: 11px !important; background: var(--bg-slate-50) !important;
+        }
+        .gr-toolbar .gr-search.ant-input-affix-wrapper { border-color: transparent; }
+        .gr-toolbar .gr-search.ant-input-affix-wrapper:hover { border-color: #bfdbfe; }
+        .gr-toolbar .gr-search.ant-input-affix-wrapper-focused {
+          background: var(--bg-pure-white) !important; border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .gr-tool-divider { width: 1px; height: 26px; background: var(--border-slate-200); flex-shrink: 0; }
+        .gr-filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+        .gr-filter-hint {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
+          color: var(--text-slate-400); background: var(--bg-slate-50);
+        }
+        .gr-filter-group .sd-trigger {
+          height: 38px !important; border-radius: 11px !important; min-width: 165px;
+          background: var(--bg-pure-white) !important;
+        }
+        .gr-filter-group .sd-trigger:hover { border-color: #bfdbfe !important; }
+        .gr-opt-ic {
+          width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--text-slate-500); background: var(--bg-slate-100);
+        }
+        .gr-filter-group .gr-month { height: 38px; border-radius: 11px; min-width: 210px; }
+        .gr-filter-group .gr-month:hover { border-color: #bfdbfe; }
+        .gr-filter-group .gr-month .ant-picker-input > input { font-size: 12.5px; font-weight: 600; }
+
+        /* ── Active filter chips ────────────────────────────────────────────── */
+        .gr-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+        .gr-chip {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 5px 4px 10px; border-radius: 999px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          font-size: 12px; max-width: 300px;
+        }
+        .gr-chip-label {
+          font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+          color: var(--text-slate-400);
+        }
+        .gr-chip-value {
+          font-weight: 600; color: var(--text-slate-700);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .gr-chip-x {
+          width: 18px; height: 18px; flex-shrink: 0; border: none; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
+          color: var(--text-slate-400); background: var(--bg-slate-100);
+          transition: color .14s ease, background .14s ease;
+        }
+        .gr-chip-x:hover { color: var(--text-slate-900); background: var(--border-slate-200); }
+        .gr-chip-reset {
+          border: none; background: transparent; cursor: pointer; padding: 4px 6px;
+          font-size: 12px; font-weight: 700; color: #2563eb;
+        }
+        .gr-chip-reset:hover { text-decoration: underline; }
+
+        /* ── Cards ──────────────────────────────────────────────────────────── */
+        .gr-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 20px; padding-right: 4px; }
+        .gr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(318px, 1fr)); gap: 14px; }
+        .gr-card {
+          position: relative; overflow: hidden;
+          border: 1px solid var(--border-slate-200); border-radius: 16px;
+          background: var(--bg-pure-white); padding: 15px 16px 14px;
+          display: flex; flex-direction: column; gap: 13px;
+          transition: box-shadow .16s ease, border-color .16s ease, transform .16s ease;
+        }
+        .gr-card:hover {
+          border-color: #bfdbfe;
+          box-shadow: 0 12px 30px rgba(30, 64, 175, 0.11);
+          transform: translateY(-3px);
+        }
+        .gr-card-rail {
+          position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+          background: linear-gradient(180deg, #60a5fa, #2563eb);
+          transform: scaleY(0); transform-origin: top; transition: transform .2s ease;
+        }
+        .gr-card:hover .gr-card-rail { transform: scaleY(1); }
+
         .gr-card-top { display: flex; align-items: center; gap: 11px; }
-        .gr-name { font-size: 14.5px; font-weight: 800; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-avatar-ring {
+          padding: 3px; border-radius: 50%; flex-shrink: 0; background: var(--bg-pure-white);
+          box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.18), 0 5px 12px rgba(15, 23, 42, 0.07);
+        }
+        .gr-name {
+          font-size: 14.5px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.015em;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
         .gr-pos { font-size: 11.5px; color: var(--text-slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .gr-period { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: transparent; border: 1px solid var(--border-slate-200); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+        .gr-period {
+          font-size: 10.5px; font-weight: 800; color: var(--text-blue-700); background: var(--bg-blue-50);
+          border-radius: 999px; padding: 3px 10px; white-space: nowrap; flex-shrink: 0;
+        }
+
+        .gr-score-block { display: flex; flex-direction: column; gap: 7px; }
         .gr-score-row { display: flex; align-items: baseline; gap: 6px; }
-        .gr-score { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+        .gr-score {
+          font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
         .gr-score-max { font-size: 12px; font-weight: 700; color: var(--text-slate-400); }
-        .gr-band { margin-left: auto; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; align-self: center; }
+        .gr-band {
+          margin-left: auto; align-self: center; border-radius: 999px;
+          font-size: 10.5px; font-weight: 800; padding: 3px 9px; white-space: nowrap;
+        }
+        .gr-score-bar { height: 6px; border-radius: 999px; background: var(--bg-slate-100); overflow: hidden; }
+        .gr-score-bar-fill { height: 100%; border-radius: 999px; transition: width .45s cubic-bezier(.4, 0, .2, 1); }
+
         .gr-modules { display: flex; gap: 6px; }
-        .gr-mod { flex: 1; text-align: center; background: transparent; border: 1px solid var(--border-slate-100); border-radius: 8px; padding: 6px 2px; }
-        .gr-mod-val { font-size: 14px; font-weight: 800; }
-        .gr-mod-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-slate-400); margin-top: 1px; }
-        .gr-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border-slate-100); }
-        .gr-gen { font-size: 11px; color: var(--text-slate-400); }
+        .gr-mod {
+          flex: 1; min-width: 0; text-align: center; border-radius: 10px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); padding: 7px 4px 6px;
+        }
+        .gr-mod-val { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .gr-mod-label {
+          font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+          color: var(--text-slate-400); margin-top: 1px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .gr-mod-bar {
+          height: 3px; border-radius: 999px; background: var(--border-slate-200);
+          margin-top: 6px; overflow: hidden;
+        }
+        .gr-mod-bar span { display: block; height: 100%; border-radius: 999px; }
+
+        .gr-foot {
+          display: flex; align-items: center; justify-content: space-between; gap: 8px;
+          padding-top: 11px; border-top: 1px dashed var(--border-slate-200);
+        }
+        .gr-gen { font-size: 11px; color: var(--text-slate-400); font-weight: 600; }
         .gr-actions { display: flex; align-items: center; gap: 6px; }
+        .gr-actions .ant-btn { border-radius: 9px; font-weight: 600; }
+
+        /* ── Skeletons + empty ──────────────────────────────────────────────── */
+        .gr-skel {
+          border: 1px solid var(--border-slate-200); border-radius: 16px;
+          background: var(--bg-pure-white); padding: 15px 16px;
+          display: flex; flex-direction: column; gap: 13px; pointer-events: none;
+        }
+        .gr-skel-head { display: flex; align-items: center; gap: 11px; }
+        .gr-skel-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-slate-100); flex-shrink: 0; }
+        .gr-skel-lines { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .gr-skel-line { height: 10px; border-radius: 6px; background: var(--bg-slate-100); }
+        .gr-skel-block { height: 34px; border-radius: 10px; background: var(--bg-slate-100); }
+        .gr-skel-row { display: flex; gap: 6px; }
+        .gr-skel-cell { flex: 1; height: 44px; border-radius: 10px; background: var(--bg-slate-100); }
+        .gr-skel-avatar, .gr-skel-line, .gr-skel-block, .gr-skel-cell {
+          animation: gr-pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes gr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+        .gr-empty {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 8px; padding: 64px 24px; text-align: center;
+          border: 1px dashed var(--border-slate-200); border-radius: 16px; background: var(--bg-slate-50);
+        }
+        .gr-empty-ic {
+          width: 54px; height: 54px; border-radius: 16px; margin-bottom: 4px;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: #2563eb; background: var(--bg-blue-50);
+        }
+        .gr-empty-title { font-size: 15px; font-weight: 800; color: var(--text-slate-900); }
+        .gr-empty-sub {
+          margin: 0 0 6px; font-size: 13px; color: var(--text-slate-500);
+          max-width: 400px; line-height: 1.55;
+        }
+        .gr-empty-btn {
+          margin-top: 4px; padding: 8px 16px; border-radius: 10px; cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          font-size: 12.5px; font-weight: 700; color: var(--text-slate-700);
+          transition: color .14s ease, border-color .14s ease;
+        }
+        .gr-empty-btn:hover { color: #2563eb; border-color: #bfdbfe; }
+
+        /* ── Footer ─────────────────────────────────────────────────────────── */
         .gr-footer {
           position: sticky; bottom: 0; z-index: 10;
-          display: flex; align-items: center; justify-content: flex-end; gap: 12px;
-          padding: 14px 2px; margin-top: 8px;
+          display: flex; align-items: center; justify-content: space-between; gap: 12px;
+          padding: 14px 32px; margin: 8px -32px 0;
           border-top: 1px solid var(--border-slate-100); flex-shrink: 0;
           background: var(--bg-pure-white);
+          box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.05);
         }
         .gr-footer-info { font-size: 12.5px; color: var(--text-slate-500); font-weight: 600; }
+        @media (max-width: 1024px) {
+          .gr-footer { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+        }
+        @media (max-width: 860px) {
+          .gr-hero-inner { align-items: flex-start; gap: 12px; }
+          .gr-title { font-size: 18px; }
+          .gr-kpi { min-width: 96px; padding: 7px 11px; }
+          .gr-gen-btn.ant-btn { height: 38px; }
+          .gr-tool-divider { display: none; }
+          .gr-search-wrap { max-width: 100%; flex-basis: 100%; }
+        }
+        @media (max-width: 560px) {
+          .gr-filter-group { width: 100%; }
+          .gr-filter-group .sd-trigger,
+          .gr-filter-group .gr-month { flex: 1 1 140px; min-width: 140px; }
+          .gr-grid { grid-template-columns: 1fr; }
+        }
 
         /* Generate wizard */
         .wz-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .wz-month {
-          position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
-          padding: 16px 14px; border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; text-align: left;
+          position: relative; overflow: hidden;
+          display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+          padding: 16px 14px; border: 1px solid var(--border-slate-200); border-radius: 14px;
+          background: var(--bg-pure-white); cursor: pointer; text-align: left;
           transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
         }
-        .wz-month:hover { border-color: #bfdbfe; box-shadow: 0 6px 18px rgba(30,64,175,0.10); transform: translateY(-2px); }
+        .wz-month::before {
+          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+          background: linear-gradient(90deg, #60a5fa, #2563eb);
+          opacity: 0; transition: opacity .14s ease;
+        }
+        .wz-month:hover::before { opacity: 1; }
+        .wz-month:hover { border-color: #bfdbfe; box-shadow: 0 8px 20px rgba(30,64,175,0.11); transform: translateY(-2px); }
         .wz-month-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 800; color: var(--text-blue-700); background: var(--bg-blue-50); border-radius: 999px; padding: 2px 7px; text-transform: uppercase; letter-spacing: 0.04em; }
         .wz-month-name { font-size: 15px; font-weight: 800; color: var(--text-slate-900); }
         .wz-month-year { font-size: 12px; color: var(--text-slate-400); font-weight: 700; }
@@ -740,12 +1144,16 @@ export default function GeneratedReportsPanel() {
 
         .wz-scope { display: flex; flex-direction: column; }
         .wz-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .wz-list-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 6px; }
+        .wz-filters .sd-trigger { height: 38px !important; border-radius: 11px !important; }
+        .wz-list-head {
+          display: flex; align-items: center; justify-content: space-between;
+          font-size: 12.5px; color: var(--text-slate-500); margin-bottom: 7px;
+        }
         .wz-list-actions { display: flex; gap: 12px; }
-        .wz-list-actions a { color: #3b82f6; cursor: pointer; font-weight: 600; }
+        .wz-list-actions a { color: #2563eb; cursor: pointer; font-weight: 700; }
         .wz-center { display: flex; align-items: center; justify-content: center; padding: 40px 0; }
-        .wz-list { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-slate-100); border-radius: 10px; }
-        .wz-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border-slate-100); cursor: pointer; }
+        .wz-list { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-slate-200); border-radius: 12px; }
+        .wz-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border-slate-100); cursor: pointer; }
         .wz-row:last-child { border-bottom: none; }
         .wz-row:hover { background: var(--bg-slate-50); }
         .wz-row-name { font-size: 13px; font-weight: 600; color: var(--text-slate-900); }

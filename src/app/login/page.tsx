@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useTenant } from '@/context/TenantContext';
 import { AuthService } from '@/services/authService';
 import {
-  Card,
   Form,
   Input,
   Button,
@@ -14,6 +13,8 @@ import {
   Alert,
   Spin,
   Checkbox,
+  ConfigProvider,
+  theme as antdTheme,
 } from 'antd';
 import {
   UserOutlined,
@@ -578,69 +579,76 @@ function LoginFormWithParams() {
       >
         <Form.Item
           name="email"
-          label="Email Address"
           rules={[
             { required: true, message: 'Please enter your email' },
             { type: 'email', message: 'Please enter a valid email' },
           ]}
         >
           <Input
-            prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-            placeholder="Enter your email"
-            style={{ height: 44 }}
+            prefix={<UserOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
+            placeholder="Email address"
+            autoComplete="email"
           />
         </Form.Item>
 
         <Form.Item
           name="password"
-          label="Password"
           rules={[
             { required: true, message: 'Please enter your password' },
           ]}
         >
           <Input.Password
-            prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-            placeholder="Enter your password"
-            style={{ height: 44 }}
+            prefix={<LockOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
+            placeholder="Password"
+            autoComplete="current-password"
           />
         </Form.Item>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, marginTop: -12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, marginTop: 2 }}>
           <Form.Item name="remember" valuePropName="checked" noStyle>
-            <Checkbox style={{ fontSize: 14 }}>Remember me</Checkbox>
+            <Checkbox style={{ fontSize: 13, color: '#94A3B8' }}>Remember me</Checkbox>
           </Form.Item>
-          <Link href="/forgot-password" style={{ color: '#1677ff', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'opacity 0.3s' }}>
+          <Link href="/forgot-password" className="zk-link" style={{ color: '#60A5FA', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
             Forgot password?
           </Link>
         </div>
 
-        <Form.Item style={{ marginBottom: 12 }}>
+        <Form.Item style={{ marginBottom: 0 }}>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
             block
-            size="large"
             icon={<LoginOutlined />}
+            className="zk-submit"
             style={{
-              height: 44,
               fontSize: 15,
-              fontWeight: 500,
-              background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
+              background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
               border: 'none',
-              borderRadius: 8,
+              boxShadow: '0 8px 22px rgba(37, 99, 235, 0.32)',
             }}
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </Form.Item>
       </Form>
 
-      <div style={{ margin: '16px 0', textAlign: 'center' }}>
-        <Text type="secondary" style={{ fontSize: 13 }}>or sign in with</Text>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          margin: '24px 0 20px',
+        }}
+      >
+        <span style={{ flex: 1, height: 1, background: 'rgba(148, 163, 184, 0.14)' }} />
+        <Text style={{ fontSize: 12, color: '#5A6982', whiteSpace: 'nowrap' }}>
+          or continue with
+        </Text>
+        <span style={{ flex: 1, height: 1, background: 'rgba(148, 163, 184, 0.14)' }} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
         <Button
           size="large"
           icon={
@@ -665,15 +673,17 @@ function LoginFormWithParams() {
           }
           onClick={handleGoogleLogin}
           disabled={loading}
+          className="zk-social"
           style={{
-            width: 44,
+            width: 88,
             height: 44,
-            borderRadius: 8,
-            borderColor: '#d9d9d9',
+            borderRadius: 999,
+            background: 'rgba(148, 163, 184, 0.06)',
+            borderColor: 'rgba(148, 163, 184, 0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+            boxShadow: 'none',
           }}
         />
         <Button
@@ -688,15 +698,17 @@ function LoginFormWithParams() {
           }
           onClick={handleMicrosoftLogin}
           disabled={loading}
+          className="zk-social"
           style={{
-            width: 44,
+            width: 88,
             height: 44,
-            borderRadius: 8,
-            borderColor: '#d9d9d9',
+            borderRadius: 999,
+            background: 'rgba(148, 163, 184, 0.06)',
+            borderColor: 'rgba(148, 163, 184, 0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+            boxShadow: 'none',
           }}
         />
       </div>
@@ -716,77 +728,268 @@ function LoginFormSkeleton() {
   );
 }
 
-export default function LoginPage() {
+// Minimal backdrop: charcoal canvas, a whisper of grid, and a few motion lines
+// carrying the forward lean of the Zukvo mark. Nothing else.
+const backgroundStyles = `
+@keyframes zk-streak {
+  0%   { transform: translateX(-260px); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateX(300px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zk-anim { animation: none !important; }
+}
+`;
+
+const SPRINT_STREAKS = [
+  { x: 80, y: 190, w: 260, dur: '14s', delay: '0s' },
+  { x: 250, y: 430, w: 150, dur: '18s', delay: '5s' },
+  { x: 110, y: 660, w: 210, dur: '16s', delay: '2.5s' },
+];
+
+function TechBackground() {
   return (
     <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-      }}
+      aria-hidden
+      style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
     >
-      <Card
+      {/* Barely-there grid, dissolved toward the edges */}
+      <div
         style={{
-          width: '100%',
-          maxWidth: 400,
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-          borderRadius: 12,
-          border: 'none',
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),' +
+            'linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
+          WebkitMaskImage:
+            'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
         }}
-        styles={{
-          body: {
-            padding: 32,
-          },
+      />
+
+      {/* Motion lines on the mark's forward lean */}
+      <svg
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        <defs>
+          <linearGradient id="zk-streak-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0" />
+            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.5" />
+          </linearGradient>
+        </defs>
+
+        <g transform="rotate(-7 720 450)">
+          {SPRINT_STREAKS.map((streak) => (
+            <rect
+              key={`${streak.x}-${streak.y}`}
+              className="zk-anim"
+              x={streak.x}
+              y={streak.y}
+              width={streak.w}
+              height={1.5}
+              rx={0.75}
+              fill="url(#zk-streak-grad)"
+              style={{
+                animation: `zk-streak ${streak.dur} linear infinite`,
+                animationDelay: streak.delay,
+              }}
+            />
+          ))}
+        </g>
+      </svg>
+
+      {/* Single soft glow behind the card + edge vignette */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 45% 50% at 50% 48%, rgba(37, 99, 235, 0.14) 0%, transparent 72%),' +
+            'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(3, 6, 12, 0.55) 100%)',
+        }}
+      />
+    </div>
+  );
+}
+
+// globals.css forces .ant-card / .ant-input backgrounds with !important, so the
+// dark surface has to be reasserted at higher specificity under .zk-login.
+const formStyles = `
+.zk-login .ant-input,
+.zk-login .ant-input-affix-wrapper {
+  background-color: rgba(148, 163, 184, 0.07) !important;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  font-size: 14px;
+  padding-left: 20px;
+  padding-right: 20px;
+  color: #E8EDF5;
+}
+/* The inner input of an affix wrapper must stay bare, or it renders as a box-in-a-box */
+.zk-login .ant-input-affix-wrapper .ant-input {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #E8EDF5;
+}
+.zk-login .ant-input-affix-wrapper .ant-input:focus,
+.zk-login .ant-input-affix-wrapper .ant-input:hover {
+  border: none !important;
+  box-shadow: none !important;
+}
+.zk-login .ant-input::placeholder,
+.zk-login .ant-input-affix-wrapper input::placeholder { color: #5A6982 !important; }
+.zk-login .ant-input-affix-wrapper:hover,
+.zk-login .ant-input:hover { border-color: rgba(148, 163, 184, 0.34); }
+.zk-login .ant-input-affix-wrapper:focus-within,
+.zk-login .ant-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
+.zk-login .ant-form-item-label > label { color: #94A3B8 !important; font-size: 13px; }
+.zk-login .ant-checkbox-wrapper { color: #94A3B8; }
+.zk-login .ant-btn-primary { box-shadow: 0 8px 22px rgba(37, 99, 235, .32) !important; }
+.zk-login input:-webkit-autofill,
+.zk-login input:-webkit-autofill:hover,
+.zk-login input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #171d27 inset !important;
+  -webkit-text-fill-color: #E8EDF5 !important;
+  caret-color: #E8EDF5;
+}
+.zk-submit { transition: transform .2s ease, box-shadow .2s ease; }
+.zk-login .zk-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, .42) !important;
+}
+.zk-social { transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.zk-social:hover:not(:disabled) {
+  background: rgba(148, 163, 184, .12) !important;
+  border-color: rgba(148, 163, 184, .3) !important;
+  transform: translateY(-1px);
+}
+.zk-link:hover { color: #93C5FD !important; }
+.zk-login .ant-input-password-icon { color: #5A6982 !important; }
+.zk-login .ant-input-password-icon:hover { color: #94A3B8 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .zk-submit, .zk-social { transition: none; }
+  .zk-submit:hover, .zk-social:hover { transform: none; }
+}
+`;
+
+// The login page owns a fixed dark surface, independent of the user's app theme.
+const loginTheme = {
+  algorithm: antdTheme.darkAlgorithm,
+  token: {
+    colorPrimary: '#3B82F6',
+    colorText: '#E8EDF5',
+    colorTextSecondary: '#94A3B8',
+    colorTextPlaceholder: '#5A6982',
+    colorBorder: 'rgba(148, 163, 184, 0.16)',
+    borderRadius: 10,
+    fontFamily:
+      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  components: {
+    Input: {
+      colorBgContainer: 'rgba(148, 163, 184, 0.07)',
+      colorBorder: 'rgba(148, 163, 184, 0.14)',
+      hoverBorderColor: 'rgba(148, 163, 184, 0.32)',
+      activeBorderColor: '#3B82F6',
+      activeShadow: '0 0 0 3px rgba(59, 130, 246, 0.16)',
+      controlHeight: 48,
+      borderRadius: 999,
+    },
+    Form: {
+      itemMarginBottom: 12,
+    },
+    Checkbox: {
+      colorBgContainer: 'rgba(148, 163, 184, 0.08)',
+      colorBorder: 'rgba(148, 163, 184, 0.28)',
+    },
+    Button: {
+      controlHeight: 48,
+      borderRadius: 999,
+      fontWeight: 600,
+    },
+  },
+};
+
+export default function LoginPage() {
+  return (
+    <ConfigProvider theme={loginTheme}>
+      <div
+        className="zk-login"
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          background:
+            'linear-gradient(145deg, #090b10 0%, #11151d 45%, #0a0d13 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+          overflow: 'hidden',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-
+        <style>{backgroundStyles + formStyles}</style>
+        <TechBackground />
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            maxWidth: 380,
+          }}
+        >
+          {/* Logo + wordmark lockup */}
           <div
-  style={{
-    width: 100,
-    height: 100,
-    // background: '#ffffff',
-    // borderRadius: 16,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 20px',
-    // boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-  }}
->
-  <Image
-    src={Logo}
-    alt="Logo"
-    width={70}
-    height={70}
-    style={{ objectFit: 'contain' }}
-  />
-</div>
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
+              marginBottom: 32,
+            }}
+          >
+            <Image
+              src={Logo}
+              alt="Zukvo"
+              width={44}
+              height={44}
+              style={{ objectFit: 'contain', filter: 'invert(1)' }}
+            />
+            <Title
+              level={2}
+              style={{
+                margin: 0,
+                color: '#F8FAFC',
+                fontWeight: 600,
+                fontSize: 32,
+                letterSpacing: '-0.02em',
+                lineHeight: 1,
+              }}
+            >
+              Zukvo
+            </Title>
+          </div>
 
-          
-          <Title level={2} style={{ margin: 0, color: '#262626' }}>
-            Welcome Back !!!
-          </Title>
-          
-          {/* <Text type="secondary" style={{ fontSize: 14 }}>
-            Sign in to your Z account
-          </Text> */}
+          <Suspense fallback={<LoginFormSkeleton />}>
+            <LoginFormWithParams />
+          </Suspense>
+
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <Text style={{ fontSize: 12, color: '#4A566B' }}>
+              © {new Date().getFullYear()} Zukvo. All rights reserved.
+            </Text>
+          </div>
         </div>
-
-        <Suspense fallback={<LoginFormSkeleton />}>
-          <LoginFormWithParams />
-        </Suspense>
-
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-  © {new Date().getFullYear()} Zukvo. All rights reserved.
-</Text>
-
-        </div>
-      </Card>
-    </div>
+      </div>
+    </ConfigProvider>
   );
 }

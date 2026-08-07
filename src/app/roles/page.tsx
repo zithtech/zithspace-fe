@@ -104,7 +104,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   vendor: "Vendors",
   escalation: "Escalations",
   pipeline: "Sales Pipeline",
-  recruitment: "Recruitment pipeline",
+  recruitment: "Candidate Pipeline",
   exit: "Employee Exit",
   performance: "Performance",
   opening: "Opening Management",

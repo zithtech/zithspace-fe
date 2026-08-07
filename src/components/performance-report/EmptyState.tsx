@@ -38,6 +38,7 @@ export default function EmptyState({
           text-align: center;
           padding: 56px 24px;
           border: 1px solid var(--border-slate-100);
+          border-radius: 16px;
           background:
             radial-gradient(
               130% 90% at 50% 0%,
@@ -75,6 +76,7 @@ export default function EmptyState({
           top: 50%;
           background: var(--bg-secondary);
           border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
         }
         .pes-card--l {
           transform: translate(-50%, -52%) rotate(-11deg) translateX(-16px);
@@ -101,6 +103,7 @@ export default function EmptyState({
             color-mix(in srgb, var(--accent) 8%, var(--bg-pure-white))
           );
           border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--bg-pure-white));
+          border-radius: 18px;
           z-index: 2;
         }
         .pes-glow {

@@ -372,7 +372,7 @@ export default function actionStatus(){
                             {activeTab === '1' ? 'Status Settings' : 'Action Settings'}
                         </Title>
                         <Text type="secondary">
-                            {activeTab === '1' ? 'Configure recruitment pipeline stages' : 'Configure recruiter activities'}
+                            {activeTab === '1' ? 'Configure candidate pipeline stages' : 'Configure recruiter activities'}
                         </Text>
                     </Col>
                     <Col>

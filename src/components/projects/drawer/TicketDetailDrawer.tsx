@@ -47,6 +47,7 @@ import {
   MessageOutlined,
   PaperClipOutlined,
   CodeOutlined,
+  ExperimentOutlined,
   ThunderboltOutlined,
   FileTextOutlined,
   LoadingOutlined,
@@ -57,7 +58,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink, useTicketDocumentHubs } from "@/hooks/useTicketDetails";
+import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink, useTicketDocumentHubs, useTicketQaLinks, useAddTicketQaLink, useDeleteTicketQaLink } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, useAllTicketTags, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useAvailableSprints } from "@/hooks/useAvailableSprints";
@@ -87,6 +88,7 @@ import {
   AttachmentsSection,
   CommentsSection,
   RelatedLinksSection,
+  QaLinksSection,
   ActivityTimeline,
   LinkedDocumentHubsList,
 } from "../ticket-details";
@@ -198,6 +200,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const { data: relatedLinks = [], isLoading: linksLoading } = useTicketLinks(currentTicketId || "");
   const { data: attachments = [], isLoading: attachmentsLoading } = useTicketAttachments(currentTicketId || "");
   const { data: linkedHubs = [], isLoading: linkedHubsLoading } = useTicketDocumentHubs(currentTicketId || "");
+  const { data: qaLinks = [], isLoading: qaLinksLoading } = useTicketQaLinks(currentTicketId || "");
   const queryClient = useQueryClient();
 
   // Update editor content when description changes externally or when ticket changes
@@ -365,6 +368,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const addLinkMutation = useAddRelatedLink();
   const updateLinkMutation = useUpdateRelatedLink();
   const deleteLinkMutation = useDeleteRelatedLink();
+  const addQaLinkMutation = useAddTicketQaLink();
+  const deleteQaLinkMutation = useDeleteTicketQaLink();
 
   // Helper Options
   const priorities =
@@ -1384,7 +1389,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       key: 'comments',
                       label: (
                         <span>
-                          <MessageOutlined style={{ marginRight: 8 }} />
+                          <MessageOutlined style={{ marginRight: 6 }} />
                           Comments ({comments.length})
                         </span>
                       ),
@@ -1402,10 +1407,46 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       )
                     },
                     {
+                      key: 'qa',
+                      label: (
+                        <span>
+                          <ExperimentOutlined style={{ marginRight: 6 }} />
+                          QA ({qaLinks.length})
+                        </span>
+                      ),
+                      children: (
+                        <QaLinksSection
+                          qaLinks={qaLinks}
+                          isLoading={qaLinksLoading}
+                          canEdit={canUpdateTicket}
+                          onLink={async (entityType, entityId) => {
+                            await addQaLinkMutation.mutateAsync({ ticketId: currentTicketId || "", entityType, entityId });
+                          }}
+                          onUnlink={async (linkId) => {
+                            await deleteQaLinkMutation.mutateAsync({ ticketId: currentTicketId || "", linkId });
+                          }}
+                          isLinking={addQaLinkMutation.isPending}
+                          isUnlinking={deleteQaLinkMutation.isPending}
+                        />
+                      )
+                    },
+                    {
+                      key: 'timeline',
+                      label: (
+                        <span>
+                          <HistoryOutlined style={{ marginRight: 6 }} />
+                          Timeline
+                        </span>
+                      ),
+                      children: (
+                        <ActivityTimeline ticketId={currentTicketId} />
+                      )
+                    },
+                    {
                       key: 'attachments',
                       label: (
                         <span>
-                          <PaperClipOutlined style={{ marginRight: 8 }} />
+                          <PaperClipOutlined style={{ marginRight: 6 }} />
                           Attachments ({attachments.length + linkedHubs.length})
                         </span>
                       ),
@@ -1436,7 +1477,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       key: 'links',
                       label: (
                         <span>
-                          <LinkOutlined style={{ marginRight: 8 }} />
+                          <LinkOutlined style={{ marginRight: 6 }} />
                           Links ({relatedLinks.length})
                         </span>
                       ),
@@ -1454,22 +1495,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       )
                     },
                     {
-                      key: 'timeline',
-                      label: (
-                        <span>
-                          <HistoryOutlined style={{ marginRight: 8 }} />
-                          Timeline
-                        </span>
-                      ),
-                      children: (
-                        <ActivityTimeline ticketId={currentTicketId} />
-                      )
-                    },
-                    {
                       key: 'code',
                       label: (
                         <span>
-                          <CodeOutlined style={{ marginRight: 8 }} />
+                          <CodeOutlined style={{ marginRight: 6 }} />
                           Code
                         </span>
                       ),
@@ -2139,15 +2168,23 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           background: var(--bg-pure-white) !important;
           z-index: -1 !important;
         }
+        /* Sized so all six tabs fit the 1100px drawer's left column without
+           antd folding the overflow into its "⋯" dropdown (hidden below).
+           On narrower viewports rc-tabs' own wheel/drag scrolling still
+           reaches anything that doesn't fit. */
         .premium-tabs-wrapper .ant-tabs-tab {
-          padding: 8px 12px !important;
-          margin: 0 2px !important;
+          padding: 8px 7px !important;
+          margin: 0 1px !important;
           transition: all 0.3s ease !important;
+          white-space: nowrap !important;
+        }
+        .premium-tabs-wrapper .ant-tabs-nav-operations {
+          display: none !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab-btn {
           font-weight: 500 !important;
           color: #8c8c8c !important;
-          font-size: 13px !important;
+          font-size: 12px !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab-active .ant-tabs-tab-btn {
           color: #1890ff !important;

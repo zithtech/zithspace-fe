@@ -7,11 +7,12 @@ import {
   Empty,
   Input,
   Modal,
-  Popconfirm,
+  message,
   Skeleton,
   Table,
   Tooltip,
 } from 'antd';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { ColumnsType } from 'antd/es/table';
 import { ChevronDown, Plus, Trash2, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -48,9 +49,11 @@ const TERMINAL_STAGES: ApplicationStage[] = ['hired', 'rejected', 'withdrawn'];
 
 export default function CandidatesTab({
   openingId,
+  opening,
   onChanged,
 }: {
   openingId: string;
+  opening?: any;
   onChanged: () => void;
 }) {
   const perms = usePermission() as unknown as Record<string, any>;
@@ -62,7 +65,7 @@ export default function CandidatesTab({
   const [stageFilter, setStageFilter] = useState<ApplicationStage[]>([]);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [candidates, setCandidates] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [candidates, setCandidates] = useState<{ value: string; label: string; description?: string; role?: string }[]>([]);
   const [people, setPeople] = useState<{ value: string; label: string }[]>([]);
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [source, setSource] = useState<IntakeSource>('careers_page');
@@ -115,12 +118,13 @@ export default function CandidatesTab({
           PipelineService.listCandidates({ limit: 500 }),
           MembersService.getMembers({ limit: 500 } as any).catch(() => ({ data: [] } as any)),
         ]);
-        const candsList = candsRes.data?.items || [];
+        const candsList = candsRes.data?.candidates || [];
         setCandidates(
           candsList.map((c: any) => ({
             value: c.id,
             label: c.name ?? 'Candidate',
-            description: c.email,
+            description: c.role ? `${c.role} • ${c.email}` : c.email,
+            role: c.role,
           }))
         );
         const list = Array.isArray(members) ? members : (members as any)?.data ?? [];
@@ -144,10 +148,15 @@ export default function CandidatesTab({
     [catalog, source]
   );
 
-  const availableCandidates = useMemo(
-    () => candidates.filter((c) => !rows.some((r) => r.candidateId === c.value)),
-    [candidates, rows]
-  );
+  const availableCandidates = useMemo(() => {
+    let list = candidates.filter((c) => !rows.some((r) => r.candidateId === c.value));
+    if (opening?.jobTitle) {
+      const targetRole = opening.jobTitle.toLowerCase();
+      // Filter candidates to only those whose applied role matches the opening's job title
+      list = list.filter((c) => c.role && c.role.toLowerCase() === targetRole);
+    }
+    return list;
+  }, [candidates, rows, opening?.jobTitle]);
 
   const addCandidate = async () => {
     if (!candidateId) {
@@ -166,7 +175,7 @@ export default function CandidatesTab({
     setAdding(true);
     try {
       await OpeningV2Service.addApplication(openingId, {
-        candidateId,
+        pipelineCandidateId: candidateId,
         source,
         sourceDetail: sourceDetail.trim() || null,
         referredBy: referredBy || null,
@@ -329,15 +338,16 @@ export default function CandidatesTab({
                 }
               />
             )}
-            <Popconfirm
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={18} />}
               title="Remove from this opening?"
               description="The candidate record itself is kept."
-              okText="Remove"
-              okButtonProps={{ danger: true }}
+              confirmText="Remove"
               onConfirm={() => remove(r)}
             >
               <Button size="small" type="text" danger icon={<Trash2 size={13} />} />
-            </Popconfirm>
+            </ConfirmDialog>
           </div>
         );
       },

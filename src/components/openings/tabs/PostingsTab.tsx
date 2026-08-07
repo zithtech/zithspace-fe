@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Empty, Popconfirm, Skeleton, Tooltip } from 'antd';
+import { Button, Empty, Skeleton, Tooltip } from 'antd';
 import { Bot, Globe, Lock, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, { type OpeningPosting } from '@/services/openingV2Service';
@@ -130,16 +131,18 @@ export default function PostingsTab({
             </div>
 
             {live && perms.canUpdateOpening && (
-              <Popconfirm
+              <ConfirmDialog
+                tone="warning"
+                icon={<XCircle size={18} />}
                 title="Take this posting down?"
                 description="The opening's status is not changed."
-                okText="Take down"
+                confirmText="Take down"
                 onConfirm={() => takeDown(p.id)}
               >
                 <Button size="small" icon={<XCircle size={13} />}>
                   Take down
                 </Button>
-              </Popconfirm>
+              </ConfirmDialog>
             )}
           </div>
         );

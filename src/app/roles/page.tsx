@@ -79,6 +79,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   user: "Users / Members",
   project: "Projects",
   ticket: "Tickets",
+  qa: "QA Space",
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
@@ -170,6 +171,53 @@ const LEAVE_PAGE_ORDER = [
 ];
 
 /**
+ * QA Space — map each permission to the page it gates, so the Roles UI lists the
+ * 5 QA Space pages by name. Bug List moved here from Tickets, so its permissions
+ * group under QA Space too; trash/archive perms have no page of their own.
+ */
+const QA_PAGE_BY_PERM: Record<string, string> = {
+  'qa.scope.create': 'Test Scope',
+  'qa.scope.read': 'Test Scope',
+  'qa.scope.update': 'Test Scope',
+  'qa.scope.delete': 'Test Scope',
+  'qa.case.create': 'Test Cases',
+  'qa.case.read': 'Test Cases',
+  'qa.case.update': 'Test Cases',
+  'qa.case.delete': 'Test Cases',
+  'qa.suite.create': 'Test Suites',
+  'qa.suite.read': 'Test Suites',
+  'qa.suite.update': 'Test Suites',
+  'qa.suite.delete': 'Test Suites',
+  'qa.run.create': 'Test Runs',
+  'qa.run.read': 'Test Runs',
+  'qa.run.update': 'Test Runs',
+  'qa.run.delete': 'Test Runs',
+  'bug.create': 'Bug List',
+  'bug.read': 'Bug List',
+  'bug.update': 'Bug List',
+  'bug.delete': 'Bug List',
+  'bug.manage': 'Bug List',
+  'bug.archive.read': 'Bug Archive',
+  'bug.archive.restore': 'Bug Archive',
+  'bug.trash.read': 'Bug Recycle Bin',
+  'bug.trash.restore': 'Bug Recycle Bin',
+  'bug.trash.delete': 'Bug Recycle Bin',
+  'qa.manage': 'QA Settings',
+};
+
+/** Display order for the QA Space page sub-groups (mirrors the QA Space rail). */
+const QA_PAGE_ORDER = [
+  'Test Scope',
+  'Test Cases',
+  'Test Suites',
+  'Test Runs',
+  'Bug List',
+  'Bug Archive',
+  'Bug Recycle Bin',
+  'QA Settings',
+];
+
+/**
  * Performance — map each permission to the page it gates, so the Roles UI lists
  * the 4 Performance Report pages by name (Reports, Settings, Generated Reports,
  * My Reports). Legacy performance review perms group under "Performance Review".
@@ -251,7 +299,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
@@ -336,7 +384,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
   },
   {
     title: "HRMS",
@@ -685,12 +733,12 @@ export default function RolesPage() {
     try {
       const { grouped } = await RBACService.listPermissions();
 
-      // Merge 'bug' permissions into 'ticket'
-      if (grouped.bug && grouped.ticket) {
-        grouped.ticket = [...grouped.ticket, ...grouped.bug];
+      // Merge 'bug' permissions into 'qa'
+      if (grouped.bug && grouped.qa) {
+        grouped.qa = [...grouped.qa, ...grouped.bug];
         delete grouped.bug;
-      } else if (grouped.bug && !grouped.ticket) {
-        grouped.ticket = grouped.bug;
+      } else if (grouped.bug && !grouped.qa) {
+        grouped.qa = grouped.bug;
         delete grouped.bug;
       }
 
@@ -1810,6 +1858,14 @@ export default function RolesPage() {
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
+                        } else if (resource === 'qa') {
+                          // List the 5 QA Space pages by name, Bug List included
+                          // (see QA_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = QA_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
                         } else
                           perms.forEach((p) => {
                             const parts = p.name.split('.');
@@ -1895,7 +1951,9 @@ export default function RolesPage() {
                                       ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                       : resource === 'my_hub'
                                         ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                        : Object.entries(subGroups)
+                                        : resource === 'qa'
+                                          ? ([...QA_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                          : Object.entries(subGroups)
                                   ).map(([subTitle, subPerms]) => (
                                     <div key={subTitle} className="rp-acc-subgroup">
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
@@ -1923,16 +1981,10 @@ export default function RolesPage() {
                                                         const verb = action.split('.').pop() || action;
                                                         return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }
-                                                      if (name.startsWith('bug.')) {
-                                                        if (action.includes('trash.')) {
-                                                          const subAction = action.split('.')[1];
-                                                          return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                        }
-                                                        if (action.includes('archive.')) {
-                                                          const subAction = action.split('.')[1];
-                                                          return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                        }
-                                                        return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                      if (name.startsWith('qa.') || name.startsWith('bug.')) {
+                                                        // QA Space page is the sub-group title; show only the verb.
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }
                                                       if (name.startsWith('proposal.')) {
                                                         return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;

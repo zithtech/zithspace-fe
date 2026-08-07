@@ -187,7 +187,7 @@ export default function HivebugSidebar({
                   </div>
                   <div className="hb-brand-text">
                     <div className="hb-brand-name">Bug List</div>
-                    <div className="hb-brand-workspace">QA WORKSPACE</div>
+                    <div className="hb-brand-workspace">QA SPACE</div>
                   </div>
                 </>
               )}

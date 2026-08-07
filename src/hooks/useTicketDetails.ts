@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import TicketService from '@/services/ticketService';
+import TicketService, { QaEntityType } from '@/services/ticketService';
 import DocumentHubService from '@/services/documentHub';
 
 /**
@@ -57,6 +57,21 @@ export const useTicketLinks = (ticketId: string | undefined) => {
     enabled: !!ticketId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+/**
+ * Fetch QA records (test scopes / scenarios / runs) linked to the ticket.
+ * Cache: 2 minutes — names and statuses are read live from the QA tables, so
+ * a run flipping to Passed should show up without a hard reload.
+ */
+export const useTicketQaLinks = (ticketId: string | undefined) => {
+  return useQuery({
+    queryKey: ['ticket', ticketId, 'qaLinks'],
+    queryFn: () => TicketService.getQaLinks(ticketId!),
+    enabled: !!ticketId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 
@@ -239,6 +254,45 @@ export const useDeleteRelatedLink = () => {
       TicketService.deleteRelatedLink(ticketId, linkId),
     onSuccess: (_, { ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'links'] });
+    },
+  });
+};
+
+/**
+ * Add QA link mutation (test scope / scenario / run)
+ * Invalidates: QA links cache only
+ */
+export const useAddTicketQaLink = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      entityType,
+      entityId,
+    }: {
+      ticketId: string;
+      entityType: QaEntityType;
+      entityId: string;
+    }) => TicketService.addQaLink(ticketId, { entityType, entityId }),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'qaLinks'] });
+    },
+  });
+};
+
+/**
+ * Delete QA link mutation
+ * Invalidates: QA links cache only
+ */
+export const useDeleteTicketQaLink = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ticketId, linkId }: { ticketId: string; linkId: string }) =>
+      TicketService.deleteQaLink(ticketId, linkId),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'qaLinks'] });
     },
   });
 };

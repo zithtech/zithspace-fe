@@ -10,8 +10,8 @@ import BugListConfigManager from "@/components/projects/BugListConfigManager";
 export default function QaSettingsPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "QaSettings" });
 
-  const { canReadBug } = usePermission();
-  if (!canReadBug) return null;
+  const { canManageBugs } = usePermission();
+  if (!canManageBugs) return null;
 
   return (
     <MainLayout noPadding>

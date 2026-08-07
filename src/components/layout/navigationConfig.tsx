@@ -361,7 +361,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings),
             path: "/qa-workspace/settings",
-            requiredPermission: Permissions.BUG_READ,
+            requiredPermission: Permissions.BUG_MANAGE,
           },
         ],
       },

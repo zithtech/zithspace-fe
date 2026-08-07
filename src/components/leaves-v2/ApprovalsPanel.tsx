@@ -404,6 +404,7 @@ export default function ApprovalsPanel() {
           columns={columns}
           dataSource={paged}
           pagination={false}
+          scroll={{ x: 'max-content', y: 'calc(100vh - 460px)' }}
           expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
           onRow={() => ({ className: 'lvap-row' })}
         />
@@ -451,8 +452,11 @@ export default function ApprovalsPanel() {
         .lvap-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvap-filter-range { height: 34px; border-radius: 8px; }
         .lvap-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow-x: auto; }
+        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
         .lvap-table, .lvap-table.ant-table-wrapper, .lvap-table .ant-table, .lvap-table .ant-table-container, .lvap-table .ant-table-content, .lvap-table .ant-table-header, .lvap-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvap-table .ant-table-body { min-height: 200px; scrollbar-width: none; -ms-overflow-style: none; }
+        .lvap-table .ant-table-body::-webkit-scrollbar, .lvap-table .ant-table-content::-webkit-scrollbar, .lvap-table .ant-table-container::-webkit-scrollbar { display: none; }
+        .lvap-table .ant-table-content, .lvap-table .ant-table-container { scrollbar-width: none; -ms-overflow-style: none; }
         .lvap-table .ant-table-thead > tr > th,
         .lvap-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;

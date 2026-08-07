@@ -16,6 +16,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = [
   "/login",
+  "/onboard/",
+  "/onboard",
   "/public/",
   "/_next/",
   "/favicon.ico",

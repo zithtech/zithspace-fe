@@ -380,7 +380,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (
           typeof window !== "undefined" &&
           !window.location.pathname.includes("/login") &&
-          !window.location.pathname.startsWith("/public")
+          !window.location.pathname.startsWith("/public") &&
+          !window.location.pathname.startsWith("/onboard")
         ) {
           router.push("/login?error=session_expired");
         }

@@ -72,6 +72,18 @@ export interface MemberListResult {
   totalPages: number;
 }
 
+/** One Position / Department option for the directory filters (with member count). */
+export interface MemberFilterOption {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface MemberFilterOptions {
+  positions: MemberFilterOption[];
+  departments: MemberFilterOption[];
+}
+
 export interface GeneratedReport {
   id: string;
   userId: string;
@@ -200,6 +212,8 @@ const PerformanceReportService = {
     limit?: number;
     search?: string;
     projectId?: string;
+    positionId?: string;
+    departmentId?: string;
   }): Promise<MemberListResult> {
     const res = await apiClient.get(`${BASE}/members`, {
       params: {
@@ -207,6 +221,8 @@ const PerformanceReportService = {
         limit: params.limit ?? 12,
         ...(params.search ? { search: params.search } : {}),
         ...(params.projectId ? { projectId: params.projectId } : {}),
+        ...(params.positionId ? { positionId: params.positionId } : {}),
+        ...(params.departmentId ? { departmentId: params.departmentId } : {}),
       },
     });
     return (
@@ -218,6 +234,12 @@ const PerformanceReportService = {
         totalPages: 1,
       }
     );
+  },
+
+  /** Position + department options actually held by members (directory filters). */
+  async getMemberFilterOptions(): Promise<MemberFilterOptions> {
+    const res = await apiClient.get(`${BASE}/members/filters`);
+    return unwrap<MemberFilterOptions>(res.data) ?? { positions: [], departments: [] };
   },
 
   /** Persist the full settings payload. */

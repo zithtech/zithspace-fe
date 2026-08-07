@@ -361,7 +361,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             icon: I(Settings),
             path: "/qa-workspace/settings",
-            requiredPermission: Permissions.BUG_READ,
+            requiredPermission: Permissions.BUG_MANAGE,
           },
         ],
       },
@@ -905,7 +905,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/pipeline",
         icon: I(Users),
-        label: "Recruitment Pipeline",
+        label: "Candidate Pipeline",
         path: "/pipeline/candidates",
         requiredAnyPermission: [
           Permissions.RECRUITMENT_READ,

@@ -446,15 +446,16 @@ export const usePermission = () => {
     canManageSquads: hasPermission(Permissions.SQUAD_MANAGE),
 
     // ─── Bug List (QA workspace; converts to tickets) ────────────────
-    canCreateBug: hasPermission(Permissions.BUG_CREATE),
-    canReadBug:   hasPermission(Permissions.BUG_READ),
-    canUpdateBug: hasPermission(Permissions.BUG_UPDATE),
-    canDeleteBug: hasPermission(Permissions.BUG_DELETE),
-    canReadBugTrash:    hasPermission(Permissions.BUG_TRASH_READ),
-    canRestoreBugTrash: hasPermission(Permissions.BUG_TRASH_RESTORE),
-    canDeleteBugTrash:  hasPermission(Permissions.BUG_TRASH_DELETE),
-    canReadBugArchive:    hasPermission(Permissions.BUG_ARCHIVE_READ),
-    canRestoreBugArchive: hasPermission(Permissions.BUG_ARCHIVE_RESTORE),
+    canCreateBug: hasAnyPermission(Permissions.BUG_CREATE, Permissions.BUG_MANAGE),
+    canReadBug:   hasAnyPermission(Permissions.BUG_READ, Permissions.BUG_MANAGE),
+    canUpdateBug: hasAnyPermission(Permissions.BUG_UPDATE, Permissions.BUG_MANAGE),
+    canDeleteBug: hasAnyPermission(Permissions.BUG_DELETE, Permissions.BUG_MANAGE),
+    canReadBugTrash:    hasAnyPermission(Permissions.BUG_TRASH_READ, Permissions.BUG_MANAGE),
+    canRestoreBugTrash: hasAnyPermission(Permissions.BUG_TRASH_RESTORE, Permissions.BUG_MANAGE),
+    canDeleteBugTrash:  hasAnyPermission(Permissions.BUG_TRASH_DELETE, Permissions.BUG_MANAGE),
+    canReadBugArchive:    hasAnyPermission(Permissions.BUG_ARCHIVE_READ, Permissions.BUG_MANAGE),
+    canRestoreBugArchive: hasAnyPermission(Permissions.BUG_ARCHIVE_RESTORE, Permissions.BUG_MANAGE),
+    canDeleteBugArchive:  hasAnyPermission(Permissions.BUG_ARCHIVE_DELETE, Permissions.BUG_MANAGE),
     canManageBugs: hasPermission(Permissions.BUG_MANAGE),
 
     // ─── QA Space ───────────────────────────────────────────────────
@@ -462,6 +463,7 @@ export const usePermission = () => {
     canReadScope:   hasPermission(Permissions.QA_SCOPE_READ),
     canUpdateScope: hasPermission(Permissions.QA_SCOPE_UPDATE),
     canDeleteScope: hasPermission(Permissions.QA_SCOPE_DELETE),
+    canApproveScope: hasAnyPermission(Permissions.QA_SCOPE_APPROVE, Permissions.QA_MANAGE),
     canCreateCase:  hasPermission(Permissions.QA_CASE_CREATE),
     canReadCase:    hasPermission(Permissions.QA_CASE_READ),
     canUpdateCase:  hasPermission(Permissions.QA_CASE_UPDATE),

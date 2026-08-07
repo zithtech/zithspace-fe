@@ -104,7 +104,7 @@ function TestRunsContent() {
   );
   const selectedSuiteCases = parseInt(selectedSuite?.case_count || '0', 10) || 0;
 
-  const { canReadRun, canCreateRun } = usePermission();
+  const { canReadRun, canCreateRun, canUpdateRun, canDeleteRun } = usePermission();
 
   const fetchData = async () => {
     try {
@@ -288,21 +288,23 @@ function TestRunsContent() {
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
           <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => openExecuteDrawer(record)} className="rn-exec">
-            Execute
+            {canUpdateRun ? 'Execute' : 'View'}
           </Button>
-          <ConfirmDialog
-            tone="danger"
-            title="Delete Test Run?"
-            description="Are you sure you want to delete this test run and all its execution records?"
-            confirmText="Delete"
-            onConfirm={() => handleDeleteRun(record.id)}
-          >
-            <Tooltip title="Delete">
-              <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
-                <Trash2 size={15} />
-              </button>
-            </Tooltip>
-          </ConfirmDialog>
+          {canDeleteRun && (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete Test Run?"
+              description="Are you sure you want to delete this test run and all its execution records?"
+              confirmText="Delete"
+              onConfirm={() => handleDeleteRun(record.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                  <Trash2 size={15} />
+                </button>
+              </Tooltip>
+            </ConfirmDialog>
+          )}
         </div>
       )
     }
@@ -331,22 +333,24 @@ function TestRunsContent() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
-            <ConfirmDialog
-              tone="danger"
-              title="Delete Test Run?"
-              description="Are you sure you want to delete this test run and all its execution records?"
-              confirmText="Delete"
-              onConfirm={() => handleDeleteRun(r.id)}
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={<Trash2 size={15} />}
-                onClick={(e) => e.stopPropagation()}
-                style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                title="Delete Test Run"
-              />
-            </ConfirmDialog>
+            {canDeleteRun && (
+              <ConfirmDialog
+                tone="danger"
+                title="Delete Test Run?"
+                description="Are you sure you want to delete this test run and all its execution records?"
+                confirmText="Delete"
+                onConfirm={() => handleDeleteRun(r.id)}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Trash2 size={15} />}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  title="Delete Test Run"
+                />
+              </ConfirmDialog>
+            )}
           </div>
         </div>
 

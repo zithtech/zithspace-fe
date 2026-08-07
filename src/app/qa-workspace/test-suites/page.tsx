@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Input, Modal, Select, Checkbox, Row, Col, Typography, Drawer, Form, Tooltip } from "antd";
-import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, FolderOutlined, InfoCircleOutlined, CloseOutlined, FileTextOutlined } from "@ant-design/icons";
+import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, FolderOutlined, InfoCircleOutlined, CloseOutlined, FileTextOutlined, LoadingOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { Layers, Trash2, Pencil, Folder, Sparkles, SpellCheck } from "lucide-react";
+import { Layers, Trash2, Pencil, Folder, Sparkles, SpellCheck, Wand2, Zap, Copy, ChevronDown } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -16,6 +16,17 @@ import dayjs from "dayjs";
 
 const { Text } = Typography;
 type TabKey = "suites";
+
+/** Module cases stream into the drawer a page at a time, straight off the server. */
+const CASE_PAGE_SIZE = 20;
+
+/** Starter instructions offered in the Zai drawer for the suite description. */
+const ZAI_SUGGESTIONS = [
+  { title: "Coverage Summary", icon: "📋", body: "Summarise what this suite covers, which user journeys it exercises, and what a passing run proves." },
+  { title: "Regression Focus", icon: "🔁", body: "Describe this suite as a regression pack: what it guards against and when the team should run it before a release." },
+  { title: "Risk Framing", icon: "⚠️", body: "Describe the suite with an emphasis on the riskiest areas it validates and what could break in production if it is skipped." },
+  { title: "Stakeholder Brief", icon: "🤝", body: "Write a short, non-technical description a product owner can read in one pass to understand what this suite verifies." },
+];
 
 /* Product-standard stat tile */
 const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
@@ -90,12 +101,28 @@ export default function TestSuitesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSuite, setEditingSuite] = useState<any>(null);
   const [formData, setFormData] = useState<any>({ test_case_ids: [], parent_test_case_id: undefined });
-  const [childTestCases, setChildTestCases] = useState<any[]>([]);
-  const [caseSearchTerm, setCaseSearchTerm] = useState("");
   const [aiBusy, setAiBusy] = useState<'generate' | 'grammar' | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const { canReadSuite, canCreateSuite } = usePermission();
+  /* ── Link Module Test Cases: server-paged list ──────────────────────────── */
+  const [childTestCases, setChildTestCases] = useState<any[]>([]);
+  const [caseSearchTerm, setCaseSearchTerm] = useState("");
+  const [caseSearchQuery, setCaseSearchQuery] = useState("");   // debounced, hits the API
+  const [casesLoading, setCasesLoading] = useState(false);      // first page / new search
+  const [casesLoadingMore, setCasesLoadingMore] = useState(false);
+  const [casesTotal, setCasesTotal] = useState(0);
+  const [casesHasMore, setCasesHasMore] = useState(false);
+  const [selectingAll, setSelectingAll] = useState(false);
+  /** Guards against an older page landing after a newer search. */
+  const caseReqRef = useRef(0);
+
+  /* ── Zai description assistant ──────────────────────────────────────────── */
+  const [zaiOpen, setZaiOpen] = useState(false);
+  const [zaiView, setZaiView] = useState<'prompt' | 'preview'>('prompt');
+  const [zaiPrompt, setZaiPrompt] = useState("");
+  const [zaiDraft, setZaiDraft] = useState("");
+
+  const { canReadSuite, canCreateSuite, canUpdateSuite, canDeleteSuite } = usePermission();
 
   const fetchData = async () => {
     try {
@@ -121,35 +148,87 @@ export default function TestSuitesPage() {
     }
   }, [canReadSuite]);
 
-  // Fetch child test cases when parent_test_case_id or module_id is selected
-  useEffect(() => {
-    const fetchCases = async () => {
-      if (formData.parent_test_case_id) {
-        try {
-          const res: any = await axios.get(`/api/v2/qa?parent_id=${formData.parent_test_case_id}`);
-          const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
-          setChildTestCases(list);
-        } catch (e) {
-          message.error("Failed to fetch child test cases for scenario");
-        }
-      } else if (formData.module_id) {
-        // Fallback for legacy suites without a parent_test_case_id set yet
-        try {
-          const res: any = await axios.get(`/api/v2/qa?module_id=${formData.module_id}`);
-          const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
-          setChildTestCases(list);
-        } catch (e) {
-          message.error("Failed to fetch test cases for module");
-        }
-      } else {
-        setChildTestCases([]);
+  /** Query the drawer's case list is scoped to — scenario first, module as fallback. */
+  const caseScopeParams = () => {
+    const params: Record<string, any> = {};
+    if (formData.parent_test_case_id) params.parent_id = formData.parent_test_case_id;
+    else if (formData.module_id) params.module_id = formData.module_id;
+    if (caseSearchQuery) params.search = caseSearchQuery;
+    return params;
+  };
+
+  /**
+   * One page of module cases. `offset === 0` replaces the list (new scope or new
+   * search); anything else appends, which is what the scroll handler asks for.
+   */
+  const loadCasePage = async (offset: number) => {
+    if (!formData.parent_test_case_id && !formData.module_id) {
+      setChildTestCases([]);
+      setCasesTotal(0);
+      setCasesHasMore(false);
+      return;
+    }
+
+    const reqId = ++caseReqRef.current;
+    if (offset === 0) setCasesLoading(true); else setCasesLoadingMore(true);
+
+    try {
+      const res: any = await axios.get('/api/v2/qa', {
+        params: { ...caseScopeParams(), paginated: true, limit: CASE_PAGE_SIZE, offset },
+      });
+      if (reqId !== caseReqRef.current) return; // a newer request already won
+
+      const items = res?.items || (Array.isArray(res) ? res : res?.data?.items || []);
+      const total = res?.total ?? items.length;
+      const hasMore = res?.hasMore ?? (offset + items.length < total);
+
+      setChildTestCases(prev => (offset === 0 ? items : [...prev, ...items]));
+      setCasesTotal(total);
+      setCasesHasMore(!!hasMore);
+    } catch (e) {
+      if (reqId === caseReqRef.current) message.error("Failed to fetch module test cases");
+    } finally {
+      if (reqId === caseReqRef.current) {
+        setCasesLoading(false);
+        setCasesLoadingMore(false);
       }
-    };
-    fetchCases();
-  }, [formData.parent_test_case_id, formData.module_id]);
+    }
+  };
+
+  // Typing waits a beat before hitting the server
+  useEffect(() => {
+    const t = setTimeout(() => setCaseSearchQuery(caseSearchTerm.trim()), 300);
+    return () => clearTimeout(t);
+  }, [caseSearchTerm]);
+
+  // Scope or search changed — start again from the first page
+  useEffect(() => {
+    loadCasePage(0);
+  }, [formData.parent_test_case_id, formData.module_id, caseSearchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Pulls the next 20 once the list is scrolled near its end. */
+  const handleCaseListScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!casesHasMore || casesLoading || casesLoadingMore) return;
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight <= 60) {
+      loadCasePage(childTestCases.length);
+    }
+  };
+
+  /** Wipes the paged list so a reopened drawer never shows the last suite's cases. */
+  const resetCaseList = () => {
+    caseReqRef.current++;
+    setCaseSearchTerm("");
+    setCaseSearchQuery("");
+    setChildTestCases([]);
+    setCasesTotal(0);
+    setCasesHasMore(false);
+    setCasesLoading(false);
+    setCasesLoadingMore(false);
+  };
 
   const openCreateModal = async (record?: any) => {
-    setCaseSearchTerm("");
+    resetCaseList();
     if (record) {
       setEditingSuite(record);
       try {
@@ -176,7 +255,8 @@ export default function TestSuitesPage() {
     setModalOpen(false);
     setEditingSuite(null);
     setFormData({ test_case_ids: [], parent_test_case_id: undefined });
-    setCaseSearchTerm("");
+    resetCaseList();
+    setZaiOpen(false);
   };
 
   const handleSaveSuite = async () => {
@@ -224,18 +304,13 @@ export default function TestSuitesPage() {
     }
   };
 
-  const filteredModalCases = useMemo(() => {
-    if (!caseSearchTerm) return childTestCases;
-    const s = caseSearchTerm.toLowerCase();
-    return childTestCases.filter(tc =>
-      tc.name?.toLowerCase().includes(s) ||
-      tc.test_case_id?.toLowerCase().includes(s)
-    );
-  }, [childTestCases, caseSearchTerm]);
-
-  /** Draft or copy-edit the suite description. */
-  const runSuiteAi = async (mode: 'generate' | 'grammar') => {
-    if (aiBusy) return;
+  /**
+   * Ask Zai for a description. `mode: 'generate'` is the prompt-driven draft
+   * shown in the Zai panel; `mode: 'grammar'` is the inline copy-edit that
+   * writes straight back into the field.
+   */
+  const runSuiteAi = async (mode: 'generate' | 'grammar', userPrompt?: string) => {
+    if (aiBusy) return null;
     setAiBusy(mode);
     try {
       const parent = parents.find((p: any) => p.id === formData.parent_test_case_id);
@@ -246,38 +321,82 @@ export default function TestSuitesPage() {
         scenarioTitle: parent?.title,
         moduleName: parent?.module_name,
         caseCount: formData.test_case_ids?.length || 0,
+        userPrompt: userPrompt || '',
       });
-      const next = (res?.data?.data?.text ?? res?.data?.text ?? '').trim();
+      const next = (res?.text ?? res?.data?.text ?? '').trim();
       if (!next) {
         message.error('Zai returned an empty response.');
-        return;
+        return null;
       }
-      if (mode === 'grammar' && next === (formData.description || '').trim()) {
-        message.info('Already looks good');
-        return;
+      if (mode === 'grammar') {
+        if (next === (formData.description || '').trim()) {
+          message.info('Already looks good');
+          return null;
+        }
+        setFormData((prev: any) => ({ ...prev, description: next }));
+        message.success('Grammar polished');
       }
-      setFormData((prev: any) => ({ ...prev, description: next }));
-      message.success(mode === 'grammar' ? 'Grammar polished' : 'Zai drafted the description');
+      return next;
     } catch (err: any) {
       console.error(err);
       message.error(err?.response?.data?.error || 'Failed to generate text');
+      return null;
     } finally {
       setAiBusy(null);
     }
   };
 
-  const allFilteredSelected =
-    filteredModalCases.length > 0 &&
-    filteredModalCases.every((tc: any) => formData.test_case_ids?.includes(tc.id));
+  const openZai = () => {
+    setZaiPrompt("");
+    setZaiDraft("");
+    setZaiView('prompt');
+    setZaiOpen(true);
+  };
 
-  const handleSelectAll = (e: any) => {
-    if (e.target.checked) {
-      const allIds = Array.from(new Set([...(formData.test_case_ids || []), ...filteredModalCases.map(tc => tc.id)]));
-      setFormData({ ...formData, test_case_ids: allIds });
-    } else {
-      const filteredIds = new Set(filteredModalCases.map(tc => tc.id));
-      const remaining = (formData.test_case_ids || []).filter((id: string) => !filteredIds.has(id));
-      setFormData({ ...formData, test_case_ids: remaining });
+  /** Runs the instruction and moves the panel to its preview state. */
+  const submitZaiPrompt = async () => {
+    if (!zaiPrompt.trim() || aiBusy) return;
+    const next = await runSuiteAi('generate', zaiPrompt.trim());
+    if (next) {
+      setZaiDraft(next);
+      setZaiView('preview');
+    }
+  };
+
+  const applyZaiDraft = (action: 'replace' | 'append') => {
+    const current = (formData.description || '').trim();
+    const next = action === 'replace' || !current ? zaiDraft : `${current}\n\n${zaiDraft}`;
+    setFormData((prev: any) => ({ ...prev, description: next }));
+    setZaiOpen(false);
+    message.success('Description updated');
+  };
+
+  /** Every loaded case is ticked — the affordance flips to "clear" at that point. */
+  const allLoadedSelected =
+    childTestCases.length > 0 &&
+    childTestCases.every((tc: any) => formData.test_case_ids?.includes(tc.id));
+
+  /**
+   * Selects every case matching the current scope and search, including the
+   * pages that haven't been scrolled into view — the ids come from the server.
+   */
+  const selectAllMatching = async () => {
+    if (selectingAll) return;
+    setSelectingAll(true);
+    try {
+      const res: any = await axios.get('/api/v2/qa', {
+        params: { ...caseScopeParams(), ids_only: true },
+      });
+      const rows = Array.isArray(res) ? res : (res?.data || []);
+      const ids = rows.map((r: any) => r.id);
+      setFormData((prev: any) => ({
+        ...prev,
+        test_case_ids: Array.from(new Set([...(prev.test_case_ids || []), ...ids])),
+      }));
+    } catch {
+      message.error('Failed to select all matching cases');
+    } finally {
+      setSelectingAll(false);
     }
   };
 
@@ -406,24 +525,29 @@ export default function TestSuitesPage() {
       align: "right" as const,
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
-          <Tooltip title="Edit">
-            <button onClick={(e) => { e.stopPropagation(); openCreateModal(record); }} aria-label="Edit">
-              <Pencil size={15} />
-            </button>
-          </Tooltip>
-          <ConfirmDialog
-            tone="danger"
-            title="Delete Test Suite?"
-            description="Are you sure you want to delete this test suite? Associated test cases will remain untouched."
-            confirmText="Delete"
-            onConfirm={() => handleDeleteSuite(record.id)}
-          >
-            <Tooltip title="Delete">
-              <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
-                <Trash2 size={15} />
+          {canUpdateSuite && (
+            <Tooltip title="Edit">
+              <button onClick={(e) => { e.stopPropagation(); openCreateModal(record); }} aria-label="Edit">
+                <Pencil size={15} />
               </button>
             </Tooltip>
-          </ConfirmDialog>
+          )}
+          {canDeleteSuite && (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete Test Suite?"
+              description="Are you sure you want to delete this test suite? Associated test cases will remain untouched."
+              confirmText="Delete"
+              onConfirm={() => handleDeleteSuite(record.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                  <Trash2 size={15} />
+                </button>
+              </Tooltip>
+            </ConfirmDialog>
+          )}
+          {!canUpdateSuite && !canDeleteSuite && <span className="sc-muted">—</span>}
         </div>
       )
     }
@@ -448,33 +572,37 @@ export default function TestSuitesPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
-            <Button
-              type="text"
-              size="small"
-              icon={<Pencil size={15} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                openCreateModal(r);
-              }}
-              style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-              title="Edit Suite"
-            />
-            <ConfirmDialog
-              tone="danger"
-              title="Delete Test Suite?"
-              description="Are you sure you want to delete this test suite? Associated test cases will remain untouched."
-              confirmText="Delete"
-              onConfirm={() => handleDeleteSuite(r.id)}
-            >
+            {canUpdateSuite && (
               <Button
                 type="text"
                 size="small"
-                icon={<Trash2 size={15} />}
-                onClick={(e) => e.stopPropagation()}
-                style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                title="Delete Suite"
+                icon={<Pencil size={15} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCreateModal(r);
+                }}
+                style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                title="Edit Suite"
               />
-            </ConfirmDialog>
+            )}
+            {canDeleteSuite && (
+              <ConfirmDialog
+                tone="danger"
+                title="Delete Test Suite?"
+                description="Are you sure you want to delete this test suite? Associated test cases will remain untouched."
+                confirmText="Delete"
+                onConfirm={() => handleDeleteSuite(r.id)}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Trash2 size={15} />}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  title="Delete Suite"
+                />
+              </ConfirmDialog>
+            )}
           </div>
         </div>
 
@@ -733,24 +861,52 @@ export default function TestSuitesPage() {
         .lk-bar { height: 3px; margin-top: 7px; border-radius: 999px; background: var(--border-slate-200); overflow: hidden; }
         .lk-bar > span { display: block; height: 100%; background: #3B82F6; transition: width .25s ease; }
 
-        /* Compact search that reads as a filter, not a form field */
-        .lk-search.ant-input-affix-wrapper {
-          height: 32px !important; min-height: 32px !important;
-          margin-bottom: 8px; border-radius: 8px; padding: 0 10px;
-          background: var(--bg-slate-50); border-color: var(--border-slate-200);
-          transition: all .15s ease;
+        /* Search bar — reads as a filter, carries its own result counter */
+        .lk-search {
+          display: flex; align-items: center; gap: 8px;
+          height: 38px; margin-bottom: 8px; padding: 0 8px 0 7px;
+          border-radius: 9px; box-sizing: border-box;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
         }
-        .lk-search.ant-input-affix-wrapper:hover { border-color: #bfdbfe; }
-        .lk-search.ant-input-affix-wrapper-focused {
+        .lk-search:hover { border-color: #bfdbfe; }
+        .lk-search:focus-within {
           background: var(--bg-pure-white); border-color: #3B82F6;
-          box-shadow: 0 0 0 2px rgba(59,130,246,.12);
+          box-shadow: 0 0 0 3px rgba(59,130,246,.12);
         }
-        .lk-search .ant-input { background: transparent !important; font-size: 12.5px; }
-        .lk-search .ant-input-prefix { margin-inline-end: 7px; }
+        .lk-search__icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 24px; height: 24px; border-radius: 7px; font-size: 12px;
+          background: rgba(59,130,246,.1); color: #2563eb;
+          transition: background .15s ease, color .15s ease;
+        }
+        .lk-search.is-filled .lk-search__icon { background: #3B82F6; color: #fff; }
+        .lk-search__input {
+          flex: 1; min-width: 0; height: 100%;
+          border: none; outline: none; background: transparent;
+          font-size: 12.5px; color: var(--text-slate-900);
+        }
+        .lk-search__input::placeholder { color: var(--text-slate-400); }
+        .lk-search__spin { flex-shrink: 0; font-size: 12px; color: #3B82F6; }
+        .lk-search__hint, .lk-search__count {
+          flex-shrink: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+          padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+        }
+        .lk-search__count { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.24); color: #2563eb; }
+        .lk-search__clear {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 22px; height: 22px; border-radius: 6px; font-size: 10px;
+          border: none; background: transparent; cursor: pointer;
+          color: var(--text-slate-400); transition: all .15s ease;
+        }
+        .lk-search__clear:hover { background: var(--bg-slate-100, #f1f5f9); color: var(--text-slate-700); }
 
         .lk-list {
           display: flex; flex-direction: column; gap: 5px;
           max-height: 268px; overflow-y: auto; padding-right: 3px;
+          overscroll-behavior: contain;
         }
         .lk-list::-webkit-scrollbar { width: 6px; }
         .lk-list::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
@@ -783,6 +939,30 @@ export default function TestSuitesPage() {
           color: var(--text-slate-500);
         }
         .lk-item.is-on .lk-chip { background: var(--bg-pure-white); }
+
+        /* Tail of the paged list — loader, manual trigger, end marker */
+        .lk-more {
+          display: flex; align-items: center; justify-content: center; gap: 7px;
+          padding: 9px 10px; margin-top: 1px; border-radius: 8px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
+        }
+        .lk-more--btn {
+          width: 100%; cursor: pointer; color: #2563eb;
+          background: var(--bg-blue-50); border: 1px dashed #bfdbfe;
+          transition: all .15s ease;
+        }
+        .lk-more--btn:hover { background: rgba(59,130,246,.12); border-style: solid; }
+        .lk-more--end { color: var(--text-slate-400); font-weight: 500; }
+
+        .lk-skeleton {
+          height: 46px; border-radius: 8px;
+          border: 1px solid var(--border-slate-100); background: var(--bg-slate-50);
+          animation: lk-pulse 1.2s ease-in-out infinite;
+        }
+        .lk-skeleton:nth-child(2) { animation-delay: .1s; }
+        .lk-skeleton:nth-child(3) { animation-delay: .2s; }
+        .lk-skeleton:nth-child(4) { animation-delay: .3s; }
+        @keyframes lk-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
         .lk-empty {
           padding: 28px 20px; text-align: center; border-radius: 10px;
@@ -1121,7 +1301,7 @@ export default function TestSuitesPage() {
                         type="button"
                         className="sd-mini sd-mini--ai"
                         disabled={aiBusy === 'generate'}
-                        onClick={() => runSuiteAi('generate')}
+                        onClick={openZai}
                       >
                         <Sparkles size={11} /> {aiBusy === 'generate' ? 'Drafting…' : 'Create with Zai'}
                       </button>
@@ -1159,16 +1339,16 @@ export default function TestSuitesPage() {
                   <div className="lk-summary">
                     <div className="lk-summary__row">
                       <span className="lk-summary__count">
-                        <strong>{formData.test_case_ids?.length || 0}</strong> of {childTestCases.length} selected
+                        <strong>{formData.test_case_ids?.length || 0}</strong> of {casesTotal} selected
                       </span>
                       <div className="lk-summary__actions">
                         <button
                           type="button"
                           className="lk-link"
-                          onClick={() => setFormData({ ...formData, test_case_ids: filteredModalCases.map((tc: any) => tc.id) })}
-                          disabled={filteredModalCases.length === 0 || allFilteredSelected}
+                          onClick={selectAllMatching}
+                          disabled={casesTotal === 0 || selectingAll || (allLoadedSelected && !casesHasMore)}
                         >
-                          Select {caseSearchTerm ? 'filtered' : 'all'}
+                          {selectingAll ? 'Selecting…' : `Select ${caseSearchQuery ? 'all matches' : 'all'}`}
                         </button>
                         <span className="lk-dot" />
                         <button
@@ -1182,34 +1362,63 @@ export default function TestSuitesPage() {
                       </div>
                     </div>
                     <div className="lk-bar">
-                      <span style={{ width: `${childTestCases.length ? ((formData.test_case_ids?.length || 0) / childTestCases.length) * 100 : 0}%` }} />
+                      <span style={{ width: `${casesTotal ? ((formData.test_case_ids?.length || 0) / casesTotal) * 100 : 0}%` }} />
                     </div>
                   </div>
 
-                  <Input
-                    placeholder="Search module cases by name or ID…"
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={caseSearchTerm}
-                    onChange={(e) => setCaseSearchTerm(e.target.value)}
-                    className="lk-search"
-                    allowClear
-                  />
+                  {/* Search — server-side, so it spans every case, not just the loaded page */}
+                  <div className={`lk-search${caseSearchTerm ? ' is-filled' : ''}`}>
+                    <span className="lk-search__icon"><SearchOutlined /></span>
+                    <input
+                      className="lk-search__input"
+                      placeholder="Search module cases by name or ID…"
+                      value={caseSearchTerm}
+                      onChange={(e) => setCaseSearchTerm(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setCaseSearchTerm(''); }}
+                    />
+                    {casesLoading && caseSearchTerm ? (
+                      <span className="lk-search__spin"><LoadingOutlined /></span>
+                    ) : null}
+                    {caseSearchTerm ? (
+                      <>
+                        <span className="lk-search__count">
+                          {casesTotal} match{casesTotal === 1 ? '' : 'es'}
+                        </span>
+                        <button
+                          type="button"
+                          className="lk-search__clear"
+                          onClick={() => setCaseSearchTerm('')}
+                          aria-label="Clear search"
+                        >
+                          <CloseOutlined />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="lk-search__hint">{casesTotal} case{casesTotal === 1 ? '' : 's'}</span>
+                    )}
+                  </div>
 
-                  {childTestCases.length === 0 ? (
-                    <div className="lk-empty">
-                      <FileTextOutlined className="lk-empty__icon" />
-                      <p className="lk-empty__title">No module cases in this scenario</p>
-                      <p className="lk-empty__desc">Add module cases to the scenario first, then link them here.</p>
-                    </div>
-                  ) : filteredModalCases.length === 0 ? (
-                    <div className="lk-empty">
-                      <SearchOutlined className="lk-empty__icon" />
-                      <p className="lk-empty__title">No cases match “{caseSearchTerm}”</p>
-                      <p className="lk-empty__desc">Try a different name or case ID.</p>
-                    </div>
-                  ) : (
+                  {casesLoading ? (
                     <div className="lk-list">
-                      {filteredModalCases.map((tc: any) => {
+                      {[0, 1, 2, 3].map(i => <div key={i} className="lk-skeleton" />)}
+                    </div>
+                  ) : childTestCases.length === 0 ? (
+                    caseSearchQuery ? (
+                      <div className="lk-empty">
+                        <SearchOutlined className="lk-empty__icon" />
+                        <p className="lk-empty__title">No cases match “{caseSearchQuery}”</p>
+                        <p className="lk-empty__desc">Try a different name or case ID.</p>
+                      </div>
+                    ) : (
+                      <div className="lk-empty">
+                        <FileTextOutlined className="lk-empty__icon" />
+                        <p className="lk-empty__title">No module cases in this scenario</p>
+                        <p className="lk-empty__desc">Add module cases to the scenario first, then link them here.</p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="lk-list" onScroll={handleCaseListScroll}>
+                      {childTestCases.map((tc: any) => {
                         const checked = formData.test_case_ids?.includes(tc.id);
                         return (
                           <label key={tc.id} className={`lk-item${checked ? ' is-on' : ''}`}>
@@ -1239,6 +1448,21 @@ export default function TestSuitesPage() {
                           </label>
                         );
                       })}
+
+                      {/* Tail of the list: loads the next 20 as it comes into view */}
+                      {casesLoadingMore ? (
+                        <div className="lk-more"><LoadingOutlined /> Loading more cases…</div>
+                      ) : casesHasMore ? (
+                        <button
+                          type="button"
+                          className="lk-more lk-more--btn"
+                          onClick={() => loadCasePage(childTestCases.length)}
+                        >
+                          Load {Math.min(CASE_PAGE_SIZE, casesTotal - childTestCases.length)} more
+                        </button>
+                      ) : childTestCases.length > CASE_PAGE_SIZE ? (
+                        <div className="lk-more lk-more--end">All {casesTotal} cases loaded</div>
+                      ) : null}
                     </div>
                   )}
                 </SectionCard>
@@ -1262,6 +1486,150 @@ export default function TestSuitesPage() {
           </div>
         </div>
       </Drawer>
+
+      {/* Create with Zai — prompt, preview, then apply to the description */}
+      <Modal
+        title={null}
+        open={zaiOpen}
+        onCancel={() => setZaiOpen(false)}
+        width={720}
+        footer={null}
+        destroyOnHidden
+        centered
+        closable={false}
+        zIndex={1200}
+        wrapClassName="zai-modal-wrap"
+        styles={{
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.55)' },
+          content: { padding: 0, borderRadius: 22, overflow: 'hidden', background: 'transparent', boxShadow: '0 30px 80px rgba(8,12,24,0.45)' },
+          body: { padding: 0 },
+        }}
+      >
+        <div className="zai-modal">
+          <div className="zai-hero">
+            <div className="zai-hero__bg" />
+            <div className="zai-hero__content">
+              <div className="zai-hero__brand">
+                <div className="zai-orb"><Sparkles size={20} /></div>
+                <div className="zai-hero__title-wrap">
+                  <div className="zai-hero__eyebrow">
+                    <span className="zai-pill"><Zap size={10} strokeWidth={2.5} />ZAI · Smart Generation</span>
+                  </div>
+                  <h2 className="zai-hero__title">Create with <span className="zai-grad">Zai</span></h2>
+                  <p className="zai-hero__sub">
+                    Tell Zai what this suite&apos;s description should say. It already knows the suite name,
+                    scenario, module and how many cases are linked.
+                  </p>
+                </div>
+              </div>
+              <button className="zai-close" onClick={() => setZaiOpen(false)} aria-label="Close">×</button>
+            </div>
+          </div>
+
+          <div className="zai-body">
+            {zaiView === 'prompt' ? (
+              <div className="zai-prompt">
+                <div className="zai-prompt__label">
+                  <Wand2 size={14} />
+                  <span>Instruction</span>
+                </div>
+                <div className="zai-prompt__row">
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="e.g. Explain what this suite covers for the checkout flow and when to run it."
+                    value={zaiPrompt}
+                    onChange={(e) => setZaiPrompt(e.target.value)}
+                    className="zai-textarea"
+                    variant="borderless"
+                  />
+                  <Button
+                    type="primary"
+                    onClick={submitZaiPrompt}
+                    loading={aiBusy === 'generate'}
+                    disabled={!zaiPrompt.trim()}
+                    className="zai-cta"
+                    icon={aiBusy === 'generate' ? null : <Sparkles size={14} />}
+                  >
+                    {aiBusy === 'generate' ? 'Zai is thinking…' : 'Generate Content'}
+                  </Button>
+                </div>
+
+                <div className="zai-template-list" style={{ marginTop: 24 }}>
+                  <div className="zai-template-list__heading">
+                    <span className="zai-suggestions__label">Try one of these</span>
+                  </div>
+                  <div className="zai-template-grid">
+                    {ZAI_SUGGESTIONS.map((t) => {
+                      const active = zaiPrompt === t.body;
+                      return (
+                        <button
+                          key={t.title}
+                          type="button"
+                          className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
+                          onClick={() => setZaiPrompt(t.body)}
+                        >
+                          <div className="zai-template-card__head">
+                            <span className="zai-template-card__icon">{t.icon}</span>
+                            <span className="zai-template-card__title">{t.title}</span>
+                            <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
+                          </div>
+                          <p className="zai-template-card__body">{t.body}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="zai-compare">
+                  <div className="zai-pane zai-pane--new" style={{ width: '100%' }}>
+                    <div className="zai-pane__head" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="zai-pane__dot zai-pane__dot--new" />
+                        <span className="zai-pane__title zai-pane__title--new">Zai&apos;s Draft</span>
+                        <span className="zai-pane__badge">Ready</span>
+                      </div>
+                      <Button type="link" size="small" onClick={() => setZaiView('prompt')} style={{ padding: 0 }}>
+                        Edit Prompt
+                      </Button>
+                    </div>
+                    <div
+                      className="zai-pane__body zai-pane__body--new"
+                      style={{ minHeight: 160, maxHeight: 340, overflowY: 'auto', padding: 24, whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.65 }}
+                    >
+                      {zaiDraft}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="zai-footer">
+                  <div className="zai-footer__hint">
+                    Review the draft — replace what&apos;s in the field, or add it to the end.
+                  </div>
+                  <div className="zai-footer__actions">
+                    <Button
+                      icon={<Copy size={14} />}
+                      className="zai-btn-ghost"
+                      onClick={() => { navigator.clipboard.writeText(zaiDraft); message.success('Copied to clipboard'); }}
+                    >
+                      Copy
+                    </Button>
+                    <Button onClick={submitZaiPrompt} loading={aiBusy === 'generate'} className="zai-btn-ghost">
+                      Regenerate
+                    </Button>
+                    <Dropdown menu={{ items: [{ key: 'append', label: 'Append to end', onClick: () => applyZaiDraft('append') }] }}>
+                      <Button type="primary" onClick={() => applyZaiDraft('replace')} className="zai-btn-apply">
+                        Use this description <ChevronDown size={14} style={{ marginLeft: 4 }} />
+                      </Button>
+                    </Dropdown>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }

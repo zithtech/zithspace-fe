@@ -273,8 +273,8 @@ interface MemberDrawerContentProps {
   managers: Member[];
   shifts: Shift[];
   availableRoles: RBACRole[];
-  invites: any[];
-  onInviteSelect: (employeeId: string | null) => void;
+  employees: any[];
+  onEmployeeSelect: (employeeId: string | null) => void;
 }
 
 const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
@@ -289,8 +289,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   managers,
   shifts,
   availableRoles,
-  invites,
-  onInviteSelect,
+  employees,
+  onEmployeeSelect,
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
@@ -433,7 +433,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           colon={false}
           requiredMark="optional"
         >
-          {/* ── Import from Invites (Add mode only) ── */}
+          {/* ── Import from Employee (Add mode only) ── */}
           {mode === 'add' && (
             <div
               style={{
@@ -447,38 +447,41 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <Sparkles size={14} color="#3b82f6" />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Import from Invites
+                  Import from Employee
                 </span>
               </div>
               <Select
                 showSearch
                 allowClear
                 style={{ width: '100%' }}
-                placeholder="Select an invited employee to auto-fill details…"
+                placeholder="Select an employee to auto-fill details…"
                 optionFilterProp="label"
-                options={invites.map((inv: any) => ({
-                  value: inv.employeeId,
-                  label: `${inv.firstName} ${inv.lastName} — ${inv.workEmail}`,
+                options={employees.map((emp: any) => ({
+                  value: emp.id,
+                  label: `${emp.firstName || ''} ${emp.lastName || ''} — ${emp.workEmail || emp.personalEmail || ''}`.trim(),
                 }))}
                 onChange={(employeeId: string | undefined) => {
                   if (!employeeId) {
                     form.resetFields(['name', 'workEmail', 'personalEmail']);
-                    onInviteSelect(null);
+                    onEmployeeSelect(null);
                     return;
                   }
-                  const inv = invites.find((i: any) => i.employeeId === employeeId);
-                  if (inv) {
+                  const emp = employees.find((e: any) => e.id === employeeId);
+                  if (emp) {
                     form.setFieldsValue({
-                      name: `${inv.firstName} ${inv.lastName}`.trim(),
-                      workEmail: inv.workEmail || '',
-                      personalEmail: inv.personalEmail || '',
+                      name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+                      workEmail: emp.workEmail || '',
+                      personalEmail: emp.personalEmail || '',
+                      phone: emp.mobile || '',
+                      ...(emp.positionId ? { positionType: 'grade', position: emp.positionId } : {}),
+                      ...(emp.reportsToId ? { reportsTo: emp.reportsToId } : {}),
                     });
-                    onInviteSelect(employeeId);
+                    onEmployeeSelect(employeeId);
                   }
                 }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 8 }}>
-                Selecting an invite will auto-fill Name, Work Email and Personal Email.
+                Selecting an employee will auto-fill Name, Work Email and Personal Email.
               </div>
             </div>
           )}
@@ -1366,8 +1369,10 @@ export default function MembersPage() {
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
-  const [selectedInviteEmployeeId, setSelectedInviteEmployeeId] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  // State for forms
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   // Layout and Sidebar view states
   const [allMembers, setAllMembers] = useState<Member[]>([]);
@@ -1485,9 +1490,9 @@ export default function MembersPage() {
     }
   };
 
-  const fetchInvites = async () => {
+  const fetchEmployees = async () => {
     try {
-      const res = await EmployeeOnboardingService.listInvites();
+      const res = await EmployeeOnboardingService.getAllEmployees();
       let list: any[] = [];
       if (Array.isArray(res)) {
         list = res;
@@ -1496,10 +1501,9 @@ export default function MembersPage() {
       } else if (Array.isArray(res?.data?.data)) {
         list = res.data.data;
       }
-      // Only show non-revoked invites in the dropdown
-      setInvites(list.filter((i: any) => i.status !== 'revoked'));
+      setEmployees(list);
     } catch (error) {
-      console.error("Failed to fetch onboarding invites:", error);
+      console.error("Failed to fetch employees:", error);
     }
   };
 
@@ -1515,13 +1519,13 @@ export default function MembersPage() {
       fetchShifts();
       fetchRoles();
       fetchAllMembers();
-      fetchInvites();
+      fetchEmployees();
     }
   }, [user]);
 
   useEffect(() => {
     if (isModalVisible && modalType === "add") {
-      fetchInvites();
+      fetchEmployees();
     }
   }, [isModalVisible, modalType]);
 
@@ -1606,7 +1610,7 @@ export default function MembersPage() {
           isActive: values.isActive !== undefined ? values.isActive : true,
           sendEmailTo: values.sendEmailTo || "work",
           minWorkingHours: values.minWorkingHours !== undefined ? Number(values.minWorkingHours) : 6,
-          employeeId: selectedInviteEmployeeId || null,
+          employeeId: selectedEmployeeId || null,
         };
         await MembersService.createMember(createPayload);
         messageApi.success("Member created successfully");
@@ -1615,7 +1619,7 @@ export default function MembersPage() {
       setIsModalVisible(false);
       form.resetFields();
       setSelectedMember(null);
-      setSelectedInviteEmployeeId(null);
+      setSelectedEmployeeId(null);
       fetchMembers();
       fetchAllMembers();
       fetchPositions();
@@ -2630,7 +2634,7 @@ export default function MembersPage() {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedMember(null);
-            setSelectedInviteEmployeeId(null);
+            setSelectedEmployeeId(null);
           }}
           onSubmit={handleSubmit}
           positions={positions}
@@ -2638,8 +2642,8 @@ export default function MembersPage() {
           managers={managers}
           shifts={shifts}
           availableRoles={availableRoles}
-          invites={invites}
-          onInviteSelect={setSelectedInviteEmployeeId}
+          employees={employees}
+          onEmployeeSelect={setSelectedEmployeeId}
         />
       </Drawer>
 

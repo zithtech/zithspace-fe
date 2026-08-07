@@ -105,20 +105,20 @@ const getSalaryStructureTableHtml = (): string => {
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹1,20,000</td>` +
     `</tr>` +
-    `<tr style="background-color: #f8fafc; font-weight: 600; color: #ef4444;">` +
+    `<tr style="background-color: #f8fafc; font-weight: 600; color: #475569;">` +
     `<td colspan="3" style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">Total Deductions</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹0</td>` +
     `<td style="padding: 10px 14px; border: 1px solid #cbd5e1; text-align: right;">₹0</td>` +
     `</tr>` +
-    `<tr style="background-color: #f1f5f9; font-weight: 700; color: #0f172a;">` +
+    `<tr style="background-color: #f8fafc; font-weight: 700; color: #0f172a;">` +
     `<td colspan="3" style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">Net Pay</td>` +
     `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000</td>` +
     `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹1,20,000</td>` +
     `</tr>` +
-    `<tr style="background-color: #e2e8f0; font-weight: 800; color: #0f172a; border-top: 2px solid #94a3b8;">` +
-    `<td colspan="3" style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; text-transform: uppercase;">Total CTC</td>` +
-    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; color: #10b981;">₹10,000 / mon</td>` +
-    `<td style="padding: 14px 14px; border: 1px solid #cbd5e1; text-align: right; font-size: 15px;">₹1,20,000 / yr</td>` +
+    `<tr style="background-color: #f8fafc; font-weight: 800; color: #0f172a;">` +
+    `<td colspan="3" style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right; text-transform: uppercase;">Total CTC</td>` +
+    `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right;">₹10,000 / mon</td>` +
+    `<td style="padding: 12px 14px; border: 1px solid #cbd5e1; text-align: right; font-size: 15px;">₹1,20,000 / yr</td>` +
     `</tr>` +
     `</tfoot>` +
     `</table>` +
@@ -272,15 +272,21 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
   );
   const [currentVersion, setCurrentVersion] = useState(1);
   const [versions, setVersions] = useState<TemplateVersion[]>([]);
+  const [hasEdited, setHasEdited] = useState(false);
 
   // Right Drawer Tab State
   const [activeTab, setActiveTab] = useState<'placeholders' | 'layout' | 'history'>('placeholders');
   const [isPreviewDrawerOpen, setIsPreviewDrawerOpen] = useState(false);
+  const [isHeaderReplaceModalOpen, setIsHeaderReplaceModalOpen] = useState(false);
+  const [pendingHeaderHtml, setPendingHeaderHtml] = useState('');
+  
+  const [isCategoryWarningModalOpen, setIsCategoryWarningModalOpen] = useState(false);
+  const [pendingCategoryChange, setPendingCategoryChange] = useState<string | null>(null);
 
   // Page Settings State
   const [pageConfig, setPageConfig] = useState<any>({
-    marginTop: '20mm',
-    marginBottom: '20mm',
+    marginTop: '10mm',
+    marginBottom: '10mm',
     marginLeft: '20mm',
     marginRight: '20mm',
     borderWidth: '0px',
@@ -418,24 +424,24 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
     const logoPlaceholder = '<button data-type="logo-upload"></button>';
     const ph = (k: string, l: string) => `<span data-placeholder-key="${k}" style="background: #e0f2fe; color: #0369a1; padding: 0px 4px; border-radius: 4px; font-weight: 500; border: 1px solid #7dd3fc; display: inline-block; line-height: 1.2;">{{${l}}}</span>`;
 
-    const companyDetails = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0 0 2px 0; line-height: 1.2;">${ph('company_address', 'Company Address')}</p><p style="margin: 0; line-height: 1.2;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
+    const companyDetails = `<p style="margin: 0 0 2px 0; font-weight: bold; line-height: 1.2;"><span style="font-size: 14px;">${ph('company_name', 'Company Name')}</span></p><p style="margin: 0 0 2px 0; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_address', 'Company Address')}</span></p><p style="margin: 0; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</span></p>`;
 
-    const companyDetailsRight = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; text-align: right; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0 0 2px 0; text-align: right; line-height: 1.2;">${ph('company_address', 'Company Address')}</p><p style="margin: 0; text-align: right; line-height: 1.2;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
+    const companyDetailsRight = `<p style="margin: 0 0 2px 0; font-weight: bold; text-align: right; line-height: 1.2;"><span style="font-size: 14px;">${ph('company_name', 'Company Name')}</span></p><p style="margin: 0 0 2px 0; text-align: right; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_address', 'Company Address')}</span></p><p style="margin: 0; text-align: right; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</span></p>`;
 
-    const companyDetailsCenter = `<p style="margin: 0 0 2px 0; font-weight: bold; font-size: 16px; text-align: center; line-height: 1.2;">${ph('company_name', 'Company Name')}</p><p style="margin: 0; text-align: center; line-height: 1.2;">${ph('company_address', 'Company Address')} | ${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</p>`;
+    const companyDetailsCenter = `<p style="margin: 0 0 2px 0; font-weight: bold; text-align: center; line-height: 1.2;"><span style="font-size: 14px;">${ph('company_name', 'Company Name')}</span></p><p style="margin: 0; text-align: center; line-height: 1.2;"><span style="font-size: 10px;">${ph('company_address', 'Company Address')} | ${ph('company_mail', 'Company Mail')} | ${ph('company_phone', 'Company Phone')}</span></p>`;
 
     if (type === 'left-details') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 70%;">${companyDetails}</td><td style="border: none; text-align: right; vertical-align: middle; width: 30%;"><p style="margin: 0; text-align: right;">${logoPlaceholder}</p></td></tr></table>`;
     } else if (type === 'left-logo') {
-      html = `<table style="width: 100%; border: none; margin-bottom: 2px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 70%;">${companyDetailsRight}</td></tr></table>`;
+      html = `<table style="width: 100%; border: none; margin-bottom: 0px;"><tr><td style="border: none; text-align: left; vertical-align: middle; width: 30%;"><p style="margin: 0;">${logoPlaceholder}</p></td><td style="border: none; text-align: right; vertical-align: middle; width: 70%;">${companyDetailsRight}</td></tr></table>`;
     } else if (type === 'top-logo') {
-      html = `<div style="text-align: center; margin-bottom: 2px;"><p style="margin: 0 0 10px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
+      html = `<div style="text-align: center; margin-bottom: 0px;"><p style="margin: 0 0 6px 0; text-align: center;">${logoPlaceholder}</p>${companyDetailsCenter}</div>`;
     }
 
     if (pageConfig.headerHtml && pageConfig.headerHtml.trim() !== '' && pageConfig.headerHtml.trim() !== '<p></p>') {
-      if (!window.confirm('This will replace your current header content. Continue?')) {
-        return;
-      }
+      setPendingHeaderHtml(html);
+      setIsHeaderReplaceModalOpen(true);
+      return;
     }
     setPageConfig({ ...pageConfig, headerHtml: html });
     toast.success('Header layout applied');
@@ -544,7 +550,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
   }
 
   return (
-    <div className="template-builder-container" style={{ padding: '20px 28px 40px' }}>
+    <div className="template-builder-container" style={{ padding: '12px 16px 24px' }}>
       {/* Top Navigation Bar */}
       <div
         className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
@@ -552,17 +558,17 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '16px 24px',
+          padding: '4px 16px',
           borderRadius: '12px',
           borderWidth: '1px',
           borderStyle: 'solid',
-          marginBottom: '24px',
-          gap: '16px',
+          marginBottom: '16px',
+          gap: '12px',
           flexWrap: 'wrap',
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
           <Link
             href="/letters-docs/templates"
             className="text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -573,7 +579,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
               textDecoration: 'none',
               fontWeight: 600,
               fontSize: '14px',
-              padding: '8px 12px',
+              padding: '4px 10px',
               borderRadius: '8px',
               borderWidth: '1px',
               borderStyle: 'solid',
@@ -632,7 +638,7 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
             type="default"
             icon={<Eye size={16} />}
             onClick={() => setIsPreviewDrawerOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '16px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '16px', height: '30px' }}
           >
             Preview
           </Button>
@@ -642,12 +648,19 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
           <SearchableDropdown
             value={categoryId || ''}
             onChange={(newCatId) => {
-              setCategoryId(newCatId);
               if (!templateId) {
-                const catObj = categories.find((c) => c.id === newCatId);
-                const newContent = getDefaultContentForCategory(catObj?.categoryName);
-                setEditorContent(newContent);
-                editorRef.current?.commands.setContent(newContent);
+                if (hasEdited) {
+                  setPendingCategoryChange(newCatId);
+                  setIsCategoryWarningModalOpen(true);
+                } else {
+                  setCategoryId(newCatId);
+                  const catObj = categories.find((c) => c.id === newCatId);
+                  const newContent = getDefaultContentForCategory(catObj?.categoryName);
+                  setEditorContent(newContent);
+                  editorRef.current?.commands.setContent(newContent);
+                }
+              } else {
+                setCategoryId(newCatId);
               }
             }}
             placeholder="Select Category (Optional)"
@@ -670,8 +683,8 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
             onClick={handleSaveClick}
             disabled={saving}
             style={{
-              padding: '10px 22px',
-              borderRadius: '10px',
+              padding: '4px 22px',
+              borderRadius: '6px',
               background: '#3b82f6',
               color: '#ffffff',
               fontWeight: 600,
@@ -720,7 +733,10 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
 
           <LetterTiptapEditor
             content={editorContent}
-            onChange={(html) => setEditorContent(html)}
+            onChange={(html) => {
+              setEditorContent(html);
+              setHasEdited(true);
+            }}
             onEditorReady={(ed) => {
               editorRef.current = ed;
             }}
@@ -1137,6 +1153,21 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
         </div>
       )}
 
+      <Modal
+        title="Replace Header Content"
+        open={isHeaderReplaceModalOpen}
+        onOk={() => {
+          setPageConfig((prev: any) => ({ ...prev, headerHtml: pendingHeaderHtml }));
+          toast.success('Header layout applied');
+          setIsHeaderReplaceModalOpen(false);
+        }}
+        onCancel={() => setIsHeaderReplaceModalOpen(false)}
+        okText="Continue"
+        cancelText="Cancel"
+      >
+        <p>This will replace your current header content. Continue?</p>
+      </Modal>
+
       {/* Salary Format Modal */}
       <Modal
         title="Select Salary Table Format"
@@ -1219,54 +1250,93 @@ export default function TemplateBuilder({ templateId }: TemplateBuilderProps) {
         width={900}
         onClose={() => setIsPreviewDrawerOpen(false)}
         open={isPreviewDrawerOpen}
-        bodyStyle={{ background: '#f1f5f9', padding: '40px 24px', overflowY: 'auto' }}
+        bodyStyle={{ background: '#e2e8f0', padding: '32px 24px', overflowY: 'auto' }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
-          {editorContent.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map((pageContent, index) => (
-            <div key={index} className="preview-paper-content force-light-theme" style={{
-              width: '210mm',
-              minHeight: '297mm',
-              background: '#ffffff',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-              paddingTop: pageConfig.marginTop || '20mm',
-              paddingRight: pageConfig.marginRight || '20mm',
-              paddingBottom: pageConfig.marginBottom || '20mm',
-              paddingLeft: pageConfig.marginLeft || '20mm',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              borderWidth: pageConfig.borderWidth || '0px',
-              borderStyle: pageConfig.borderStyle || 'solid',
-              borderColor: pageConfig.borderColor || '#000000',
-            }}>
-              {/* Header */}
-              {pageConfig.headerHtml && (
-                <div
-                  style={{ width: '100%', marginBottom: '2px' }}
-                  dangerouslySetInnerHTML={{ __html: pageConfig.headerHtml }}
-                />
-              )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', alignItems: 'center' }}>
+          {editorContent.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map((pageContent, index, arr) => (
+            <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              {/* A4 Page Sheet — exact 210mm × 297mm */}
+              <div className="preview-paper-content force-light-theme" style={{
+                width: '210mm',
+                minHeight: '297mm',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+                background: '#ffffff',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+                paddingTop: pageConfig.marginTop || '20mm',
+                paddingRight: pageConfig.marginRight || '20mm',
+                paddingBottom: pageConfig.marginBottom || '20mm',
+                paddingLeft: pageConfig.marginLeft || '20mm',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                borderWidth: pageConfig.borderWidth || '0px',
+                borderStyle: pageConfig.borderStyle || 'solid',
+                borderColor: pageConfig.borderColor || '#000000',
+                flexShrink: 0,
+              }}>
+                {/* Header */}
+                {pageConfig.headerHtml && (
+                  <div
+                    className="preview-header-zone"
+                    style={{ width: '100%', marginBottom: '2px' }}
+                    dangerouslySetInnerHTML={{ __html: pageConfig.headerHtml }}
+                  />
+                )}
 
-              {/* Body Content */}
-              <div className="letter-tiptap-content" style={{ flex: 1 }}>
-                <div
-                  className="ProseMirror"
-                  style={{ outline: 'none', padding: 0 }}
-                  dangerouslySetInnerHTML={{ __html: pageContent }}
-                />
+                {/* Body Content */}
+                <div className="letter-tiptap-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div
+                    className="ProseMirror"
+                    style={{ outline: 'none', padding: 0 }}
+                    dangerouslySetInnerHTML={{ __html: pageContent }}
+                  />
+                </div>
+
+                {/* Footer */}
+                {pageConfig.footerHtml && (
+                  <div
+                    className="preview-header-zone"
+                    style={{ width: '100%', marginTop: '2px' }}
+                    dangerouslySetInnerHTML={{ __html: pageConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }}
+                  />
+                )}
               </div>
-
-              {/* Footer */}
-              {pageConfig.footerHtml && (
-                <div
-                  style={{ width: '100%', marginTop: '4px' }}
-                  dangerouslySetInnerHTML={{ __html: pageConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }}
-                />
+              {/* Page number label */}
+              {arr.length > 1 && (
+                <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Page {index + 1} of {arr.length}
+                </span>
               )}
             </div>
           ))}
         </div>
       </Drawer>
+      <Modal
+        title="Replace Content?"
+        open={isCategoryWarningModalOpen}
+        onOk={() => {
+          if (pendingCategoryChange) {
+            setCategoryId(pendingCategoryChange);
+            const catObj = categories.find((c) => c.id === pendingCategoryChange);
+            const newContent = getDefaultContentForCategory(catObj?.categoryName);
+            setEditorContent(newContent);
+            editorRef.current?.commands.setContent(newContent);
+            setHasEdited(false);
+          }
+          setIsCategoryWarningModalOpen(false);
+          setPendingCategoryChange(null);
+        }}
+        onCancel={() => {
+          setIsCategoryWarningModalOpen(false);
+          setPendingCategoryChange(null);
+        }}
+        okText="Replace Content"
+        cancelText="Cancel"
+        okButtonProps={{ danger: true }}
+      >
+        <p>You have unsaved changes. Changing the category will replace your current content with the default template for the new category. Do you want to proceed?</p>
+      </Modal>
     </div>
   );
 }

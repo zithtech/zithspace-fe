@@ -532,6 +532,10 @@ export const usePermission = () => {
     canReadLetter:           hasPermission(Permissions.LETTER_READ),
     canDeleteLetter:         hasPermission(Permissions.LETTER_DELETE),
     canManageLetters:        hasPermission(Permissions.LETTER_MANAGE),
+    canCreateLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_CREATE),
+    canReadLetterFormat:     hasPermission(Permissions.LETTER_FORMAT_READ),
+    canUpdateLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_UPDATE),
+    canDeleteLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_DELETE),
 
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */

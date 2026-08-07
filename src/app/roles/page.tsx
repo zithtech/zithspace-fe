@@ -111,6 +111,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   profile: "User Profile",
   letter: "Doc Suite",
   letter_template: "Doc Suite Templates",
+  'letter.format': "Doc Suite Formats",
   mail: "Mail Settings",
   calendar: "Calendar Settings",
   chat: "Internal Chat",
@@ -313,7 +314,8 @@ const ACCESS_GROUPS: AccessGroup[] = [
     label: 'HRMS',
     icon: <TeamOutlined />,
     resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'letter',
-      'letter_template'
+      'letter_template',
+      'letter.format'
     ],
     accent: '#10b981',
   },
@@ -1643,11 +1645,16 @@ export default function RolesPage() {
               // Filter perms by search across the current tab
               const filteredByResource: Record<string, RBACPermission[]> = {};
               tabResources.forEach((res) => {
-                if (res === 'letter_template') return;
+                if (res === 'letter_template' || res === 'letter.format') return;
 
                 let perms = allPermissions[res] || [];
-                if (res === 'letter' && allPermissions['letter_template']) {
-                  perms = [...perms, ...allPermissions['letter_template']];
+                if (res === 'letter') {
+                  if (allPermissions['letter_template']) {
+                    perms = [...perms, ...allPermissions['letter_template']];
+                  }
+                  if (allPermissions['letter.format']) {
+                    perms = [...perms, ...allPermissions['letter.format']];
+                  }
                 }
 
                 if (!searchQ) {
@@ -1655,7 +1662,7 @@ export default function RolesPage() {
                   return;
                 }
                 const label = (RESOURCE_LABELS[res] || res).toLowerCase();
-                if (label.includes(searchQ) || (res === 'letter' && (RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ))) {
+                if (label.includes(searchQ) || (res === 'letter' && ((RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['letter.format'] || '').toLowerCase().includes(searchQ)))) {
                   filteredByResource[res] = perms;
                   return;
                 }
@@ -1837,8 +1844,12 @@ export default function RolesPage() {
                     ) : (
                       visibleResources.map((resource) => {
                         const perms = filteredByResource[resource];
-                        const allPermsForRes = resource === 'letter' && allPermissions['letter_template']
-                          ? [...(allPermissions['letter'] || []), ...allPermissions['letter_template']]
+                        const allPermsForRes = resource === 'letter'
+                          ? [
+                              ...(allPermissions['letter'] || []),
+                              ...(allPermissions['letter_template'] || []),
+                              ...(allPermissions['letter.format'] || [])
+                            ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const selectedCount = allPermsForRes.filter((p) =>

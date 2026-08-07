@@ -57,10 +57,10 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
         href: '/letters-docs/structures',
         icon: <Layers size={18} />,
         color: '#3b82f6', // blue-500
-        requiredPermission: Boolean(perms.canReadLetterTemplate),
+        requiredPermission: Boolean(perms.canReadLetterFormat),
       },
     ],
-    [perms.canReadLetterTemplate, perms.canGenerateLetter, perms.canReadLetter]
+    [perms.canReadLetterTemplate, perms.canGenerateLetter, perms.canReadLetter, perms.canReadLetterFormat]
   );
 
   const visibleItems = useMemo(
@@ -79,10 +79,10 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !perms.canReadLetterTemplate && !perms.canReadLetter && !perms.canGenerateLetter) {
+    if (!isLoading && !perms.canReadLetterTemplate && !perms.canReadLetter && !perms.canGenerateLetter && !perms.canReadLetterFormat) {
       router.push('/dashboard');
     }
-  }, [isLoading, perms.canReadLetterTemplate, perms.canReadLetter, perms.canGenerateLetter, router]);
+  }, [isLoading, perms.canReadLetterTemplate, perms.canReadLetter, perms.canGenerateLetter, perms.canReadLetterFormat, router]);
 
   return (
     <ProtectedRoute>

@@ -25,6 +25,7 @@ import {
 import { LettersService, GeneratedDocument, DocumentTemplate, DocumentCategory } from '@/services/lettersService';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { toast } from 'react-hot-toast';
+import { usePermission } from '@/hooks/usePermission';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { Table, Button, Dropdown, Tooltip, Select, Drawer, Avatar, Modal } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
@@ -54,6 +55,7 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 
 export default function DocumentRepositoryPage() {
   const router = useRouter();
+  const perms = usePermission();
   const [documents, setDocuments] = useState<GeneratedDocument[]>([]);
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [categories, setCategories] = useState<DocumentCategory[]>([]);
@@ -81,6 +83,12 @@ export default function DocumentRepositoryPage() {
   useEffect(() => {
     setFilterPortalNode(document.getElementById('letters-docs-sidebar-filters'));
   }, []);
+
+  useEffect(() => {
+    if (perms.canReadLetter === false) {
+      router.push('/dashboard');
+    }
+  }, [perms.canReadLetter, router]);
 
   const [previewModalDoc, setPreviewModalDoc] = useState<GeneratedDocument | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string>('');
@@ -287,12 +295,12 @@ export default function DocumentRepositoryPage() {
           placement="bottomRight"
           menu={{
             items: [
-              { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } },
+              ...(perms.canGenerateLetter ? [{ key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } }] : []),
               { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View document contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: (e) => { e.domEvent.stopPropagation(); handlePreviewDocument(doc); } },
               { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
               { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDownload(doc.id, 'docx', `${doc.documentNumber}.docx`); } },
-              { type: 'divider' },
-              { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } },
+              { type: 'divider' as const },
+              ...(perms.canDeleteLetter ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } }] : []),
             ]
           }}
         >
@@ -474,12 +482,12 @@ export default function DocumentRepositoryPage() {
                       overlayClassName="pc-dropdown"
                       menu={{
                         items: [
-                          { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } },
+                          ...(perms.canGenerateLetter ? [{ key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Document', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/generate?editId=${doc.id}`); } }] : []),
                           { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View document contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: (e) => { e.domEvent.stopPropagation(); handlePreviewDocument(doc); } },
                           { key: 'pdf', label: renderDropdownItem(<Download size={16} />, 'Download PDF', 'Export as PDF', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'pdf', `${doc.documentNumber}.pdf`); } },
                           { key: 'docx', label: renderDropdownItem(<Download size={16} />, 'Download DOCX', 'Export as Word Document', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); LettersService.downloadLetter(doc.id, 'docx', `${doc.documentNumber}.docx`); } },
-                          { type: 'divider' },
-                          { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } },
+                          { type: 'divider' as const },
+                          ...(perms.canDeleteLetter ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteDocId(doc.id); } }] : []),
                         ]
                       }}
                       trigger={['click']}

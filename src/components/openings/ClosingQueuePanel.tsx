@@ -2,10 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, Button, Empty, Skeleton, Table } from 'antd';
+import { App, Alert, Button, Empty, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { CheckCheck, RotateCw } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import OpeningV2Service, { type ClosureCandidate } from '@/services/openingV2Service';
 import { OpeningStyles, PALETTE, PanelHeader, StatusChip, TINT } from './ui';
@@ -15,6 +14,8 @@ import { OpeningStyles, PALETTE, PanelHeader, StatusChip, TINT } from './ui';
 // Closing is deliberately NOT automatic on the backend: it cuts off candidates
 // still in the pipeline. This page is the prompt that replaces that automation.
 export default function ClosingQueuePanel() {
+  const { message } = App.useApp();
+
   const router = useRouter();
   const [rows, setRows] = useState<ClosureCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function ClosingQueuePanel() {
     try {
       setRows(await OpeningV2Service.closureCandidates());
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the closing queue');
+      message.error(err?.response?.data?.error || 'Could not load the closing queue');
     } finally {
       setLoading(false);
     }

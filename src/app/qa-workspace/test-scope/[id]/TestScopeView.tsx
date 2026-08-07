@@ -24,6 +24,7 @@ import {
   X,
   ZoomIn,
   Link2,
+  ExternalLink,
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { Drawer, Button, Dropdown, MenuProps, message } from "antd";
@@ -68,6 +69,188 @@ export function Panel({
         </div>
       )}
       <div className={padded ? "p-5" : ""}>{children}</div>
+    </div>
+  );
+}
+
+const hasContent = (html?: string) => !!(html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
+/** Accept links pasted without a scheme so they still resolve. */
+const normaliseUrl = (raw: string) => {
+  const url = (raw || '').trim();
+  if (!url) return '';
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+};
+
+const hostOf = (url: string) => {
+  try { return new URL(normaliseUrl(url)).hostname.replace(/^www\./, ''); } catch { return url; }
+};
+
+/**
+ * Rewrite well-known links to their embeddable form — plain share URLs from
+ * Figma and Google Workspace refuse to render inside an iframe.
+ */
+const toEmbedUrl = (raw: string) => {
+  const url = normaliseUrl(raw);
+  try {
+    const parsed = new URL(url);
+    if (/(^|\.)figma\.com$/.test(parsed.hostname) && !parsed.pathname.startsWith('/embed')) {
+      return `https://www.figma.com/embed?embed_host=zukvo&url=${encodeURIComponent(url)}`;
+    }
+    if (/(^|\.)docs\.google\.com$/.test(parsed.hostname)) {
+      return url.replace(/\/(edit|view)(\?[^#]*)?(#.*)?$/, '/preview');
+    }
+  } catch {
+    /* fall through to the raw url */
+  }
+  return url;
+};
+
+/**
+ * Opens a reference link inside the page. Many sites send X-Frame-Options or a
+ * frame-ancestors CSP, which we cannot detect directly — so if the frame never
+ * reports a load we surface an "open in a new tab" fallback instead of a blank pane.
+ */
+function LinkPreviewDrawer({
+  target, onClose,
+}: { target: { label: string; url: string } | null; onClose: () => void }) {
+  const [loaded, setLoaded] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+
+  const url = target ? normaliseUrl(target.url) : '';
+  const embedUrl = target ? toEmbedUrl(target.url) : '';
+
+  useEffect(() => {
+    if (!target) return;
+    setLoaded(false);
+    setBlocked(false);
+    const timer = setTimeout(() => setBlocked(prev => (prev ? prev : true)), 4500);
+    return () => clearTimeout(timer);
+  }, [target]);
+
+  const showFallback = blocked && !loaded;
+
+  return (
+    <Drawer
+      placement="right"
+      width="72%"
+      open={!!target}
+      onClose={onClose}
+      closable={false}
+      styles={{ body: { padding: 0, background: 'var(--bg-pure-white)' }, header: { display: 'none' } }}
+    >
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-3 border-b border-zinc-200 dark:border-zinc-800 px-5 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-[0.12em] font-semibold text-zinc-500 dark:text-zinc-400">
+              {target?.label}
+            </div>
+            <div className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-200" title={url}>
+              {hostOf(url)}
+            </div>
+          </div>
+          <Button
+            size="small"
+            onClick={() => { navigator.clipboard.writeText(url); message.success('Link copied'); }}
+          >
+            Copy link
+          </Button>
+          <Button size="small" type="primary" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
+            Open in new tab
+          </Button>
+          <button
+            onClick={onClose}
+            className="ml-1 rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="relative flex-1 bg-zinc-50 dark:bg-zinc-950">
+          {target && !showFallback && (
+            <iframe
+              key={embedUrl}
+              src={embedUrl}
+              title={target.label}
+              className="h-full w-full border-0"
+              onLoad={() => { setLoaded(true); setBlocked(false); }}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              referrerPolicy="no-referrer"
+            />
+          )}
+
+          {target && !loaded && !showFallback && (
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
+              Loading preview…
+            </div>
+          )}
+
+          {showFallback && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+              <ExternalLink size={22} className="text-zinc-400 dark:text-zinc-600" />
+              <p className="m-0 max-w-md text-sm text-zinc-600 dark:text-zinc-300">
+                <span className="font-medium">{hostOf(url)}</span> doesn&apos;t allow being embedded in another page.
+              </p>
+              <p className="m-0 max-w-md text-xs text-zinc-500 dark:text-zinc-400">
+                This is a restriction set by the site, not by Zukvo. Open it in a new tab to view the document.
+              </p>
+              <Button type="primary" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
+                Open in new tab
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
+/**
+ * Scope Definition as one continuous document, matching the single-editor
+ * create page. `outScope` is only surfaced for older scopes that were authored
+ * when it was a separate field — new scopes never populate it.
+ */
+export function ScopeDocument({
+  inScope, outScope, forExport,
+}: { inScope?: string; outScope?: string; forExport?: boolean }) {
+  const hasIn = hasContent(inScope);
+  const hasLegacyOut = hasContent(outScope);
+
+  if (!hasIn && !hasLegacyOut) {
+    return (
+      <div className={`rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 px-6 py-10 text-center ${forExport ? '' : 'break-inside-avoid'}`}>
+        <FileText size={20} className="mx-auto mb-2 text-zinc-400 dark:text-zinc-600" />
+        <p className="m-0 text-sm text-zinc-500 dark:text-zinc-400">No scope definition captured for this test scope.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden ${forExport ? '' : 'break-inside-avoid'}`}>
+      {hasIn && (
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:my-2 prose-ul:my-2 prose-li:my-0.5">
+            <TiptapViewer content={inScope || ''} />
+          </div>
+        </div>
+      )}
+
+      {hasLegacyOut && (
+        <div className={hasIn ? "border-t border-zinc-200 dark:border-zinc-800" : ""}>
+          <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900/80 px-6 py-2.5 md:px-8">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+            <span className="text-[11px] uppercase tracking-[0.12em] font-semibold text-zinc-500 dark:text-zinc-400">
+              Out of Scope
+            </span>
+          </div>
+          <div className="px-6 py-6 md:px-8 md:py-7">
+            <div className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5">
+              <TiptapViewer content={outScope || ''} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -482,20 +665,7 @@ function TestScopeExport({
 
         <section className="space-y-4">
           <SectionTitle title="Scope Definition" icon={<FileText size={18} />} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Panel title="In Scope" allowBreak={false}>
-              {d.inScope
-                ? <div className="text-sm text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none"><TiptapViewer content={d.inScope} /></div>
-                : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-              }
-            </Panel>
-            <Panel title="Out of Scope" allowBreak={false}>
-              {d.outScope
-                ? <div className="text-sm text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none"><TiptapViewer content={d.outScope} /></div>
-                : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-              }
-            </Panel>
-          </div>
+          <ScopeDocument inScope={d.inScope} outScope={d.outScope} forExport />
         </section>
 
         {d.testingTypes?.length > 0 && (
@@ -803,6 +973,7 @@ export default function TestScopeView({ id }: { id: string }) {
   const [previewImg, setPreviewImg] = useState<{ src: string; name: string } | null>(null);
   const [devTicketsDrawerOpen, setDevTicketsDrawerOpen] = useState(false);
   const [drawerTickets, setDrawerTickets] = useState<any[]>([]);
+  const [linkPreview, setLinkPreview] = useState<{ label: string; url: string } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const hideExportMsg = useRef<(() => void) | null>(null);
 
@@ -919,46 +1090,58 @@ export default function TestScopeView({ id }: { id: string }) {
         className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full"
       >
         <div className="mx-auto max-w-7xl px-6 pt-3 pb-2.5">
-          <div className="flex items-center justify-between gap-3">
+          {/* Back · breadcrumb · scope name · status — one line, all centred on
+              a shared 32px axis so the mixed type sizes don't read as uneven. */}
+          <div className="flex items-center gap-3 min-h-[32px]">
             <button
               onClick={() => router.push("/qa-workspace/test-scope")}
-              className="inline-flex items-center gap-1.5 -ml-1.5 px-1.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/60 transition-colors"
+              className="inline-flex h-8 items-center gap-1.5 -ml-2 px-2 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/60 transition-colors flex-shrink-0"
             >
               <ArrowLeft size={14} />
               <span>Back</span>
             </button>
-            <Button 
-              type="primary" 
-              onClick={handleDownloadClick} 
+
+            <span className="hidden sm:block h-4 w-px bg-slate-300 dark:bg-slate-700 flex-shrink-0" />
+
+            <div className="flex h-8 items-center gap-2 min-w-0 flex-1">
+              <span className="hidden sm:inline-flex items-center text-[11px] leading-none uppercase tracking-[0.12em] font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">
+                Test Scope
+              </span>
+              {d.product ? (
+                <>
+                  <span className="hidden sm:inline-flex items-center text-slate-300 dark:text-slate-700 flex-shrink-0">›</span>
+                  <span className="hidden sm:inline-flex items-center text-[11px] leading-none uppercase tracking-[0.12em] font-medium text-slate-700 dark:text-slate-300 flex-shrink-0 max-w-[180px] truncate">
+                    {d.product}
+                  </span>
+                </>
+              ) : null}
+              <span className="hidden sm:inline-flex items-center text-slate-300 dark:text-slate-700 flex-shrink-0">›</span>
+              <h1 className="m-0 text-[19px] leading-none font-semibold tracking-tight text-slate-900 dark:text-slate-50 truncate">
+                {data.name || "Test Scope Details"}
+              </h1>
+              <Tag
+                color={data.status === 'Approved' ? 'green' : data.status === 'Rejected' ? 'red' : 'blue'}
+                className="flex-shrink-0"
+                style={{ margin: 0, lineHeight: '20px' }}
+              >
+                {data.status || 'Pending'}
+              </Tag>
+            </div>
+
+            <Button
+              type="primary"
+              onClick={handleDownloadClick}
               loading={isExporting}
               icon={!isExporting && <FilePdfOutlined />}
-              className="text-xs font-medium inline-flex items-center gap-1.5"
+              className="text-xs font-medium inline-flex items-center gap-1.5 flex-shrink-0"
+              style={{ height: 32 }}
             >
               {isExporting ? "Downloading..." : "Download"}
             </Button>
           </div>
 
-          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-medium text-slate-500 dark:text-slate-400">
-            <span>Test Scope</span>
-            {d.product ? (
-              <>
-                <span className="mx-1">›</span>
-                <span className="text-slate-700 dark:text-slate-300">{d.product}</span>
-              </>
-            ) : null}
-          </div>
-
-          <div className="mt-1.5 flex flex-col mb-2">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-[19px] leading-tight font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                {data.name || "Test Scope Details"}
-              </h1>
-              <Tag color={data.status === 'Approved' ? 'green' : data.status === 'Rejected' ? 'red' : 'blue'}>
-                {data.status || 'Pending'}
-              </Tag>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 mb-1">
+            <div className="flex flex-wrap items-center gap-2">
               <HeaderChip icon={<Calendar size={14} />} label="Planned">
                 {plannedRange}
               </HeaderChip>
@@ -1047,9 +1230,22 @@ export default function TestScopeView({ id }: { id: string }) {
                           </button>
                         ) : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
                       ) : (
-                        url
-                          ? <span className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">Link Attached</span>
-                          : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
+                        url ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                              <Link2 size={13} className="text-zinc-400 dark:text-zinc-500" />
+                              Link Attached
+                            </span>
+                            <button
+                              onClick={() => setLinkPreview({ label: field.label, url })}
+                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-0.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:border-zinc-700 dark:text-blue-400 dark:hover:border-blue-800 dark:hover:bg-blue-500/10"
+                            >
+                              <ExternalLink size={11} /> Open
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
+                        )
                       )}
                     </div>
                   );
@@ -1062,20 +1258,7 @@ export default function TestScopeView({ id }: { id: string }) {
         <SectionAnchor id="scope-def" offset={stickyH}>
           <section className="space-y-4">
             <SectionTitle title="Scope Definition" icon={<FileText size={18} />} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Panel title="In Scope">
-                {d.inScope
-                  ? <div className="text-sm text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none"><TiptapViewer content={d.inScope} /></div>
-                  : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-                }
-              </Panel>
-              <Panel title="Out of Scope">
-                {d.outScope
-                  ? <div className="text-sm text-zinc-800 dark:text-zinc-200 prose prose-sm dark:prose-invert max-w-none"><TiptapViewer content={d.outScope} /></div>
-                  : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-                }
-              </Panel>
-            </div>
+            <ScopeDocument inScope={d.inScope} outScope={d.outScope} />
           </section>
         </SectionAnchor>
 
@@ -1334,6 +1517,8 @@ export default function TestScopeView({ id }: { id: string }) {
           )}
         </div>
       </Drawer>
+
+      <LinkPreviewDrawer target={linkPreview} onClose={() => setLinkPreview(null)} />
     </div>
   );
 }

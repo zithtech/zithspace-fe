@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Alert, Checkbox, Input, Modal } from 'antd';
-import toast from 'react-hot-toast';
+import { App, Alert, Checkbox, Input, Modal } from 'antd';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import OpeningV2Service, {
@@ -47,6 +46,7 @@ export default function CloseOpeningModal({
   onClose: () => void;
   onClosed: () => void;
 }) {
+  const { message } = App.useApp();
   const [reason, setReason] = useState<ClosureReason>('position_filled');
   const [note, setNote] = useState('');
   const [duplicateOf, setDuplicateOf] = useState<string | null>(null);
@@ -114,7 +114,7 @@ export default function CloseOpeningModal({
 
   const submit = async () => {
     if (selected.needsDuplicate && !duplicateOf) {
-      toast.error('Pick the opening this duplicates');
+      message.error('Pick the opening this duplicates');
       return;
     }
     setSaving(true);
@@ -126,7 +126,7 @@ export default function CloseOpeningModal({
         archive,
         rejectRemaining,
       });
-      toast.success(
+      message.success(
         `Opening ${result.status}${result.archived ? ' and archived' : ''}` +
           (result.applicationsRejected
             ? ` · ${result.applicationsRejected} candidate(s) rejected`
@@ -134,7 +134,7 @@ export default function CloseOpeningModal({
       );
       onClosed();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not close the opening');
+      message.error(err?.response?.data?.error || 'Could not close the opening');
     } finally {
       setSaving(false);
     }

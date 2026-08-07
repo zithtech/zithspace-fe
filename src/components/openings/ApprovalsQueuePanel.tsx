@@ -2,10 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Empty, Input, Modal, Segmented, Skeleton, Table } from 'antd';
+import { App, Button, Empty, Input, Modal, Segmented, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BadgeCheck, CheckCircle2, RotateCw, XCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, { type PendingApprovalItem } from '@/services/openingV2Service';
@@ -23,6 +22,8 @@ import {
 // sees only the steps they can actually decide, which is exactly what the
 // backend returns for them.
 export default function ApprovalsQueuePanel() {
+  const { message } = App.useApp();
+
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
   const canSeeAll = !!perms.canManageOpenings;
@@ -32,12 +33,16 @@ export default function ApprovalsQueuePanel() {
   const [scope, setScope] = useState<'mine' | 'all'>(canSeeAll ? 'all' : 'mine');
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [rejectingItem, setRejectingItem] = useState<PendingApprovalItem | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejectBusy, setRejectBusy] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       setRows(await OpeningV2Service.listPendingApprovals(scope === 'mine'));
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the approval queue');
+      message.error(err?.response?.data?.error || 'Could not load the approval queue');
     } finally {
       setLoading(false);
     }
@@ -52,41 +57,36 @@ export default function ApprovalsQueuePanel() {
       setBusy(item.openingId);
       try {
         await OpeningV2Service.approve(item.openingId);
-        toast.success(`Approved “${item.approval.stepName}”`);
+        message.success(`Approved “${item.approval.stepName}”`);
         load();
       } catch (err: any) {
-        toast.error(err?.response?.data?.error || 'Could not approve');
+        message.error(err?.response?.data?.error || 'Could not approve');
       } finally {
         setBusy(null);
       }
       return;
     }
+    setRejectNote('');
+    setRejectingItem(item);
+  };
 
-    let note = '';
-    Modal.confirm({
-      title: `Reject ${item.openingCode}?`,
-      icon: null,
-      content: (
-        <Input.TextArea
-          rows={3}
-          placeholder="Why is it being rejected? (required)"
-          onChange={(e) => {
-            note = e.target.value;
-          }}
-        />
-      ),
-      okText: 'Reject',
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        if (!note.trim()) {
-          toast.error('A rejection note is required');
-          throw new Error('note required');
-        }
-        await OpeningV2Service.reject(item.openingId, note.trim());
-        toast.success('Rejected — returned to draft');
-        load();
-      },
-    });
+  const handleRejectConfirm = async () => {
+    if (!rejectingItem) return;
+    if (!rejectNote.trim()) {
+      message.error('A rejection note is required');
+      return;
+    }
+    setRejectBusy(true);
+    try {
+      await OpeningV2Service.reject(rejectingItem.openingId, rejectNote.trim());
+      message.success('Rejected — returned to draft');
+      setRejectingItem(null);
+      load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Could not reject');
+    } finally {
+      setRejectBusy(false);
+    }
   };
 
   const columns: ColumnsType<PendingApprovalItem> = [
@@ -225,6 +225,25 @@ export default function ApprovalsQueuePanel() {
           />
         </div>
       )}
+
+      <Modal
+        title={rejectingItem ? `Reject ${rejectingItem.openingCode}?` : 'Reject'}
+        open={!!rejectingItem}
+        onOk={handleRejectConfirm}
+        onCancel={() => setRejectingItem(null)}
+        okText="Reject"
+        okButtonProps={{ danger: true }}
+        confirmLoading={rejectBusy}
+      >
+        <div className="pt-4">
+          <Input.TextArea
+            rows={3}
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+            placeholder="Why is it being rejected? (required)"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

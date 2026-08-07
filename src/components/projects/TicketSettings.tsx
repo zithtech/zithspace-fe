@@ -29,7 +29,6 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { globalDataKeys } from '@/hooks/useGlobalData';
 import DropdownManager from './DropdownManager';
-import BugListConfigManager from './BugListConfigManager';
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 
 const { Title, Paragraph, Text } = Typography;
@@ -307,15 +306,6 @@ export default function TicketSettings() {
                   </Space>
                 ),
               },
-              {
-                key: 'bug-list',
-                label: (
-                  <Space size={8}>
-                    <BugOutlined />
-                    <span>Bug List</span>
-                  </Space>
-                ),
-              },
             ]}
           />
         }
@@ -325,11 +315,10 @@ export default function TicketSettings() {
 
       {/* Content Area */}
       <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* Bug List configuration now lives at /qa-workspace/settings */}
         {activeTab === 'integration'
           ? renderIntegrationTab()
-          : activeTab === 'bug-list'
-            ? <BugListConfigManager />
-            : <DropdownManager onDataChange={handleDataChange} />}
+          : <DropdownManager onDataChange={handleDataChange} />}
       </div>
 
       <style jsx global>{`

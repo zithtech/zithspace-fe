@@ -21,6 +21,7 @@ interface ProposalState {
   addBlock: (type: BlockType, index?: number) => void;
   removeBlock: (id: string) => void;
   updateBlock: (id: string, data: any) => void;
+  updateCoverData: (data: any) => void;
   reorderBlocks: (activeId: string, overId: string) => void;
   setSelectedBlockId: (id: string | null) => void;
   setBlocks: (blocks: ProposalBlock[]) => void;
@@ -140,6 +141,25 @@ export const useProposalStore = create<ProposalState>((set) => ({
   updateBlock: (id, data) => set((state) => ({
     blocks: state.blocks.map((b) => (b.id === id ? { ...b, data: { ...b.data, ...data } } : b)),
   })),
+  
+  updateCoverData: (data) => set((state) => {
+    const existingIndex = state.blocks.findIndex(b => b.type === 'cover');
+    if (existingIndex !== -1) {
+      const newBlocks = [...state.blocks];
+      newBlocks[existingIndex] = {
+        ...newBlocks[existingIndex],
+        data: { ...newBlocks[existingIndex].data, ...data }
+      };
+      return { blocks: newBlocks };
+    } else {
+      const newCoverBlock: ProposalBlock = {
+        id: nanoid(),
+        type: 'cover',
+        data: { ...getDefaultDataForType('cover'), ...data },
+      };
+      return { blocks: [newCoverBlock, ...state.blocks] };
+    }
+  }),
   
   reorderBlocks: (activeId, overId) => set((state) => {
     const oldIndex = state.blocks.findIndex((b) => b.id === activeId);

@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Tooltip, Popconfirm, Empty } from 'antd';
+import { App, Button, Table, Tooltip, Empty } from 'antd';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { ColumnsType } from 'antd/es/table';
 import {
   Briefcase,
@@ -20,7 +21,6 @@ import {
   XCircle,
   Archive,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { usePermission } from '@/hooks/usePermission';
@@ -57,6 +57,8 @@ export default function OpeningsListPanel({
 }: {
   archived?: boolean;
 }) {
+  const { message } = App.useApp();
+
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
   const reference = useReferenceData();
@@ -115,7 +117,7 @@ export default function OpeningsListPanel({
         .then(setSummary)
         .catch(() => setSummary({}));
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load openings');
+      message.error(err?.response?.data?.error || 'Could not load openings');
     } finally {
       setLoading(false);
     }
@@ -128,20 +130,20 @@ export default function OpeningsListPanel({
   const handleDelete = async (id: string) => {
     try {
       await OpeningV2Service.remove(id);
-      toast.success('Opening deleted');
+      message.success('Opening deleted');
       load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not delete the opening');
+      message.error(err?.response?.data?.error || 'Could not delete the opening');
     }
   };
 
   const handleUnarchive = async (id: string) => {
     try {
       await OpeningV2Service.unarchive(id);
-      toast.success('Opening restored from the archive');
+      message.success('Opening restored from the archive');
       load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not un-archive the opening');
+      message.error(err?.response?.data?.error || 'Could not un-archive the opening');
     }
   };
 
@@ -267,11 +269,12 @@ export default function OpeningsListPanel({
                   </Tooltip>
                 )
               : perms.canDeleteOpening && (
-                  <Popconfirm
+                  <ConfirmDialog
+                    tone="danger"
+                    icon={<Trash2 size={18} />}
                     title="Delete this opening?"
                     description="It will be removed from the list."
-                    okText="Delete"
-                    okButtonProps={{ danger: true }}
+                    confirmText="Delete"
                     onConfirm={() => handleDelete(r.id)}
                   >
                     <Tooltip title="Delete">
@@ -282,7 +285,7 @@ export default function OpeningsListPanel({
                         icon={<Trash2 size={14} />}
                       />
                     </Tooltip>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 )}
           </div>
         ),

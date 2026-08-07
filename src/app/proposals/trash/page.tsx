@@ -1298,7 +1298,7 @@ export default function ProposalsTrashPage() {
           /* ---------------- Main ---------------- */
           .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
           .pp-body { flex: 1 0 auto; }
-          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; position: sticky; top: 0; z-index: 50; background: var(--bg-pure-white, #fff); padding: 8px 0; margin-top: -8px; }
           .pp-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);

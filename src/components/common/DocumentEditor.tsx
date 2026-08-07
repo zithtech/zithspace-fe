@@ -12,12 +12,18 @@ interface DocumentEditorProps {
   editor: BlockNoteEditor | null;
   viewMode: ViewMode;
   onChange?: () => void;
+  /** Override the inline Zai rewrite call — see ZaiSelectionMenu.onRewrite. */
+  onAiRewrite?: (input: { text: string; instruction: string }) => Promise<{ rewrittenHtml: string }>;
+  /** Drop the editor's own card chrome when the host already provides one. */
+  bare?: boolean;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
   editor,
   viewMode,
   onChange,
+  onAiRewrite,
+  bare = false,
 }) => {
   const [currentTheme, setCurrentTheme] = React.useState<'light' | 'dark'>('light');
 
@@ -46,6 +52,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   // Secondary editor for the "Combined" view's preview pane
   const previewEditor = useCreateBlockNote();
 
+  // Container ref for the main editable editor — scopes the Zai selection menu
+  // so it doesn't fire on selections in the read-only preview pane.
+  // Declared above the early return so hook order stays stable.
+  const mainEditorContainerRef = useRef<HTMLDivElement>(null);
+
   // Sync previewEditor with main editor content
   useEffect(() => {
     if (editor && previewEditor && viewMode === "combined") {
@@ -72,10 +83,6 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }
 
-  // Container ref for the main editable editor — scopes the Zai selection menu
-  // so it doesn't fire on selections in the read-only preview pane.
-  const mainEditorContainerRef = useRef<HTMLDivElement>(null);
-
   const renderEditor = (
     instance: BlockNoteEditor,
     editable: boolean,
@@ -84,8 +91,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   ) => (
     <div
       ref={ref}
-      className="h-full overflow-auto px-6 md:px-10 py-8 rounded-2xl"
-      style={{
+      className={bare ? "h-full overflow-auto" : "h-full overflow-auto px-6 md:px-10 py-8 rounded-2xl"}
+      style={bare ? undefined : {
         background: 'var(--bg-pure-white)',
         border: '1px solid var(--border-slate-200)',
       }}
@@ -132,6 +139,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
           editor={editor}
           containerRef={mainEditorContainerRef}
           onChange={onChange}
+          onRewrite={onAiRewrite}
         />
       )}
     </div>

@@ -1,3 +1,4 @@
+import { App } from 'antd';
 import React from 'react';
 import {
   LayoutDashboard,

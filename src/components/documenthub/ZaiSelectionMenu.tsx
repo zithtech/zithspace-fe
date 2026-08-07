@@ -30,12 +30,19 @@ interface ZaiSelectionMenuProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   /** Called after a successful rewrite so the host can mark the doc dirty. */
   onChange?: () => void;
+  /**
+   * Override the rewrite call. Defaults to the Document Hub endpoint, which is
+   * gated on DOCUMENT_UPDATE — hosts outside the hub (e.g. QA test scopes) pass
+   * their own module's endpoint so their users aren't blocked by permissions.
+   */
+  onRewrite?: (input: { text: string; instruction: string }) => Promise<{ rewrittenHtml: string }>;
 }
 
 export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
   editor,
   containerRef,
   onChange,
+  onRewrite,
 }) => {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
@@ -129,7 +136,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
 
     setBusy(true);
     try {
-      const { rewrittenHtml } = await DocumentHubService.rewriteAiSelection({
+      const { rewrittenHtml } = await (onRewrite ?? DocumentHubService.rewriteAiSelection)({
         text,
         instruction: trimmed,
       });

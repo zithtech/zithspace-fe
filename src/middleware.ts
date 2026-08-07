@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
   "/login",
   "/onboard/",
   "/onboard",
+  "/forgot-password",
+  "/reset-password",
   "/public/",
   "/_next/",
   "/favicon.ico",

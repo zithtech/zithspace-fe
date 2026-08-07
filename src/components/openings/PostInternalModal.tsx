@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { InputNumber, Modal, Switch, Input, Tooltip } from 'antd';
+import { App, InputNumber, Modal, Switch, Input, Tooltip } from 'antd';
 import { ArrowRight, Bot, CalendarClock, Globe, Hand, Lock, RotateCcw } from 'lucide-react';
 import dayjs from 'dayjs';
-import toast from 'react-hot-toast';
 
 import OpeningV2Service from '@/services/openingV2Service';
 import { PALETTE, TINT } from './ui';
@@ -32,6 +31,7 @@ export default function PostInternalModal({
   onClose: () => void;
   onPosted: () => void;
 }) {
+  const { message } = App.useApp();
   const [days, setDays] = useState<number>(15);
   const [autoMove, setAutoMove] = useState(true);
   const [note, setNote] = useState('');
@@ -64,14 +64,14 @@ export default function PostInternalModal({
         autoMove,
         note: note.trim() || null,
       });
-      toast.success(
+      message.success(
         autoMove
           ? `Posted internally for ${days} day(s), then moves to external`
           : `Posted internally for ${days} day(s)`
       );
       onPosted();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not post the opening');
+      message.error(err?.response?.data?.error || 'Could not post the opening');
     } finally {
       setSaving(false);
     }

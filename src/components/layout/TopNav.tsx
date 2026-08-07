@@ -677,7 +677,7 @@ export default function TopNav({
               <Button
                 type="text"
                 className={`nav-action-btn${isRouteActive('/hotspot') ? ' nav-action-btn-active' : ''}`}
-                icon={<Flame size={17} strokeWidth={isRouteActive('/hotspot') ? 2 : 1.75} style={{ color: '#F97316' }} />}
+                icon={<Flame size={17} strokeWidth={isRouteActive('/hotspot') ? 2 : 1.75} />}
                 onClick={() => router.push('/hotspot')}
               />
             </Tooltip>

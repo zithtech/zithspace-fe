@@ -1625,10 +1625,14 @@ export default function MembersPage() {
       fetchPositions();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
-      if (error instanceof ApiError) {
+      const serverError = error?.response?.data?.message || error?.response?.data?.error || error?.message || "";
+      
+      if (typeof serverError === "string" && serverError.toLowerCase().includes("phone")) {
+        messageApi.error("This phone number already exists. Please use a different phone number.");
+      } else if (error instanceof ApiError) {
         messageApi.error(error.message);
       } else {
-        messageApi.error("Operation failed");
+        messageApi.error(typeof serverError === "string" && serverError ? serverError : "Operation failed");
       }
     } finally {
       setFormLoading(false);

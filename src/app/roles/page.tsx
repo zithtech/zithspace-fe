@@ -205,7 +205,6 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'qa.manage': 'QA Settings',
 };
 
-/** Display order for the QA Space page sub-groups (mirrors the QA Space rail). */
 const QA_PAGE_ORDER = [
   'Test Scope',
   'Test Cases',
@@ -215,6 +214,13 @@ const QA_PAGE_ORDER = [
   'Bug Archive',
   'Bug Recycle Bin',
   'QA Settings',
+];
+
+const DOC_SUITE_PAGE_ORDER = [
+  'Template Builder',
+  'Letter Composer',
+  'Generated Records',
+  'Custom Formats'
 ];
 
 /**
@@ -1637,13 +1643,19 @@ export default function RolesPage() {
               // Filter perms by search across the current tab
               const filteredByResource: Record<string, RBACPermission[]> = {};
               tabResources.forEach((res) => {
-                const perms = allPermissions[res] || [];
+                if (res === 'letter_template') return;
+
+                let perms = allPermissions[res] || [];
+                if (res === 'letter' && allPermissions['letter_template']) {
+                  perms = [...perms, ...allPermissions['letter_template']];
+                }
+
                 if (!searchQ) {
                   filteredByResource[res] = perms;
                   return;
                 }
                 const label = (RESOURCE_LABELS[res] || res).toLowerCase();
-                if (label.includes(searchQ)) {
+                if (label.includes(searchQ) || (res === 'letter' && (RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ))) {
                   filteredByResource[res] = perms;
                   return;
                 }
@@ -1825,7 +1837,9 @@ export default function RolesPage() {
                     ) : (
                       visibleResources.map((resource) => {
                         const perms = filteredByResource[resource];
-                        const allPermsForRes = allPermissions[resource];
+                        const allPermsForRes = resource === 'letter' && allPermissions['letter_template']
+                          ? [...(allPermissions['letter'] || []), ...allPermissions['letter_template']]
+                          : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const selectedCount = allPermsForRes.filter((p) =>
                           selectedPermIds.includes(p.id),
@@ -1863,6 +1877,21 @@ export default function RolesPage() {
                           // (see QA_PAGE_BY_PERM).
                           perms.forEach((p) => {
                             const subKey = QA_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'letter') {
+                          perms.forEach((p) => {
+                            let subKey = 'Other';
+                            if (p.name.startsWith('letter_template.')) {
+                              subKey = 'Template Builder';
+                            } else if (p.name.startsWith('letter.format.')) {
+                              subKey = 'Custom Formats';
+                            } else if (p.name === 'letter.generate' || p.name === 'letter.manage') {
+                              subKey = 'Letter Composer';
+                            } else if (p.name === 'letter.read' || p.name === 'letter.delete') {
+                              subKey = 'Generated Records';
+                            }
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
@@ -1953,7 +1982,9 @@ export default function RolesPage() {
                                         ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                         : resource === 'qa'
                                           ? ([...QA_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                          : Object.entries(subGroups)
+                                          : resource === 'letter'
+                                            ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                            : Object.entries(subGroups)
                                   ).map(([subTitle, subPerms]) => (
                                     <div key={subTitle} className="rp-acc-subgroup">
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
@@ -1983,6 +2014,10 @@ export default function RolesPage() {
                                                       }
                                                       if (name.startsWith('qa.') || name.startsWith('bug.')) {
                                                         // QA Space page is the sub-group title; show only the verb.
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                      }
+                                                      if (name.startsWith('letter_template.') || name.startsWith('letter.')) {
                                                         const verb = action.split('.').pop() || action;
                                                         return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }

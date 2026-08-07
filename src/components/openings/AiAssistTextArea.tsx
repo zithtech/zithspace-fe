@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Checkbox, Input, Modal, Skeleton, Tooltip } from 'antd';
+import { App, Button, Checkbox, Input, Modal, Skeleton, Tooltip } from 'antd';
 import { Database, Plus, RefreshCw, Sparkles, SpellCheck2, Undo2 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import OpeningV2Service, {
   type AssistContext,
@@ -44,6 +43,8 @@ export default function AiAssistTextArea({
   placeholder,
   disabled,
 }: Props) {
+  const { message } = App.useApp();
+
   const [grammarBusy, setGrammarBusy] = useState(false);
   const [enhanceBusy, setEnhanceBusy] = useState(false);
   const [previous, setPrevious] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export default function AiAssistTextArea({
   const requireTitle = (): AssistContext | null => {
     const ctx = getContext();
     if (!ctx.jobTitle?.trim()) {
-      toast.error('Enter a job title first — the suggestions are based on it');
+      message.error('Enter a job title first — the suggestions are based on it');
       return null;
     }
     return ctx;
@@ -69,21 +70,21 @@ export default function AiAssistTextArea({
 
   const runGrammar = async () => {
     if (!(value || '').trim()) {
-      toast.error('Write something first');
+      message.error('Write something first');
       return;
     }
     setGrammarBusy(true);
     try {
       const result = await OpeningV2Service.aiGrammar(value);
       if (!result.changed) {
-        toast.success('No grammar issues found');
+        message.success('No grammar issues found');
         return;
       }
       setPrevious(value);
       onChange?.(result.text);
-      toast.success('Grammar corrected');
+      message.success('Grammar corrected');
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not run the grammar check');
+      message.error(err?.response?.data?.error || 'Could not run the grammar check');
     } finally {
       setGrammarBusy(false);
     }
@@ -95,9 +96,9 @@ export default function AiAssistTextArea({
       const result = await OpeningV2Service.aiSuggestions(field, ctx, refresh);
       setGroups(result.groups);
       setCached(result.cached);
-      if (refresh) toast.success('Suggestions regenerated');
+      if (refresh) message.success('Suggestions regenerated');
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load suggestions');
+      message.error(err?.response?.data?.error || 'Could not load suggestions');
       if (!refresh) setPickerOpen(false);
     } finally {
       setLoadingSuggestions(false);
@@ -131,7 +132,7 @@ export default function AiAssistTextArea({
 
     const group = groups.find((g) => g.key === groupKey);
     if (group?.items.some((i) => i.toLowerCase() === raw.toLowerCase())) {
-      toast.error('That is already in the list');
+      message.error('That is already in the list');
       setDrafts((prev) => ({ ...prev, [groupKey]: '' }));
       return;
     }
@@ -165,19 +166,19 @@ export default function AiAssistTextArea({
       setPrevious(value);
       onChange?.(text);
       setPickerOpen(false);
-      toast.success((value || '').trim() ? 'Content enhanced' : 'Content generated');
+      message.success((value || '').trim() ? 'Content enhanced' : 'Content generated');
       // Be honest when a selection did not make it in, rather than letting the
       // user discover it by reading.
       if (missing.length) {
-        toast(
+        message.warning(
           `${missing.length} selected item(s) did not make it in: ${missing.slice(0, 3).join(', ')}${
             missing.length > 3 ? '…' : ''
           }`,
-          { icon: '⚠️', duration: 6000 }
+          6
         );
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not generate the content');
+      message.error(err?.response?.data?.error || 'Could not generate the content');
     } finally {
       setEnhanceBusy(false);
     }
@@ -192,7 +193,7 @@ export default function AiAssistTextArea({
     if (previous === null) return;
     onChange?.(previous);
     setPrevious(null);
-    toast.success('Reverted');
+    message.success('Reverted');
   };
 
   return (

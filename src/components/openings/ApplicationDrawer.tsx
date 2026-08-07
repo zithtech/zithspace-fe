@@ -2,9 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Drawer, Empty, Input, Skeleton, Tag } from 'antd';
-import { ExternalLink, Save } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { App, Button, Drawer, Empty, Input, Skeleton, Tag, Tooltip } from 'antd';
+import { ExternalLink, Save, Mail, Phone, Briefcase, Star, Code, AlertTriangle, ArrowRightCircle, Activity, Calendar } from 'lucide-react';
 
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, {
@@ -31,6 +30,7 @@ export default function ApplicationDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { message } = App.useApp();
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
 
@@ -60,7 +60,7 @@ export default function ApplicationDrawer({
         .then((rows) => setPipeline(rows.filter((r) => r.openingId !== openingId)))
         .catch(() => setPipeline([]));
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the application');
+      message.error(err?.response?.data?.error || 'Could not load the application');
       onClose();
     } finally {
       setLoading(false);
@@ -82,10 +82,10 @@ export default function ApplicationDrawer({
         notes: notes.trim() || null,
       });
       setApp(updated);
-      toast.success('Application updated');
+      message.success('Application updated');
       onChanged();
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not save the application');
+      message.error(err?.response?.data?.error || 'Could not save the application');
     } finally {
       setSaving(false);
     }
@@ -101,8 +101,18 @@ export default function ApplicationDrawer({
     <Drawer
       open={open}
       onClose={onClose}
-      width={560}
-      title={app?.candidateName ?? 'Candidate'}
+      width={600}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold text-sm border border-blue-200 dark:border-blue-800/50">
+            {app?.candidateName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'C'}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">{app?.candidateName ?? 'Candidate'}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Application Profile</span>
+          </div>
+        </div>
+      }
       extra={
         perms.canUpdateOpening && (
           <Button
@@ -111,133 +121,176 @@ export default function ApplicationDrawer({
             loading={saving}
             disabled={!dirty}
             onClick={save}
+            className="font-semibold shadow-sm"
           >
-            Save
+            Save Changes
           </Button>
         )
       }
+      styles={{
+        header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 24px' },
+        body: { padding: '24px', background: 'var(--bg-slate-50)' }
+      }}
     >
       {loading || !app ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div className="omp-fields" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-            <div className="omp-field">
-              <div className="omp-field-label">Stage</div>
-              <div className="omp-field-value">
-                <StageChip stage={app.stage} />
+        <div className="flex flex-col gap-6">
+          {/* Quick Stats / Overview Card */}
+          <div className="bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+            <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Activity size={13} /> Current Stage
+                </div>
+                <div><StageChip stage={app.stage} /></div>
               </div>
-            </div>
-            <div className="omp-field">
-              <div className="omp-field-label">Applied</div>
-              <div className="omp-field-value">{fmtDate(app.appliedAt)}</div>
-            </div>
-            <div className="omp-field">
-              <div className="omp-field-label">Email</div>
-              <div className="omp-field-value">{app.candidateEmail ?? '—'}</div>
-            </div>
-            <div className="omp-field">
-              <div className="omp-field-label">Phone</div>
-              <div className="omp-field-value">{app.candidatePhone ?? '—'}</div>
-            </div>
-            <div className="omp-field">
-              <div className="omp-field-label">Current role</div>
-              <div className="omp-field-value">{app.candidateCurrentRole ?? '—'}</div>
-            </div>
-            <div className="omp-field">
-              <div className="omp-field-label">Experience</div>
-              <div className="omp-field-value">
-                {app.candidateExperience !== null ? `${app.candidateExperience} yrs` : '—'}
+              
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Calendar size={13} /> Applied On
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{fmtDate(app.appliedAt)}</div>
               </div>
-            </div>
-            <div className="omp-field is-span">
-              <div className="omp-field-label">Source</div>
-              <div className="omp-field-value">
-                {SOURCE_LABELS[app.source] ?? app.source}
-                {app.referredByName ? ` · referred by ${app.referredByName}` : ''}
+
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Mail size={13} /> Email Address
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{app.candidateEmail ?? '—'}</div>
               </div>
-            </div>
-            {!!app.candidateSkills?.length && (
-              <div className="omp-field is-span">
-                <div className="omp-field-label">Skills</div>
-                <div className="omp-field-value">
-                  {app.candidateSkills.map((s) => (
-                    <Tag key={s} className="omp-tag">
-                      {s}
-                    </Tag>
-                  ))}
+
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Phone size={13} /> Phone Number
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{app.candidatePhone ?? '—'}</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Briefcase size={13} /> Current Role
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{app.candidateCurrentRole ?? '—'}</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <Star size={13} /> Experience
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                  {app.candidateExperience !== null ? `${app.candidateExperience} yrs` : '—'}
                 </div>
               </div>
-            )}
-            {app.rejectionReason && (
-              <div className="omp-field is-span">
-                <div className="omp-field-label">Rejection reason</div>
-                <div className="omp-field-value" style={{ color: PALETTE.red }}>
-                  {app.rejectionReason}
+              
+              <div className="col-span-2">
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+                  <ArrowRightCircle size={13} /> Source
+                </div>
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                  {SOURCE_LABELS[app.source] ?? app.source}
+                  {app.referredByName ? <span className="text-slate-500 ml-1">· referred by {app.referredByName}</span> : ''}
                 </div>
               </div>
-            )}
+
+              {!!app.candidateSkills?.length && (
+                <div className="col-span-2">
+                  <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-2">
+                    <Code size={13} /> Skills
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {app.candidateSkills.map((s) => (
+                      <span key={s} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-xs font-medium border border-slate-200 dark:border-slate-700">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {app.rejectionReason && (
+                <div className="col-span-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
+                  <div className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 mb-1">
+                    <AlertTriangle size={13} /> Rejection Reason
+                  </div>
+                  <div className="text-sm font-medium text-red-700 dark:text-red-300">
+                    {app.rejectionReason}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <div className="omp-field-label">Source detail</div>
-            <Input
-              value={sourceDetail}
-              onChange={(e) => setSourceDetail(e.target.value)}
-              placeholder="Agency, campus, campaign…"
-              disabled={!perms.canUpdateOpening}
-            />
+          {/* Edit Fields */}
+          <div className="bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col gap-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Source Detail</label>
+              <Input
+                value={sourceDetail}
+                onChange={(e) => setSourceDetail(e.target.value)}
+                placeholder="Agency, campus, campaign…"
+                disabled={!perms.canUpdateOpening}
+                className="rounded-md"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Resume URL</label>
+              <Input
+                value={resumeUrl}
+                onChange={(e) => setResumeUrl(e.target.value)}
+                placeholder="https://…"
+                disabled={!perms.canUpdateOpening}
+                className="rounded-md"
+                suffix={
+                  app.resumeUrl ? (
+                    <a href={app.resumeUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-600">
+                      <ExternalLink size={14} />
+                    </a>
+                  ) : null
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Notes</label>
+              <Input.TextArea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Screening notes, panel feedback…"
+                disabled={!perms.canUpdateOpening}
+                className="rounded-md"
+              />
+            </div>
           </div>
 
-          <div>
-            <div className="omp-field-label">Resume submitted for this opening</div>
-            <Input
-              value={resumeUrl}
-              onChange={(e) => setResumeUrl(e.target.value)}
-              placeholder="https://…"
-              disabled={!perms.canUpdateOpening}
-              suffix={
-                app.resumeUrl ? (
-                  <a href={app.resumeUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink size={13} />
-                  </a>
-                ) : null
-              }
-            />
-          </div>
-
-          <div>
-            <div className="omp-field-label">Notes</div>
-            <Input.TextArea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Screening notes, panel feedback…"
-              disabled={!perms.canUpdateOpening}
-            />
-          </div>
-
-          <div>
-            <div className="omp-field-label" style={{ marginBottom: 8 }}>
+          {/* Also in play for */}
+          <div className="bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">
               Also in play for
             </div>
             {pipeline.length === 0 ? (
-              <div className="omp-muted" style={{ fontSize: 12 }}>
+              <div className="text-sm text-slate-500 dark:text-slate-400 italic">
                 Not on any other opening.
               </div>
             ) : (
-              <div className="omp-pipeline">
+              <div className="flex flex-col gap-2">
                 {pipeline.map((p) => (
                   <button
                     key={p.openingId}
-                    className="omp-pipeline-row"
+                    className="flex items-center gap-3 w-full text-left p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-[#0B0F1A] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     onClick={() => {
                       onClose();
                       router.push(`/openings/${p.openingId}`);
                     }}
                   >
-                    <span className="omp-code">{p.openingCode}</span>
-                    <span className="omp-pipeline-title">{p.jobTitle}</span>
+                    <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded">
+                      {p.openingCode}
+                    </div>
+                    <div className="flex-1 font-semibold text-sm text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                      {p.jobTitle}
+                    </div>
                     <StageChip stage={p.stage as ApplicationStage} />
                   </button>
                 ))}
@@ -245,40 +298,50 @@ export default function ApplicationDrawer({
             )}
           </div>
 
-          <div>
-            <div className="omp-field-label" style={{ marginBottom: 10 }}>
-              Stage history
+          {/* Stage History Timeline */}
+          <div className="bg-white dark:bg-[#0B0F1A] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider">
+              Stage History
             </div>
             {app.history.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No movement recorded" />
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No movement recorded" className="my-4" />
             ) : (
-              <div className="omp-timeline">
+              <div className="relative pl-3">
                 {app.history.map((h, i) => {
                   const meta = STAGE_META[h.toStage];
                   const tone = meta ? PALETTE[meta.tone] : PALETTE.ash;
+                  const isLast = i === app.history.length - 1;
+                  
                   return (
-                    <div className="omp-tl-item" key={h.id}>
-                      <div className="omp-tl-rail">
-                        <span className="omp-tl-dot" style={{ background: tone }} />
-                        {i < app.history.length - 1 && <span className="omp-tl-line" />}
-                      </div>
-                      <div className="omp-tl-body">
-                        <div className="omp-tl-title">
+                    <div className="flex gap-4 relative pb-5" key={h.id}>
+                      {!isLast && (
+                        <div className="absolute top-5 left-1.5 w-px h-full bg-slate-200 dark:bg-slate-700 -translate-x-1/2"></div>
+                      )}
+                      <div 
+                        className="w-3 h-3 rounded-full mt-1.5 relative z-10 flex-shrink-0 shadow-sm border-2 border-white dark:border-[#0B0F1A]" 
+                        style={{ backgroundColor: tone }}
+                      ></div>
+                      <div className="flex-1 flex flex-col">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
                           {h.fromStage ? (
                             <>
-                              {STAGE_META[h.fromStage]?.label ?? h.fromStage}
-                              <span className="omp-muted"> → </span>
+                              <span className="text-slate-500 font-normal">{STAGE_META[h.fromStage]?.label ?? h.fromStage}</span>
+                              <span className="text-slate-400 mx-1.5">→</span>
                             </>
                           ) : (
-                            <span className="omp-muted">Added at </span>
+                            <span className="text-slate-500 font-normal mr-1.5">Added at</span>
                           )}
-                          <strong style={{ color: tone }}>{meta?.label ?? h.toStage}</strong>
+                          <span style={{ color: tone }} className="font-bold">{meta?.label ?? h.toStage}</span>
                         </div>
-                        <div className="omp-tl-meta">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           {fmtDateTime(h.changedAt)}
                           {h.changedByName ? ` · ${h.changedByName}` : ''}
                         </div>
-                        {h.note && <div className="omp-tl-note">“{h.note}”</div>}
+                        {h.note && (
+                          <div className="mt-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 p-2.5 rounded-lg italic">
+                            “{h.note}”
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -288,20 +351,6 @@ export default function ApplicationDrawer({
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        .omp-pipeline { display: flex; flex-direction: column; gap: 6px; }
-        .omp-pipeline-row {
-          display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-          padding: 8px 10px; border: 1px solid var(--border-slate-200); border-radius: 8px;
-          background: var(--bg-pure-white); cursor: pointer;
-        }
-        .omp-pipeline-row:hover { background: var(--bg-slate-50); }
-        .omp-pipeline-title {
-          flex: 1; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-      `}</style>
     </Drawer>
   );
 }

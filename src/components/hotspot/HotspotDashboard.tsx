@@ -61,6 +61,7 @@ export default function HotspotDashboard() {
         subtitle="Explore and apply to opportunities within the company"
         search={search}
         onSearch={setSearch}
+        hideHamburger={true}
       />
 
       <div className="hotspot-grid">

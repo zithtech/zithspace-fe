@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Dropdown, Modal, Skeleton, Tabs, Tooltip, Input } from 'antd';
+import { App, Button, Dropdown, Modal, Skeleton, Tabs, Tooltip, Input } from 'antd';
 import {
   Archive,
   ArrowLeft,
@@ -18,7 +18,6 @@ import {
   Send,
   XCircle,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { usePermission } from '@/hooks/usePermission';
 import OpeningV2Service, {
@@ -53,6 +52,8 @@ import { RoundsTab } from './tabs/RoundsTab';
 // buttons on screen are exactly the moves the backend will accept.
 
 export default function OpeningDetailPanel({ openingId }: { openingId: string }) {
+  const { message } = App.useApp();
+
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
 
@@ -87,7 +88,7 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
       setStatusState(s);
       setApprovals(a);
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Could not load the opening');
+      message.error(err?.response?.data?.error || 'Could not load the opening');
     } finally {
       setLoading(false);
     }
@@ -102,11 +103,11 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
     setBusy(true);
     try {
       await fn();
-      toast.success(successMessage);
+      message.success(successMessage);
       await load();
     } catch (err: any) {
       const data = err?.response?.data;
-      toast.error(data?.details?.[0]?.message || data?.error || 'That action did not go through');
+      message.error(data?.details?.[0]?.message || data?.error || 'That action did not go through');
     } finally {
       setBusy(false);
     }
@@ -407,7 +408,7 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
               options={menuItems.filter(m => m.key).map(m => ({ value: m.key, label: m.label, disabled: m.disabled }))}
               value={null}
               onChange={(val) => {
-                toast.success(`Clicked: ${val}`);
+                message.success(`Clicked: ${val}`);
                 const item = menuItems.find(m => m.key === val);
                 if (item?.onClick) {
                   setTimeout(() => item.onClick(), 0);
@@ -468,7 +469,7 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
           {
             key: 'candidates',
             label: 'Candidates',
-            children: <CandidatesTab openingId={openingId} onChanged={load} />,
+            children: <CandidatesTab openingId={openingId} opening={opening} onChanged={load} />,
           },
           {
             key: 'referrals',
@@ -529,7 +530,7 @@ export default function OpeningDetailPanel({ openingId }: { openingId: string })
         onOk={async () => {
           if (!noteModalConfig) return;
           if (noteModalConfig.required && !noteValue.trim()) {
-            toast.error('A note is required');
+            message.error('A note is required');
             return;
           }
           setNoteModalOpen(false);

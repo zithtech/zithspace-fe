@@ -107,7 +107,7 @@ export default function TestCasesPage() {
   const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
 
-  const { canReadCase, canCreateCase } = usePermission();
+  const { canReadCase, canCreateCase, canUpdateCase, canDeleteCase } = usePermission();
 
   const fetchData = async () => {
     try {
@@ -394,27 +394,32 @@ export default function TestCasesPage() {
       align: 'right' as const,
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
-          <Tooltip title="Edit">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleOpenEditModal(record, e); }}
-              aria-label="Edit"
-            >
-              <Pencil size={15} />
-            </button>
-          </Tooltip>
-          <ConfirmDialog
-            tone="danger"
-            title="Delete Test Case?"
-            description="Are you sure you want to delete this Test Case and all associated test cases?"
-            confirmText="Delete"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Tooltip title="Delete">
-              <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
-                <Trash2 size={15} />
+          {canUpdateCase && (
+            <Tooltip title="Edit">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleOpenEditModal(record, e); }}
+                aria-label="Edit"
+              >
+                <Pencil size={15} />
               </button>
             </Tooltip>
-          </ConfirmDialog>
+          )}
+          {canDeleteCase && (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete Test Case?"
+              description="Are you sure you want to delete this Test Case and all associated test cases?"
+              confirmText="Delete"
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                  <Trash2 size={15} />
+                </button>
+              </Tooltip>
+            </ConfirmDialog>
+          )}
+          {!canUpdateCase && !canDeleteCase && <span className="sc-muted">—</span>}
         </div>
       )
     }
@@ -438,33 +443,37 @@ export default function TestCasesPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
-            <Button
-              type="text"
-              size="small"
-              icon={<Pencil size={15} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenEditModal(r, e);
-              }}
-              style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-              title="Edit Test Case"
-            />
-            <ConfirmDialog
-              tone="danger"
-              title="Delete Test Case?"
-              description="Are you sure you want to delete this Test Case and all associated test cases?"
-              confirmText="Delete"
-              onConfirm={() => handleDelete(r.id)}
-            >
+            {canUpdateCase && (
               <Button
                 type="text"
                 size="small"
-                icon={<Trash2 size={15} />}
-                onClick={(e) => e.stopPropagation()}
-                style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                title="Delete Test Case"
+                icon={<Pencil size={15} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEditModal(r, e);
+                }}
+                style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                title="Edit Test Case"
               />
-            </ConfirmDialog>
+            )}
+            {canDeleteCase && (
+              <ConfirmDialog
+                tone="danger"
+                title="Delete Test Case?"
+                description="Are you sure you want to delete this Test Case and all associated test cases?"
+                confirmText="Delete"
+                onConfirm={() => handleDelete(r.id)}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Trash2 size={15} />}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  title="Delete Test Case"
+                />
+              </ConfirmDialog>
+            )}
           </div>
         </div>
 

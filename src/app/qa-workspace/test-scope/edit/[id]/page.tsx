@@ -1,25 +1,127 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, Checkbox, Row, Col, Upload, DatePicker, Modal, Dropdown, Drawer, Tag, App } from "antd";
-import { Target, CheckSquare, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, Sparkles, Copy, ChevronDown, Maximize, Zap, Wand2, ArrowRight, UploadCloud, File as FileIcon, Image as ImageIcon, Trash2, Eye, Download, X, ZoomIn } from "lucide-react";
-import { InboxOutlined, ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons";
+import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip } from "antd";
+import {
+  Target, CheckSquare, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2,
+  Sparkles, Copy, ChevronDown, Maximize, Zap, Wand2, UploadCloud, File as FileIcon,
+  Image as ImageIcon, Trash2, Eye, Download, X, ClipboardList, Paperclip, ShieldCheck,
+  ExternalLink, Plus, Check, Save, Layers, ListChecks, Gauge, SpellCheck,
+  PenTool, Braces, FileSpreadsheet,
+} from "lucide-react";
+import { ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import { useParams, useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
+import dayjs from "dayjs";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import TiptapEditor, { TiptapEditorRef } from "@/components/common/TiptapEditor";
 import TiptapViewer from "@/components/common/TiptapViewer";
+import DocumentEditor from "@/components/common/DocumentEditor";
+import { useCreateBlockNote } from "@blocknote/react";
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { MembersService } from "@/services/membersService";
+import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import debounce from "lodash/debounce";
-import dayjs from "dayjs";
 
 const { Dragger } = Upload;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Section registry — drives the left rail, the scroll-spy and the progress ring
+   ──────────────────────────────────────────────────────────────────────────── */
+const SECTIONS = [
+  { id: "sec-basics", label: "Basic Information", icon: ClipboardList, required: true },
+  { id: "sec-product", label: "Product Information", icon: Target },
+  { id: "sec-requirements", label: "Requirement References", icon: Link2 },
+  { id: "sec-scope", label: "Scope Definition", icon: FileText },
+  { id: "sec-testing", label: "Testing Types", icon: CheckSquare },
+  { id: "sec-environment", label: "Environment", icon: Monitor },
+  { id: "sec-dependencies", label: "Dependencies", icon: AlertCircle },
+  { id: "sec-acceptance", label: "Acceptance Criteria", icon: CheckCircle },
+  { id: "sec-exit", label: "Exit Criteria", icon: CheckCircle2 },
+  { id: "sec-linked", label: "Linked Items", icon: Layers },
+  { id: "sec-attachments", label: "Attachments", icon: Paperclip },
+  { id: "sec-approval", label: "Approval Workflow", icon: ShieldCheck },
+];
+
+const TESTING_TYPES = [
+  "Functional", "Regression", "Smoke", "Sanity",
+  "UI", "API", "Performance", "Security",
+  "Accessibility", "Cross Browser", "Mobile", "Automation",
+  "Integration", "UAT", "Usability", "Localization",
+  "Exploratory", "End-to-End", "Compatibility", "Database",
+];
+
+type ZaiField = 'inScope' | 'description';
+
+const ZAI_FIELD_LABEL: Record<ZaiField, string> = {
+  inScope: 'Scope Definition',
+  description: 'Description',
+};
+
+const EXIT_CRITERIA = [
+  "All Critical Tests Passed",
+  "No Critical Bugs",
+  "No High Severity Bugs",
+  "Regression Passed",
+  "Product Owner Approved",
+];
+
+/** Nearest scrollable ancestor, or null when the window scrolls. */
+function getScrollParent(node: Element | null): HTMLElement | null {
+  let el = node?.parentElement ?? null;
+  while (el) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === "auto" || oy === "scroll" || oy === "overlay") && el.scrollHeight > el.clientHeight) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
+
+/** Returns the id of the section currently sitting below the sticky header. */
+function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): string {
+  const [active, setActive] = useState(ids[0] ?? "");
+  const key = ids.join(",");
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive((visible[0].target as HTMLElement).id);
+      },
+      { root, rootMargin: `-${Math.round(offset)}px 0px -60% 0px`, threshold: 0 }
+    );
+    const els = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => el != null);
+    els.forEach((el) => observer.observe(el));
+
+    const handleScroll = () => {
+      const scrollHeight = root ? root.scrollHeight : document.documentElement.scrollHeight;
+      const clientHeight = root ? root.clientHeight : window.innerHeight;
+      const scrollTop = root ? root.scrollTop : window.scrollY;
+      if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 2) {
+        const lastId = ids[ids.length - 1];
+        if (lastId) setActive(lastId);
+      }
+    };
+
+    const target: any = root ?? window;
+    target.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      target.removeEventListener("scroll", handleScroll);
+    };
+  }, [key, offset, root]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return active;
+}
 
 function ImageModal({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
   useEffect(() => {
@@ -48,45 +150,484 @@ function ImageModal({ src, name, onClose }: { src: string; name: string; onClose
         </div>
         <div className="bg-zinc-950 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={name}
-            className="max-w-[90vw] max-h-[80vh] object-contain"
-          />
+          <img src={src} alt={name} className="max-w-[90vw] max-h-[80vh] object-contain" />
         </div>
       </div>
     </div>
   );
 }
 
-export default function CreateScopePage() {
+/* ── Presentational primitives ─────────────────────────────────────────────── */
+
+function SectionCard({
+  id, icon: Icon, index, title, description, badge, action, children,
+}: {
+  id: string;
+  icon: React.ElementType;
+  index: number;
+  title: string;
+  description?: string;
+  badge?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="ts-card scroll-mt-40">
+      <header className="ts-card__head">
+        <span className="ts-card__icon"><Icon size={16} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="ts-card__step">{String(index).padStart(2, "0")}</span>
+            <h3 className="ts-card__title">{title}</h3>
+            {badge}
+          </div>
+          {description ? <p className="ts-card__desc">{description}</p> : null}
+        </div>
+        {action ? <div className="flex items-center gap-2 flex-shrink-0">{action}</div> : null}
+      </header>
+      <div className="ts-card__body">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label, required, hint, error, className, children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  error?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <label className="ts-label">
+        {label}
+        {required && <span className="ts-req">*</span>}
+      </label>
+      {children}
+      {error ? <p className="ts-error">{error}</p> : hint ? <p className="ts-hint">{hint}</p> : null}
+    </div>
+  );
+}
+
+function Chip({
+  active, onClick, onRemove, children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  /** Present on user-added entries — removes them from the list entirely. */
+  onRemove?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`ts-chip${active ? " ts-chip--on" : ""}${onRemove ? " ts-chip--custom" : ""}`}>
+      <button type="button" onClick={onClick} className="ts-chip__main">
+        <span className="ts-chip__box">{active ? <Check size={11} strokeWidth={3.5} /> : null}</span>
+        <span className="truncate">{children}</span>
+      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          className="ts-chip__remove"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          aria-label="Remove custom entry"
+        >
+          <X size={11} strokeWidth={2.8} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Inline "add your own" row revealed from a section header. */
+function InlineAdd({
+  placeholder, value, onChange, onAdd, onCancel,
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  onAdd: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="ts-inlineadd">
+      <Input
+        autoFocus
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onPressEnter={onAdd}
+        onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }}
+        style={{ flex: 1 }}
+      />
+      <Button type="primary" ghost icon={<Plus size={14} />} onClick={onAdd} disabled={!value.trim()}>Add</Button>
+      <Button type="text" onClick={onCancel}>Cancel</Button>
+    </div>
+  );
+}
+
+/** Selected values of a multi-select, shown as removable tokens under the trigger. */
+function TokenList({ values, onRemove }: { values: string[]; onRemove: (val: string) => void }) {
+  if (!values.length) return null;
+  return (
+    <div className="ts-tokens">
+      {values.map((val) => (
+        <span key={val} className="ts-token">
+          <span className="truncate">{val}</span>
+          <button type="button" onClick={() => onRemove(val)} aria-label={`Remove ${val}`}>
+            <X size={11} strokeWidth={2.8} />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CountPill({ n, noun }: { n: number; noun: string }) {
+  if (!n) return null;
+  return <span className="ts-count">{n} {noun}</span>;
+}
+
+function ProgressRing({ value }: { value: number }) {
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative w-[68px] h-[68px] flex-shrink-0">
+      <svg width="68" height="68" viewBox="0 0 68 68" className="-rotate-90">
+        <circle cx="34" cy="34" r={r} fill="none" strokeWidth="5" className="ts-ring__track" />
+        <circle
+          cx="34" cy="34" r={r} fill="none" strokeWidth="5" strokeLinecap="round"
+          className="ts-ring__bar"
+          strokeDasharray={c}
+          strokeDashoffset={c - (c * value) / 100}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-[15px] font-semibold ts-text">{value}%</span>
+      </div>
+    </div>
+  );
+}
+
+function UploadZone({
+  label, hint, onChange, fileList, compact,
+}: { label: string; hint?: string; onChange: (info: any) => void; fileList: any[]; compact?: boolean }) {
+  return (
+    <Dragger
+      className="custom-upload-dragger"
+      fileList={fileList}
+      onChange={onChange}
+      beforeUpload={() => false}
+      multiple
+      showUploadList={false}
+    >
+      {compact ? (
+        <div className="ts-drop ts-drop--compact">
+          <Plus size={14} />
+          <span>Add more files</span>
+        </div>
+      ) : (
+        <div className="ts-drop">
+          <span className="ts-drop__icon"><UploadCloud size={18} /></span>
+          <div className="text-left">
+            <p className="ts-drop__title"><span>Click to upload</span> or drag &amp; drop</p>
+            <p className="ts-drop__hint">{hint || `${label} · max 50MB`}</p>
+          </div>
+        </div>
+      )}
+    </Dragger>
+  );
+}
+
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
+const isImageFile = (file: any) =>
+  !!(file?.type?.startsWith?.('image/') || /^data:image\//.test(file?.url || file?.thumbUrl || ''));
+
+/** Per-category icon so the bays are scannable at a glance. */
+const ATTACHMENT_ICONS: Record<string, React.ElementType> = {
+  screenshots: ImageIcon,
+  designFiles: PenTool,
+  sampleData: Braces,
+  excelFiles: FileSpreadsheet,
+  pdfs: FileText,
+};
+
+/** One upload category: header, dropzone, image tiles and file rows. */
+function AttachmentBay({
+  field, files, isCustom, onUpload, onRemoveFile, onClear, onRemoveCategory, onPreview,
+}: {
+  field: { key: string; label: string; hint: string };
+  files: any[];
+  isCustom: boolean;
+  onUpload: (info: any) => void;
+  onRemoveFile: (uid: string) => void;
+  onClear: () => void;
+  onRemoveCategory: () => void;
+  onPreview: (src: string, name: string) => void;
+}) {
+  const Icon = ATTACHMENT_ICONS[field.key] || Paperclip;
+  const totalSize = files.reduce((n: number, f: any) => n + (f.size || 0), 0);
+  const images = files.filter(f => isImageFile(f) && (f.url || f.thumbUrl));
+  const rest = files.filter(f => !images.includes(f));
+
+  return (
+    <div className={`ts-bay${files.length ? ' ts-bay--filled' : ''}`}>
+      <div className="ts-bay__head">
+        <span className="ts-bay__icon"><Icon size={14} /></span>
+        <span className="ts-bay__label">{field.label}</span>
+        {files.length > 0 ? (
+          <span className="ts-bay__meta">{files.length} file{files.length === 1 ? '' : 's'}{totalSize ? ` · ${formatBytes(totalSize)}` : ''}</span>
+        ) : (
+          <span className="ts-bay__meta ts-bay__meta--empty">Empty</span>
+        )}
+        <div className="ts-bay__actions">
+          {files.length > 0 && (
+            <Tooltip title="Remove all files">
+              <button type="button" onClick={onClear} aria-label={`Clear ${field.label}`}><Trash2 size={13} /></button>
+            </Tooltip>
+          )}
+          {isCustom && (
+            <Tooltip title="Remove this category">
+              <button type="button" onClick={onRemoveCategory} aria-label={`Remove ${field.label}`}><X size={13} /></button>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+
+      <div className="ts-bay__body">
+        <UploadZone
+          label={field.label}
+          hint={field.hint}
+          fileList={files}
+          onChange={onUpload}
+          compact={files.length > 0}
+        />
+
+        {images.length > 0 && (
+          <div className="ts-thumbs">
+            {images.map((file: any) => (
+              <div key={file.uid} className="ts-thumb">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={file.url || file.thumbUrl} alt={file.name} />
+                <div className="ts-thumb__veil">
+                  <button type="button" onClick={() => onPreview(file.url || file.thumbUrl, file.name)} aria-label="Preview"><Eye size={14} /></button>
+                  <button type="button" onClick={() => onRemoveFile(file.uid)} aria-label="Remove"><Trash2 size={14} /></button>
+                </div>
+                <span className="ts-thumb__name">{file.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {rest.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {rest.map((file: any) => (
+              <FileRow
+                key={file.uid}
+                file={file}
+                thumb={field.key === 'pdfs'
+                  ? <FileText size={16} style={{ color: 'var(--ts-red)' }} />
+                  : <Icon size={16} />}
+                onRemove={() => onRemoveFile(file.uid)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FileRow({
+  file, thumb, onPreview, onRemove,
+}: { file: any; thumb?: React.ReactNode; onPreview?: () => void; onRemove: () => void }) {
+  return (
+    <div className="ts-file">
+      <div className="flex items-center gap-3 overflow-hidden">
+        <div className="ts-file__thumb">{thumb}</div>
+        <div className="flex flex-col min-w-0">
+          <span className="ts-file__name">{file.name}</span>
+          <div className="flex items-center gap-2 ts-file__meta">
+            {file.size ? <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span> : null}
+            {file.status === 'uploading' ? <span className="ts-file__state">Uploading…</span> : <span className="ts-file__ready">Ready</span>}
+          </div>
+        </div>
+      </div>
+      <div className="ts-file__actions">
+        {onPreview ? (
+          <Tooltip title="Preview"><Button type="text" size="small" icon={<Eye size={15} />} onClick={onPreview} /></Tooltip>
+        ) : null}
+        <Tooltip title="Download">
+          <Button
+            type="text"
+            size="small"
+            icon={<Download size={15} />}
+            onClick={() => {
+              if (file.url) {
+                const a = document.createElement('a');
+                a.href = file.url;
+                a.download = file.name;
+                a.click();
+              }
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Remove"><Button type="text" danger size="small" icon={<Trash2 size={15} />} onClick={onRemove} /></Tooltip>
+      </div>
+    </div>
+  );
+}
+
+export interface ScopeDocEditorRef {
+  /** Insert an HTML fragment after the current cursor block (used by ZAI). */
+  insertHtmlAtCursor: (html: string) => Promise<void>;
+}
+
+/**
+ * Scope editor built on the same BlockNote instance the Document Hub uses —
+ * slash commands, drag handles, nested blocks and the inline Zai rewrite menu.
+ * Used both inline in the Scope Definition card and full-height in the Expand drawer.
+ *
+ * The scope stores In/Out Scope as HTML (rendered by TiptapViewer on the detail
+ * page and in the PDF export), so this bridges at the boundary: HTML → blocks on
+ * mount, debounced blocks → HTML on change. Content is seeded once per mount, so
+ * external writes (ZAI replace/append) remount the editor via a changing `key`.
+ */
+const ScopeDocEditor = React.forwardRef<ScopeDocEditorRef, {
+  html: string;
+  onChangeHtml: (html: string) => void;
+  /** Fixed height for inline use; omit to fill the parent (drawer). */
+  height?: number;
+}>(({ html, onChangeHtml, height }, ref) => {
+  const editor = useCreateBlockNote();
+  const [ready, setReady] = useState(false);
+  const seededRef = useRef(false);
+  const onChangeRef = useRef(onChangeHtml);
+  onChangeRef.current = onChangeHtml;
+
+  // Push edits back out as HTML, debounced so we don't serialise on every keypress.
+  const flush = useMemo(
+    () =>
+      debounce(async (ed: any) => {
+        try {
+          const out = await ed.blocksToHTMLLossy(ed.document);
+          onChangeRef.current(out);
+        } catch (err) {
+          console.error('Failed to serialise scope content:', err);
+        }
+      }, 400),
+    []
+  );
+
+  // Seed the editor from the stored HTML — once, on mount.
+  // Note: no cancellation flag here. Strict Mode double-invokes effects, and
+  // gating setReady on a flag the first cleanup flips leaves the overlay stuck
+  // forever, since the second pass short-circuits on `seededRef`.
+  useEffect(() => {
+    if (!editor) return;
+    if (seededRef.current) { setReady(true); return; }
+    seededRef.current = true;
+    (async () => {
+      try {
+        const source = (html || '').trim();
+        if (source) {
+          const blocks = await editor.tryParseHTMLToBlocks(source);
+          if (blocks.length) editor.replaceBlocks(editor.document, blocks as any);
+        }
+      } catch (err) {
+        console.error('Failed to load scope content into the editor:', err);
+      } finally {
+        setReady(true);
+      }
+    })();
+  }, [editor, html]);
+
+  useEffect(() => () => { flush.flush(); }, [flush]);
+
+  React.useImperativeHandle(ref, () => ({
+    insertHtmlAtCursor: async (fragment: string) => {
+      if (!editor || !fragment?.trim()) return;
+      try {
+        const blocks = await editor.tryParseHTMLToBlocks(fragment);
+        if (!blocks.length) return;
+        const anchor = editor.getTextCursorPosition()?.block ?? editor.document[editor.document.length - 1];
+        editor.insertBlocks(blocks as any, anchor, 'after');
+        flush(editor);
+      } catch (err) {
+        console.error('Failed to insert content at cursor:', err);
+      }
+    },
+  }), [editor, flush]);
+
+  const rewriteViaScopeApi = React.useCallback(
+    async ({ text, instruction }: { text: string; instruction: string }) => {
+      const res: any = await axios.post('/api/v2/qa/test-scopes/ai-rewrite', { text, instruction });
+      const payload = res?.data?.data ?? res?.data ?? res;
+      return { rewrittenHtml: payload?.rewrittenHtml || '' };
+    },
+    []
+  );
+
+  return (
+    <div
+      className={`ts-docsurface${height ? ' ts-docsurface--inline' : ''}`}
+      style={height ? { height } : undefined}
+    >
+      {!ready && <div className="ts-docsurface__loading">Preparing editor…</div>}
+      <DocumentEditor
+        editor={editor}
+        viewMode="edit"
+        bare
+        onChange={() => { if (ready) flush(editor); }}
+        onAiRewrite={rewriteViaScopeApi}
+      />
+    </div>
+  );
+});
+ScopeDocEditor.displayName = 'ScopeDocEditor';
+
+/* ── Page ──────────────────────────────────────────────────────────────────── */
+
+export default function EditScopePage() {
   const { message } = App.useApp();
   useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
-  const params = useParams();
-  const id = params?.id as string;
-  const [dataLoaded, setDataLoaded] = useState(false);
 
   const router = useRouter();
+  const params = useParams();
+  const id = params?.id as string;
   const { canUpdateScope } = usePermission();
   const { user, isLoading } = useAuth();
-  const { theme } = useTheme();
+
+  /** Flips once the saved scope has been merged into the form. */
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const [generatingInScope, setGeneratingInScope] = useState(false);
-  const [generatingOutScope, setGeneratingOutScope] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [polishingDescription, setPolishingDescription] = useState(false);
   const [isZaiModalVisible, setIsZaiModalVisible] = useState(false);
   const [zaiPrompt, setZaiPrompt] = useState("");
-  const [zaiTargetField, setZaiTargetField] = useState<'inScope' | 'outScope' | null>(null);
+  const [zaiTargetField, setZaiTargetField] = useState<ZaiField | null>(null);
   const [zaiView, setZaiView] = useState<'prompt' | 'preview'>('prompt');
   const [zaiGeneratedContent, setZaiGeneratedContent] = useState('');
 
   const [isExpandDrawerVisible, setIsExpandDrawerVisible] = useState(false);
-  const [expandDrawerField, setExpandDrawerField] = useState<'inScope' | 'outScope' | null>(null);
-  const [expandDrawerTitle, setExpandDrawerTitle] = useState('');
   const [previewImg, setPreviewImg] = useState<{ src: string; name: string } | null>(null);
 
-
-  const inScopeRef = React.useRef<TiptapEditorRef>(null);
-  const outScopeRef = React.useRef<TiptapEditorRef>(null);
+  const inScopeRef = React.useRef<ScopeDocEditorRef>(null);
+  /**
+   * Bumped whenever content is written from outside the editor (ZAI apply, or a
+   * drawer session ending) so the inline editor remounts and reseeds from state.
+   */
+  const [paneVersion, setPaneVersion] = useState(0);
+  const bumpPane = () => setPaneVersion(v => v + 1);
 
   const [loadingSprints, setLoadingSprints] = useState(false);
   const [sprints, setSprints] = useState<any[]>([]);
@@ -103,9 +644,24 @@ export default function CreateScopePage() {
   const [newDepName, setNewDepName] = useState('');
   const [newDepStatus, setNewDepStatus] = useState('pending');
   const [newAcInput, setNewAcInput] = useState('');
-  const [newModule, setNewModule] = useState('');
-  const [newFeature, setNewFeature] = useState('');
   const [scopeSettings, setScopeSettings] = useState<any[]>([]);
+
+  // User-added entries for the fixed option lists, kept per session
+  const [customTestingTypes, setCustomTestingTypes] = useState<string[]>([]);
+  const [customExitCriteria, setCustomExitCriteria] = useState<string[]>([]);
+  const [customAttachmentFields, setCustomAttachmentFields] = useState<{ key: string; label: string; hint: string }[]>([]);
+  const [addingKind, setAddingKind] = useState<'testing' | 'exit' | 'attachment' | null>(null);
+  const [customDraft, setCustomDraft] = useState('');
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Sticky chrome measurement + scroll-spy wiring
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<any>(null);
+  const [stickyH, setStickyH] = useState(112);
+  const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
+  const activeSection = useScrollSpy(SECTIONS.map(s => s.id), stickyH + 8, scrollRoot);
 
   const [formData, setFormData] = useState<any>({
     name: '',
@@ -166,6 +722,52 @@ export default function CreateScopePage() {
     }
   });
 
+  const [isDirty, setIsDirty] = useState(false);
+  const firstRender = useRef(true);
+  const skipDirtyRef = useRef(false);
+  const saveRef = useRef<() => void>(() => { });
+
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    if (skipDirtyRef.current) { skipDirtyRef.current = false; return; }
+    setIsDirty(true);
+  }, [formData]);
+
+  /* Editing an existing scope: owner, reviewer and product all come from the
+     saved record, so none of the create-time defaults apply here. */
+
+  // Warn before losing unsaved edits
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  // ⌘/Ctrl + S saves
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  useEffect(() => {
+    const el = stickyRef.current;
+    if (!el) return;
+    setScrollRoot(getScrollParent(el));
+    const update = () => setStickyH(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // dataLoaded is a dep because the header only mounts once the scope is in
+  }, [isLoading, canUpdateScope, dataLoaded]);
+
   useEffect(() => {
     if (!isLoading && canUpdateScope && id) {
       fetchSprintsSearch("");
@@ -173,59 +775,93 @@ export default function CreateScopePage() {
       fetchBugSheetsSearch("");
       fetchPositionsAndUsers();
       fetchScopeSettings();
+      fetchUserProjects();
       fetchScopeData();
     }
   }, [isLoading, canUpdateScope, id]);
 
+  /**
+   * Load the saved scope and merge it over the empty shape, so any key the
+   * record predates (a newer nested field) still has its default.
+   */
   const fetchScopeData = async () => {
     try {
-      console.log("Fetching scope data for ID:", id);
       const res: any = await axios.get(`/api/v2/qa/test-scopes/${id}`);
-      console.log("Raw API Response:", res);
-      const data = res.data?.data || res.data || res;
-      console.log("Extracted Data:", data);
-      
-      if (data) {
-        let detailsObj: any = {};
-        try {
-          if (typeof data.details === 'string') {
-            detailsObj = data.details ? JSON.parse(data.details) : {};
-          } else if (data.details) {
-            detailsObj = data.details;
-          }
-        } catch (parseErr) {
-          console.error("JSON Parse Error for details:", parseErr);
-        }
-        
-        console.log("Parsed Details Obj:", detailsObj);
+      const data = res?.data?.data || res?.data || res;
+      if (!data) return;
 
-        setFormData((prev: any) => {
-          const newState = {
-            ...prev,
-            ...data,
-            start_date: data.start_date ? dayjs(data.start_date) : null,
-            end_date: data.end_date ? dayjs(data.end_date) : null,
-            details: {
-              ...prev.details,
-              ...detailsObj,
-              reqReferences: { ...prev.details?.reqReferences, ...(detailsObj.reqReferences || {}) },
-              linkedItems: { ...prev.details?.linkedItems, ...(detailsObj.linkedItems || {}) },
-              attachments: { ...prev.details?.attachments, ...(detailsObj.attachments || {}) },
-            }
-          };
-          console.log("New Form Data to be set:", newState);
-          return newState;
-        });
-        
-        message.success("Scope data loaded successfully!");
-      } else {
-        console.warn("Data is empty or missing in response");
+      let detailsObj: any = {};
+      try {
+        detailsObj = typeof data.details === 'string'
+          ? (data.details ? JSON.parse(data.details) : {})
+          : (data.details || {});
+      } catch {
+        detailsObj = {};
       }
+
+      skipDirtyRef.current = true;
+      setFormData((prev: any) => ({
+        ...prev,
+        ...data,
+        start_date: data.start_date ? dayjs(data.start_date) : null,
+        end_date: data.end_date ? dayjs(data.end_date) : null,
+        details: {
+          ...prev.details,
+          ...detailsObj,
+          reqReferences: { ...prev.details?.reqReferences, ...(detailsObj.reqReferences || {}) },
+          environment: { ...prev.details?.environment, ...(detailsObj.environment || {}) },
+          linkedItems: { ...prev.details?.linkedItems, ...(detailsObj.linkedItems || {}) },
+          attachments: { ...prev.details?.attachments, ...(detailsObj.attachments || {}) },
+          approvalWorkflow: { ...prev.details?.approvalWorkflow, ...(detailsObj.approvalWorkflow || {}) },
+        },
+      }));
+      // Values saved from a previous session that aren't in the built-in lists
+      // must reappear as chips/bays, otherwise editing would silently drop them.
+      const savedTypes: string[] = detailsObj.testingTypes || [];
+      setCustomTestingTypes(savedTypes.filter(t => !TESTING_TYPES.includes(t)));
+
+      const savedExit: string[] = detailsObj.exitCriteria || [];
+      setCustomExitCriteria(savedExit.filter(c => !EXIT_CRITERIA.includes(c)));
+
+      const builtInBays = ['screenshots', 'designFiles', 'sampleData', 'excelFiles', 'pdfs'];
+      setCustomAttachmentFields(
+        Object.keys(detailsObj.attachments || {})
+          .filter(k => !builtInBays.includes(k))
+          .map(k => ({ key: k, label: k, hint: 'max 50MB' }))
+      );
+
+      // Reseed the rich-text editor with the loaded scope definition
+      bumpPane();
     } catch (e: any) {
-      console.error("Error in fetchScopeData:", e);
-      message.error("Failed to load scope data: " + (e.message || "Unknown error"));
+      console.error("Failed to load scope:", e);
+      message.error("Failed to load scope data");
     } finally {
       setDataLoaded(true);
+    }
+  };
+
+  /**
+   * Active projects the signed-in user belongs to (PM or member; managers see all).
+   * The scope stores the project *name*, so options are keyed by label.
+   */
+  const fetchUserProjects = async () => {
+    try {
+      setLoadingProjects(true);
+      const res: any = await ProjectService.getUserProjects();
+      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      const opts = list
+        .map((p: any) => ({
+          value: String(p.label ?? p.name ?? ''),
+          label: String(p.label ?? p.name ?? ''),
+          description: p.code || undefined,
+        }))
+        .filter(o => o.value);
+      setProjectOptions(opts);
+    } catch (err) {
+      // No project access (or none assigned) — the field falls back to free text.
+      console.error("Failed to fetch user projects:", err);
+    } finally {
+      setLoadingProjects(false);
     }
   };
 
@@ -315,7 +951,7 @@ export default function CreateScopePage() {
           { id: 'tc-4', name: 'Payment Gateway Integration' },
           { id: 'tc-5', name: 'Dashboard Analytics' }
         ].filter(tc => tc.name.toLowerCase().includes((search || '').toLowerCase()));
-        
+
         setTestCases(mockData);
       } catch (err) {
         console.error("Failed to fetch test cases:", err);
@@ -326,8 +962,56 @@ export default function CreateScopePage() {
     []
   );
 
+  const d = formData.details;
+
+  // Which sections are "filled in" — powers the rail ticks and the progress ring
+  const completion = useMemo(() => {
+    const hasHtml = (html?: string) => !!(html || '').replace(/<[^>]*>/g, '').trim();
+    const li = d.linkedItems || {};
+    const att = d.attachments || {};
+    const refs = d.reqReferences || {};
+    return {
+      "sec-basics": !!formData.name?.trim() && !!formData.status,
+      "sec-product": !!d.product && (d.modules?.length > 0),
+      "sec-requirements": !!(refs.prd || refs.figma || refs.apiDoc || refs.userStory || refs.epic || (Array.isArray(refs.devTicket) ? refs.devTicket.length : refs.devTicket) || refs.additionalDocs?.length),
+      "sec-scope": hasHtml(d.inScope),
+      "sec-testing": (d.testingTypes?.length || 0) > 0,
+      "sec-environment": !!d.environment?.type,
+      "sec-dependencies": (d.dependencies?.length || 0) > 0,
+      "sec-acceptance": (d.acceptanceCriteria?.length || 0) > 0,
+      "sec-exit": (d.exitCriteria?.length || 0) > 0,
+      "sec-linked": !!(li.bugSheets?.link || li.devTickets?.length || li.sprints?.link || li.testCases?.link || li.testSuites?.name || li.custom?.length),
+      "sec-attachments": Object.values(att).some((v: any) => Array.isArray(v) && v.length > 0),
+      "sec-approval": !!d.approvalWorkflow?.user,
+    } as Record<string, boolean>;
+  }, [formData, d]);
+
+  const doneCount = Object.values(completion).filter(Boolean).length;
+  const progress = Math.round((doneCount / SECTIONS.length) * 100);
+
   if (isLoading) return null;
-  if (!canUpdateScope) return <div>Unauthorized</div>;
+  if (!canUpdateScope) return <div className="p-10 text-center text-slate-500">Unauthorized</div>;
+  if (!dataLoaded) {
+    return (
+      <MainLayout>
+        <div className="p-16 text-center text-[13px]" style={{ color: 'var(--text-slate-500)' }}>
+          Loading scope…
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const root = scrollRoot;
+    if (root) {
+      const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - stickyH - 16;
+      root.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: el.offsetTop - stickyH - 16, behavior: 'smooth' });
+    }
+  };
 
   const updateRoot = (field: string, val: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: val }));
@@ -340,14 +1024,97 @@ export default function CreateScopePage() {
     }));
   };
 
-  const handleExpandContent = (field: 'inScope' | 'outScope') => {
-    setExpandDrawerField(field);
-    setExpandDrawerTitle(field === 'inScope' ? 'In Scope' : 'Out of Scope');
+  const toggleInArray = (field: string, val: string) => {
+    const current: string[] = formData.details[field] || [];
+    updateDetail(field, current.includes(val) ? current.filter(v => v !== val) : [...current, val]);
+  };
+
+  const openCustomAdd = (kind: 'testing' | 'exit' | 'attachment') => {
+    setAddingKind(prev => (prev === kind ? null : kind));
+    setCustomDraft('');
+  };
+
+  const cancelCustomAdd = () => { setAddingKind(null); setCustomDraft(''); };
+
+  /** Add a custom option to a chip list and select it straight away. */
+  const commitCustomChip = (kind: 'testing' | 'exit') => {
+    const label = customDraft.trim();
+    if (!label) return;
+
+    const isTesting = kind === 'testing';
+    const base = isTesting ? TESTING_TYPES : EXIT_CRITERIA;
+    const custom = isTesting ? customTestingTypes : customExitCriteria;
+    const field = isTesting ? 'testingTypes' : 'exitCriteria';
+    const existing = [...base, ...custom].find(v => v.toLowerCase() === label.toLowerCase());
+
+    if (existing) {
+      const selected: string[] = formData.details[field] || [];
+      if (!selected.includes(existing)) updateDetail(field, [...selected, existing]);
+      message.info(`"${existing}" is already in the list — selected it for you.`);
+    } else {
+      if (isTesting) setCustomTestingTypes(prev => [...prev, label]);
+      else setCustomExitCriteria(prev => [...prev, label]);
+      updateDetail(field, [...(formData.details[field] || []), label]);
+    }
+    setCustomDraft('');
+  };
+
+  /** Drop a custom option from the list and from the current selection. */
+  const removeCustomChip = (kind: 'testing' | 'exit', label: string) => {
+    const isTesting = kind === 'testing';
+    const field = isTesting ? 'testingTypes' : 'exitCriteria';
+    if (isTesting) setCustomTestingTypes(prev => prev.filter(v => v !== label));
+    else setCustomExitCriteria(prev => prev.filter(v => v !== label));
+    updateDetail(field, (formData.details[field] || []).filter((v: string) => v !== label));
+  };
+
+  const commitCustomAttachment = () => {
+    const label = customDraft.trim();
+    if (!label) return;
+    const key = `custom_${label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}`;
+    const taken = [...attachmentFields, ...customAttachmentFields].some(
+      f => f.key === key || f.label.toLowerCase() === label.toLowerCase()
+    );
+    if (taken) {
+      message.info(`"${label}" already has an upload area.`);
+      return;
+    }
+    setCustomAttachmentFields(prev => [...prev, { key, label, hint: 'Custom category · max 50MB' }]);
+    setCustomDraft('');
+  };
+
+  /** Remove a custom upload area along with anything uploaded into it. */
+  const removeCustomAttachment = (key: string) => {
+    setCustomAttachmentFields(prev => prev.filter(f => f.key !== key));
+    setFormData((prev: any) => {
+      const next = { ...(prev.details.attachments || {}) };
+      delete next[key];
+      return { ...prev, details: { ...prev.details, attachments: next } };
+    });
+  };
+
+  const handleExpandContent = () => {
     setIsExpandDrawerVisible(true);
   };
 
+  /** Close the drawer and remount the inline editor so it reseeds from the edits. */
+  const closeExpandDrawer = () => {
+    bumpPane();
+    setIsExpandDrawerVisible(false);
+  };
+
   // ── ZAI helpers (defined AFTER updateDetail so the closure is live) ──────────
-  const handleGenerateScopeWithAI = (field: 'inScope' | 'outScope') => {
+  const setZaiGenerating = (field: ZaiField, busy: boolean) => {
+    if (field === 'inScope') setGeneratingInScope(busy);
+    else setGeneratingDescription(busy);
+  };
+
+  const isZaiGenerating = (field: ZaiField | null) =>
+    field === 'inScope' ? generatingInScope
+      : field === 'description' ? generatingDescription
+        : false;
+
+  const handleGenerateScopeWithAI = (field: ZaiField) => {
     setZaiTargetField(field);
     setZaiPrompt("");
     setZaiView('prompt');
@@ -359,13 +1126,13 @@ export default function CreateScopePage() {
     if (!zaiTargetField || !zaiPrompt.trim()) return;
 
     const field = zaiTargetField;
-    if (field === 'inScope') setGeneratingInScope(true);
-    else setGeneratingOutScope(true);
+    setZaiGenerating(field, true);
 
     try {
       const payload = {
         field,
-        projectOverview: formData.details.projectOverview,
+        scopeName: formData.name,
+        projectOverview: formData.details.projectOverview || formData.details.description,
         modules: formData.details.modules,
         testingTypes: formData.details.testingTypes,
         userPrompt: zaiPrompt,
@@ -398,37 +1165,66 @@ export default function CreateScopePage() {
       console.error(err);
       message.error(err.response?.data?.error || 'Failed to generate scope via ZAI');
     } finally {
-      if (field === 'inScope') setGeneratingInScope(false);
-      else setGeneratingOutScope(false);
+      setZaiGenerating(field, false);
     }
   };
 
   const handleZaiInsert = (action: 'replace' | 'append' | 'insert') => {
     if (!zaiTargetField) return;
 
-    if (action === 'replace') {
-      updateDetail(zaiTargetField, zaiGeneratedContent);
-    } else if (action === 'append') {
-      const current = formData.details[zaiTargetField] || '';
-      updateDetail(zaiTargetField, current + (current ? '<br/>' : '') + zaiGeneratedContent);
-    } else if (action === 'insert') {
-      const ref = zaiTargetField === 'inScope' ? inScopeRef : outScopeRef;
-      if (ref.current) {
-        ref.current.insertContentAtCursor(zaiGeneratedContent);
-      } else {
-        // Fallback to append if ref is somehow missing
-        const current = formData.details[zaiTargetField] || '';
-        updateDetail(zaiTargetField, current + (current ? '<br/>' : '') + zaiGeneratedContent);
-      }
+    // The description is a plain textarea — strip any markup and join with newlines.
+    const isPlain = zaiTargetField === 'description';
+    const generated = isPlain
+      ? zaiGeneratedContent.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').trim()
+      : zaiGeneratedContent;
+    const joiner = isPlain ? '\n\n' : '<br/>';
+
+    const field = zaiTargetField;
+    // Cursor insert goes straight into the live editor; replace/append rewrite the
+    // stored HTML and remount the editor so it reseeds from it.
+    if (action === 'insert' && !isPlain && inScopeRef.current) {
+      inScopeRef.current.insertHtmlAtCursor(generated);
+    } else if (action === 'replace') {
+      updateDetail(field, generated);
+      if (!isPlain) bumpPane();
+    } else {
+      const current = formData.details[field] || '';
+      updateDetail(field, current + (current ? joiner : '') + generated);
+      if (!isPlain) bumpPane();
     }
 
-    message.success(`${zaiTargetField === 'inScope' ? 'In Scope' : 'Out of Scope'} updated successfully.`);
+    message.success(`${ZAI_FIELD_LABEL[zaiTargetField]} updated successfully.`);
     setIsZaiModalVisible(false);
   };
 
   const handleZaiCopy = () => {
     navigator.clipboard.writeText(zaiGeneratedContent);
     message.success('Copied to clipboard!');
+  };
+
+  /** Light-touch grammar pass over the Description field. */
+  const handlePolishDescription = async () => {
+    const current = (formData.details.description || '').trim();
+    if (!current || polishingDescription) return;
+    setPolishingDescription(true);
+    try {
+      const res: any = await axios.post('/api/v2/qa/test-scopes/enhance-text', { text: current });
+      const corrected =
+        typeof res === 'string' ? res
+          : res?.data?.data?.text ?? res?.data?.text ?? res?.data?.data ?? '';
+
+      if (typeof corrected === 'string' && corrected.trim() && corrected.trim() !== current) {
+        updateDetail('description', corrected.trim());
+        message.success('Grammar polished');
+      } else {
+        message.info('Already looks good');
+      }
+    } catch (err: any) {
+      console.error(err);
+      message.error(err.response?.data?.error || "Couldn't polish the description");
+    } finally {
+      setPolishingDescription(false);
+    }
   };
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -566,6 +1362,16 @@ export default function CreateScopePage() {
     }));
   };
 
+  const clearAttachmentCategory = (field: string) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        attachments: { ...(prev.details.attachments || {}), [field]: [] }
+      }
+    }));
+  };
+
   const handleRemoveAttachment = (field: string, uid: string) => {
     setFormData((prev: any) => {
       const currentFiles = prev.details.attachments?.[field] || [];
@@ -627,33 +1433,41 @@ export default function CreateScopePage() {
   };
 
   const handleSave = async () => {
-    if (!formData.name) {
+    if (!formData.name?.trim()) {
+      setNameError("Test Scope Name is required");
       message.error("Test Scope Name is required");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
       return;
     }
     if (!formData.status) {
       message.error("Status is required");
+      scrollToSection('sec-basics');
       return;
     }
+    setNameError(null);
 
     try {
       setSubmitting(true);
       const payload = {
         ...formData,
-        start_date: formData.start_date ? formData.start_date.format('YYYY-MM-DD') : null,
-        end_date: formData.end_date ? formData.end_date.format('YYYY-MM-DD') : null,
+        start_date: formData.start_date ? dayjs(formData.start_date).format('YYYY-MM-DD') : null,
+        end_date: formData.end_date ? dayjs(formData.end_date).format('YYYY-MM-DD') : null,
       };
 
       await axios.put(`/api/v2/qa/test-scopes/${id}`, payload);
+      setIsDirty(false);
       message.success(`Scope updated successfully`);
       router.push("/qa-workspace/test-scope?tab=scopes");
     } catch (error) {
       console.error(error);
-      message.error("Failed to save Test Scope");
+      message.error("Failed to update Test Scope");
     } finally {
       setSubmitting(false);
     }
   };
+
+  saveRef.current = handleSave;
 
   // ── Derived option lists ──────────────────────────────────────────────────────
   const scopeTypeOpts = scopeSettings.filter(s => s.category === 'scope_type').length > 0
@@ -678,6 +1492,12 @@ export default function CreateScopePage() {
   }));
 
   const positionOptions = positionsList.map(p => ({ value: p.id, label: p.title }));
+
+  // Keep a manually typed product visible in the list alongside the user's projects
+  const currentProduct = formData.details.product;
+  const productOptions = currentProduct && !projectOptions.some(p => p.value === currentProduct)
+    ? [...projectOptions, { value: currentProduct, label: currentProduct, description: 'Custom entry' }]
+    : projectOptions;
 
   const sprintOptions = sprints.map(s => ({ value: s.id || s.name, label: s.name }));
 
@@ -705,9 +1525,11 @@ export default function CreateScopePage() {
 
   const statusOptions = [
     { value: 'ready', label: 'Ready', badge: <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /> },
-    { value: 'pending', label: 'Pending', badge: <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} /> },
+    { value: 'pending', label: 'Pending', badge: <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#64748b' }} /> },
     { value: 'blocked', label: 'Blocked', badge: <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} /> }
   ];
+
+  const depDotColor = (s: string) => s === 'ready' ? '#10b981' : s === 'blocked' ? '#ef4444' : '#64748b';
 
   const browserListOptions = [
     'Chrome', 'Firefox', 'Edge', 'Safari', 'Opera', 'Brave', 'Arc', 'Vivaldi',
@@ -719,6 +1541,32 @@ export default function CreateScopePage() {
     'Fedora', 'CentOS', 'Red Hat', 'Linux Mint', 'Android', 'iOS', 'iPadOS', 'ChromeOS'
   ].map(o => ({ label: o, value: o }));
 
+  const linkFieldSuffix = (val?: string) =>
+    val && /^https?:\/\//i.test(val) ? (
+      <a href={val} target="_blank" rel="noreferrer" className="ts-open" title="Open link">
+        <ExternalLink size={13} />
+      </a>
+    ) : <span />;
+
+  const attachmentFields = [
+    { key: 'screenshots', label: 'Screenshots', hint: 'PNG, JPG · max 50MB' },
+    { key: 'designFiles', label: 'Design Files', hint: 'Figma exports, Sketch · max 50MB' },
+    { key: 'sampleData', label: 'Sample Data', hint: 'CSV, JSON · max 50MB' },
+    { key: 'excelFiles', label: 'Excel Files', hint: 'XLS, XLSX · max 50MB' },
+    { key: 'pdfs', label: 'PDFs', hint: 'PDF documents · max 50MB' },
+  ];
+
+  // Built-in option lists plus anything the user added this session
+  const allAttachmentFields = [...attachmentFields, ...customAttachmentFields];
+  const allTestingTypes = [...TESTING_TYPES, ...customTestingTypes];
+  const allExitCriteria = [...EXIT_CRITERIA, ...customExitCriteria];
+
+  const totalAttachments = allAttachmentFields.reduce((n, f) => n + (formData.details.attachments?.[f.key]?.length || 0), 0);
+  const totalAttachmentSize = allAttachmentFields.reduce(
+    (n, f) => n + (formData.details.attachments?.[f.key] || []).reduce((s: number, file: any) => s + (file.size || 0), 0),
+    0
+  );
+
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
@@ -728,1195 +1576,1661 @@ export default function CreateScopePage() {
       )}
       <style dangerouslySetInnerHTML={{
         __html: `
-        .pp-detail-card {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 8px;
+        .ts-create {
+          --ts-page: #F4F7FB;
+          --ts-surface: #FFFFFF;
+          --ts-surface-soft: #F8FAFC;
+          --ts-border: #E4EAF2;
+          --ts-border-soft: #EDF1F7;
+          --ts-text: #0F172A;
+          --ts-text-2: #475569;
+          --ts-text-3: #94A3B8;
+          --ts-blue: #3B82F6;
+          --ts-blue-strong: #2563EB;
+          --ts-blue-soft: #EFF6FF;
+          --ts-blue-border: #BFDBFE;
+          --ts-green: #10B981;
+          --ts-green-soft: #ECFDF5;
+          --ts-red: #EF4444;
+          --ts-red-soft: #FEF2F2;
+          background: var(--ts-page);
+          min-height: 100%;
+          /* cancel MainLayout's 8px gutters so the workspace runs edge to edge */
+          margin: 0 -8px;
+          width: calc(100% + 16px);
+        }
+        [data-theme='dark'] .ts-create {
+          --ts-page: #0B0F1A;
+          --ts-surface: #121826;
+          --ts-surface-soft: #161E2E;
+          --ts-border: #232C3D;
+          --ts-border-soft: #1C2434;
+          --ts-text: #E9EEF6;
+          --ts-text-2: #A8B3C4;
+          --ts-text-3: #6E7A8C;
+          --ts-blue-soft: rgba(59,130,246,0.14);
+          --ts-blue-border: rgba(59,130,246,0.38);
+          --ts-green-soft: rgba(16,185,129,0.14);
+          --ts-red-soft: rgba(239,68,68,0.12);
+        }
+        .ts-create .ts-text { color: var(--ts-text); }
+
+        /* ── Sticky page chrome ─────────────────────────────────────── */
+        .ts-create .ts-topbar {
+          background: var(--ts-page);
+          background: color-mix(in srgb, var(--ts-page) 88%, transparent);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid var(--ts-border);
+        }
+        .ts-create .ts-crumb {
+          font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+          font-weight: 600; color: var(--ts-text-3);
+          display: inline-flex; align-items: center; gap: 6px;
+        }
+        .ts-create .ts-crumb button { color: inherit; }
+        .ts-create .ts-crumb button:hover { color: var(--ts-blue); }
+        .ts-create .ts-title {
+          font-size: 20px; line-height: 1.2; font-weight: 700;
+          letter-spacing: -0.02em; color: var(--ts-text); margin: 0;
+        }
+        .ts-create .ts-sub { font-size: 12.5px; color: var(--ts-text-3); margin: 3px 0 0; }
+        .ts-create .ts-sub--meta {
+          margin: 0; text-align: right; line-height: 1.45;
+          max-width: 300px; text-wrap: balance;
+        }
+        .ts-create .ts-sub--meta strong { font-weight: 700; color: var(--ts-text-2); }
+        /* The descriptive tail only earns its place on genuinely wide screens */
+        .ts-create .ts-sub__tail { display: none; }
+        @media (min-width: 1440px) { .ts-create .ts-sub__tail { display: inline; } }
+        .ts-create .ts-dirty {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+          background: var(--ts-blue-soft); color: var(--ts-blue-strong);
+          border: 1px solid var(--ts-blue-border);
+        }
+        [data-theme='dark'] .ts-create .ts-dirty { color: #93C5FD; }
+        .ts-create .ts-dirty__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+        .ts-create .ts-progressbar { height: 3px; background: var(--ts-border-soft); }
+        .ts-create .ts-progressbar span {
+          display: block; height: 100%;
+          background: linear-gradient(90deg, var(--ts-blue), var(--ts-green));
+          transition: width .35s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── Left rail ──────────────────────────────────────────────── */
+        .ts-create .ts-rail {
+          background: var(--ts-surface);
+          border: 1px solid var(--ts-border);
+          border-radius: 14px;
+          box-shadow: 0 1px 2px rgba(15,23,42,.04);
           overflow: hidden;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.03);
-          margin-bottom: 20px;
         }
-        .custom-upload-dragger .ant-upload-drag {
-          border: none !important;
-          background: transparent !important;
+        .ts-create .ts-rail__top {
+          display: flex; align-items: center; gap: 14px;
+          padding: 16px; border-bottom: 1px solid var(--ts-border-soft);
         }
-        .custom-upload-dragger .ant-upload {
-          padding: 0 !important;
+        .ts-create .ts-ring__track { stroke: var(--ts-border); }
+        .ts-create .ts-ring__bar { stroke: var(--ts-blue); transition: stroke-dashoffset .4s cubic-bezier(.4,0,.2,1); }
+        .ts-create .ts-rail__nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; max-height: calc(100vh - 330px); overflow-y: auto; }
+        .ts-create .ts-rail__nav::-webkit-scrollbar { width: 6px; }
+        .ts-create .ts-rail__nav::-webkit-scrollbar-thumb { background: var(--ts-border); border-radius: 999px; }
+        .ts-create .ts-navitem {
+          display: flex; align-items: center; gap: 9px;
+          width: 100%; padding: 7px 10px; border-radius: 9px;
+          font-size: 12.5px; font-weight: 500; color: var(--ts-text-2);
+          text-align: left; transition: background .15s, color .15s;
         }
-        .ant-checkbox-wrapper .ant-checkbox + span {
-          padding-left: 8px !important;
+        .ts-create .ts-navitem:hover { background: var(--ts-surface-soft); color: var(--ts-text); }
+        .ts-create .ts-navitem--active { background: var(--ts-blue-soft); color: var(--ts-blue-strong); font-weight: 600; }
+        [data-theme='dark'] .ts-create .ts-navitem--active { color: #93C5FD; }
+        .ts-create .ts-navitem__tick {
+          margin-left: auto; width: 15px; height: 15px; border-radius: 999px;
+          display: inline-flex; align-items: center; justify-content: center;
+          border: 1.5px solid var(--ts-border); color: transparent; flex-shrink: 0;
         }
-        .pp-card-header {
-          background: var(--bg-slate-50);
-          padding: 12px 16px;
-          font-weight: 600;
-          font-size: 14px;
-          color: var(--text-slate-800);
-          border-bottom: 1px solid var(--border-slate-200);
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        .ts-create .ts-navitem__tick--done { background: var(--ts-green); border-color: var(--ts-green); color: #fff; }
+
+        /* ── Section cards ──────────────────────────────────────────── */
+        .ts-create .ts-card {
+          background: var(--ts-surface);
+          border: 1px solid var(--ts-border);
+          border-radius: 14px;
+          box-shadow: 0 1px 2px rgba(15,23,42,.04);
+          overflow: hidden;
         }
-        .pp-card-body {
-          padding: 20px;
+        .ts-create .ts-card__head {
+          display: flex; align-items: flex-start; gap: 12px;
+          padding: 14px 20px;
+          background: var(--ts-surface-soft);
+          border-bottom: 1px solid var(--ts-border-soft);
         }
-        .form-label {
-          display: block;
-          margin-bottom: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--text-slate-600);
+        .ts-create .ts-card__icon {
+          width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: var(--ts-blue-soft); color: var(--ts-blue-strong);
+          border: 1px solid var(--ts-blue-border);
         }
-        .create-scope-container {
-          max-width: 1000px;
-          margin: 0 auto;
-          padding: 24px;
+        [data-theme='dark'] .ts-create .ts-card__icon { color: #93C5FD; }
+        .ts-create .ts-card__step {
+          font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+          color: var(--ts-text-3); font-variant-numeric: tabular-nums;
         }
-        .header-actions {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
+        .ts-create .ts-card__title { margin: 0; font-size: 14.5px; font-weight: 650; color: var(--ts-text); letter-spacing: -0.01em; }
+        .ts-create .ts-card__desc { margin: 2px 0 0; font-size: 12px; color: var(--ts-text-3); }
+        .ts-create .ts-card__body { padding: 20px; }
+        .ts-create .ts-count {
+          font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+          background: var(--ts-green-soft); color: #047857; border: 1px solid transparent;
         }
-        /* Uniform input heights */
-        .create-scope-container input.ant-input:not(.ant-input-sm),
-        .create-scope-container .ant-picker,
-        .create-scope-container .sd-trigger {
+        [data-theme='dark'] .ts-create .ts-count { color: #6EE7B7; }
+
+        /* ── Fields ─────────────────────────────────────────────────── */
+        .ts-create .ts-label {
+          display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600;
+          color: var(--ts-text-2); letter-spacing: .005em;
+        }
+        .ts-create .ts-req { color: var(--ts-red); margin-left: 3px; }
+        .ts-create .ts-hint { margin: 5px 0 0; font-size: 11.5px; color: var(--ts-text-3); }
+        .ts-create .ts-error { margin: 5px 0 0; font-size: 11.5px; color: var(--ts-red); font-weight: 500; }
+
+        .ts-create input.ant-input:not(.ant-input-sm),
+        .ts-create .ant-input-affix-wrapper:not(.ant-input-affix-wrapper-sm),
+        .ts-create .ant-picker,
+        .ts-create .sd-trigger {
           min-height: 40px !important;
+          border-radius: 10px !important;
+        }
+        .ts-create input.ant-input:not(.ant-input-sm),
+        .ts-create .ant-picker,
+        .ts-create .sd-trigger {
           height: 40px !important;
-          display: flex;
-          align-items: center;
+          display: flex; align-items: center;
         }
-        /* Allow textarea to resize freely */
-        .create-scope-container textarea.ant-input {
-          min-height: 80px;
+        .ts-create .ant-input-affix-wrapper input.ant-input { height: auto !important; min-height: 0 !important; }
+        .ts-create textarea.ant-input { min-height: 84px; border-radius: 10px !important; padding: 10px 12px; }
+        .ts-create .ant-btn { border-radius: 9px; }
+        .ts-create .ts-open { color: var(--ts-text-3); display: inline-flex; }
+        .ts-create .ts-open:hover { color: var(--ts-blue); }
+
+        .custom-upload-dragger .ant-upload-drag { border: none !important; background: transparent !important; }
+        .custom-upload-dragger .ant-upload { padding: 0 !important; }
+
+        /* ── Expand drawer: Doc Hub (BlockNote) writing surface ─────── */
+        .ts-drawer-hint {
+          font-size: 11.5px; color: var(--text-slate-400);
+          padding: 3px 9px; border-radius: 999px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+          white-space: nowrap;
         }
+        .ts-drawer-hint strong { font-weight: 700; color: var(--text-slate-600); }
+        .ts-docsurface { position: relative; height: 100%; padding: 20px 12px 28px; overflow: hidden; }
+        /* Leave BlockNote's 54px inline padding alone — the drag handle and the
+           "+" add-block button are drawn inside that gutter and vanish without it. */
+        .ts-docsurface__loading {
+          position: absolute; inset: 0; z-index: 2;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; color: var(--text-slate-400);
+          background: var(--bg-pure-white);
+        }
+        /* Inline variant — sits inside the Scope Definition card like a form control */
+        .ts-create .ts-docsurface--inline {
+          padding: 10px 0 14px;
+          border: 1px solid var(--ts-border);
+          border-radius: 12px;
+          background: var(--ts-surface);
+          transition: border-color .15s ease;
+        }
+        .ts-create .ts-docsurface--inline:focus-within { border-color: var(--ts-blue-border); }
+        .ts-create .ts-docsurface--inline .ts-docsurface__loading { background: var(--ts-surface); border-radius: 12px; }
+        .ts-create .ts-docsurface--paused {
+          display: flex; align-items: center; justify-content: center;
+          font-size: 12.5px; color: var(--ts-text-3); background: var(--ts-surface-soft);
+        }
+
+        /* ── Selected-value tokens (modules / features) ─────────────── */
+        .ts-create .ts-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ts-create .ts-token {
+          display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+          padding: 3px 5px 3px 9px; border-radius: 999px;
+          font-size: 11.5px; font-weight: 600; line-height: 1.5;
+          background: var(--ts-blue-soft); color: var(--ts-blue-strong);
+          border: 1px solid var(--ts-blue-border);
+        }
+        [data-theme='dark'] .ts-create .ts-token { color: #93C5FD; }
+        .ts-create .ts-token button {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 15px; height: 15px; border-radius: 999px; flex-shrink: 0;
+          color: inherit; opacity: .6; transition: opacity .15s, background .15s;
+        }
+        .ts-create .ts-token button:hover { opacity: 1; background: rgba(59,130,246,.18); }
+
+        /* ── Chips (testing types / exit criteria) ──────────────────── */
+        .ts-create .ts-chip {
+          display: flex; align-items: center;
+          padding: 0 4px 0 12px; border-radius: 10px;
+          border: 1px solid var(--ts-border); background: var(--ts-surface);
+          font-size: 12.5px; font-weight: 500; color: var(--ts-text-2);
+          transition: all .15s ease; text-align: left; width: 100%;
+        }
+        .ts-create .ts-chip__main {
+          display: flex; align-items: center; gap: 8px;
+          flex: 1; min-width: 0; padding: 9px 0; color: inherit; text-align: left;
+        }
+        .ts-create .ts-chip__remove {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0;
+          color: var(--ts-text-3); opacity: .7; transition: all .15s ease;
+        }
+        .ts-create .ts-chip__remove:hover { opacity: 1; color: var(--ts-red); background: var(--ts-red-soft); }
+        .ts-create .ts-chip--custom { padding-right: 4px; }
+        .ts-create .ts-chip:hover { border-color: var(--ts-blue-border); background: var(--ts-surface-soft); color: var(--ts-text); }
+        .ts-create .ts-chip--on {
+          border-color: var(--ts-blue); background: var(--ts-blue-soft);
+          color: var(--ts-blue-strong); font-weight: 600;
+        }
+        [data-theme='dark'] .ts-create .ts-chip--on { color: #93C5FD; }
+        .ts-create .ts-chip__box {
+          width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0;
+          border: 1.5px solid var(--ts-border); background: var(--ts-surface);
+          display: inline-flex; align-items: center; justify-content: center; color: #fff;
+          transition: all .15s ease;
+        }
+        .ts-create .ts-chip--on .ts-chip__box { background: var(--ts-blue); border-color: var(--ts-blue); }
+
+        /* ── Inline "add your own" row ──────────────────────────────── */
+        .ts-create .ts-inlineadd {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px; margin-bottom: 16px; border-radius: 10px;
+          border: 1px dashed var(--ts-blue-border); background: var(--ts-blue-soft);
+        }
+
+        /* ── List rows (dependencies / criteria / custom links) ─────── */
+        .ts-create .ts-row {
+          display: flex; align-items: center; gap: 10px;
+          padding: 9px 12px; border-radius: 10px;
+          border: 1px solid var(--ts-border-soft); background: var(--ts-surface-soft);
+        }
+        .ts-create .ts-row:hover { border-color: var(--ts-border); }
+        .ts-create .ts-row__text { font-size: 13px; color: var(--ts-text); flex: 1; word-break: break-word; }
+        .ts-create .ts-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+        .ts-create .ts-statuspill {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; text-transform: capitalize;
+          padding: 3px 10px; border-radius: 999px;
+          background: var(--ts-surface); border: 1px solid var(--ts-border); color: var(--ts-text-2);
+        }
+        .ts-create .ts-empty {
+          padding: 18px; border-radius: 10px; border: 1px dashed var(--ts-border);
+          text-align: center; font-size: 12.5px; color: var(--ts-text-3);
+          background: var(--ts-surface-soft);
+        }
+        .ts-create .ts-addbar {
+          display: flex; gap: 10px; align-items: center;
+          padding-top: 12px; margin-top: 12px; border-top: 1px dashed var(--ts-border);
+        }
+
+        /* ── Dropzones + file rows ──────────────────────────────────── */
+        /* ── Attachment bays ────────────────────────────────────────── */
+        .ts-create .ts-bay {
+          border: 1px solid var(--ts-border); border-radius: 12px;
+          background: var(--ts-surface); overflow: hidden;
+          transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .ts-create .ts-bay:hover { border-color: var(--ts-blue-border); }
+        .ts-create .ts-bay--filled { box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+        .ts-create .ts-bay__head {
+          display: flex; align-items: center; gap: 9px;
+          padding: 10px 12px; background: var(--ts-surface-soft);
+          border-bottom: 1px solid var(--ts-border-soft);
+        }
+        .ts-create .ts-bay__icon {
+          width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: var(--ts-blue-soft); color: var(--ts-blue-strong);
+        }
+        [data-theme='dark'] .ts-create .ts-bay__icon { color: #93C5FD; }
+        .ts-create .ts-bay__label {
+          font-size: 12.5px; font-weight: 650; color: var(--ts-text);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .ts-create .ts-bay__meta {
+          font-size: 11px; font-weight: 600; color: var(--ts-blue-strong);
+          background: var(--ts-blue-soft); padding: 2px 7px; border-radius: 999px;
+          white-space: nowrap;
+        }
+        [data-theme='dark'] .ts-create .ts-bay__meta { color: #93C5FD; }
+        .ts-create .ts-bay__meta--empty {
+          color: var(--ts-text-3); background: transparent;
+          padding: 0; font-weight: 500;
+        }
+        .ts-create .ts-bay__actions {
+          margin-left: auto; display: flex; align-items: center; gap: 2px;
+          opacity: 0; transition: opacity .15s ease;
+        }
+        .ts-create .ts-bay:hover .ts-bay__actions,
+        .ts-create .ts-bay__actions:focus-within { opacity: 1; }
+        .ts-create .ts-bay__actions button {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 24px; height: 24px; border-radius: 7px; color: var(--ts-text-3);
+          transition: all .15s ease;
+        }
+        .ts-create .ts-bay__actions button:hover { color: var(--ts-red); background: var(--ts-red-soft); }
+        .ts-create .ts-bay__body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+        /* Image tiles for anything that renders as a picture */
+        .ts-create .ts-thumbs {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px;
+        }
+        .ts-create .ts-thumb {
+          position: relative; border-radius: 9px; overflow: hidden;
+          border: 1px solid var(--ts-border-soft); background: var(--ts-surface-soft);
+          aspect-ratio: 4 / 3;
+        }
+        .ts-create .ts-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ts-create .ts-thumb__veil {
+          position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+          background: rgba(15,23,42,.62); opacity: 0; transition: opacity .15s ease;
+        }
+        .ts-create .ts-thumb:hover .ts-thumb__veil { opacity: 1; }
+        .ts-create .ts-thumb__veil button {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 8px;
+          background: rgba(255,255,255,.16); color: #fff; transition: background .15s ease;
+        }
+        .ts-create .ts-thumb__veil button:hover { background: rgba(255,255,255,.32); }
+        .ts-create .ts-thumb__veil button:last-child:hover { background: var(--ts-red); }
+        .ts-create .ts-thumb__name {
+          position: absolute; left: 0; right: 0; bottom: 0;
+          padding: 10px 6px 4px; font-size: 10px; color: #fff;
+          background: linear-gradient(to top, rgba(15,23,42,.78), transparent);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .ts-create .ts-drop {
+          display: flex; align-items: center; gap: 12px;
+          padding: 14px 16px; border-radius: 12px;
+          border: 1.5px dashed var(--ts-border); background: var(--ts-surface-soft);
+          transition: all .18s ease; cursor: pointer;
+        }
+        .ts-create .ts-drop:hover { border-color: var(--ts-blue); background: var(--ts-blue-soft); }
+        .ts-create .ts-drop--compact {
+          justify-content: center; gap: 7px; padding: 8px 12px;
+          font-size: 12px; font-weight: 600; color: var(--ts-text-2);
+          background: transparent;
+        }
+        .ts-create .ts-drop--compact:hover { color: var(--ts-blue-strong); }
+        [data-theme='dark'] .ts-create .ts-drop--compact:hover { color: #93C5FD; }
+        /* antd flags an active drag on the wrapper */
+        .ts-create .ant-upload-drag-hover .ts-drop { border-color: var(--ts-blue); background: var(--ts-blue-soft); }
+        .ts-create .ts-drop__icon {
+          width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: var(--ts-surface); border: 1px solid var(--ts-border); color: var(--ts-blue);
+        }
+        .ts-create .ts-drop__title { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--ts-text-2); }
+        .ts-create .ts-drop__title span { color: var(--ts-blue-strong); }
+        [data-theme='dark'] .ts-create .ts-drop__title span { color: #93C5FD; }
+        .ts-create .ts-drop__hint { margin: 2px 0 0; font-size: 11px; color: var(--ts-text-3); }
+        .ts-create .ts-file {
+          display: flex; align-items: center; justify-content: space-between; gap: 10px;
+          padding: 8px 10px; border-radius: 10px;
+          border: 1px solid var(--ts-border-soft); background: var(--ts-surface);
+        }
+        .ts-create .ts-file:hover { border-color: var(--ts-blue-border); }
+        .ts-create .ts-file__thumb {
+          width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
+          background: var(--ts-surface-soft); border: 1px solid var(--ts-border-soft); color: var(--ts-text-3);
+        }
+        .ts-create .ts-file__thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .ts-create .ts-file__name { font-size: 12.5px; font-weight: 550; color: var(--ts-text); }
+        .ts-create .ts-file__meta { font-size: 11px; color: var(--ts-text-3); }
+        .ts-create .ts-file__ready { color: var(--ts-green); font-weight: 600; }
+        .ts-create .ts-file__state { color: var(--ts-blue); font-weight: 600; }
+        .ts-create .ts-file__actions { display: flex; align-items: center; gap: 2px; opacity: .55; transition: opacity .15s; }
+        .ts-create .ts-file:hover .ts-file__actions { opacity: 1; }
+
+        /* ── Editor panes ───────────────────────────────────────────── */
+        .ts-create .ts-editorhead {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; margin-bottom: 8px;
+        }
+        .ts-create .ts-editortag {
+          display: inline-flex; align-items: center; gap: 7px;
+          font-size: 12.5px; font-weight: 650; color: var(--ts-text);
+        }
+        .ts-create .ts-minibtn {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11.5px; font-weight: 600; padding: 4px 9px; border-radius: 8px;
+          color: var(--ts-text-2); border: 1px solid var(--ts-border); background: var(--ts-surface);
+          transition: all .15s ease;
+        }
+        .ts-create .ts-minibtn:hover { color: var(--ts-blue-strong); border-color: var(--ts-blue-border); background: var(--ts-blue-soft); }
+        .ts-create .ts-minibtn--ai { color: var(--ts-blue-strong); border-color: var(--ts-blue-border); background: var(--ts-blue-soft); }
+        [data-theme='dark'] .ts-create .ts-minibtn--ai { color: #93C5FD; }
+        .ts-create .ts-minibtn:disabled { opacity: .6; cursor: not-allowed; }
       `}} />
 
-      {!dataLoaded ? <div style={{ padding: 50, textAlign: "center" }}>Loading scope data...</div> : <><div className="create-scope-container">
-        <div className="header-actions">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => router.back()} />
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-slate-900)' }}>Edit Test Scope</h2>
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <Button type="primary" onClick={handleSave} loading={submitting}>Save Scope</Button>
-          </div>
-        </div>
-
-        {/* Basic Information Block */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header">Basic Information</div>
-          <div className="pp-card-body">
-            <Row gutter={[24, 20]}>
-              <Col span={12}>
-                <span className="form-label">Test Scope Name <span style={{ color: 'red' }}>*</span></span>
-                <Input placeholder="Enter name" value={formData.name} onChange={(e) => updateRoot('name', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Scope Type</span>
-                <SearchableDropdown
-                  options={scopeTypeOpts}
-                  value={formData.type}
-                  onChange={v => updateRoot('type', v)}
-                  placeholder="Select Type"
-                  style={{ width: '100%' }}
+      <div className="ts-create">
+        {/* ── Sticky header ─────────────────────────────────────────── */}
+        <div ref={stickyRef} className="ts-topbar sticky top-0 z-30">
+          <div className="mx-auto max-w-[1560px] px-5 xl:px-7 pt-3 pb-3">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Button
+                  type="text"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.back()}
+                  className="mt-0.5 flex-shrink-0"
                 />
-              </Col>
-              <Col span={24}>
-                <span className="form-label">Description</span>
-                <textarea className="ant-input" rows={3} placeholder="Brief description" value={formData.details.description} onChange={(e) => updateDetail('description', e.target.value)} style={{ resize: 'vertical', width: '100%' }} />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Priority</span>
-                <SearchableDropdown
-                  options={priorityOpts}
-                  value={formData.priority}
-                  onChange={v => updateRoot('priority', v)}
-                  placeholder="Select Priority"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Status <span style={{ color: 'red' }}>*</span></span>
-                <SearchableDropdown
-                  options={scopeStatusOpts}
-                  value={formData.status}
-                  onChange={v => updateRoot('status', v)}
-                  placeholder="Select Status"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">QA Owner</span>
-                <SearchableDropdown
-                  options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
-                  value={formData.qa_owner}
-                  onChange={(val) => updateRoot('qa_owner', val)}
-                  placeholder="Select QA Owner"
-                  showSelectedAvatar
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Reviewer</span>
-                <SearchableDropdown
-                  options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
-                  value={formData.details.reviewer}
-                  onChange={(val) => updateDetail('reviewer', val)}
-                  placeholder="Select Reviewer"
-                  showSelectedAvatar
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Planned Start Date</span>
-                <DatePicker style={{ width: '100%' }} value={formData.start_date} onChange={(v) => updateRoot('start_date', v)} />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Planned End Date</span>
-                <DatePicker style={{ width: '100%' }} value={formData.end_date} onChange={(v) => updateRoot('end_date', v)} />
-              </Col>
-            </Row>
-          </div>
-        </div>
-
-        {/* 1. Product Information */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><Target size={16} /> 1. Product Information</div>
-          <div className="pp-card-body">
-            <Row gutter={[24, 20]}>
-              <Col span={8}>
-                <span className="form-label">Product</span>
-                <SearchableDropdown
-                  options={[{ value: 'Zukvo', label: 'Zukvo' }]}
-                  value={formData.details.product}
-                  onChange={v => updateDetail('product', v)}
-                  placeholder="Select Product"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Module</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  options={allModuleOpts}
-                  value={formData.details.modules}
-                  onChange={v => updateDetail('modules', v)}
-                  placeholder="Select or type Modules"
-                  freeText={true}
-                  style={{ width: '100%' }}
-                />
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <Input size="small" placeholder="Custom module..." value={newModule} onChange={e => setNewModule(e.target.value)} onPressEnter={() => {
-                    if (newModule.trim()) {
-                      const current = formData.details.modules || [];
-                      if (!current.includes(newModule.trim())) updateDetail('modules', [...current, newModule.trim()]);
-                      setNewModule('');
-                    }
-                  }} />
-                  <Button size="small" onClick={() => {
-                    if (newModule.trim()) {
-                      const current = formData.details.modules || [];
-                      if (!current.includes(newModule.trim())) updateDetail('modules', [...current, newModule.trim()]);
-                      setNewModule('');
-                    }
-                  }}>Add</Button>
+                <div className="min-w-0">
+                  <div className="ts-crumb">
+                    <button onClick={() => router.push('/qa-workspace/test-scope')}>QA Workspace</button>
+                    <span>›</span>
+                    <button onClick={() => router.push('/qa-workspace/test-scope?tab=scopes')}>Test Scopes</button>
+                    <span>›</span>
+                    <span style={{ color: 'var(--ts-text-2)' }}>Edit</span>
+                  </div>
+                  <h1 className="ts-title mt-1.5">{formData.name?.trim() || 'Edit Test Scope'}</h1>
                 </div>
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Features</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  options={allFeatureOpts}
-                  value={formData.details.features}
-                  onChange={v => updateDetail('features', v)}
-                  placeholder={!(formData.details.modules?.length > 0) ? "Select a Module first" : "Select or type Features"}
-                  disabled={!(formData.details.modules?.length > 0)}
-                  freeText={true}
-                  style={{ width: '100%' }}
-                />
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <Input size="small" placeholder="Custom feature..." value={newFeature} onChange={e => setNewFeature(e.target.value)} disabled={!(formData.details.modules?.length > 0)} onPressEnter={() => {
-                    if (newFeature.trim() && formData.details.modules?.length > 0) {
-                      const current = formData.details.features || [];
-                      if (!current.includes(newFeature.trim())) updateDetail('features', [...current, newFeature.trim()]);
-                      setNewFeature('');
-                    }
-                  }} />
-                  <Button size="small" disabled={!(formData.details.modules?.length > 0)} onClick={() => {
-                    if (newFeature.trim() && formData.details.modules?.length > 0) {
-                      const current = formData.details.features || [];
-                      if (!current.includes(newFeature.trim())) updateDetail('features', [...current, newFeature.trim()]);
-                      setNewFeature('');
-                    }
-                  }}>Add</Button>
+              </div>
+
+              {/* Status + actions live on the right so the title block stays clean */}
+              <div className="flex items-center gap-5 flex-shrink-0">
+                {/* <p className="ts-sub ts-sub--meta hidden lg:block">
+                  <strong>{doneCount} of {SECTIONS.length}</strong> sections filled
+                  <span className="ts-sub__tail"> · define what gets tested, where, and when it&apos;s done.</span>
+                </p> */}
+                <div className="flex items-center gap-2.5">
+                  {isDirty && (
+                    <span className="ts-dirty hidden sm:inline-flex">
+                      <span className="ts-dirty__dot" />Unsaved changes
+                    </span>
+                  )}
+                  <Button onClick={() => router.back()}>Cancel</Button>
+                  <Tooltip title="⌘S / Ctrl+S">
+                    <Button type="primary" icon={<Save size={15} />} onClick={handleSave} loading={submitting}>
+                      Save Changes
+                    </Button>
+                  </Tooltip>
                 </div>
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Sprint</span>
-                <SearchableDropdown
-                  options={sprintOptions}
-                  value={formData.details.sprint}
-                  onChange={v => updateDetail('sprint', v)}
-                  onSearch={fetchSprintsSearch}
-                  placeholder="Select Sprint"
-                  loading={loadingSprints}
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Release Version</span>
-                <Input
-                  placeholder="e.g. v2.1.0"
-                  value={formData.details.releaseVersion}
-                  onChange={(e) => updateDetail('releaseVersion', e.target.value)}
-                />
-              </Col>
-            </Row>
+              </div>
+            </div>
           </div>
+          <div className="ts-progressbar"><span style={{ width: `${progress}%` }} /></div>
         </div>
 
-        {/* 2. Requirement References */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><Link2 size={16} /> 2. Requirement References</div>
-          <div className="pp-card-body">
-            <span className="form-label" style={{ marginBottom: 16 }}>Everything QA needs to understand the feature.</span>
-            <Row gutter={[24, 20]}>
-              <Col span={12}>
-                <span className="form-label">PRD</span>
-                <Input placeholder="Paste PRD link" value={formData.details.reqReferences?.prd} onChange={e => updateReqRef('prd', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Figma</span>
-                <Input placeholder="Paste Figma link" value={formData.details.reqReferences?.figma} onChange={e => updateReqRef('figma', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">API Documentation</span>
-                <Input placeholder="Paste API Documentation link" value={formData.details.reqReferences?.apiDoc} onChange={e => updateReqRef('apiDoc', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">User Story</span>
-                <Input placeholder="Paste User Story link" value={formData.details.reqReferences?.userStory} onChange={e => updateReqRef('userStory', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Epic</span>
-                <Input placeholder="Paste Epic link" value={formData.details.reqReferences?.epic} onChange={e => updateReqRef('epic', e.target.value)} />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Development Tickets</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  freeText
-                  options={devTickets.map(t => ({
-                    label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
-                    value: String(t.id),
-                    description: t.status || '',
-                    badge: <span style={{ background: '#8b5cf6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
-                  }))}
-                  onSearch={fetchDevTicketsSearch}
-                  placeholder="Search or paste Tickets..."
-                  value={
-                    Array.isArray(formData.details.reqReferences?.devTicket)
-                      ? formData.details.reqReferences.devTicket.map((t: any) => typeof t === 'string' ? t : String(t.link || t.id))
-                      : formData.details.reqReferences?.devTicket
-                        ? [String(formData.details.reqReferences.devTicket)]
-                        : undefined
-                  }
-                  onChange={v => {
-                    if (!v || v.length === 0) {
-                      updateReqRef('devTicket', []);
-                    } else {
-                      const updated = v.map((idVal: string) => {
-                        const selected = devTickets.find(t => String(t.id) === idVal);
-                        if (selected) {
-                          return {
-                            name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
-                            link: String(selected.id)
-                          };
+        {/* ── Body ──────────────────────────────────────────────────── */}
+        <div className="mx-auto max-w-[1560px] px-5 xl:px-7 py-6">
+          <div className="flex items-start gap-6">
+
+            {/* Left rail */}
+            <aside
+              className="hidden xl:block w-[252px] flex-shrink-0 self-start"
+              style={{ position: 'sticky', top: stickyH + 20 }}
+            >
+              <div className="ts-rail">
+                <div className="ts-rail__top">
+                  <ProgressRing value={progress} />
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold ts-text">Scope readiness</div>
+                    <div className="text-[11.5px]" style={{ color: 'var(--ts-text-3)' }}>
+                      {doneCount}/{SECTIONS.length} sections complete
+                    </div>
+                  </div>
+                </div>
+                <nav className="ts-rail__nav">
+                  {SECTIONS.map((s) => {
+                    const Icon = s.icon;
+                    const done = completion[s.id];
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => scrollToSection(s.id)}
+                        className={`ts-navitem${activeSection === s.id ? ' ts-navitem--active' : ''}`}
+                      >
+                        <Icon size={14} className="flex-shrink-0" />
+                        <span className="truncate">{s.label}</span>
+                        {s.required && !done ? <span className="ts-req ml-auto">*</span> : null}
+                        <span className={`ts-navitem__tick${done ? ' ts-navitem__tick--done' : ''}`}>
+                          <Check size={9} strokeWidth={4} />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            </aside>
+
+            {/* Form column */}
+            <main className="flex-1 min-w-0 flex flex-col gap-5 pb-24">
+
+              {/* 01 — Basic Information */}
+              <SectionCard
+                id="sec-basics"
+                index={1}
+                icon={ClipboardList}
+                title="Basic Information"
+                description="Name the scope, set its priority and who owns it."
+              >
+                {/* Row 1 → Name (70%) + Scope Type (30%) */}
+                <div className="grid grid-cols-1 md:grid-cols-10 gap-x-5 gap-y-4 mb-4">
+                  <Field label="Test Scope Name" required className="md:col-span-7" error={nameError || undefined}>
+                    <Input
+                      ref={nameInputRef}
+                      placeholder="e.g. Checkout revamp — release 2.4 regression"
+                      value={formData.name}
+                      status={nameError ? 'error' : undefined}
+                      onChange={(e) => { setNameError(null); updateRoot('name', e.target.value); }}
+                    />
+                  </Field>
+                  <Field label="Scope Type" className="md:col-span-3">
+                    <SearchableDropdown
+                      options={scopeTypeOpts}
+                      value={formData.type}
+                      onChange={v => updateRoot('type', v)}
+                      placeholder="Select Type"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                </div>
+
+                {/* Rows 2 & 3 → 3 fields each */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-x-5 gap-y-4">
+                  <Field label="Priority" className="xl:col-span-2">
+                    <SearchableDropdown
+                      options={priorityOpts}
+                      value={formData.priority}
+                      onChange={v => updateRoot('priority', v)}
+                      placeholder="Select Priority"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Status" required className="xl:col-span-2">
+                    <SearchableDropdown
+                      options={scopeStatusOpts}
+                      value={formData.status}
+                      onChange={v => updateRoot('status', v)}
+                      placeholder="Select Status"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="QA Owner" className="xl:col-span-2">
+                    <SearchableDropdown
+                      options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
+                      value={formData.qa_owner}
+                      onChange={(val) => updateRoot('qa_owner', val)}
+                      placeholder="Select QA Owner"
+                      showSelectedAvatar
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Reviewer" className="xl:col-span-2">
+                    <SearchableDropdown
+                      options={userOptions.map(opt => ({ ...opt, value: opt.label }))}
+                      value={formData.details.reviewer}
+                      onChange={(val) => updateDetail('reviewer', val)}
+                      placeholder="Select Reviewer"
+                      showSelectedAvatar
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Planned Start Date" className="xl:col-span-2">
+                    <DatePicker style={{ width: '100%' }} value={formData.start_date} onChange={(v) => updateRoot('start_date', v)} />
+                  </Field>
+                  <Field label="Planned End Date" className="xl:col-span-2">
+                    <DatePicker style={{ width: '100%' }} value={formData.end_date} onChange={(v) => updateRoot('end_date', v)} />
+                  </Field>
+                </div>
+
+                {/* Description — AI actions sit on the label row, right aligned */}
+                <div className="mt-4">
+                  <div className="ts-editorhead">
+                    <label className="ts-label" style={{ margin: 0 }}>Description</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="ts-minibtn ts-minibtn--ai"
+                        disabled={generatingDescription}
+                        onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
+                      >
+                        <Sparkles size={12} /> {generatingDescription ? 'Generating…' : 'Create with Zai'}
+                      </button>
+                      <Tooltip title={!(formData.details.description || '').trim() ? 'Write something first' : 'Fix grammar & typos — keeps your wording'}>
+                        <button
+                          type="button"
+                          className="ts-minibtn"
+                          disabled={polishingDescription || !(formData.details.description || '').trim()}
+                          onClick={(e) => { e.preventDefault(); handlePolishDescription(); }}
+                        >
+                          <SpellCheck size={12} /> {polishingDescription ? 'Polishing…' : 'Grammar'}
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  {/* autoSize keeps the whole description visible — AI output never scrolls out of view */}
+                  <Input.TextArea
+                    autoSize={{ minRows: 3 }}
+                    placeholder="Brief description"
+                    value={formData.details.description}
+                    onChange={(e) => updateDetail('description', e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                  <p className="ts-hint">A short summary that helps a reviewer grasp the scope in one read.</p>
+                </div>
+              </SectionCard>
+
+              {/* 02 — Product Information */}
+              <SectionCard
+                id="sec-product"
+                index={2}
+                icon={Target}
+                title="Product Information"
+                description="Which product areas this scope covers."
+                badge={<CountPill n={(formData.details.modules?.length || 0)} noun="modules" />}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4">
+                  <Field
+                    label="Product"
+                    hint={loadingProjects
+                      ? 'Loading your projects…'
+                      : projectOptions.length > 0
+                        ? `${projectOptions.length} active project${projectOptions.length === 1 ? '' : 's'} you belong to`
+                        : 'No active projects found — type to enter one.'}
+                  >
+                    <SearchableDropdown
+                      options={productOptions}
+                      value={formData.details.product}
+                      onChange={v => updateDetail('product', v)}
+                      placeholder="Select Product"
+                      searchPlaceholder="Search your projects…"
+                      itemNoun="projects"
+                      loading={loadingProjects}
+                      freeText
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Module" hint="Not in the list? Type it in the dropdown and pick “Use …”.">
+                    <SearchableDropdown
+                      mode="multiple"
+                      options={allModuleOpts}
+                      value={formData.details.modules}
+                      onChange={v => updateDetail('modules', v)}
+                      placeholder="Select or type Modules"
+                      searchPlaceholder="Search or type a new module…"
+                      itemNoun="modules"
+                      freeText={true}
+                      style={{ width: '100%' }}
+                    />
+                    <TokenList
+                      values={formData.details.modules || []}
+                      onRemove={(val) => updateDetail('modules', (formData.details.modules || []).filter((m: string) => m !== val))}
+                    />
+                  </Field>
+                  <Field
+                    label="Features"
+                    hint={(formData.details.modules?.length > 0)
+                      ? 'Suggestions follow your selected modules — typing adds a new one.'
+                      : undefined}
+                  >
+                    <SearchableDropdown
+                      mode="multiple"
+                      options={allFeatureOpts}
+                      value={formData.details.features}
+                      onChange={v => updateDetail('features', v)}
+                      placeholder={!(formData.details.modules?.length > 0) ? "Select a Module first" : "Select or type Features"}
+                      searchPlaceholder="Search or type a new feature…"
+                      itemNoun="features"
+                      disabled={!(formData.details.modules?.length > 0)}
+                      freeText={true}
+                      style={{ width: '100%' }}
+                    />
+                    <TokenList
+                      values={formData.details.features || []}
+                      onRemove={(val) => updateDetail('features', (formData.details.features || []).filter((f: string) => f !== val))}
+                    />
+                  </Field>
+                  <Field label="Sprint">
+                    <SearchableDropdown
+                      options={sprintOptions}
+                      value={formData.details.sprint}
+                      onChange={v => updateDetail('sprint', v)}
+                      onSearch={fetchSprintsSearch}
+                      placeholder="Select Sprint"
+                      loading={loadingSprints}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Release Version">
+                    <Input
+                      placeholder="e.g. v2.1.0"
+                      value={formData.details.releaseVersion}
+                      onChange={(e) => updateDetail('releaseVersion', e.target.value)}
+                    />
+                  </Field>
+                </div>
+              </SectionCard>
+
+              {/* 03 — Requirement References */}
+              <SectionCard
+                id="sec-requirements"
+                index={3}
+                icon={Link2}
+                title="Requirement References"
+                description="Everything QA needs to understand the feature."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4">
+                  {[
+                    { key: 'prd', label: 'PRD' },
+                    { key: 'figma', label: 'Figma' },
+                    { key: 'apiDoc', label: 'API Documentation' },
+                    { key: 'userStory', label: 'User Story' },
+                    { key: 'epic', label: 'Epic' },
+                  ].map(ref => (
+                    <Field key={ref.key} label={ref.label}>
+                      <Input
+                        placeholder={`Paste ${ref.label} link`}
+                        value={formData.details.reqReferences?.[ref.key]}
+                        onChange={e => updateReqRef(ref.key, e.target.value)}
+                        prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                        suffix={linkFieldSuffix(formData.details.reqReferences?.[ref.key])}
+                      />
+                    </Field>
+                  ))}
+                  <Field label="Development Tickets">
+                    <SearchableDropdown
+                      mode="multiple"
+                      freeText
+                      options={devTickets.map(t => ({
+                        label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
+                        value: String(t.id),
+                        description: t.status || '',
+                        badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
+                      }))}
+                      onSearch={fetchDevTicketsSearch}
+                      loading={loadingDevTickets}
+                      placeholder="Search or paste Tickets…"
+                      value={
+                        Array.isArray(formData.details.reqReferences?.devTicket)
+                          ? formData.details.reqReferences.devTicket.map((t: any) => typeof t === 'string' ? t : String(t.link || t.id))
+                          : formData.details.reqReferences?.devTicket
+                            ? [String(formData.details.reqReferences.devTicket)]
+                            : undefined
+                      }
+                      onChange={v => {
+                        if (!v || v.length === 0) {
+                          updateReqRef('devTicket', []);
+                        } else {
+                          const updated = v.map((idVal: string) => {
+                            const selected = devTickets.find(t => String(t.id) === idVal);
+                            if (selected) {
+                              return {
+                                name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
+                                link: String(selected.id)
+                              };
+                            }
+                            return { name: idVal, link: idVal };
+                          });
+                          updateReqRef('devTicket', updated);
                         }
-                        return { name: idVal, link: idVal };
-                      });
-                      updateReqRef('devTicket', updated);
-                    }
-                  }}
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={24}>
-                <span className="form-label">Additional Documents</span>
-                <div style={{ marginTop: 8 }}>
-                  <Dragger
-                    className="custom-upload-dragger"
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                </div>
+
+                <div className="mt-5">
+                  <label className="ts-label">Additional Documents</label>
+                  <UploadZone
+                    label="Additional Documents"
+                    hint="Specs, notes, exports · max 50MB"
                     fileList={formData.details.reqReferences?.additionalDocs || []}
                     onChange={updateAdditionalDocs}
-                    beforeUpload={() => false}
-                    multiple
-                    showUploadList={false}
-                  >
-                    <div className="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:border-indigo-400 transition-colors cursor-pointer text-center p-8">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="p-3 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-indigo-500 group-hover:scale-110 transition-transform">
-                          <UploadCloud size={24} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            <span className="text-indigo-600 dark:text-indigo-400">Click to upload</span> or drag and drop
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Additional Documents (max 50MB)</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Dragger>
-
+                  />
                   {(formData.details.reqReferences?.additionalDocs || []).length > 0 && (
-                    <div className="mt-4 flex flex-col gap-2">
+                    <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
                       {(formData.details.reqReferences?.additionalDocs || []).map((file: any) => (
-                        <div key={file.uid} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
-                              <FileIcon size={18} className="text-slate-400" />
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
-                              <div className="flex items-center gap-2 text-xs text-slate-500">
-                                {file.size && <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>}
-                                {file.status === 'uploading' && <span className="text-indigo-500">Uploading...</span>}
-                                {file.status === 'done' && <span className="text-emerald-500">Ready</span>}
-                                {(!file.status || file.status === 'error') && <span className="text-slate-400">Ready</span>}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              type="text"
-                              icon={<Download size={16} />}
-                              size="small"
-                              onClick={() => {
-                                if (file.url) {
-                                  const a = document.createElement('a');
-                                  a.href = file.url;
-                                  a.download = file.name;
-                                  a.click();
-                                }
-                              }}
-                              className="text-slate-500 hover:text-indigo-600"
-                            />
-                            <Button
-                              type="text"
-                              danger
-                              icon={<Trash2 size={16} />}
-                              size="small"
-                              onClick={() => handleRemoveAdditionalDoc(file.uid)}
-                            />
-                          </div>
-                        </div>
+                        <FileRow
+                          key={file.uid}
+                          file={file}
+                          thumb={<FileIcon size={16} />}
+                          onRemove={() => handleRemoveAdditionalDoc(file.uid)}
+                        />
                       ))}
                     </div>
                   )}
                 </div>
-              </Col>
-            </Row>
-          </div>
-        </div>
+              </SectionCard>
 
-        {/* 3. Scope Definition */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><FileText size={16} /> 3. Scope Definition</div>
-          <div className="pp-card-body">
-            <Row gutter={24}>
-              <Col span={12}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span className="form-label" style={{ margin: 0 }}>In Scope</span>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<Maximize size={14} />}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleExpandContent('inScope'); }}
-                      style={{ padding: 0 }}
+              {/* 04 — Scope Definition */}
+              <SectionCard
+                id="sec-scope"
+                index={4}
+                icon={FileText}
+                title="Scope Definition"
+                description="Everything this scope covers — type / for blocks, select text for Zai."
+                action={
+                  <>
+                    <button
+                      type="button"
+                      className="ts-minibtn"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleExpandContent(); }}
                     >
-                      Expand
-                    </Button>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<Sparkles size={14} />}
-                      loading={generatingInScope}
+                      <Maximize size={12} /> Expand
+                    </button>
+                    <button
+                      type="button"
+                      className="ts-minibtn ts-minibtn--ai"
+                      disabled={generatingInScope}
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('inScope'); }}
-                      style={{ color: '#8b5cf6', padding: 0 }}
                     >
-                      Create with ZAI
-                    </Button>
-                  </div>
-                </div>
-                <TiptapEditor
-                  ref={inScopeRef}
-                  content={formData.details.inScope}
-                  onChange={html => updateDetail('inScope', html)}
-                  minHeight={150}
-                  maxHeight={300}
-                />
-              </Col>
-              <Col span={12}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span className="form-label" style={{ margin: 0 }}>Out of Scope</span>
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<Maximize size={14} />}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleExpandContent('outScope'); }}
-                      style={{ padding: 0 }}
-                    >
-                      Expand
-                    </Button>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<Sparkles size={14} />}
-                      loading={generatingOutScope}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('outScope'); }}
-                      style={{ color: '#8b5cf6', padding: 0 }}
-                    >
-                      Create with ZAI
-                    </Button>
-                  </div>
-                </div>
-                <TiptapEditor
-                  ref={outScopeRef}
-                  content={formData.details.outScope}
-                  onChange={html => updateDetail('outScope', html)}
-                  minHeight={150}
-                  maxHeight={300}
-                />
-              </Col>
-            </Row>
-          </div>
-        </div>
-
-        {/* 4. Testing Types */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><CheckSquare size={16} /> 4. Testing Types</div>
-          <div className="pp-card-body">
-            <Checkbox.Group style={{ width: '100%' }} value={formData.details.testingTypes} onChange={v => updateDetail('testingTypes', v)}>
-              <Row gutter={[16, 16]}>
-                {[
-                  "Functional", "Regression", "Smoke", "Sanity",
-                  "UI", "API", "Performance", "Security",
-                  "Accessibility", "Cross Browser", "Mobile", "Automation",
-                  "Integration", "UAT", "Usability", "Localization",
-                  "Exploratory", "End-to-End", "Compatibility", "Database"
-                ].map(type => (
-                  <Col span={6} key={type}>
-                    <Checkbox value={type}>{type}</Checkbox>
-                  </Col>
-                ))}
-              </Row>
-            </Checkbox.Group>
-          </div>
-        </div>
-
-        {/* 5. Environment Details */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><Monitor size={16} /> 5. Environment Details</div>
-          <div className="pp-card-body">
-            <Row gutter={[24, 20]}>
-              <Col span={8}>
-                <span className="form-label">Environment</span>
-                <SearchableDropdown
-                  options={[{ label: 'Dev', value: 'Dev' }, { label: 'Staging', value: 'Staging' }, { label: 'Beta', value: 'Beta' }, { label: 'Production', value: 'Production' }]}
-                  value={formData.details.environment?.type}
-                  onChange={v => updateEnvironment('type', v)}
-                  placeholder="Select Environment"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Build Version</span>
-                <Input placeholder="e.g. v1.0.45" value={formData.details.environment?.buildVersion} onChange={e => updateEnvironment('buildVersion', e.target.value)} />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">API Version</span>
-                <Input placeholder="e.g. v2" value={formData.details.environment?.apiVersion} onChange={e => updateEnvironment('apiVersion', e.target.value)} />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Database</span>
-                <SearchableDropdown
-                  options={[{ label: 'MySQL', value: 'MySQL' }, { label: 'PostgreSQL', value: 'PostgreSQL' }, { label: 'MongoDB', value: 'MongoDB' }, { label: 'Redis', value: 'Redis' }]}
-                  value={formData.details.environment?.database}
-                  onChange={v => updateEnvironment('database', v)}
-                  placeholder="Select Database"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">Browser</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  options={browserListOptions}
-                  value={formData.details.environment?.browser}
-                  onChange={v => updateEnvironment('browser', v)}
-                  placeholder="Select Browsers"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={8}>
-                <span className="form-label">OS</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  options={osListOptions}
-                  value={formData.details.environment?.os}
-                  onChange={v => updateEnvironment('os', v)}
-                  placeholder="Select OS"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-              <Col span={12}>
-                <span className="form-label">Device</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  options={[{ label: 'Desktop', value: 'Desktop' }, { label: 'Mobile', value: 'Mobile' }, { label: 'Tablet', value: 'Tablet' }]}
-                  value={formData.details.environment?.device}
-                  onChange={v => updateEnvironment('device', v)}
-                  placeholder="Select or type devices"
-                  style={{ width: '100%' }}
-                />
-              </Col>
-            </Row>
-          </div>
-        </div>
-
-        {/* 6. Dependencies */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><AlertCircle size={16} /> 6. Dependencies</div>
-          <div className="pp-card-body">
-            <span className="form-label">Things that must be ready before testing.</span>
-            {(formData.details.dependencies || []).map((dep: any, idx: number) => (
-              <div style={{ display: "flex", gap: 12, marginBottom: 12 }} key={idx}>
-                <Input value={dep.name} readOnly style={{ flex: 1 }} />
-                <SearchableDropdown
-                  options={statusOptions}
-                  value={dep.status}
-                  disabled
-                  style={{ width: 150 }}
-                  placeholder="Status"
-                />
-                <Button danger onClick={() => {
-                  const newDeps = [...(formData.details.dependencies || [])];
-                  newDeps.splice(idx, 1);
-                  updateDetail('dependencies', newDeps);
-                }}>Remove</Button>
-              </div>
-            ))}
-            <div style={{ display: "flex", gap: 12 }}>
-              <Input placeholder="Dependency name" value={newDepName} onChange={(e) => setNewDepName(e.target.value)} style={{ flex: 1 }} />
-              <SearchableDropdown
-                options={statusOptions}
-                value={newDepStatus}
-                onChange={val => setNewDepStatus(val)}
-                placeholder="Status"
-                style={{ width: 150 }}
-              />
-              <Button onClick={() => {
-                if (newDepName.trim()) {
-                  updateDetail('dependencies', [...(formData.details.dependencies || []), { name: newDepName.trim(), status: newDepStatus }]);
-                  setNewDepName('');
-                  setNewDepStatus('pending');
+                      <Sparkles size={12} /> {generatingInScope ? 'Generating…' : 'Create with ZAI'}
+                    </button>
+                  </>
                 }
-              }}>Add</Button>
-            </div>
-          </div>
-        </div>
-
-        {/* 7. Acceptance Criteria */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><CheckCircle size={16} /> 7. Acceptance Criteria</div>
-          <div className="pp-card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(formData.details.acceptanceCriteria || []).map((ac: any, idx: number) => {
-                const text = typeof ac === 'string' ? ac : ac.text;
-                return (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <CheckCircle2 size={16} style={{ color: 'var(--brand-500)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{text}</span>
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      style={{ padding: '0 6px', fontSize: 15, lineHeight: 1, opacity: 0.5 }}
-                      onClick={() => {
-                        const updated = [...(formData.details.acceptanceCriteria || [])];
-                        updated.splice(idx, 1);
-                        updateDetail('acceptanceCriteria', updated);
-                      }}
-                    >×</Button>
+              >
+                {isExpandDrawerVisible ? (
+                  <div className="ts-docsurface ts-docsurface--inline ts-docsurface--paused" style={{ height: 420 }}>
+                    <span>Editing in the expanded view…</span>
                   </div>
-                );
-              })}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingTop: (formData.details.acceptanceCriteria || []).length > 0 ? 8 : 0, borderTop: (formData.details.acceptanceCriteria || []).length > 0 ? '1px dashed var(--border-slate-200)' : 'none' }}>
-                <CheckCircle2 size={16} style={{ color: 'var(--border-slate-300)', flexShrink: 0 }} />
-                <Input
-                  placeholder="Type a criterion and press Enter..."
-                  value={newAcInput}
-                  onChange={(e) => setNewAcInput(e.target.value)}
-                  onPressEnter={() => {
+                ) : (
+                  <ScopeDocEditor
+                    key={`scope-${paneVersion}`}
+                    ref={inScopeRef}
+                    html={formData.details.inScope}
+                    onChangeHtml={html => updateDetail('inScope', html)}
+                    height={420}
+                  />
+                )}
+              </SectionCard>
+
+              {/* 05 — Testing Types */}
+              <SectionCard
+                id="sec-testing"
+                index={5}
+                icon={CheckSquare}
+                title="Testing Types"
+                description="Select every kind of testing this scope includes."
+                badge={<CountPill n={formData.details.testingTypes?.length || 0} noun="selected" />}
+                action={
+                  <>
+                    <button
+                      type="button"
+                      className="ts-minibtn"
+                      onClick={() => updateDetail('testingTypes', allTestingTypes.every(t => (formData.details.testingTypes || []).includes(t)) ? [] : [...allTestingTypes])}
+                    >
+                      {allTestingTypes.every(t => (formData.details.testingTypes || []).includes(t)) ? 'Clear all' : 'Select all'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`ts-minibtn${addingKind === 'testing' ? ' ts-minibtn--ai' : ''}`}
+                      onClick={() => openCustomAdd('testing')}
+                    >
+                      <Plus size={12} /> Custom type
+                    </button>
+                  </>
+                }
+              >
+                {addingKind === 'testing' && (
+                  <InlineAdd
+                    placeholder="e.g. Contract Testing, Chaos, Data Migration…"
+                    value={customDraft}
+                    onChange={setCustomDraft}
+                    onAdd={() => commitCustomChip('testing')}
+                    onCancel={cancelCustomAdd}
+                  />
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-2.5">
+                  {allTestingTypes.map(type => (
+                    <Chip
+                      key={type}
+                      active={(formData.details.testingTypes || []).includes(type)}
+                      onClick={() => toggleInArray('testingTypes', type)}
+                      onRemove={customTestingTypes.includes(type) ? () => removeCustomChip('testing', type) : undefined}
+                    >
+                      {type}
+                    </Chip>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* 06 — Environment */}
+              <SectionCard
+                id="sec-environment"
+                index={6}
+                icon={Monitor}
+                title="Environment Details"
+                description="Where the testing runs and against which build."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-5 gap-y-4">
+                  <Field label="Environment">
+                    <SearchableDropdown
+                      options={[{ label: 'Dev', value: 'Dev' }, { label: 'Staging', value: 'Staging' }, { label: 'Beta', value: 'Beta' }, { label: 'Production', value: 'Production' }]}
+                      value={formData.details.environment?.type}
+                      onChange={v => updateEnvironment('type', v)}
+                      placeholder="Select Environment"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Build Version">
+                    <Input placeholder="e.g. v1.0.45" value={formData.details.environment?.buildVersion} onChange={e => updateEnvironment('buildVersion', e.target.value)} />
+                  </Field>
+                  <Field label="API Version">
+                    <Input placeholder="e.g. v2" value={formData.details.environment?.apiVersion} onChange={e => updateEnvironment('apiVersion', e.target.value)} />
+                  </Field>
+                  <Field label="Database">
+                    <SearchableDropdown
+                      options={[{ label: 'MySQL', value: 'MySQL' }, { label: 'PostgreSQL', value: 'PostgreSQL' }, { label: 'MongoDB', value: 'MongoDB' }, { label: 'Redis', value: 'Redis' }]}
+                      value={formData.details.environment?.database}
+                      onChange={v => updateEnvironment('database', v)}
+                      placeholder="Select Database"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Browser">
+                    <SearchableDropdown
+                      mode="multiple"
+                      options={browserListOptions}
+                      value={formData.details.environment?.browser}
+                      onChange={v => updateEnvironment('browser', v)}
+                      placeholder="Select Browsers"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="OS">
+                    <SearchableDropdown
+                      mode="multiple"
+                      options={osListOptions}
+                      value={formData.details.environment?.os}
+                      onChange={v => updateEnvironment('os', v)}
+                      placeholder="Select OS"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Device" className="md:col-span-2">
+                    <SearchableDropdown
+                      mode="multiple"
+                      options={[{ label: 'Desktop', value: 'Desktop' }, { label: 'Mobile', value: 'Mobile' }, { label: 'Tablet', value: 'Tablet' }]}
+                      value={formData.details.environment?.device}
+                      onChange={v => updateEnvironment('device', v)}
+                      placeholder="Select or type devices"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                </div>
+              </SectionCard>
+
+              {/* 07 — Dependencies */}
+              <SectionCard
+                id="sec-dependencies"
+                index={7}
+                icon={AlertCircle}
+                title="Dependencies"
+                description="Things that must be ready before testing can start."
+                badge={<CountPill n={formData.details.dependencies?.length || 0} noun="tracked" />}
+              >
+                {(formData.details.dependencies || []).length === 0 ? (
+                  <div className="ts-empty">No dependencies yet — add the first one below.</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {(formData.details.dependencies || []).map((dep: any, idx: number) => (
+                      <div className="ts-row" key={idx}>
+                        <span className="ts-dot" style={{ background: depDotColor(dep.status) }} />
+                        <span className="ts-row__text">{dep.name}</span>
+                        <span className="ts-statuspill">{dep.status}</span>
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<Trash2 size={15} />}
+                          onClick={() => {
+                            const newDeps = [...(formData.details.dependencies || [])];
+                            newDeps.splice(idx, 1);
+                            updateDetail('dependencies', newDeps);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="ts-addbar flex-wrap">
+                  <Input
+                    placeholder="Dependency name (e.g. Payments API deployed to staging)"
+                    value={newDepName}
+                    onChange={(e) => setNewDepName(e.target.value)}
+                    onPressEnter={() => {
+                      if (newDepName.trim()) {
+                        updateDetail('dependencies', [...(formData.details.dependencies || []), { name: newDepName.trim(), status: newDepStatus }]);
+                        setNewDepName('');
+                        setNewDepStatus('pending');
+                      }
+                    }}
+                    style={{ flex: 1, minWidth: 220 }}
+                  />
+                  <SearchableDropdown
+                    options={statusOptions}
+                    value={newDepStatus}
+                    onChange={val => setNewDepStatus(val)}
+                    placeholder="Status"
+                    style={{ width: 150 }}
+                  />
+                  <Button type="primary" ghost icon={<Plus size={14} />} onClick={() => {
+                    if (newDepName.trim()) {
+                      updateDetail('dependencies', [...(formData.details.dependencies || []), { name: newDepName.trim(), status: newDepStatus }]);
+                      setNewDepName('');
+                      setNewDepStatus('pending');
+                    }
+                  }}>Add</Button>
+                </div>
+              </SectionCard>
+
+              {/* 08 — Acceptance Criteria */}
+              <SectionCard
+                id="sec-acceptance"
+                index={8}
+                icon={CheckCircle}
+                title="Acceptance Criteria"
+                description="Conditions the build must meet for this scope to pass."
+                badge={<CountPill n={formData.details.acceptanceCriteria?.length || 0} noun="criteria" />}
+              >
+                {(formData.details.acceptanceCriteria || []).length === 0 ? (
+                  <div className="ts-empty">Nothing captured yet — type a criterion below and press Enter.</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {(formData.details.acceptanceCriteria || []).map((ac: any, idx: number) => {
+                      const text = typeof ac === 'string' ? ac : ac.text;
+                      return (
+                        <div key={idx} className="ts-row">
+                          <CheckCircle2 size={15} style={{ color: 'var(--ts-green)', flexShrink: 0 }} />
+                          <span className="ts-row__text">{text}</span>
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<Trash2 size={15} />}
+                            onClick={() => {
+                              const updated = [...(formData.details.acceptanceCriteria || [])];
+                              updated.splice(idx, 1);
+                              updateDetail('acceptanceCriteria', updated);
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="ts-addbar">
+                  <Input
+                    prefix={<ListChecks size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                    placeholder="Type a criterion and press Enter…"
+                    value={newAcInput}
+                    onChange={(e) => setNewAcInput(e.target.value)}
+                    onPressEnter={() => {
+                      if (newAcInput.trim()) {
+                        updateDetail('acceptanceCriteria', [...(formData.details.acceptanceCriteria || []), newAcInput.trim()]);
+                        setNewAcInput('');
+                      }
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <Button type="primary" ghost icon={<Plus size={14} />} onClick={() => {
                     if (newAcInput.trim()) {
                       updateDetail('acceptanceCriteria', [...(formData.details.acceptanceCriteria || []), newAcInput.trim()]);
                       setNewAcInput('');
                     }
-                  }}
-                  style={{ flex: 1, border: 'none', background: 'transparent', boxShadow: 'none', padding: '4px 0', fontSize: 13 }}
-                  variant="borderless"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 8. Exit Criteria */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><CheckCircle2 size={16} /> 8. Exit Criteria</div>
-          <div className="pp-card-body">
-            <span className="form-label">When is testing considered complete?</span>
-            <Checkbox.Group style={{ width: '100%' }} value={formData.details.exitCriteria} onChange={v => updateDetail('exitCriteria', v)}>
-              <Row gutter={[16, 16]}>
-                {["All Critical Tests Passed", "No Critical Bugs", "No High Severity Bugs", "Regression Passed", "Product Owner Approved"].map(type => (
-                  <Col span={8} key={type}>
-                    <Checkbox value={type}>{type}</Checkbox>
-                  </Col>
-                ))}
-              </Row>
-            </Checkbox.Group>
-          </div>
-        </div>
-
-        {/* 9. Linked Items */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><Link2 size={16} /> 9. Linked Items</div>
-          <div className="pp-card-body">
-            <span className="form-label" style={{ marginBottom: 16 }}>Link related tickets, epics, or documentation</span>
-            <Row gutter={[24, 20]}>
-
-              {/* Top 4 Fields side-by-side (50% each) */}
-              <Col span={12}>
-                <span className="form-label">Linked Bug Sheets</span>
-                <SearchableDropdown
-                  options={bugSheets.map(b => ({
-                    label: b.name,
-                    value: String(b.id),
-                    description: b.folderName || 'Bug Sheet',
-                    badge: <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>B</span>
-                  }))}
-                  value={formData.details.linkedItems?.bugSheets?.link ? String(formData.details.linkedItems.bugSheets.link) : undefined}
-                  onChange={v => {
-                    if (!v) {
-                      updateLinkedItem('bugSheets', 'name', '');
-                      updateLinkedItem('bugSheets', 'link', '');
-                    } else {
-                      const selected = bugSheets.find(b => String(b.id) === v);
-                      if (selected) {
-                        updateLinkedItem('bugSheets', 'name', selected.name);
-                        updateLinkedItem('bugSheets', 'link', String(selected.id));
-                      }
-                    }
-                  }}
-                  onSearch={fetchBugSheetsSearch}
-                  placeholder="Search Bug Sheets..."
-                  style={{ width: '100%' }}
-                />
-              </Col>
-
-              <Col span={12}>
-                <span className="form-label">Linked Development Tickets</span>
-                <SearchableDropdown
-                  mode="multiple"
-                  freeText
-                  options={devTickets.map(t => ({
-                    label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
-                    value: String(t.id),
-                    description: t.status || '',
-                    badge: <span style={{ background: '#8b5cf6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
-                  }))}
-                  value={
-                    Array.isArray(formData.details.linkedItems?.devTickets)
-                      ? formData.details.linkedItems.devTickets.map((t: any) => String(t.link))
-                      : formData.details.linkedItems?.devTickets?.link
-                        ? [String(formData.details.linkedItems.devTickets.link)]
-                        : undefined
-                  }
-                  onChange={(v: string[]) => {
-                    if (!v || v.length === 0) {
-                      updateLinkedItemArray('devTickets', []);
-                    } else {
-                      const updated = v.map((idVal) => {
-                        const selected = devTickets.find(t => String(t.id) === idVal);
-                        if (selected) {
-                          return {
-                            name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
-                            link: String(selected.id)
-                          };
-                        }
-                        return { name: idVal, link: idVal };
-                      });
-                      updateLinkedItemArray('devTickets', updated);
-                    }
-                  }}
-                  onSearch={fetchDevTicketsSearch}
-                  placeholder="Search Dev Tickets..."
-                  style={{ width: '100%' }}
-                />
-              </Col>
-
-              <Col span={12}>
-                <span className="form-label">Linked Sprints</span>
-                <SearchableDropdown
-                  options={sprints.map(s => ({
-                    label: s.name,
-                    value: String(s.id || s.name),
-                    description: s.description || '',
-                    badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>S</span>
-                  }))}
-                  value={formData.details.linkedItems?.sprints?.link ? String(formData.details.linkedItems.sprints.link) : undefined}
-                  onChange={v => {
-                    if (!v) {
-                      updateLinkedItem('sprints', 'name', '');
-                      updateLinkedItem('sprints', 'link', '');
-                    } else {
-                      const selected = sprints.find(s => String(s.id || s.name) === v);
-                      if (selected) {
-                        updateLinkedItem('sprints', 'name', selected.name);
-                        updateLinkedItem('sprints', 'link', String(selected.id || selected.name));
-                      }
-                    }
-                  }}
-                  onSearch={fetchSprintsSearch}
-                  placeholder="Search Sprints..."
-                  style={{ width: '100%' }}
-                />
-              </Col>
-
-              <Col span={12}>
-                <span className="form-label">Linked Test Cases</span>
-                <SearchableDropdown
-                  options={testCases.map(tc => ({
-                    label: tc.name || tc.title || tc.id,
-                    value: String(tc.id),
-                    description: tc.status || '',
-                    badge: <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TC</span>
-                  }))}
-                  value={formData.details.linkedItems?.testCases?.link ? String(formData.details.linkedItems.testCases.link) : undefined}
-                  onChange={v => {
-                    if (!v) {
-                      updateLinkedItem('testCases', 'name', '');
-                      updateLinkedItem('testCases', 'link', '');
-                    } else {
-                      const selected = testCases.find(tc => String(tc.id) === v);
-                      if (selected) {
-                        updateLinkedItem('testCases', 'name', selected.name || selected.title || selected.id);
-                        updateLinkedItem('testCases', 'link', String(selected.id));
-                      }
-                    }
-                  }}
-                  onSearch={fetchTestCasesSearch}
-                  placeholder="Search Test Cases..."
-                  style={{ width: '100%' }}
-                />
-              </Col>
-
-              <Col span={24}>
-                <span className="form-label">Linked Test Suites</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Input placeholder="Name" style={{ width: '40%' }} value={formData.details.linkedItems?.testSuites?.name} onChange={e => updateLinkedItem('testSuites', 'name', e.target.value)} />
-                  <Input placeholder="Link URL" style={{ width: '60%' }} value={formData.details.linkedItems?.testSuites?.link} onChange={e => updateLinkedItem('testSuites', 'link', e.target.value)} />
+                  }}>Add</Button>
                 </div>
-              </Col>
+              </SectionCard>
 
-              {(formData.details.linkedItems?.custom || []).map((item: any, idx: number) => (
-                <Col span={24} key={`custom-${idx}`}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                    <div style={{ width: '40%' }}>
-                      <span className="form-label">Custom Label</span>
-                      <Input placeholder="e.g. Wiki Page" value={item.label} onChange={e => updateCustomLink(idx, 'label', e.target.value)} />
-                    </div>
-                    <div style={{ width: '30%' }}>
-                      <span className="form-label">Name</span>
-                      <Input placeholder="Name" value={item.name} onChange={e => updateCustomLink(idx, 'name', e.target.value)} />
-                    </div>
-                    <div style={{ width: '30%', display: 'flex', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <span className="form-label">Link URL</span>
-                        <Input placeholder="URL" value={item.link} onChange={e => updateCustomLink(idx, 'link', e.target.value)} />
-                      </div>
-                      <Button danger onClick={() => removeCustomLink(idx)} style={{ alignSelf: 'flex-end' }}>Remove</Button>
-                    </div>
-                  </div>
-                </Col>
-              ))}
+              {/* 09 — Exit Criteria */}
+              <SectionCard
+                id="sec-exit"
+                index={9}
+                icon={Gauge}
+                title="Exit Criteria"
+                description="When is testing considered complete?"
+                badge={<CountPill n={formData.details.exitCriteria?.length || 0} noun="selected" />}
+                action={
+                  <button
+                    type="button"
+                    className={`ts-minibtn${addingKind === 'exit' ? ' ts-minibtn--ai' : ''}`}
+                    onClick={() => openCustomAdd('exit')}
+                  >
+                    <Plus size={12} /> Custom criterion
+                  </button>
+                }
+              >
+                {addingKind === 'exit' && (
+                  <InlineAdd
+                    placeholder="e.g. Performance budget met, Security sign-off received…"
+                    value={customDraft}
+                    onChange={setCustomDraft}
+                    onAdd={() => commitCustomChip('exit')}
+                    onCancel={cancelCustomAdd}
+                  />
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                  {allExitCriteria.map(type => (
+                    <Chip
+                      key={type}
+                      active={(formData.details.exitCriteria || []).includes(type)}
+                      onClick={() => toggleInArray('exitCriteria', type)}
+                      onRemove={customExitCriteria.includes(type) ? () => removeCustomChip('exit', type) : undefined}
+                    >
+                      {type}
+                    </Chip>
+                  ))}
+                </div>
+              </SectionCard>
 
-              <Col span={24}>
-                <Button type="dashed" block onClick={addCustomLink}>+ Add Custom Link</Button>
-              </Col>
-            </Row>
-          </div>
-        </div>
-
-        {/* 10. Attachments */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><InboxOutlined style={{ marginRight: 8 }} /> 10. Attachments</div>
-          <div className="pp-card-body">
-            <Row gutter={[24, 20]}>
-              {[
-                { key: 'screenshots', label: 'Screenshots' },
-                { key: 'designFiles', label: 'Design Files' },
-                { key: 'sampleData', label: 'Sample Data' },
-                { key: 'excelFiles', label: 'Excel Files' },
-                { key: 'pdfs', label: 'PDFs' }
-              ].map((field) => {
-                const files = formData.details.attachments?.[field.key] || [];
-                return (
-                  <Col span={12} key={field.key}>
-                    <span className="form-label">{field.label}</span>
-                    <div style={{ marginTop: 8 }}>
-                      <Dragger
-                        className="custom-upload-dragger"
-                        fileList={files}
-                        onChange={info => updateAttachmentFiles(field.key, info)}
-                        beforeUpload={() => false}
-                        multiple
-                        showUploadList={false}
-                      >
-                        <div className="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:border-indigo-400 transition-colors cursor-pointer text-center p-8">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="p-3 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-indigo-500 group-hover:scale-110 transition-transform">
-                              <UploadCloud size={24} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                <span className="text-indigo-600 dark:text-indigo-400">Click to upload</span> or drag and drop
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{field.label} (max 50MB)</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Dragger>
-
-                      {files.length > 0 && (
-                        <div className="mt-4 flex flex-col gap-2">
-                          {files.map((file: any) => (
-                            <div key={file.uid} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm group hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
-                                  {field.key === 'screenshots' && (file.url || file.thumbUrl) ? (
-                                    <>
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={file.url || file.thumbUrl} alt={file.name} className="w-full h-full object-cover" />
-                                    </>
-                                  ) : field.key === 'screenshots' ? (
-                                    <ImageIcon size={18} className="text-slate-400" />
-                                  ) : field.key === 'pdfs' ? (
-                                    <FileText size={18} className="text-red-400" />
-                                  ) : (
-                                    <FileIcon size={18} className="text-slate-400" />
-                                  )}
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
-                                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                                    {file.size && <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>}
-                                    {file.status === 'uploading' && <span className="text-indigo-500">Uploading...</span>}
-                                    {file.status === 'done' && <span className="text-emerald-500">Ready</span>}
-                                    {(!file.status || file.status === 'error') && <span className="text-slate-400">Ready</span>}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {(field.key === 'screenshots' && (file.url || file.thumbUrl)) && (
-                                  <Button
-                                    type="text"
-                                    icon={<Eye size={16} />}
-                                    size="small"
-                                    onClick={() => setPreviewImg({ src: file.url || file.thumbUrl, name: file.name })}
-                                    className="text-slate-500 hover:text-indigo-600"
-                                  />
-                                )}
-                                <Button
-                                  type="text"
-                                  icon={<Download size={16} />}
-                                  size="small"
-                                  onClick={() => {
-                                    if (file.url) {
-                                      const a = document.createElement('a');
-                                      a.href = file.url;
-                                      a.download = file.name;
-                                      a.click();
-                                    }
-                                  }}
-                                  className="text-slate-500 hover:text-indigo-600"
-                                />
-                                <Button
-                                  type="text"
-                                  danger
-                                  icon={<Trash2 size={16} />}
-                                  size="small"
-                                  onClick={() => handleRemoveAttachment(field.key, file.uid)}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </Col>
-                )
-              })}
-            </Row>
-          </div>
-        </div>
-
-        {/* 11. Approval Workflow */}
-        <div className="pp-detail-card">
-          <div className="pp-card-header"><CheckSquare size={16} /> 11. Approval Workflow</div>
-          <div className="pp-card-body">
-            <div style={{ display: "flex", gap: 12, flexWrap: 'wrap' }}>
-              <SearchableDropdown
-                options={positionOptions}
-                value={formData.details.approvalWorkflow?.position}
-                onChange={(val) => {
-                  setFormData((prev: any) => {
-                    const newDetails = { ...prev.details };
-                    newDetails.approvalWorkflow = { ...newDetails.approvalWorkflow, position: val, user: undefined };
-                    return { ...prev, details: newDetails };
-                  });
-                }}
-                placeholder="Select Position"
-                style={{ width: 200 }}
-              />
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <SearchableDropdown
-                  options={userOptions}
-                  value={formData.details.approvalWorkflow?.user}
-                  onChange={(val) => {
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      details: {
-                        ...prev.details,
-                        approvalWorkflow: {
-                          ...(prev.details.approvalWorkflow || {}),
-                          user: val
+              {/* 10 — Linked Items */}
+              <SectionCard
+                id="sec-linked"
+                index={10}
+                icon={Layers}
+                title="Linked Items"
+                description="Connect related tickets, sheets, sprints and docs."
+                action={
+                  <button type="button" className="ts-minibtn" onClick={addCustomLink}>
+                    <Plus size={12} /> Custom link
+                  </button>
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  <Field label="Linked Bug Sheets">
+                    <SearchableDropdown
+                      options={bugSheets.map(b => ({
+                        label: b.name,
+                        value: String(b.id),
+                        description: b.folderName || 'Bug Sheet',
+                        badge: <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>B</span>
+                      }))}
+                      value={formData.details.linkedItems?.bugSheets?.link ? String(formData.details.linkedItems.bugSheets.link) : undefined}
+                      onChange={v => {
+                        if (!v) {
+                          updateLinkedItem('bugSheets', 'name', '');
+                          updateLinkedItem('bugSheets', 'link', '');
+                        } else {
+                          const selected = bugSheets.find(b => String(b.id) === v);
+                          if (selected) {
+                            updateLinkedItem('bugSheets', 'name', selected.name);
+                            updateLinkedItem('bugSheets', 'link', String(selected.id));
+                          }
                         }
+                      }}
+                      onSearch={fetchBugSheetsSearch}
+                      loading={loadingBugSheets}
+                      placeholder="Search Bug Sheets…"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="Linked Development Tickets">
+                    <SearchableDropdown
+                      mode="multiple"
+                      freeText
+                      options={devTickets.map(t => ({
+                        label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
+                        value: String(t.id),
+                        description: t.status || '',
+                        badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
+                      }))}
+                      value={
+                        Array.isArray(formData.details.linkedItems?.devTickets)
+                          ? formData.details.linkedItems.devTickets.map((t: any) => String(t.link))
+                          : formData.details.linkedItems?.devTickets?.link
+                            ? [String(formData.details.linkedItems.devTickets.link)]
+                            : undefined
                       }
-                    }));
-                  }}
-                  placeholder="Select Approver"
-                  showSelectedAvatar
-                  style={{ width: '100%' }}
-                />
+                      onChange={(v: string[]) => {
+                        if (!v || v.length === 0) {
+                          updateLinkedItemArray('devTickets', []);
+                        } else {
+                          const updated = v.map((idVal) => {
+                            const selected = devTickets.find(t => String(t.id) === idVal);
+                            if (selected) {
+                              return {
+                                name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
+                                link: String(selected.id)
+                              };
+                            }
+                            return { name: idVal, link: idVal };
+                          });
+                          updateLinkedItemArray('devTickets', updated);
+                        }
+                      }}
+                      onSearch={fetchDevTicketsSearch}
+                      loading={loadingDevTickets}
+                      placeholder="Search Dev Tickets…"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="Linked Sprints">
+                    <SearchableDropdown
+                      options={sprints.map(s => ({
+                        label: s.name,
+                        value: String(s.id || s.name),
+                        description: s.description || '',
+                        badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>S</span>
+                      }))}
+                      value={formData.details.linkedItems?.sprints?.link ? String(formData.details.linkedItems.sprints.link) : undefined}
+                      onChange={v => {
+                        if (!v) {
+                          updateLinkedItem('sprints', 'name', '');
+                          updateLinkedItem('sprints', 'link', '');
+                        } else {
+                          const selected = sprints.find(s => String(s.id || s.name) === v);
+                          if (selected) {
+                            updateLinkedItem('sprints', 'name', selected.name);
+                            updateLinkedItem('sprints', 'link', String(selected.id || selected.name));
+                          }
+                        }
+                      }}
+                      onSearch={fetchSprintsSearch}
+                      loading={loadingSprints}
+                      placeholder="Search Sprints…"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="Linked Test Cases">
+                    <SearchableDropdown
+                      options={testCases.map(tc => ({
+                        label: tc.name || tc.title || tc.id,
+                        value: String(tc.id),
+                        description: tc.status || '',
+                        badge: <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TC</span>
+                      }))}
+                      value={formData.details.linkedItems?.testCases?.link ? String(formData.details.linkedItems.testCases.link) : undefined}
+                      onChange={v => {
+                        if (!v) {
+                          updateLinkedItem('testCases', 'name', '');
+                          updateLinkedItem('testCases', 'link', '');
+                        } else {
+                          const selected = testCases.find(tc => String(tc.id) === v);
+                          if (selected) {
+                            updateLinkedItem('testCases', 'name', selected.name || selected.title || selected.id);
+                            updateLinkedItem('testCases', 'link', String(selected.id));
+                          }
+                        }
+                      }}
+                      onSearch={fetchTestCasesSearch}
+                      loading={loadingTestCases}
+                      placeholder="Search Test Cases…"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="Linked Test Suites" className="md:col-span-2">
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <Input placeholder="Name" className="sm:w-[38%]" value={formData.details.linkedItems?.testSuites?.name} onChange={e => updateLinkedItem('testSuites', 'name', e.target.value)} />
+                      <Input
+                        placeholder="Link URL"
+                        className="flex-1"
+                        value={formData.details.linkedItems?.testSuites?.link}
+                        onChange={e => updateLinkedItem('testSuites', 'link', e.target.value)}
+                        prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                        suffix={linkFieldSuffix(formData.details.linkedItems?.testSuites?.link)}
+                      />
+                    </div>
+                  </Field>
+                </div>
+
+                {(formData.details.linkedItems?.custom || []).length > 0 && (
+                  <div className="mt-5 flex flex-col gap-3">
+                    {(formData.details.linkedItems?.custom || []).map((item: any, idx: number) => (
+                      <div key={`custom-${idx}`} className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2.5">
+                        <Field label="Custom Label" className="sm:w-[26%]">
+                          <Input placeholder="e.g. Wiki Page" value={item.label} onChange={e => updateCustomLink(idx, 'label', e.target.value)} />
+                        </Field>
+                        <Field label="Name" className="sm:w-[26%]">
+                          <Input placeholder="Name" value={item.name} onChange={e => updateCustomLink(idx, 'name', e.target.value)} />
+                        </Field>
+                        <Field label="Link URL" className="flex-1">
+                          <Input
+                            placeholder="URL"
+                            value={item.link}
+                            onChange={e => updateCustomLink(idx, 'link', e.target.value)}
+                            prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                            suffix={linkFieldSuffix(item.link)}
+                          />
+                        </Field>
+                        <Button danger icon={<Trash2 size={15} />} onClick={() => removeCustomLink(idx)} className="sm:mb-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </SectionCard>
+
+              {/* 11 — Attachments */}
+              <SectionCard
+                id="sec-attachments"
+                index={11}
+                icon={Paperclip}
+                title="Attachments"
+                description="Screenshots, design files, sample data and reports."
+                badge={
+                  totalAttachments > 0
+                    ? <CountPill n={totalAttachments} noun={`file${totalAttachments === 1 ? '' : 's'} · ${formatBytes(totalAttachmentSize)}`} />
+                    : undefined
+                }
+                action={
+                  <button
+                    type="button"
+                    className={`ts-minibtn${addingKind === 'attachment' ? ' ts-minibtn--ai' : ''}`}
+                    onClick={() => openCustomAdd('attachment')}
+                  >
+                    <Plus size={12} /> Custom category
+                  </button>
+                }
+              >
+                {addingKind === 'attachment' && (
+                  <InlineAdd
+                    placeholder="e.g. Test Reports, Logs, Video Recordings…"
+                    value={customDraft}
+                    onChange={setCustomDraft}
+                    onAdd={commitCustomAttachment}
+                    onCancel={cancelCustomAdd}
+                  />
+                )}
+                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 items-start">
+                  {allAttachmentFields.map((field) => (
+                    <AttachmentBay
+                      key={field.key}
+                      field={field}
+                      files={formData.details.attachments?.[field.key] || []}
+                      isCustom={customAttachmentFields.some(f => f.key === field.key)}
+                      onUpload={info => updateAttachmentFiles(field.key, info)}
+                      onRemoveFile={uid => handleRemoveAttachment(field.key, uid)}
+                      onClear={() => clearAttachmentCategory(field.key)}
+                      onRemoveCategory={() => removeCustomAttachment(field.key)}
+                      onPreview={(src, name) => setPreviewImg({ src, name })}
+                    />
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* 12 — Approval Workflow */}
+              <SectionCard
+                id="sec-approval"
+                index={12}
+                icon={ShieldCheck}
+                title="Approval Workflow"
+                description="Route this scope to the right approver before execution."
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-x-5 gap-y-4 items-end">
+                  <Field label="Approver Position">
+                    <SearchableDropdown
+                      options={positionOptions}
+                      value={formData.details.approvalWorkflow?.position}
+                      onChange={(val) => {
+                        setFormData((prev: any) => {
+                          const newDetails = { ...prev.details };
+                          newDetails.approvalWorkflow = { ...newDetails.approvalWorkflow, position: val, user: undefined };
+                          return { ...prev, details: newDetails };
+                        });
+                      }}
+                      placeholder="Select Position"
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Approver">
+                    <SearchableDropdown
+                      options={userOptions}
+                      value={formData.details.approvalWorkflow?.user}
+                      onChange={(val) => {
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          details: {
+                            ...prev.details,
+                            approvalWorkflow: {
+                              ...(prev.details.approvalWorkflow || {}),
+                              user: val
+                            }
+                          }
+                        }));
+                      }}
+                      placeholder="Select Approver"
+                      showSelectedAvatar
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <Field label="Approval Status">
+                    <SearchableDropdown
+                      options={[
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'approved', label: 'Approved' },
+                        { value: 'rejected', label: 'Rejected' }
+                      ]}
+                      value={formData.details.approvalWorkflow?.status}
+                      onChange={(val) => {
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          details: {
+                            ...prev.details,
+                            approvalWorkflow: {
+                              ...(prev.details.approvalWorkflow || {}),
+                              status: val
+                            }
+                          }
+                        }));
+                      }}
+                      placeholder="Status"
+                      hideAvatar
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+                  <div>
+                    <Button type="primary" block icon={<ShieldCheck size={15} />} style={{ height: 40 }}>
+                      Request Approval
+                    </Button>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Footer action strip */}
+              <div className="flex items-center justify-between gap-4 flex-wrap px-1">
+                <p className="text-[12px] m-0" style={{ color: 'var(--ts-text-3)' }}>
+                  {isDirty ? 'Changes are kept in this tab until you save.' : 'No changes to save.'}
+                </p>
+                <div className="flex items-center gap-2.5">
+                  <Button onClick={() => router.back()}>Cancel</Button>
+                  <Button type="primary" icon={<Save size={15} />} onClick={handleSave} loading={submitting}>
+                    Save Changes
+                  </Button>
+                </div>
               </div>
-              <SearchableDropdown
-                options={[
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'rejected', label: 'Rejected' }
-                ]}
-                value={formData.details.approvalWorkflow?.status}
-                onChange={(val) => {
-                  setFormData((prev: any) => ({
-                    ...prev,
-                    details: {
-                      ...prev.details,
-                      approvalWorkflow: {
-                        ...(prev.details.approvalWorkflow || {}),
-                        status: val
-                      }
-                    }
-                  }));
-                }}
-                placeholder="Status"
-                hideAvatar
-                style={{ width: 150 }}
-              />
-              <Button type="primary">Request Approval</Button>
-            </div>
+            </main>
           </div>
         </div>
-
       </div>
 
-        <Drawer
-          {...commonDrawerProps}
-          onClose={() => { setIsExpandDrawerVisible(false); setExpandDrawerField(null); }}
-          open={isExpandDrawerVisible}
-          width={800}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-slate-900)' }}>{expandDrawerTitle}</h2>
-            <Button type="text" icon={<CloseOutlined />} onClick={() => setIsExpandDrawerVisible(false)} />
+      <Drawer
+        {...commonDrawerProps}
+        onClose={closeExpandDrawer}
+        open={isExpandDrawerVisible}
+        width={980}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-slate-900)' }}>Scope Definition</h2>
+            <span className="ts-drawer-hint">Type <strong>/</strong> for blocks · select text for Zai</span>
           </div>
-          <div style={{ padding: '24px', height: 'calc(100vh - 65px)', overflowY: 'auto' }}>
-            {expandDrawerField && (
-              <TiptapEditor
-                content={expandDrawerField === 'inScope' ? formData.details.inScope : formData.details.outScope}
-                onChange={html => updateDetail(expandDrawerField, html)}
-                minHeight={500}
-              />
-            )}
-          </div>
-        </Drawer>
+          <Button type="text" icon={<CloseOutlined />} onClick={closeExpandDrawer} />
+        </div>
+        <div style={{ height: 'calc(100vh - 65px)', overflow: 'hidden' }}>
+          {isExpandDrawerVisible && (
+            <ScopeDocEditor
+              html={formData.details.inScope}
+              onChangeHtml={(html) => updateDetail('inScope', html)}
+            />
+          )}
+        </div>
+      </Drawer>
 
-        <Modal
-          title={null}
-          open={isZaiModalVisible}
-          onCancel={() => setIsZaiModalVisible(false)}
-          width={800}
-          footer={null}
-          destroyOnHidden
-          centered
-          closable={false}
-          styles={{
-            mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.55)' },
-            content: { padding: 0, borderRadius: 22, overflow: 'hidden', background: 'transparent', boxShadow: '0 30px 80px rgba(8,12,24,0.45)' },
-            body: { padding: 0 },
-          }}
-          wrapClassName="zai-modal-wrap"
-        >
-          <div className="zai-modal">
-            {/* Hero */}
-            <div className="zai-hero">
-              <div className="zai-hero__bg" />
-              <div className="zai-hero__content">
-                <div className="zai-hero__brand">
-                  <div className="zai-orb">
-                    <Sparkles size={20} />
+      <Modal
+        title={null}
+        open={isZaiModalVisible}
+        onCancel={() => setIsZaiModalVisible(false)}
+        width={800}
+        footer={null}
+        destroyOnHidden
+        centered
+        closable={false}
+        styles={{
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(8, 12, 24, 0.55)' },
+          content: { padding: 0, borderRadius: 22, overflow: 'hidden', background: 'transparent', boxShadow: '0 30px 80px rgba(8,12,24,0.45)' },
+          body: { padding: 0 },
+        }}
+        wrapClassName="zai-modal-wrap"
+      >
+        <div className="zai-modal">
+          {/* Hero */}
+          <div className="zai-hero">
+            <div className="zai-hero__bg" />
+            <div className="zai-hero__content">
+              <div className="zai-hero__brand">
+                <div className="zai-orb">
+                  <Sparkles size={20} />
+                </div>
+                <div className="zai-hero__title-wrap">
+                  <div className="zai-hero__eyebrow">
+                    <span className="zai-pill"><Zap size={10} strokeWidth={2.5} />ZAI · Smart Generation</span>
                   </div>
-                  <div className="zai-hero__title-wrap">
-                    <div className="zai-hero__eyebrow">
-                      <span className="zai-pill"><Zap size={10} strokeWidth={2.5} />ZAI · Smart Generation</span>
+                  <h2 className="zai-hero__title">
+                    Create with <span className="zai-grad">Zai</span>
+                  </h2>
+                  <p className="zai-hero__sub">
+                    Describe what you want ZAI to generate for the {zaiTargetField ? ZAI_FIELD_LABEL[zaiTargetField] : ''} section.
+                  </p>
+                </div>
+              </div>
+              <button className="zai-close" onClick={() => setIsZaiModalVisible(false)} aria-label="Close">×</button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="zai-body">
+            {zaiView === 'prompt' ? (
+              <>
+                <div className="zai-prompt">
+                  <div className="zai-prompt__label">
+                    <Wand2 size={14} />
+                    <span>Instruction</span>
+                  </div>
+                  <div className="zai-prompt__row">
+                    <Input.TextArea
+                      rows={2}
+                      placeholder="e.g. Generate a bulleted list of features targeting the login workflow..."
+                      value={zaiPrompt}
+                      onChange={(e) => setZaiPrompt(e.target.value)}
+                      className="zai-textarea"
+                      bordered={false}
+                    />
+                    <Button
+                      type="primary"
+                      onClick={submitZaiPrompt}
+                      loading={isZaiGenerating(zaiTargetField)}
+                      className="zai-cta"
+                      icon={!isZaiGenerating(zaiTargetField) ? <Sparkles size={14} /> : null}
+                    >
+                      {isZaiGenerating(zaiTargetField) ? 'Zai is thinking…' : 'Generate Content'}
+                    </Button>
+                  </div>
+
+                  <div className="zai-template-list" style={{ marginTop: 24 }}>
+                    <div className="zai-template-list__heading">
+                      <span className="zai-suggestions__label">Try one of these</span>
                     </div>
-                    <h2 className="zai-hero__title">
-                      Create with <span className="zai-grad">Zai</span>
-                    </h2>
-                    <p className="zai-hero__sub">
-                      Describe what you want ZAI to generate for the {zaiTargetField === 'inScope' ? 'In Scope' : 'Out of Scope'} section.
-                    </p>
+                    <div className="zai-template-grid">
+                      {(zaiTargetField === 'description' ? [
+                        { title: "Executive Summary", body: "Write a concise summary of what this release covers and why it is being tested, aimed at a reviewer who has not seen the feature before.", icon: '📝' },
+                        { title: "Risk Framing", body: "Summarise the scope with an emphasis on the riskiest areas and what could break in production if they are not covered.", icon: '⚠️' },
+                        { title: "Release Note Style", body: "Describe this test scope the way a release note would: what changed, which modules are affected, and how it will be validated.", icon: '🚀' },
+                        { title: "Stakeholder Brief", body: "Write a short, non-technical description a product owner can read in one pass to understand what QA will verify.", icon: '🤝' }
+                      ] : [
+                        { title: "Edge Cases", body: "Generate a comprehensive bulleted list of edge cases for the login workflow, focusing on invalid inputs, timeout scenarios, and concurrent session handling.", icon: '📋' },
+                        { title: "Performance", body: "Define performance boundaries and limits, including expected response times under peak load, database query optimization targets, and acceptable API latency thresholds.", icon: '⚡' },
+                        { title: "Standard Workflows", body: "Outline standard login workflows, covering successful authentication paths, password reset flows, MFA integration steps, and SSO provider redirection sequences.", icon: '🔐' },
+                        { title: "Security Requirements", body: "List security testing requirements focusing on vulnerability assessments, penetration testing for API endpoints, data encryption standards, and role-based access control.", icon: '🛡️' }
+                      ]).map((t) => {
+                        const active = zaiPrompt === t.body;
+                        return (
+                          <button
+                            key={t.title}
+                            type="button"
+                            className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
+                            onClick={() => setZaiPrompt(t.body)}
+                          >
+                            <div className="zai-template-card__head">
+                              <span className="zai-template-card__icon">{t.icon}</span>
+                              <span className="zai-template-card__title">{t.title}</span>
+                              <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
+                            </div>
+                            <p className="zai-template-card__body">{t.body}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-                <button className="zai-close" onClick={() => setIsZaiModalVisible(false)} aria-label="Close">×</button>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="zai-body">
-              {zaiView === 'prompt' ? (
-                <>
-                  <div className="zai-prompt">
-                    <div className="zai-prompt__label">
-                      <Wand2 size={14} />
-                      <span>Instruction</span>
+              </>
+            ) : (
+              <>
+                <div className="zai-compare">
+                  <div className="zai-pane zai-pane--new" style={{ width: '100%' }}>
+                    <div className="zai-pane__head" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="zai-pane__dot zai-pane__dot--new" />
+                        <span className="zai-pane__title zai-pane__title--new">Zai&apos;s Generation</span>
+                        <span className="zai-pane__badge">Ready</span>
+                      </div>
+                      <Button type="link" size="small" onClick={() => setZaiView('prompt')} style={{ padding: 0 }}>
+                        Edit Prompt
+                      </Button>
                     </div>
-                    <div className="zai-prompt__row">
-                      <Input.TextArea
-                        rows={2}
-                        placeholder="e.g. Generate a bulleted list of features targeting the login workflow..."
-                        value={zaiPrompt}
-                        onChange={(e) => setZaiPrompt(e.target.value)}
-                        className="zai-textarea"
-                        bordered={false}
-                      />
+                    <div className="zai-pane__body zai-pane__body--new" style={{ minHeight: 200, maxHeight: 400, overflowY: 'auto', padding: 24 }}>
+                      <TiptapViewer content={zaiGeneratedContent} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="zai-footer">
+                  <div className="zai-footer__hint">
+                    Review the generated content. You can replace, append, or insert at cursor.
+                  </div>
+                  <div className="zai-footer__actions">
+                    <Button icon={<Copy size={14} />} onClick={handleZaiCopy} className="zai-btn-ghost">Copy</Button>
+                    <Button onClick={() => submitZaiPrompt()} loading={isZaiGenerating(zaiTargetField)} className="zai-btn-ghost">
+                      Regenerate
+                    </Button>
+                    <Dropdown menu={{
+                      items: [
+                        { key: 'append', label: 'Append to end', onClick: () => handleZaiInsert('append') },
+                        // Cursor insertion only applies to the rich-text panes
+                        ...(zaiTargetField === 'description'
+                          ? []
+                          : [{ key: 'insert', label: 'Insert at cursor', onClick: () => handleZaiInsert('insert') }])
+                      ]
+                    }}>
                       <Button
                         type="primary"
-                        onClick={submitZaiPrompt}
-                        loading={zaiTargetField === 'inScope' ? generatingInScope : generatingOutScope}
-                        className="zai-cta"
-                        icon={!(zaiTargetField === 'inScope' ? generatingInScope : generatingOutScope) ? <Sparkles size={14} /> : null}
+                        onClick={() => handleZaiInsert('replace')}
+                        className="zai-btn-apply"
                       >
-                        {(zaiTargetField === 'inScope' ? generatingInScope : generatingOutScope) ? 'Zai is thinking…' : 'Generate Content'}
+                        Replace Content <ChevronDown size={14} style={{ marginLeft: 4 }} />
                       </Button>
-                    </div>
-
-                    <div className="zai-template-list" style={{ marginTop: 24 }}>
-                      <div className="zai-template-list__heading">
-                        <span className="zai-suggestions__label">Try one of these</span>
-                      </div>
-                      <div className="zai-template-grid">
-                        {[
-                          { title: "Edge Cases", body: "Generate a comprehensive bulleted list of edge cases for the login workflow, focusing on invalid inputs, timeout scenarios, and concurrent session handling.", icon: '📋' },
-                          { title: "Performance", body: "Define performance boundaries and limits, including expected response times under peak load, database query optimization targets, and acceptable API latency thresholds.", icon: '⚡' },
-                          { title: "Standard Workflows", body: "Outline standard login workflows, covering successful authentication paths, password reset flows, MFA integration steps, and SSO provider redirection sequences.", icon: '🔐' },
-                          { title: "Security Requirements", body: "List security testing requirements focusing on vulnerability assessments, penetration testing for API endpoints, data encryption standards, and role-based access control.", icon: '🛡️' }
-                        ].map((t) => {
-                          const active = zaiPrompt === t.body;
-                          return (
-                            <button
-                              key={t.title}
-                              type="button"
-                              className={`zai-template-card ${active ? 'zai-template-card--active' : ''}`}
-                              onClick={() => setZaiPrompt(t.body)}
-                            >
-                              <div className="zai-template-card__head">
-                                <span className="zai-template-card__icon">{t.icon}</span>
-                                <span className="zai-template-card__title">{t.title}</span>
-                                <span className="zai-template-card__use">{active ? 'Selected' : 'Use this'}</span>
-                              </div>
-                              <p className="zai-template-card__body">{t.body}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    </Dropdown>
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="zai-compare">
-                    <div className="zai-pane zai-pane--new" style={{ width: '100%' }}>
-                      <div className="zai-pane__head" style={{ justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span className="zai-pane__dot zai-pane__dot--new" />
-                          <span className="zai-pane__title zai-pane__title--new">Zai's Generation</span>
-                          <span className="zai-pane__badge">Ready</span>
-                        </div>
-                        <Button type="link" size="small" onClick={() => setZaiView('prompt')} style={{ padding: 0 }}>
-                          Edit Prompt
-                        </Button>
-                      </div>
-                      <div className="zai-pane__body zai-pane__body--new" style={{ minHeight: 200, maxHeight: 400, overflowY: 'auto', padding: 24 }}>
-                        <TiptapViewer content={zaiGeneratedContent} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="zai-footer">
-                    <div className="zai-footer__hint">
-                      Review the generated content. You can replace, append, or insert at cursor.
-                    </div>
-                    <div className="zai-footer__actions">
-                      <Button icon={<Copy size={14} />} onClick={handleZaiCopy} className="zai-btn-ghost">Copy</Button>
-                      <Button onClick={() => submitZaiPrompt()} loading={zaiTargetField === 'inScope' ? generatingInScope : generatingOutScope} className="zai-btn-ghost">
-                        Regenerate
-                      </Button>
-                      <Dropdown menu={{
-                        items: [
-                          { key: 'append', label: 'Append to end', onClick: () => handleZaiInsert('append') },
-                          { key: 'insert', label: 'Insert at cursor', onClick: () => handleZaiInsert('insert') }
-                        ]
-                      }}>
-                        <Button
-                          type="primary"
-                          onClick={() => handleZaiInsert('replace')}
-                          className="zai-btn-apply"
-                        >
-                          Replace Content <ChevronDown size={14} style={{ marginLeft: 4 }} />
-                        </Button>
-                      </Dropdown>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
-        </Modal>
-      </>}
+        </div>
+      </Modal>
     </MainLayout>
   );
 }

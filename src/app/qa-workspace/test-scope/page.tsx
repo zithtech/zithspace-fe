@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Popconfirm, Form, Select, Tabs, Dropdown } from "antd";
+import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Form, Select, Tabs, Dropdown } from "antd";
 import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -237,7 +237,7 @@ function TestScopeContent() {
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
 
-  const { canReadScope, canCreateScope } = usePermission();
+  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa } = usePermission();
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -282,23 +282,16 @@ function TestScopeContent() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    Modal.confirm({
-      title: 'Are you sure you want to delete this test scope?',
-      content: 'This action cannot be undone.',
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      onOk: async () => {
-        try {
-          await axios.delete(`/api/v2/qa/test-scopes/${id}`);
-          message.success('Test Scope deleted successfully');
-          fetchScopes();
-        } catch (error) {
-          console.error(error);
-          message.error('Failed to delete Test Scope');
-        }
-      }
-    });
+  /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
+  const handleDelete = async (id: string) => {
+    try {
+      await axios.delete(`/api/v2/qa/test-scopes/${id}`);
+      message.success('Test Scope deleted successfully');
+      fetchScopes();
+    } catch (error) {
+      console.error(error);
+      message.error('Failed to delete Test Scope');
+    }
   };
 
   const performApprovalAction = async (record: any, newStatus: string) => {
@@ -550,12 +543,25 @@ function TestScopeContent() {
       align: 'right' as const,
       render: (_: any, r: any) => (
         <div className="sc-rowactions" onClick={(e) => e.stopPropagation()}>
-          <Tooltip title="Edit">
-            <button onClick={() => router.push(`/qa-workspace/test-scope/edit/${r.id}`)} aria-label="Edit"><Pencil size={15} /></button>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <button className="is-danger" onClick={() => handleDelete(r.id)} aria-label="Delete"><Trash2 size={15} /></button>
-          </Tooltip>
+          {canUpdateScope && (
+            <Tooltip title="Edit">
+              <button onClick={() => router.push(`/qa-workspace/test-scope/edit/${r.id}`)} aria-label="Edit"><Pencil size={15} /></button>
+            </Tooltip>
+          )}
+          {canDeleteScope && (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete this test scope?"
+              description={<>&ldquo;{r.name || 'Untitled scope'}&rdquo; will be permanently removed. This cannot be undone.</>}
+              confirmText="Delete"
+              onConfirm={() => handleDelete(r.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
+              </Tooltip>
+            </ConfirmDialog>
+          )}
+          {!canUpdateScope && !canDeleteScope && <span className="sc-muted">—</span>}
         </div>
       )
     }
@@ -748,9 +754,12 @@ function TestScopeContent() {
           )
         }
       ] : [
-        { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
-        { type: 'divider' as const },
-        {
+        // Only the actions this role actually holds
+        ...(canUpdateScope ? [
+          { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
+        ] : []),
+        ...(canUpdateScope && canDeleteScope ? [{ type: 'divider' as const }] : []),
+        ...(canDeleteScope ? [{
           key: 'delete',
           danger: true,
           label: (
@@ -764,7 +773,12 @@ function TestScopeContent() {
               {menuLabel('Delete', 'Remove from list', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
             </ConfirmDialog>
           )
-        }
+        }] : []),
+        ...(!canUpdateScope && !canDeleteScope ? [{
+          key: 'none',
+          disabled: true,
+          label: menuLabel('View only', 'No edit access on this scope', <Pencil size={15} />, '#94a3b8', 'rgba(148,163,184,0.12)'),
+        }] : []),
       ]
     };
   };
@@ -1317,7 +1331,7 @@ function TestScopeContent() {
             </div>
 
             <div className="dh-main-controls">
-              {activeTab === 'settings' && (
+              {activeTab === 'settings' && canManageQa && (
                 <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
               )}
               {['scopes', 'approvals'].includes(activeTab) && (
@@ -1611,7 +1625,9 @@ function TestScopeContent() {
                       <div className="st-head__title">{CATEGORY_LABELS[settingsActiveCategory]} options</div>
                       <div className="st-head__desc">{activeCategoryMeta?.help}</div>
                     </div>
-                    <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
+                    {canManageQa && (
+                      <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
+                    )}
                   </div>
 
                   <Table
@@ -1626,7 +1642,9 @@ function TestScopeContent() {
                           <Settings size={26} className="sc-empty__icon" />
                           <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
                           <p className="sc-empty__desc">{activeCategoryMeta?.help}</p>
-                          <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
+                          {canManageQa && (
+                            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
+                          )}
                         </div>
                       )
                     }}
@@ -1667,24 +1685,26 @@ function TestScopeContent() {
                         align: 'right' as const,
                         render: (_: any, record: any) => {
                           const inUse = usageCountFor(record);
+                          // Curating the option lists is a QA-manage action
+                          if (!canManageQa) return <span className="sc-muted">—</span>;
                           return (
                             <div className="sc-rowactions">
                               <Tooltip title="Edit">
                                 <button onClick={() => openEditSetting(record)} aria-label="Edit"><Pencil size={15} /></button>
                               </Tooltip>
-                              <Popconfirm
+                              <ConfirmDialog
+                                tone="danger"
                                 title="Delete this option?"
                                 description={inUse > 0
                                   ? `${inUse} scope${inUse === 1 ? '' : 's'} still use this — they'll keep the value but it won't be selectable.`
                                   : 'It will no longer be selectable on test scopes.'}
+                                confirmText="Delete"
                                 onConfirm={() => handleDeleteSetting(record.id)}
-                                okText="Delete"
-                                okButtonProps={{ danger: true }}
                               >
                                 <Tooltip title="Delete">
                                   <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
                                 </Tooltip>
-                              </Popconfirm>
+                              </ConfirmDialog>
                             </div>
                           );
                         },

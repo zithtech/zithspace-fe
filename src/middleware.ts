@@ -16,6 +16,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_PATHS = [
   "/login",
+  "/forgot-password",
+  "/reset-password",
   "/public/",
   "/_next/",
   "/favicon.ico",

@@ -35,6 +35,7 @@ import {
   Edit2,
   Lock,
   Users,
+  FileText,
 } from 'lucide-react';
 import dayjs from "dayjs";
 
@@ -43,6 +44,7 @@ import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryView from "../EmployeeHistoryViews";
 import OrgHistoryTimeline from "@/components/new-profile/OrgHistoryTimeline";
+import DocumentsTab from '@/components/new-profile/documentsTab';
 
 const { Title, Text } = Typography;
 
@@ -397,6 +399,7 @@ export default function OnboardedViewPage() {
         },
         history: employeeData.history || employeeData.previousCompanyDetails || [],
         assets: employeeData.assets || [],
+        documents: employeeData.documents || [],
         // Relationship / Emergency details
         relationship: employeeData.relationship || personal.relationship || "",
         relationName: employeeData.relationName || personal.relationName || "",
@@ -415,6 +418,46 @@ export default function OnboardedViewPage() {
   useEffect(() => {
     if (id) fetchDetails();
   }, [id, fetchDetails]);
+
+  // Extract all documents from history and other sections to show them in the Documents tab as well
+  const allDocuments = React.useMemo(() => {
+    const docs = [...(data?.documents || [])];
+
+    if (data?.history && Array.isArray(data.history)) {
+      data.history.forEach((exp: any) => {
+        const companyName = exp.companyName || 'Previous Company';
+
+        const addDoc = (docItem: any, docType: string) => {
+          if (docItem?.url) {
+            docs.push({
+              documentName: docItem.name || `${docType} - ${companyName}`,
+              documentType: docType,
+              documentUrl: docItem.url,
+              status: 'uploaded',
+              uploadedAt: exp.doj || new Date().toISOString(),
+            });
+          }
+        };
+
+        addDoc(exp.experienceLetter, 'Experience Letter');
+        addDoc(exp.offerLetter, 'Offer Letter');
+        addDoc(exp.serviceLetter, 'Service Letter');
+        addDoc(exp.relievingLetter, 'Relieving Letter');
+
+        if (Array.isArray(exp.form16)) {
+          exp.form16.forEach((f: any, idx: number) => addDoc(f, `Form 16 (${idx + 1}) - ${companyName}`));
+        }
+        if (Array.isArray(exp.payslips)) {
+          exp.payslips.forEach((p: any, idx: number) => addDoc(p, `Payslip (${idx + 1}) - ${companyName}`));
+        }
+      });
+    }
+
+    // Sort by uploadedAt descending if possible
+    docs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+    return docs;
+  }, [data]);
 
   if (loading) {
     return (
@@ -562,6 +605,11 @@ export default function OnboardedViewPage() {
                 key: '6',
                 label: <Space size={6}><Clock size={15} /><span>Org History</span></Space>,
                 children: <OrgHistoryTimeline employeeId={id as string} />,
+              },
+              {
+                key: '7',
+                label: <Space size={6}><FileText size={15} /><span>Documents</span></Space>,
+                children: <DocumentsTab documents={allDocuments} />,
               },
             ]}
           />

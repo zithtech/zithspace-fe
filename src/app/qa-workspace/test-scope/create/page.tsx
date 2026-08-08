@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip } from "antd";
+import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popconfirm } from "antd";
 import {
   Target, CheckSquare, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2,
   Sparkles, Copy, ChevronDown, Maximize, Zap, Wand2, UploadCloud, File as FileIcon,
@@ -10,7 +10,7 @@ import {
   ExternalLink, Plus, Check, Save, Layers, ListChecks, Gauge, SpellCheck,
   PenTool, Braces, FileSpreadsheet,
 } from "lucide-react";
-import { ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -48,17 +48,19 @@ const SECTIONS = [
 ];
 
 const TESTING_TYPES = [
-  "Functional", "Regression", "Smoke", "Sanity",
-  "UI", "API", "Performance", "Security",
-  "Accessibility", "Cross Browser", "Mobile", "Automation",
-  "Integration", "UAT", "Usability", "Localization",
-  "Exploratory", "End-to-End", "Compatibility", "Database",
+  "Smoke Testing", "Sanity Testing", "Functional Testing", "GUI Testing",
+  "UI Testing", "Positive Testing", "Negative Testing", "Validation Testing",
+  "Data Verification Testing", "Integration Testing", "System Testing",
+  "End-to-End Testing", "Regression Testing", "Retesting", "Exploratory Testing",
+  "Compatibility Testing", "Cross-Browser Testing", "User Acceptance Testing",
+  "Performance Testing", "Security Testing",
 ];
 
-type ZaiField = 'inScope' | 'description';
+type ZaiField = 'inScope' | 'outScope' | 'description';
 
 const ZAI_FIELD_LABEL: Record<ZaiField, string> = {
   inScope: 'Scope Definition',
+  outScope: 'Out of Scope',
   description: 'Description',
 };
 
@@ -604,11 +606,13 @@ export default function CreateScopePage() {
   const { user, isLoading } = useAuth();
 
   const [generatingInScope, setGeneratingInScope] = useState(false);
+  const [generatingOutScope, setGeneratingOutScope] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [polishingDescription, setPolishingDescription] = useState(false);
   const [isZaiModalVisible, setIsZaiModalVisible] = useState(false);
   const [zaiPrompt, setZaiPrompt] = useState("");
   const [zaiTargetField, setZaiTargetField] = useState<ZaiField | null>(null);
+  const [zaiAction, setZaiAction] = useState<'generate' | 'optimize' | 'enhance'>('generate');
   const [zaiView, setZaiView] = useState<'prompt' | 'preview'>('prompt');
   const [zaiGeneratedContent, setZaiGeneratedContent] = useState('');
 
@@ -717,6 +721,7 @@ export default function CreateScopePage() {
   });
 
   const [isDirty, setIsDirty] = useState(false);
+  const [isCorrectingAcGrammar, setIsCorrectingAcGrammar] = useState(false);
   const firstRender = useRef(true);
   const skipDirtyRef = useRef(false);
   const defaultsAppliedRef = useRef(false);
@@ -1003,6 +1008,35 @@ export default function CreateScopePage() {
     }));
   };
 
+  const handleCorrectAcGrammar = async () => {
+    const criteria = formData.details.acceptanceCriteria || [];
+    if (criteria.length === 0) return;
+    
+    setIsCorrectingAcGrammar(true);
+    try {
+      const combinedText = criteria.map((c: any, i: number) => `${i + 1}. ${typeof c === 'string' ? c : c.text}`).join('\n');
+      const res: any = await axios.post('/api/v2/qa/test-scopes/enhance-text', { text: combinedText });
+      
+      const correctedText = typeof res === 'string' ? res : (res?.text || res?.data?.text || res?.data?.data?.text);
+      
+      if (correctedText) {
+        const lines = correctedText.split('\n');
+        const updatedCriteria = lines
+          .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
+          .filter(Boolean);
+        
+        updateDetail('acceptanceCriteria', updatedCriteria);
+        message.success('Grammar corrected successfully');
+      } else {
+        throw new Error('Invalid response from AI');
+      }
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to correct grammar');
+    } finally {
+      setIsCorrectingAcGrammar(false);
+    }
+  };
+
   const toggleInArray = (field: string, val: string) => {
     const current: string[] = formData.details[field] || [];
     updateDetail(field, current.includes(val) ? current.filter(v => v !== val) : [...current, val]);
@@ -1085,16 +1119,19 @@ export default function CreateScopePage() {
   // ── ZAI helpers (defined AFTER updateDetail so the closure is live) ──────────
   const setZaiGenerating = (field: ZaiField, busy: boolean) => {
     if (field === 'inScope') setGeneratingInScope(busy);
+    else if (field === 'outScope') setGeneratingOutScope(busy);
     else setGeneratingDescription(busy);
   };
 
   const isZaiGenerating = (field: ZaiField | null) =>
     field === 'inScope' ? generatingInScope
+      : field === 'outScope' ? generatingOutScope
       : field === 'description' ? generatingDescription
         : false;
 
-  const handleGenerateScopeWithAI = (field: ZaiField) => {
+  const handleGenerateScopeWithAI = (field: ZaiField, action: 'generate' | 'optimize' | 'enhance' = 'generate') => {
     setZaiTargetField(field);
+    setZaiAction(action);
     setZaiPrompt("");
     setZaiView('prompt');
     setZaiGeneratedContent("");
@@ -1108,8 +1145,15 @@ export default function CreateScopePage() {
     setZaiGenerating(field, true);
 
     try {
+      let existingContent = '';
+      if (field === 'inScope') existingContent = formData.details.inScope || '';
+      else if (field === 'outScope') existingContent = formData.details.outScope || '';
+      else if (field === 'description') existingContent = formData.details.description || '';
+
       const payload = {
         field,
+        action: zaiAction,
+        existingContent,
         scopeName: formData.name,
         projectOverview: formData.details.projectOverview || formData.details.description,
         modules: formData.details.modules,
@@ -2397,14 +2441,56 @@ export default function CreateScopePage() {
                     >
                       <Maximize size={12} /> Expand
                     </button>
-                    <button
-                      type="button"
-                      className="ts-minibtn ts-minibtn--ai"
-                      disabled={generatingInScope}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('inScope'); }}
-                    >
-                      <Sparkles size={12} /> {generatingInScope ? 'Generating…' : 'Create with ZAI'}
-                    </button>
+                    {(() => {
+                      const scopeVal = formData.details.inScope || '';
+                      const hasContent = scopeVal.trim() !== '' && scopeVal !== '<p></p>';
+                      return hasContent ? (
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: 'optimize',
+                                label: 'Optimize',
+                                icon: <Wand2 size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'optimize')
+                              },
+                              {
+                                key: 'enhance',
+                                label: 'Enhance',
+                                icon: <Sparkles size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'enhance')
+                              },
+                              {
+                                key: 'regenerate',
+                                label: 'Regenerate',
+                                icon: <FileText size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'generate')
+                              }
+                            ]
+                          }}
+                          trigger={['click']}
+                          placement="bottomRight"
+                        >
+                          <button
+                            type="button"
+                            className="ts-minibtn ts-minibtn--ai"
+                            disabled={generatingInScope}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          >
+                            <Sparkles size={12} /> {generatingInScope ? 'Working…' : 'ZAI Options'} <ChevronDown size={12} />
+                          </button>
+                        </Dropdown>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ts-minibtn ts-minibtn--ai"
+                          disabled={generatingInScope}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('inScope', 'generate'); }}
+                        >
+                          <Sparkles size={12} /> {generatingInScope ? 'Generating…' : 'Create with ZAI'}
+                        </button>
+                      );
+                    })()}
                   </>
                 }
               >
@@ -2612,6 +2698,26 @@ export default function CreateScopePage() {
                 title="Acceptance Criteria"
                 description="Conditions the build must meet for this scope to pass."
                 badge={<CountPill n={formData.details.acceptanceCriteria?.length || 0} noun="criteria" />}
+                action={
+                  (formData.details.acceptanceCriteria || []).length > 0 && (
+                    <Popconfirm
+                      title="Correct Grammar"
+                      description="Do you want to correct the grammar?"
+                      onConfirm={handleCorrectAcGrammar}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button 
+                        size="small" 
+                        type="default" 
+                        icon={<CheckCircleOutlined />}
+                        loading={isCorrectingAcGrammar}
+                      >
+                        Correct Grammar
+                      </Button>
+                    </Popconfirm>
+                  )
+                }
               >
                 {(formData.details.acceptanceCriteria || []).length === 0 ? (
                   <div className="ts-empty">Nothing captured yet — type a criterion below and press Enter.</div>

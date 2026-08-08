@@ -6,7 +6,7 @@ import { Button, Table, Tag, Input, Select, Checkbox, Typography, message, Drawe
 import { PlusOutlined, ArrowLeftOutlined, SearchOutlined, SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, BugOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Layers, Zap, Pencil, Trash2 } from "lucide-react";
+import { Layers, Zap, Pencil, Trash2, Folder, Target, Link, User } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -108,7 +108,7 @@ export default function TestSuiteDetailsPage() {
         axios.get("/api/v2/qa/parents"),
         axios.get("/api/v2/qa/modules")
       ]);
-      
+
       const suiteData = suiteRes?.data || suiteRes || null;
       setSuite(suiteData);
 
@@ -450,25 +450,25 @@ export default function TestSuiteDetailsPage() {
 
         /* Suite summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 11px 10px;
-          border: 1px solid var(--border-slate-200); border-radius: 10px;
-          background: var(--bg-slate-50);
+          margin: 2px 0 0; padding: 16px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px;
+          background: transparent;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-side__title { font-size: 12.5px; font-weight: 650; color: var(--text-slate-900); line-height: 1.4; word-break: break-word; }
-        .cd-meta { margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px; }
-        .cd-meta__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
-        .cd-meta__row dt { font-size: 11px; color: var(--text-slate-400); font-weight: 500; flex-shrink: 0; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta__row { 
+          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
+          margin: 0; width: 100%; 
+        }
+        .cd-meta__row dt { 
+          display: flex; align-items: center;
+          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
+          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+        }
         .cd-meta__row dd {
-          margin: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
-          text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
-        .cd-side__desc { margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--border-slate-200); }
-        .cd-side__desckey {
-          display: block; margin-bottom: 5px;
-          font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-          color: var(--text-slate-400);
-        }
-        .cd-side__desc p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-600); word-break: break-word; }
 
         .dh-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; }
         .dh-main-topbar { height: 68px; padding: 0 24px; border-bottom: 1px solid var(--border-slate-200); display: flex; align-items: center; justify-content: space-between; background: transparent; flex-shrink: 0; }
@@ -742,29 +742,30 @@ export default function TestSuiteDetailsPage() {
             {/* Suite summary */}
             <span className="pp-nav-caption" style={{ marginTop: 18 }}>Suite</span>
             <div className="cd-side">
-              <div className="cd-side__title">{suite?.suite_name || "Loading suite…"}</div>
-
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt>Scenario</dt>
+                  <dt><Target size={12} style={{ marginRight: 6 }} /> Scenario</dt>
                   <dd title={suite?.parent_title || parentScenario?.title}>{suite?.parent_title || parentScenario?.title || "—"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Module</dt>
+                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Module</dt>
                   <dd>{suite?.module_name || moduleItem?.module_name || "Unassigned"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Linked Cases</dt>
+                  <dt><Link size={12} style={{ marginRight: 6 }} /> Linked Cases</dt>
                   <dd>{linkedCases.length}</dd>
                 </div>
-              </dl>
-
-              {suite?.description && (
-                <div className="cd-side__desc">
-                  <span className="cd-side__desckey">Description</span>
-                  <p>{suite.description}</p>
+                <div className="cd-meta__row">
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
+                  <dd>{suite?.created_by_name || "—"}</dd>
                 </div>
-              )}
+                {suite?.updated_by_name && suite?.updated_by_name !== suite?.created_by_name && (
+                  <div className="cd-meta__row">
+                    <dt><User size={12} style={{ marginRight: 6 }} /> Updated By</dt>
+                    <dd>{suite.updated_by_name}</dd>
+                  </div>
+                )}
+              </dl>
             </div>
           </div>
         </aside>

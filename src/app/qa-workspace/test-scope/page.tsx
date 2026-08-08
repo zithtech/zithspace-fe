@@ -1367,16 +1367,8 @@ function TestScopeContent() {
                     { key: 'In Review', label: "In Review", value: scopes.filter(s => s.status === 'In Review').length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${overdueCount} past due date` },
                     { key: 'Approved', label: "Approved", value: scopes.filter(s => s.status === 'Approved').length, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${scopes.length ? Math.round((scopes.filter(s => s.status === 'Approved').length / scopes.length) * 100) : 0}% of all scopes` }
                   ].map((stat) => {
-                    const isActive = stat.key === undefined ? !statusFilter : statusFilter === stat.key;
                     return (
-                      <div
-                        key={stat.label}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setStatusFilter(stat.key)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStatusFilter(stat.key); } }}
-                        className={`sc-stat-hit${isActive ? ' is-active' : ''}`}
-                      >
+                      <div key={stat.label}>
                         <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
                     );

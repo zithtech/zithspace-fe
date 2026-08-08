@@ -530,17 +530,24 @@ export default function ParentTestCaseDetailsPage() {
 
         /* Scenario summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 11px 10px;
-          border: 1px solid var(--border-slate-200); border-radius: 10px;
-          background: var(--bg-slate-50);
+          margin: 2px 0 0; padding: 16px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px;
+          background: transparent;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-side__title { font-size: 12.5px; font-weight: 650; color: var(--text-slate-900); line-height: 1.4; word-break: break-word; }
-        .cd-meta { margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px; }
-        .cd-meta__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
-        .cd-meta__row dt { font-size: 11px; color: var(--text-slate-400); font-weight: 500; flex-shrink: 0; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta__row { 
+          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
+          margin: 0; width: 100%; 
+        }
+        .cd-meta__row dt { 
+          display: flex; align-items: center;
+          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
+          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+        }
         .cd-meta__row dd {
-          margin: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
-          text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -936,28 +943,21 @@ export default function ParentTestCaseDetailsPage() {
             {/* Scenario summary */}
             <span className="pp-nav-caption" style={{ marginTop: 18 }}>Scenario</span>
             <div className="cd-side">
-              <div className="cd-side__title">{parentData?.title || "—"}</div>
-              {parentData?.status && (
-                <span className={`sc-pill sc-pill--${statusTone(parentData.status)}`} style={{ marginTop: 8 }}>
-                  <span className="sc-pill__dot" />{parentData.status}
-                </span>
-              )}
-
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt>Module</dt>
+                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Module</dt>
                   <dd>{parentData?.module_name || "Unassigned"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Feature</dt>
+                  <dt><Target size={12} style={{ marginRight: 6 }} /> Feature</dt>
                   <dd>{parentData?.feature || "—"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Automation</dt>
+                  <dt><Zap size={12} style={{ marginRight: 6 }} /> Automation</dt>
                   <dd>{parentData?.automation || "Manual"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Owner</dt>
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Owner</dt>
                   <dd>
                     {parentData?.owner_name || parentData?.qa_owner ? (
                       <span className="sc-person">
@@ -966,6 +966,10 @@ export default function ParentTestCaseDetailsPage() {
                       </span>
                     ) : "—"}
                   </dd>
+                </div>
+                <div className="cd-meta__row">
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
+                  <dd>{parentData?.creator_name || "—"}</dd>
                 </div>
               </dl>
             </div>

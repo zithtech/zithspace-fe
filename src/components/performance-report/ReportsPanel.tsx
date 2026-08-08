@@ -6,14 +6,23 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Avatar, Button, DatePicker, Dropdown, Drawer, Empty, Spin, Typography, message } from 'antd';
 import {
   CalendarOutlined,
-  FileSearchOutlined,
-  ArrowLeftOutlined,
   DownloadOutlined,
   FilePdfOutlined,
-  FileWordOutlined,
   InboxOutlined,
 } from '@ant-design/icons';
-import { Ticket, Timer, NotebookPen, CalendarCheck, Plane, Gauge } from 'lucide-react';
+import {
+  Ticket,
+  Timer,
+  NotebookPen,
+  CalendarCheck,
+  Plane,
+  Gauge,
+  ChevronLeft,
+  Briefcase,
+  Building2,
+  Mail,
+  CalendarRange,
+} from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
 import { TimelineTree } from '@/components/projects/overview/TimelineTree';
 import { PerformanceTracker } from '@/components/time-tracking/PerformanceTracker';
@@ -57,6 +66,25 @@ const SECTIONS: ReadonlyArray<{
     { key: 'attendance', label: 'Attendance', icon: <CalendarCheck size={16} />, color: '#3B82F6' },
     { key: 'leaves', label: 'Leaves', icon: <Plane size={16} />, color: '#10B981' },
   ];
+
+// Quick date presets — shared by the picker's preset list and the chip row so
+// the highlighted chip always matches what the picker would apply.
+const RANGE_PRESETS: ReadonlyArray<{ key: string; label: string; get: () => [Dayjs, Dayjs] }> = [
+  { key: 'this_month', label: 'This month', get: () => [dayjs().startOf('month'), dayjs()] },
+  {
+    key: 'last_month',
+    label: 'Last month',
+    get: () => [
+      dayjs().subtract(1, 'month').startOf('month'),
+      dayjs().subtract(1, 'month').endOf('month'),
+    ],
+  },
+  { key: 'last_7', label: '7 days', get: () => [dayjs().subtract(6, 'day'), dayjs()] },
+  { key: 'last_30', label: '30 days', get: () => [dayjs().subtract(29, 'day'), dayjs()] },
+];
+
+const sameRange = (a: [Dayjs, Dayjs], b: [Dayjs, Dayjs]) =>
+  a[0].isSame(b[0], 'day') && a[1].isSame(b[1], 'day');
 
 // In-month performance report — Tickets slice. Pick a project, member and date
 // range, then "View Report" lists every ticket the member logged time on within
@@ -302,6 +330,16 @@ export default function ReportsPanel() {
     [range]
   );
 
+  // Inclusive day span + which quick preset (if any) the range currently matches.
+  const dayCount = useMemo(
+    () => (range?.[0] && range?.[1] ? range[1].startOf('day').diff(range[0].startOf('day'), 'day') + 1 : 0),
+    [range]
+  );
+  const activePreset = useMemo(
+    () => RANGE_PRESETS.find((p) => sameRange(p.get(), range))?.key ?? null,
+    [range]
+  );
+
   // Step 1: the member directory grid.
   if (!selected) {
     return (
@@ -315,27 +353,59 @@ export default function ReportsPanel() {
   return (
     <div className="prr-wrap">
       {/* ── Header: back + member identity ──────────────────────────────────── */}
-      <div className="prr-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="prr-member-head">
+      <div className="prr-header">
+        <div className="prr-hero-glow" />
+        <div className="prr-hero-inner">
           <button type="button" className="prr-back" onClick={() => setSelected(null)} aria-label="Back to members">
-            <ArrowLeftOutlined />
+            <ChevronLeft size={18} />
           </button>
-          <Avatar
-            size={46}
-            src={m.avatarUrl || undefined}
-            style={{ background: 'var(--bg-blue-50)', color: 'var(--text-blue-700)', fontSize: 18, fontWeight: 800, flexShrink: 0 }}
-          >
-            {m.name?.charAt(0)?.toUpperCase()}
-          </Avatar>
-          <div>
-            <h2 className="prr-title">{m.name}</h2>
-            <p className="prr-sub">
-              {[m.position, m.department].filter(Boolean).join(' · ') || 'Performance report'}
-            </p>
+
+          <div className="prr-avatar-ring">
+            <Avatar
+              size={44}
+              src={m.avatarUrl || undefined}
+              style={{
+                background: 'linear-gradient(135deg, #60a5fa, #2563eb)',
+                color: '#fff',
+                fontSize: 17,
+                fontWeight: 800,
+                flexShrink: 0,
+              }}
+            >
+              {m.name?.charAt(0)?.toUpperCase()}
+            </Avatar>
           </div>
-        </div>
-        <div>
-          <SearchableDropdown
+
+          <div className="prr-ident">
+            <h2 className="prr-title">{m.name}</h2>
+            <div className="prr-meta">
+              {m.position && (
+                <span className="prr-meta-chip">
+                  <Briefcase size={11} />
+                  {m.position}
+                </span>
+              )}
+              {m.department && (
+                <span className="prr-meta-chip">
+                  <Building2 size={11} />
+                  {m.department}
+                </span>
+              )}
+              {m.workEmail && (
+                <span className="prr-meta-chip prr-meta-chip--ghost">
+                  <Mail size={11} />
+                  {m.workEmail}
+                </span>
+              )}
+              {!m.position && !m.department && !m.workEmail && (
+                <span className="prr-meta-chip prr-meta-chip--ghost">Performance report</span>
+              )}
+            </div>
+          </div>
+
+          <div className="prr-head-right">
+            <span className="prr-switch-label">Viewing</span>
+            <SearchableDropdown
             placeholder="Choose User"
             searchPlaceholder="Search user..."
             itemNoun="users"
@@ -369,40 +439,58 @@ export default function ReportsPanel() {
                 avatarUrl: o.avatarUrl,
               }))
             ]}
-            width={240}
-          />
+            width={320}
+            showSelectedAvatar
+            avatarColor="#3b82f6"
+            />
+          </div>
         </div>
       </div>
 
-      {/* ── Filter bar: date range + run ────────────────────────────────────── */}
-      <div className="prr-filters">
-        <div className="prr-field">
-          <span className="prr-field-label">Date range</span>
-          <RangePicker
-            value={range}
-            allowClear={false}
-            format="MMM D, YYYY"
-            onChange={(d) => {
-              if (d && d[0] && d[1]) {
-                const r: [Dayjs, Dayjs] = [d[0], d[1]];
+      {/* ── Filter bar: date range + presets + export ───────────────────────── */}
+      <div className="prr-toolbar">
+        <span className="prr-tool-ic">
+          <CalendarRange size={15} />
+        </span>
+
+        <RangePicker
+          value={range}
+          allowClear={false}
+          format="MMM D, YYYY"
+          suffixIcon={null}
+          className="prr-range"
+          onChange={(d) => {
+            if (d && d[0] && d[1]) {
+              const r: [Dayjs, Dayjs] = [d[0], d[1]];
+              setRange(r);
+              fetchReport(r, projectId, memberId);
+            }
+          }}
+          presets={RANGE_PRESETS.map((p) => ({ label: p.label, value: p.get() as [Dayjs, Dayjs] }))}
+        />
+
+        <div className="prr-presets">
+          {RANGE_PRESETS.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              className={`prr-preset ${activePreset === p.key ? 'is-active' : ''}`}
+              onClick={() => {
+                const r = p.get();
                 setRange(r);
                 fetchReport(r, projectId, memberId);
-              }
-            }}
-            presets={[
-              { label: 'This month', value: [dayjs().startOf('month'), dayjs()] },
-              {
-                label: 'Last month',
-                value: [
-                  dayjs().subtract(1, 'month').startOf('month'),
-                  dayjs().subtract(1, 'month').endOf('month'),
-                ],
-              },
-              { label: 'Last 7 days', value: [dayjs().subtract(6, 'day'), dayjs()] },
-              { label: 'Last 30 days', value: [dayjs().subtract(29, 'day'), dayjs()] },
-            ]}
-          />
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
+
+        {dayCount > 0 && (
+          <span className="prr-daycount">
+            {dayCount} day{dayCount === 1 ? '' : 's'}
+          </span>
+        )}
 
         <div className="prr-actions">
           {canUpdatePerformanceReportSetting && (
@@ -724,54 +812,129 @@ export default function ReportsPanel() {
       </Drawer>
 
       <style jsx global>{`
-        .prr-wrap { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
+        .prr-wrap { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
 
-        /* ── Box-shaped report: square every corner (avatars stay round) ─────── */
-        .prr-wrap *,
-        .prr-wrap *::before,
-        .prr-wrap *::after { border-radius: 0 !important; }
-        .prr-wrap .ant-avatar { border-radius: 50% !important; }
-        /* Rounded exceptions: date-range filter bar + module tab switcher */
-        .prr-wrap .prr-filters { border-radius: 14px !important; }
-        .prr-wrap .prr-filters .ant-picker { border-radius: 10px !important; }
-        .prr-wrap .prr-tabs { border-radius: 14px !important; }
-        .prr-wrap .prr-tab { border-radius: 10px !important; }
-        .prr-wrap .prr-tab-ic { border-radius: 8px !important; }
-
-        .prr-title { margin: 0; font-size: 19px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; }
-        .prr-sub { margin: 4px 0 0; font-size: 13px; color: var(--text-slate-500); max-width: 620px; line-height: 1.5; }
-        .prr-member-head { display: flex; align-items: center; gap: 14px; }
+        /* ── Member header band (full-bleed via the layout's -header rule) ───── */
+        .prr-header {
+          position: relative; overflow: hidden;
+          margin-top: -12px; padding: 14px 0 14px; margin-bottom: 0;
+          border-bottom: 1px solid var(--border-slate-100);
+          background:
+            linear-gradient(180deg, rgba(59, 130, 246, 0.055), rgba(59, 130, 246, 0) 82%),
+            var(--bg-pure-white);
+        }
+        .prr-hero-glow {
+          position: absolute; top: -130px; right: -60px; width: 380px; height: 240px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 68%);
+          pointer-events: none;
+        }
+        .prr-hero-inner {
+          position: relative; z-index: 1;
+          display: flex; align-items: center; gap: 13px; flex-wrap: wrap;
+        }
         .prr-back {
-          width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
-          border: 1px solid var(--border-slate-200); background: transparent; color: var(--text-slate-700); cursor: pointer;
+          width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          color: var(--text-slate-500); cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
-          transition: all .14s ease;
+          transition: color .14s ease, border-color .14s ease, background .14s ease, transform .14s ease;
         }
-        .prr-back:hover { color: #3b82f6; border-color: #bfdbfe; background: var(--bg-blue-50); }
+        .prr-back:hover {
+          color: #2563eb; border-color: #bfdbfe; background: var(--bg-blue-50);
+          transform: translateX(-1px);
+        }
+        .prr-avatar-ring {
+          position: relative; padding: 3px; border-radius: 50%; flex-shrink: 0;
+          background: var(--bg-pure-white);
+          box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.18), 0 6px 14px rgba(15, 23, 42, 0.08);
+        }
+        .prr-ident { min-width: 0; flex: 1; }
+        .prr-title {
+          margin: 0; font-size: 18px; font-weight: 800; color: var(--text-slate-900);
+          letter-spacing: -0.03em; line-height: 1.2;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .prr-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+        .prr-meta-chip {
+          display: inline-flex; align-items: center; gap: 5px; max-width: 260px;
+          font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+          color: var(--text-blue-700); background: var(--bg-blue-50);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .prr-meta-chip svg { flex-shrink: 0; }
+        .prr-meta-chip--ghost { color: var(--text-slate-500); background: var(--bg-slate-100); font-weight: 600; }
 
-        .prr-filters {
-          display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
-          padding: 14px 16px; border: 1px solid var(--border-slate-200); border-radius: 14px; background: transparent;
+        .prr-head-right { display: flex; align-items: center; gap: 9px; margin-left: auto; }
+        .prr-switch-label {
+          font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400);
         }
-        .prr-field { display: flex; flex-direction: column; gap: 6px; }
-        .prr-field-label {
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-slate-400);
+        .prr-head-right .sd-trigger {
+          height: 42px !important; min-width: 280px; border-radius: 12px !important;
+          padding: 5px 14px; font-size: 13.5px; font-weight: 600;
+          background: var(--bg-pure-white) !important;
         }
+        .prr-head-right .sd-trigger:hover { border-color: #bfdbfe !important; }
+
+        /* ── Toolbar: range + presets + export ──────────────────────────────── */
+        .prr-toolbar {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          padding: 9px 12px; border-radius: 16px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+        }
+        .prr-tool-ic {
+          width: 28px; height: 28px; flex-shrink: 0; border-radius: 9px;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: #2563eb; background: var(--bg-blue-50);
+        }
+        .prr-toolbar .ant-picker.prr-range {
+          height: 36px; border-radius: 11px; background: var(--bg-slate-50);
+          border-color: transparent; font-weight: 600;
+        }
+        .prr-toolbar .ant-picker.prr-range:hover { border-color: #bfdbfe; }
+        .prr-toolbar .ant-picker.prr-range.ant-picker-focused {
+          background: var(--bg-pure-white); border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+        .prr-toolbar .ant-picker.prr-range .ant-picker-input > input { font-size: 12.5px; font-weight: 600; }
+
+        .prr-presets {
+          display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px;
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+          flex-wrap: wrap;
+        }
+        .prr-preset {
+          border: none; background: transparent; cursor: pointer;
+          padding: 5px 11px; border-radius: 8px; white-space: nowrap;
+          font-size: 12px; font-weight: 700; color: var(--text-slate-500);
+          transition: color .14s ease, background .14s ease, box-shadow .14s ease;
+        }
+        .prr-preset:hover { color: var(--text-slate-900); }
+        .prr-preset.is-active {
+          color: #2563eb; background: var(--bg-pure-white);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        }
+        .prr-daycount {
+          font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px;
+          color: var(--text-slate-500); background: var(--bg-slate-100);
+          font-variant-numeric: tabular-nums; white-space: nowrap;
+        }
+
         .prr-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-        .prr-actions .ant-btn { height: 38px; font-weight: 600; }
+        .prr-actions .ant-btn { height: 36px; border-radius: 11px; font-weight: 600; font-size: 12.5px; }
 
         .prr-results { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         /* Premium module tab switcher */
         .prr-tabs {
           display: inline-flex;
-          gap: 4px;
-          padding: 5px;
-          margin-bottom: 16px;
+          gap: 3px;
+          padding: 4px;
+          margin-bottom: 14px;
           align-self: flex-start;
-          background: transparent;
+          background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-200);
           border-radius: 14px;
-          box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
           max-width: 100%;
           overflow-x: auto;
         }
@@ -779,14 +942,14 @@ export default function ReportsPanel() {
         .prr-tab {
           display: inline-flex;
           align-items: center;
-          gap: 9px;
-          padding: 7px 14px 7px 8px;
+          gap: 8px;
+          padding: 6px 13px 6px 7px;
           border: 1px solid transparent;
           background: transparent;
-          border-radius: 10px;
+          border-radius: 11px;
           cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
+          font-size: 12.5px;
+          font-weight: 700;
           color: var(--text-slate-500);
           white-space: nowrap;
           transition: color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease,
@@ -795,8 +958,8 @@ export default function ReportsPanel() {
         .prr-tab:hover { color: var(--text-slate-900); }
         .prr-tab:active { transform: translateY(0.5px); }
         .prr-tab-ic {
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           border-radius: 8px;
           display: inline-flex;
           align-items: center;
@@ -808,37 +971,48 @@ export default function ReportsPanel() {
         .prr-tab:hover .prr-tab-ic { color: var(--text-slate-700); }
         .prr-tab.is-active {
           color: var(--text-slate-900);
-          background: transparent;
+          background: var(--bg-pure-white);
           border-color: var(--border-slate-200);
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 16px rgba(15, 23, 42, 0.07);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.07), 0 4px 12px rgba(15, 23, 42, 0.06);
         }
         .prr-tab.is-active .prr-tab-ic {
           color: var(--accent);
-          background: color-mix(in srgb, var(--accent) 14%, #fff);
+          background: color-mix(in srgb, var(--accent) 14%, transparent);
           box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
         }
         .prr-tt { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .prr-center {
           flex: 1; display: flex; align-items: center; justify-content: center;
-          border: 1px dashed var(--border-slate-200); border-radius: 14px; background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
+          border: 1px dashed var(--border-slate-200); border-radius: 16px;
+          background: var(--bg-slate-50); padding: 56px 24px; min-height: 320px;
         }
         .prr-statbar {
-          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px;
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px;
         }
         .prr-stat {
-          border: 1px solid var(--border-slate-200); border-radius: 12px; background: transparent; padding: 12px 14px;
-          display: flex; flex-direction: column; gap: 4px; min-width: 0;
+          border: 1px solid var(--border-slate-200); border-radius: 14px;
+          background: var(--bg-pure-white); padding: 12px 14px;
+          display: flex; flex-direction: column; gap: 5px; min-width: 0;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          transition: border-color .16s ease, box-shadow .16s ease;
         }
+        .prr-stat:hover { border-color: #bfdbfe; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); }
         @media (max-width: 640px) {
           .prr-statbar { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 480px) {
           .prr-statbar { grid-template-columns: 1fr; }
         }
-        .prr-stat--points { border-color: #c7d2fe; background: transparent; }
+        .prr-stat--points {
+          border-color: #bfdbfe;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), transparent 60%), var(--bg-pure-white);
+        }
         .prr-pts-max { font-size: 13px; font-weight: 700; color: var(--text-slate-400); }
         .prr-stat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-        .prr-stat-num { font-size: 24px; font-weight: 800; color: var(--text-slate-900); line-height: 1; letter-spacing: -0.02em; }
+        .prr-stat-num {
+          font-size: 24px; font-weight: 800; color: var(--text-slate-900);
+          line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+        }
         .prr-pct {
           font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
         }
@@ -852,6 +1026,19 @@ export default function ReportsPanel() {
         .prr-statbar-caption {
           display: flex; align-items: center; gap: 7px; align-self: center;
           font-size: 12.5px; font-weight: 600; color: var(--text-slate-500); padding: 0 4px; white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+          .prr-hero-inner { gap: 10px; }
+          .prr-head-right { width: 100%; margin-left: 0; justify-content: flex-start; }
+          .prr-toolbar .ant-picker.prr-range { flex: 1 1 200px; }
+          .prr-actions { margin-left: 0; width: 100%; }
+          .prr-actions .ant-btn { flex: 1; }
+        }
+        @media (max-width: 560px) {
+          .prr-presets { width: 100%; justify-content: flex-start; }
+          /* Let the switcher shrink with the viewport instead of overflowing. */
+          .prr-head-right .sd-trigger { min-width: 0; }
         }
 
         /* How-points-work drawer */

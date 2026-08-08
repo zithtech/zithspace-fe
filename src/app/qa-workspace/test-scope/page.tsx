@@ -237,7 +237,7 @@ function TestScopeContent() {
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
 
-  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa } = usePermission();
+  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa, canApproveScope } = usePermission();
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -1272,11 +1272,11 @@ function TestScopeContent() {
 
           <div className="dh-sidebar-scroll">
             <span className="pp-nav-caption">Workspace</span>
-            {([
-              { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-              { key: 'scopes', label: 'Scopes', icon: Target, count: scopes.length },
-              { key: 'approvals', label: 'Approvals', icon: CheckSquare, count: approvalScopes.filter(s => s.status === 'In Review').length },
-            ] as const).map(item => {
+            {([] as any[]).concat(
+              [{ key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }],
+              [{ key: 'scopes', label: 'Scopes', icon: Target, count: scopes.length }],
+              canApproveScope ? [{ key: 'approvals', label: 'Approvals', icon: CheckSquare, count: approvalScopes.filter(s => s.status === 'In Review').length }] : []
+            ).map(item => {
               const Icon = item.icon;
               const count = 'count' in item ? item.count : undefined;
               return (
@@ -1292,11 +1292,15 @@ function TestScopeContent() {
               );
             })}
 
-            <span className="pp-nav-caption">Configure</span>
-            <button className={`pp-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`} onClick={() => setActiveTab('settings')}>
-              <Settings size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Settings</span>
-            </button>
+            {canManageQa && (
+              <>
+                <span className="pp-nav-caption">Configure</span>
+                <button className={`pp-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`} onClick={() => setActiveTab('settings')}>
+                  <Settings size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">Settings</span>
+                </button>
+              </>
+            )}
           </div>
         </aside>
 

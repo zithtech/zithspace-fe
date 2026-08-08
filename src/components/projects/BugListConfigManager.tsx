@@ -129,7 +129,7 @@ export default function BugListConfigManager() {
   const createPriority = useCreateBugPriority();
   const updatePriority = useUpdateBugPriority();
   const deletePriority = useDeleteBugPriority();
-  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
+  const { canManageBugs } = usePermission();
   const { useBreakpoint } = Grid;
   const screens = useBreakpoint();
 
@@ -337,7 +337,7 @@ function ConfigSection({
   onDelete,
   onToggleActive,
 }: ConfigSectionProps) {
-  const { canCreateTicketSetting, canUpdateTicketSetting, canDeleteTicketSetting } = usePermission();
+  const { canManageBugs } = usePermission();
   const columns: ColumnsType<BugConfigOption> = [
     {
       title: "Label",
@@ -395,7 +395,7 @@ function ConfigSection({
       width: 70,
       align: "center",
       render: (val: boolean, row) => (
-        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canUpdateTicketSetting} />
+        <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canManageBugs} />
       ),
     },
     {
@@ -415,7 +415,7 @@ function ConfigSection({
               size="small"
               icon={<EditOutlined />}
               onClick={() => onEdit(row)}
-              disabled={!canUpdateTicketSetting}
+              disabled={!canManageBugs}
             />
           </Tooltip>
           <ConfirmDialog
@@ -428,10 +428,10 @@ function ConfigSection({
             }
             confirmText="Delete"
             onConfirm={() => onDelete(row.id)}
-            disabled={!canDeleteTicketSetting}
+            disabled={!canManageBugs}
           >
             <Tooltip title="Delete">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={!canDeleteTicketSetting} />
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={!canManageBugs} />
             </Tooltip>
           </ConfirmDialog>
         </div>
@@ -470,7 +470,7 @@ function ConfigSection({
         <span className="bcm-count">
           {options.length} option{options.length === 1 ? "" : "s"}
         </span>
-        {canCreateTicketSetting && (
+        {canManageBugs && (
           <Button
             type="primary"
             icon={<PlusOutlined />}

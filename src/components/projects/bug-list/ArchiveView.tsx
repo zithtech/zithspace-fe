@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Skeleton, Avatar, Tooltip, Empty, Tag } from "antd";
+import { usePermission } from "@/hooks/usePermission";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Archive,
@@ -28,6 +29,8 @@ import {
   useDeleteBug,
   useBulkRestoreBugs,
   useBulkDeleteBugs,
+  useBulkRestoreFolders,
+  useBulkRestoreSheets,
 } from "@/hooks/useBugList";
 import type { BugSheet, BugFolder } from "@/services/bugListService";
 import { hivebugStyles } from "./hivebug-styles";
@@ -119,6 +122,7 @@ export default function ArchiveView({
   onSelectBug,
   searchQuery = "",
 }: ArchiveViewProps) {
+  const { canRestoreBugArchive, canDeleteBugArchive } = usePermission();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelect = (id: string) => {
@@ -156,6 +160,8 @@ export default function ArchiveView({
   const deleteBug = useDeleteBug();
 
   const bulkRestore = useBulkRestoreBugs();
+  const bulkRestoreFolders = useBulkRestoreFolders();
+  const bulkRestoreSheets = useBulkRestoreSheets();
   const bulkDelete = useBulkDeleteBugs();
 
   const isLoading = loadingFolders || loadingSheets || loadingBugs;
@@ -292,34 +298,44 @@ export default function ArchiveView({
         <div className="hb-bulkbar" style={{ margin: "0 0 12px 0" }}>
           <span>{selectedIds.size} selected</span>
           <div className="hb-bulkbar-actions">
-            <button
-              className="hb-btn hb-btn-primary"
-              onClick={() => {
-                bulkRestore.mutate(Array.from(selectedIds));
-                setSelectedIds(new Set());
-              }}
-            >
-              <RotateCcw size={13} />
-              Restore Selected
-            </button>
-            <ConfirmDialog
-              tone="danger"
-              icon={<Trash2 size={16} />}
-              title="Move to Trash?"
-              description={`Move ${selectedIds.size} selected item(s) to trash?`}
-              confirmText="Move to Trash"
-              cancelText="Cancel"
-              placement="bottomRight"
-              onConfirm={() => {
-                bulkDelete.mutate(Array.from(selectedIds));
-                setSelectedIds(new Set());
-              }}
-            >
-              <button className="hb-btn hb-btn-danger">
-                <Trash2 size={13} />
-                Move to Trash
+            {canRestoreBugArchive && (
+              <button
+                className="hb-btn hb-btn-primary"
+                onClick={() => {
+                  if (activeTab === "folders") bulkRestoreFolders.mutate(Array.from(selectedIds));
+                  else if (activeTab === "sheets") bulkRestoreSheets.mutate(Array.from(selectedIds));
+                  else bulkRestore.mutate(Array.from(selectedIds));
+                  setSelectedIds(new Set());
+                }}
+              >
+                <RotateCcw size={13} />
+                Restore Selected
               </button>
-            </ConfirmDialog>
+            )}
+            {(canDeleteBugArchive && activeTab === "bugs") && (
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={16} />}
+                title="Move Selected to Trash?"
+                description={`You are about to move ${selectedIds.size} bug${selectedIds.size === 1 ? '' : 's'} to trash.`}
+                confirmText="Move to Trash"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={() => {
+                  bulkDelete.mutate(Array.from(selectedIds));
+                  setSelectedIds(new Set());
+                }}
+                disabled={selectedIds.size === 0}
+              >
+                <button 
+                  className="arc-header-action arc-header-action-danger" 
+                  disabled={selectedIds.size === 0}
+                >
+                  <Trash2 size={13} />
+                  Move to Trash
+                </button>
+              </ConfirmDialog>
+            )}
           </div>
         </div>
       )}
@@ -340,8 +356,8 @@ export default function ArchiveView({
                     onSelectFolder(f.id);
                     onTabChange("sheets");
                   }}
-                  onRestore={() => restoreFolder.mutate(f.id)}
-                  onDelete={() => deleteFolder.mutate(f.id)}
+                  onRestore={canRestoreBugArchive ? () => restoreFolder.mutate(f.id) : undefined}
+                  onDelete={canDeleteBugArchive ? () => deleteFolder.mutate(f.id) : undefined}
                 />
               ))
             )}
@@ -362,14 +378,14 @@ export default function ArchiveView({
                   isCurrent={selectedSheetId === s.id}
                   isNestedInFolder={!!selectedFolderId}
                   onView={() => onSelectSheet(s.id)}
-                  onRestore={() => {
+                  onRestore={canRestoreBugArchive ? () => {
                     updateSheetStatus.mutate({ id: s.id, status: "active" });
                     onSelectSheet(null);
-                  }}
-                  onDelete={() => {
+                  } : undefined}
+                  onDelete={canDeleteBugArchive ? () => {
                     deleteSheet.mutate(s.id);
                     onSelectSheet(null);
-                  }}
+                  } : undefined}
                 />
               ))
             )}
@@ -389,14 +405,14 @@ export default function ArchiveView({
                   onView={() => onSelectBug?.(b)}
                   isNestedInSheet={!!selectedSheetId}
                   isNestedInFolder={!!selectedFolderId}
-                  onRestore={() => {
+                  onRestore={canRestoreBugArchive ? () => {
                     restoreBug.mutate(b.id);
                     setSelectedIds(new Set());
-                  }}
-                  onDelete={() => {
+                  } : undefined}
+                  onDelete={canDeleteBugArchive ? () => {
                     deleteBug.mutate(b.id);
                     setSelectedIds(new Set());
-                  }}
+                  } : undefined}
                 />
               ))
             )}
@@ -419,7 +435,7 @@ function EmptyArchive({ title }: { title: string }) {
   );
 }
 
-function ArchivedFolderCard({ folder, isSelected, onSelect, onView, onRestore, onDelete }: { folder: FolderWithMeta, isSelected: boolean, onSelect: () => void, onView: () => void, onRestore: () => void, onDelete: () => void }) {
+function ArchivedFolderCard({ folder, isSelected, onSelect, onView, onRestore, onDelete }: { folder: FolderWithMeta, isSelected: boolean, onSelect: () => void, onView: () => void, onRestore?: () => void, onDelete?: () => void }) {
   const creatorName = folder.createdBy?.name || "Unknown";
   const sheetCount = folder._count?.sheets || 0;
 
@@ -463,24 +479,28 @@ function ArchivedFolderCard({ folder, isSelected, onSelect, onView, onRestore, o
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View Content</button>
+          {onRestore && (
             <button className="arc-action-btn arc-action-restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
               <RotateCcw size={12} /> Restore
             </button>
+          )}
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ConfirmDialog
-              tone="danger"
-              icon={<Trash2 size={16} />}
-              title="Move Folder to Trash?"
-              description="This folder and all its content sheets and bugs will be moved to trash."
-              confirmText="Move to Trash"
-              cancelText="Cancel"
-              placement="bottomRight"
-              onConfirm={onDelete}
-            >
-              <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </ConfirmDialog>
-          </div>
+          {onDelete && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={16} />}
+                title="Move Folder to Trash?"
+                description="This folder and all its contents will be moved to trash."
+                confirmText="Move to Trash"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={onDelete}
+              >
+                <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
+              </ConfirmDialog>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -540,6 +560,7 @@ function ArchivedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onR
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="arc-action-btn arc-action-view" onClick={onView}><Eye size={12} /> View</button>
+          {onRestore && (
             <Tooltip title={restoreTooltip}>
               <button 
                 className="arc-action-btn arc-action-restore" 
@@ -549,21 +570,24 @@ function ArchivedSheetCard({ sheet, isSelected, onSelect, isCurrent, onView, onR
                 <RotateCcw size={12} /> Restore
               </button>
             </Tooltip>
+          )}
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ConfirmDialog
-              tone="danger"
-              icon={<Trash2 size={16} />}
-              title="Move Sheet to Trash?"
-              description="This sheet and all its bugs will be moved to trash."
-              confirmText="Move to Trash"
-              cancelText="Cancel"
-              placement="bottomRight"
-              onConfirm={onDelete}
-            >
-              <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-            </ConfirmDialog>
-          </div>
+          {onDelete && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <ConfirmDialog
+                tone="danger"
+                icon={<Trash2 size={16} />}
+                title="Move Sheet to Trash?"
+                description="This sheet and all its bugs will be moved to trash."
+                confirmText="Move to Trash"
+                cancelText="Cancel"
+                placement="bottomRight"
+                onConfirm={onDelete}
+              >
+                <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
+              </ConfirmDialog>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -612,27 +636,31 @@ function ArchivedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelet
           </span>
         </div>
         <div className="arc-foot-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Tooltip title={restoreTooltip}>
-            <button 
-              className="arc-action-btn arc-action-restore" 
-              onClick={onRestore} 
-              disabled={!!restoreTooltip}
+          {onRestore && (
+            <Tooltip title={restoreTooltip}>
+              <button 
+                className="arc-action-btn arc-action-restore" 
+                onClick={onRestore} 
+                disabled={!!restoreTooltip}
+              >
+                <RotateCcw size={12} /> Restore Bug
+              </button>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <ConfirmDialog
+              tone="danger"
+              icon={<Trash2 size={16} />}
+              title="Move Bug to Trash?"
+              description="This bug will be moved to trash."
+              confirmText="Move to Trash"
+              cancelText="Cancel"
+              placement="bottomRight"
+              onConfirm={onDelete}
             >
-              <RotateCcw size={12} /> Restore Bug
-            </button>
-          </Tooltip>
-          <ConfirmDialog
-            tone="danger"
-            icon={<Trash2 size={16} />}
-            title="Move Bug to Trash?"
-            description="This bug will be moved to trash."
-            confirmText="Move to Trash"
-            cancelText="Cancel"
-            placement="bottomRight"
-            onConfirm={onDelete}
-          >
-            <button className="arc-action-btn arc-action-delete"><Trash2 size={12} /></button>
-          </ConfirmDialog>
+              <button className="arc-action-btn arc-action-delete" onClick={(e) => e.stopPropagation()}><Trash2 size={12} /></button>
+            </ConfirmDialog>
+          )}
         </div>
       </div>
     </div>

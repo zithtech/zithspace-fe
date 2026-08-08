@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { LettersService, DocumentStructure } from '@/services/lettersService';
+import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Tooltip, Select, Modal, Dropdown, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
@@ -44,6 +45,14 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 
 export default function StructuresManagementPage() {
   const router = useRouter();
+  const perms = usePermission() as unknown as Record<string, any>;
+  
+  useEffect(() => {
+    if (perms.canReadLetterTemplate === false) {
+      router.push('/dashboard');
+    }
+  }, [perms.canReadLetterTemplate, router]);
+
   const [structures, setStructures] = useState<DocumentStructure[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,8 +189,8 @@ export default function StructuresManagementPage() {
               { key: 'preview', label: renderDropdownItem(<Eye size={16} />, 'Preview', 'View structure contents', 'var(--bg-blue-50)', '#3b82f6'), onClick: ({ domEvent }) => { domEvent.stopPropagation(); setPreviewStructure(record); } },
               ...(record.tenantId !== 'GLOBAL' ? [
                 { type: 'divider' as const },
-                { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${record.id}`); } },
-                { key: 'delete', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(record.id); } },
+                ...(perms.canUpdateLetterFormat ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${record.id}`); } }] : []),
+                ...(perms.canDeleteLetterFormat ? [{ key: 'delete', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(record.id); } }] : []),
               ] : []),
             ]
           }}
@@ -239,14 +248,16 @@ export default function StructuresManagementPage() {
             <button type="button" className="lv-ghost-btn" onClick={fetchData}><ReloadOutlined spin={loading} /></button>
           </Tooltip>
 
-          <Button
-            type="primary"
-            icon={<Plus size={16} />}
-            onClick={() => router.push('/letters-docs/structures/builder')}
-            style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            Create Format
-          </Button>
+          {perms.canCreateLetterFormat && (
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={() => router.push('/letters-docs/structures/builder')}
+              style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              Create Format
+            </Button>
+          )}
         </div>
       </div>
 
@@ -266,9 +277,11 @@ export default function StructuresManagementPage() {
             <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
               Create your first custom structure to reuse across document templates.
             </div>
-            <Button type="primary" onClick={() => router.push('/letters-docs/structures/builder')} icon={<Plus size={15} />}>
-              Create Format
-            </Button>
+            {perms.canCreateLetterFormat && (
+              <Button type="primary" onClick={() => router.push('/letters-docs/structures/builder')} icon={<Plus size={15} />}>
+                Create Format
+              </Button>
+            )}
           </div>
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -314,16 +327,16 @@ export default function StructuresManagementPage() {
                           },
                           ...(s.tenantId !== 'GLOBAL' ? [
                             { type: 'divider' as const },
-                            {
+                            ...(perms.canUpdateLetterFormat ? [{
                               key: 'edit',
                               label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'),
                               onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); router.push(`/letters-docs/structures/builder?editId=${s.id}`); },
-                            },
-                            {
+                            }] : []),
+                            ...(perms.canDeleteLetterFormat ? [{
                               key: 'delete',
                               label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true),
                               onClick: ({ domEvent }: any) => { domEvent.stopPropagation(); setDeleteStructId(s.id); },
-                            },
+                            }] : []),
                           ] : []),
                         ],
                       }}

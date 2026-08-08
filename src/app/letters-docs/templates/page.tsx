@@ -26,6 +26,7 @@ import { LettersService, DocumentTemplate, DocumentCategory, DocumentStructure }
 import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Dropdown, Tooltip, Select, Modal, Switch, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
@@ -58,6 +59,13 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 export default function TemplateManagementPage() {
   const router = useRouter();
   const { hasPermission } = useAuth();
+  const perms = usePermission() as unknown as Record<string, any>;
+  
+  useEffect(() => {
+    if (perms.canReadLetterTemplate === false) {
+      router.push('/dashboard');
+    }
+  }, [perms.canReadLetterTemplate, router]);
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -373,10 +381,10 @@ export default function TemplateManagementPage() {
           placement="bottomRight"
           menu={{
             items: [
-              { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
-              { key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } },
-              { type: 'divider' },
-              { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+              ...(perms.canUpdateLetterTemplate ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } }] : []),
+              ...(perms.canCreateLetterTemplate ? [{ key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e: any) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } }] : []),
+              { type: 'divider' as const },
+              ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } }] : []),
             ]
           }}
         >
@@ -457,13 +465,15 @@ export default function TemplateManagementPage() {
             <button type="button" className="lv-ghost-btn" onClick={fetchData}><ReloadOutlined spin={loading} /></button>
           </Tooltip>
 
-          <Button
-            icon={<FolderCog size={15} />}
-            onClick={() => setIsCategoryModalOpen(true)}
-            style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-          >
-            <span className="categories-btn-text">Categories</span>
-          </Button>
+          {perms.canUpdateLetterTemplate && (
+            <Button
+              icon={<FolderCog size={15} />}
+              onClick={() => setIsCategoryModalOpen(true)}
+              style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="categories-btn-text">Categories</span>
+            </Button>
+          )}
 
           <Button
             icon={<Settings size={15} />}
@@ -472,34 +482,36 @@ export default function TemplateManagementPage() {
           >
             {/* Settings */}
           </Button>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'manual',
-                  icon: <FileTextOutlined />,
-                  label: 'Manual Creation',
-                  onClick: () => router.push('/letters-docs/templates/builder')
-                },
-                {
-                  key: 'zai',
-                  icon: <ThunderboltOutlined style={{ color: '#9333ea' }} />,
-                  label: <span style={{ fontWeight: 600 }}>Create with Zai <span style={{ background: '#f3e8ff', color: '#9333ea', fontSize: '10px', padding: '1px 4px', borderRadius: '4px', marginLeft: '4px' }}>AI</span></span>,
-                  onClick: () => setIsZaiModalOpen(true)
-                }
-              ]
-            }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Button
-              type="primary"
-              icon={<Plus size={15} />}
-              style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          {perms.canCreateLetterTemplate && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'manual',
+                    icon: <FileTextOutlined />,
+                    label: 'Manual Creation',
+                    onClick: () => router.push('/letters-docs/templates/builder')
+                  },
+                  {
+                    key: 'zai',
+                    icon: <ThunderboltOutlined style={{ color: '#9333ea' }} />,
+                    label: <span style={{ fontWeight: 600 }}>Create with Zai <span style={{ background: '#f3e8ff', color: '#9333ea', fontSize: '10px', padding: '1px 4px', borderRadius: '4px', marginLeft: '4px' }}>AI</span></span>,
+                    onClick: () => setIsZaiModalOpen(true)
+                  }
+                ]
+              }}
+              trigger={['click']}
+              placement="bottomRight"
             >
-              Create Template <span style={{ display: 'inline-flex', marginLeft: '2px', opacity: 0.8 }}>▼</span>
-            </Button>
-          </Dropdown>
+              <Button
+                type="primary"
+                icon={<Plus size={15} />}
+                style={{ height: 34, borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                Create Template <span style={{ display: 'inline-flex', marginLeft: '2px', opacity: 0.8 }}>▼</span>
+              </Button>
+            </Dropdown>
+          )}
         </div>
       </div>
 
@@ -522,30 +534,33 @@ export default function TemplateManagementPage() {
               textAlign: 'center',
             }}
           >
-            <FileText size={48} style={{ color: 'var(--text-slate-400)', margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-slate-900)', margin: '0 0 8px' }}>No Document Templates Found</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-slate-600)', margin: '0 0 20px' }}>
-              Get started by creating your first reusable HR document template using our Word-like editor.
-            </p>
-            <Link
-              href="/letters-docs/templates/builder"
-              style={{
-                padding: '10px 22px',
-                borderRadius: '8px',
-                background: '#3b82f6',
-                color: 'var(--bg-pure-white)',
-                fontWeight: 600,
-                fontSize: '14px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <Plus size={18} />
-              Create First Template
-            </Link>
-          </div>
+            <div style={{ padding: '60px 0', textAlign: 'center' }}>
+            <FileText size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Templates Found</div>
+            <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
+              You don't have any templates matching your criteria yet.
+            </div>
+            {perms.canCreateLetterTemplate && (
+              <Link
+                href="/letters-docs/templates/builder"
+                style={{
+                  background: '#3b82f6',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Plus size={18} />
+                Create First Template
+              </Link>
+            )}
+          </div></div>
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
@@ -584,10 +599,10 @@ export default function TemplateManagementPage() {
                       overlayClassName="pc-dropdown"
                       menu={{
                         items: [
-                          { key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
-                          { key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } },
-                          { type: 'divider' },
-                          { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+                          ...(perms.canUpdateLetterTemplate ? [{ key: 'edit', label: renderDropdownItem(<Edit size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e: any) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } }] : []),
+                          ...(perms.canCreateLetterTemplate ? [{ key: 'dup', label: renderDropdownItem(<Copy size={16} />, 'Duplicate', 'Clone this template', 'var(--bg-green-50)', 'var(--text-holiday)'), onClick: (e: any) => { e.domEvent.stopPropagation(); handleDuplicate(tpl); } }] : []),
+                          { type: 'divider' as const },
+                          ...(perms.canDeleteLetterTemplate ? [{ key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e: any) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } }] : []),
                         ]
                       }}
                       trigger={['click']}

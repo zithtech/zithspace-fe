@@ -31,6 +31,7 @@ import { DepartmentService, Department } from '@/services/departmentService';
 import { PayrollV2Service, PayStructureListItem } from '@/services/payrollV2Service';
 import { SearchableDropdown, SearchableDropdownOption } from '@/components/common/SearchableDropdown';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
 import { Table, Button, Tooltip, Select, Switch, Modal, Drawer, Avatar, Dropdown } from 'antd';
 import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
@@ -43,7 +44,15 @@ import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EllipsisOutlin
 
 function LetterGenerationContent() {
   const { user } = useAuth();
+  const perms = usePermission() as unknown as Record<string, any>;
   const router = useRouter();
+  
+  useEffect(() => {
+    if (perms.canGenerateLetter === false) {
+      router.push('/dashboard');
+    }
+  }, [perms.canGenerateLetter, router]);
+
   const searchParams = useSearchParams();
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [categories, setCategories] = useState<DocumentCategory[]>([]);

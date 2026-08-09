@@ -476,6 +476,22 @@ export const usePermission = () => {
     canReadRun:     hasPermission(Permissions.QA_RUN_READ),
     canUpdateRun:   hasPermission(Permissions.QA_RUN_UPDATE),
     canDeleteRun:   hasPermission(Permissions.QA_RUN_DELETE),
+    // QA Submissions — qa.manage stands in for every submission action, the
+    // same way it does for the rest of QA Space.
+    canCreateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_CREATE, Permissions.QA_MANAGE),
+    canReadSubmission:   hasAnyPermission(Permissions.QA_SUBMISSION_READ, Permissions.QA_MANAGE),
+    canUpdateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_UPDATE, Permissions.QA_MANAGE),
+    canDeleteSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_DELETE, Permissions.QA_MANAGE),
+    canSubmitSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SUBMIT, Permissions.QA_MANAGE),
+    canSignOffSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SIGNOFF, Permissions.QA_MANAGE),
+    canReadPmApproval:   hasAnyPermission(Permissions.QA_APPROVAL_READ, Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canApproveSubmission: hasAnyPermission(Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canSendBackSubmission: hasAnyPermission(
+      Permissions.QA_APPROVAL_SEND_BACK,
+      Permissions.QA_APPROVAL_APPROVE,
+      Permissions.QA_MANAGE,
+    ),
+    canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
     canManageQa:    hasPermission(Permissions.QA_MANAGE),
 
     // ─── System / General ───────────────────────────────────────────

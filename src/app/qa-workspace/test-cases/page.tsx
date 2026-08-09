@@ -13,6 +13,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { MembersService } from "@/services/membersService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { ProjectService } from "@/services/projectService";
 
 type TabKey = "cases";
@@ -508,6 +509,10 @@ export default function TestCasesPage() {
     );
   };
 
+  // Same gate the sibling QA pages use — the fetches above already sit behind
+  // canReadCase, so without this an unpermitted user would get empty chrome.
+  if (!canReadCase) return null;
+
   return (
     <MainLayout noPadding>
       <style dangerouslySetInnerHTML={{
@@ -961,7 +966,9 @@ export default function TestCasesPage() {
               )}
             </div>
 
-            {/* Table or Grid */}
+            {/* Table or Grid — only the results blur, so the filters above stay
+                usable while a search refetches. */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading test cases…" minHeight={loading ? 320 : undefined}>
             {viewMode === 'list' ? (
               <div className="sc-tablewrap">
                 <Table
@@ -970,12 +977,15 @@ export default function TestCasesPage() {
                   columns={columns}
                   rowKey="id"
                   pagination={false}
-                  loading={loading}
                   onRow={(record) => ({
                     onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
                   })}
                   locale={{
-                    emptyText: (
+                    /* "No test cases yet" would be a lie while the first page is
+                       still in flight — hold the height instead. */
+                    emptyText: loading ? (
+                      <div style={{ minHeight: 240 }} />
+                    ) : (
                       <div className="sc-empty">
                         <Folder size={26} className="sc-empty__icon" />
                         <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
@@ -994,9 +1004,7 @@ export default function TestCasesPage() {
               </div>
             ) : (
               <div className="pp-grid">
-                {loading ? (
-                  <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading test cases...</div>
-                ) : filteredData.length === 0 ? (
+                {loading ? null : filteredData.length === 0 ? (
                   <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
                     <Folder size={26} className="sc-empty__icon" />
                     <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
@@ -1012,6 +1020,7 @@ export default function TestCasesPage() {
                 )}
               </div>
             )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}

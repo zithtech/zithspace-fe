@@ -12,6 +12,7 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
@@ -76,6 +77,8 @@ function TestRunsContent() {
   const [runs, setRuns] = useState<any[]>([]);
   const [suites, setSuites] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
+  /** Scopes a run can be attributed to, so QA Submissions can find it later. */
+  const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
@@ -109,14 +112,16 @@ function TestRunsContent() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [runsRes, suitesRes, modRes] = await Promise.all([
+      const [runsRes, suitesRes, modRes, scopeRes] = await Promise.all([
         axios.get("/api/v2/qa/runs/all"),
         axios.get("/api/v2/qa/suites/all"),
-        axios.get("/api/v2/qa/modules")
+        axios.get("/api/v2/qa/modules"),
+        axios.get("/api/v2/qa/test-scopes"),
       ]);
       setRuns(Array.isArray(runsRes) ? runsRes : (runsRes?.data?.data || runsRes?.data || []));
       setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
+      setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
     } catch (error) {
       message.error("Failed to fetch data");
     } finally {
@@ -138,6 +143,7 @@ function TestRunsContent() {
   const handleCreateRun = async () => {
     try {
       if (!formData.run_name) return message.error("Run Name is required");
+      if (!formData.scope_id) return message.error("Test Scope is required");
       if (!formData.suite_id) return message.error("Test Suite is required");
 
       setSaving(true);
@@ -848,7 +854,9 @@ function TestRunsContent() {
                   )}
                 </div>
 
-                {/* Table or Grid */}
+                {/* Table or Grid — only the results blur, so the filters above
+                    stay usable while a search refetches. */}
+                <ZukvoLoadingOverlay loading={loading} message="Loading test runs…" minHeight={loading ? 320 : undefined}>
                 {viewMode === 'list' ? (
                   <div className="sc-tablewrap">
                     <Table
@@ -857,12 +865,14 @@ function TestRunsContent() {
                       columns={columns}
                       rowKey="id"
                       pagination={false}
-                      loading={loading}
                       onRow={(record) => ({
                         onClick: () => openExecuteDrawer(record),
                       })}
                       locale={{
-                        emptyText: (
+                        /* Holding the height beats claiming "no runs" mid-fetch. */
+                        emptyText: loading ? (
+                          <div style={{ minHeight: 240 }} />
+                        ) : (
                           <div className="sc-empty">
                             <SnippetsOutlined className="sc-empty__icon" />
                             <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
@@ -881,9 +891,7 @@ function TestRunsContent() {
                   </div>
                 ) : (
                   <div className="pp-grid">
-                    {loading ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
-                    ) : filteredRuns.length === 0 ? (
+                    {loading ? null : filteredRuns.length === 0 ? (
                       <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
                         <SnippetsOutlined className="sc-empty__icon" />
                         <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
@@ -899,6 +907,7 @@ function TestRunsContent() {
                     )}
                   </div>
                 )}
+                </ZukvoLoadingOverlay>
               </>
             )}
 
@@ -966,6 +975,25 @@ function TestRunsContent() {
             </div>
 
             <div className="rd__field">
+              <label className="rd__label">Test Scope <span className="rd__req">*</span></label>
+              <SearchableDropdown
+                options={scopes.map(s => ({
+                  value: s.id,
+                  label: s.name,
+                  description: [s.type, s.status].filter(Boolean).join(' · '),
+                }))}
+                value={formData.scope_id}
+                onChange={(val) => setFormData({ ...formData, scope_id: val })}
+                placeholder="Select the scope this run covers"
+                itemNoun="scopes"
+                className="rd__control"
+              />
+              <p className="rd__hint">
+                Every run belongs to a scope — it&apos;s what lets a QA Submission report this run as evidence.
+              </p>
+            </div>
+
+            <div className="rd__field">
               <label className="rd__label">Module</label>
               <SearchableDropdown
                 options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
@@ -1017,7 +1045,7 @@ function TestRunsContent() {
               type="primary"
               loading={saving}
               icon={<PlayCircleOutlined />}
-              disabled={!formData.run_name?.trim() || !formData.suite_id}
+              disabled={!formData.run_name?.trim() || !formData.scope_id || !formData.suite_id}
               onClick={handleCreateRun}
             >
               Start Run
@@ -1032,7 +1060,7 @@ function TestRunsContent() {
 
 export default function TestRunsPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading test runs...</div>}>
+    <Suspense fallback={<ZukvoLoader size="lg" fullscreen message="Loading test runs…" />}>
       <TestRunsContent />
     </Suspense>
   );

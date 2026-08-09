@@ -15,6 +15,7 @@ import { PlayCircle, SpellCheck, Loader2, Sparkles, Folder, User, Clock } from "
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import BugListService from "@/services/bugListService";
 import { useQaOptions } from "@/hooks/useQaOptions";
@@ -1447,7 +1448,7 @@ export default function TestRunExecutionPage() {
 
             {/* Cases */}
             {loading ? (
-              <div className="sc-empty"><p className="sc-empty__desc">Loading cases…</p></div>
+              <ZukvoLoader size="md" message="Loading cases…" />
             ) : results.length === 0 ? (
               <div className="sc-empty">
                 <FileTextOutlined className="sc-empty__icon" />
@@ -1941,8 +1942,7 @@ export default function TestRunExecutionPage() {
 
             {failedLoading ? (
               <div className="bl__empty">
-                <Loader2 size={20} className="spin" style={{ color: "var(--text-slate-400)" }} />
-                <p className="bl__empty-title">Loading failed cases…</p>
+                <ZukvoLoader size="md" message="Loading failed cases…" />
                 <p className="bl__empty-desc">Collecting every failure in this run, not just this page.</p>
               </div>
             ) : failedCases.length === 0 ? (

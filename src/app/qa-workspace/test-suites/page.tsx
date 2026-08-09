@@ -12,7 +12,23 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
+
+/**
+ * The standard testing types, kept identical to the Test Scope page so both
+ * places name the same kinds of testing. Teams also invent their own, so the
+ * picker accepts free text and remembers anything already in use — no settings
+ * screen to visit before you can record how you actually test.
+ */
+const TESTING_TYPES = [
+  "Smoke Testing", "Sanity Testing", "Functional Testing", "GUI Testing",
+  "UI Testing", "Positive Testing", "Negative Testing", "Validation Testing",
+  "Data Verification Testing", "Integration Testing", "System Testing",
+  "End-to-End Testing", "Regression Testing", "Retesting", "Exploratory Testing",
+  "Compatibility Testing", "Cross-Browser Testing", "User Acceptance Testing",
+  "Performance Testing", "Security Testing",
+];
 
 const { Text } = Typography;
 type TabKey = "suites";
@@ -101,6 +117,28 @@ export default function TestSuitesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSuite, setEditingSuite] = useState<any>(null);
   const [formData, setFormData] = useState<any>({ test_case_ids: [], parent_test_case_id: undefined });
+  /**
+   * Standard types plus any custom one already saved on a suite, so a type
+   * somebody invented last week is a pick this week rather than retyping it.
+   * Custom entries are listed first and labelled, so it is clear which came
+   * from the team rather than the standard set.
+   */
+  const testingTypeOptions = React.useMemo(() => {
+    const standard = new Set(TESTING_TYPES.map((t) => t.toLowerCase()));
+    const custom = Array.from(
+      new Set(
+        suites
+          .map((s: any) => (s.testing_type || "").trim())
+          .filter((t: string) => t && !standard.has(t.toLowerCase())),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+
+    return [
+      ...custom.map((t) => ({ value: t, label: t, description: "Custom type" })),
+      ...TESTING_TYPES.map((t) => ({ value: t, label: t })),
+    ];
+  }, [suites]);
+
   const [aiBusy, setAiBusy] = useState<'generate' | 'grammar' | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -499,6 +537,18 @@ export default function TestSuitesPage() {
       render: (_: string, record: any) => <span className="cd-plain">{moduleNameOf(record)}</span>
     },
     {
+      title: "Testing Type",
+      dataIndex: "testing_type",
+      key: "testing_type",
+      width: 170,
+      render: (t: string) =>
+        t ? (
+          <span className="ts-type" title={t}>{t}</span>
+        ) : (
+          <span className="sc-muted">—</span>
+        ),
+    },
+    {
       title: "Cases",
       dataIndex: "case_count",
       key: "case_count",
@@ -761,6 +811,17 @@ export default function TestSuitesPage() {
         .sc-pill__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
         .sc-pill--blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
 
+        /* Reads as a quiet label, not a status — the testing type is a
+           property of the suite, so it must not compete with the Cases pill. */
+        .ts-type {
+          display: inline-block; max-width: 100%;
+          padding: 2px 9px; border-radius: 999px;
+          font-size: 11.5px; font-weight: 500; white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis;
+          color: var(--text-slate-600); background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-200);
+        }
+
         .ts-scenario {
           display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
           font-size: 12.5px; color: var(--text-slate-700);
@@ -954,15 +1015,12 @@ export default function TestSuitesPage() {
         .lk-more--btn:hover { background: rgba(59,130,246,.12); border-style: solid; }
         .lk-more--end { color: var(--text-slate-400); font-weight: 500; }
 
-        .lk-skeleton {
-          height: 46px; border-radius: 8px;
-          border: 1px solid var(--border-slate-100); background: var(--bg-slate-50);
-          animation: lk-pulse 1.2s ease-in-out infinite;
+        /* Holds roughly the height four rows would have taken, so the pane
+           doesn't collapse and jump when the cases arrive. */
+        .lk-list--loading {
+          align-items: center; justify-content: center;
+          min-height: 200px; overflow: hidden;
         }
-        .lk-skeleton:nth-child(2) { animation-delay: .1s; }
-        .lk-skeleton:nth-child(3) { animation-delay: .2s; }
-        .lk-skeleton:nth-child(4) { animation-delay: .3s; }
-        @keyframes lk-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
         .lk-empty {
           padding: 28px 20px; text-align: center; border-radius: 10px;
@@ -1144,7 +1202,9 @@ export default function TestSuitesPage() {
               )}
             </div>
 
-            {/* Table or Grid */}
+            {/* Table or Grid — only the results blur, so the filters above stay
+                usable while a search refetches. */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading test suites…" minHeight={loading ? 320 : undefined}>
             {viewMode === 'list' ? (
               <div className="sc-tablewrap">
                 <Table
@@ -1153,12 +1213,18 @@ export default function TestSuitesPage() {
                   columns={columns}
                   rowKey="id"
                   pagination={false}
-                  loading={loading}
+                  /* The columns now total ~1210px. Without this they would be
+                     squeezed on a 1280–1440px screen; scrolling keeps each one
+                     at a readable width instead. */
+                  scroll={{ x: 1210 }}
                   onRow={(record) => ({
                     onClick: () => router.push("/qa-workspace/test-suites/" + record.id),
                   })}
                   locale={{
-                    emptyText: (
+                    /* Holding the height beats claiming "no suites" mid-fetch. */
+                    emptyText: loading ? (
+                      <div style={{ minHeight: 240 }} />
+                    ) : (
                       <div className="sc-empty">
                         <SnippetsOutlined className="sc-empty__icon" />
                         <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
@@ -1177,9 +1243,7 @@ export default function TestSuitesPage() {
               </div>
             ) : (
               <div className="pp-grid">
-                {loading ? (
-                  <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading suites...</div>
-                ) : filteredSuites.length === 0 ? (
+                {loading ? null : filteredSuites.length === 0 ? (
                   <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
                     <SnippetsOutlined className="sc-empty__icon" />
                     <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
@@ -1195,6 +1259,7 @@ export default function TestSuitesPage() {
                 )}
               </div>
             )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
@@ -1262,6 +1327,23 @@ export default function TestSuitesPage() {
                     onChange={(e) => setFormData({ ...formData, suite_name: e.target.value })}
                     size="large"
                     style={{ borderRadius: 8 }}
+                  />
+                </Form.Item>
+
+                <Form.Item label="Testing Type" style={{ marginBottom: 16 }}>
+                  <SearchableDropdown
+                    /* freeText lets the typed value be submitted as-is, which is
+                       how a custom type gets created — no separate "add" step. */
+                    freeText
+                    options={testingTypeOptions}
+                    value={formData.testing_type || undefined}
+                    onChange={(val: any) => setFormData({ ...formData, testing_type: val || undefined })}
+                    placeholder="Search a testing type, or type your own"
+                    searchPlaceholder="Search or add a testing type…"
+                    itemNoun="types"
+                    hideAvatar
+                    width={420}
+                    style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 8 }}
                   />
                 </Form.Item>
 
@@ -1399,8 +1481,8 @@ export default function TestSuitesPage() {
                   </div>
 
                   {casesLoading ? (
-                    <div className="lk-list">
-                      {[0, 1, 2, 3].map(i => <div key={i} className="lk-skeleton" />)}
+                    <div className="lk-list lk-list--loading">
+                      <ZukvoLoader size="md" message="Loading module cases…" />
                     </div>
                   ) : childTestCases.length === 0 ? (
                     caseSearchQuery ? (
@@ -1451,7 +1533,7 @@ export default function TestSuitesPage() {
 
                       {/* Tail of the list: loads the next 20 as it comes into view */}
                       {casesLoadingMore ? (
-                        <div className="lk-more"><LoadingOutlined /> Loading more cases…</div>
+                        <div className="lk-more"><ZukvoLoader size="sm" message="Loading more cases…" /></div>
                       ) : casesHasMore ? (
                         <button
                           type="button"

@@ -12,6 +12,7 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { Text } = Typography;
@@ -395,6 +396,10 @@ export default function TestSuiteDetailsPage() {
 
   const parentScenario = parents.find(p => p.id === suite?.parent_test_case_id);
   const moduleItem = modules.find(m => m.id === suite?.module_id);
+
+  // Same gate the suites list uses — the fetch above already sits behind
+  // canReadSuite, so without this an unpermitted user would get empty chrome.
+  if (!canReadSuite) return null;
 
   return (
     <MainLayout noPadding>
@@ -879,16 +884,19 @@ export default function TestSuiteDetailsPage() {
             </div>
 
             {/* Linked cases */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading linked cases…" minHeight={loading ? 300 : undefined}>
             <div className="sc-tablewrap">
               <Table
                 className="ts-table sc-table"
                 dataSource={pagedCases}
                 columns={columns}
                 rowKey="id"
-                loading={loading}
                 pagination={false}
                 locale={{
-                  emptyText: (
+                  /* Holding the height beats claiming "no cases" mid-fetch. */
+                  emptyText: loading ? (
+                    <div style={{ minHeight: 220 }} />
+                  ) : (
                     <div className="sc-empty">
                       <FileTextOutlined className="sc-empty__icon" />
                       <p className="sc-empty__title">
@@ -907,6 +915,7 @@ export default function TestSuiteDetailsPage() {
                 }}
               />
             </div>
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}

@@ -27,6 +27,7 @@ import {
   ClipboardList,
   Boxes,
   PlayCircle,
+  FileCheck2,
   // Timesheet / Time tracking
   CalendarClock,
   Gauge,
@@ -216,6 +217,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.QA_CASE_READ,
       Permissions.QA_SUITE_READ,
       Permissions.QA_RUN_READ,
+      Permissions.QA_SUBMISSION_READ,
       Permissions.TICKET_SETTING_READ,
       Permissions.TICKET_TRASH_READ,
       Permissions.TICKET_ARCHIVE_READ,
@@ -319,6 +321,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.QA_SUITE_READ,
           Permissions.QA_RUN_READ,
           Permissions.BUG_READ,
+          Permissions.QA_SUBMISSION_READ,
+          Permissions.QA_ANALYTICS_READ,
         ],
         children: [
           {
@@ -355,6 +359,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: I(Bug),
             path: "/qa-workspace/bug-list",
             requiredPermission: Permissions.BUG_READ,
+          },
+          {
+            key: "/qa-workspace/qa-submissions",
+            label: "QA Submissions",
+            icon: I(FileCheck2),
+            path: "/qa-workspace/qa-submissions",
+            requiredPermission: Permissions.QA_SUBMISSION_READ,
+          },
+          {
+            key: "/qa-workspace/analytics",
+            label: "Analytics",
+            icon: I(BarChart3),
+            path: "/qa-workspace/analytics",
+            requiredPermission: Permissions.QA_ANALYTICS_READ,
           },
           {
             key: "/qa-workspace/settings",

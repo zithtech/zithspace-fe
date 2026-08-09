@@ -12,6 +12,7 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { TextArea } = Input;
@@ -475,6 +476,10 @@ export default function ParentTestCaseDetailsPage() {
   const pageStart = filteredCases.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const pageEnd = Math.min(safePage * pageSize, filteredCases.length);
   const pagedCases = filteredCases.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // Same gate the sibling QA pages use — the fetch above already sits behind
+  // canReadCase, so without this an unpermitted user would get empty chrome.
+  if (!canReadCase) return null;
 
   return (
     <MainLayout noPadding>
@@ -1087,19 +1092,22 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             {/* Module Test Cases */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading module cases…" minHeight={loading ? 300 : undefined}>
             <div className="sc-tablewrap">
               <Table
                 className="ts-table sc-table"
                 dataSource={pagedCases}
                 columns={childColumns}
                 rowKey="id"
-                loading={loading}
                 pagination={false}
                 onRow={(record) => ({
                   onClick: () => { setViewCase(record); setViewOpen(true); },
                 })}
                 locale={{
-                  emptyText: (
+                  /* Holding the height beats claiming "no cases" mid-fetch. */
+                  emptyText: loading ? (
+                    <div style={{ minHeight: 220 }} />
+                  ) : (
                     <div className="sc-empty">
                       <FileTextOutlined className="sc-empty__icon" />
                       <p className="sc-empty__title">
@@ -1118,6 +1126,7 @@ export default function ParentTestCaseDetailsPage() {
                 }}
               />
             </div>
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}

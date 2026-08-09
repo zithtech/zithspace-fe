@@ -205,6 +205,16 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'bug.trash.read': 'Bug Recycle Bin',
   'bug.trash.restore': 'Bug Recycle Bin',
   'bug.trash.delete': 'Bug Recycle Bin',
+  'qa.submission.create': 'QA Submissions',
+  'qa.submission.read': 'QA Submissions',
+  'qa.submission.update': 'QA Submissions',
+  'qa.submission.delete': 'QA Submissions',
+  'qa.submission.submit': 'QA Submissions',
+  'qa.submission.signoff': 'QA Sign-off',
+  'qa.approval.read': 'PM Approval',
+  'qa.approval.approve': 'PM Approval',
+  'qa.approval.send_back': 'PM Approval',
+  'qa.analytics.read': 'Analytics',
   'qa.manage': 'QA Settings',
 };
 
@@ -216,6 +226,10 @@ const QA_PAGE_ORDER = [
   'Bug List',
   'Bug Archive',
   'Bug Recycle Bin',
+  'QA Submissions',
+  'QA Sign-off',
+  'PM Approval',
+  'Analytics',
   'QA Settings',
 ];
 

@@ -16,6 +16,7 @@ import {
   Col,
   Pagination,
   Typography,
+  Select,
 } from 'antd';
 const { Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
@@ -41,7 +42,9 @@ import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { EmployeeOnboardingService } from '@/services/onboardingService';
+import { PipelineService } from '@/services/pipelineService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -136,6 +139,11 @@ function InvitesContent() {
   // post-create "share link" modal
   const [created, setCreated] = useState<CreatedInvite | null>(null);
 
+  // Pipeline integration
+  const [pipelineCandidates, setPipelineCandidates] = useState<any[]>([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [candidateSearch, setCandidateSearch] = useState('');
+
   // ── Defensive list reader: the api helper may unwrap to the array, or hand
   // back the full body. Accept res (array), res.data (array), or res.data.data.
   const readInvites = (res: any): Invite[] => {
@@ -171,9 +179,38 @@ function InvitesContent() {
   }, [rows]);
 
   // ── Create ──────────────────────────────────────────────────────────────
+  const fetchCandidates = async () => {
+    if (pipelineCandidates.length > 0) return;
+    setLoadingCandidates(true);
+    try {
+      const res = await PipelineService.listCandidates({ limit: 500 });
+      setPipelineCandidates(res.data?.candidates || res.data?.data || []);
+    } catch (err: any) {
+      console.error("Failed to load pipeline candidates", err);
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+
+  const availableCandidates = useMemo(() => {
+    const invitedEmails = new Set<string>();
+    for (const r of rows) {
+      if (r.workEmail) invitedEmails.add(r.workEmail.toLowerCase());
+      if (r.personalEmail) invitedEmails.add(r.personalEmail.toLowerCase());
+    }
+
+    return pipelineCandidates.filter(c => {
+      const email = (c.email || '').toLowerCase();
+      if (email && invitedEmails.has(email)) return false;
+      return true;
+    });
+  }, [pipelineCandidates, rows]);
+
   const openCreate = () => {
     form.resetFields();
+    setCandidateSearch('');
     setDrawerOpen(true);
+    fetchCandidates();
   };
 
   const submit = async () => {
@@ -250,6 +287,19 @@ function InvitesContent() {
       await load();
     } catch (err: any) {
       message.error(err?.message || 'Failed to revoke invite');
+    }
+  };
+
+  // ── Regenerate ──────────────────────────────────────────────────────────
+  const regenerate = async (record: Invite) => {
+    try {
+      const res = await EmployeeOnboardingService.regenerateInvite(record.inviteId);
+      const payload: CreatedInvite = res?.data?.data ?? res?.data ?? res;
+      message.success('Invite regenerated successfully');
+      if (payload) setCreated(payload);
+      await load();
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to regenerate invite');
     }
   };
 
@@ -399,6 +449,22 @@ function InvitesContent() {
                   style={{ color: PALETTE.blue }}
                 />
               </Tooltip>
+            )}
+
+            {canCreateOnboarding && r.isExpired && r.status !== 'completed' && r.status !== 'revoked' && (
+              <ConfirmDialog
+                tone="primary"
+                icon={<RefreshCw size={16} />}
+                title="Regenerate Invite?"
+                description="This will generate a new invite link and email it to the employee."
+                confirmText="Regenerate"
+                placement="bottomRight"
+                onConfirm={() => regenerate(r)}
+              >
+                <Tooltip title="Regenerate">
+                  <Button type="text" size="small" icon={<RefreshCw size={15} />} style={{ color: PALETTE.blue }} />
+                </Tooltip>
+              </ConfirmDialog>
             )}
 
             {r.status === 'employee_submitted' && (
@@ -562,23 +628,11 @@ function InvitesContent() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >
-        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
+        <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 0,
-                  background: TINT.blue,
-                  color: PALETTE.blue,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
+              <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <UserPlus size={20} />
               </div>
               <div style={{ minWidth: 0 }}>
@@ -586,17 +640,11 @@ function InvitesContent() {
                   Invite Employee
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
-                  We’ll generate a private link they can use to fill in their own details
+                  We'll generate a private link they can use to fill in their own details
                 </div>
               </div>
             </div>
-            <Button
-              type="text"
-              shape="circle"
-              icon={<X size={18} />}
-              onClick={() => setDrawerOpen(false)}
-              style={{ color: 'var(--text-slate-500)' }}
-            />
+            <Button type="text" shape="circle" icon={<X size={18} />} onClick={() => setDrawerOpen(false)} style={{ color: 'var(--text-slate-500)' }} />
           </div>
 
           {/* Content */}
@@ -609,8 +657,45 @@ function InvitesContent() {
               labelAlign="left"
               colon={false}
               requiredMark="optional"
-              className="customer-drawer-form onbi-drawer-form"
+              className="customer-drawer-form"
             >
+              {/* Pipeline Import – SectionCard */}
+              <SectionCard
+                icon={<UserPlus size={16} />}
+                title="Import from Pipeline"
+                subtitle="Auto-fill details by selecting an existing candidate"
+              >
+                <Form.Item label="Pipeline Candidate" style={{ marginBottom: 0 }}>
+                  <SearchableDropdown
+                    allowClear
+                    placeholder="Search and select a candidate…"
+                    style={{ width: '100%' }}
+                    loading={loadingCandidates}
+                    options={availableCandidates.map(c => ({
+                      label: c.name || c.fullName || '',
+                      description: c.email || '',
+                      value: c.id,
+                    }))}
+                    onChange={(val) => {
+                      if (!val) return;
+                      const c = availableCandidates.find(x => x.id === val);
+                      if (c) {
+                        const fullName = c.name || c.fullName || '';
+                        const nameParts = fullName.trim().split(' ');
+                        form.setFieldsValue({
+                          firstName: nameParts[0] || '',
+                          lastName: nameParts.slice(1).join(' ') || '',
+                          workEmail: '',
+                          personalEmail: c.email || '',
+                          mobile: c.mobile || c.phone || c.phoneNumber || '',
+                        });
+                      }
+                    }}
+                  />
+                </Form.Item>
+              </SectionCard>
+
+              {/* Employee Details – SectionCard */}
               <SectionCard
                 icon={<User size={16} />}
                 title="Employee Details"
@@ -622,25 +707,27 @@ function InvitesContent() {
                   label={fieldLabel('First name')}
                   rules={[
                     { required: true, message: 'First name is required' },
-                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' },
                   ]}
                 >
                   <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
                     if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
                   }} />
                 </Form.Item>
+
                 <Form.Item
                   name="lastName"
                   label={fieldLabel('Last name')}
                   rules={[
                     { required: true, message: 'Last name is required' },
-                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                    { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' },
                   ]}
                 >
                   <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
                     if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
                   }} />
                 </Form.Item>
+
                 <Form.Item
                   name="workEmail"
                   label={fieldLabel('Work email')}
@@ -650,26 +737,18 @@ function InvitesContent() {
                   ]}
                   getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
                 >
-                  <Input
-                    size="large"
-                    maxLength={160}
-                    placeholder="jane.doe@company.com"
-                    prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                  />
+                  <Input size="large" maxLength={160} placeholder="jane.doe@company.com" />
                 </Form.Item>
+
                 <Form.Item
                   name="personalEmail"
                   label={fieldLabel('Personal email')}
                   rules={[{ type: 'email', message: 'Enter a valid email address' }]}
                   getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}
                 >
-                  <Input
-                    size="large"
-                    maxLength={160}
-                    placeholder="jane.doe@gmail.com"
-                    prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />}
-                  />
+                  <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" />
                 </Form.Item>
+
                 <Form.Item
                   name="mobile"
                   label={fieldLabel('Mobile')}
@@ -679,7 +758,6 @@ function InvitesContent() {
                     size="large"
                     maxLength={15}
                     placeholder="9876543210"
-                    prefix={<Smartphone size={14} style={{ color: 'var(--text-slate-400)' }} />}
                     onKeyPress={(e) => {
                       if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
                     }}
@@ -690,21 +768,15 @@ function InvitesContent() {
           </div>
 
           {/* Footer */}
-          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-between items-center shrink-0">
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] flex justify-between items-center shrink-0">
             <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500 }}>
-              Fields marked required must be filled
+              Fields marked <span style={{ color: '#ef4444' }}>*</span> are required
             </span>
             <Space size={10}>
               <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
                 Cancel
               </Button>
-              <Button
-                type="primary"
-                onClick={submit}
-                loading={saving}
-                icon={<UserPlus size={16} />}
-                style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}
-              >
+              <Button type="primary" onClick={submit} loading={saving} icon={<UserPlus size={16} />} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
                 Create Invite
               </Button>
             </Space>
@@ -718,9 +790,9 @@ function InvitesContent() {
         open={!!editing}
         onClose={() => setEditing(null)}
       >
-        <div className="flex flex-col h-full bg-[var(--bg-secondary)]">
+        <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-pure-white)] shrink-0">
+          <div className="customer-drawer-header flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] shrink-0">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
               <div style={{ width: 40, height: 40, background: TINT.blue, color: PALETTE.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Pencil size={18} />
@@ -738,7 +810,7 @@ function InvitesContent() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto py-4">
             <Form
               form={editForm}
               layout="horizontal"
@@ -747,7 +819,7 @@ function InvitesContent() {
               labelAlign="left"
               colon={false}
               requiredMark="optional"
-              className="customer-drawer-form onbi-drawer-form"
+              className="customer-drawer-form"
             >
               <SectionCard
                 icon={<User size={16} />}
@@ -757,32 +829,35 @@ function InvitesContent() {
               >
                 <Form.Item name="firstName" label={fieldLabel('First name')} rules={[
                   { required: true, message: 'First name is required' },
-                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' },
                 ]}>
                   <Input size="large" maxLength={80} placeholder="Jane" onKeyPress={(e) => {
                     if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
                   }} />
                 </Form.Item>
+
                 <Form.Item name="lastName" label={fieldLabel('Last name')} rules={[
                   { required: true, message: 'Last name is required' },
-                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' }
+                  { pattern: /^[A-Za-z\s]+$/, message: 'No special characters allowed' },
                 ]}>
                   <Input size="large" maxLength={80} placeholder="Doe" onKeyPress={(e) => {
                     if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
                   }} />
                 </Form.Item>
+
                 <Form.Item name="workEmail" label={fieldLabel('Work email')} rules={[{ required: true, message: 'Work email is required' }, { type: 'email', message: 'Enter a valid email address' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
-                  <Input size="large" maxLength={160} placeholder="jane.doe@company.com" prefix={<Mail size={14} style={{ color: 'var(--text-slate-400)' }} />} />
+                  <Input size="large" maxLength={160} placeholder="jane.doe@company.com" />
                 </Form.Item>
+
                 <Form.Item name="personalEmail" label={fieldLabel('Personal email')} rules={[{ type: 'email', message: 'Enter a valid email address' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
-                  <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" prefix={<AtSign size={14} style={{ color: 'var(--text-slate-400)' }} />} />
+                  <Input size="large" maxLength={160} placeholder="jane.doe@gmail.com" />
                 </Form.Item>
               </SectionCard>
             </Form>
           </div>
 
           {/* Footer */}
-          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-pure-white)] flex justify-end items-center gap-[10px] shrink-0">
+          <div className="customer-drawer-footer px-6 py-4 border-t border-[var(--border-color)] flex justify-end items-center gap-[10px] shrink-0">
             <Button onClick={() => setEditing(null)} style={{ borderRadius: 6, height: 38, fontWeight: 600, padding: '0 18px' }}>
               Cancel
             </Button>

@@ -1,9 +1,35 @@
+'use client';
+
 import React from 'react';
 import { Button } from 'antd';
-import { Building2, MapPin, Briefcase, Clock, Users } from 'lucide-react';
+import { ArrowUpRight, Briefcase, Building2, Clock, MapPin, Users } from 'lucide-react';
 import { OpeningListItem } from '@/services/openingV2Service';
-import { PALETTE, TINT, relativeDays, experienceRange } from '@/components/openings/ui';
+import {
+  EMPLOYMENT_TYPE_LABELS,
+  PALETTE,
+  TINT,
+  WORK_MODE_LABELS,
+  experienceRange,
+  relativeDays,
+} from '@/components/openings/ui';
 import { useReferenceData } from '@/components/openings/useReferenceData';
+
+// A role on the internal job board.
+//
+// The card is a summary and an invitation, not the posting: everything here
+// answers "is this worth opening?" — title, team, where, how senior, how many
+// seats — and the full description lives in the drawer. The whole card is the
+// click target; Apply is the one thing that stops propagation, because someone
+// aiming for it has already decided.
+//
+// Work mode gets its own tinted badge because it is the single filter people
+// scan for hardest. Under the narrow palette it can only group (green = remote,
+// blue = hybrid, ash = office), so the label carries the precision.
+const WORK_MODE_TONE: Record<string, { color: string; tint: string }> = {
+  remote: { color: PALETTE.green, tint: TINT.green },
+  hybrid: { color: PALETTE.blue, tint: TINT.blue },
+  office: { color: PALETTE.ash, tint: TINT.ash },
+};
 
 export default function HotspotCard({
   opening,
@@ -19,161 +45,281 @@ export default function HotspotCard({
     ? reference.locations.find((l) => l.value === opening.locationId)?.label || opening.location
     : opening.location;
 
+  const mode = WORK_MODE_TONE[opening.workMode] ?? WORK_MODE_TONE.office;
+  const skills = opening.requiredSkills ?? [];
+
   return (
-    <div className="hotspot-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      <div className="hotspot-card-header">
-        <div className="hotspot-title-row">
-          <h3 className="hotspot-title">{opening.jobTitle}</h3>
-          <span className="hotspot-code">{opening.openingCode}</span>
+    <article
+      className="hsj"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      {/* Accent rail — the one flash of colour, and it only lights on hover. */}
+      <span className="hsj-rail" />
+
+      <div className="hsj-body">
+        <header className="hsj-head">
+          <div className="hsj-head-text">
+            <h3 className="hsj-title">{opening.jobTitle}</h3>
+            <div className="hsj-org">
+              <Building2 size={13} />
+              <span className="hsj-org-name">{opening.clientName || 'Internal'}</span>
+              {opening.departmentName && (
+                <>
+                  <span className="hsj-dot" />
+                  <span className="hsj-dept">{opening.departmentName}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <span className="hsj-open" aria-hidden>
+            <ArrowUpRight size={15} />
+          </span>
+        </header>
+
+        <div className="hsj-badges">
+          <span className="hsj-mode" style={{ color: mode.color, background: mode.tint }}>
+            {WORK_MODE_LABELS[opening.workMode] ?? opening.workMode}
+          </span>
+          <span className="hsj-code">{opening.openingCode}</span>
         </div>
-        <div className="hotspot-company">
-          <Building2 size={14} />
-          {opening.clientName || 'Internal'}
-          {opening.departmentName && ` • ${opening.departmentName}`}
+
+        <div className="hsj-meta">
+          <span className="hsj-meta-item">
+            <MapPin size={13} />
+            {resolvedLocation || 'Remote'}
+          </span>
+          <span className="hsj-meta-item">
+            <Briefcase size={13} />
+            {experienceRange(opening.minExperience, opening.maxExperience)}
+          </span>
+          <span className="hsj-meta-item">
+            <Clock size={13} />
+            {EMPLOYMENT_TYPE_LABELS[opening.employmentType] ?? opening.employmentType}
+          </span>
+          <span className="hsj-meta-item">
+            <Users size={13} />
+            {opening.numberOfPositions} seat{opening.numberOfPositions === 1 ? '' : 's'}
+          </span>
         </div>
+
+        {skills.length > 0 && (
+          <div className="hsj-skills">
+            {skills.slice(0, 4).map((skill, i) => (
+              <span className="hsj-skill" key={`${skill}-${i}`}>
+                {skill}
+              </span>
+            ))}
+            {skills.length > 4 && <span className="hsj-skill is-more">+{skills.length - 4}</span>}
+          </div>
+        )}
       </div>
 
-      <div className="hotspot-card-body">
-        <div className="hotspot-info-grid">
-          <div className="hotspot-info-item">
-            <MapPin size={14} className="hotspot-info-icon" />
-            <span>{resolvedLocation || 'Remote'}</span>
-          </div>
-          <div className="hotspot-info-item">
-            <Briefcase size={14} className="hotspot-info-icon" />
-            <span>{experienceRange(opening.minExperience, opening.maxExperience)}</span>
-          </div>
-          <div className="hotspot-info-item">
-            <Clock size={14} className="hotspot-info-icon" />
-            <span>{opening.employmentType?.replace('_', ' ') || 'Full Time'}</span>
-          </div>
-          <div className="hotspot-info-item">
-            <Users size={14} className="hotspot-info-icon" />
-            <span>{opening.numberOfPositions} Position{opening.numberOfPositions > 1 ? 's' : ''}</span>
-          </div>
-        </div>
-
-        <div className="hotspot-tags">
-          {opening.requiredSkills.slice(0, 4).map((skill, idx) => (
-            <span key={idx} className="hotspot-tag">{skill}</span>
-          ))}
-          {opening.requiredSkills.length > 4 && (
-            <span className="hotspot-tag">+{opening.requiredSkills.length - 4}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="hotspot-card-footer">
-        <div className="hotspot-posted-time">
+      <footer className="hsj-foot">
+        <span className="hsj-posted">
           {opening.postedInternallyAt ? `Posted ${relativeDays(opening.postedInternallyAt)}` : ''}
-        </div>
+        </span>
         <Button
           type="primary"
-          onClick={(e) => { e.stopPropagation(); onApply(e); }}
-          className="hotspot-apply-btn"
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onApply(e);
+          }}
+          className="hsj-apply"
         >
-          Apply Now
+          Apply
         </Button>
-      </div>
+      </footer>
 
       <style jsx>{`
-        .hotspot-card {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 0px;
-          overflow: hidden;
+        .hsj {
+          position: relative;
           display: flex;
           flex-direction: column;
-          transition: all 0.2s ease;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 14px;
+          overflow: hidden;
+          cursor: pointer;
+          transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease,
+            transform 0.15s ease;
         }
-        .hotspot-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border-color: ${PALETTE.blue}40;
-          transform: translateY(-1px);
+        .hsj:hover {
+          border-color: ${PALETTE.blue}55;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+          transform: translateY(-2px);
         }
-        .hotspot-card-header {
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border-slate-100);
-          background: linear-gradient(180deg, var(--bg-slate-50) 0%, var(--bg-pure-white) 100%);
+        .hsj:focus-visible {
+          outline: 2px solid ${PALETTE.blue};
+          outline-offset: 2px;
         }
-        .hotspot-title-row {
+
+        .hsj-rail {
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: 3px;
+          background: linear-gradient(180deg, ${PALETTE.blue}, ${PALETTE.green});
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .hsj:hover .hsj-rail {
+          opacity: 1;
+        }
+
+        .hsj-body {
+          flex: 1;
+          padding: 16px 18px 14px;
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
+          flex-direction: column;
           gap: 12px;
-          margin-bottom: 4px;
         }
-        .hotspot-title {
-          font-size: 15px;
+
+        .hsj-head {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .hsj-head-text {
+          flex: 1;
+          min-width: 0;
+        }
+        .hsj-title {
+          margin: 0 0 5px;
+          font-size: 16px;
           font-weight: 700;
-          color: var(--text-slate-900);
-          margin: 0;
           line-height: 1.3;
+          letter-spacing: -0.015em;
+          color: var(--text-slate-900);
         }
-        .hotspot-code {
-          font-size: 10px;
-          font-weight: 700;
+        .hsj-org {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 0;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--text-slate-500);
+        }
+        .hsj-org-name,
+        .hsj-dept {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .hsj-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        /* The open affordance sits quiet until the card is hovered. */
+        .hsj-open {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 26px;
+          height: 26px;
+          border-radius: 8px;
+          flex-shrink: 0;
+          color: var(--text-slate-400);
+          background: var(--bg-slate-50);
+          transition:
+            color 0.15s ease,
+            background 0.15s ease;
+        }
+        .hsj:hover .hsj-open {
           color: ${PALETTE.blue};
           background: ${TINT.blue};
-          padding: 2px 6px;
-          border-radius: 4px;
         }
-        .hotspot-company {
+
+        .hsj-badges {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 12px;
-          color: var(--text-slate-600);
-          font-weight: 500;
+          flex-wrap: wrap;
         }
-        .hotspot-card-body {
-          padding: 12px 16px;
-          flex: 1;
+        .hsj-mode {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 3px 9px;
+          border-radius: 100px;
+          letter-spacing: 0.01em;
         }
-        .hotspot-info-grid {
+        .hsj-code {
+          font-size: 10.5px;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 6px;
+          color: var(--text-slate-400);
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          font-variant-numeric: tabular-nums;
+        }
+
+        /* Two columns so the four facts line up as a block the eye can scan,
+           rather than a ragged wrapped row. */
+        .hsj-meta {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-bottom: 12px;
+          gap: 8px 12px;
         }
-        .hotspot-info-item {
+        .hsj-meta-item {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 12px;
-          color: var(--text-slate-700);
+          min-width: 0;
+          font-size: 12.5px;
           font-weight: 500;
+          color: var(--text-slate-700);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
-        .hotspot-info-icon {
-          color: var(--text-slate-400);
-        }
-        .hotspot-tags {
+
+        .hsj-skills {
           display: flex;
           flex-wrap: wrap;
-          gap: 4px;
+          gap: 5px;
         }
-        .hotspot-tag {
-          font-size: 10px;
+        .hsj-skill {
+          font-size: 10.5px;
           font-weight: 600;
           color: var(--text-slate-600);
-          background: var(--bg-slate-100);
-          padding: 2px 8px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          padding: 3px 9px;
           border-radius: 100px;
         }
-        .hotspot-card-footer {
-          padding: 10px 16px;
-          border-top: 1px solid var(--border-slate-100);
+        .hsj-skill.is-more {
+          color: var(--text-slate-400);
+        }
+
+        .hsj-foot {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 18px;
+          border-top: 1px solid var(--border-slate-100);
           background: var(--bg-slate-50);
         }
-        .hotspot-posted-time {
+        .hsj-posted {
           font-size: 11px;
-          color: var(--text-slate-500);
           font-weight: 500;
+          color: var(--text-slate-400);
         }
       `}</style>
-    </div>
+    </article>
   );
 }

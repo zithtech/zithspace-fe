@@ -1,7 +1,7 @@
 "use client";
 
 import React, { type ReactNode } from "react";
-import { Drawer, Typography, Button, Collapse, Tooltip, Avatar, Tag } from "antd";
+import { Drawer, Button, Tooltip, Avatar } from "antd";
 import { History, User, RefreshCw, X, Inbox } from "lucide-react";
 import {
   PlusCircleOutlined,
@@ -172,8 +172,13 @@ function expandDiff(field: string, before: unknown, after: unknown): Array<{ key
   return changed.slice(0, 8).map(k => ({ key: k, bv: (bObj ?? {})[k], av: (aObj ?? {})[k] }));
 }
 
-/* ─────────────────── HistoryRow (ticket-timeline style) ─────────────────── */
-function HistoryRow({ row, isLast }: { row: TransactionRow; isLast: boolean }) {
+/* ─────────────────── HistoryRow (flat timeline entry) ───────────────────── */
+/**
+ * Deliberately card-less: one hairline rail, one avatar per entry, and type set
+ * in a strict hierarchy. Colour is carried by a single 7px status dot and the
+ * action word — no boxes, borders or shadows competing with the content.
+ */
+function HistoryRow({ row }: { row: TransactionRow }) {
   const created = dayjs(row.createdAt);
   const st = actionStyle(row.action);
   const singleField =
@@ -187,53 +192,41 @@ function HistoryRow({ row, isLast }: { row: TransactionRow; isLast: boolean }) {
   return (
     <div className="thd-item">
       <div className="thd-rail">
-        <span
-          className="thd-rail-dot"
-          style={{
-            background: st.bg,
-            color: st.color,
-            borderColor: st.border,
-            boxShadow: `0 0 0 3px var(--bg-pure-white), 0 0 0 4px ${st.bg}`
-          }}
-        >
-          {st.icon}
+        <span className="thd-avatar-wrap">
+          <Avatar
+            size={24}
+            // antd prefers `icon` over children, so only fall back to the glyph
+            // when there is no name/email to derive initials from.
+            icon={row.actor?.name || row.actor?.email ? undefined : <UserOutlined />}
+            src={(row.actor as any)?.avatarUrl || (row.actor as any)?.avatar}
+            style={{
+              backgroundColor: row.actor?.name ? "rgba(59,130,246,0.12)" : "rgba(100,116,139,0.12)",
+              color: row.actor?.name ? "#2563eb" : "#64748b",
+              fontSize: 9.5,
+              fontWeight: 700,
+            }}
+          >
+            {initials(row.actor?.name, row.actor?.email)}
+          </Avatar>
+          <Tooltip title={st.label}>
+            <span className="thd-status-dot" style={{ background: st.dot }} />
+          </Tooltip>
         </span>
       </div>
 
-      <div className="thd-card" style={{ borderLeft: `2px solid ${st.color}` }}>
+      <div className="thd-body">
         <div className="thd-row-top">
-          <div className="thd-actor-wrap">
-            <Avatar
-              size={22}
-              icon={<UserOutlined />}
-              src={(row.actor as any)?.avatarUrl || (row.actor as any)?.avatar}
-              style={{
-                backgroundColor: row.actor?.name ? '#3b82f6' : '#94a3b8',
-                fontSize: 10,
-                fontWeight: 700,
-              }}
-            >
-              {initials(row.actor?.name, row.actor?.email)}
-            </Avatar>
-            <span className="thd-actor">{actorName}</span>
-            <span
-              className="thd-pill"
-              style={{ color: st.color, background: st.bg, borderColor: st.border }}
-            >
-              {st.label}
-            </span>
-          </div>
+          <span className="thd-actor">{actorName}</span>
+          <span className="thd-action" style={{ color: st.color }}>{st.label}</span>
           <Tooltip title={created.format("MMM D, YYYY · h:mm:ss A")}>
             <span className="thd-time">{created.fromNow()}</span>
           </Tooltip>
         </div>
 
-        <div className="thd-label" style={{ marginTop: 8 }}>
-          <span>{displayLabel}</span>
-        </div>
+        <div className="thd-label">{displayLabel}</div>
 
         {row.action === "update" && (
-          <div style={{ marginTop: 4 }}>
+          <div className="thd-diff">
             {singleField ? (
               <InlineDiff row={row} field={singleField} />
             ) : (
@@ -285,17 +278,18 @@ export default function TransactionHistoryDrawer({
       className="thd-drawer"
       styles={{
         header: { display: "none" },
-        body: { padding: 0, display: "flex", flexDirection: "column", background: "var(--bg-slate-50, #f8fafc)" },
+        body: { padding: 0, display: "flex", flexDirection: "column", background: "var(--bg-pure-white, #fff)" },
       }}
     >
       <style>{styles}</style>
 
-      {/* Header */}
+      {/* Header — typographic, no tile or gradient */}
       <header className="thd-head">
-        <span className="thd-head-icon">
-          <History size={17} strokeWidth={2} />
-        </span>
         <div className="thd-head-text">
+          <div className="thd-eyebrow">
+            <History size={12} strokeWidth={2.2} />
+            <span>Activity</span>
+          </div>
           <div className="thd-head-title-row">
             <span className="thd-head-title">{title}</span>
             {rows.length > 0 && (
@@ -304,19 +298,21 @@ export default function TransactionHistoryDrawer({
           </div>
           <div className="thd-head-sub">{subtitle || "Chronological record of every change"}</div>
         </div>
-        <Tooltip title="Refresh">
-          <button
-            type="button"
-            className={`thd-head-btn${loading ? " is-spin" : ""}`}
-            onClick={() => refresh()}
-            aria-label="Refresh"
-          >
-            <RefreshCw size={15} />
+        <div className="thd-head-actions">
+          <Tooltip title="Refresh">
+            <button
+              type="button"
+              className={`thd-head-btn${loading ? " is-spin" : ""}`}
+              onClick={() => refresh()}
+              aria-label="Refresh"
+            >
+              <RefreshCw size={15} />
+            </button>
+          </Tooltip>
+          <button type="button" className="thd-head-btn" onClick={onClose} aria-label="Close">
+            <X size={16} />
           </button>
-        </Tooltip>
-        <button type="button" className="thd-head-btn" onClick={onClose} aria-label="Close">
-          <X size={16} />
-        </button>
+        </div>
       </header>
 
       {/* Body */}
@@ -335,14 +331,14 @@ export default function TransactionHistoryDrawer({
           </div>
         ) : error ? (
           <div className="thd-state">
-            <span className="thd-state-icon thd-state-icon--err"><User size={26} strokeWidth={1.6} /></span>
-            <div className="thd-state-title">Couldn't load activity</div>
+            <span className="thd-state-icon thd-state-icon--err"><User size={20} strokeWidth={1.6} /></span>
+            <div className="thd-state-title">Couldn&apos;t load activity</div>
             <div className="thd-state-sub">{error}</div>
             <Button size="small" onClick={() => refresh()} className="thd-retry">Try again</Button>
           </div>
         ) : rows.length === 0 ? (
           <div className="thd-state">
-            <span className="thd-state-icon"><Inbox size={26} strokeWidth={1.6} /></span>
+            <span className="thd-state-icon"><Inbox size={20} strokeWidth={1.6} /></span>
             <div className="thd-state-title">No activity yet</div>
             <div className="thd-state-sub">Changes to this record will appear here.</div>
           </div>
@@ -351,21 +347,20 @@ export default function TransactionHistoryDrawer({
             {(() => {
               let lastKey = "";
               const nodes: ReactNode[] = [];
-              rows.forEach((row, idx) => {
+              rows.forEach((row) => {
                 const d = dayjs(row.createdAt);
                 const key = d.format("YYYY-MM-DD");
                 if (key !== lastKey) {
+                  const isFirst = lastKey === "";
                   lastKey = key;
                   nodes.push(
-                    <div className="thd-day" key={`day-${key}`}>
+                    <div className={`thd-day${isFirst ? " is-first" : ""}`} key={`day-${key}`}>
                       <span className="thd-day-label">{dayLabel(d)}</span>
                       <span className="thd-day-line" />
                     </div>
                   );
                 }
-                nodes.push(
-                  <HistoryRow key={row.id} row={row} isLast={idx === rows.length - 1} />
-                );
+                nodes.push(<HistoryRow key={row.id} row={row} />);
               });
               return nodes;
             })()}
@@ -399,158 +394,124 @@ interface Props {
 const styles = `
   .thd-drawer .ant-drawer-body { overflow: hidden !important; }
 
-  /* Header */
+  /* ── Header: typographic, hairline separated ─────────────────────────── */
   .thd-head {
-    display: flex; align-items: center; gap: 12px;
-    padding: 16px 18px;
-    background: radial-gradient(120% 140% at 0% 0%, rgba(59,130,246,0.06) 0%, transparent 55%), var(--bg-pure-white, #fff);
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 20px 22px 16px;
+    background: var(--bg-pure-white, #fff);
     border-bottom: 1px solid var(--border-slate-200, #e2e8f0);
     flex-shrink: 0;
   }
-  .thd-head-icon {
-    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: #fff;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    box-shadow: 0 4px 12px -4px rgba(29,78,216,0.5);
-  }
   .thd-head-text { flex: 1; min-width: 0; }
-  .thd-head-title-row { display: flex; align-items: center; gap: 8px; }
-  .thd-head-title { font-size: 14.5px; font-weight: 800; color: var(--text-slate-900, #0f172a); letter-spacing: -0.02em; }
-  .thd-head-count {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 20px; height: 18px; padding: 0 6px; border-radius: 999px;
-    font-size: 11px; font-weight: 800; color: #1d4ed8;
-    background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+  .thd-eyebrow {
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-slate-400, #94a3b8);
   }
-  .thd-head-sub { font-size: 11px; color: var(--text-slate-500, #64748b); margin-top: 1px; }
+  .thd-head-title-row { display: flex; align-items: baseline; gap: 8px; }
+  .thd-head-title {
+    font-size: 16px; font-weight: 650; letter-spacing: -0.02em;
+    color: var(--text-slate-900, #0f172a);
+  }
+  .thd-head-count { font-size: 12px; font-weight: 600; color: var(--text-slate-400, #94a3b8); }
+  .thd-head-sub { font-size: 11.5px; color: var(--text-slate-500, #64748b); margin-top: 3px; line-height: 1.5; }
+  .thd-head-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
   .thd-head-btn {
-    width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px;
-    border: 1px solid var(--border-slate-200, #e2e8f0);
-    background: var(--bg-slate-50, #f8fafc); color: var(--text-slate-500, #64748b);
+    width: 30px; height: 30px; border-radius: 8px;
+    border: none; background: transparent;
+    color: var(--text-slate-400, #94a3b8);
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: all .15s ease;
+    transition: color .15s ease, background .15s ease;
   }
-  .thd-head-btn:hover { color: #3b82f6; border-color: #bfdbfe; background: #eff6ff; }
+  .thd-head-btn:hover { color: var(--text-slate-700, #334155); background: var(--bg-slate-50, #f8fafc); }
   .thd-head-btn.is-spin svg { animation: thd-spin 0.9s linear infinite; }
   @keyframes thd-spin { to { transform: rotate(360deg); } }
 
-  /* Scroll */
-  .thd-scroll { flex: 1; overflow-y: auto; padding: 16px 18px 24px; }
-  .thd-scroll::-webkit-scrollbar { width: 6px; }
+  /* ── Scroll area ─────────────────────────────────────────────────────── */
+  .thd-scroll { flex: 1; overflow-y: auto; padding: 4px 22px 28px; }
+  .thd-scroll::-webkit-scrollbar { width: 5px; }
   .thd-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200, #e2e8f0); border-radius: 4px; }
+  .thd-scroll::-webkit-scrollbar-track { background: transparent; }
 
-  /* Day divider */
-  .thd-day {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 14px; margin-top: 6px;
-    padding-left: 44px;
-  }
+  /* ── Day divider: label + hairline, no chip ──────────────────────────── */
+  .thd-day { display: flex; align-items: center; gap: 12px; padding: 22px 0 10px 38px; }
+  .thd-day.is-first { padding-top: 16px; }
   .thd-day-label {
-    font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--text-slate-500, #64748b);
-    background: var(--bg-pure-white, #fff);
-    border: 1px solid var(--border-slate-200, #e2e8f0);
-    padding: 2px 10px; border-radius: 999px;
-    white-space: nowrap;
-    line-height: 1.4;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-slate-400, #94a3b8); white-space: nowrap;
   }
-  .thd-day-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-slate-200, #e2e8f0), transparent); }
+  .thd-day-line { flex: 1; height: 1px; background: var(--border-slate-200, #e2e8f0); opacity: .7; }
 
+  /* ── Timeline entry: flat, card-less ─────────────────────────────────── */
+  .thd-timeline { position: relative; }
   .thd-item {
-    display: flex;
-    gap: 16px;
-    position: relative;
+    display: flex; gap: 14px; position: relative;
+    padding: 11px 10px 11px 8px;
+    margin: 0 -10px 0 -8px;
+    border-radius: 10px;
+    transition: background .15s ease;
   }
-  .thd-rail {
-    position: relative;
-    width: 28px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-  }
+  .thd-item:hover { background: var(--bg-slate-50, #f8fafc); }
+
+  .thd-rail { position: relative; width: 24px; flex-shrink: 0; display: flex; justify-content: center; }
+  /* One continuous hairline threading the entries together. */
   .thd-rail::after {
-    content: '';
-    position: absolute;
-    top: 36px;
-    bottom: -14px;
-    width: 2px;
-    background: var(--border-slate-200, #e2e8f0);
+    content: ''; position: absolute; top: 30px; bottom: -22px;
+    width: 1px; background: var(--border-slate-200, #e2e8f0);
   }
   .thd-item:last-child .thd-rail::after { display: none; }
 
-  .thd-rail-dot {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-    border: 1px solid transparent;
-    transition: transform 0.18s ease;
-    margin-top: 8px;
+  .thd-avatar-wrap { position: relative; height: 24px; z-index: 1; }
+  .thd-avatar-wrap .ant-avatar { border: none; }
+  /* The only colour on the row: a 7px dot typing the action. */
+  .thd-status-dot {
+    position: absolute; right: -1px; bottom: -1px;
+    width: 7px; height: 7px; border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--bg-pure-white, #fff);
   }
-  .thd-item:hover .thd-rail-dot {
-    transform: scale(1.08);
-  }
+  .thd-item:hover .thd-status-dot { box-shadow: 0 0 0 2px var(--bg-slate-50, #f8fafc); }
 
-  .thd-card {
-    flex: 1;
-    min-width: 0;
-    background: var(--bg-pure-white);
-    border: 1px solid var(--border-slate-200);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 14px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    transition: all 0.18s ease;
-  }
-  .thd-card:hover {
-    box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
-    border-color: #cbd5e1;
-    transform: translateX(2px);
-  }
-
-  .thd-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .thd-actor-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-  .thd-actor {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  .thd-pill {
-    display: inline-flex;
-    align-items: center;
-    height: 19px;
-    padding: 0 8px;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+  .thd-body { flex: 1; min-width: 0; padding-top: 1px; }
+  .thd-row-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .thd-actor { font-size: 12.5px; font-weight: 650; color: var(--text-primary); letter-spacing: -0.01em; }
+  .thd-action {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
   }
   .thd-time { font-size: 11px; color: var(--text-slate-400, #94a3b8); white-space: nowrap; margin-left: auto; }
   .thd-label {
-    margin-top: 5px;
-    font-size: 12.5px;
-    color: var(--text-slate-600);
-    line-height: 1.5;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: baseline;
+    margin-top: 3px;
+    font-size: 12.5px; line-height: 1.55;
+    color: var(--text-slate-600, #475569);
+  }
+  .thd-diff { margin-top: 7px; }
+
+  /* ── Change rows inside this drawer: chips only, no container ────────── */
+  .thd-drawer .activity-change-row {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0;
+    gap: 7px;
+  }
+  .thd-drawer .activity-change-row__field {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-slate-400, #94a3b8);
+  }
+  .thd-drawer .activity-change-row__tag.ant-tag {
+    font-size: 11px; font-weight: 600; border-radius: 5px;
+    padding: 0 7px; line-height: 18px;
+  }
+  .thd-drawer .activity-change-row__tag--from.ant-tag {
+    background: transparent;
+    color: var(--text-slate-400, #94a3b8);
+    padding-left: 0;
+  }
+  .thd-drawer .activity-change-row__tag--to.ant-tag {
+    background: rgba(16, 185, 129, 0.10);
+    color: #047857;
   }
 
-  /* ---------- Change Row styling ---------- */
+  /* ---------- Change Row defaults (shared by other activity views) ------ */
   .activity-change-row {
     display: inline-flex;
     align-items: center;
@@ -592,11 +553,7 @@ const styles = `
   .thd-collapse.ant-collapse { margin-top: 6px; }
   .thd-collapse .ant-collapse-header { padding: 4px 0 !important; }
   .thd-collapse .ant-collapse-content-box { padding: 0 !important; }
-  .thd-raw-toggle {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-slate-400);
-  }
+  .thd-raw-toggle { font-size: 11px; font-weight: 600; color: var(--text-slate-400); }
   .thd-raw-toggle:hover { color: #3b82f6; }
   .thd-raw { font-size: 11px; line-height: 1.5; }
   .ax-raw-pre {
@@ -618,48 +575,59 @@ const styles = `
     color: rgba(255, 255, 255, 0.45) !important;
   }
 
-  /* Load more */
-  .thd-loadmore { padding: 8px 0 0; }
+  /* ── Load more: text action, not a button block ──────────────────────── */
+  .thd-loadmore { padding: 18px 0 0; display: flex; justify-content: center; }
   .thd-loadmore-btn.ant-btn {
-    height: 34px !important; border-radius: 8px !important;
-    border: 1px solid var(--border-slate-200, #e2e8f0) !important;
-    background: var(--bg-pure-white, #fff) !important;
-    color: var(--text-slate-600, #475569) !important;
-    font-weight: 600 !important; font-size: 12.5px !important;
+    height: 30px !important; border-radius: 8px !important;
+    border: none !important; background: transparent !important;
+    color: var(--text-slate-500, #64748b) !important;
+    font-weight: 600 !important; font-size: 12px !important;
+    box-shadow: none !important;
   }
-  .thd-loadmore-btn.ant-btn:hover { color: #3b82f6 !important; border-color: #bfdbfe !important; background: #eff6ff !important; }
+  .thd-loadmore-btn.ant-btn:hover {
+    color: var(--text-slate-800, #1e293b) !important;
+    background: var(--bg-slate-50, #f8fafc) !important;
+  }
 
-  /* Timeline rail base */
-  .thd-timeline { position: relative; }
-
-  /* Empty / error */
-  .thd-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 64px 24px; }
+  /* ── Empty / error ───────────────────────────────────────────────────── */
+  .thd-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 72px 24px; }
   .thd-state-icon {
-    width: 52px; height: 52px; border-radius: 14px;
+    width: 44px; height: 44px; border-radius: 50%;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(59,130,246,0.1); color: #3b82f6; margin-bottom: 14px;
+    border: 1px solid var(--border-slate-200, #e2e8f0);
+    background: transparent; color: var(--text-slate-400, #94a3b8);
+    margin-bottom: 14px;
   }
-  .thd-state-icon--err { background: rgba(239,68,68,0.1); color: #ef4444; }
-  .thd-state-title { font-size: 14px; font-weight: 700; color: var(--text-slate-800, #1e293b); }
-  .thd-state-sub { font-size: 12px; color: var(--text-slate-500, #64748b); margin-top: 4px; max-width: 280px; line-height: 1.5; }
-  .thd-retry.ant-btn { margin-top: 14px; border-radius: 8px !important; }
+  .thd-state-icon--err { color: #f87171; border-color: rgba(248, 113, 113, 0.35); }
+  .thd-state-title { font-size: 13.5px; font-weight: 650; color: var(--text-slate-800, #1e293b); }
+  .thd-state-sub { font-size: 12px; color: var(--text-slate-500, #64748b); margin-top: 5px; max-width: 280px; line-height: 1.55; }
+  .thd-retry.ant-btn {
+    margin-top: 16px; border-radius: 8px !important;
+    border-color: var(--border-slate-200, #e2e8f0) !important;
+    font-weight: 600 !important;
+  }
 
-  /* Skeleton */
-  .thd-skel-wrap { padding: 4px 0; }
-  .thd-skel-item { display: flex; gap: 12px; margin-bottom: 18px; align-items: flex-start; }
-  .thd-skel-dot { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+  /* ── Skeleton ────────────────────────────────────────────────────────── */
+  .thd-skel-wrap { padding: 16px 0 4px; }
+  .thd-skel-item { display: flex; gap: 14px; margin-bottom: 22px; align-items: flex-start; }
+  .thd-skel-dot { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; }
   .thd-skel-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding-top: 3px; }
   .thd-shimmer {
-    display: block; border-radius: 6px;
+    display: block; border-radius: 5px;
     background: linear-gradient(90deg, var(--bg-slate-50, #f8fafc) 25%, var(--border-slate-100, #f1f5f9) 37%, var(--bg-slate-50, #f8fafc) 63%);
     background-size: 400% 100%;
     animation: thd-shimmer 1.3s ease infinite;
   }
   @keyframes thd-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 
-  /* Dark mode */
-  [data-theme='dark'] .thd-head,
-  [data-theme='dark'] .thd-card { background: var(--bg-secondary, #141414); border-color: var(--border-slate-100, #303030); }
-  [data-theme='dark'] .thd-diffs { background: #0b0f1a; border-color: #303030; }
-  [data-theme='dark'] .thd-day-label { background: var(--bg-secondary, #141414); border-color: #303030; }
+  /* ── Dark mode ───────────────────────────────────────────────────────── */
+  [data-theme='dark'] .thd-head { background: var(--bg-secondary, #141414); border-color: #303030; }
+  [data-theme='dark'] .thd-item:hover { background: rgba(255, 255, 255, 0.04); }
+  [data-theme='dark'] .thd-rail::after,
+  [data-theme='dark'] .thd-day-line { background: #303030; }
+  [data-theme='dark'] .thd-status-dot { box-shadow: 0 0 0 2px var(--bg-secondary, #141414); }
+  [data-theme='dark'] .thd-item:hover .thd-status-dot { box-shadow: 0 0 0 2px #1d1d1d; }
+  [data-theme='dark'] .thd-state-icon { border-color: #303030; }
+  [data-theme='dark'] .thd-head-btn:hover,
+  [data-theme='dark'] .thd-loadmore-btn.ant-btn:hover { background: rgba(255, 255, 255, 0.06) !important; }
 `;

@@ -39,7 +39,7 @@ export default function ChromeExtensionPage() {
   const [installKeyLoading, setInstallKeyLoading] = useState(true);
   const [generatingKey, setGeneratingKey] = useState(false);
 
-  // Route guard — mirrors the General Settings page.
+  // Route guard — mirrors the System Settings page.
   useEffect(() => {
     if (!authLoading && !canReadSettings) {
       router.push('/dashboard');

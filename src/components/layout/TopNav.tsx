@@ -666,7 +666,7 @@ export default function TopNav({
               title={
                 <div className="navbar-tooltip">
                   <span className="navbar-tooltip-title">Hotspot</span>
-                  <span className="navbar-tooltip-sub">Internal Openings</span>
+                  <span className="navbar-tooltip-sub">Openings, circulation & blogs</span>
                 </div>
               }
               placement="bottom"
@@ -875,7 +875,7 @@ export default function TopNav({
                     key: 'hotspot',
                     label: actionMenuLabel(
                       'Hotspot',
-                      'Internal Openings',
+                      'Openings, circulation & blogs',
                       <Flame size={16} strokeWidth={1.75} />,
                       '#F97316',
                       'rgba(249, 115, 22, 0.12)'

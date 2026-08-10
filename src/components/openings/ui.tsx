@@ -303,6 +303,7 @@ export function PanelHeader({
   onSearch,
   searchPlaceholder = 'Search…',
   hideHamburger = false,
+  sidebarEvent = 'open-openings-sidebar',
   children,
 }: {
   icon: React.ReactNode;
@@ -314,6 +315,8 @@ export function PanelHeader({
   onSearch?: (v: string) => void;
   searchPlaceholder?: string;
   hideHamburger?: boolean;
+  /** Window event the hamburger fires — each module shell listens for its own. */
+  sidebarEvent?: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -322,7 +325,7 @@ export function PanelHeader({
         {!hideHamburger && (
           <button
             className="omp-mobile-toggle"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-openings-sidebar'))}
+            onClick={() => window.dispatchEvent(new CustomEvent(sidebarEvent))}
             aria-label="Open menu"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

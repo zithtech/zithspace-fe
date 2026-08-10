@@ -150,24 +150,25 @@ export default function BlogFeed() {
           ))}
         </div>
 
-        {/* Composer prompt — the "what's on your mind" row every feed opens with. */}
-        <div className="hsb-prompt">
-          {me?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="hsb-prompt-avatar" src={me.avatarUrl} alt="" />
-          ) : (
-            <span
-              className="hsb-prompt-avatar hsb-prompt-initials"
-              style={{ background: avatarColorFor(me?.name || 'You') }}
-            >
-              {initialsFor(me?.name || 'You')}
-            </span>
-          )}
-          <button className="hsb-prompt-btn" onClick={openNew}>
-            Share something with the company…
-          </button>
-          <Button type="text" icon={<ImagePlus size={18} />} onClick={openNew} aria-label="Add photos" />
-        </div>
+        {perms.canCreateHotspotBlog && (
+          <div className="hsb-prompt">
+            {me?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="hsb-prompt-avatar" src={me.avatarUrl} alt="" />
+            ) : (
+              <span
+                className="hsb-prompt-avatar hsb-prompt-initials"
+                style={{ background: avatarColorFor(me?.name || 'You') }}
+              >
+                {initialsFor(me?.name || 'You')}
+              </span>
+            )}
+            <button className="hsb-prompt-btn" onClick={openNew}>
+              Share something with the company…
+            </button>
+            <Button type="text" icon={<ImagePlus size={18} />} onClick={openNew} aria-label="Add photos" />
+          </div>
+        )}
 
         {loading ? (
           <div className="hsb-state">

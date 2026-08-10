@@ -12,6 +12,7 @@ import HotspotBlogService, {
   BlogUser,
 } from '@/services/hotspotBlogService';
 import { REACTION_META, reactorSummary, timeAgo } from './blogMeta';
+import { usePermission } from '@/hooks/usePermission';
 import { MentionHtml } from './mentions';
 import BlogImageGrid from './BlogImageGrid';
 import ReactionBar, { ReactionSummaryChips } from './ReactionBar';
@@ -42,6 +43,7 @@ export default function BlogPostCard({
   onChanged: (post: BlogPost | null) => void;
 }) {
   const { message, modal } = App.useApp();
+  const perms = usePermission() as unknown as Record<string, any>;
 
   const [expanded, setExpanded] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -145,14 +147,14 @@ export default function BlogPostCard({
           </div>
         </div>
 
-        {post.canEdit && (
+        {(perms.canUpdateHotspotBlog || perms.canDeleteHotspotBlog) && (
           <Dropdown
             trigger={['click']}
             menu={{
               items: [
-                { key: 'edit', label: 'Edit', icon: <Pencil size={14} /> },
-                { key: 'delete', label: 'Delete', icon: <Trash2 size={14} />, danger: true },
-              ],
+                perms.canUpdateHotspotBlog ? { key: 'edit', label: 'Edit', icon: <Pencil size={14} /> } : null,
+                perms.canDeleteHotspotBlog ? { key: 'delete', label: 'Delete', icon: <Trash2 size={14} />, danger: true } : null,
+              ].filter(Boolean) as any[],
               onClick: ({ key }) => {
                 if (key === 'edit') onEdit(post);
                 if (key === 'delete') confirmDelete();

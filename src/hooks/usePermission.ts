@@ -431,6 +431,21 @@ export const usePermission = () => {
     canDeleteOpening: hasPermission(Permissions.OPENING_DELETE),
     canManageOpenings: hasPermission(Permissions.OPENING_MANAGE),
 
+    // ─── Hotspot ────────────────────────────────────────────────────
+    canReadHotspotOpening:     hasPermission(Permissions.HOTSPOT_OPENING_READ),
+    canCreateHotspotOpening:   hasPermission(Permissions.HOTSPOT_OPENING_CREATE),
+    
+    canReadHotspotCirculation:   hasPermission(Permissions.HOTSPOT_CIRCULATION_READ),
+    canCreateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_CREATE),
+    canUpdateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_UPDATE),
+    canDeleteHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_DELETE),
+    canPinHotspotCirculation:    hasPermission(Permissions.HOTSPOT_CIRCULATION_PIN),
+    
+    canReadHotspotBlog:   hasPermission(Permissions.HOTSPOT_BLOG_READ),
+    canCreateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_CREATE),
+    canUpdateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_UPDATE),
+    canDeleteHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_DELETE),
+
     // ─── User Profile ───────────────────────────────────────────────
     canCreateProfile: hasPermission(Permissions.PROFILE_CREATE),
     canReadProfile:   hasPermission(Permissions.PROFILE_READ),

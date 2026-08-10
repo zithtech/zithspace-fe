@@ -441,6 +441,19 @@ export const Permissions = {
   OPENING_DELETE: 'opening.delete',
   OPENING_MANAGE: 'opening.manage', // external career portal settings, hiring workflows, and ATS config
 
+  // Hotspot
+  HOTSPOT_OPENING_READ: 'hotspot.opening.read',
+  HOTSPOT_OPENING_CREATE: 'hotspot.opening.create',
+  HOTSPOT_CIRCULATION_READ: 'hotspot.circulation.read',
+  HOTSPOT_CIRCULATION_CREATE: 'hotspot.circulation.create',
+  HOTSPOT_CIRCULATION_UPDATE: 'hotspot.circulation.update',
+  HOTSPOT_CIRCULATION_DELETE: 'hotspot.circulation.delete',
+  HOTSPOT_CIRCULATION_PIN: 'hotspot.circulation.pin',
+  HOTSPOT_BLOG_READ: 'hotspot.blog.read',
+  HOTSPOT_BLOG_CREATE: 'hotspot.blog.create',
+  HOTSPOT_BLOG_UPDATE: 'hotspot.blog.update',
+  HOTSPOT_BLOG_DELETE: 'hotspot.blog.delete',
+
   // User Profile
   PROFILE_CREATE: 'profile.create',
   PROFILE_READ:   'profile.read',

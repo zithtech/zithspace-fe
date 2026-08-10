@@ -1,13 +1,8 @@
 import React from 'react';
 import { Briefcase, Megaphone, Newspaper } from 'lucide-react';
 import { PALETTE } from '@/components/openings/ui';
+import { Permissions, Permission } from '@/types/permissions';
 
-// Single source of truth for the Hotspot left-rail.
-//
-// Unlike the Opening Management rail, nothing here is permission-gated:
-// Hotspot is the employee-facing surface — the internal job board and the
-// company noticeboard — and every authenticated employee sees both pages.
-// Backend authorisation still decides what a caller may *write*.
 export interface HotspotNavItem {
   key: string;
   label: string;
@@ -15,6 +10,7 @@ export interface HotspotNavItem {
   icon: React.ReactNode;
   color: string;
   hint: string;
+  permission?: Permission;
 }
 
 export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
@@ -25,6 +21,7 @@ export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
     icon: <Briefcase size={16} />,
     color: PALETTE.blue,
     hint: 'Internal roles you can apply to',
+    permission: Permissions.HOTSPOT_OPENING_READ,
   },
   {
     key: 'circulation',
@@ -33,6 +30,7 @@ export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
     icon: <Megaphone size={16} />,
     color: PALETTE.green,
     hint: 'Company-wide updates',
+    permission: Permissions.HOTSPOT_CIRCULATION_READ,
   },
   {
     key: 'blogs',
@@ -41,5 +39,6 @@ export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
     icon: <Newspaper size={16} />,
     color: PALETTE.blue,
     hint: 'Share, tag, react, discuss',
+    permission: Permissions.HOTSPOT_BLOG_READ,
   },
 ];

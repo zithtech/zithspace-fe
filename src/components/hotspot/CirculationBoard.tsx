@@ -249,9 +249,11 @@ export default function CirculationBoard() {
           />
         </div>
 
-        <Button type="primary" icon={<Plus size={15} />} onClick={openNew}>
-          New Update
-        </Button>
+        {perms.canCreateHotspotCirculation && (
+          <Button type="primary" icon={<Plus size={15} />} onClick={openNew}>
+            New Update
+          </Button>
+        )}
       </PanelHeader>
 
       <div className="hsc-col">

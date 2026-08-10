@@ -84,8 +84,8 @@ const DASHBOARD_CARDS: Array<{
   { key: "submitted", label: "Submitted", icon: Send, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", sub: "awaiting action", statuses: ["Submitted", "Under Review"] },
   { key: "retesting", label: "Retesting", icon: RefreshCcw, color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sub: "validating fixes", statuses: ["Retesting"] },
   { key: "ready_for_signoff", label: "Ready for Sign-off", icon: CheckCircle2, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", sub: "testing complete", statuses: ["Ready for QA Sign-off"] },
-  { key: "qa_signed_off", label: "QA Signed-off", icon: ShieldCheck, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "awaiting approval", statuses: ["QA Signed-off"] },
-  { key: "approved", label: "Approved", icon: ThumbsUp, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "accepted by the approver", statuses: ["Approved"] },
+  { key: "approved", label: "Approved", icon: ThumbsUp, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "accepted — awaiting QA sign-off", statuses: ["Approved"] },
+  { key: "qa_signed_off", label: "QA Signed-off", icon: ShieldCheck, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "closed by QA", statuses: ["QA Signed-off"] },
   { key: "sent_back", label: "Sent Back", icon: Undo2, color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sub: "needs QA attention", statuses: ["Sent Back"] },
 ];
 

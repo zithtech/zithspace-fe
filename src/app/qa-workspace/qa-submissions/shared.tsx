@@ -80,8 +80,8 @@ export const STATUS_HELP: Record<SubmissionStatus, string> = {
   "Under Review": "The reviewer is going through the reported results.",
   Retesting: "Development fixes are available and QA is validating them.",
   "Ready for QA Sign-off": "Required testing and retesting are complete.",
-  "QA Signed-off": "QA has given its final recommendation for this scope.",
-  Approved: "The approver has accepted the QA result.",
+  "QA Signed-off": "QA has closed this submission with its final recommendation.",
+  Approved: "The approver has accepted the QA result — QA's sign-off closes it.",
   "Sent Back": "Returned to QA with a reason — see the timeline.",
 };
 
@@ -471,6 +471,16 @@ export const QA_SUBMISSION_STYLES = `
 .qs-scopecard { padding: 12px 14px; border: 1px solid rgba(59,130,246,.22); background: rgba(59,130,246,.06); display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px 18px; }
 .qs-scopecard dt { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #2563eb; margin-bottom: 3px; }
 .qs-scopecard dd { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800); }
+/* The card doubles as the way into the scope drawer, so it has to look like it
+   can be pressed rather than only revealing that on hover. */
+.qs-scopecard.is-clickable { cursor: pointer; outline: none; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+.qs-scopecard.is-clickable:hover { border-color: rgba(59,130,246,.45); background: rgba(59,130,246,.1); }
+.qs-scopecard.is-clickable:focus-visible { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+
+/* A value in a fact grid that opens something. */
+.qs-inlinelink { padding: 0; border: none; background: none; font: inherit; color: #2563eb; font-weight: 600; cursor: pointer; text-align: left; border-bottom: 1px solid rgba(37,99,235,.28); transition: border-color .15s ease, color .15s ease; }
+.qs-inlinelink:hover { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+.qs-inlinelink:focus-visible { outline: 2px solid rgba(59,130,246,.4); outline-offset: 2px; }
 
 /* ── Warnings (§17) ───────────────────────────────────────────────── */
 .qs-warn { display: flex; align-items: flex-start; gap: 9px; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; border: 1px solid; margin-bottom: 8px; }
@@ -487,6 +497,9 @@ export const QA_SUBMISSION_STYLES = `
 .qs-runrow:last-child { margin-bottom: 0; }
 .qs-runrow.is-selected { border-color: #3b82f6; background: rgba(59,130,246,.04); }
 .qs-runrow.is-disabled { opacity: .55; }
+.qs-runrow.is-clickable { cursor: pointer; outline: none; }
+.qs-runrow.is-clickable:hover { border-color: #bfdbfe; background: var(--bg-slate-50); }
+.qs-runrow.is-clickable:focus-visible { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
 .qs-runrow__body { flex: 1; min-width: 0; }
 .qs-runrow__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .qs-runrow__name { font-size: 13px; font-weight: 650; color: var(--text-slate-900); }

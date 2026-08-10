@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { SearchableDropdownOption } from '@/components/common/SearchableDropdown';
 import { DepartmentService } from '@/services/departmentService';
-import { CompanyLocationService } from '@/services/companyLocationService';
+import { CompanyDetailsService } from '@/services/companyDetailsService';
 import { employmentTypeService } from '@/services/employmentTypeService';
 import { MembersService } from '@/services/membersService';
 import { ProjectService } from '@/services/projectService';
@@ -65,7 +65,7 @@ export function useReferenceData(enabled = true): ReferenceData {
         await Promise.all([
           settle(DepartmentService.getAll(), [] as any),
           settle(SubDepartmentService.getAll(), [] as any),
-          settle(CompanyLocationService.getAll(), [] as any),
+          settle(CompanyDetailsService.getBranches(), [] as any),
           settle(employmentTypeService.getAll(), [] as any),
           settle(MembersService.getMembers({ limit: 500 } as any), { data: [] } as any),
           settle(ProjectService.getProjects({ limit: 500 } as any), { data: [] } as any),
@@ -91,8 +91,9 @@ export function useReferenceData(enabled = true): ReferenceData {
         })),
         locations: toArray(locations).map((l: any) => ({
           value: l.id,
-          label: [l.city, l.state, l.country].filter(Boolean).join(', ') || 'Location',
-          description: [l.area, l.street].filter(Boolean).join(', ') || undefined,
+          label: l.branchName || [l.city, l.state, l.country].filter(Boolean).join(', ') || 'Branch',
+          description:
+            [l.city, l.state, l.country].filter(Boolean).join(', ') || undefined,
         })),
         employmentTypes: toArray(employmentTypes).map((t: any) => ({
           value: t.id,

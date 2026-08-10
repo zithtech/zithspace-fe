@@ -53,7 +53,7 @@ import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position as PositionType } from '@/services/positionService';
 import { MembersService } from '@/services/membersService';
 import { OpeningManagementService, OpeningManagement } from '@/services/openingManagementService';
-import { CompanyLocationService, CompanyLocation } from '@/services/companyLocationService';
+import { CompanyDetailsService, CompanyBranch } from '@/services/companyDetailsService';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -77,7 +77,7 @@ export default function OpeningManagementPage() {
     const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
     const [positions, setPositions] = useState<PositionType[]>([]);
     const [members, setMembers] = useState<any[]>([]);
-    const [locations, setLocations] = useState<CompanyLocation[]>([]);
+    const [locations, setLocations] = useState<CompanyBranch[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -101,7 +101,7 @@ export default function OpeningManagementPage() {
                 GradeService.getAllGrades(),
                 PositionService.getAll(),
                 MembersService.getMembersForSelect(),
-                CompanyLocationService.getAll(),
+                CompanyDetailsService.getBranches(),
             ]);
 
             setGrades(Array.isArray(gradesData) ? gradesData : (gradesData as any).data || []);
@@ -693,7 +693,7 @@ export default function OpeningManagementPage() {
                                             <Select placeholder="Select office" style={{ height: 44 }}>
                                                 {locations.map((loc) => (
                                                     <Option key={loc.id} value={loc.id}>
-                                                        {[loc.city, loc.country].filter(Boolean).join(', ') || loc.id}
+                                                        {loc.branchName || [loc.city, loc.country].filter(Boolean).join(', ') || loc.id}
                                                     </Option>
                                                 ))}
                                             </Select>

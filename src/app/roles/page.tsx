@@ -86,7 +86,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   invoice: "Invoices",
   account: "Accounts & Finance",
   client: "Clients / CRM",
-  settings: "General Settings",
+  settings: "System Settings",
   role: "Roles & RBAC",
   report: "Reports / Analytics",
   reimbursement: "Reimbursements",
@@ -322,14 +322,14 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'letter',
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'escalation', 'letter',
       'letter_template',
       'letter.format'
     ],
@@ -408,11 +408,11 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
   },
   {
     title: "HRMS",
-    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile"]
+    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile", "escalation"]
   },
   {
     title: "Finance",

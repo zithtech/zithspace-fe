@@ -28,6 +28,7 @@ import {
   Boxes,
   PlayCircle,
   FileCheck2,
+  ThumbsUp,
   // Timesheet / Time tracking
   CalendarClock,
   Gauge,
@@ -319,6 +320,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.QA_RUN_READ,
           Permissions.BUG_READ,
           Permissions.QA_SUBMISSION_READ,
+          Permissions.QA_APPROVAL_READ,
+          Permissions.QA_APPROVAL_APPROVE,
           Permissions.QA_ANALYTICS_READ,
         ],
         children: [
@@ -363,6 +366,17 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: I(FileCheck2),
             path: "/qa-workspace/qa-submissions",
             requiredPermission: Permissions.QA_SUBMISSION_READ,
+          },
+          {
+            key: "/qa-workspace/approvals",
+            label: "Approvals",
+            icon: I(ThumbsUp),
+            path: "/qa-workspace/approvals",
+            requiredAnyPermission: [
+              Permissions.QA_APPROVAL_READ,
+              Permissions.QA_APPROVAL_APPROVE,
+              Permissions.QA_MANAGE,
+            ],
           },
           {
             key: "/qa-workspace/analytics",

@@ -9,7 +9,7 @@ export default function HotspotPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/hotspot/openings');
+    router.replace('/hotspot/circulation');
   }, [router]);
 
   return null;

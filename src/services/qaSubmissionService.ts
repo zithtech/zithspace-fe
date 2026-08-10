@@ -27,6 +27,21 @@ export const SUBMISSION_STATUSES = [
 ] as const;
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 
+/**
+ * What the Approvals page treats as "reported and waiting on the approver".
+ *
+ * A Draft has nothing to accept yet; Approved is already accepted and now waits
+ * on QA's closing sign-off; QA Signed-off is finished; Sent Back is with QA
+ * again. None of the four belong in the queue, but each can still be asked for
+ * explicitly through the sidebar.
+ */
+export const AWAITING_APPROVAL_STATUSES: SubmissionStatus[] = [
+  "Submitted",
+  "Under Review",
+  "Retesting",
+  "Ready for QA Sign-off",
+];
+
 export const SUBMISSION_TYPES = [
   "Testing Completion",
   "Regression Submission",
@@ -306,7 +321,8 @@ export interface SubmissionFilters {
   search?: string;
   scopeId?: string;
   qaOwnerId?: string;
-  status?: SubmissionStatus;
+  /** One status, or several comma-separated — the server accepts both. */
+  status?: SubmissionStatus | string;
   recommendation?: QaRecommendation;
   from?: string;
   to?: string;
@@ -492,6 +508,29 @@ class QaSubmissionService {
       { prompt },
     );
     return res.data.data.text;
+  }
+
+  // ─── Drawer lookups ────────────────────────────────────────────────
+  /**
+   * A linked run and its scope are only read when someone actually opens one,
+   * so the submission page stays a single request. Both hit the owning module's
+   * own endpoint rather than duplicating those queries here.
+   */
+  static async getRunDetail(
+    runId: string,
+    params: { page?: number; pageSize?: number; search?: string; status?: string } = {},
+  ): Promise<any> {
+    const res = await apiClient.get<{ success: boolean; data: any }>(`/api/v2/qa/runs/${runId}`, {
+      params,
+    });
+    return res.data.data;
+  }
+
+  static async getScopeDetail(scopeId: string): Promise<any> {
+    const res = await apiClient.get<{ success: boolean; data: any }>(
+      `/api/v2/qa/test-scopes/${scopeId}`,
+    );
+    return res.data.data;
   }
 
   static async polishText(text: string): Promise<string> {

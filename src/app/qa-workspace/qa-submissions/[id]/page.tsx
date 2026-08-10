@@ -4,10 +4,10 @@
  * QA Submission detail (§30) — the structured, read-only record.
  *
  * Also the home of the three workflow actions, which stay deliberately
- * separate (§22):
+ * separate (§22) and run in this order:
  *   Submit       report the current results, open bugs and all
- *   QA Sign-off  QA's final recommendation, after retesting
  *   Approval     business acceptance by the named approver
+ *   QA Sign-off  QA's closing recommendation — only once it is approved
  *
  * Once signed off, everything shown here comes from the frozen snapshot taken
  * at that moment (§24) — later run activity is reported separately rather than
@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Info,
   Plus,
+  PanelRightOpen,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -47,8 +48,9 @@ import QaSubmissionService, {
   type FailedCase,
   type KnownIssue,
   type SubmissionDetail,
-  type SubmissionStatus,
 } from "@/services/qaSubmissionService";
+import { TestRunDrawer, TestScopeDrawer } from "../DetailDrawers";
+import KnownIssueModal from "../KnownIssueModal";
 import {
   EmptyNote,
   MetricCell,
@@ -153,6 +155,15 @@ export default function QaSubmissionDetailPage() {
   const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
 
+  /**
+   * The run and scope drawers. Only the id is held here — each drawer fetches
+   * its own record the first time it is opened, so nothing is loaded for a
+   * reviewer who never opens one.
+   */
+  const [runDrawerId, setRunDrawerId] = useState<string | null>(null);
+  const [runDrawerOpen, setRunDrawerOpen] = useState(false);
+  const [scopeDrawerOpen, setScopeDrawerOpen] = useState(false);
+
   const [caseModal, setCaseModal] = useState<CaseModalState>(null);
   const [issueModal, setIssueModal] = useState<Partial<KnownIssue> | null>(null);
   const [attachmentOpen, setAttachmentOpen] = useState(false);
@@ -180,11 +191,16 @@ export default function QaSubmissionDetailPage() {
   const locked = data?.status === "QA Signed-off" || data?.status === "Approved";
 
   /**
-   * §25 — after sign-off the submission is waiting on its approver. That reads
-   * as a distinct stage to everyone involved, so it is shown as one, derived
-   * from the signed-off status rather than stored as a separate value.
+   * §25 — the two waiting stages, derived from status rather than stored.
+   *
+   * Approval comes first: from the moment results are reported the submission
+   * is sitting with its approver. QA Sign-off is the closing step, so once the
+   * approver accepts it the record is waiting on QA one last time.
    */
-  const awaitingApproval = data?.status === "QA Signed-off";
+  const awaitingApproval =
+    !!data && !["Draft", "Approved", "QA Signed-off"].includes(data.status);
+  const awaitingSignoff = data?.status === "Approved";
+  const signedOff = data?.status === "QA Signed-off";
 
   /**
    * The approver is the Reviewer linked on the submission — that field is who
@@ -261,6 +277,11 @@ export default function QaSubmissionDetailPage() {
     }
   };
 
+  const openRunDrawer = (runId: string) => {
+    setRunDrawerId(runId);
+    setRunDrawerOpen(true);
+  };
+
   const openCases = async (status: "Pass" | "Fail" | "Blocked" | "Not Executed") => {
     try {
       setBusy(true);
@@ -334,12 +355,20 @@ export default function QaSubmissionDetailPage() {
 
   const e = summary.execution;
 
-  // Which manual transitions make sense from here (§21).
-  const nextStatuses: SubmissionStatus[] = [];
-  if (data.status === "Submitted") nextStatuses.push("Under Review", "Retesting", "Ready for QA Sign-off");
-  if (data.status === "Under Review") nextStatuses.push("Retesting", "Ready for QA Sign-off");
-  if (data.status === "Retesting") nextStatuses.push("Ready for QA Sign-off");
-  if (data.status === "Sent Back") nextStatuses.push("Draft", "Retesting");
+  /**
+   * Approval is open from the moment results are reported, not only after QA
+   * signs off — the same rule the Approvals queue works to. A Draft has nothing
+   * to accept yet, and an approved submission is already accepted.
+   */
+  const canApprove =
+    canApproveSubmission && !["Draft", "Approved"].includes(data.status);
+
+  /**
+   * QA Sign-off is the last step, not the middle one: it only opens once the
+   * approver has accepted the submission. Shown disabled rather than hidden so
+   * the remaining step is visible while the record waits on approval.
+   */
+  const canSignOffNow = data.status === "Approved";
 
   const canSubmitNow =
     canSubmitSubmission &&
@@ -377,6 +406,12 @@ export default function QaSubmissionDetailPage() {
                           Ready for Approval
                         </span>
                       )}
+                      {awaitingSignoff && (
+                        <span className="qs-pill qs-pill--blue qs-pill--sm">
+                          <span className="qs-pill__dot" />
+                          Ready for QA Sign-off
+                        </span>
+                      )}
                       <RecommendationPill value={data.qa_recommendation} size="sm" />
                       <span>v{data.version}</span>
                     </div>
@@ -393,33 +428,39 @@ export default function QaSubmissionDetailPage() {
                     </Button>
                   )}
 
-                  {nextStatuses.length > 0 && canUpdateSubmission && (
-                    <SearchableDropdown
-                      options={nextStatuses.map((s) => ({ value: s, label: s, description: STATUS_HELP[s] }))}
-                      value={undefined}
-                      onChange={(v) => act(() => QaSubmissionService.changeStatus(id, v), `Moved to ${v}`)}
-                      placeholder="Move to…"
-                      hideAvatar
-                      width={280}
-                      itemNoun="statuses"
-                    />
-                  )}
-
                   {canSubmitNow && (
                     <Button icon={<Send size={14} />} loading={busy} onClick={() => act(() => QaSubmissionService.submit(id), "Testing results submitted")}>
                       {data.submitted_at ? "Resubmit" : "Submit"}
                     </Button>
                   )}
 
-                  {canSignOffSubmission && !locked && data.status !== "Draft" && (
-                    <Button type="primary" icon={<ShieldCheck size={14} />} loading={busy} onClick={openSignoff}>
-                      QA Sign-off
-                    </Button>
+                  {canSignOffSubmission && (
+                    <Tooltip
+                      title={
+                        canSignOffNow
+                          ? undefined
+                          : "QA Sign-off opens once the submission has been approved."
+                      }
+                    >
+                      {/* A disabled antd Button swallows its own mouse events, so
+                          the wrapper is what the tooltip listens on. */}
+                      <span>
+                        <Button
+                          type="primary"
+                          icon={<ShieldCheck size={14} />}
+                          loading={busy}
+                          disabled={!canSignOffNow}
+                          onClick={openSignoff}
+                        >
+                          QA Sign-off
+                        </Button>
+                      </span>
+                    </Tooltip>
                   )}
 
-                  {awaitingApproval && canApproveSubmission && (
+                  {canApprove && (
                     <Button type="primary" icon={<ThumbsUp size={14} />} onClick={() => setApproveOpen(true)}>
-                      Approve
+                      Approve submission
                     </Button>
                   )}
                   {canSendBackSubmission && !["Draft", "Approved", "Sent Back"].includes(data.status) && (
@@ -442,7 +483,7 @@ export default function QaSubmissionDetailPage() {
                         placement="bottomRight"
                         trigger={["hover", "click"]}
                         overlayClassName="qs-infopop"
-                        content={<SendBackHelp afterSignoff={awaitingApproval} />}
+                        content={<SendBackHelp afterSignoff={signedOff} />}
                       >
                         <button type="button" className="qs-infobtn" aria-label="About Send Back">
                           <Info size={15} />
@@ -461,7 +502,15 @@ export default function QaSubmissionDetailPage() {
               <div className="qs-header__facts">
                 <div className="qs-fact">
                   <dt>Scope</dt>
-                  <dd>{data.scope_name || "—"}</dd>
+                  <dd>
+                    {data.scope_id ? (
+                      <button type="button" className="qs-inlinelink" onClick={() => setScopeDrawerOpen(true)}>
+                        {data.scope_name || "View scope"}
+                      </button>
+                    ) : (
+                      data.scope_name || "—"
+                    )}
+                  </dd>
                 </div>
                 <div className="qs-fact">
                   <dt>QA Owner</dt>
@@ -557,13 +606,27 @@ export default function QaSubmissionDetailPage() {
             <Section
               index={2}
               title="Test Scope"
+              description="The scope this submission reports against — open it for the full definition."
               actions={
-                <Button size="small" icon={<ExternalLink size={13} />} onClick={() => router.push(`/qa-workspace/test-scope/${data.scope_id}`)}>
-                  Open scope
+                <Button size="small" icon={<PanelRightOpen size={13} />} onClick={() => setScopeDrawerOpen(true)}>
+                  View scope
                 </Button>
               }
             >
-              <dl className="qs-scopecard">
+              {/* The whole card is the target, not just the button — the card is
+                  what reads as "the scope" on this page. */}
+              <dl
+                className="qs-scopecard is-clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => setScopeDrawerOpen(true)}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    setScopeDrawerOpen(true);
+                  }
+                }}
+              >
                 <div>
                   <dt>Scope</dt>
                   <dd>{data.scope_name || "—"}</dd>
@@ -600,12 +663,28 @@ export default function QaSubmissionDetailPage() {
             </Section>
 
             {/* ── 3. Testing Runs ─────────────────────────────────── */}
-            <Section index={3} title="Testing Runs" description="The execution evidence this submission reports on.">
+            <Section
+              index={3}
+              title="Testing Runs"
+              description="The execution evidence this submission reports on — open a run to see its cases."
+            >
               {summary.runs.length === 0 ? (
                 <EmptyNote>No test runs linked.</EmptyNote>
               ) : (
                 summary.runs.map((r) => (
-                  <div key={r.id} className="qs-runrow">
+                  <div
+                    key={r.id}
+                    className="qs-runrow is-clickable"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openRunDrawer(r.id)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        openRunDrawer(r.id);
+                      }
+                    }}
+                  >
                     <div className="qs-runrow__body">
                       <div className="qs-runrow__top">
                         <span className="qs-runrow__name">{r.run_name}</span>
@@ -633,8 +712,17 @@ export default function QaSubmissionDetailPage() {
                         <span className="qs-runrow__stat">Executed <b>{r.execution_percentage}%</b></span>
                       </div>
                     </div>
-                    <Tooltip title="Open the test run">
-                      <button className="qs-iconbtn" onClick={() => router.push(`/qa-workspace/test-runs/${r.id}`)} aria-label="Open run">
+                    <Tooltip title="Open the run in its own page">
+                      <button
+                        className="qs-iconbtn"
+                        onClick={(ev) => {
+                          // The row itself opens the drawer, so this has to stop
+                          // the click before it reopens what it just navigated from.
+                          ev.stopPropagation();
+                          router.push(`/qa-workspace/test-runs/${r.id}`);
+                        }}
+                        aria-label="Open run"
+                      >
                         <ExternalLink size={15} />
                       </button>
                     </Tooltip>
@@ -860,20 +948,9 @@ export default function QaSubmissionDetailPage() {
               )}
             </Section>
 
-            {/* ── 10. QA Summary (§18) ────────────────────────────── */}
-            <Section index={10} title="QA Summary">
-              {hasRichText(data.qa_summary) ? (
-                <div className="qs-prose">
-                  <TiptapViewer content={data.qa_summary || ""} />
-                </div>
-              ) : (
-                <EmptyNote>No QA summary written yet — it is required before sign-off.</EmptyNote>
-              )}
-            </Section>
-
-            {/* ── 11. Known Issues (§19) ──────────────────────────── */}
+            {/* ── 10. Known Issues (§19) ──────────────────────────── */}
             <Section
-              index={11}
+              index={10}
               title="Known Issues"
               description="Unresolved defects the business is being asked to accept."
               actions={
@@ -941,7 +1018,7 @@ export default function QaSubmissionDetailPage() {
 
             {/* ── 12. Attachments (§20) ───────────────────────────── */}
             <Section
-              index={12}
+              index={11}
               title="Attachments"
               description="Supporting evidence — reports, screenshots and documents."
               actions={
@@ -1015,7 +1092,7 @@ export default function QaSubmissionDetailPage() {
             </Section>
 
             {/* ── 13. QA Sign-off (§24) ───────────────────────────── */}
-            <Section index={13} title="QA Sign-off" description="QA's final recommendation for this scope.">
+            <Section index={12} title="QA Sign-off" description="QA's final recommendation for this scope.">
               {data.signed_off_at ? (
                 <div className="qs-header__facts" style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
                   <div className="qs-fact">
@@ -1046,9 +1123,9 @@ export default function QaSubmissionDetailPage() {
               )}
             </Section>
 
-            {/* ── 14. Approver (§25, §26) ─────────────────────────── */}
+            {/* ── 13. Approver (§25, §26) ─────────────────────────── */}
             <Section
-              index={14}
+              index={13}
               title="Approver"
               description="Business acceptance, separate from QA's recommendation."
             >
@@ -1110,7 +1187,7 @@ export default function QaSubmissionDetailPage() {
               )}
               {!data.approved_at && !awaitingApproval && (
                 <p className="qs-hint" style={{ marginTop: 10 }}>
-                  Approval becomes available once QA has signed off.
+                  Approval becomes available once QA reports the testing results.
                 </p>
               )}
               {!approverName && (
@@ -1120,9 +1197,9 @@ export default function QaSubmissionDetailPage() {
               )}
             </Section>
 
-            {/* ── 15. Submission History (§27, §29) ───────────────── */}
+            {/* ── 14. Submission History (§27, §29) ───────────────── */}
             <Section
-              index={15}
+              index={14}
               title="Submission History"
               description="Every status change, submission and approval, in order."
               actions={
@@ -1305,7 +1382,7 @@ export default function QaSubmissionDetailPage() {
         open={approveOpen}
         onCancel={() => setApproveOpen(false)}
         title="Approve this QA Submission"
-        okText="Approve"
+        okText="Approve submission"
         confirmLoading={busy}
         onOk={async () => {
           await act(() => QaSubmissionService.approve(id, approveComment), "Submission approved");
@@ -1316,6 +1393,9 @@ export default function QaSubmissionDetailPage() {
         <p className="qs-hint" style={{ marginBottom: 10 }}>
           Approving accepts QA&apos;s recommendation of <strong>{data.qa_recommendation}</strong> for{" "}
           <strong>{data.scope_name}</strong>.
+        </p>
+        <p className="qs-hint" style={{ marginBottom: 10 }}>
+          Approving accepts the results as they stand and opens QA&apos;s final sign-off.
         </p>
         {approverName && (
           <p className="qs-hint" style={{ marginBottom: 10 }}>
@@ -1371,14 +1451,14 @@ export default function QaSubmissionDetailPage() {
       >
         {/* Withdrawing a sign-off is the consequential, non-obvious part of this
             action — surfaced at the point of decision, not after the fact. */}
-        {awaitingApproval && (
+        {signedOff && (
           <WarningBanner level="warning">
             This withdraws QA&apos;s sign-off. The submission returns to live figures and has to be signed off again
             before it comes back to you. The signed-off numbers stay readable as version {data.version}.
           </WarningBanner>
         )}
 
-        <div className="qs-field" style={{ marginTop: awaitingApproval ? 14 : 0 }}>
+        <div className="qs-field" style={{ marginTop: signedOff ? 14 : 0 }}>
           <label className="qs-label">
             Reason <span className="qs-req">*</span>
           </label>
@@ -1425,7 +1505,7 @@ export default function QaSubmissionDetailPage() {
               Status becomes <strong>Sent Back</strong> and your reason appears on the submission.
             </li>
             <li>QA reworks it, links any new retest runs and submits again as <strong>v{data.version + 1}</strong>.</li>
-            <li>{awaitingApproval ? "QA signs off again and it returns to you." : "It carries on through sign-off."}</li>
+            <li>{signedOff ? "QA signs off again once it is approved." : "It carries on through approval and sign-off."}</li>
           </ol>
         </div>
       </Modal>
@@ -1493,88 +1573,14 @@ export default function QaSubmissionDetailPage() {
         />
       </Modal>
 
-      {/* ── Known issue editor (§19) ──────────────────────────────── */}
-      <Modal
-        open={!!issueModal}
+      <KnownIssueModal
+        value={issueModal}
+        onChange={setIssueModal}
         onCancel={() => setIssueModal(null)}
-        title={issueModal?.id ? "Edit known issue" : "Add a known issue"}
-        okText="Save"
-        confirmLoading={busy}
-        onOk={saveIssue}
-        width={620}
-      >
-        <div className="qs-grid2">
-          <div className="qs-field">
-            <label className="qs-label">Bug</label>
-            <Input
-              value={issueModal?.bug_number ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, bug_number: ev.target.value }))}
-              placeholder="E.g. BUG-108"
-            />
-          </div>
-          <div className="qs-field">
-            <label className="qs-label">Severity</label>
-            <Input
-              value={issueModal?.severity ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, severity: ev.target.value }))}
-              placeholder="E.g. Medium"
-            />
-          </div>
-        </div>
-        <div className="qs-grid2">
-          <div className="qs-field">
-            <label className="qs-label">Current Status</label>
-            <Input
-              value={issueModal?.current_status ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, current_status: ev.target.value }))}
-              placeholder="E.g. Open"
-            />
-          </div>
-          <div className="qs-field">
-            <label className="qs-label">Expected Resolution</label>
-            <Input
-              type="date"
-              value={issueModal?.expected_resolution ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, expected_resolution: ev.target.value }))}
-            />
-          </div>
-        </div>
-        <div className="qs-field">
-          <label className="qs-label">Business Impact</label>
-          <Input.TextArea
-            rows={2}
-            value={issueModal?.business_impact ?? ""}
-            onChange={(ev) => setIssueModal((p) => ({ ...p, business_impact: ev.target.value }))}
-            placeholder="E.g. Minor UI issue in the filter panel."
-          />
-        </div>
-        <div className="qs-field">
-          <label className="qs-label">Workaround</label>
-          <Input.TextArea
-            rows={2}
-            value={issueModal?.workaround ?? ""}
-            onChange={(ev) => setIssueModal((p) => ({ ...p, workaround: ev.target.value }))}
-            placeholder="E.g. Users can refresh the page."
-          />
-        </div>
-        <div className="qs-grid2">
-          <div className="qs-field">
-            <label className="qs-label">Accepted By</label>
-            <Input
-              value={issueModal?.accepted_by ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, accepted_by: ev.target.value }))}
-              placeholder="E.g. PM / Product Owner"
-            />
-          </div>
-          <div className="qs-field">
-            <label className="qs-label">Comment</label>
-            <Input
-              value={issueModal?.comment ?? ""}
-              onChange={(ev) => setIssueModal((p) => ({ ...p, comment: ev.target.value }))}
-            />
-          </div>
-        </div>
-      </Modal>
+        onSave={saveIssue}
+        saving={busy}
+        bugs={summary.bugList || []}
+      />
 
       {/* ── Attachments (§20) ─────────────────────────────────────── */}
       <Modal
@@ -1619,6 +1625,21 @@ export default function QaSubmissionDetailPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* Both stay mounted so a reopened record is instant; neither fetches
+          anything until it is first opened. */}
+      <TestRunDrawer
+        runId={runDrawerId}
+        open={runDrawerOpen}
+        onClose={() => setRunDrawerOpen(false)}
+        onOpenFull={(runId) => router.push(`/qa-workspace/test-runs/${runId}`)}
+      />
+      <TestScopeDrawer
+        scopeId={data.scope_id || null}
+        open={scopeDrawerOpen}
+        onClose={() => setScopeDrawerOpen(false)}
+        onOpenFull={(sid) => router.push(`/qa-workspace/test-scope/${sid}`)}
+      />
     </MainLayout>
   );
 }

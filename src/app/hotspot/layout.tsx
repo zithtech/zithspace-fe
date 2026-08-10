@@ -7,6 +7,7 @@ import { Flame, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { HOTSPOT_NAV_ITEMS } from '@/components/hotspot/navItems';
+import { usePermission } from '@/hooks/usePermission';
 
 // Shared shell for every /hotspot/* route. The left rail is rendered here once;
 // sub-route pages render into {children}. Active state is derived from the URL.
@@ -18,12 +19,15 @@ import { HOTSPOT_NAV_ITEMS } from '@/components/hotspot/navItems';
 export default function HotspotLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { can } = usePermission();
 
   useEffect(() => {
     const handler = () => setIsMobileOpen(true);
     window.addEventListener('open-hotspot-sidebar', handler);
     return () => window.removeEventListener('open-hotspot-sidebar', handler);
   }, []);
+
+  const visibleItems = HOTSPOT_NAV_ITEMS.filter(item => !item.permission || can(item.permission));
 
   return (
     <ProtectedRoute>
@@ -48,7 +52,7 @@ export default function HotspotLayout({ children }: { children: React.ReactNode 
             <div className="hs-side-scroll">
               <div className="hs-side-section-label">Pages</div>
               <div className="hs-side-list">
-                {HOTSPOT_NAV_ITEMS.map((item) => {
+                {visibleItems.map((item) => {
                   const active = pathname === item.href || pathname.startsWith(item.href + '/');
                   return (
                     <Link

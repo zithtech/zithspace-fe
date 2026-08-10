@@ -10,6 +10,7 @@ import HotspotCirculationService, {
   CirculationAttachment,
   CirculationPost,
 } from '@/services/hotspotCirculationService';
+import { usePermission } from '@/hooks/usePermission';
 import { CategoryChip, fileSizeLabel, postedAgo } from './circulationMeta';
 
 // The full update, opened from a feed row.
@@ -34,6 +35,7 @@ export default function CirculationDetailDrawer({
   onChanged: () => void;
 }) {
   const { message, modal } = App.useApp();
+  const perms = usePermission() as unknown as Record<string, any>;
   const [busy, setBusy] = useState(false);
 
   if (!post) return null;
@@ -177,9 +179,9 @@ export default function CirculationDetailDrawer({
           )}
         </div>
 
-        {(post.canEdit || canModerate) && (
+        {(perms.canUpdateHotspotCirculation || perms.canDeleteHotspotCirculation || perms.canPinHotspotCirculation) && (
           <footer className="hscd-foot">
-            {canModerate && (
+            {perms.canPinHotspotCirculation && (
               <Tooltip title={post.isPinned ? 'Unpin from the top' : 'Pin to the top for everyone'}>
                 <Button
                   icon={post.isPinned ? <PinOff size={14} /> : <Pin size={14} />}
@@ -190,15 +192,15 @@ export default function CirculationDetailDrawer({
                 </Button>
               </Tooltip>
             )}
-            {post.canEdit && (
-              <>
-                <Button icon={<Pencil size={14} />} onClick={() => onEdit(post)}>
-                  Edit
-                </Button>
-                <Button danger icon={<Trash2 size={14} />} onClick={confirmDelete}>
-                  Delete
-                </Button>
-              </>
+            {perms.canUpdateHotspotCirculation && (
+              <Button icon={<Pencil size={14} />} onClick={() => onEdit(post)}>
+                Edit
+              </Button>
+            )}
+            {perms.canDeleteHotspotCirculation && (
+              <Button danger icon={<Trash2 size={14} />} onClick={confirmDelete}>
+                Delete
+              </Button>
             )}
           </footer>
         )}

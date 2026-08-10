@@ -109,6 +109,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   performance: "Performance",
   opening: "Opening Management",
   profile: "User Profile",
+  hotspot: "Hotspot",
   letter: "Doc Suite",
   letter_template: "Doc Suite Templates",
   'letter.format': "Doc Suite Formats",
@@ -315,7 +316,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'home',
     label: 'Home',
     icon: <AppstoreOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log', 'hotspot'],
     accent: '#3b82f6',
   },
   {
@@ -404,7 +405,7 @@ const PERMISSION_MODULES = [
   {
     title: "Home",
     icon: <PlusOutlined />, // Placeholder or appropriate icon
-    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking"]
+    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking", "hotspot"]
   },
   {
     title: "Work",

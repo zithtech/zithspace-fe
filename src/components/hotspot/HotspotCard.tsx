@@ -13,6 +13,7 @@ import {
   relativeDays,
 } from '@/components/openings/ui';
 import { useReferenceData } from '@/components/openings/useReferenceData';
+import { usePermission } from '@/hooks/usePermission';
 
 // A role on the internal job board.
 //
@@ -40,6 +41,7 @@ export default function HotspotCard({
   onApply: (e: React.MouseEvent) => void;
   onClick?: () => void;
 }) {
+  const { canCreateHotspotOpening } = usePermission();
   const reference = useReferenceData(true);
   const resolvedLocation = opening.locationId
     ? reference.locations.find((l) => l.value === opening.locationId)?.label || opening.location
@@ -126,17 +128,19 @@ export default function HotspotCard({
         <span className="hsj-posted">
           {opening.postedInternallyAt ? `Posted ${relativeDays(opening.postedInternallyAt)}` : ''}
         </span>
-        <Button
-          type="primary"
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onApply(e);
-          }}
-          className="hsj-apply"
-        >
-          Apply
-        </Button>
+        {canCreateHotspotOpening && (
+          <Button
+            type="primary"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onApply(e);
+            }}
+            className="hsj-apply"
+          >
+            Apply
+          </Button>
+        )}
       </footer>
 
       <style jsx>{`

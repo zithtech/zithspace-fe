@@ -55,6 +55,7 @@ import {
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
+import VisibilityModal from "@/components/documenthub/VisibilityModal";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Button,
@@ -849,6 +850,13 @@ const DocumentHubPage = () => {
     title: string;
     visibility: string;
     shareToken: string | null;
+  } | null>(null);
+
+  // Visibility Modal State (Myself / Team — opened from Private pill in Visibility column)
+  const [visibilityModalHub, setVisibilityModalHub] = useState<{
+    id: string;
+    name: string;
+    sharedWith: string[];
   } | null>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
@@ -1838,7 +1846,7 @@ const DocumentHubPage = () => {
             onClick: (e) => {
               // Skip navigation if click came from selection cell or interactive control.
               const target = e.target as HTMLElement;
-              if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
+              if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, .dh-vis-pill, button, input, .ant-select')) {
                 return;
               }
               openHub(record.id);
@@ -1858,20 +1866,28 @@ const DocumentHubPage = () => {
     const isOwner = user?.id === record.createdById;
     const isPublic = ((record as any).visibility || 'private') === 'public';
 
-    const setVisibility = async (value: 'public' | 'private') => {
-      if ((isPublic ? 'public' : 'private') === value) return;
+    const setVisibilityPublic = async (info: any) => {
+      // Stop the Ant Design menu click from bubbling to the table row
+      info?.domEvent?.stopPropagation();
+      if (isPublic) return;
       try {
-        if (value === 'public') {
-          await DocumentHubService.shareDocumentHub(record.id, 'public');
-        } else {
-          await DocumentHubService.revokeHubShare(record.id);
-        }
-        messageApi.success(`Hub is now ${value}`);
+        await DocumentHubService.shareDocumentHub(record.id, 'public');
+        messageApi.success('Hub is now public');
         refetch();
       } catch (error) {
         console.error(error);
-        messageApi.error("Failed to update visibility");
+        messageApi.error('Failed to update visibility');
       }
+    };
+
+    const openPrivateModal = (info: any) => {
+      // Stop the Ant Design menu click from bubbling to the table row
+      info?.domEvent?.stopPropagation();
+      setVisibilityModalHub({
+        id: record.id,
+        name: (record as any).name || 'this hub',
+        sharedWith: (record as any).sharedWith || [],
+      });
     };
 
     const pill = (
@@ -1888,35 +1904,39 @@ const DocumentHubPage = () => {
     if (!isOwner) return pill;
 
     return (
-      <Dropdown
-        trigger={['click']}
-        placement="bottomLeft"
-        menu={{
-          selectedKeys: [isPublic ? 'public' : 'private'],
-          items: [
-            {
-              key: 'public',
-              label: (
-                <span className="dh-vis-item">
-                  <span className="dh-vis-dot" style={{ background: '#22c55e' }} /> Public
-                </span>
-              ),
-              onClick: () => setVisibility('public'),
-            },
-            {
-              key: 'private',
-              label: (
-                <span className="dh-vis-item">
-                  <span className="dh-vis-dot" style={{ background: 'var(--text-slate-400)' }} /> Private
-                </span>
-              ),
-              onClick: () => setVisibility('private'),
-            },
-          ],
-        }}
-      >
-        {pill}
-      </Dropdown>
+      // Outer wrapper catches any residual click before it reaches the row handler
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex' }}>
+        <Dropdown
+          trigger={['click']}
+          placement="bottomLeft"
+          menu={{
+            selectedKeys: [isPublic ? 'public' : 'private'],
+            items: [
+              {
+                key: 'public',
+                label: (
+                  <span className="dh-vis-item">
+                    <span className="dh-vis-dot" style={{ background: '#22c55e' }} /> Public
+                  </span>
+                ),
+                onClick: setVisibilityPublic,
+              },
+              {
+                key: 'private',
+                label: (
+                  <span className="dh-vis-item">
+                    <span className="dh-vis-dot" style={{ background: 'var(--text-slate-400)' }} /> Private
+                  </span>
+                ),
+                // Opens the Myself/Team visibility modal instead of directly revoking
+                onClick: openPrivateModal,
+              },
+            ],
+          }}
+        >
+          {pill}
+        </Dropdown>
+      </div>
     );
   };
 
@@ -2818,6 +2838,21 @@ const DocumentHubPage = () => {
           entityType="hub"
           currentVisibility={selectedHubForShare.visibility}
           currentShareToken={selectedHubForShare.shareToken}
+        />
+      )}
+
+      {/* Visibility access-control modal — triggered from Private pill in Visibility column */}
+      {visibilityModalHub && (
+        <VisibilityModal
+          open={!!visibilityModalHub}
+          onClose={() => setVisibilityModalHub(null)}
+          hubId={visibilityModalHub.id}
+          hubName={visibilityModalHub.name}
+          currentSharedWith={visibilityModalHub.sharedWith}
+          onSuccess={() => {
+            setVisibilityModalHub(null);
+            refetch();
+          }}
         />
       )}
 

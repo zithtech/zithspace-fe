@@ -432,6 +432,7 @@ export const usePermission = () => {
     canManageOpenings: hasPermission(Permissions.OPENING_MANAGE),
 
     // ─── Hotspot ────────────────────────────────────────────────────
+    canReadHotspot:            hasAnyPermission(Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ),
     canReadHotspotOpening:     hasPermission(Permissions.HOTSPOT_OPENING_READ),
     canCreateHotspotOpening:   hasPermission(Permissions.HOTSPOT_OPENING_CREATE),
     

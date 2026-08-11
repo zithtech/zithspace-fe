@@ -704,6 +704,53 @@ export default function TestSuiteDetailsPage() {
         .ts-table .ant-table-tbody > tr:hover > td {
           background: rgba(59, 130, 246, 0.04) !important;
         }
+
+        /* ── Dark mode: the table + everything rendered inside its cells ──
+           Tokens (--bg-slate-50, --border-slate-200, --text-slate-*) already
+           remap themselves; only the hard-coded light values need a partner. */
+        [data-theme='dark'] .ts-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .ts-table .ant-table-thead > tr > th::before {
+          background: var(--border-slate-200) !important;
+        }
+        [data-theme='dark'] .ts-table .ant-table-tbody > tr > td {
+          background: transparent;
+        }
+        [data-theme='dark'] .ts-table .ant-table-tbody > tr:hover > td {
+          background: rgba(59, 130, 246, 0.10) !important;
+        }
+        [data-theme='dark'] .ts-table .ant-table-placeholder > td,
+        [data-theme='dark'] .ts-table .ant-table-placeholder:hover > td {
+          background: transparent !important;
+        }
+
+        /* Case name badge */
+        [data-theme='dark'] .sc-name__badge {
+          background: rgba(59, 130, 246, .18); color: #93C5FD;
+        }
+
+        /* Status / automation pills — lift text out of the dark surface */
+        [data-theme='dark'] .sc-pill--blue { color: #93C5FD; background: rgba(59,130,246,.16); border-color: rgba(59,130,246,.32); }
+        [data-theme='dark'] .sc-pill--green { color: #6EE7B7; background: rgba(16,185,129,.16); border-color: rgba(16,185,129,.32); }
+        [data-theme='dark'] .sc-pill--red { color: #FCA5A5; background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.32); }
+        [data-theme='dark'] .sc-pill--ash { color: #CBD5E1; background: rgba(148,163,184,.14); border-color: rgba(148,163,184,.26); }
+
+        /* Priority meter */
+        [data-theme='dark'] .sc-prio__bar.is-on { background: #60A5FA; }
+        [data-theme='dark'] .sc-prio__bar.is-on.is-max { background: #93C5FD; }
+
+        /* Row actions */
+        [data-theme='dark'] .sc-rowactions button:hover {
+          color: #93C5FD; background: rgba(59,130,246,.14); border-color: rgba(59,130,246,.35);
+        }
+        [data-theme='dark'] .sc-rowactions button.is-danger:hover {
+          color: #FCA5A5; background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.35);
+        }
+
+        /* Empty state inside the table body */
+        [data-theme='dark'] .sc-empty__icon { color: var(--border-slate-200); }
       `}} />
 
       <div className="dh-shell">

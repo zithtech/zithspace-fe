@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Create / edit a QA Submission (§6–§8, §10, §16–§18).
+ * Create / edit a QA Submission (§6–§8, §10, §16–§17).
  *
  * Everything numeric on this form is read-only and derived from the Test Runs
  * the user picks — QA never types a pass/fail count (§33.3, §33.4). The form
@@ -13,9 +13,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, Checkbox, Input, Modal, Tooltip } from "antd";
-import { ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons";
-import { Sparkles, SpellCheck2, PlayCircle, RefreshCcw, Info } from "lucide-react";
+import { App, Button, Checkbox, Input, Tooltip } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { PlayCircle, RefreshCcw, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
@@ -25,7 +25,7 @@ import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { MembersService } from "@/services/membersService";
 import TiptapEditor from "@/components/common/TiptapEditor";
-import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import QaSubmissionService, {
   RECOMMENDATIONS,
   RECOMMENDATION_HELP,
@@ -42,7 +42,6 @@ import {
   Section,
   WarningBanner,
   fmtDate,
-  hasRichText,
 } from "./shared";
 
 type RunSelection = Record<string, "initial" | "retest">;
@@ -74,7 +73,6 @@ export default function SubmissionForm({ submission }: Props) {
   const [qaOwnerId, setQaOwnerId] = useState<string | undefined>(submission?.qa_owner_id ?? undefined);
   const [reviewerId, setReviewerId] = useState<string | undefined>(submission?.reviewer_id ?? undefined);
   const [description, setDescription] = useState(submission?.description ?? "");
-  const [qaSummary, setQaSummary] = useState(submission?.qa_summary ?? "");
   const [recommendation, setRecommendation] = useState<QaRecommendation | undefined>(
     submission?.qa_recommendation ?? undefined,
   );
@@ -88,13 +86,6 @@ export default function SubmissionForm({ submission }: Props) {
     });
     return initial;
   });
-
-  // AI (§18)
-  const [zaiOpen, setZaiOpen] = useState(false);
-  const [zaiPrompt, setZaiPrompt] = useState("");
-  const [zaiDraft, setZaiDraft] = useState("");
-  const [zaiBusy, setZaiBusy] = useState(false);
-  const [polishing, setPolishing] = useState(false);
 
   // ─── Reference data ────────────────────────────────────────────────
   useEffect(() => {
@@ -245,49 +236,6 @@ export default function SubmissionForm({ submission }: Props) {
   /** §17 — "Pass" while failures remain needs an explicit acknowledgement. */
   const needsAck = recommendation === "Pass" && preview.failed > 0;
 
-  // ─── AI (§18) ──────────────────────────────────────────────────────
-  const openZai = () => {
-    if (!isEdit) {
-      message.info("Save the submission first — Zai drafts the summary from its linked runs.");
-      return;
-    }
-    setZaiDraft("");
-    setZaiPrompt("");
-    setZaiOpen(true);
-  };
-
-  const runZai = async () => {
-    if (!submission) return;
-    try {
-      setZaiBusy(true);
-      setZaiDraft(await QaSubmissionService.draftSummary(submission.id, zaiPrompt));
-    } catch (e: any) {
-      message.error(e?.response?.data?.error || "Zai could not draft the summary");
-    } finally {
-      setZaiBusy(false);
-    }
-  };
-
-  /** Explicit user action — AI output never lands in the field on its own. */
-  const applyZai = (mode: "replace" | "append") => {
-    setQaSummary((prev) => (mode === "append" && prev ? `${prev}\n${zaiDraft}` : zaiDraft));
-    setZaiOpen(false);
-    message.success(mode === "append" ? "Draft appended to the QA Summary" : "QA Summary replaced with the draft");
-  };
-
-  const polish = async () => {
-    if (!hasRichText(qaSummary)) return message.info("Write the summary first, then polish it.");
-    try {
-      setPolishing(true);
-      setQaSummary(await QaSubmissionService.polishText(qaSummary));
-      message.success("Summary polished");
-    } catch (e: any) {
-      message.error(e?.response?.data?.error || "Could not polish the summary");
-    } finally {
-      setPolishing(false);
-    }
-  };
-
   // ─── Save ──────────────────────────────────────────────────────────
   const validate = (): string | null => {
     if (!name.trim()) return "Submission Name is required";
@@ -310,7 +258,6 @@ export default function SubmissionForm({ submission }: Props) {
       qa_owner_id: qaOwnerId || null,
       reviewer_id: reviewerId || null,
       description: description || null,
-      qa_summary: qaSummary || null,
       qa_recommendation: recommendation ?? null,
       recommendation_ack: ack,
       recommendation_ack_note: ackNote || null,
@@ -721,33 +668,6 @@ export default function SubmissionForm({ submission }: Props) {
               )}
             </Section>
 
-            {/* ── §18 QA Summary ──────────────────────────────────── */}
-            <Section
-              index={5}
-              title="QA Summary"
-              description="Required before QA Sign-off. The narrative the approver reads alongside the numbers."
-              actions={
-                <>
-                  <Tooltip title={isEdit ? "Draft a summary from this submission's own figures" : "Save the submission first"}>
-                    <Button size="small" icon={<Sparkles size={13} />} onClick={openZai}>
-                      Create with Zai
-                    </Button>
-                  </Tooltip>
-                  <Button size="small" icon={<SpellCheck2 size={13} />} loading={polishing} onClick={polish}>
-                    Grammar
-                  </Button>
-                </>
-              }
-            >
-              <TiptapEditor
-                content={qaSummary}
-                onChange={setQaSummary}
-                minHeight={180}
-                maxHeight={480}
-                placeholder="Summarise what was tested, the results, what happened to the defects, and what remains open…"
-              />
-            </Section>
-
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "4px 0 24px" }}>
               <Button onClick={() => router.back()}>Cancel</Button>
               <Button loading={saving} onClick={() => save(false)}>
@@ -761,57 +681,6 @@ export default function SubmissionForm({ submission }: Props) {
         </div>
       </div>
 
-      {/* Zai drafting — the result is never written into the field on its own. */}
-      <Modal
-        open={zaiOpen}
-        onCancel={() => setZaiOpen(false)}
-        title="Draft the QA Summary with Zai"
-        width={720}
-        closeIcon={<CloseOutlined />}
-        footer={
-          zaiDraft
-            ? [
-                <Button key="regen" onClick={runZai} loading={zaiBusy}>
-                  Regenerate
-                </Button>,
-                <Button key="append" onClick={() => applyZai("append")}>
-                  Append to summary
-                </Button>,
-                <Button key="replace" type="primary" onClick={() => applyZai("replace")}>
-                  Replace summary
-                </Button>,
-              ]
-            : [
-                <Button key="cancel" onClick={() => setZaiOpen(false)}>
-                  Cancel
-                </Button>,
-                <Button key="go" type="primary" loading={zaiBusy} onClick={runZai}>
-                  Generate draft
-                </Button>,
-              ]
-        }
-      >
-        <p className="qs-hint" style={{ marginBottom: 10 }}>
-          Zai writes from this submission&apos;s linked runs, defect counts and retesting figures. Nothing is written to
-          the QA Summary until you choose to apply it.
-        </p>
-        <Input.TextArea
-          rows={2}
-          value={zaiPrompt}
-          onChange={(e) => setZaiPrompt(e.target.value)}
-          placeholder="Optional: anything specific to emphasise (e.g. 'mention the payment timeout fix')"
-        />
-        {zaiBusy && (
-          <div style={{ padding: 20, display: "flex", justifyContent: "center" }}>
-            <ZukvoLoader size="md" message="Zai is drafting the summary…" />
-          </div>
-        )}
-        {zaiDraft && !zaiBusy && (
-          <div className="qs-prose" style={{ marginTop: 14, padding: 12, border: "1px solid var(--border-slate-200)" }}>
-            <div dangerouslySetInnerHTML={{ __html: zaiDraft }} />
-          </div>
-        )}
-      </Modal>
     </MainLayout>
   );
 }

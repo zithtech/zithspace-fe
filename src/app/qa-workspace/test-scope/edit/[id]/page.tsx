@@ -31,6 +31,10 @@ import debounce from "lodash/debounce";
 
 const { Dragger } = Upload;
 
+/* Bug sheets and dev tickets are hidden from Linked Items for now. The fields
+   and their save paths still work — flip this to bring them back. */
+const SHOW_BUG_AND_TICKET_LINKS = false;
+
 /* ────────────────────────────────────────────────────────────────────────────
    Section registry — drives the left rail, the scroll-spy and the progress ring
    ──────────────────────────────────────────────────────────────────────────── */
@@ -966,21 +970,27 @@ export default function EditScopePage() {
         setLoadingTestSuites(true);
         setLoadingTestRuns(true);
         setLoadingHubDocs(true);
-        const [suiteRes, runRes, docRes]: any[] = await Promise.all([
+        setLoadingTestCases(true);
+        const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
           axios.get('/api/v2/qa/suites/all'),
           axios.get('/api/v2/qa/runs/all'),
           axios.get('/api/v2/qa/test-scopes/documents'),
+          // Parent cases (modules/scenarios) only — child cases are linked
+          // through their parent, not scoped individually.
+          axios.get('/api/v2/qa/parents'),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
         setTestRuns(unwrap(runRes));
         setHubDocs(unwrap(docRes));
+        setTestCases(unwrap(parentRes));
       } catch (err) {
         console.error('Failed to fetch test suites and runs:', err);
       } finally {
         setLoadingTestSuites(false);
         setLoadingTestRuns(false);
         setLoadingHubDocs(false);
+        setLoadingTestCases(false);
       }
     })();
   }, []);
@@ -989,18 +999,14 @@ export default function EditScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingTestCases(true);
-        // Mock data since backend API does not exist yet
-        const mockData = [
-          { id: 'tc-1', name: 'Login Authentication Tests' },
-          { id: 'tc-2', name: 'Checkout Flow Tests' },
-          { id: 'tc-3', name: 'User Profile Updates' },
-          { id: 'tc-4', name: 'Payment Gateway Integration' },
-          { id: 'tc-5', name: 'Dashboard Analytics' }
-        ].filter(tc => tc.name.toLowerCase().includes((search || '').toLowerCase()));
-
-        setTestCases(mockData);
+        // Parent test cases only — the children belonging to a parent are
+        // covered by linking the parent, so they are never listed here.
+        const res: any = await axios.get('/api/v2/qa/parents', {
+          params: search ? { search } : undefined,
+        });
+        setTestCases(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
       } catch (err) {
-        console.error("Failed to fetch test cases:", err);
+        console.error("Failed to fetch parent test cases:", err);
       } finally {
         setLoadingTestCases(false);
       }
@@ -3146,6 +3152,7 @@ export default function EditScopePage() {
                 }
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  {SHOW_BUG_AND_TICKET_LINKS && (
                   <Field label="Linked Bug Sheets">
                     <SearchableDropdown
                       options={bugSheets.map(b => ({
@@ -3173,7 +3180,9 @@ export default function EditScopePage() {
                       style={{ width: '100%' }}
                     />
                   </Field>
+                  )}
 
+                  {SHOW_BUG_AND_TICKET_LINKS && (
                   <Field label="Linked Development Tickets">
                     <SearchableDropdown
                       mode="multiple"
@@ -3214,6 +3223,7 @@ export default function EditScopePage() {
                       style={{ width: '100%' }}
                     />
                   </Field>
+                  )}
 
                   <Field label="Linked Sprints">
                     <SearchableDropdown
@@ -3243,12 +3253,20 @@ export default function EditScopePage() {
                     />
                   </Field>
 
+                  {/* Parent cases only. A parent stands for every child case
+                      beneath it, so listing the children here would just be
+                      noise the QA already covered by picking the parent. */}
                   <Field label="Linked Test Cases">
                     <SearchableDropdown
-                      options={testCases.map(tc => ({
-                        label: tc.name || tc.title || tc.id,
+                      options={testCases.map((tc: any) => ({
+                        label: tc.title || tc.name || tc.id,
                         value: String(tc.id),
-                        description: tc.status || '',
+                        description: [
+                          tc.module_name && tc.module_name !== 'Unassigned' ? tc.module_name : null,
+                          tc.feature,
+                          `${tc.child_count ?? 0} case${Number(tc.child_count) === 1 ? '' : 's'}`,
+                          tc.status,
+                        ].filter(Boolean).join(' · '),
                         badge: <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TC</span>
                       }))}
                       value={formData.details.linkedItems?.testCases?.link ? String(formData.details.linkedItems.testCases.link) : undefined}
@@ -3257,16 +3275,16 @@ export default function EditScopePage() {
                           updateLinkedItem('testCases', 'name', '');
                           updateLinkedItem('testCases', 'link', '');
                         } else {
-                          const selected = testCases.find(tc => String(tc.id) === v);
+                          const selected = testCases.find((tc: any) => String(tc.id) === v);
                           if (selected) {
-                            updateLinkedItem('testCases', 'name', selected.name || selected.title || selected.id);
+                            updateLinkedItem('testCases', 'name', selected.title || selected.name || selected.id);
                             updateLinkedItem('testCases', 'link', String(selected.id));
                           }
                         }
                       }}
                       onSearch={fetchTestCasesSearch}
                       loading={loadingTestCases}
-                      placeholder="Search Test Cases…"
+                      placeholder="Search parent test cases…"
                       style={{ width: '100%' }}
                     />
                   </Field>

@@ -14,15 +14,7 @@ export interface HotspotNavItem {
 }
 
 export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
-  {
-    key: 'openings',
-    label: 'Openings',
-    href: '/hotspot/openings',
-    icon: <Briefcase size={16} />,
-    color: PALETTE.blue,
-    hint: 'Internal roles you can apply to',
-    permission: Permissions.HOTSPOT_OPENING_READ,
-  },
+ 
   {
     key: 'circulation',
     label: 'Circulation',
@@ -41,4 +33,12 @@ export const HOTSPOT_NAV_ITEMS: HotspotNavItem[] = [
     hint: 'Share, tag, react, discuss',
     permission: Permissions.HOTSPOT_BLOG_READ,
   },
+  {
+    key: 'openings',
+    label: 'Openings',
+    href: '/hotspot/openings',
+    icon: <Briefcase size={16} />,
+    color: PALETTE.blue,
+    hint: 'Internal roles you can apply to',
+  }
 ];

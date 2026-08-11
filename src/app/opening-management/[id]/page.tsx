@@ -39,7 +39,7 @@ import { OpeningManagementService, OpeningManagement } from '@/services/openingM
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position as PositionType } from '@/services/positionService';
 import { MembersService } from '@/services/membersService';
-import { CompanyLocationService, CompanyLocation } from '@/services/companyLocationService';
+import { CompanyDetailsService, CompanyBranch } from '@/services/companyDetailsService';
 
 
 const { Title, Text } = Typography;
@@ -123,7 +123,7 @@ export default function OpeningDetailPage() {
   const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
   const [positions, setPositions] = useState<PositionType[]>([]);
   const [members, setMembers] = useState<any[]>([]);
-  const [locations, setLocations] = useState<CompanyLocation[]>([]);
+  const [locations, setLocations] = useState<CompanyBranch[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -145,7 +145,7 @@ export default function OpeningDetailPage() {
         GradeService.getAllGrades(),
         PositionService.getAll(),
         MembersService.getMembersForSelect(),
-        CompanyLocationService.getAll()
+        CompanyDetailsService.getBranches()
       ]);
 
       setOpening(openingData);
@@ -192,7 +192,7 @@ export default function OpeningDetailPage() {
   const getLocationName = () => {
     const loc = locations.find(l => l.id === opening.baseLocation);
     if (!loc) return opening.baseLocation || 'Remote/TBD';
-    return [loc.city, loc.country].filter(Boolean).join(', ') || loc.id;
+    return loc.branchName || [loc.city, loc.country].filter(Boolean).join(', ') || loc.id;
   };
 
   const overviewTab = (

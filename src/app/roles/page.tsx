@@ -86,7 +86,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   invoice: "Invoices",
   account: "Accounts & Finance",
   client: "Clients / CRM",
-  settings: "General Settings",
+  settings: "System Settings",
   role: "Roles & RBAC",
   report: "Reports / Analytics",
   reimbursement: "Reimbursements",
@@ -109,6 +109,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   performance: "Performance",
   opening: "Opening Management",
   profile: "User Profile",
+  hotspot: "Hotspot",
   letter: "Doc Suite",
   letter_template: "Doc Suite Templates",
   'letter.format': "Doc Suite Formats",
@@ -205,6 +206,16 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'bug.trash.read': 'Bug Recycle Bin',
   'bug.trash.restore': 'Bug Recycle Bin',
   'bug.trash.delete': 'Bug Recycle Bin',
+  'qa.submission.create': 'QA Submissions',
+  'qa.submission.read': 'QA Submissions',
+  'qa.submission.update': 'QA Submissions',
+  'qa.submission.delete': 'QA Submissions',
+  'qa.submission.submit': 'QA Submissions',
+  'qa.submission.signoff': 'QA Sign-off',
+  'qa.approval.read': 'PM Approval',
+  'qa.approval.approve': 'PM Approval',
+  'qa.approval.send_back': 'PM Approval',
+  'qa.analytics.read': 'Analytics',
   'qa.manage': 'QA Settings',
 };
 
@@ -216,6 +227,10 @@ const QA_PAGE_ORDER = [
   'Bug List',
   'Bug Archive',
   'Bug Recycle Bin',
+  'QA Submissions',
+  'QA Sign-off',
+  'PM Approval',
+  'Analytics',
   'QA Settings',
 ];
 
@@ -301,21 +316,21 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'home',
     label: 'Home',
     icon: <AppstoreOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log', 'hotspot'],
     accent: '#3b82f6',
   },
   {
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'letter',
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'escalation', 'letter',
       'letter_template',
       'letter.format'
     ],
@@ -390,15 +405,15 @@ const PERMISSION_MODULES = [
   {
     title: "Home",
     icon: <PlusOutlined />, // Placeholder or appropriate icon
-    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking"]
+    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking", "hotspot"]
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
   },
   {
     title: "HRMS",
-    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile"]
+    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile", "escalation"]
   },
   {
     title: "Finance",

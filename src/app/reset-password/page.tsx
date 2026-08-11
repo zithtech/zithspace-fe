@@ -2,14 +2,12 @@
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Card, Form, Input, Button, Typography, Alert, Progress } from 'antd';
-import { LockOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import Image from 'next/image';
+import { Form, Input, Button, Typography, Alert, Progress } from 'antd';
+import { LockOutlined, CheckCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import Logo from '@/assets/logo/Zukvologo.png';
 import { AuthService } from '@/services/authService';
-
+import AuthShell, { authSubmitStyle } from '@/components/auth/AuthShell';
 
 const { Title, Text } = Typography;
 
@@ -38,9 +36,10 @@ function ResetPasswordForm() {
 
   const strength = calculateStrength(password);
 
-  let strengthColor = '#ff4d4f'; // red
-  if (strength >= 60) strengthColor = '#faad14'; // orange
-  if (strength >= 80) strengthColor = '#52c41a'; // green
+  // Ash → blue → green, so the meter stays inside the product palette
+  let strengthColor = '#94A3B8';
+  if (strength >= 60) strengthColor = '#3B82F6';
+  if (strength >= 80) strengthColor = '#22C55E';
 
   let strengthLabel = 'Weak';
   if (strength >= 60) strengthLabel = 'Medium';
@@ -91,7 +90,7 @@ function ResetPasswordForm() {
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
         <LoadingSpinner size="large" fullScreen={false} />
         <div style={{ marginTop: 16 }}>
-          <Text type="secondary">Verifying reset link...</Text>
+          <Text style={{ fontSize: 13, color: '#5A6982' }}>Verifying reset link...</Text>
         </div>
       </div>
     );
@@ -100,14 +99,30 @@ function ResetPasswordForm() {
   if (success) {
     return (
       <div style={{ textAlign: 'center' }}>
-        <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
-        <Title level={3} style={{ marginBottom: 16 }}>Password Reset!</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14 }}>
-          Your password has been successfully reset. You can now login with your new password.
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 999,
+            margin: '0 auto 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(34, 197, 94, 0.12)',
+            border: '1px solid rgba(34, 197, 94, 0.24)',
+          }}
+        >
+          <CheckCircleOutlined style={{ fontSize: 28, color: '#4ADE80' }} />
+        </div>
+        <Title level={4} style={{ marginTop: 0, marginBottom: 10, color: '#F8FAFC', fontWeight: 600 }}>
+          Password reset
+        </Title>
+        <Text style={{ display: 'block', marginBottom: 28, fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
+          Your password has been reset. You can now sign in with your new password.
         </Text>
         <Link href="/login">
-          <Button type="primary" block size="large">
-            Go to Login
+          <Button type="primary" block icon={<ArrowLeftOutlined />} className="zk-submit" style={authSubmitStyle}>
+            Go to sign in
           </Button>
         </Link>
       </div>
@@ -118,14 +133,14 @@ function ResetPasswordForm() {
     return (
       <div style={{ textAlign: 'center' }}>
         <Alert
-          message="Invalid Link"
+          message="Invalid link"
           description={error || "This password reset link is invalid or has expired."}
           type="error"
           showIcon
-          style={{ marginBottom: 24, textAlign: 'left' }}
+          style={{ marginBottom: 24, textAlign: 'left', fontSize: 13 }}
         />
         <Link href="/forgot-password">
-          <Button block size="large">
+          <Button block className="zk-ghost">
             Request new link
           </Button>
         </Link>
@@ -154,32 +169,32 @@ function ResetPasswordForm() {
       >
         <Form.Item
           name="password"
-          label="New Password"
           rules={[
             { required: true, message: 'Please enter a new password' },
             {
-              pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8 }$/,
+              pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/,
               message: 'Password must be at least 8 characters long and contain numbers and special characters.'
             }
           ]}
         >
           <Input.Password
-            prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-            placeholder="Enter new password"
-            style={{ height: 44 }}
+            prefix={<LockOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
+            placeholder="New password"
+            autoComplete="new-password"
             onChange={(e) => setPassword(e.target.value)}
           />
         </Form.Item>
 
         {password && (
-          <div style={{ marginBottom: 24, marginTop: -12 }}>
+          <div style={{ marginBottom: 16, marginTop: -4, padding: '0 4px' }}>
             <Progress
               percent={strength}
               strokeColor={strengthColor}
+              trailColor="rgba(148, 163, 184, 0.14)"
               showInfo={false}
               size="small"
             />
-            <Text type="secondary" style={{ fontSize: 12, color: strengthColor }}>
+            <Text style={{ fontSize: 12, color: strengthColor }}>
               Strength: {strengthLabel}
             </Text>
           </div>
@@ -187,7 +202,6 @@ function ResetPasswordForm() {
 
         <Form.Item
           name="confirmPassword"
-          label="Confirm Password"
           dependencies={['password']}
           rules={[
             { required: true, message: 'Please confirm your new password' },
@@ -202,97 +216,57 @@ function ResetPasswordForm() {
           ]}
         >
           <Input.Password
-            prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
+            prefix={<LockOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
             placeholder="Confirm new password"
-            style={{ height: 44 }}
+            autoComplete="new-password"
           />
         </Form.Item>
 
-        <Form.Item style={{ marginBottom: 12, marginTop: 24 }}>
+        <Form.Item style={{ marginBottom: 0, marginTop: 20 }}>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
             block
-            size="large"
-            style={{
-              height: 44,
-              fontSize: 15,
-              fontWeight: 500,
-              background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
-              border: 'none',
-              borderRadius: 8
-            }}
+            icon={<LockOutlined />}
+            className="zk-submit"
+            style={authSubmitStyle}
           >
-            {loading ? 'Resetting...' : 'Reset Password'}
+            {loading ? 'Resetting...' : 'Reset password'}
           </Button>
         </Form.Item>
       </Form>
+
+      <div style={{ textAlign: 'center', marginTop: 24 }}>
+        <Text style={{ fontSize: 13, color: '#5A6982' }}>
+          Back to{' '}
+          <Link
+            href="/login"
+            className="zk-link"
+            style={{ color: '#60A5FA', fontWeight: 500, textDecoration: 'none' }}
+          >
+            Sign in
+          </Link>
+        </Text>
+      </div>
     </>
+  );
+}
+
+function ResetPasswordSkeleton() {
+  return (
+    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+      <Spin size="large" />
+    </div>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20
-      }}
-    >
-      <Card
-        style={{
-          width: '100%',
-          maxWidth: 400,
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-          borderRadius: 12,
-          border: 'none'
-        }}
-        styles={{
-          body: {
-            padding: 32
-          }
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div
-            style={{
-              width: 100,
-              height: 100,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px'
-            }}
-          >
-            <Image
-              src={Logo}
-              alt="Logo"
-              width={70}
-              height={70}
-              style={{ objectFit: 'contain' }}
-            />
-          </div>
-
-          <Title level={2} style={{ margin: 0, color: '#262626' }}>
-            Create New Password
-          </Title>
-        </div>
-
-        <Suspense fallback={<LoadingSpinner size="large" fullScreen={false} />}>
-          <ResetPasswordForm />
-        </Suspense>
-
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            © {new Date().getFullYear()} Zukvo. All rights reserved.
-          </Text>
-        </div>
-      </Card>
-    </div>
+    <AuthShell subtitle="Create a new password for your account.">
+      <Suspense fallback={<ResetPasswordSkeleton />}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthShell>
   );
 }

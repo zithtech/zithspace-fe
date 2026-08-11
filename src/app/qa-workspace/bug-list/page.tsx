@@ -7,7 +7,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import BugListPage from "@/components/projects/bug-list/BugListPage";
 
 
@@ -32,22 +32,7 @@ export default function QaBugListRoute() {
   if (authLoading) {
     return (
       <MainLayout noPadding>
-        <div
-          style={{
-            margin: 0,
-            padding: "24px 32px",
-            background: "var(--bg-pure-white)",
-            minHeight: "calc(100vh - 64px)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            overflow: "hidden",
-            width: "100%",
-            maxWidth: "100vw"
-          }}
-        >
-          <LoadingSpinner message="Loading bug list..." size="large" fullScreen={false} />
-        </div>
+        <ZukvoLoader size="lg" fullscreen message="Loading the bug list…" />
       </MainLayout>
     );
   }

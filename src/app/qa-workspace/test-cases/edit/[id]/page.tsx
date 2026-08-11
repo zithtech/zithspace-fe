@@ -9,6 +9,7 @@ import { useRouter, useParams } from "next/navigation";
 import { api as axios } from "@/lib/axios";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 export default function EditTestCasePage() {
   useActivitySource({ section: "WORK", module: "QA", page: "EditTestCase" });
@@ -204,7 +205,7 @@ export default function EditTestCasePage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-slate-400)' }}>Loading Test Case...</div>
+          <ZukvoLoader size="md" message="Loading the test case…" />
         ) : (
           <div className="pp-detail-card">
             <div className="pp-card-header">Test Case Details</div>

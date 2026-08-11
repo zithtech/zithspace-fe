@@ -19,7 +19,8 @@ import {
   Typography,
   Upload,
   message,
-  Pagination } from 'antd';
+  Pagination
+} from 'antd';
 import {
   CloudUploadOutlined,
   DeleteOutlined,
@@ -31,7 +32,8 @@ import {
   InboxOutlined,
   PlusOutlined,
   SearchOutlined,
-  CloseOutlined } from '@ant-design/icons';
+  CloseOutlined
+} from '@ant-design/icons';
 import {
   AlertCircle,
   CheckCircle2,
@@ -39,7 +41,8 @@ import {
   FileText,
   FolderOpen,
   Plus,
-  Menu } from 'lucide-react';
+  Menu
+} from 'lucide-react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { RcFile } from 'antd/es/upload';
 import dayjs from 'dayjs';
@@ -77,7 +80,8 @@ const DOC_SUGGESTIONS = [
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   uploaded: { color: '#059669', bg: 'rgba(5,150,105,0.1)', label: 'Uploaded' },
   pending: { color: '#d97706', bg: 'rgba(217,119,6,0.1)', label: 'Pending' },
-  expired: { color: '#dc2626', bg: 'rgba(220,38,38,0.1)', label: 'Expired' } };
+  expired: { color: '#dc2626', bg: 'rgba(220,38,38,0.1)', label: 'Expired' }
+};
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({
@@ -86,12 +90,12 @@ function StatCard({
   label,
   color,
   bg }: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-  color: string;
-  bg: string;
-}) {
+    icon: React.ReactNode;
+    value: number;
+    label: string;
+    color: string;
+    bg: string;
+  }) {
   return (
     <div className="ob-doc-stat">
       <div className="ob-doc-stat-icon" style={{ color, background: bg }}>
@@ -151,7 +155,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
         employeeId: selectedEmployee,
         documentName: finalDocType,
         documentType: finalDocType,
-        notes: notes || undefined });
+        notes: notes || undefined
+      });
       message.success('Document uploaded successfully');
       reset();
       onSuccess();
@@ -167,7 +172,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
     value: e.id,
     label: `${e.firstName} ${e.lastName}`.trim(),
     description: e.positionTitle || (typeof e.position === 'string' ? e.position : e.position?.title) || e.jobTitle || undefined,
-    avatarUrl: e.avatarUrl || null }));
+    avatarUrl: e.avatarUrl || null
+  }));
 
   const selectedEmpObj = employeeOptions.find((e) => e.value === selectedEmployee);
 
@@ -184,14 +190,16 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
         body: { padding: 0, background: "var(--customers-page-bg)" },
         header: { display: "none" },
         footer: { display: "none" },
-        mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
+        mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' }
+      }}
       footer={null}
     >
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          height: "100vh" }}
+          height: "100vh"
+        }}
       >
         <style>{drawerFormStyles}</style>
         {/* Header */}
@@ -199,7 +207,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
             background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-            borderColor: 'var(--border-color)' }}
+            borderColor: 'var(--border-color)'
+          }}
         >
           <div className="flex items-start gap-3 min-w-0">
             <div
@@ -207,7 +216,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
               style={{
                 background: 'rgba(59,130,246,0.10)',
                 color: '#3b82f6',
-                border: '1px solid var(--border-blue-200)' }}
+                border: '1px solid var(--border-blue-200)'
+              }}
             >
               <FileTextOutlined style={{ fontSize: 18 }} />
             </div>
@@ -238,7 +248,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
                 borderRadius: 8,
                 width: 30,
                 justifyContent: "center",
-                color: "var(--text-secondary)" }}
+                color: "var(--text-secondary)"
+              }}
             >
               <CloseOutlined style={{ fontSize: 14 }} />
             </button>
@@ -358,7 +369,8 @@ function AddDocumentWizard({ open, employees, onClose, onSuccess }: WizardProps)
             display: "flex",
             justifyContent: "flex-end",
             gap: 8,
-            background: "var(--bg-secondary)" }}
+            background: "var(--bg-secondary)"
+          }}
         >
           <Button onClick={handleClose}>Cancel</Button>
           <Button
@@ -400,7 +412,8 @@ export default function OnboardingDocumentsPanel() {
         employeeId: filterEmployee,
         documentType: filterType,
         status: filterStatus,
-        search: search || undefined });
+        search: search || undefined
+      });
       setDocuments(result.data || []);
       setStats(result.stats || { total: 0, uploaded: 0, pending: 0, expired: 0 });
     } catch (err: any) {
@@ -414,26 +427,47 @@ export default function OnboardingDocumentsPanel() {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // Load onboarded employees for the wizard
+  // Load onboarded employees and pending invites for the wizard
   useEffect(() => {
-    EmployeeOnboardingService.getAllEmployees()
-      .then((res: any) => {
-        const data = res?.data || res || [];
+    Promise.allSettled([
+      EmployeeOnboardingService.getAllEmployees(),
+      EmployeeOnboardingService.listInvites()
+    ])
+      .then(([empRes, invRes]) => {
+        let combined: any[] = [];
+
+        if (empRes.status === 'fulfilled') {
+          const data = empRes.value?.data || empRes.value || [];
+          if (Array.isArray(data)) combined = [...combined, ...data];
+        }
+
+        if (invRes.status === 'fulfilled') {
+          const data = invRes.value?.data || invRes.value || [];
+          if (Array.isArray(data)) combined = [...combined, ...data];
+        }
 
         // Map to what the UI expects (firstName, lastName, avatarUrl, positionTitle)
-        const mapped = Array.isArray(data) ? data.map((e: any) => {
-          return {
+        // Ensure we handle id vs employeeId to prevent duplicates
+        const uniqueEmployees = new Map();
+
+        combined.forEach((e: any) => {
+          const id = e.id || e.employeeId;
+          if (!id || uniqueEmployees.has(id)) return;
+
+          uniqueEmployees.set(id, {
             ...e,
+            id,
             firstName: e.firstName || e.first_name || '',
             lastName: e.lastName || e.last_name || '',
             avatarUrl: e.profile_pic || e.avatarUrl || null,
-            positionTitle: e.position?.title || e.positionTitle || e.jobTitle || '' };
-        }) : [];
+            positionTitle: e.position?.title || e.positionTitle || e.jobTitle || 'Onboarding',
+          });
+        });
 
-        setEmployees(mapped);
+        setEmployees(Array.from(uniqueEmployees.values()));
       })
       .catch((err: any) => {
-        console.error("Failed to fetch employees:", err);
+        console.error("Failed to fetch employees for documents:", err);
       });
   }, []);
 
@@ -461,7 +495,8 @@ export default function OnboardingDocumentsPanel() {
       value: e.id,
       label: `${e.firstName} ${e.lastName}`.trim() || e.name || 'Unknown',
       description: e.positionTitle || (typeof e.position === 'string' ? e.position : e.position?.title) || e.jobTitle || undefined,
-      avatarUrl: e.avatarUrl || null }));
+      avatarUrl: e.avatarUrl || null
+    }));
   }, [employees]);
 
   // Expired check (if status still says uploaded but expiry has passed)

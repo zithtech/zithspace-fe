@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
 import { MembersService } from "@/services/membersService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { usePermission } from "@/hooks/usePermission";
 
 import {
   Target,
@@ -13,6 +14,7 @@ import {
   Check,
   Monitor,
   AlertCircle,
+  AlignLeft,
   CheckCircle,
   CheckCircle2,
   ArrowLeft,
@@ -27,13 +29,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
-import { Drawer, Button, Dropdown, MenuProps, message } from "antd";
+import { Drawer, Button, Dropdown, MenuProps, message, Tag as AntTag } from "antd";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { saveAs } from "file-saver";
 import TiptapViewer from "@/components/common/TiptapViewer";
 
 export function SectionTitle({ title, hint, icon }: { title: string; hint?: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center justify-between mb-2 break-after-avoid break-inside-avoid">
       <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight flex items-center gap-2">
         {icon && <span className="text-indigo-500">{icon}</span>}
         {title}
@@ -181,8 +184,8 @@ function LinkPreviewDrawer({
           )}
 
           {target && !loaded && !showFallback && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
-              Loading preview…
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ZukvoLoader size="md" message="Loading preview…" />
             </div>
           )}
 
@@ -311,13 +314,15 @@ function getScrollParent(node: Element | null): HTMLElement | null {
   return null;
 }
 
-function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): string {
+function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): [string, (id: string) => void, (isProg: boolean) => void] {
   const [active, setActive] = useState(ids[0] ?? "");
+  const isProgrammatic = useRef(false);
   const key = ids.join(",");
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isProgrammatic.current) return;
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
@@ -331,6 +336,7 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
     els.forEach((el) => observer.observe(el));
 
     const handleScroll = () => {
+      if (isProgrammatic.current) return;
       const scrollHeight = root ? root.scrollHeight : document.documentElement.scrollHeight;
       const clientHeight = root ? root.clientHeight : window.innerHeight;
       const scrollTop = root ? root.scrollTop : window.scrollY;
@@ -351,17 +357,21 @@ function useScrollSpy(ids: string[], offset: number, root: HTMLElement | null): 
     };
   }, [key, offset, root]);
 
-  return active;
+  return [active, setActive, (val: boolean) => { isProgrammatic.current = val; }];
 }
 
 function SectionTabs({
   sections,
   activeId,
+  setActiveId,
+  setProgrammatic,
   offset,
   scrollRoot,
 }: {
   sections: { id: string; label: string }[];
   activeId: string;
+  setActiveId: (id: string) => void;
+  setProgrammatic: (val: boolean) => void;
   offset: number;
   scrollRoot: HTMLElement | null;
 }) {
@@ -383,6 +393,9 @@ function SectionTabs({
   const handleClick = (id: string) => {
     if (animRef.current != null) cancelAnimationFrame(animRef.current);
 
+    setActiveId(id);
+    setProgrammatic(true);
+
     const desired = offset + 12;
     const scroller: HTMLElement | Window = scrollRoot ?? window;
     const getTop = () => (scrollRoot ? scrollRoot.scrollTop : window.scrollY);
@@ -399,6 +412,7 @@ function SectionTabs({
       animRef.current = null;
       scroller.removeEventListener("wheel", cancel);
       scroller.removeEventListener("touchstart", cancel);
+      setProgrammatic(false);
     };
     scroller.addEventListener("wheel", cancel, { passive: true });
     scroller.addEventListener("touchstart", cancel, { passive: true });
@@ -476,8 +490,7 @@ function SectionAnchor({
 }
 
 const SECTIONS = [
-  { id: "product-info", label: "Product Information" },
-  { id: "requirements", label: "Requirement References" },
+  { id: "product-info", label: "Scope Information" },
   { id: "scope-def", label: "Scope Definition" },
   { id: "testing-types", label: "Testing Types" },
   { id: "environment", label: "Environment Details" },
@@ -530,8 +543,9 @@ async function downloadTestScopePdf(scopeId: string, el: HTMLElement, fname: str
   }
 }
 
-function DrawerTicketItem({ ticket }: { ticket: any }) {
+function DrawerTicketItem({ ticket, onOpenTicket }: { ticket: any, onOpenTicket?: () => void }) {
   const [ticketData, setTicketData] = useState<any>(typeof ticket === 'object' ? ticket : null);
+  const { open: openTicketDrawer } = useTicketDrawer();
 
   useEffect(() => {
     if (typeof ticket === 'string') {
@@ -549,18 +563,73 @@ function DrawerTicketItem({ ticket }: { ticket: any }) {
   }, [ticket]);
 
   if (!ticketData) {
-    return <span className="text-sm font-medium text-zinc-500 animate-pulse">Loading ticket...</span>;
+    // Same card shell as the loaded row, so the ticket doesn't jump into place.
+    return (
+      <div className="w-full flex items-center p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <ZukvoLoader size="sm" message="Loading ticket…" />
+      </div>
+    );
   }
 
   const titlePart = ticketData.title || ticketData.name || ticketData.link || ticketData.id || ticket;
-  const displayText = ticketData.ticketNumber
-    ? `${ticketData.ticketNumber} - ${titlePart}`
-    : titlePart;
+  const ticketIdToOpen = ticketData.id || ticketData._id || ticketData.ticketId || ticketData.link || (typeof ticket === 'string' ? ticket : null);
 
-  return (
-    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-      {displayText}
-    </span>
+  let displayTicketNumber = ticketData.ticketNumber;
+  let displayTitle = titlePart;
+
+  if (!displayTicketNumber && typeof titlePart === 'string') {
+    const match = titlePart.match(/^([A-Z0-9]+-\d+)\s+-\s+(.*)$/i);
+    if (match) {
+      displayTicketNumber = match[1];
+      displayTitle = match[2];
+    }
+  }
+
+  return ticketIdToOpen ? (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onOpenTicket) onOpenTicket();
+        openTicketDrawer(ticketIdToOpen);
+      }}
+      className="w-full text-left flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+          <Tag size={16} className="text-indigo-500 dark:text-indigo-400" />
+        </div>
+        <div className="flex flex-col">
+          {displayTicketNumber ? (
+            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:underline tracking-wide uppercase">
+              {displayTicketNumber}
+            </span>
+          ) : null}
+          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+            {displayTitle}
+          </span>
+        </div>
+      </div>
+      <ArrowLeft size={16} className="text-zinc-400 group-hover:text-indigo-500 transform rotate-180 transition-colors flex-shrink-0" />
+    </button>
+  ) : (
+    <div className="w-full text-left flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0">
+          <Tag size={16} className="text-zinc-400" />
+        </div>
+        <div className="flex flex-col">
+          {displayTicketNumber ? (
+            <span className="text-[11px] font-bold text-zinc-500 tracking-wide uppercase">
+              {displayTicketNumber}
+            </span>
+          ) : null}
+          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+            {displayTitle}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -579,20 +648,33 @@ function TestScopeExport({
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
       <div className="px-8 pt-8 pb-4">
-        <div className="flex flex-col gap-5">
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-slate-500 dark:text-slate-400">
-              Test Scope {d.product ? `› ${d.product}` : ''}
+        <div className="flex items-start justify-between">
+          <div className="flex-1 flex flex-col items-start gap-3">
+          </div>
+          <div className="flex-[2] flex flex-col items-center text-center">
+            <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-slate-500 dark:text-slate-400 mb-1">
+              Test Scope
             </div>
-            <div className="mt-1.5 flex flex-col mb-2">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-[19px] leading-tight font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                  {data.name || "Test Scope Details"}
-                </h1>
-                <Tag color={data.status === 'Approved' ? 'green' : data.status === 'Rejected' ? 'red' : 'blue'}>
-                  {data.status || 'Pending'}
-                </Tag>
+            <div className="flex items-center justify-center gap-3">
+              <h1 className="m-0 text-[19px] leading-tight font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                {data.name || "Test Scope Details"}
+              </h1>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${data.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' :
+                  data.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                    'bg-blue-50 text-blue-700 border-blue-200'
+                }`}>
+                {data.status || 'Pending'}
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col items-end text-right">
+            {d.product ? (
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {d.product}
               </div>
+            ) : null}
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Created by {data.qa_owner || usersMap[data.created_by] || data.created_by || 'Unknown'}
             </div>
           </div>
         </div>
@@ -663,6 +745,17 @@ function TestScopeExport({
           </Panel>
         </section>
 
+        {d.description && (
+          <section className="space-y-4">
+            <SectionTitle title="Description" icon={<AlignLeft size={18} />} />
+            <Panel allowBreak>
+              <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed break-words">
+                {d.description}
+              </div>
+            </Panel>
+          </section>
+        )}
+
         <section className="space-y-4">
           <SectionTitle title="Scope Definition" icon={<FileText size={18} />} />
           <ScopeDocument inScope={d.inScope} outScope={d.outScope} forExport />
@@ -714,7 +807,7 @@ function TestScopeExport({
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 break-inside-avoid">
           <SectionTitle title="Dependencies" icon={<AlertCircle size={18} />} />
           <Panel padded={false} allowBreak={false}>
             {d.dependencies?.length ? (
@@ -738,7 +831,7 @@ function TestScopeExport({
           </Panel>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 break-inside-avoid">
           <SectionTitle title="Acceptance Criteria" icon={<CheckCircle size={18} />} />
           <Panel padded={false} allowBreak={false}>
             {d.acceptanceCriteria?.length ? (
@@ -759,7 +852,7 @@ function TestScopeExport({
           </Panel>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 break-inside-avoid">
           <SectionTitle title="Exit Criteria" icon={<CheckCircle2 size={18} />} />
           <Panel allowBreak={false}>
             {d.exitCriteria?.length ? (
@@ -778,12 +871,13 @@ function TestScopeExport({
           </Panel>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 break-inside-avoid">
           <SectionTitle title="Linked Items" icon={<Link2 size={18} />} />
           <Panel padded={false} allowBreak={false}>
             {(() => {
               const fields = [
                 { key: 'testSuites', label: 'Test Suites' },
+                { key: 'testRuns', label: 'Test Runs' },
                 { key: 'testCases', label: 'Test Cases' },
                 { key: 'bugSheets', label: 'Bug Sheets' },
                 { key: 'devTickets', label: 'Dev Tickets' },
@@ -960,6 +1054,9 @@ function TestScopeExportRunner({
 
 export default function TestScopeView({ id }: { id: string }) {
   const { open: openTicketDrawer } = useTicketDrawer();
+  // MainLayout already blocks the route, but this component owns the fetches —
+  // without its own check they would still fire for a user who can't read scopes.
+  const { canReadScope } = usePermission();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -978,6 +1075,8 @@ export default function TestScopeView({ id }: { id: string }) {
   const hideExportMsg = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (!canReadScope) return;
+
     // Fetch Sprints
     axios.get("/api/release-plans").then((res: any) => {
       const data = Array.isArray(res) ? res : (res.data || []);
@@ -1004,9 +1103,11 @@ export default function TestScopeView({ id }: { id: string }) {
       });
       setUsersMap(map);
     }).catch(console.error);
-  }, []);
+  }, [canReadScope]);
 
   useEffect(() => {
+    if (!canReadScope) return;
+
     let active = true;
     axios.get(`/api/v2/qa/test-scopes/${id}`)
       .then((res: any) => {
@@ -1019,7 +1120,7 @@ export default function TestScopeView({ id }: { id: string }) {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [id]);
+  }, [id, canReadScope]);
 
   useEffect(() => {
     const el = stickyRef.current;
@@ -1032,14 +1133,16 @@ export default function TestScopeView({ id }: { id: string }) {
     return () => ro.disconnect();
   }, [data]);
 
-  const activeId = useScrollSpy(
+  const [activeId, setActiveId, setProgrammatic] = useScrollSpy(
     SECTIONS.map((s) => s.id),
     stickyH + 4,
     scrollRoot
   );
 
+  if (!canReadScope) return null;
+
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading details...</div>;
+    return <ZukvoLoader size="lg" fullscreen message="Loading the test scope…" />;
   }
 
   if (!data) {
@@ -1094,7 +1197,7 @@ export default function TestScopeView({ id }: { id: string }) {
               a shared 32px axis so the mixed type sizes don't read as uneven. */}
           <div className="flex items-center gap-3 min-h-[32px]">
             <button
-              onClick={() => router.push("/qa-workspace/test-scope")}
+              onClick={() => router.push("/qa-workspace/test-scope?tab=scopes")}
               className="inline-flex h-8 items-center gap-1.5 -ml-2 px-2 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/60 transition-colors flex-shrink-0"
             >
               <ArrowLeft size={14} />
@@ -1119,13 +1222,13 @@ export default function TestScopeView({ id }: { id: string }) {
               <h1 className="m-0 text-[19px] leading-none font-semibold tracking-tight text-slate-900 dark:text-slate-50 truncate">
                 {data.name || "Test Scope Details"}
               </h1>
-              <Tag
+              <AntTag
                 color={data.status === 'Approved' ? 'green' : data.status === 'Rejected' ? 'red' : 'blue'}
                 className="flex-shrink-0"
                 style={{ margin: 0, lineHeight: '20px' }}
               >
                 {data.status || 'Pending'}
-              </Tag>
+              </AntTag>
             </div>
 
             <Button
@@ -1168,6 +1271,8 @@ export default function TestScopeView({ id }: { id: string }) {
             <SectionTabs
               sections={SECTIONS}
               activeId={activeId}
+              setActiveId={setActiveId}
+              setProgrammatic={setProgrammatic}
               offset={stickyH}
               scrollRoot={scrollRoot}
             />
@@ -1178,81 +1283,90 @@ export default function TestScopeView({ id }: { id: string }) {
       <div className="mx-auto max-w-7xl px-6 py-6 space-y-6 pb-24">
 
         <SectionAnchor id="product-info" offset={stickyH}>
-          <section className="space-y-4">
-            <SectionTitle title="Product Information" icon={<Target size={18} />} />
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y divide-zinc-200 dark:divide-zinc-800">
-                {[
-                  { label: 'Product', value: d.product || '—' },
-                  { label: 'Sprint', value: sprintsMap[d.sprint] || d.sprint || '—' },
-                  { label: 'Release Version', value: d.releaseVersion || '—' },
-                  { label: 'Modules', value: d.modules?.length ? d.modules.join(', ') : '—' },
-                  { label: 'Features', value: d.features?.length ? d.features.join(', ') : '—' },
-                ].map((item) => (
-                  <div key={item.label} className="px-5 py-4">
-                    <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">{item.label}</div>
-                    <div className="mt-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 leading-snug">{item.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        </SectionAnchor>
-
-        <SectionAnchor id="requirements" offset={stickyH}>
-          <section className="space-y-4">
-            <SectionTitle title="Requirement References" icon={<Link2 size={18} />} />
-            <Panel padded={false}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-zinc-200 dark:divide-zinc-800">
-                {[
-                  { label: 'PRD', key: 'prd', text: 'View PRD' },
-                  { label: 'Figma', key: 'figma', text: 'View Figma' },
-                  { label: 'API Documentation', key: 'apiDoc', text: 'View API Doc' },
-                  { label: 'User Story', key: 'userStory', text: 'View User Story' },
-                  { label: 'Epic', key: 'epic', text: 'View Epic' },
-                  { label: 'Dev Ticket', key: 'devTicket', text: 'View Ticket' },
-                ].map((field) => {
-                  const url = d.reqReferences?.[field.key];
-                  return (
-                    <div key={field.key} className="px-5 py-4">
-                      <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">{field.label}</div>
-                      {field.key === 'devTicket' ? (
-                        url && Array.isArray(url) && url.length > 0 ? (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setDrawerTickets(url);
-                              setDevTicketsDrawerOpen(true);
-                            }}
-                            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-                          >
-                            View Ticket
-                          </button>
-                        ) : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-                      ) : (
-                        url ? (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                              <Link2 size={13} className="text-zinc-400 dark:text-zinc-500" />
-                              Link Attached
-                            </span>
-                            <button
-                              onClick={() => setLinkPreview({ label: field.label, url })}
-                              className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-0.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:border-zinc-700 dark:text-blue-400 dark:hover:border-blue-800 dark:hover:bg-blue-500/10"
-                            >
-                              <ExternalLink size={11} /> Open
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
-                        )
-                      )}
+          <div className="space-y-10">
+            <section className="space-y-4">
+              <SectionTitle title="Scope Information" icon={<Target size={18} />} />
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-sm overflow-hidden">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1.5fr_2.5fr_2fr_3fr] divide-x divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {[
+                    { label: 'Product', value: d.product || '—' },
+                    { label: 'Sprint', value: sprintsMap[d.sprint] || d.sprint || '—' },
+                    { label: 'Release Version', value: d.releaseVersion || '—' },
+                    { label: 'Modules', value: d.modules?.length ? d.modules.join(', ') : '—' },
+                    { label: 'Features', value: d.features?.length ? d.features.join(', ') : '—' },
+                  ].map((item) => (
+                    <div key={item.label} className="px-5 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">{item.label}</div>
+                      <div className="mt-1.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 leading-snug">{item.value}</div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </Panel>
-          </section>
+            </section>
+
+            <section className="space-y-4">
+              <SectionTitle title="Description" icon={<AlignLeft size={18} />} />
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 shadow-sm p-5">
+                <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                  {d.description || <span className="text-zinc-400 italic">No description provided.</span>}
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <SectionTitle title="Requirement References" icon={<Link2 size={18} />} />
+              <Panel padded={false}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {[
+                    { label: 'PRD', key: 'prd', text: 'View PRD' },
+                    { label: 'Figma', key: 'figma', text: 'View Figma' },
+                    { label: 'API Documentation', key: 'apiDoc', text: 'View API Doc' },
+                    { label: 'User Story', key: 'userStory', text: 'View User Story' },
+                    { label: 'Epic', key: 'epic', text: 'View Epic' },
+                    { label: 'Dev Ticket', key: 'devTicket', text: 'View Ticket' },
+                  ].map((field) => {
+                    const url = d.reqReferences?.[field.key];
+                    return (
+                      <div key={field.key} className="px-5 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">{field.label}</div>
+                        {field.key === 'devTicket' ? (
+                          url && Array.isArray(url) && url.length > 0 ? (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setDrawerTickets(url);
+                                setDevTicketsDrawerOpen(true);
+                              }}
+                              className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                            >
+                              View Ticket
+                            </button>
+                          ) : <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
+                        ) : (
+                          url ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                                <Link2 size={13} className="text-zinc-400 dark:text-zinc-500" />
+                                Link Attached
+                              </span>
+                              <button
+                                onClick={() => setLinkPreview({ label: field.label, url })}
+                                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-0.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:border-zinc-700 dark:text-blue-400 dark:hover:border-blue-800 dark:hover:bg-blue-500/10"
+                              >
+                                <ExternalLink size={11} /> Open
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-zinc-400 dark:text-zinc-500">—</span>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+            </section>
+          </div>
         </SectionAnchor>
 
         <SectionAnchor id="scope-def" offset={stickyH}>
@@ -1393,6 +1507,7 @@ export default function TestScopeView({ id }: { id: string }) {
               {(() => {
                 const fields = [
                   { key: 'testSuites', label: 'Test Suites' },
+                { key: 'testRuns', label: 'Test Runs' },
                   { key: 'testCases', label: 'Test Cases' },
                   { key: 'bugSheets', label: 'Bug Sheets' },
                   { key: 'devTickets', label: 'Dev Tickets' },
@@ -1508,9 +1623,7 @@ export default function TestScopeView({ id }: { id: string }) {
         <div className="flex flex-col gap-3">
           {drawerTickets.length > 0 ? (
             drawerTickets.map((ticket, idx) => (
-              <div key={idx} className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex flex-col gap-2">
-                <DrawerTicketItem ticket={ticket} />
-              </div>
+              <DrawerTicketItem key={idx} ticket={ticket} onOpenTicket={() => setDevTicketsDrawerOpen(false)} />
             ))
           ) : (
             <span className="text-sm text-zinc-500">No tickets selected.</span>

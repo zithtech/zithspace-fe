@@ -27,6 +27,8 @@ import {
   ClipboardList,
   Boxes,
   PlayCircle,
+  FileCheck2,
+  ThumbsUp,
   // Timesheet / Time tracking
   CalendarClock,
   Gauge,
@@ -202,7 +204,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/escalations", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace"],
     defaultPath: "/tickets/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -216,6 +218,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.QA_CASE_READ,
       Permissions.QA_SUITE_READ,
       Permissions.QA_RUN_READ,
+      Permissions.QA_SUBMISSION_READ,
       Permissions.TICKET_SETTING_READ,
       Permissions.TICKET_TRASH_READ,
       Permissions.TICKET_ARCHIVE_READ,
@@ -229,9 +232,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.DOCUMENT_READ,
       Permissions.PROPOSAL_READ,
       Permissions.SQUAD_READ,
-      Permissions.ESCALATION_READ,
-      Permissions.ESCALATION_CREATE,
-      Permissions.ESCALATION_MANAGE,
       Permissions.LEAD_READ,
       Permissions.LEAD_SETTING_READ,
       Permissions.LEAD_TRASH_READ,
@@ -319,6 +319,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.QA_SUITE_READ,
           Permissions.QA_RUN_READ,
           Permissions.BUG_READ,
+          Permissions.QA_SUBMISSION_READ,
+          Permissions.QA_APPROVAL_READ,
+          Permissions.QA_APPROVAL_APPROVE,
+          Permissions.QA_ANALYTICS_READ,
         ],
         children: [
           {
@@ -355,6 +359,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: I(Bug),
             path: "/qa-workspace/bug-list",
             requiredPermission: Permissions.BUG_READ,
+          },
+          {
+            key: "/qa-workspace/qa-submissions",
+            label: "QA Submissions",
+            icon: I(FileCheck2),
+            path: "/qa-workspace/qa-submissions",
+            requiredPermission: Permissions.QA_SUBMISSION_READ,
+          },
+          {
+            key: "/qa-workspace/approvals",
+            label: "Approvals",
+            icon: I(ThumbsUp),
+            path: "/qa-workspace/approvals",
+            requiredAnyPermission: [
+              Permissions.QA_APPROVAL_READ,
+              Permissions.QA_APPROVAL_APPROVE,
+              Permissions.QA_MANAGE,
+            ],
+          },
+          {
+            key: "/qa-workspace/analytics",
+            label: "Analytics",
+            icon: I(BarChart3),
+            path: "/qa-workspace/analytics",
+            requiredPermission: Permissions.QA_ANALYTICS_READ,
           },
           {
             key: "/qa-workspace/settings",
@@ -548,53 +577,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.SQUAD_READ,
       },
       {
-        key: "escalations-group",
-        label: "Escalations",
-        icon: I(Siren),
-        requiredAnyPermission: [
-          Permissions.ESCALATION_READ,
-          Permissions.ESCALATION_CREATE,
-          Permissions.ESCALATION_MANAGE,
-        ],
-        children: [
-          {
-            key: "/escalations",
-            label: "Escalation List",
-            icon: I(List),
-            path: "/escalations",
-            requiredPermission: Permissions.ESCALATION_READ,
-          },
-          // {
-          //   key: "/escalations/create",
-          //   label: "Create Escalation",
-          //   icon: I(PlusCircle),
-          //   path: "/escalations/create",
-          //   requiredPermission: Permissions.ESCALATION_CREATE,
-          // },
-          // {
-          //   key: "/escalations/sla-rules",
-          //   label: "SLA & Rules Engine",
-          //   icon: I(Gavel),
-          //   path: "/escalations/sla-rules",
-          //   requiredPermission: Permissions.ESCALATION_MANAGE,
-          // },
-          {
-            key: "/escalations/settings",
-            label: "Settings",
-            icon: I(Cog),
-            path: "/escalations/settings",
-            requiredPermission: Permissions.ESCALATION_MANAGE,
-          },
-          {
-            key: "/escalations/trash",
-            label: "Trash",
-            icon: I(Trash2),
-            path: "/escalations/trash",
-            requiredPermission: Permissions.ESCALATION_READ,
-          },
-        ],
-      },
-      {
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),
@@ -669,7 +651,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
       {
         key: "/settings",
-        label: "General Settings",
+        label: "System Settings",
         icon: I(Settings),
         path: "/settings",
         requiredPermission: Permissions.SETTINGS_READ,
@@ -796,6 +778,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/openings",
       "/letters-docs",
       "/pipeline",
+      "/escalations",
     ],
     defaultPath: "/profile",
     requiredAnyPermission: [
@@ -811,6 +794,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
+      Permissions.ESCALATION_READ,
+      Permissions.ESCALATION_CREATE,
+      Permissions.ESCALATION_MANAGE,
     ],
     // Chip shown only to managers/HR — normal users reach their own profile,
     // attendance, leaves, etc. via My Hub. Route access still uses the broader
@@ -826,6 +812,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.LETTER_TEMPLATE_READ,
       Permissions.LETTER_READ,
       Permissions.RECRUITMENT_READ,
+      // Escalations moved here from WORK — without these an escalation-only
+      // user would lose the chip that reaches the page at all.
+      Permissions.ESCALATION_READ,
+      Permissions.ESCALATION_CREATE,
+      Permissions.ESCALATION_MANAGE,
     ],
 
     items: [
@@ -919,6 +910,53 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredAnyPermission: [
           Permissions.OPENING_READ,
           Permissions.OPENING_MANAGE,
+        ],
+      },
+      {
+        key: "escalations-group",
+        label: "Escalations",
+        icon: I(Siren),
+        requiredAnyPermission: [
+          Permissions.ESCALATION_READ,
+          Permissions.ESCALATION_CREATE,
+          Permissions.ESCALATION_MANAGE,
+        ],
+        children: [
+          {
+            key: "/escalations",
+            label: "Escalation List",
+            icon: I(List),
+            path: "/escalations",
+            requiredPermission: Permissions.ESCALATION_READ,
+          },
+          // {
+          //   key: "/escalations/create",
+          //   label: "Create Escalation",
+          //   icon: I(PlusCircle),
+          //   path: "/escalations/create",
+          //   requiredPermission: Permissions.ESCALATION_CREATE,
+          // },
+          // {
+          //   key: "/escalations/sla-rules",
+          //   label: "SLA & Rules Engine",
+          //   icon: I(Gavel),
+          //   path: "/escalations/sla-rules",
+          //   requiredPermission: Permissions.ESCALATION_MANAGE,
+          // },
+          {
+            key: "/escalations/settings",
+            label: "Settings",
+            icon: I(Cog),
+            path: "/escalations/settings",
+            requiredPermission: Permissions.ESCALATION_MANAGE,
+          },
+          {
+            key: "/escalations/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/escalations/trash",
+            requiredPermission: Permissions.ESCALATION_READ,
+          },
         ],
       },
 

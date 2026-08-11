@@ -3,16 +3,17 @@
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Form, Select, Tabs, Dropdown } from "antd";
-import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, CloseOutlined } from "@ant-design/icons";
+import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, CloseOutlined, RightOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useTheme } from "@/context/ThemeContext";
 import { Line } from "@ant-design/plots";
 import dayjs from "dayjs";
@@ -495,6 +496,85 @@ function TestScopeContent() {
       </MainLayout>
     );
   }
+
+  /**
+   * Linked items are stored either as an array of { name, link } (suites, runs,
+   * dev tickets) or as a single object (cases, bug sheets), depending on when
+   * the field became multi-select. Both are read here.
+   */
+  const linkedNames = (v: any): string[] => {
+    if (Array.isArray(v)) return v.map((i: any) => i?.name).filter(Boolean);
+    return v?.name ? [v.name] : [];
+  };
+
+  /**
+   * The expanded child row — Runs, Suite and Cases side by side.
+   *
+   * Each chip is a real link to the record it names, opened in a new tab: the
+   * row is a reference while you are scanning the scope list, so following one
+   * shouldn't cost you your place. Entries with no id stay as plain text rather
+   * than rendering a link that goes nowhere.
+   */
+  const LINKED_GROUPS = [
+    { key: 'testRuns', label: 'Runs', icon: PlayCircle, href: (id: string) => `/qa-workspace/test-runs/${id}` },
+    { key: 'testSuites', label: 'Suite', icon: Boxes, href: (id: string) => `/qa-workspace/test-suites/${id}` },
+    { key: 'testCases', label: 'Cases', icon: ClipboardList, href: (id: string) => `/qa-workspace/test-cases/${id}` },
+  ] as const;
+
+  const linkedEntries = (v: any): Array<{ name: string; link?: string }> => {
+    const list = Array.isArray(v) ? v : v ? [v] : [];
+    return list
+      .filter((i: any) => i?.name)
+      .map((i: any) => ({ name: i.name, link: i.link ? String(i.link) : undefined }));
+  };
+
+  const renderLinkedRow = (record: any) => {
+    const li = record?.details?.linkedItems || {};
+    const groups = LINKED_GROUPS.map((g) => ({ ...g, items: linkedEntries(li[g.key]) }));
+
+    if (groups.every((g) => g.items.length === 0)) {
+      return <div className="sc-linked__empty">Nothing linked to this scope yet.</div>;
+    }
+
+    return (
+      <div className="sc-linked" onClick={(e) => e.stopPropagation()}>
+        {groups.map((g) => (
+          <div key={g.key} className="sc-linked__col">
+            <div className="sc-linked__head">
+              <g.icon size={13} />
+              <span className="sc-linked__label">{g.label}</span>
+              <span className="sc-linked__count">{g.items.length}</span>
+            </div>
+            {g.items.length === 0 ? (
+              <span className="sc-linked__none">Not linked</span>
+            ) : (
+              <div className="sc-linked__items">
+                {g.items.map((item, i) =>
+                  item.link ? (
+                    <a
+                      key={`${item.name}-${i}`}
+                      className="sc-linked__chip is-link"
+                      href={g.href(item.link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Open ${item.name} in a new tab`}
+                    >
+                      <span className="sc-linked__chip-text">{item.name}</span>
+                      <ExternalLink size={11} className="sc-linked__chip-ext" />
+                    </a>
+                  ) : (
+                    <span key={`${item.name}-${i}`} className="sc-linked__chip" title={item.name}>
+                      <span className="sc-linked__chip-text">{item.name}</span>
+                    </span>
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const columns = [
     {
@@ -1033,6 +1113,56 @@ function TestScopeContent() {
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
         /* ── All Scopes: table ──────────────────────────────────────── */
+        /* ── Expanded linked-items row ─────────────────────────────── */
+        .sc-expand {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: transparent;
+          color: var(--text-slate-400); font-size: 10px;
+          transition: transform .15s ease, color .15s ease, border-color .15s ease;
+        }
+        .sc-expand:hover { color: #2563eb; border-color: #bfdbfe; }
+        .sc-expand.is-open { transform: rotate(90deg); color: #2563eb; border-color: #bfdbfe; }
+        .sc-linked {
+          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px; padding: 4px 2px 6px; cursor: default;
+        }
+        @media (max-width: 900px) { .sc-linked { grid-template-columns: 1fr; } }
+        .sc-linked__col {
+          min-width: 0; padding: 10px 12px;
+          border: 1px solid var(--border-slate-100); background: var(--bg-slate-50);
+        }
+        .sc-linked__head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-slate-400); }
+        .sc-linked__label {
+          font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+        }
+        .sc-linked__count {
+          margin-left: auto; min-width: 18px; padding: 0 6px; border-radius: 999px;
+          font-size: 10.5px; font-weight: 700; text-align: center; line-height: 17px;
+          background: var(--bg-pure-white); color: var(--text-slate-500);
+          border: 1px solid var(--border-slate-200);
+        }
+        .sc-linked__items { display: flex; flex-wrap: wrap; gap: 5px; }
+        .sc-linked__chip {
+          display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+          padding: 3px 9px; border-radius: 999px;
+          font-size: 11.5px; font-weight: 500; color: var(--text-slate-700);
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          transition: all .15s ease;
+        }
+        .sc-linked__chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sc-linked__chip-ext { flex-shrink: 0; opacity: 0; transition: opacity .15s ease; }
+        .sc-linked__chip.is-link { cursor: pointer; text-decoration: none; }
+        .sc-linked__chip.is-link:hover {
+          color: #2563eb; border-color: #bfdbfe; background: rgba(59,130,246,.07);
+        }
+        .sc-linked__chip.is-link:hover .sc-linked__chip-ext { opacity: 1; }
+        .sc-linked__chip.is-link:focus-visible {
+          outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16);
+        }
+        .sc-linked__none { font-size: 11.5px; color: var(--text-slate-300); }
+        .sc-linked__empty { padding: 10px 2px; font-size: 12.5px; color: var(--text-slate-400); }
+
         .sc-tablewrap {
           background: transparent; border: 1px solid var(--border-slate-200);
           border-radius: 0; overflow: hidden;
@@ -1367,16 +1497,8 @@ function TestScopeContent() {
                     { key: 'In Review', label: "In Review", value: scopes.filter(s => s.status === 'In Review').length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${overdueCount} past due date` },
                     { key: 'Approved', label: "Approved", value: scopes.filter(s => s.status === 'Approved').length, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${scopes.length ? Math.round((scopes.filter(s => s.status === 'Approved').length / scopes.length) * 100) : 0}% of all scopes` }
                   ].map((stat) => {
-                    const isActive = stat.key === undefined ? !statusFilter : statusFilter === stat.key;
                     return (
-                      <div
-                        key={stat.label}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setStatusFilter(stat.key)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStatusFilter(stat.key); } }}
-                        className={`sc-stat-hit${isActive ? ' is-active' : ''}`}
-                      >
+                      <div key={stat.label}>
                         <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
                     );
@@ -1433,7 +1555,9 @@ function TestScopeContent() {
                   )}
                 </div>
 
-                {/* Table or Grid */}
+                {/* Table or Grid — only the results blur, so the filters above
+                    stay usable while a search refetches. */}
+                <ZukvoLoadingOverlay loading={loading} message="Loading test scopes…" minHeight={loading ? 320 : undefined}>
                 {viewMode === 'list' ? (
                   <div className="sc-tablewrap">
                     <Table
@@ -1441,10 +1565,31 @@ function TestScopeContent() {
                       dataSource={pagedScopes}
                       columns={columns}
                       rowKey="id"
-                      loading={loading}
                       pagination={false}
+                      expandable={{
+                        expandedRowRender: renderLinkedRow,
+                        rowExpandable: () => true,
+                        // The row itself navigates to the scope, so the chevron
+                        // has to swallow its click or expanding would leave the page.
+                        expandIcon: ({ expanded, onExpand, record }) => (
+                          <button
+                            type="button"
+                            className={`sc-expand${expanded ? ' is-open' : ''}`}
+                            aria-label={expanded ? 'Hide linked items' : 'Show linked items'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExpand(record, e);
+                            }}
+                          >
+                            <RightOutlined />
+                          </button>
+                        ),
+                      }}
                       locale={{
-                        emptyText: (
+                        /* Holding the height beats claiming "no scopes" mid-fetch. */
+                        emptyText: loading ? (
+                          <div style={{ minHeight: 240 }} />
+                        ) : (
                           <div className="sc-empty">
                             <SnippetsOutlined className="sc-empty__icon" />
                             <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
@@ -1466,9 +1611,7 @@ function TestScopeContent() {
                   </div>
                 ) : (
                   <div className="pp-grid">
-                    {loading ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
-                    ) : filteredScopes.length === 0 ? (
+                    {loading ? null : filteredScopes.length === 0 ? (
                       <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
                         <SnippetsOutlined className="sc-empty__icon" />
                         <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
@@ -1484,6 +1627,7 @@ function TestScopeContent() {
                     )}
                   </div>
                 )}
+                </ZukvoLoadingOverlay>
 
               </>
             )}
@@ -1508,6 +1652,7 @@ function TestScopeContent() {
                   />
                 </div>
 
+                <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>
                 {viewMode === 'list' ? (
                   <div className="sc-tablewrap">
                     <Table
@@ -1516,7 +1661,6 @@ function TestScopeContent() {
                       columns={approvalColumns}
                       rowKey="id"
                       pagination={false}
-                      loading={loading}
                       scroll={{ x: 'max-content' }}
                       onRow={(record) => ({
                         onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
@@ -1525,9 +1669,7 @@ function TestScopeContent() {
                   </div>
                 ) : (
                   <div className="pp-grid">
-                    {loading ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
-                    ) : approvalScopes.length === 0 ? (
+                    {loading ? null : approvalScopes.length === 0 ? (
                       <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
                         <SendOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br/>
                         No pending approvals
@@ -1537,6 +1679,7 @@ function TestScopeContent() {
                     )}
                   </div>
                 )}
+                </ZukvoLoadingOverlay>
               </>
             )}
 
@@ -1557,7 +1700,7 @@ function TestScopeContent() {
                     <div className="px-4 py-4">
                       <div style={{ height: 220 }}>
                         {loading ? (
-                          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: 'var(--text-slate-400)' }}>Loading...</span></div>
+                          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ZukvoLoader size="md" message="Plotting the year…" /></div>
                         ) : mounted && yearlyScopesData.length > 0 ? (
                           <Line key={theme} {...monthlyScopesConfig} />
                         ) : (
@@ -1638,10 +1781,11 @@ function TestScopeContent() {
                     className="ts-table sc-table"
                     dataSource={scopeSettings.filter(s => s.category === settingsActiveCategory)}
                     rowKey="id"
-                    loading={settingsLoading}
                     pagination={false}
                     locale={{
-                      emptyText: (
+                      emptyText: settingsLoading ? (
+                        <ZukvoLoader size="md" message="Loading options…" />
+                      ) : (
                         <div className="sc-empty">
                           <Settings size={26} className="sc-empty__icon" />
                           <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
@@ -2019,7 +2163,7 @@ function TestScopeContent() {
 
 export default function TestScopePage() {
   return (
-    <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading test scopes...</div>}>
+    <Suspense fallback={<ZukvoLoader size="lg" fullscreen message="Loading test scopes…" />}>
       <TestScopeContent />
     </Suspense>
   );

@@ -13,6 +13,7 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
@@ -73,10 +74,12 @@ function TestRunsContent() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>((searchParams.get("tab") as TabKey) || "runs");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  
+
   const [runs, setRuns] = useState<any[]>([]);
   const [suites, setSuites] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
+  /** Scopes a run can be attributed to, so QA Submissions can find it later. */
+  const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
@@ -87,7 +90,7 @@ function TestRunsContent() {
   useEffect(() => {
     setPage(1);
   }, [searchTerm, suiteFilter, progressFilter]);
-  
+
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({});
@@ -110,14 +113,16 @@ function TestRunsContent() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [runsRes, suitesRes, modRes] = await Promise.all([
+      const [runsRes, suitesRes, modRes, scopeRes] = await Promise.all([
         axios.get("/api/v2/qa/runs/all"),
         axios.get("/api/v2/qa/suites/all"),
-        axios.get("/api/v2/qa/modules")
+        axios.get("/api/v2/qa/modules"),
+        axios.get("/api/v2/qa/test-scopes"),
       ]);
       setRuns(Array.isArray(runsRes) ? runsRes : (runsRes?.data?.data || runsRes?.data || []));
       setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
+      setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
     } catch (error) {
       message.error("Failed to fetch data");
     } finally {
@@ -139,6 +144,7 @@ function TestRunsContent() {
   const handleCreateRun = async () => {
     try {
       if (!formData.run_name) return message.error("Run Name is required");
+      if (!formData.scope_id) return message.error("Test Scope is required");
       if (!formData.suite_id) return message.error("Test Suite is required");
 
       setSaving(true);
@@ -315,7 +321,7 @@ function TestRunsContent() {
     const accent = accentFor(r.run_name || r.id);
     const suite = suites.find(s => s.id === r.suite_id);
     const suiteName = r.suite_name || suite?.suite_name || 'Unassigned';
-    
+
     const total = parseInt(r.total_cases) || 0;
     const executed = total - (parseInt(r.not_executed_count) || 0);
     const percent = total > 0 ? Math.round((executed / total) * 100) : 0;
@@ -849,62 +855,60 @@ function TestRunsContent() {
                   )}
                 </div>
 
-                {/* Table or Grid */}
-                {viewMode === 'list' ? (
-                  <div className="sc-tablewrap" style={{ position: 'relative' }}>
-                    {loading && (
-                      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <LoadingSpinner size="medium" fullScreen={false} />
-                      </div>
-                    )}
-                    <Table
-                      className="ts-table sc-table"
-                      dataSource={pagedRuns}
-                      columns={columns}
-                      rowKey="id"
-                      pagination={false}
-                      loading={false}
-                      onRow={(record) => ({
-                        onClick: () => openExecuteDrawer(record),
-                      })}
-                      locale={{
-                        emptyText: (
-                          <div className="sc-empty">
-                            <SnippetsOutlined className="sc-empty__icon" />
-                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
-                            <p className="sc-empty__desc">
+                {/* Table or Grid — only the results blur, so the filters above
+                    stay usable while a search refetches. */}
+                <ZukvoLoadingOverlay loading={loading} message="Loading test runs…" minHeight={loading ? 320 : undefined}>
+                  {viewMode === 'list' ? (
+                    <div className="sc-tablewrap">
+                      <Table
+                        className="ts-table sc-table"
+                        dataSource={pagedRuns}
+                        columns={columns}
+                        rowKey="id"
+                        pagination={false}
+                        onRow={(record) => ({
+                          onClick: () => openExecuteDrawer(record),
+                        })}
+                        locale={{
+                          /* Holding the height beats claiming "no runs" mid-fetch. */
+                          emptyText: loading ? (
+                            <div style={{ minHeight: 240 }} />
+                          ) : (
+                            <div className="sc-empty">
+                              <SnippetsOutlined className="sc-empty__icon" />
+                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                              <p className="sc-empty__desc">
+                                {activeFilterCount > 0
+                                  ? 'Try widening your search or clearing the filters.'
+                                  : 'Create a run to execute a suite and record pass/fail results.'}
+                              </p>
                               {activeFilterCount > 0
-                                ? 'Try widening your search or clearing the filters.'
-                                : 'Create a run to execute a suite and record pass/fail results.'}
-                            </p>
-                            {activeFilterCount > 0
-                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                              : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
-                          </div>
-                        )
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="pp-grid">
-                    {loading ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>Loading...</div>
-                    ) : filteredRuns.length === 0 ? (
-                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                        <SnippetsOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
-                      </div>
-                    ) : (
-                      pagedRuns.map(r => renderRunCard(r))
-                    )}
-                  </div>
-                )}
+                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                            </div>
+                          )
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pp-grid">
+                      {loading ? null : filteredRuns.length === 0 ? (
+                        <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                          <SnippetsOutlined className="sc-empty__icon" />
+                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
+                          </p>
+                          {activeFilterCount > 0
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                        </div>
+                      ) : (
+                        pagedRuns.map(r => renderRunCard(r))
+                      )}
+                    </div>
+                  )}
+                </ZukvoLoadingOverlay>
               </>
             )}
 
@@ -972,6 +976,25 @@ function TestRunsContent() {
             </div>
 
             <div className="rd__field">
+              <label className="rd__label">Test Scope <span className="rd__req">*</span></label>
+              <SearchableDropdown
+                options={scopes.map(s => ({
+                  value: s.id,
+                  label: s.name,
+                  description: [s.type, s.status].filter(Boolean).join(' · '),
+                }))}
+                value={formData.scope_id}
+                onChange={(val) => setFormData({ ...formData, scope_id: val })}
+                placeholder="Select the scope this run covers"
+                itemNoun="scopes"
+                className="rd__control"
+              />
+              <p className="rd__hint">
+                Every run belongs to a scope — it&apos;s what lets a QA Submission report this run as evidence.
+              </p>
+            </div>
+
+            <div className="rd__field">
               <label className="rd__label">Module</label>
               <SearchableDropdown
                 options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
@@ -1023,7 +1046,7 @@ function TestRunsContent() {
               type="primary"
               loading={saving}
               icon={<PlayCircleOutlined />}
-              disabled={!formData.run_name?.trim() || !formData.suite_id}
+              disabled={!formData.run_name?.trim() || !formData.scope_id || !formData.suite_id}
               onClick={handleCreateRun}
             >
               Start Run
@@ -1038,7 +1061,7 @@ function TestRunsContent() {
 
 export default function TestRunsPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Loading test runs...</div>}>
+    <Suspense fallback={<ZukvoLoader size="lg" fullscreen message="Loading test runs…" />}>
       <TestRunsContent />
     </Suspense>
   );

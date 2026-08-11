@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip } from "antd";
+import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popover, Popconfirm } from "antd";
 import {
   Target, CheckSquare, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2,
   Sparkles, Copy, ChevronDown, Maximize, Zap, Wand2, UploadCloud, File as FileIcon,
@@ -10,7 +10,7 @@ import {
   ExternalLink, Plus, Check, Save, Layers, ListChecks, Gauge, SpellCheck,
   PenTool, Braces, FileSpreadsheet,
 } from "lucide-react";
-import { ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
@@ -23,12 +23,17 @@ import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import debounce from "lodash/debounce";
 
 const { Dragger } = Upload;
+
+/* Bug sheets and dev tickets are hidden from Linked Items for now. The fields
+   and their save paths still work — flip this to bring them back. */
+const SHOW_BUG_AND_TICKET_LINKS = false;
 
 /* ────────────────────────────────────────────────────────────────────────────
    Section registry — drives the left rail, the scroll-spy and the progress ring
@@ -49,17 +54,19 @@ const SECTIONS = [
 ];
 
 const TESTING_TYPES = [
-  "Functional", "Regression", "Smoke", "Sanity",
-  "UI", "API", "Performance", "Security",
-  "Accessibility", "Cross Browser", "Mobile", "Automation",
-  "Integration", "UAT", "Usability", "Localization",
-  "Exploratory", "End-to-End", "Compatibility", "Database",
+  "Smoke Testing", "Sanity Testing", "Functional Testing", "GUI Testing",
+  "UI Testing", "Positive Testing", "Negative Testing", "Validation Testing",
+  "Data Verification Testing", "Integration Testing", "System Testing",
+  "End-to-End Testing", "Regression Testing", "Retesting", "Exploratory Testing",
+  "Compatibility Testing", "Cross-Browser Testing", "User Acceptance Testing",
+  "Performance Testing", "Security Testing",
 ];
 
-type ZaiField = 'inScope' | 'description';
+type ZaiField = 'inScope' | 'outScope' | 'description';
 
 const ZAI_FIELD_LABEL: Record<ZaiField, string> = {
   inScope: 'Scope Definition',
+  outScope: 'Out of Scope',
   description: 'Description',
 };
 
@@ -581,7 +588,7 @@ const ScopeDocEditor = React.forwardRef<ScopeDocEditorRef, {
       className={`ts-docsurface${height ? ' ts-docsurface--inline' : ''}`}
       style={height ? { height } : undefined}
     >
-      {!ready && <div className="ts-docsurface__loading">Preparing editor…</div>}
+      {!ready && <div className="ts-docsurface__loading"><ZukvoLoader size="sm" message="Preparing editor…" /></div>}
       <DocumentEditor
         editor={editor}
         viewMode="edit"
@@ -610,13 +617,20 @@ export default function EditScopePage() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const [generatingInScope, setGeneratingInScope] = useState(false);
+  const [generatingOutScope, setGeneratingOutScope] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [polishingDescription, setPolishingDescription] = useState(false);
   const [isZaiModalVisible, setIsZaiModalVisible] = useState(false);
   const [zaiPrompt, setZaiPrompt] = useState("");
   const [zaiTargetField, setZaiTargetField] = useState<ZaiField | null>(null);
+  const [zaiAction, setZaiAction] = useState<'generate' | 'optimize' | 'enhance'>('generate');
   const [zaiView, setZaiView] = useState<'prompt' | 'preview'>('prompt');
   const [zaiGeneratedContent, setZaiGeneratedContent] = useState('');
+  /** Whether this run should read the linked PRD, or draft from context alone. */
+  const [zaiUsePrd, setZaiUsePrd] = useState(false);
+  const [prdPopoverOpen, setPrdPopoverOpen] = useState(false);
+  /** Optional steering text for the PRD run — the PRD itself is the brief. */
+  const [prdContext, setPrdContext] = useState('');
 
   const [isExpandDrawerVisible, setIsExpandDrawerVisible] = useState(false);
   const [previewImg, setPreviewImg] = useState<{ src: string; name: string } | null>(null);
@@ -637,6 +651,15 @@ export default function EditScopePage() {
   const [bugSheets, setBugSheets] = useState<any[]>([]);
   const [loadingTestCases, setLoadingTestCases] = useState(false);
   const [testCases, setTestCases] = useState<any[]>([]);
+  /** Every suite and run in the workspace — the scope links to these, not URLs. */
+  const [testSuites, setTestSuites] = useState<any[]>([]);
+  const [loadingTestSuites, setLoadingTestSuites] = useState(false);
+  const [testRuns, setTestRuns] = useState<any[]>([]);
+  const [loadingTestRuns, setLoadingTestRuns] = useState(false);
+  /** Document Hub documents, for pointing the PRD reference at a real doc. */
+  const [prdMode, setPrdMode] = useState<'document' | 'link'>('document');
+  const [hubDocs, setHubDocs] = useState<any[]>([]);
+  const [loadingHubDocs, setLoadingHubDocs] = useState(false);
 
   const [positionsList, setPositionsList] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -704,7 +727,8 @@ export default function EditScopePage() {
       acceptanceCriteria: [],
       exitCriteria: [],
       linkedItems: {
-        testSuites: { name: '', link: '' },
+        testSuites: [],
+        testRuns: [],
         testCases: { name: '', link: '' },
         bugSheets: { name: '', link: '' },
         devTickets: [],
@@ -723,6 +747,7 @@ export default function EditScopePage() {
   });
 
   const [isDirty, setIsDirty] = useState(false);
+  const [isCorrectingAcGrammar, setIsCorrectingAcGrammar] = useState(false);
   const firstRender = useRef(true);
   const skipDirtyRef = useRef(false);
   const saveRef = useRef<() => void>(() => { });
@@ -939,22 +964,49 @@ export default function EditScopePage() {
     []
   );
 
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingTestSuites(true);
+        setLoadingTestRuns(true);
+        setLoadingHubDocs(true);
+        setLoadingTestCases(true);
+        const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
+          axios.get('/api/v2/qa/suites/all'),
+          axios.get('/api/v2/qa/runs/all'),
+          axios.get('/api/v2/qa/test-scopes/documents'),
+          // Parent cases (modules/scenarios) only — child cases are linked
+          // through their parent, not scoped individually.
+          axios.get('/api/v2/qa/parents'),
+        ]);
+        const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
+        setTestSuites(unwrap(suiteRes));
+        setTestRuns(unwrap(runRes));
+        setHubDocs(unwrap(docRes));
+        setTestCases(unwrap(parentRes));
+      } catch (err) {
+        console.error('Failed to fetch test suites and runs:', err);
+      } finally {
+        setLoadingTestSuites(false);
+        setLoadingTestRuns(false);
+        setLoadingHubDocs(false);
+        setLoadingTestCases(false);
+      }
+    })();
+  }, []);
+
   const fetchTestCasesSearch = React.useCallback(
     debounce(async (search: string) => {
       try {
         setLoadingTestCases(true);
-        // Mock data since backend API does not exist yet
-        const mockData = [
-          { id: 'tc-1', name: 'Login Authentication Tests' },
-          { id: 'tc-2', name: 'Checkout Flow Tests' },
-          { id: 'tc-3', name: 'User Profile Updates' },
-          { id: 'tc-4', name: 'Payment Gateway Integration' },
-          { id: 'tc-5', name: 'Dashboard Analytics' }
-        ].filter(tc => tc.name.toLowerCase().includes((search || '').toLowerCase()));
-
-        setTestCases(mockData);
+        // Parent test cases only — the children belonging to a parent are
+        // covered by linking the parent, so they are never listed here.
+        const res: any = await axios.get('/api/v2/qa/parents', {
+          params: search ? { search } : undefined,
+        });
+        setTestCases(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
       } catch (err) {
-        console.error("Failed to fetch test cases:", err);
+        console.error("Failed to fetch parent test cases:", err);
       } finally {
         setLoadingTestCases(false);
       }
@@ -980,7 +1032,7 @@ export default function EditScopePage() {
       "sec-dependencies": (d.dependencies?.length || 0) > 0,
       "sec-acceptance": (d.acceptanceCriteria?.length || 0) > 0,
       "sec-exit": (d.exitCriteria?.length || 0) > 0,
-      "sec-linked": !!(li.bugSheets?.link || li.devTickets?.length || li.sprints?.link || li.testCases?.link || li.testSuites?.name || li.custom?.length),
+      "sec-linked": !!(li.bugSheets?.link || li.devTickets?.length || li.sprints?.link || li.testCases?.link || (Array.isArray(li.testSuites) ? li.testSuites.length : li.testSuites?.name) || (Array.isArray(li.testRuns) ? li.testRuns.length : li.testRuns?.name) || li.custom?.length),
       "sec-attachments": Object.values(att).some((v: any) => Array.isArray(v) && v.length > 0),
       "sec-approval": !!d.approvalWorkflow?.user,
     } as Record<string, boolean>;
@@ -994,9 +1046,7 @@ export default function EditScopePage() {
   if (!dataLoaded) {
     return (
       <MainLayout>
-        <div className="p-16 text-center text-[13px]" style={{ color: 'var(--text-slate-500)' }}>
-          Loading scope…
-        </div>
+        <ZukvoLoader size="lg" fullscreen message="Loading the scope…" />
       </MainLayout>
     );
   }
@@ -1022,6 +1072,35 @@ export default function EditScopePage() {
       ...prev,
       details: { ...prev.details, [field]: val }
     }));
+  };
+
+  const handleCorrectAcGrammar = async () => {
+    const criteria = formData.details.acceptanceCriteria || [];
+    if (criteria.length === 0) return;
+    
+    setIsCorrectingAcGrammar(true);
+    try {
+      const combinedText = criteria.map((c: any, i: number) => `${i + 1}. ${typeof c === 'string' ? c : c.text}`).join('\n');
+      const res: any = await axios.post('/api/v2/qa/test-scopes/enhance-text', { text: combinedText });
+      
+      const correctedText = typeof res === 'string' ? res : (res?.text || res?.data?.text || res?.data?.data?.text);
+      
+      if (correctedText) {
+        const lines = correctedText.split('\n');
+        const updatedCriteria = lines
+          .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
+          .filter(Boolean);
+        
+        updateDetail('acceptanceCriteria', updatedCriteria);
+        message.success('Grammar corrected successfully');
+      } else {
+        throw new Error('Invalid response from AI');
+      }
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || 'Failed to correct grammar');
+    } finally {
+      setIsCorrectingAcGrammar(false);
+    }
   };
 
   const toggleInArray = (field: string, val: string) => {
@@ -1104,38 +1183,77 @@ export default function EditScopePage() {
   };
 
   // ── ZAI helpers (defined AFTER updateDetail so the closure is live) ──────────
+
+  /**
+   * Zai can only read a PRD that lives in the Document Hub — a pasted link is
+   * just a URL the server has no way to open. So every "using PRD" affordance
+   * keys off the document id, not off the PRD field being non-empty.
+   */
+  const prdDocumentId = formData.details.reqReferences?.prdDocumentId || '';
+  const prdDocumentTitle = formData.details.reqReferences?.prdDocumentTitle || '';
+
   const setZaiGenerating = (field: ZaiField, busy: boolean) => {
     if (field === 'inScope') setGeneratingInScope(busy);
+    else if (field === 'outScope') setGeneratingOutScope(busy);
     else setGeneratingDescription(busy);
   };
 
   const isZaiGenerating = (field: ZaiField | null) =>
     field === 'inScope' ? generatingInScope
+      : field === 'outScope' ? generatingOutScope
       : field === 'description' ? generatingDescription
         : false;
 
-  const handleGenerateScopeWithAI = (field: ZaiField) => {
+  const handleGenerateScopeWithAI = (
+    field: ZaiField,
+    action: 'generate' | 'optimize' | 'enhance' = 'generate',
+    /* Callers that offer a plain and a PRD-backed action pass this explicitly;
+       everyone else keeps the old behaviour of using the PRD when there is one. */
+    usePrd: boolean = !!prdDocumentId,
+  ) => {
     setZaiTargetField(field);
+    setZaiAction(action);
     setZaiPrompt("");
     setZaiView('prompt');
     setZaiGeneratedContent("");
+    setZaiUsePrd(usePrd && !!prdDocumentId);
     setIsZaiModalVisible(true);
   };
 
-  const submitZaiPrompt = async () => {
-    if (!zaiTargetField || !zaiPrompt.trim()) return;
-
-    const field = zaiTargetField;
+  /**
+   * The one call that talks to Zai. Both entry points land here: the full modal
+   * (prompt → preview) and the PRD popover, which skips the prompt step and
+   * drops the user straight into the preview with the result.
+   */
+  const runZaiGeneration = async (opts: {
+    field: ZaiField;
+    action: 'generate' | 'optimize' | 'enhance';
+    usePrd: boolean;
+    prompt: string;
+  }) => {
+    const { field, action, usePrd, prompt } = opts;
     setZaiGenerating(field, true);
 
     try {
+      let existingContent = '';
+      if (field === 'inScope') existingContent = formData.details.inScope || '';
+      else if (field === 'outScope') existingContent = formData.details.outScope || '';
+      else if (field === 'description') existingContent = formData.details.description || '';
+
       const payload = {
         field,
+        action,
+        existingContent,
         scopeName: formData.name,
         projectOverview: formData.details.projectOverview || formData.details.description,
         modules: formData.details.modules,
         testingTypes: formData.details.testingTypes,
-        userPrompt: zaiPrompt,
+        userPrompt: prompt,
+        // When a PRD document is linked, the server reads it and drafts from
+        // its wording rather than from the thin context fields alone. Sent only
+        // when this run asked for it, so "Create with ZAI" and "Create with Zai
+        // using PRD" are genuinely different actions rather than the same call.
+        prdDocumentId: usePrd ? prdDocumentId || undefined : undefined,
       };
       const res = await axios.post('/api/v2/qa/test-scopes/generate-ai', payload);
 
@@ -1156,8 +1274,15 @@ export default function EditScopePage() {
 
       if (isSuccess && htmlContent.trim().length > 0) {
         const safeHtml = htmlContent.replace(/<\/?(section|div|article|main|aside)[^>]*>/gi, '');
+        // Mirror the run into the modal's state so Regenerate and Edit Prompt
+        // keep working even when the run started outside the modal.
+        setZaiTargetField(field);
+        setZaiAction(action);
+        setZaiUsePrd(usePrd);
+        setZaiPrompt(prompt);
         setZaiGeneratedContent(safeHtml);
         setZaiView('preview');
+        setIsZaiModalVisible(true);
       } else {
         message.error('Failed to generate scope content: AI returned empty or invalid format.');
       }
@@ -1167,6 +1292,32 @@ export default function EditScopePage() {
     } finally {
       setZaiGenerating(field, false);
     }
+  };
+
+  const submitZaiPrompt = async () => {
+    if (!zaiTargetField || !zaiPrompt.trim()) return;
+    await runZaiGeneration({
+      field: zaiTargetField,
+      action: zaiAction,
+      usePrd: zaiUsePrd,
+      prompt: zaiPrompt,
+    });
+  };
+
+  /**
+   * PRD path: the document is the brief, so there is no prompt to compose and
+   * nothing to suggest. The popover collects optional steering text and goes
+   * straight to the result.
+   */
+  const handleGenerateFromPrd = async () => {
+    if (!prdDocumentId) return;
+    setPrdPopoverOpen(false);
+    await runZaiGeneration({
+      field: 'inScope',
+      action: 'generate',
+      usePrd: true,
+      prompt: prdContext.trim(),
+    });
   };
 
   const handleZaiInsert = (action: 'replace' | 'append' | 'insert') => {
@@ -1268,6 +1419,16 @@ export default function EditScopePage() {
         }
       }
     }));
+  };
+
+  /**
+   * Linked suites/runs are stored as an array of { name, link }. Scopes saved
+   * before they became multi-select hold a single object, so both shapes are
+   * read here rather than migrating the stored JSON.
+   */
+  const asLinkedIds = (v: any): string[] | undefined => {
+    if (Array.isArray(v)) return v.map((i: any) => String(i.link)).filter(Boolean);
+    return v?.link ? [String(v.link)] : undefined;
   };
 
   const updateLinkedItemArray = (field: string, val: any[]) => {
@@ -1583,6 +1744,27 @@ export default function EditScopePage() {
           --ts-border: #E4EAF2;
           --ts-border-soft: #EDF1F7;
           --ts-text: #0F172A;
+        /* Toggle and control sit on one line — the mode is a property of the
+           field, not a step before it. */
+        .ts-prd { display: flex; align-items: center; gap: 8px; }
+        .ts-prd__control { flex: 1; min-width: 0; }
+        .ts-prd__modes {
+          display: inline-flex; flex-shrink: 0; overflow: hidden; height: 34px;
+          border: 1px solid var(--ts-border); border-radius: 8px;
+        }
+        @media (max-width: 640px) {
+          .ts-prd { flex-direction: column; align-items: stretch; }
+          .ts-prd__modes { align-self: flex-start; }
+        }
+        .ts-prd__modes button {
+          display: inline-flex; align-items: center;
+          padding: 0 12px; border: none; background: transparent; cursor: pointer;
+          font-size: 11px; font-weight: 600; color: var(--ts-text-3);
+          transition: background .15s ease, color .15s ease;
+        }
+        .ts-prd__modes button + button { border-left: 1px solid var(--ts-border); }
+        .ts-prd__modes button.is-active { background: rgba(59,130,246,.1); color: #2563eb; }
+
           --ts-text-2: #475569;
           --ts-text-3: #94A3B8;
           --ts-blue: #3B82F6;
@@ -2194,7 +2376,7 @@ export default function EditScopePage() {
                         disabled={generatingDescription}
                         onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
                       >
-                        <Sparkles size={12} /> {generatingDescription ? 'Generating…' : 'Create with Zai'}
+                        <Sparkles size={12} /> {generatingDescription ? 'Generating\u2026' : (prdDocumentId ? 'Create with Zai using PRD' : 'Create with Zai')}
                       </button>
                       <Tooltip title={!(formData.details.description || '').trim() ? 'Write something first' : 'Fix grammar & typos — keeps your wording'}>
                         <button
@@ -2320,8 +2502,65 @@ export default function EditScopePage() {
                 description="Everything QA needs to understand the feature."
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-5 gap-y-4">
+                  {/* The PRD is the one reference Zai can actually read, so it
+                      can point at a Document Hub doc instead of a URL. Pasting a
+                      link still works for PRDs that live elsewhere. */}
+                  <Field label="PRD" className="md:col-span-2">
+                    <div className="ts-prd">
+                      <div className="ts-prd__modes">
+                        {(['document', 'link'] as const).map(m => (
+                          <button
+                            key={m}
+                            type="button"
+                            className={prdMode === m ? 'is-active' : ''}
+                            onClick={() => setPrdMode(m)}
+                          >
+                            {m === 'document' ? 'Document Hub' : 'Link'}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="ts-prd__control">
+                      {prdMode === 'document' ? (
+                        <SearchableDropdown
+                          options={hubDocs.map((d: any) => ({
+                            value: String(d.id),
+                            label: d.title || 'Untitled document',
+                            description: [d.hub_name, d.updated_at ? `updated ${new Date(d.updated_at).toLocaleDateString()}` : null].filter(Boolean).join(' \u00b7 '),
+                          }))}
+                          value={formData.details.reqReferences?.prdDocumentId || undefined}
+                          onChange={(v: any) => {
+                            const doc = hubDocs.find((d: any) => String(d.id) === v);
+                            updateReqRef('prdDocumentId', v || '');
+                            updateReqRef('prdDocumentTitle', doc?.title || '');
+                            // Keep the link field in step so exports and the
+                            // detail view still have somewhere to point.
+                            updateReqRef('prd', v ? `/documenthub/${v}` : '');
+                          }}
+                          loading={loadingHubDocs}
+                          placeholder={hubDocs.length ? 'Search documents\u2026' : 'No documents in the hub yet'}
+                          itemNoun="documents"
+                          hideAvatar
+                          width={460}
+                          style={{ width: '100%' }}
+                        />
+                      ) : (
+                        <Input
+                          placeholder="Paste PRD link"
+                          value={formData.details.reqReferences?.prd}
+                          onChange={e => {
+                            updateReqRef('prd', e.target.value);
+                            updateReqRef('prdDocumentId', '');
+                            updateReqRef('prdDocumentTitle', '');
+                          }}
+                          prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                          suffix={linkFieldSuffix(formData.details.reqReferences?.prd)}
+                        />
+                      )}
+                      </div>
+                    </div>
+                  </Field>
+
                   {[
-                    { key: 'prd', label: 'PRD' },
                     { key: 'figma', label: 'Figma' },
                     { key: 'apiDoc', label: 'API Documentation' },
                     { key: 'userStory', label: 'User Story' },
@@ -2418,14 +2657,168 @@ export default function EditScopePage() {
                     >
                       <Maximize size={12} /> Expand
                     </button>
-                    <button
-                      type="button"
-                      className="ts-minibtn ts-minibtn--ai"
-                      disabled={generatingInScope}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('inScope'); }}
-                    >
-                      <Sparkles size={12} /> {generatingInScope ? 'Generating…' : 'Create with ZAI'}
-                    </button>
+
+                    {/* Drafting from the PRD is the whole reason for linking one,
+                        so it gets its own button rather than hiding inside the
+                        generic Zai flow. With a PRD linked it opens a small
+                        composer; without one it stays visible but disabled, since
+                        a disabled control with a reason is how the option gets
+                        discovered in the first place. */}
+                    {prdDocumentId ? (
+                      <Popover
+                        open={prdPopoverOpen}
+                        onOpenChange={(o) => {
+                          setPrdPopoverOpen(o);
+                          if (o) setPrdContext('');
+                        }}
+                        trigger="click"
+                        placement="bottomRight"
+                        arrow={false}
+                        overlayClassName="zprd-pop"
+                        content={
+                          <div className="zprd" onClick={(e) => e.stopPropagation()}>
+                            <div className="zprd__head">
+                              <span className="zprd__orb"><Sparkles size={13} /></span>
+                              <div className="zprd__headtext">
+                                <div className="zprd__title">Create with Zai using PRD</div>
+                                <div className="zprd__doc" title={prdDocumentTitle || undefined}>
+                                  <FileText size={11} />
+                                  <span>{prdDocumentTitle || 'Linked document'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="zprd__label">
+                              Add context <span className="zprd__opt">optional</span>
+                            </div>
+                            <Input.TextArea
+                              className="zprd__ta"
+                              rows={3}
+                              value={prdContext}
+                              onChange={(e) => setPrdContext(e.target.value)}
+                              placeholder="e.g. focus on the checkout flow, skip the admin screens"
+                              onPressEnter={(e) => {
+                                // Enter sends, Shift+Enter keeps writing.
+                                if (!e.shiftKey) {
+                                  e.preventDefault();
+                                  handleGenerateFromPrd();
+                                }
+                              }}
+                            />
+
+                            <div className="zprd__foot">
+                              <span className="zprd__hint">Zai reads the PRD — this only steers it.</span>
+                              <Button
+                                type="primary"
+                                size="small"
+                                loading={generatingInScope}
+                                icon={!generatingInScope ? <Sparkles size={12} /> : null}
+                                onClick={handleGenerateFromPrd}
+                              >
+                                Generate
+                              </Button>
+                            </div>
+                          </div>
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="ts-minibtn ts-minibtn--ai"
+                          disabled={generatingInScope}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                          <FileText size={12} /> {generatingInScope ? 'Generating…' : 'Create with Zai using PRD'}
+                        </button>
+                      </Popover>
+                    ) : (
+                      <Tooltip
+                        placement="bottomRight"
+                        overlayClassName="zprd-tip"
+                        title={
+                          <div className="zprd-tip__in">
+                            <div className="zprd-tip__title">
+                              <span className="zprd-tip__icon"><FileText size={12} /></span>
+                              Needs a PRD from the Document Hub
+                            </div>
+                            <p className="zprd-tip__body">
+                              Zai drafts this section from the document itself. Link one here to turn it on:
+                            </p>
+                            <div className="zprd-tip__path">
+                              <span className="zprd-tip__step">Requirement References</span>
+                              <span className="zprd-tip__sep">›</span>
+                              <span className="zprd-tip__step">PRD</span>
+                              <span className="zprd-tip__sep">›</span>
+                              <span className="zprd-tip__step zprd-tip__step--goal">Document Hub</span>
+                            </div>
+                            <p className="zprd-tip__note">
+                              <Link2 size={11} />
+                              <span>A pasted link won&apos;t do — Zai can only read a document stored in the hub.</span>
+                            </p>
+                          </div>
+                        }
+                      >
+                        {/* A disabled button fires no mouse events, so the tooltip
+                            needs a wrapper that is still interactive. */}
+                        <span style={{ display: 'inline-flex' }}>
+                          <button type="button" className="ts-minibtn ts-minibtn--ai" disabled>
+                            <FileText size={12} /> Create with Zai using PRD
+                          </button>
+                        </span>
+                      </Tooltip>
+                    )}
+
+                    {(() => {
+                      const scopeVal = formData.details.inScope || '';
+                      const hasContent = scopeVal.trim() !== '' && scopeVal !== '<p></p>';
+                      return hasContent ? (
+                        <Dropdown
+                          menu={{
+                            /* These stay PRD-free: in this section the PRD is
+                               read only through the button that says so. */
+                            items: [
+                              {
+                                key: 'optimize',
+                                label: 'Optimize',
+                                icon: <Wand2 size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'optimize', false)
+                              },
+                              {
+                                key: 'enhance',
+                                label: 'Enhance',
+                                icon: <Sparkles size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'enhance', false)
+                              },
+                              {
+                                key: 'regenerate',
+                                label: 'Regenerate',
+                                icon: <FileText size={14} />,
+                                onClick: () => handleGenerateScopeWithAI('inScope', 'generate', false)
+                              }
+                            ]
+                          }}
+                          trigger={['click']}
+                          placement="bottomRight"
+                        >
+                          <button
+                            type="button"
+                            className="ts-minibtn ts-minibtn--ai"
+                            disabled={generatingInScope}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          >
+                            <Sparkles size={12} /> {generatingInScope ? 'Working…' : 'ZAI Options'} <ChevronDown size={12} />
+                          </button>
+                        </Dropdown>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ts-minibtn ts-minibtn--ai"
+                          disabled={generatingInScope}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGenerateScopeWithAI('inScope', 'generate', false); }}
+                        >
+                          <Sparkles size={12} /> {generatingInScope ? 'Generating…' : 'Create with ZAI'}
+                        </button>
+                      );
+                    })()}
                   </>
                 }
               >
@@ -2633,6 +3026,26 @@ export default function EditScopePage() {
                 title="Acceptance Criteria"
                 description="Conditions the build must meet for this scope to pass."
                 badge={<CountPill n={formData.details.acceptanceCriteria?.length || 0} noun="criteria" />}
+                action={
+                  (formData.details.acceptanceCriteria || []).length > 0 && (
+                    <Popconfirm
+                      title="Correct Grammar"
+                      description="Do you want to correct the grammar?"
+                      onConfirm={handleCorrectAcGrammar}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button 
+                        size="small" 
+                        type="default" 
+                        icon={<CheckCircleOutlined />}
+                        loading={isCorrectingAcGrammar}
+                      >
+                        Correct Grammar
+                      </Button>
+                    </Popconfirm>
+                  )
+                }
               >
                 {(formData.details.acceptanceCriteria || []).length === 0 ? (
                   <div className="ts-empty">Nothing captured yet — type a criterion below and press Enter.</div>
@@ -2739,6 +3152,7 @@ export default function EditScopePage() {
                 }
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  {SHOW_BUG_AND_TICKET_LINKS && (
                   <Field label="Linked Bug Sheets">
                     <SearchableDropdown
                       options={bugSheets.map(b => ({
@@ -2766,7 +3180,9 @@ export default function EditScopePage() {
                       style={{ width: '100%' }}
                     />
                   </Field>
+                  )}
 
+                  {SHOW_BUG_AND_TICKET_LINKS && (
                   <Field label="Linked Development Tickets">
                     <SearchableDropdown
                       mode="multiple"
@@ -2807,6 +3223,7 @@ export default function EditScopePage() {
                       style={{ width: '100%' }}
                     />
                   </Field>
+                  )}
 
                   <Field label="Linked Sprints">
                     <SearchableDropdown
@@ -2836,12 +3253,20 @@ export default function EditScopePage() {
                     />
                   </Field>
 
+                  {/* Parent cases only. A parent stands for every child case
+                      beneath it, so listing the children here would just be
+                      noise the QA already covered by picking the parent. */}
                   <Field label="Linked Test Cases">
                     <SearchableDropdown
-                      options={testCases.map(tc => ({
-                        label: tc.name || tc.title || tc.id,
+                      options={testCases.map((tc: any) => ({
+                        label: tc.title || tc.name || tc.id,
                         value: String(tc.id),
-                        description: tc.status || '',
+                        description: [
+                          tc.module_name && tc.module_name !== 'Unassigned' ? tc.module_name : null,
+                          tc.feature,
+                          `${tc.child_count ?? 0} case${Number(tc.child_count) === 1 ? '' : 's'}`,
+                          tc.status,
+                        ].filter(Boolean).join(' · '),
                         badge: <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TC</span>
                       }))}
                       value={formData.details.linkedItems?.testCases?.link ? String(formData.details.linkedItems.testCases.link) : undefined}
@@ -2850,32 +3275,94 @@ export default function EditScopePage() {
                           updateLinkedItem('testCases', 'name', '');
                           updateLinkedItem('testCases', 'link', '');
                         } else {
-                          const selected = testCases.find(tc => String(tc.id) === v);
+                          const selected = testCases.find((tc: any) => String(tc.id) === v);
                           if (selected) {
-                            updateLinkedItem('testCases', 'name', selected.name || selected.title || selected.id);
+                            updateLinkedItem('testCases', 'name', selected.title || selected.name || selected.id);
                             updateLinkedItem('testCases', 'link', String(selected.id));
                           }
                         }
                       }}
                       onSearch={fetchTestCasesSearch}
                       loading={loadingTestCases}
-                      placeholder="Search Test Cases…"
+                      placeholder="Search parent test cases…"
                       style={{ width: '100%' }}
                     />
                   </Field>
 
+                  {/* Suites and runs are multi-select: a scope is normally
+                      validated by several of each, and forcing one meant the
+                      rest went unrecorded. Both read through a normaliser so
+                      scopes saved under the old single-value shape still load. */}
                   <Field label="Linked Test Suites" className="md:col-span-2">
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                      <Input placeholder="Name" className="sm:w-[38%]" value={formData.details.linkedItems?.testSuites?.name} onChange={e => updateLinkedItem('testSuites', 'name', e.target.value)} />
-                      <Input
-                        placeholder="Link URL"
-                        className="flex-1"
-                        value={formData.details.linkedItems?.testSuites?.link}
-                        onChange={e => updateLinkedItem('testSuites', 'link', e.target.value)}
-                        prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
-                        suffix={linkFieldSuffix(formData.details.linkedItems?.testSuites?.link)}
-                      />
-                    </div>
+                    <SearchableDropdown
+                      mode="multiple"
+                      renderTags
+                      options={testSuites.map((s: any) => ({
+                        label: s.suite_name || 'Untitled suite',
+                        value: String(s.id),
+                        description: [
+                          s.parent_title,
+                          s.module_name && s.module_name !== 'Unassigned' ? s.module_name : null,
+                          `${s.case_count ?? 0} case${Number(s.case_count) === 1 ? '' : 's'}`,
+                        ].filter(Boolean).join(' \u00b7 '),
+                        badge: (
+                          <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TS</span>
+                        ),
+                      }))}
+                      value={asLinkedIds(formData.details.linkedItems?.testSuites)}
+                      onChange={(v: string[]) =>
+                        updateLinkedItemArray(
+                          'testSuites',
+                          (v || []).map((id) => {
+                            const hit = testSuites.find((s: any) => String(s.id) === id);
+                            return { name: hit?.suite_name || 'Untitled suite', link: id };
+                          }),
+                        )
+                      }
+                      loading={loadingTestSuites}
+                      placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
+                      itemNoun="suites"
+                      /* The overlay takes this width verbatim \u2014 names plus their
+                         scenario and case count need the room. */
+                      width={560}
+                      style={{ width: '100%' }}
+                    />
+                  </Field>
+
+                  <Field label="Linked Test Runs" className="md:col-span-2">
+                    <SearchableDropdown
+                      mode="multiple"
+                      renderTags
+                      options={testRuns.map((r: any) => ({
+                        label: r.run_name || 'Untitled run',
+                        value: String(r.id),
+                        description: [
+                          r.suite_name,
+                          r.execution_type,
+                          r.total_cases !== undefined
+                            ? `${r.passed_count ?? 0}/${r.total_cases ?? 0} passed`
+                            : null,
+                        ].filter(Boolean).join(' \u00b7 '),
+                        badge: (
+                          <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TR</span>
+                        ),
+                      }))}
+                      value={asLinkedIds(formData.details.linkedItems?.testRuns)}
+                      onChange={(v: string[]) =>
+                        updateLinkedItemArray(
+                          'testRuns',
+                          (v || []).map((id) => {
+                            const hit = testRuns.find((r: any) => String(r.id) === id);
+                            return { name: hit?.run_name || 'Untitled run', link: id };
+                          }),
+                        )
+                      }
+                      loading={loadingTestRuns}
+                      placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
+                      itemNoun="runs"
+                      width={560}
+                      style={{ width: '100%' }}
+                    />
                   </Field>
                 </div>
 
@@ -3106,6 +3593,14 @@ export default function EditScopePage() {
                   <p className="zai-hero__sub">
                     Describe what you want ZAI to generate for the {zaiTargetField ? ZAI_FIELD_LABEL[zaiTargetField] : ''} section.
                   </p>
+                  {/* Which source Zai is working from is the one thing the user
+                      cannot infer from the prompt box — so say it outright. */}
+                  {zaiUsePrd && (
+                    <p className="zai-hero__source">
+                      <FileText size={11} />
+                      Drafting from PRD: <strong>{prdDocumentTitle || 'linked document'}</strong>
+                    </p>
+                  )}
                 </div>
               </div>
               <button className="zai-close" onClick={() => setIsZaiModalVisible(false)} aria-label="Close">×</button>
@@ -3141,7 +3636,9 @@ export default function EditScopePage() {
                     </Button>
                   </div>
 
-                  <div className="zai-template-list" style={{ marginTop: 24 }}>
+                  {/* Suggestions are prompt starters — meaningless on a PRD run,
+                      where the document is the brief and the box only steers it. */}
+                  <div className="zai-template-list" style={{ marginTop: 24, display: zaiUsePrd ? 'none' : undefined }}>
                     <div className="zai-template-list__heading">
                       <span className="zai-suggestions__label">Try one of these</span>
                     </div>

@@ -6,12 +6,13 @@ import { Button, Table, Tag, Input, Select, Checkbox, Typography, message, Drawe
 import { PlusOutlined, ArrowLeftOutlined, SearchOutlined, SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, BugOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Layers, Zap, Pencil, Trash2 } from "lucide-react";
+import { Layers, Zap, Pencil, Trash2, Folder, Target, Link, User } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { Text } = Typography;
@@ -108,7 +109,7 @@ export default function TestSuiteDetailsPage() {
         axios.get("/api/v2/qa/parents"),
         axios.get("/api/v2/qa/modules")
       ]);
-      
+
       const suiteData = suiteRes?.data || suiteRes || null;
       setSuite(suiteData);
 
@@ -396,6 +397,10 @@ export default function TestSuiteDetailsPage() {
   const parentScenario = parents.find(p => p.id === suite?.parent_test_case_id);
   const moduleItem = modules.find(m => m.id === suite?.module_id);
 
+  // Same gate the suites list uses — the fetch above already sits behind
+  // canReadSuite, so without this an unpermitted user would get empty chrome.
+  if (!canReadSuite) return null;
+
   return (
     <MainLayout noPadding>
       <style dangerouslySetInnerHTML={{
@@ -450,25 +455,25 @@ export default function TestSuiteDetailsPage() {
 
         /* Suite summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 11px 10px;
-          border: 1px solid var(--border-slate-200); border-radius: 10px;
-          background: var(--bg-slate-50);
+          margin: 2px 0 0; padding: 16px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px;
+          background: transparent;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-side__title { font-size: 12.5px; font-weight: 650; color: var(--text-slate-900); line-height: 1.4; word-break: break-word; }
-        .cd-meta { margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px; }
-        .cd-meta__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
-        .cd-meta__row dt { font-size: 11px; color: var(--text-slate-400); font-weight: 500; flex-shrink: 0; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta__row { 
+          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
+          margin: 0; width: 100%; 
+        }
+        .cd-meta__row dt { 
+          display: flex; align-items: center;
+          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
+          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+        }
         .cd-meta__row dd {
-          margin: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
-          text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
-        .cd-side__desc { margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--border-slate-200); }
-        .cd-side__desckey {
-          display: block; margin-bottom: 5px;
-          font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-          color: var(--text-slate-400);
-        }
-        .cd-side__desc p { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-600); word-break: break-word; }
 
         .dh-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; }
         .dh-main-topbar { height: 68px; padding: 0 24px; border-bottom: 1px solid var(--border-slate-200); display: flex; align-items: center; justify-content: space-between; background: transparent; flex-shrink: 0; }
@@ -699,6 +704,53 @@ export default function TestSuiteDetailsPage() {
         .ts-table .ant-table-tbody > tr:hover > td {
           background: rgba(59, 130, 246, 0.04) !important;
         }
+
+        /* ── Dark mode: the table + everything rendered inside its cells ──
+           Tokens (--bg-slate-50, --border-slate-200, --text-slate-*) already
+           remap themselves; only the hard-coded light values need a partner. */
+        [data-theme='dark'] .ts-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .ts-table .ant-table-thead > tr > th::before {
+          background: var(--border-slate-200) !important;
+        }
+        [data-theme='dark'] .ts-table .ant-table-tbody > tr > td {
+          background: transparent;
+        }
+        [data-theme='dark'] .ts-table .ant-table-tbody > tr:hover > td {
+          background: rgba(59, 130, 246, 0.10) !important;
+        }
+        [data-theme='dark'] .ts-table .ant-table-placeholder > td,
+        [data-theme='dark'] .ts-table .ant-table-placeholder:hover > td {
+          background: transparent !important;
+        }
+
+        /* Case name badge */
+        [data-theme='dark'] .sc-name__badge {
+          background: rgba(59, 130, 246, .18); color: #93C5FD;
+        }
+
+        /* Status / automation pills — lift text out of the dark surface */
+        [data-theme='dark'] .sc-pill--blue { color: #93C5FD; background: rgba(59,130,246,.16); border-color: rgba(59,130,246,.32); }
+        [data-theme='dark'] .sc-pill--green { color: #6EE7B7; background: rgba(16,185,129,.16); border-color: rgba(16,185,129,.32); }
+        [data-theme='dark'] .sc-pill--red { color: #FCA5A5; background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.32); }
+        [data-theme='dark'] .sc-pill--ash { color: #CBD5E1; background: rgba(148,163,184,.14); border-color: rgba(148,163,184,.26); }
+
+        /* Priority meter */
+        [data-theme='dark'] .sc-prio__bar.is-on { background: #60A5FA; }
+        [data-theme='dark'] .sc-prio__bar.is-on.is-max { background: #93C5FD; }
+
+        /* Row actions */
+        [data-theme='dark'] .sc-rowactions button:hover {
+          color: #93C5FD; background: rgba(59,130,246,.14); border-color: rgba(59,130,246,.35);
+        }
+        [data-theme='dark'] .sc-rowactions button.is-danger:hover {
+          color: #FCA5A5; background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.35);
+        }
+
+        /* Empty state inside the table body */
+        [data-theme='dark'] .sc-empty__icon { color: var(--border-slate-200); }
       `}} />
 
       <div className="dh-shell">
@@ -742,29 +794,30 @@ export default function TestSuiteDetailsPage() {
             {/* Suite summary */}
             <span className="pp-nav-caption" style={{ marginTop: 18 }}>Suite</span>
             <div className="cd-side">
-              <div className="cd-side__title">{suite?.suite_name || "Loading suite…"}</div>
-
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt>Scenario</dt>
+                  <dt><Target size={12} style={{ marginRight: 6 }} /> Scenario</dt>
                   <dd title={suite?.parent_title || parentScenario?.title}>{suite?.parent_title || parentScenario?.title || "—"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Module</dt>
+                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Module</dt>
                   <dd>{suite?.module_name || moduleItem?.module_name || "Unassigned"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Linked Cases</dt>
+                  <dt><Link size={12} style={{ marginRight: 6 }} /> Linked Cases</dt>
                   <dd>{linkedCases.length}</dd>
                 </div>
-              </dl>
-
-              {suite?.description && (
-                <div className="cd-side__desc">
-                  <span className="cd-side__desckey">Description</span>
-                  <p>{suite.description}</p>
+                <div className="cd-meta__row">
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
+                  <dd>{suite?.created_by_name || "—"}</dd>
                 </div>
-              )}
+                {suite?.updated_by_name && suite?.updated_by_name !== suite?.created_by_name && (
+                  <div className="cd-meta__row">
+                    <dt><User size={12} style={{ marginRight: 6 }} /> Updated By</dt>
+                    <dd>{suite.updated_by_name}</dd>
+                  </div>
+                )}
+              </dl>
             </div>
           </div>
         </aside>
@@ -878,16 +931,19 @@ export default function TestSuiteDetailsPage() {
             </div>
 
             {/* Linked cases */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading linked cases…" minHeight={loading ? 300 : undefined}>
             <div className="sc-tablewrap">
               <Table
                 className="ts-table sc-table"
                 dataSource={pagedCases}
                 columns={columns}
                 rowKey="id"
-                loading={loading}
                 pagination={false}
                 locale={{
-                  emptyText: (
+                  /* Holding the height beats claiming "no cases" mid-fetch. */
+                  emptyText: loading ? (
+                    <div style={{ minHeight: 220 }} />
+                  ) : (
                     <div className="sc-empty">
                       <FileTextOutlined className="sc-empty__icon" />
                       <p className="sc-empty__title">
@@ -906,6 +962,7 @@ export default function TestSuiteDetailsPage() {
                 }}
               />
             </div>
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}

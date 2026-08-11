@@ -13,6 +13,7 @@ import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { TextArea } = Input;
@@ -145,7 +146,7 @@ export default function ParentTestCaseDetailsPage() {
     try {
       const parsed = JSON.parse(val);
       if (Array.isArray(parsed)) return parsed.map(String);
-    } catch (e) {}
+    } catch (e) { }
     if (typeof val === "string") {
       return val
         .split("\n")
@@ -477,6 +478,10 @@ export default function ParentTestCaseDetailsPage() {
   const pageEnd = Math.min(safePage * pageSize, filteredCases.length);
   const pagedCases = filteredCases.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  // Same gate the sibling QA pages use — the fetch above already sits behind
+  // canReadCase, so without this an unpermitted user would get empty chrome.
+  if (!canReadCase) return null;
+
   return (
     <MainLayout noPadding>
       <style dangerouslySetInnerHTML={{
@@ -531,17 +536,24 @@ export default function ParentTestCaseDetailsPage() {
 
         /* Scenario summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 11px 10px;
-          border: 1px solid var(--border-slate-200); border-radius: 10px;
-          background: var(--bg-slate-50);
+          margin: 2px 0 0; padding: 16px;
+          border: 1px solid var(--border-slate-200); border-radius: 12px;
+          background: transparent;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-side__title { font-size: 12.5px; font-weight: 650; color: var(--text-slate-900); line-height: 1.4; word-break: break-word; }
-        .cd-meta { margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px; }
-        .cd-meta__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; }
-        .cd-meta__row dt { font-size: 11px; color: var(--text-slate-400); font-weight: 500; flex-shrink: 0; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta__row { 
+          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
+          margin: 0; width: 100%; 
+        }
+        .cd-meta__row dt { 
+          display: flex; align-items: center;
+          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
+          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+        }
         .cd-meta__row dd {
-          margin: 0; font-size: 11.5px; font-weight: 600; color: var(--text-slate-700);
-          text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -937,28 +949,21 @@ export default function ParentTestCaseDetailsPage() {
             {/* Scenario summary */}
             <span className="pp-nav-caption" style={{ marginTop: 18 }}>Scenario</span>
             <div className="cd-side">
-              <div className="cd-side__title">{parentData?.title || "—"}</div>
-              {parentData?.status && (
-                <span className={`sc-pill sc-pill--${statusTone(parentData.status)}`} style={{ marginTop: 8 }}>
-                  <span className="sc-pill__dot" />{parentData.status}
-                </span>
-              )}
-
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt>Module</dt>
+                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Module</dt>
                   <dd>{parentData?.module_name || "Unassigned"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Feature</dt>
+                  <dt><Target size={12} style={{ marginRight: 6 }} /> Feature</dt>
                   <dd>{parentData?.feature || "—"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Automation</dt>
+                  <dt><Zap size={12} style={{ marginRight: 6 }} /> Automation</dt>
                   <dd>{parentData?.automation || "Manual"}</dd>
                 </div>
                 <div className="cd-meta__row">
-                  <dt>Owner</dt>
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Owner</dt>
                   <dd>
                     {parentData?.owner_name || parentData?.qa_owner ? (
                       <span className="sc-person">
@@ -967,6 +972,10 @@ export default function ParentTestCaseDetailsPage() {
                       </span>
                     ) : "—"}
                   </dd>
+                </div>
+                <div className="cd-meta__row">
+                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
+                  <dd>{parentData?.creator_name || "—"}</dd>
                 </div>
               </dl>
             </div>
@@ -1084,42 +1093,41 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             {/* Module Test Cases */}
-            <div className="sc-tablewrap" style={{ position: 'relative' }}>
-              {loading && (
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner size="medium" fullScreen={false} />
-                </div>
-              )}
-              <Table
-                className="ts-table sc-table"
-                dataSource={pagedCases}
-                columns={childColumns}
-                rowKey="id"
-                loading={false}
-                pagination={false}
-                onRow={(record) => ({
-                  onClick: () => { setViewCase(record); setViewOpen(true); },
-                })}
-                locale={{
-                  emptyText: (
-                    <div className="sc-empty">
-                      <FileTextOutlined className="sc-empty__icon" />
-                      <p className="sc-empty__title">
-                        {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
-                      </p>
-                      <p className="sc-empty__desc">
+            <ZukvoLoadingOverlay loading={loading} message="Loading module cases…" minHeight={loading ? 300 : undefined}>
+              <div className="sc-tablewrap">
+                <Table
+                  className="ts-table sc-table"
+                  dataSource={pagedCases}
+                  columns={childColumns}
+                  rowKey="id"
+                  pagination={false}
+                  onRow={(record) => ({
+                    onClick: () => { setViewCase(record); setViewOpen(true); },
+                  })}
+                  locale={{
+                    /* Holding the height beats claiming "no cases" mid-fetch. */
+                    emptyText: loading ? (
+                      <div style={{ minHeight: 220 }} />
+                    ) : (
+                      <div className="sc-empty">
+                        <FileTextOutlined className="sc-empty__icon" />
+                        <p className="sc-empty__title">
+                          {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
+                        </p>
+                        <p className="sc-empty__desc">
+                          {activeFilterCount > 0
+                            ? 'Try widening your search or clearing the filters.'
+                            : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
+                        </p>
                         {activeFilterCount > 0
-                          ? 'Try widening your search or clearing the filters.'
-                          : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
-                      </p>
-                      {activeFilterCount > 0
-                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
-                    </div>
-                  )
-                }}
-              />
-            </div>
+                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                          : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
+                      </div>
+                    )
+                  }}
+                />
+              </div>
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}

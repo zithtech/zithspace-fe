@@ -1,0 +1,745 @@
+"use client";
+
+/**
+ * QA Submissions — dashboard and list (§4, §5).
+ *
+ * A scope is submitted more than once over its life (initial results, retest,
+ * final), so this page lists submission *milestones*, not one row per scope.
+ * The status column carries the real meaning — "140 passed / 10 failed,
+ * Submitted" and "150 passed, QA Signed-off" are both valid states, and the
+ * dashboard distinguishes them rather than collapsing everything into
+ * pass/fail (§31).
+ */
+
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import MainLayout from "@/components/layout/MainLayout";
+import { Button, Table, Input, Select, Tooltip, DatePicker, App } from "antd";
+import {
+  PlusOutlined,
+  SearchOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  FileDoneOutlined,
+} from "@ant-design/icons";
+import {
+  FileCheck2,
+  FileEdit,
+  Send,
+  RefreshCcw,
+  CheckCircle2,
+  ShieldCheck,
+  ThumbsUp,
+  Undo2,
+  Eye,
+  Pencil,
+  Trash2,
+  Layers,
+} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import dayjs from "dayjs";
+import type { SortOrder } from "antd/es/table/interface";
+
+import { usePermission } from "@/hooks/usePermission";
+import { useActivitySource } from "@/hooks/useActivitySource";
+import { api as axios } from "@/lib/axios";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { MembersService } from "@/services/membersService";
+import QaSubmissionService, {
+  RECOMMENDATIONS,
+  SUBMISSION_STATUSES,
+  type QaRecommendation,
+  type SubmissionListItem,
+  type SubmissionStats,
+  type SubmissionStatus,
+} from "@/services/qaSubmissionService";
+import {
+  QA_SUBMISSION_STYLES,
+  RecommendationPill,
+  StatTile,
+  StatusPill,
+  fmtDate,
+  initialsOf,
+} from "./shared";
+
+const { RangePicker } = DatePicker;
+
+/**
+ * The dashboard cards, in workflow order. `statuses` is what each card filters
+ * the list down to — "Submitted" covers Under Review too, since both mean
+ * "reported and waiting on someone".
+ */
+const DASHBOARD_CARDS: Array<{
+  key: keyof SubmissionStats;
+  label: string;
+  icon: any;
+  color: string;
+  bg: string;
+  sub: string;
+  statuses?: SubmissionStatus[];
+}> = [
+  { key: "total", label: "Total Submissions", icon: Layers, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", sub: "all milestones" },
+  { key: "draft", label: "Draft", icon: FileEdit, color: "#64748b", bg: "rgba(100,116,139,0.1)", sub: "being prepared", statuses: ["Draft"] },
+  { key: "submitted", label: "Submitted", icon: Send, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", sub: "awaiting action", statuses: ["Submitted", "Under Review"] },
+  { key: "retesting", label: "Retesting", icon: RefreshCcw, color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sub: "validating fixes", statuses: ["Retesting"] },
+  { key: "ready_for_signoff", label: "Ready for Sign-off", icon: CheckCircle2, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", sub: "testing complete", statuses: ["Ready for QA Sign-off"] },
+  { key: "approved", label: "Approved", icon: ThumbsUp, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "accepted — awaiting QA sign-off", statuses: ["Approved"] },
+  { key: "qa_signed_off", label: "QA Signed-off", icon: ShieldCheck, color: "#10b981", bg: "rgba(16,185,129,0.12)", sub: "closed by QA", statuses: ["QA Signed-off"] },
+  { key: "sent_back", label: "Sent Back", icon: Undo2, color: "#f59e0b", bg: "rgba(245,158,11,0.12)", sub: "needs QA attention", statuses: ["Sent Back"] },
+];
+
+function QaSubmissionsContent() {
+  useActivitySource({ section: "WORK", module: "QA", page: "QaSubmissions" });
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { message } = App.useApp();
+  const {
+    canReadSubmission,
+    canCreateSubmission,
+    canUpdateSubmission,
+    canDeleteSubmission,
+  } = usePermission();
+
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [rows, setRows] = useState<SubmissionListItem[]>([]);
+  const [stats, setStats] = useState<SubmissionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [scopes, setScopes] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+
+  // Filters (§5)
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<string | undefined>();
+  const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    searchParams.get("status") || undefined,
+  );
+  const [recommendationFilter, setRecommendationFilter] = useState<string | undefined>();
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [sortBy, setSortBy] = useState("updated_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
+  // Debounce the search box so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, scopeFilter, ownerFilter, statusFilter, recommendationFilter, dateRange]);
+
+  const fetchList = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await QaSubmissionService.list({
+        page,
+        pageSize,
+        search: debouncedSearch || undefined,
+        scopeId: scopeFilter,
+        qaOwnerId: ownerFilter,
+        status: statusFilter as SubmissionStatus | undefined,
+        recommendation: recommendationFilter as QaRecommendation | undefined,
+        from: dateRange?.[0]?.format("YYYY-MM-DD"),
+        to: dateRange?.[1]?.format("YYYY-MM-DD"),
+        sortBy,
+        sortDir,
+      });
+      setRows(res.data);
+      setTotal(res.pagination.total);
+    } catch {
+      message.error("Failed to load QA submissions");
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    page, pageSize, debouncedSearch, scopeFilter, ownerFilter, statusFilter,
+    recommendationFilter, dateRange, sortBy, sortDir, message,
+  ]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setStats(await QaSubmissionService.getStats());
+    } catch {
+      /* the cards simply stay blank — not worth a toast over */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!canReadSubmission) return;
+    fetchList();
+  }, [canReadSubmission, fetchList]);
+
+  useEffect(() => {
+    if (!canReadSubmission) return;
+    fetchStats();
+    (async () => {
+      try {
+        const [scopeRes, memberRes] = await Promise.all([
+          axios.get("/api/v2/qa/test-scopes"),
+          MembersService.getMembers({ limit: 500 }),
+        ]);
+        setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
+        setMembers(memberRes.data || []);
+      } catch {
+        /* filters degrade to free-text search */
+      }
+    })();
+  }, [canReadSubmission, fetchStats]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await QaSubmissionService.remove(id);
+      message.success("QA Submission deleted");
+      fetchList();
+      fetchStats();
+    } catch (e: any) {
+      message.error(e?.response?.data?.error || "Failed to delete the submission");
+    }
+  };
+
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) +
+    (scopeFilter ? 1 : 0) +
+    (ownerFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0) +
+    (recommendationFilter ? 1 : 0) +
+    (dateRange?.[0] ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearch("");
+    setScopeFilter(undefined);
+    setOwnerFilter(undefined);
+    setStatusFilter(undefined);
+    setRecommendationFilter(undefined);
+    setDateRange(null);
+  };
+
+  /** Clicking a dashboard card filters the list to that card's statuses. */
+  const applyCardFilter = (card: (typeof DASHBOARD_CARDS)[number]) => {
+    if (!card.statuses) {
+      setStatusFilter(undefined);
+      return;
+    }
+    setStatusFilter(statusFilter === card.statuses[0] ? undefined : card.statuses[0]);
+  };
+
+  const scopeOptions = useMemo(
+    () => scopes.map((s: any) => ({ value: s.id, label: s.name, description: s.type })),
+    [scopes],
+  );
+  const memberOptions = useMemo(
+    () => members.map((m: any) => ({ value: String(m.id), label: m.name, avatarUrl: m.avatarUrl })),
+    [members],
+  );
+
+  const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}`);
+
+  if (!canReadSubmission) return null;
+
+  /**
+   * A cold load has nothing behind the blur yet. Distinguished from a refetch,
+   * where the previous rows stay in place and blur — which is the whole point of
+   * the overlay: the list doesn't collapse and reflow on every filter change.
+   */
+  const firstLoad = loading && rows.length === 0;
+
+  /** Reflects the server-side sort back onto the column headers. */
+  const sortOrderFor = (field: string): SortOrder =>
+    sortBy === field ? (sortDir === "asc" ? "ascend" : "descend") : null;
+
+  const numCell = (value: number, tone?: "pass" | "fail") => (
+    <span
+      className={`qs-num${value === 0 ? " qs-num--zero" : ""}`}
+      style={value > 0 && tone === "fail" ? { color: "#dc2626" } : value > 0 && tone === "pass" ? { color: "#047857" } : undefined}
+    >
+      {value}
+    </span>
+  );
+
+  const columns = [
+    {
+      title: "Submission",
+      dataIndex: "submission_name",
+      key: "submission_name",
+      width: 280,
+      fixed: "left" as const,
+      // Sorting is server-side — the page only holds one page of rows.
+      sorter: true,
+      sortOrder: sortOrderFor("submission_name"),
+      render: (name: string, r: SubmissionListItem) => (
+        <div className="sc-name">
+          <span className="sc-name__badge">{initialsOf(name)}</span>
+          <span className="sc-name__text">
+            <span className="sc-name__title" title={name}>
+              {name}
+            </span>
+            <span className="sc-name__meta">
+              {r.submission_type} · v{r.version}
+            </span>
+          </span>
+        </div>
+      ),
+    },
+    {
+      title: "Scope",
+      dataIndex: "scope_name",
+      key: "scope_name",
+      width: 170,
+      render: (v: string) => <span className="qs-num" style={{ fontWeight: 500 }}>{v || "—"}</span>,
+    },
+    {
+      title: "QA Owner",
+      dataIndex: "qa_owner_name",
+      key: "qa_owner_name",
+      width: 150,
+      render: (v: string) => v || <span className="qs-muted">Unassigned</span>,
+    },
+    { title: "Runs", dataIndex: "run_count", key: "run_count", width: 70, align: "right" as const, render: (v: number) => numCell(v) },
+    { title: "Total", dataIndex: "total_cases", key: "total_cases", width: 75, align: "right" as const, render: (v: number) => numCell(v) },
+    { title: "Passed", dataIndex: "passed", key: "passed", width: 80, align: "right" as const, render: (v: number) => numCell(v, "pass") },
+    { title: "Failed", dataIndex: "failed", key: "failed", width: 80, align: "right" as const, render: (v: number) => numCell(v, "fail") },
+    { title: "Blocked", dataIndex: "blocked", key: "blocked", width: 85, align: "right" as const, render: (v: number) => numCell(v) },
+    { title: "Open Bugs", dataIndex: "open_bugs", key: "open_bugs", width: 100, align: "right" as const, render: (v: number) => numCell(v, "fail") },
+    {
+      title: "Recommendation",
+      dataIndex: "qa_recommendation",
+      key: "qa_recommendation",
+      width: 185,
+      sorter: true,
+      sortOrder: sortOrderFor("qa_recommendation"),
+      render: (v: QaRecommendation) => <RecommendationPill value={v} size="sm" />,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 175,
+      sorter: true,
+      sortOrder: sortOrderFor("status"),
+      render: (v: SubmissionStatus) => <StatusPill status={v} size="sm" />,
+    },
+    {
+      title: "Submitted On",
+      dataIndex: "submitted_at",
+      key: "submitted_at",
+      width: 130,
+      sorter: true,
+      sortOrder: sortOrderFor("submitted_at"),
+      render: (v: string) => <span className="qs-num" style={{ fontWeight: 500 }}>{fmtDate(v)}</span>,
+    },
+    {
+      title: "Last Updated",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      width: 130,
+      sorter: true,
+      sortOrder: sortOrderFor("updated_at"),
+      render: (v: string) => <span className="qs-num" style={{ fontWeight: 500 }}>{fmtDate(v)}</span>,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 120,
+      align: "right" as const,
+      fixed: "right" as const,
+      render: (_: any, r: SubmissionListItem) => {
+        // A signed-off record is history — editing and deleting are hidden
+        // rather than shown-and-rejected (§24, §32).
+        const locked = r.status === "QA Signed-off" || r.status === "Approved";
+        return (
+          <div className="sc-rowactions" onClick={(e) => e.stopPropagation()}>
+            <Tooltip title="View">
+              <button className="qs-iconbtn" onClick={() => openSubmission(r.id)} aria-label="View">
+                <Eye size={15} />
+              </button>
+            </Tooltip>
+            {canUpdateSubmission && !locked && (
+              <Tooltip title="Edit">
+                <button
+                  className="qs-iconbtn"
+                  onClick={() => router.push(`/qa-workspace/qa-submissions/edit/${r.id}`)}
+                  aria-label="Edit"
+                >
+                  <Pencil size={15} />
+                </button>
+              </Tooltip>
+            )}
+            {canDeleteSubmission && !locked && (
+              <ConfirmDialog
+                tone="danger"
+                title="Delete QA Submission?"
+                description="This removes the submission, its linked runs, known issues and history. The test runs themselves are not affected."
+                confirmText="Delete"
+                onConfirm={() => handleDelete(r.id)}
+              >
+                <Tooltip title="Delete">
+                  <button className="qs-iconbtn is-danger" aria-label="Delete">
+                    <Trash2 size={15} />
+                  </button>
+                </Tooltip>
+              </ConfirmDialog>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  const renderCard = (r: SubmissionListItem) => (
+    <div
+      key={r.id}
+      className="qs-section"
+      style={{ marginBottom: 0, cursor: "pointer" }}
+      onClick={() => openSubmission(r.id)}
+    >
+      <div className="qs-section__head">
+        <div className="qs-section__title">
+          <span className="sc-name__badge">{initialsOf(r.submission_name)}</span>
+          <div>
+            <h3>{r.submission_name}</h3>
+            <p>
+              {r.scope_name || "No scope"} · {r.qa_owner_name || "Unassigned"} · v{r.version}
+            </p>
+          </div>
+        </div>
+        <StatusPill status={r.status} size="sm" />
+      </div>
+      <div className="qs-section__body">
+        <div className="qs-metrics">
+          <div className="qs-metric">
+            <span className="qs-metric__label">Total</span>
+            <span className="qs-metric__value">{r.total_cases}</span>
+          </div>
+          <div className="qs-metric qs-metric--green">
+            <span className="qs-metric__label">Passed</span>
+            <span className="qs-metric__value">{r.passed}</span>
+          </div>
+          <div className="qs-metric qs-metric--red">
+            <span className="qs-metric__label">Failed</span>
+            <span className="qs-metric__value">{r.failed}</span>
+          </div>
+          <div className="qs-metric qs-metric--amber">
+            <span className="qs-metric__label">Open bugs</span>
+            <span className="qs-metric__value">{r.open_bugs}</span>
+          </div>
+        </div>
+        <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+          <RecommendationPill value={r.qa_recommendation} size="sm" />
+          <span className="qs-muted">
+            {r.run_count} run{r.run_count === 1 ? "" : "s"} · {fmtDate(r.submitted_at || r.created_at)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, total);
+
+  return (
+    <MainLayout noPadding>
+      <style dangerouslySetInnerHTML={{ __html: QA_SUBMISSION_STYLES }} />
+
+      <div className="dh-shell">
+        <aside className="dh-sidebar">
+          <div className="dh-sidebar-top">
+            <div className="pp-side-head">
+              <div className="pp-side-logo">
+                <FileCheck2 size={18} />
+              </div>
+              <div>
+                <h1 className="pp-side-title">QA Submissions</h1>
+                <p className="pp-side-subtitle">QA Space</p>
+              </div>
+            </div>
+
+            {canCreateSubmission && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => router.push("/qa-workspace/qa-submissions/create")}
+                block
+                className="pp-side-cta"
+              >
+                Create QA Submission
+              </Button>
+            )}
+          </div>
+
+          <div className="dh-sidebar-scroll">
+            <span className="pp-nav-caption">Lifecycle</span>
+            {DASHBOARD_CARDS.filter((c) => c.statuses).map((card) => {
+              const active = statusFilter === card.statuses![0];
+              return (
+                <button
+                  key={card.key}
+                  className={`pp-nav-item ${active ? "is-active" : ""}`}
+                  onClick={() => applyCardFilter(card)}
+                >
+                  <card.icon size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">{card.label}</span>
+                  {stats && <span className="pp-nav-count">{stats[card.key] ?? 0}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <main className="dh-main">
+          <div className="dh-main-topbar sc-topbar">
+            <div className="sc-topbar__title">
+              <span className="sc-topbar__h1">QA Submissions</span>
+              <span className="sc-topbar__div" />
+              <span className="sc-topbar__sub">
+                Formal reporting of completed testing, QA sign-off and approval
+              </span>
+            </div>
+
+            <div className="dh-main-controls">
+              <div className="pp-segmented">
+                <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")} aria-label="Grid view">
+                  <AppstoreOutlined />
+                </button>
+                <button type="button" className={viewMode === "list" ? "is-active" : ""} onClick={() => setViewMode("list")} aria-label="List view">
+                  <UnorderedListOutlined />
+                </button>
+              </div>
+              {canCreateSubmission && (
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
+                  Create QA Submission
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="dh-main-scroll">
+            {/* Dashboard cards (§4) — the whole lifecycle reads left to right on
+                one row, so the shape of the pipeline is visible at a glance.
+                The per-card hint moves into a tooltip; at this width the tile
+                only has room for the count and its label. */}
+            <div className="qs-statrow">
+              {DASHBOARD_CARDS.map((card) => {
+                const clickable = !!card.statuses;
+                const active = clickable && statusFilter === card.statuses![0];
+                return (
+                  <Tooltip key={card.key} title={card.sub} mouseEnterDelay={0.4}>
+                  <div
+                    role={clickable ? "button" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={() => clickable && applyCardFilter(card)}
+                    onKeyDown={(e) => {
+                      if (clickable && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        applyCardFilter(card);
+                      }
+                    }}
+                    className={clickable ? `sc-stat-hit${active ? " is-active" : ""}` : undefined}
+                  >
+                    <StatTile
+                      compact
+                      label={card.label}
+                      value={stats?.[card.key] ?? "—"}
+                      icon={card.icon}
+                      color={card.color}
+                      bgColor={card.bg}
+                    />
+                  </div>
+                  </Tooltip>
+                );
+              })}
+            </div>
+
+            {/* Filters (§5) */}
+            <div className="sc-filters">
+              <Input
+                className="sc-filters__search"
+                placeholder="Search submissions, scopes…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+              <SearchableDropdown
+                options={scopeOptions}
+                value={scopeFilter}
+                onChange={setScopeFilter}
+                placeholder="All scopes"
+                itemNoun="scopes"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={memberOptions}
+                value={ownerFilter}
+                onChange={setOwnerFilter}
+                placeholder="Any QA owner"
+                itemNoun="people"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={SUBMISSION_STATUSES.map((s) => ({ value: s, label: s }))}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="Any status"
+                hideAvatar
+                itemNoun="statuses"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
+                value={recommendationFilter}
+                onChange={setRecommendationFilter}
+                placeholder="Any recommendation"
+                hideAvatar
+                itemNoun="recommendations"
+                className="sc-filters__field"
+              />
+              <RangePicker
+                value={dateRange as any}
+                onChange={(v) => setDateRange(v as any)}
+                format="DD MMM YYYY"
+                allowEmpty={[true, true]}
+              />
+              {activeFilterCount > 0 && (
+                <button type="button" className="sc-clear" onClick={clearFilters}>
+                  Clear ({activeFilterCount})
+                </button>
+              )}
+            </div>
+
+            {/* Only the results blur — blurring the filters above would disable
+                the search box mid-keystroke, since every keystroke refetches. */}
+            <ZukvoLoadingOverlay
+              loading={loading}
+              message="Loading QA submissions…"
+              minHeight={firstLoad ? 360 : undefined}
+            >
+            {viewMode === "list" ? (
+              <div className="sc-tablewrap">
+                {/* Nothing to show behind the blur on a cold load, and the table's
+                    "No submissions yet" text would be a lie while still loading. */}
+                {firstLoad ? (
+                  <div style={{ minHeight: 360 }} />
+                ) : (
+                <Table
+                  className="sc-table"
+                  dataSource={rows}
+                  columns={columns}
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 1740 }}
+                  onRow={(r) => ({ onClick: () => openSubmission(r.id) })}
+                  onChange={(_p, _f, sorter: any) => {
+                    // Clearing a column's sort falls back to most-recently-updated.
+                    if (!sorter?.order) {
+                      setSortBy("updated_at");
+                      setSortDir("desc");
+                      return;
+                    }
+                    setSortBy(String(sorter.field ?? sorter.columnKey));
+                    setSortDir(sorter.order === "ascend" ? "asc" : "desc");
+                  }}
+                  locale={{
+                    emptyText: (
+                      <div className="sc-empty">
+                        <FileDoneOutlined className="sc-empty__icon" />
+                        <p className="sc-empty__title">
+                          {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
+                        </p>
+                        <p className="sc-empty__desc">
+                          {activeFilterCount > 0
+                            ? "Try widening your search or clearing the filters."
+                            : "Create a submission to report the testing results for a scope. You can submit while bugs are still open — sign-off comes later."}
+                        </p>
+                        {activeFilterCount > 0 ? (
+                          <Button size="small" onClick={clearFilters}>
+                            Clear filters
+                          </Button>
+                        ) : (
+                          canCreateSubmission && (
+                            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
+                              Create QA Submission
+                            </Button>
+                          )
+                        )}
+                      </div>
+                    ),
+                  }}
+                />
+                )}
+              </div>
+            ) : (
+              <div className="pp-grid" style={firstLoad ? { minHeight: 360 } : undefined}>
+                {firstLoad ? null : rows.length === 0 ? (
+                  <div className="sc-empty" style={{ gridColumn: "1 / -1" }}>
+                    <FileDoneOutlined className="sc-empty__icon" />
+                    <p className="sc-empty__title">
+                      {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
+                    </p>
+                    <p className="sc-empty__desc">
+                      {activeFilterCount > 0
+                        ? "Try widening your search or clearing the filters."
+                        : "Create a submission to report the testing results for a scope."}
+                    </p>
+                  </div>
+                ) : (
+                  rows.map(renderCard)
+                )}
+              </div>
+            )}
+            </ZukvoLoadingOverlay>
+          </div>
+
+          {total > 0 && (
+            <div className="pp-footer">
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  ‹
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === page ? "is-active" : ""}`} onClick={() => setPage(p)}>
+                      {p}
+                    </button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                  ›
+                </button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => {
+                    setPageSize(v);
+                    setPage(1);
+                  }}
+                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </MainLayout>
+  );
+}
+
+export default function QaSubmissionsPage() {
+  return (
+    <Suspense fallback={<ZukvoLoader size="lg" fullscreen message="Loading QA submissions…" />}>
+      <QaSubmissionsContent />
+    </Suspense>
+  );
+}

@@ -80,7 +80,7 @@ const SECTIONS: {
       title: "Severity",
       description:
         "Tenant-scoped severity options. Shown in the Capture Bug dropdown and the bug table.",
-      shortDescription: "Triage levels for the bug list",
+      shortDescription: "Triage levels",
       icon: <ThunderboltFilled />,
       accent: "#ef4444",
       accentBg: "rgba(239,68,68,0.10)",
@@ -101,7 +101,7 @@ const SECTIONS: {
       key: "priority",
       title: "Priority",
       description:
-        "Priority levels shared across the QA workspace — test cases, runs and the bug list.",
+        "Priority levels shared across the QA workspace.",
       shortDescription: "How urgent the work is",
       icon: <StarFilled />,
       accent: "#3b82f6",
@@ -196,7 +196,7 @@ export default function BugListConfigManager() {
                   accentBg={s.accentBg}
                   accentFg={s.accentFg}
                   icon={s.icon}
-                  eyebrow="Bug List"
+                  eyebrow="Configuration"
                   title={s.title}
                   description={s.description}
                   loading={loadingMap[s.key]}
@@ -604,7 +604,7 @@ function OptionEditor({
     editing?.kind === "severity"
       ? "Severities surface in the Capture Bug dropdown and the table pill."
       : editing?.kind === "priority"
-        ? "Priorities are shared across test cases, runs and the bug list."
+        ? "Priorities are shared across test cases and runs."
         : "Types categorize bugs (UI / Functional / API and any custom buckets).";
 
   return (

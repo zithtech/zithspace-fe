@@ -2,14 +2,12 @@
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, Suspense } from 'react';
-import { Card, Form, Input, Button, Typography, Alert } from 'antd';
-import { UserOutlined, MailOutlined } from '@ant-design/icons';
-import Image from 'next/image';
+import { Form, Input, Button, Typography, Alert } from 'antd';
+import { UserOutlined, MailOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import Logo from '@/assets/logo/Zukvologo.png';
 import { AuthService } from '@/services/authService';
-
+import AuthShell, { authSubmitStyle } from '@/components/auth/AuthShell';
 
 const { Title, Text } = Typography;
 
@@ -25,7 +23,7 @@ function resolveHostInfo() {
     try {
       rootHost = new URL(envAppUrl).host;
       hasValidEnvRoot = true;
-    } catch (e) {}
+    } catch (e) { }
   }
 
   if (isLocalhost) {
@@ -41,7 +39,7 @@ function resolveHostInfo() {
   }
 
   if (window.location.host === rootHost) {
-    subdomain = ""; 
+    subdomain = "";
   }
 
   return { subdomain, rootHost };
@@ -57,12 +55,12 @@ function ForgotPasswordForm() {
     try {
       setLoading(true);
       setError('');
-      
+
       const { subdomain } = resolveHostInfo();
       const targetSubdomain = searchParams.get('subdomain') || subdomain || undefined;
 
       await AuthService.forgotPassword(values.email, targetSubdomain);
-      
+
       setSuccess(true);
     } catch (error: any) {
       setError(error.message || 'Failed to request password reset');
@@ -74,14 +72,30 @@ function ForgotPasswordForm() {
   if (success) {
     return (
       <div style={{ textAlign: 'center' }}>
-        <MailOutlined style={{ fontSize: 48, color: '#1677ff', marginBottom: 16 }} />
-        <Title level={3} style={{ marginBottom: 16 }}>Check your email</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14 }}>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 999,
+            margin: '0 auto 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(59, 130, 246, 0.12)',
+            border: '1px solid rgba(59, 130, 246, 0.24)',
+          }}
+        >
+          <MailOutlined style={{ fontSize: 28, color: '#60A5FA' }} />
+        </div>
+        <Title level={4} style={{ marginTop: 0, marginBottom: 10, color: '#F8FAFC', fontWeight: 600 }}>
+          Check your email
+        </Title>
+        <Text style={{ display: 'block', marginBottom: 28, fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
           If an account with that email exists, a password reset link has been sent.
         </Text>
         <Link href="/login">
-          <Button type="primary" block size="large">
-            Back to Login
+          <Button type="primary" block icon={<ArrowLeftOutlined />} className="zk-submit" style={authSubmitStyle}>
+            Back to sign in
           </Button>
         </Link>
       </div>
@@ -109,48 +123,54 @@ function ForgotPasswordForm() {
       >
         <Form.Item
           name="email"
-          label="Email Address"
           rules={[
             { required: true, message: 'Please enter your email' },
             { type: 'email', message: 'Please enter a valid email' },
           ]}
         >
           <Input
-            prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-            placeholder="Enter your email"
-            style={{ height: 44 }}
+            prefix={<UserOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
+            placeholder="Email address"
+            autoComplete="email"
           />
         </Form.Item>
 
-        <Form.Item style={{ marginBottom: 12, marginTop: 24 }}>
+        <Form.Item style={{ marginBottom: 0, marginTop: 20 }}>
           <Button
             type="primary"
             htmlType="submit"
             loading={loading}
             block
-            size="large"
-            style={{
-              height: 44,
-              fontSize: 15,
-              fontWeight: 500,
-              background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
-              border: 'none',
-              borderRadius: 8 }}
+            icon={<SendOutlined />}
+            className="zk-submit"
+            style={authSubmitStyle}
           >
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? 'Sending...' : 'Send reset link'}
           </Button>
         </Form.Item>
       </Form>
-      
-      <div style={{ textAlign: 'center', marginTop: 16 }}>
-        <Text type="secondary">
+
+      <div style={{ textAlign: 'center', marginTop: 24 }}>
+        <Text style={{ fontSize: 13, color: '#5A6982' }}>
           Remember your password?{' '}
-          <Link href="/login" style={{ color: '#1677ff' }}>
-            Back to Login
+          <Link
+            href="/login"
+            className="zk-link"
+            style={{ color: '#60A5FA', fontWeight: 500, textDecoration: 'none' }}
+          >
+            Sign in
           </Link>
         </Text>
       </div>
     </>
+  );
+}
+
+function ForgotPasswordSkeleton() {
+  return (
+    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+      <Spin size="large" />
+    </div>
   );
 }
 
@@ -163,7 +183,8 @@ export default function ForgotPasswordPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20 }}
+        padding: 20,
+      }}
     >
       <Card
         style={{
@@ -171,10 +192,13 @@ export default function ForgotPasswordPage() {
           maxWidth: 400,
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
           borderRadius: 12,
-          border: 'none' }}
+          border: 'none',
+        }}
         styles={{
           body: {
-            padding: 32 } }}
+            padding: 32,
+          },
+        }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div
@@ -184,7 +208,8 @@ export default function ForgotPasswordPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 20px' }}
+              margin: '0 auto 20px',
+            }}
           >
             <Image
               src={Logo}
@@ -194,13 +219,13 @@ export default function ForgotPasswordPage() {
               style={{ objectFit: 'contain' }}
             />
           </div>
-          
+
           <Title level={2} style={{ margin: 0, color: '#262626' }}>
             Forgot Password
           </Title>
         </div>
 
-        <Suspense fallback={<LoadingSpinner size="large" fullScreen={false} />}>
+        <Suspense fallback={<Spin size="large" style={{ display: 'block', margin: '0 auto' }} />}>
           <ForgotPasswordForm />
         </Suspense>
 

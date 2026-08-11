@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from 'next/navigation';
 import { App, Button, Empty, Input, Modal, Segmented, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -18,6 +17,7 @@ import {
   fmtDate,
   relativeDays,
 } from './ui';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 // Phase 2 — the approval queue. HR/admins see everything pending; everyone else
 // sees only the steps they can actually decide, which is exactly what the
@@ -200,7 +200,7 @@ export default function ApprovalsQueuePanel() {
         <div className="omp-table-wrap" style={{ position: 'relative' }}>
           {loading && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           )}
           <Table<PendingApprovalItem>

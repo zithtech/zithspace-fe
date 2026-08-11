@@ -1,14 +1,15 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import { Tag, Tooltip, Typography } from "antd";
 import {
   FolderOpenOutlined,
   ArrowRightOutlined,
-  FileTextOutlined } from "@ant-design/icons";
+  FileTextOutlined
+} from "@ant-design/icons";
 import { DocumentHub } from "@/services/documentHub";
 import { formatDistanceToNow } from "date-fns";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 interface LinkedDocumentHubsListProps {
@@ -50,14 +51,16 @@ export default function LinkedDocumentHubsList({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 10 }}
+          marginBottom: 10
+        }}
       >
         <Typography.Title
           level={5}
           style={{
             fontSize: 13,
             margin: 0,
-            color: "var(--text-primary)" }}
+            color: "var(--text-primary)"
+          }}
         >
           Linked Document Hubs
           {hubs.length > 0 && (
@@ -66,7 +69,8 @@ export default function LinkedDocumentHubsList({
                 fontSize: 12,
                 color: "var(--text-secondary)",
                 fontWeight: 400,
-                marginLeft: 6 }}
+                marginLeft: 6
+              }}
             >
               • {hubs.length}
             </span>
@@ -76,7 +80,7 @@ export default function LinkedDocumentHubsList({
 
       {isLoading ? (
         <div style={{ padding: "8px 4px" }}>
-          <LoadingSpinner size="small" fullScreen={false} />
+          <ZukvoLoader size="sm" />
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -104,7 +108,8 @@ export default function LinkedDocumentHubsList({
                   border: "1px solid",
                   borderRadius: 10,
                   cursor: "pointer",
-                  transition: "all 0.15s" }}
+                  transition: "all 0.15s"
+                }}
               >
                 <div
                   style={{
@@ -118,7 +123,8 @@ export default function LinkedDocumentHubsList({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    boxShadow: "0 2px 6px rgba(59,130,246,0.25)" }}
+                    boxShadow: "0 2px 6px rgba(59,130,246,0.25)"
+                  }}
                 >
                   <FolderOpenOutlined style={{ fontSize: 15 }} />
                 </div>
@@ -133,7 +139,8 @@ export default function LinkedDocumentHubsList({
                       lineHeight: 1.25,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap" }}
+                      whiteSpace: "nowrap"
+                    }}
                   >
                     {hub.name}
                   </span>
@@ -145,7 +152,8 @@ export default function LinkedDocumentHubsList({
                       gap: 8,
                       marginTop: 2,
                       fontSize: 11,
-                      color: "var(--text-slate-400)" }}
+                      color: "var(--text-slate-400)"
+                    }}
                   >
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       <FileTextOutlined />
@@ -156,7 +164,8 @@ export default function LinkedDocumentHubsList({
                         <span>
                           Updated{" "}
                           {formatDistanceToNow(new Date(hub.updatedAt), {
-                            addSuffix: true })}
+                            addSuffix: true
+                          })}
                         </span>
                       </Tooltip>
                     )}
@@ -167,7 +176,8 @@ export default function LinkedDocumentHubsList({
                           fontSize: 10,
                           padding: "0 6px",
                           lineHeight: "16px",
-                          borderRadius: 6 }}
+                          borderRadius: 6
+                        }}
                       >
                         {hub.project.name}
                       </Tag>

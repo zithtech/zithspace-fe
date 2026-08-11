@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Input, Switch, Select, ColorPicker, Drawer, Upload, message } from 'antd';
@@ -7,7 +6,9 @@ import { FileCog, Save, RotateCcw, Palette, ListChecks, Landmark, Banknote, Layo
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
 
-  PayslipTemplate, BankSettings, UpdatePayslipTemplateInput, UpdateBankSettingsInput, PaymentMode, BankFileFormat, PayslipTemplateStyle } from '@/services/payrollV2Service';
+  PayslipTemplate, BankSettings, UpdatePayslipTemplateInput, UpdateBankSettingsInput, PaymentMode, BankFileFormat, PayslipTemplateStyle
+} from '@/services/payrollV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const PALETTE = { pink: '#EC4899', blue: '#3B82F6', green: '#10B981', violet: '#8B5CF6', amber: '#F59E0B' } as const;
 const TINT = { pink: 'rgba(236,72,153,0.10)', blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', violet: 'rgba(139,92,246,0.10)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -28,7 +29,8 @@ const EMPTY_TPL: UpdatePayslipTemplateInput = {
   showEmployeeCode: true, showEmail: true, showDesignation: true, showDepartment: true,
   showGrade: false, showLocation: false, showDateOfJoining: true, showBankName: true,
   showPan: true, showUan: true, showPfNumber: true, showEsiNumber: true, showBankAccount: true,
-  showYtd: false, showLeaveBalance: true, showAttendanceSummary: false };
+  showYtd: false, showLeaveBalance: true, showAttendanceSummary: false
+};
 
 const TEMPLATE_OPTIONS: { value: PayslipTemplateStyle; label: string; blurb: string }[] = [
   { value: 'modern', label: 'Modern', blurb: 'Summary cards, net-pay highlight & YTD columns' },
@@ -39,7 +41,8 @@ const TEMPLATE_OPTIONS: { value: PayslipTemplateStyle; label: string; blurb: str
 const ACCENT_PRESETS = ['#0F172A', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#14B8A6', '#0EA5E9'];
 
 const EMPTY_BANK: UpdateBankSettingsInput = {
-  companyBankName: '', companyAccountNumber: '', companyIfsc: '', paymentMode: 'neft', bankFileFormat: 'generic_csv' };
+  companyBankName: '', companyAccountNumber: '', companyIfsc: '', paymentMode: 'neft', bankFileFormat: 'generic_csv'
+};
 
 function tplToForm(t: PayslipTemplate): UpdatePayslipTemplateInput {
   return {
@@ -49,7 +52,8 @@ function tplToForm(t: PayslipTemplate): UpdatePayslipTemplateInput {
     showEmployeeCode: t.showEmployeeCode, showEmail: t.showEmail, showDesignation: t.showDesignation, showDepartment: t.showDepartment,
     showGrade: t.showGrade, showLocation: t.showLocation, showDateOfJoining: t.showDateOfJoining, showBankName: t.showBankName,
     showPan: t.showPan, showUan: t.showUan, showPfNumber: t.showPfNumber, showEsiNumber: t.showEsiNumber,
-    showBankAccount: t.showBankAccount, showYtd: t.showYtd, showLeaveBalance: t.showLeaveBalance, showAttendanceSummary: t.showAttendanceSummary };
+    showBankAccount: t.showBankAccount, showYtd: t.showYtd, showLeaveBalance: t.showLeaveBalance, showAttendanceSummary: t.showAttendanceSummary
+  };
 }
 function bankToForm(b: BankSettings): UpdateBankSettingsInput {
   return { companyBankName: b.companyBankName ?? '', companyAccountNumber: b.companyAccountNumber ?? '', companyIfsc: b.companyIfsc ?? '', paymentMode: b.paymentMode, bankFileFormat: b.bankFileFormat };
@@ -257,7 +261,7 @@ export default function PayslipBankPanel() {
       </div>
 
       {loading ? (
-        <div className="pvpb-loading"><LoadingSpinner fullScreen={false} /></div>
+        <div className="pvpb-loading"><ZukvoLoader size="md" /></div>
       ) : view === 'payslip' ? (
         <div className="pvpb-sections">
           <SectionCard icon={<LayoutTemplate size={16} />} tint={TINT.pink} color={PALETTE.pink} title="Payslip Template" subtitle="Choose one design — all generated payslips use it">
@@ -303,7 +307,8 @@ export default function PayslipBankPanel() {
                     ...(tpl.logoUrl
                       ? { background: '#fff', borderStyle: 'solid', borderColor: 'var(--border-slate-200)', padding: 6 }
                       : (tpl.showLogo ? { background: `${accent}14`, borderColor: `${accent}40`, color: accent } : {})),
-                    opacity: tpl.showLogo ? 1 : 0.45 }}>
+                    opacity: tpl.showLogo ? 1 : 0.45
+                  }}>
                     {tpl.logoUrl ? <img src={tpl.logoUrl} alt="Company logo" /> : (tpl.showLogo ? <Building2 size={22} /> : <EyeOff size={18} />)}
                   </div>
                   <div className="pvpb-brand-meta">
@@ -442,7 +447,7 @@ export default function PayslipBankPanel() {
         styles={{ header: { padding: '12px 20px' }, body: { padding: 16, background: '#e5e7eb' } }}
       >
         {previewing ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><LoadingSpinner fullScreen={false} /></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
         ) : (
           <iframe title="Payslip preview" srcDoc={previewHtml} style={{ width: '100%', height: '1050px', border: 'none', background: '#fff', boxShadow: '0 2px 14px rgba(0,0,0,0.15)' }} />
         )}

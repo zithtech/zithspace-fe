@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from 'react';
 import { Empty, Button, message } from 'antd';
@@ -10,9 +9,11 @@ import {
     ProductOutlined,
     GlobalOutlined,
     FolderOpenOutlined,
-    FilePdfOutlined } from '@ant-design/icons';
+    FilePdfOutlined
+} from '@ant-design/icons';
 import { documentHubService as DocumentHubService } from '@/services/documentHub';
 import dynamic from 'next/dynamic';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 
 const BlockNoteRenderer = dynamic(
@@ -21,9 +22,10 @@ const BlockNoteRenderer = dynamic(
         ssr: false,
         loading: () => (
             <div className="flex items-center justify-center py-16">
-                <LoadingSpinner fullScreen={false} />
+                <ZukvoLoader size="md" />
             </div>
-        ) },
+        )
+    },
 );
 
 interface PublicDocumentViewProps {
@@ -42,8 +44,8 @@ const stripDuplicateLeadingHeading = (content: any, title: string): any => {
             ? first.content
             : Array.isArray(first.content)
                 ? first.content
-                      .map((n: any) => (typeof n === 'string' ? n : n?.text ?? ''))
-                      .join('')
+                    .map((n: any) => (typeof n === 'string' ? n : n?.text ?? ''))
+                    .join('')
                 : '';
     if (text.trim().toLowerCase() === title.trim().toLowerCase()) {
         return content.slice(1);
@@ -155,7 +157,7 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                 className="flex flex-col justify-center items-center min-h-screen gap-4"
                 style={{ background: '#f8fafc' }}
             >
-                <LoadingSpinner size="large" fullScreen={false} />
+                <ZukvoLoader size="lg" />
                 <span style={{ color: '#94a3b8', fontSize: 13 }}>
                     Loading document…
                 </span>
@@ -174,7 +176,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                     style={{
                         background: '#fff',
                         border: '1px solid #e2e8f0',
-                        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)' }}
+                        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)'
+                    }}
                 >
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -200,7 +203,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                             borderRadius: 9,
                             paddingInline: 18,
                             background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                            border: 'none' }}
+                            border: 'none'
+                        }}
                     >
                         Try again
                     </Button>
@@ -216,7 +220,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                 background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
-                color: '#1e293b' }}
+                color: '#1e293b'
+            }}
         >
             {/* Hero header — matches PublicHubView so a doc shared from inside
                 the hub looks identical to one shared from the main table. */}
@@ -232,7 +237,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                     borderBottom: '1px solid #e2e8f0',
                     position: 'sticky',
                     top: 0,
-                    zIndex: 10 }}
+                    zIndex: 10
+                }}
             >
                 <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -243,7 +249,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                             borderRadius: 10,
                             background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                             boxShadow:
-                                '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)' }}
+                                '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)'
+                        }}
                     >
                         <ProductOutlined style={{ fontSize: 16 }} />
                     </div>
@@ -254,7 +261,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                 fontSize: 15,
                                 fontWeight: 700,
                                 letterSpacing: '-0.015em',
-                                color: '#0f172a' }}
+                                color: '#0f172a'
+                            }}
                         >
                             {doc?.title || 'Untitled document'}
                         </h1>
@@ -270,7 +278,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                     letterSpacing: '0.06em',
                                     textTransform: 'uppercase',
                                     background: 'rgba(59, 130, 246, 0.1)',
-                                    color: '#1d4ed8' }}
+                                    color: '#1d4ed8'
+                                }}
                             >
                                 <GlobalOutlined style={{ fontSize: 9 }} />
                                 Public
@@ -280,7 +289,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                     className="inline-flex items-center gap-1 truncate public-hub-name"
                                     style={{
                                         fontSize: 11,
-                                        color: '#64748b' }}
+                                        color: '#64748b'
+                                    }}
                                 >
                                     <FolderOpenOutlined style={{ fontSize: 10 }} />
                                     <span className="truncate">{doc.documentHub.name}</span>
@@ -304,7 +314,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                             fontWeight: 600,
                             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                             borderColor: 'transparent',
-                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)' }}
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)'
+                        }}
                         onMouseEnter={(e) => {
                             (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.08)';
                         }}
@@ -323,7 +334,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                     flex: 1,
                     overflowY: 'auto',
                     background: '#fff',
-                    position: 'relative' }}
+                    position: 'relative'
+                }}
             >
                 {doc ? (
                     <div
@@ -331,7 +343,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                         className="public-doc-container"
                         style={{
                             maxWidth: 820,
-                            margin: '0 auto' }}
+                            margin: '0 auto'
+                        }}
                     >
                         <header style={{ marginBottom: 28 }}>
                             <h1
@@ -342,7 +355,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                     marginBottom: 12,
                                     letterSpacing: '-0.025em',
                                     color: '#0f172a',
-                                    lineHeight: 1.15 }}
+                                    lineHeight: 1.15
+                                }}
                             >
                                 {doc.title}
                             </h1>
@@ -364,7 +378,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                             {new Date(doc.updatedAt).toLocaleDateString('en-US', {
                                                 month: 'short',
                                                 day: 'numeric',
-                                                year: 'numeric' })}
+                                                year: 'numeric'
+                                            })}
                                         </span>
                                     </>
                                 )}
@@ -373,7 +388,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                 style={{
                                     marginTop: 24,
                                     height: 1,
-                                    background: '#e2e8f0' }}
+                                    background: '#e2e8f0'
+                                }}
                             />
                         </header>
                         <div className="prose-container">
@@ -394,7 +410,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                 height: 80,
                                 borderRadius: 999,
                                 background: '#f1f5f9',
-                                color: '#94a3b8' }}
+                                color: '#94a3b8'
+                            }}
                         >
                             <FileTextOutlined style={{ fontSize: 30 }} />
                         </div>
@@ -403,7 +420,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                                 fontSize: 16,
                                 fontWeight: 600,
                                 color: '#475569',
-                                margin: 0 }}
+                                margin: 0
+                            }}
                         >
                             Document unavailable
                         </h3>
@@ -421,7 +439,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 6 }}
+                    gap: 6
+                }}
             >
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>Shared via</span>
                 <span
@@ -431,7 +450,8 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                         background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text' }}
+                        backgroundClip: 'text'
+                    }}
                 >
                     Zukvo
                 </span>

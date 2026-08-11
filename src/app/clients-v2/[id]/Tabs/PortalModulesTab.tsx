@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Switch, message } from "antd";
@@ -26,6 +25,7 @@ import {
   ClientV2Service,
   PortalModuleSetting
 } from "@/services/clientV2Service";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 type Mode = "light" | "dark";
 
@@ -109,7 +109,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <LoadingSpinner fullScreen={false} />
+        <ZukvoLoader size="md" />
       </div>
     );
   }

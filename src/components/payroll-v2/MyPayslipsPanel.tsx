@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -7,6 +6,7 @@ import { Button, Table, Tag, message, Empty, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons';
 import PayrollV2Service, { PayPayslip } from '@/services/payrollV2Service';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const PALETTE = { cyan: '#06B6D4', green: '#10B981', red: '#EF4444', slate: '#64748B' } as const;
@@ -71,7 +71,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><LoadingSpinner fullScreen={false} /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 56 }}><Empty description="No payslips available yet" /></div>
       ) : (

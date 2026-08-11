@@ -1,7 +1,6 @@
 "use client";
 
 import React, { Suspense, useState, useEffect } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   App,
   Skeleton,
@@ -82,6 +81,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
 import { ProjectFormDrawer } from "@/components/projects/ProjectFormDrawer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
   const min = Math.min(...data);
@@ -1273,7 +1273,7 @@ const ProjectsManageContent: React.FC = () => {
                     <div className="pm-table-wrap" style={{ position: 'relative' }}>
                       {loading && (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          <LoadingSpinner size="medium" fullScreen={false} />
+                          <ZukvoLoader size="md" />
                         </div>
                       )}
                       <Table

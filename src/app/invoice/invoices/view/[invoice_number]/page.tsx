@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import { useEffect, useState } from "react";
@@ -17,6 +16,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 import { ArrowLeft, History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -145,7 +145,7 @@ export default function ViewInvoicePage() {
 
   // Loading state
   if (authLoading || isLoading || settingsLoading) {
-    return <Card><LoadingSpinner message="Loading invoice..." fullScreen={false} /></Card>;
+    return <Card><ZukvoLoader message="Loading invoice..." /></Card>;
   }
 
   if (!canReadInvoice) return null;

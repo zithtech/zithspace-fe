@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -47,6 +46,7 @@ import {
 } from "@/services/implementationPartner.service";
 import { RecruitmentClientService } from "@/services/recruitmentClient.service";
 import { VendorService } from "@/services/vendor.service";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -293,7 +293,7 @@ export default function ViewPartnerPage() {
         return (
             <MainLayout>
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-                    <LoadingSpinner message="Loading partner details..." size="large" fullScreen={false} />
+                    <ZukvoLoader message="Loading partner details..." size="lg" />
                 </div>
             </MainLayout>
         );

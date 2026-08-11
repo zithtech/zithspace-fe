@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -25,6 +24,7 @@ import {
   PortalInvoiceListItem,
   PortalInvoiceListMeta
 } from "@/services/portalInvoiceService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* --------------------------------------------------------------- */
 /*  Theme palette (mirrors PortalAccessTab — keep portal cohesive) */
@@ -323,7 +323,7 @@ export default function PortalInvoicesPage() {
 
           {loading ? (
             <div style={{ padding: 60, textAlign: "center" }}>
-              <LoadingSpinner fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           ) : items.length === 0 ? (
             <div style={{ padding: 56, textAlign: "center" }}>

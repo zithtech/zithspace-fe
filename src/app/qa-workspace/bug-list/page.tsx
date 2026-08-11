@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";

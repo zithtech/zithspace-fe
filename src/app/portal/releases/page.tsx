@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -37,6 +36,7 @@ import {
   PortalReleaseMeta,
   PortalReleaseStats
 } from "@/services/portalReleaseService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -337,7 +337,7 @@ export default function PortalReleasesPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div
@@ -1099,7 +1099,7 @@ function ReleaseDetailDrawer({
               justifyContent: "center"
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : notFound || !data ? (
           <div

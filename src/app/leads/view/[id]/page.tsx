@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -75,6 +74,7 @@ import { apiClient } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -590,7 +590,7 @@ export default function LeadProfilePage() {
           >
             {timelineLoading ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <LoadingSpinner size="large" fullScreen={false} />
+                <ZukvoLoader size="lg" />
               </div>
             ) : timelineData.length === 0 ? (
               <Empty description="No activity recorded yet" />

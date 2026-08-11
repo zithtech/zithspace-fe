@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +35,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useTicketDashboardStats } from "@/hooks/useTickets";
 import dayjs from "dayjs";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Paragraph, Text } = Typography;
@@ -59,7 +59,7 @@ export default function ProjectsPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <LoadingSpinner message="Orchestrating your workspace" size="large" fullScreen={false} />
+          <ZukvoLoader message="Orchestrating your workspace" size="lg" />
         </div>
       </MainLayout>
     );

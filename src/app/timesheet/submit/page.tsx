@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import SubmittimesheetTab from "@/components/timesheet/SubmittimesheetTab";
@@ -8,6 +7,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -25,7 +25,7 @@ export default function SubmitTimesheetPage() {
   if (authLoading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading..." size="lg" />
       </div>
     );
   }

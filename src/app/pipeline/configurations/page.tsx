@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft } from 'lucide-react';
 import { PositionService, Position } from '@/services/positionService';
@@ -12,6 +11,7 @@ import type { MenuProps } from 'antd';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 export default function ConfigurationsPage() {
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
@@ -29,7 +29,7 @@ export default function ConfigurationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editConfig, setEditConfig] = useState<any>(null);
   const [viewConfig, setViewConfig] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'card'|'table'>('table');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
 
   const fetchConfigs = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -94,7 +94,7 @@ export default function ConfigurationsPage() {
           <div className="pp-grid">
             {configs.map((c) => {
               const initials = c.role.substring(0, 2).toUpperCase();
-              
+
               const menuItems = [
                 { key: "view", label: menuLabel("View Details", "Open configuration", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'), onClick: () => setViewConfig(c) },
                 { key: "edit", label: menuLabel("Edit Configuration", "Modify configuration", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => { setEditConfig(c); setIsModalOpen(true); } },
@@ -166,7 +166,7 @@ export default function ConfigurationsPage() {
           <div className="pp-table-wrap" style={{ position: 'relative' }}>
             {loading && (
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <LoadingSpinner size="medium" fullScreen={false} />
+                <ZukvoLoader size="md" />
               </div>
             )}
             <Table
@@ -345,18 +345,18 @@ function AddConfigModal({ onClose, editConfig }: { onClose: (saved?: boolean) =>
     min_experience: editConfig?.min_experience || 0,
     max_experience: editConfig?.max_experience || 5,
   });
-  const [rounds, setRounds] = useState<any[]>(editConfig?.rounds?.map((r: any) => ({ 
-    ...r, 
-    scorecards: r.scorecards?.map((s: any) => ({...s})) || [] 
+  const [rounds, setRounds] = useState<any[]>(editConfig?.rounds?.map((r: any) => ({
+    ...r,
+    scorecards: r.scorecards?.map((s: any) => ({ ...s })) || []
   })) || [
-    { 
-      round_name: 'Technical Screening', 
-      round_type: 'Technical', 
-      is_start_round: true, 
-      is_final_round: false,
-      scorecards: [{ criteria_name: 'Technical Skills', weight_percentage: 100 }]
-    }
-  ]);
+      {
+        round_name: 'Technical Screening',
+        round_type: 'Technical',
+        is_start_round: true,
+        is_final_round: false,
+        scorecards: [{ criteria_name: 'Technical Skills', weight_percentage: 100 }]
+      }
+    ]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -368,7 +368,7 @@ function AddConfigModal({ onClose, editConfig }: { onClose: (saved?: boolean) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     // validate weights
     for (const r of rounds) {
       if (r.scorecards && r.scorecards.length > 0) {
@@ -422,117 +422,117 @@ function AddConfigModal({ onClose, editConfig }: { onClose: (saved?: boolean) =>
 
           <div className="flex flex-col gap-6">
             <form id="configForm" onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <SectionCard title="Basic Details" icon={<Settings size={14} />} step="STEP 1">
-              <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Job Role</label>
-                <SearchableDropdown
-                  placeholder="Select a role..."
-                  value={formData.role || undefined}
-                  onChange={(val) => setFormData({ ...formData, role: val })}
-                  options={positions.map((p) => ({ value: p.title, label: p.title }))}
-                />
-              </div>
-              <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Min Exp (Yrs)</label>
-                <input required type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.min_experience} onChange={(e) => setFormData({ ...formData, min_experience: parseFloat(e.target.value) })} />
-              </div>
-              <div className="grid grid-cols-[140px_1fr] items-center gap-4">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Max Exp (Yrs)</label>
-                <input required type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.max_experience} onChange={(e) => setFormData({ ...formData, max_experience: parseFloat(e.target.value) })} />
-              </div>
-            </SectionCard>
+              <SectionCard title="Basic Details" icon={<Settings size={14} />} step="STEP 1">
+                <div className="grid grid-cols-[140px_1fr] items-center gap-4">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Job Role</label>
+                  <SearchableDropdown
+                    placeholder="Select a role..."
+                    value={formData.role || undefined}
+                    onChange={(val) => setFormData({ ...formData, role: val })}
+                    options={positions.map((p) => ({ value: p.title, label: p.title }))}
+                  />
+                </div>
+                <div className="grid grid-cols-[140px_1fr] items-center gap-4">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Min Exp (Yrs)</label>
+                  <input required type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.min_experience} onChange={(e) => setFormData({ ...formData, min_experience: parseFloat(e.target.value) })} />
+                </div>
+                <div className="grid grid-cols-[140px_1fr] items-center gap-4">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Max Exp (Yrs)</label>
+                  <input required type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.max_experience} onChange={(e) => setFormData({ ...formData, max_experience: parseFloat(e.target.value) })} />
+                </div>
+              </SectionCard>
 
-            <SectionCard title="Interview Rounds" icon={<AlignLeft size={14} />} step="STEP 2">
-              <div className="flex flex-col gap-2">
-                {!rounds.some(r => r.is_final_round) && (
-                  <div className="flex justify-end">
-                    <button type="button" onClick={() => setRounds([...rounds, { round_name: '', round_type: 'Technical', is_start_round: rounds.length === 0, is_final_round: false }])} className="text-xs text-blue-600 font-semibold">+ Add Round</button>
-                  </div>
-                )}
-                {rounds.map((r, i) => (
-                  <div key={i} className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <GripVertical size={16} className="text-slate-300 dark:text-slate-600 cursor-move" />
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 w-4">{i + 1}.</span>
-                      <input required type="text" className="flex-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B0F1A] dark:text-slate-200 rounded-md px-2 py-1.5 text-sm outline-none focus:border-blue-500 transition-colors" value={r.round_name} onChange={(e) => { const n = [...rounds]; n[i].round_name = e.target.value; setRounds(n); }} placeholder="Round Name" />
-                      <div className="w-[140px]">
-                        <SearchableDropdown
-                          placeholder="Type"
-                          value={r.round_type}
-                          onChange={(val) => { const n = [...rounds]; n[i].round_type = val; setRounds(n); }}
-                          options={[
-                            { value: 'Technical', label: 'Technical' },
-                            { value: 'HR', label: 'HR' },
-                            { value: 'Managerial', label: 'Managerial' },
-                            { value: 'Practical', label: 'Practical' },
-                          ]}
-                        />
-                      </div>
-                      
-                      <div className="flex items-center gap-3 ml-2">
-                        <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                          <input type="checkbox" checked={r.is_final_round} onChange={(e) => {
-                            const n = [...rounds];
-                            n.forEach(rd => rd.is_final_round = false);
-                            n[i].is_final_round = e.target.checked;
-                            setRounds(n);
-                          }} className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-[#0B0F1A]" /> Final
-                        </label>
-                      </div>
-                      <button type="button" onClick={() => setRounds(rounds.filter((_, idx) => idx !== i))} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 ml-2 transition-colors"><X size={16} /></button>
+              <SectionCard title="Interview Rounds" icon={<AlignLeft size={14} />} step="STEP 2">
+                <div className="flex flex-col gap-2">
+                  {!rounds.some(r => r.is_final_round) && (
+                    <div className="flex justify-end">
+                      <button type="button" onClick={() => setRounds([...rounds, { round_name: '', round_type: 'Technical', is_start_round: rounds.length === 0, is_final_round: false }])} className="text-xs text-blue-600 font-semibold">+ Add Round</button>
                     </div>
+                  )}
+                  {rounds.map((r, i) => (
+                    <div key={i} className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <GripVertical size={16} className="text-slate-300 dark:text-slate-600 cursor-move" />
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 w-4">{i + 1}.</span>
+                        <input required type="text" className="flex-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B0F1A] dark:text-slate-200 rounded-md px-2 py-1.5 text-sm outline-none focus:border-blue-500 transition-colors" value={r.round_name} onChange={(e) => { const n = [...rounds]; n[i].round_name = e.target.value; setRounds(n); }} placeholder="Round Name" />
+                        <div className="w-[140px]">
+                          <SearchableDropdown
+                            placeholder="Type"
+                            value={r.round_type}
+                            onChange={(val) => { const n = [...rounds]; n[i].round_type = val; setRounds(n); }}
+                            options={[
+                              { value: 'Technical', label: 'Technical' },
+                              { value: 'HR', label: 'HR' },
+                              { value: 'Managerial', label: 'Managerial' },
+                              { value: 'Practical', label: 'Practical' },
+                            ]}
+                          />
+                        </div>
 
-                    <div className="pl-6 border-l-2 border-slate-200 dark:border-slate-700 ml-[11px] mt-2 pb-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Evaluation Scorecards</span>
-                        <button type="button" onClick={() => {
-                          const n = [...rounds];
-                          if (!n[i].scorecards) n[i].scorecards = [];
-                          n[i].scorecards.push({ criteria_name: '', weight_percentage: 20 });
-                          setRounds(n);
-                        }} className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors">+ Add Criteria</button>
-                      </div>
-                      
-                      {r.scorecards?.map((sc: any, scIdx: number) => (
-                        <div key={scIdx} className="flex justify-between items-center bg-white dark:bg-[#0B0F1A] border border-slate-100 dark:border-slate-800 rounded-md px-2 py-1.5 mb-1.5 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
-                          <input required type="text" placeholder="Criteria Name" className="text-[13px] font-medium bg-transparent outline-none flex-1 text-slate-700 dark:text-slate-300 placeholder:text-slate-300 dark:placeholder:text-slate-600" value={sc.criteria_name} onChange={(e) => {
-                            const n = [...rounds];
-                            n[i].scorecards[scIdx].criteria_name = e.target.value;
-                            setRounds(n);
-                          }} />
-                          <div className="flex items-center gap-2 border-l border-slate-100 dark:border-slate-800 pl-2 ml-2">
-                            <input required type="number" placeholder="%" className="w-14 text-[13px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded outline-none text-right border border-blue-100 dark:border-blue-800/50" value={sc.weight_percentage} onChange={(e) => {
+                        <div className="flex items-center gap-3 ml-2">
+                          <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            <input type="checkbox" checked={r.is_final_round} onChange={(e) => {
                               const n = [...rounds];
-                              n[i].scorecards[scIdx].weight_percentage = Number(e.target.value);
+                              n.forEach(rd => rd.is_final_round = false);
+                              n[i].is_final_round = e.target.checked;
                               setRounds(n);
-                            }} />
-                            <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">%</span>
-                          </div>
+                            }} className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-[#0B0F1A]" /> Final
+                          </label>
+                        </div>
+                        <button type="button" onClick={() => setRounds(rounds.filter((_, idx) => idx !== i))} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 ml-2 transition-colors"><X size={16} /></button>
+                      </div>
+
+                      <div className="pl-6 border-l-2 border-slate-200 dark:border-slate-700 ml-[11px] mt-2 pb-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Evaluation Scorecards</span>
                           <button type="button" onClick={() => {
                             const n = [...rounds];
-                            n[i].scorecards = n[i].scorecards.filter((_: any, sId: number) => sId !== scIdx);
+                            if (!n[i].scorecards) n[i].scorecards = [];
+                            n[i].scorecards.push({ criteria_name: '', weight_percentage: 20 });
                             setRounds(n);
-                          }} className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 ml-2 transition-colors"><X size={14} /></button>
+                          }} className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors">+ Add Criteria</button>
                         </div>
-                      ))}
-                      
-                      {r.scorecards && r.scorecards.length > 0 && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-800">
-                          <span className="font-medium">Total Weight</span>
-                          <strong className={r.scorecards.reduce((sum: number, s: any) => sum + Number(s.weight_percentage), 0) === 100 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
-                            {r.scorecards.reduce((sum: number, s: any) => sum + Number(s.weight_percentage), 0)}%
-                          </strong>
-                        </div>
-                      )}
+
+                        {r.scorecards?.map((sc: any, scIdx: number) => (
+                          <div key={scIdx} className="flex justify-between items-center bg-white dark:bg-[#0B0F1A] border border-slate-100 dark:border-slate-800 rounded-md px-2 py-1.5 mb-1.5 hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+                            <input required type="text" placeholder="Criteria Name" className="text-[13px] font-medium bg-transparent outline-none flex-1 text-slate-700 dark:text-slate-300 placeholder:text-slate-300 dark:placeholder:text-slate-600" value={sc.criteria_name} onChange={(e) => {
+                              const n = [...rounds];
+                              n[i].scorecards[scIdx].criteria_name = e.target.value;
+                              setRounds(n);
+                            }} />
+                            <div className="flex items-center gap-2 border-l border-slate-100 dark:border-slate-800 pl-2 ml-2">
+                              <input required type="number" placeholder="%" className="w-14 text-[13px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded outline-none text-right border border-blue-100 dark:border-blue-800/50" value={sc.weight_percentage} onChange={(e) => {
+                                const n = [...rounds];
+                                n[i].scorecards[scIdx].weight_percentage = Number(e.target.value);
+                                setRounds(n);
+                              }} />
+                              <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">%</span>
+                            </div>
+                            <button type="button" onClick={() => {
+                              const n = [...rounds];
+                              n[i].scorecards = n[i].scorecards.filter((_: any, sId: number) => sId !== scIdx);
+                              setRounds(n);
+                            }} className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 ml-2 transition-colors"><X size={14} /></button>
+                          </div>
+                        ))}
+
+                        {r.scorecards && r.scorecards.length > 0 && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-800">
+                            <span className="font-medium">Total Weight</span>
+                            <strong className={r.scorecards.reduce((sum: number, s: any) => sum + Number(s.weight_percentage), 0) === 100 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
+                              {r.scorecards.reduce((sum: number, s: any) => sum + Number(s.weight_percentage), 0)}%
+                            </strong>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          </form>
+                  ))}
+                </div>
+              </SectionCard>
+            </form>
           </div>
         </div>
-        
+
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A] flex justify-end gap-3 shrink-0">
           <button type="button" onClick={() => onClose(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700">
             Cancel

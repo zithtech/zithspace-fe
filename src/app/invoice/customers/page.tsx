@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -58,6 +57,7 @@ import {
 } from "@/hooks/use-customers";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -516,7 +516,7 @@ export default function InvoiceproCustomerPage() {
     },
   ];
 
-  if (authLoading) return <MainLayout><LoadingSpinner fullScreen={false} /></MainLayout>;
+  if (authLoading) return <MainLayout><ZukvoLoader size="md" /></MainLayout>;
   if (!canReadInvoiceCustomer) return null;
 
   return (
@@ -886,7 +886,7 @@ export default function InvoiceproCustomerPage() {
               >
                 {isFetching && !isLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

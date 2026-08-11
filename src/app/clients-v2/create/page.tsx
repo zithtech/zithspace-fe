@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import {
@@ -37,6 +36,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -307,7 +307,7 @@ function CreateClientV2Content() {
       {loading && (
         <div className="cm-overlay">
           <div className="cm-overlay-card">
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
             <Text className="cm-overlay-text">
               {isEditMode ? "Updating client…" : "Creating client…"}
             </Text>
@@ -1497,7 +1497,7 @@ export default function CreateClientV2Page() {
     <Suspense
       fallback={
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-          <LoadingSpinner size="medium" fullScreen={false} />
+          <ZukvoLoader size="md" />
         </div>
       }
     >

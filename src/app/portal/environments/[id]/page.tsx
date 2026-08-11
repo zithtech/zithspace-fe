@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -34,6 +33,7 @@ import {
   fmtDuration,
   daysUntil
 } from "../_ui";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* --------------------------------------------------------------- */
 
@@ -73,7 +73,7 @@ export default function PortalEnvDetailPage() {
           justifyContent: "center"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

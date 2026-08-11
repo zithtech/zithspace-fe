@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState } from "react";
@@ -28,6 +27,7 @@ import {
   History,
   BarChart
 } from "lucide-react";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -375,7 +375,7 @@ export default function DashboardSettingsPage() {
           <div style={{ flex: 1, padding: '32px' }}>
             {loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                <LoadingSpinner size="large" fullScreen={false} />
+                <ZukvoLoader size="lg" />
               </div>
             ) : (
               <Form

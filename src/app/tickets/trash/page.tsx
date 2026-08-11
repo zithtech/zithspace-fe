@@ -18,7 +18,8 @@ import {
   Table,
   Tag,
   Tooltip,
-  Typography } from "antd";
+  Typography
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -31,16 +32,19 @@ import {
   ReloadOutlined,
   SearchOutlined,
   UndoOutlined,
-  RestOutlined } from "@ant-design/icons";
+  RestOutlined
+} from "@ant-design/icons";
 import {
   useTrashTickets,
   useBulkRestoreFromTrash,
   useBulkPermanentlyDelete,
-  useEmptyTrash } from "@/hooks/useTrash";
+  useEmptyTrash
+} from "@/hooks/useTrash";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import TicketLifecycleShell, { ProjectFilterOption } from "@/components/projects/TicketLifecycleShell";
 import type { TrashTicket } from "@/services/trashService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -87,7 +91,8 @@ export default function TicketsTrashPage() {
     projectId: selectedProject || undefined,
     search: searchText,
     page,
-    limit: pageSize });
+    limit: pageSize
+  });
 
   const { mutateAsync: bulkRestore, isPending: isRestoring } = useBulkRestoreFromTrash();
   const { mutateAsync: bulkPermanent, isPending: isPurging } = useBulkPermanentlyDelete();
@@ -115,7 +120,8 @@ export default function TicketsTrashPage() {
       label: p.label,
       code: p.code,
       count: countsMap.get(p.value) || 0,
-      color: PROJECT_PALETTE[i % PROJECT_PALETTE.length] }));
+      color: PROJECT_PALETTE[i % PROJECT_PALETTE.length]
+    }));
   }, [projects, trashData?.summary?.projectCounts]);
 
   const totalAcrossProjects = trashData?.summary?.totalAllTrash ?? 0;
@@ -179,12 +185,14 @@ export default function TicketsTrashPage() {
             textAlign: "left",
             display: "flex",
             flexDirection: "column",
-            gap: 3 }}
+            gap: 3
+          }}
         >
           <span className="trs2-ticket-id">{record.ticketNumber}</span>
           <Text className="trs2-ticket-title">{record.title}</Text>
         </button>
-      ) },
+      )
+    },
     {
       title: "Project",
       key: "project",
@@ -199,7 +207,8 @@ export default function TicketsTrashPage() {
             </Text>
           </div>
         );
-      } },
+      }
+    },
     {
       title: "Deleted",
       key: "deletedAt",
@@ -209,7 +218,8 @@ export default function TicketsTrashPage() {
           <Text className="trs2-date-primary">{dayjs(record.deletedAt).format("MMM D, YYYY")}</Text>
           <Text className="trs2-date-secondary">{dayjs(record.deletedAt).fromNow()}</Text>
         </div>
-      ) },
+      )
+    },
     {
       title: "Deleted By",
       key: "deletedBy",
@@ -224,7 +234,8 @@ export default function TicketsTrashPage() {
             <Text className="trs2-actor-name">{name}</Text>
           </div>
         );
-      } },
+      }
+    },
     {
       title: "Retention",
       key: "retention",
@@ -250,7 +261,8 @@ export default function TicketsTrashPage() {
             />
           </div>
         );
-      } },
+      }
+    },
     {
       title: "Actions",
       key: "actions",
@@ -301,7 +313,8 @@ export default function TicketsTrashPage() {
             </ConfirmDialog>
           )}
         </div>
-      ) },
+      )
+    },
   ];
 
   if (authLoading) {
@@ -309,8 +322,9 @@ export default function TicketsTrashPage() {
       <MainLayout>
         <div style={{
           minHeight: "calc(100vh - 64px)",
-          display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <LoadingSpinner message="Loading trash repository..." size="large" fullScreen={false} />
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <ZukvoLoader message="Loading trash repository..." size="lg" />
         </div>
       </MainLayout>
     );
@@ -430,7 +444,7 @@ export default function TicketsTrashPage() {
         <div style={{ position: 'relative' }}>
           {(isLoading || isFetching) && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           )}
           <Table
@@ -439,38 +453,40 @@ export default function TicketsTrashPage() {
             rowKey="id"
             loading={false}
             size="small"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys }}
-          className="trs2-table"
-          locale={{
-            emptyText: isLoading ? null : (
-              <div className="trs2-empty">
-                <div className="trs2-empty-icon">
-                  <RestOutlined />
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys
+            }}
+            className="trs2-table"
+            locale={{
+              emptyText: isLoading ? null : (
+                <div className="trs2-empty">
+                  <div className="trs2-empty-icon">
+                    <RestOutlined />
+                  </div>
+                  <Text className="trs2-empty-title">
+                    {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
+                  </Text>
+                  <Text className="trs2-empty-sub">
+                    {isFiltered
+                      ? "Try adjusting your filters or search query."
+                      : "Tickets you delete will appear here for 7 days before they are permanently removed."}
+                  </Text>
+                  {isFiltered && (
+                    <Button
+                      size="small"
+                      onClick={() => { setSearchText(""); setSelectedProject(null); }}
+                      style={{ marginTop: 12 }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
-                <Text className="trs2-empty-title">
-                  {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
-                </Text>
-                <Text className="trs2-empty-sub">
-                  {isFiltered
-                    ? "Try adjusting your filters or search query."
-                    : "Tickets you delete will appear here for 7 days before they are permanently removed."}
-                </Text>
-                {isFiltered && (
-                  <Button
-                    size="small"
-                    onClick={() => { setSearchText(""); setSelectedProject(null); }}
-                    style={{ marginTop: 12 }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            ) }}
-          pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
-        />
+              )
+            }}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
+          />
         </div>
 
         {/* ── Sticky pagination footer ── */}

@@ -1,9 +1,9 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -26,9 +26,10 @@ export default function BugListRedirect() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: "var(--bg-pure-white)" }}
+          background: "var(--bg-pure-white)"
+        }}
       >
-        <LoadingSpinner message="Taking you to QA Space…" size="large" fullScreen={false} />
+        <ZukvoLoader message="Taking you to QA Space…" size="lg" />
       </div>
     </MainLayout>
   );

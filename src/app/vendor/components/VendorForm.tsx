@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -32,6 +31,7 @@ import {
 import { useRouter } from "next/navigation";
 import { VendorService } from "@/services/vendor.service";
 import AttachmentSection, { AttachmentItem } from "../../recruitment/job-requisitions/components/AttachmentSection";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -117,7 +117,7 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
   if (fetching) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: "#f5f5f5" }}>
-        <LoadingSpinner message="Loading vendor details..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading vendor details..." size="lg" />
       </div>
     );
   }

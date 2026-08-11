@@ -38,6 +38,7 @@ import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { ProjectFormDrawer } from '@/components/projects/ProjectFormDrawer';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -202,7 +203,7 @@ function ProjectSelectContent() {
   if ((!user && !authLoading) || isRedirecting) {
     return (
       <MainLayout>
-          <LoadingSpinner message="Redirecting..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Redirecting..." size="lg" />
       </MainLayout>
     );
   }
@@ -969,7 +970,7 @@ export default function ProjectSelectPage() {
     <Suspense
       fallback={
         <MainLayout>
-          <LoadingSpinner message="Loading Zukvo..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading Zukvo..." size="lg" />
         </MainLayout>
       }
     >

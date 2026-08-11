@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import "../projects.css";
 
@@ -11,6 +10,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 
 import ProjectTrashManagementPage from "@/components/projects/trash/ProjectTrashManagementPage";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function ProjectTrashPage() {
@@ -39,7 +39,7 @@ export default function ProjectTrashPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <LoadingSpinner message="Loading project trash..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading project trash..." size="lg" />
         </div>
       </MainLayout>
     );

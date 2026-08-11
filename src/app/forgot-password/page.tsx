@@ -2,7 +2,7 @@
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, Suspense } from 'react';
-import { Form, Input, Button, Typography, Alert } from 'antd';
+import { Form, Input, Button, Typography, Alert, Spin, Card } from 'antd';
 import { UserOutlined, MailOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';

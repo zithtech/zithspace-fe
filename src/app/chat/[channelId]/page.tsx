@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState, useCallback } from 'react';
@@ -21,13 +20,14 @@ import MessageInput from '@/features/chat/MessageInput';
 import { useMessages } from '@/hooks/useMessages';
 import ChannelSettingsModal from '@/features/chat/ChannelSettingsModal';
 import { usePermission } from '@/hooks/usePermission';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
 export default function ChannelPage() {
-  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
+    useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     const params = useParams();
     const router = useRouter();
     const { user } = useAuth();
@@ -156,7 +156,7 @@ export default function ChannelPage() {
             }}>
                 {loading ? (
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <LoadingSpinner fullScreen={false} />
+                        <ZukvoLoader size="md" />
                     </div>
                 ) : (
                     <MessageList channelId={channelId} />

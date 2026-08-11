@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -23,6 +22,7 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
   const min = Math.min(...data);
@@ -528,7 +528,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
         else if (percent > 50) color = "#1677ff"; // Blue (50-90%)
- 
+
         return (
           <Tooltip
             title={
@@ -1091,7 +1091,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         <div style={{ flex: 1, minWidth: 0, overflow: 'auto', position: 'relative' }}>
           {loading && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           )}
           <Table

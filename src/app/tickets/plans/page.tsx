@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 
 import SprintPlan from '@/components/projects/SprintPlan';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function ProjectsSprintPlanPage() {
@@ -33,7 +33,7 @@ export default function ProjectsSprintPlanPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <LoadingSpinner message="Orchestrating plans repository..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Orchestrating plans repository..." size="lg" />
         </div>
       </MainLayout>
     );

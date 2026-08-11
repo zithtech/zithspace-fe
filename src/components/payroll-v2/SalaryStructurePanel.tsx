@@ -2,7 +2,6 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button,
   Table,
@@ -46,6 +45,7 @@ import PayrollV2Service, {
   ComponentCategory,
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = {
@@ -441,7 +441,7 @@ export default function SalaryStructurePanel() {
       <div className="pvs-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="small" className="pvs-table" loading={false} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />

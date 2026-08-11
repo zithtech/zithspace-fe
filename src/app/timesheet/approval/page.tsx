@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +8,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Suspense } from "react";
 
 import TimesheetsTab from "@/components/timesheet/TimesheetTable";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function ApprovalTimesheetsPage() {
@@ -37,14 +37,14 @@ export default function ApprovalTimesheetsPage() {
   // Loading state
   if (authLoading) {
     return (
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px", 
-        background: "var(--bg-pure-white)", 
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px",
+        background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)",
-        textAlign: 'center' 
+        textAlign: 'center'
       }}>
-        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading..." size="lg" />
       </div>
     );
   }
@@ -63,9 +63,10 @@ export default function ApprovalTimesheetsPage() {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              height: "calc(100vh - 64px)" }}
+              height: "calc(100vh - 64px)"
+            }}
           >
-            <LoadingSpinner size="large" fullScreen={false} />
+            <ZukvoLoader size="lg" />
           </div>
         }
       >

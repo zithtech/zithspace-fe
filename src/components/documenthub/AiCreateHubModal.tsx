@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Input, Button, Typography, message, Select, Radio } from "antd";
@@ -11,12 +10,14 @@ import {
   TagOutlined,
   WarningOutlined,
   FolderOpenOutlined,
-  PlusOutlined } from "@ant-design/icons";
+  PlusOutlined
+} from "@ant-design/icons";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { documentHubService as DocumentHubService, DocumentHub } from "@/services/documentHub";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { Text, Title } = Typography;
@@ -88,7 +89,8 @@ const markdownToBlocks = (text: string): any[] => {
       blocks.push({
         type: "heading",
         props: { level },
-        content: heading[2] });
+        content: heading[2]
+      });
       continue;
     }
 
@@ -96,7 +98,8 @@ const markdownToBlocks = (text: string): any[] => {
     if (bullet) {
       blocks.push({
         type: "bulletListItem",
-        content: bullet[1] });
+        content: bullet[1]
+      });
       continue;
     }
 
@@ -104,7 +107,8 @@ const markdownToBlocks = (text: string): any[] => {
     if (numbered) {
       blocks.push({
         type: "numberedListItem",
-        content: numbered[1] });
+        content: numbered[1]
+      });
       continue;
     }
 
@@ -158,7 +162,8 @@ const GeneratingView: React.FC = () => {
           alignItems: "center",
           justifyContent: "center",
           padding: "56px 24px 48px",
-          gap: 24 }}
+          gap: 24
+        }}
       >
         <div style={{ position: "relative", width: 96, height: 96 }}>
           <div
@@ -169,7 +174,8 @@ const GeneratingView: React.FC = () => {
               background: `conic-gradient(from 0deg, ${PURPLE}, #c084fc, ${PURPLE_DEEP}, ${PURPLE})`,
               animation: "zai-hub-orb-spin 2.4s linear infinite",
               filter: "blur(2px)",
-              opacity: 0.85 }}
+              opacity: 0.85
+            }}
           />
           <div
             style={{
@@ -181,7 +187,8 @@ const GeneratingView: React.FC = () => {
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              animation: "zai-hub-orb-pulse 1.8s ease-in-out infinite" }}
+              animation: "zai-hub-orb-pulse 1.8s ease-in-out infinite"
+            }}
           >
             <ThunderboltOutlined style={{ fontSize: 36 }} />
           </div>
@@ -201,7 +208,8 @@ const GeneratingView: React.FC = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8 }}
+              gap: 8
+            }}
           >
             <span>{LOADING_MESSAGES[msgIdx]}</span>
           </div>
@@ -214,14 +222,16 @@ const GeneratingView: React.FC = () => {
             borderRadius: 999,
             background: "rgba(114,46,209,0.12)",
             overflow: "hidden",
-            position: "relative" }}
+            position: "relative"
+          }}
         >
           <div
             style={{
               position: "absolute",
               inset: 0,
               background: `linear-gradient(90deg, transparent 0%, ${PURPLE} 50%, transparent 100%)`,
-              animation: "zai-hub-bar 1.6s ease-in-out infinite" }}
+              animation: "zai-hub-bar 1.6s ease-in-out infinite"
+            }}
           />
         </div>
 
@@ -231,7 +241,8 @@ const GeneratingView: React.FC = () => {
             alignItems: "center",
             gap: 6,
             fontSize: 12,
-            color: "var(--text-secondary, #94a3b8)" }}
+            color: "var(--text-secondary, #94a3b8)"
+          }}
         >
           <ClockCircleOutlined />
           <span>{elapsed.toFixed(1)}s</span>
@@ -336,7 +347,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
       search: debouncedSearch || undefined,
       limit: 20,
       sortBy: "createdAt",
-      sortOrder: "desc" })
+      sortOrder: "desc"
+    })
       .then((res) => {
         if (fetchSeqRef.current !== seq) return;
         setTicketOptions(res.data || []);
@@ -394,7 +406,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
     try {
       // Dedicated documentation endpoint — returns hubName, fileTitle, contentHtml.
       const draft = await DocumentHubService.generateAiDocumentDraft({
-        prompt: effectivePrompt });
+        prompt: effectivePrompt
+      });
 
       const hubName = (draft.hubName || trimmed).slice(0, 80);
       const firstFileTitle = (draft.fileTitle || "Overview").slice(0, 60);
@@ -404,13 +417,14 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
       const targetHubId = addingToExisting
         ? selectedHubId!
         : (
-            await DocumentHubService.createDocumentHub({
-              name: hubName,
-              projectId: defaultProjectId,
-              ticketId: defaultTicketId,
-              visibility: 'public',
-              source: 'ai' })
-          ).id;
+          await DocumentHubService.createDocumentHub({
+            name: hubName,
+            projectId: defaultProjectId,
+            ticketId: defaultTicketId,
+            visibility: 'public',
+            source: 'ai'
+          })
+        ).id;
 
       // Server already cleans ticket artifacts; parse the HTML into BlockNote blocks.
       const rawContent = draft.contentHtml || "";
@@ -435,10 +449,10 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
       const firstBlockText =
         firstBlock?.type === "heading" && Array.isArray(firstBlock.content)
           ? firstBlock.content
-              .map((n: any) => (typeof n === "string" ? n : n?.text ?? ""))
-              .join("")
-              .trim()
-              .toLowerCase()
+            .map((n: any) => (typeof n === "string" ? n : n?.text ?? ""))
+            .join("")
+            .trim()
+            .toLowerCase()
           : typeof firstBlock?.content === "string"
             ? firstBlock.content.trim().toLowerCase()
             : "";
@@ -460,7 +474,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
           documentHubId: targetHubId,
           type: "file",
           title: firstFileTitle,
-          source: "ai" });
+          source: "ai"
+        });
         targetDocId = fileNode.documentId;
         targetNodeId = fileNode.id;
       } else {
@@ -479,7 +494,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             documentHubId: targetHubId,
             type: "file",
             title: firstFileTitle,
-            source: "ai" });
+            source: "ai"
+          });
           targetDocId = fileNode.documentId;
           targetNodeId = fileNode.id;
         }
@@ -487,7 +503,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         if (targetNodeId && autoCreatedFile) {
           try {
             await DocumentHubService.updateTreeNode(targetNodeId, {
-              title: firstFileTitle });
+              title: firstFileTitle
+            });
           } catch (err) {
             console.error("Failed to rename auto-created file", err);
           }
@@ -496,7 +513,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
 
       if (targetDocId) {
         await DocumentHubService.updateDocument(targetDocId, {
-          content: blocks });
+          content: blocks
+        });
       }
 
       messageApi.success(
@@ -528,7 +546,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
         styles={{
           mask: { backdropFilter: "blur(6px)", background: "rgba(15, 23, 42, 0.45)" },
           content: { borderRadius: 18, padding: 0, overflow: "hidden" },
-          body: { padding: 0 } }}
+          body: { padding: 0 }
+        }}
       >
         {/* Header */}
         <div
@@ -536,7 +555,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             position: "relative",
             padding: "20px 24px 16px",
             background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
-            color: "#fff" }}
+            color: "#fff"
+          }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
@@ -548,7 +568,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)" }}
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)"
+              }}
             >
               <ThunderboltOutlined style={{ fontSize: 18 }} />
             </div>
@@ -578,7 +599,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
                     color: "var(--text-slate-400)",
-                    marginBottom: 8 }}
+                    marginBottom: 8
+                  }}
                 >
                   Target hub
                 </Text>
@@ -597,7 +619,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       borderRadius: 10,
                       border: `1px solid ${targetMode === "existing" ? PURPLE : "var(--border-slate-200)"}`,
                       background: targetMode === "existing" ? "rgba(114, 46, 209, 0.06)" : "var(--bg-pure-white)",
-                      cursor: "pointer" }}
+                      cursor: "pointer"
+                    }}
                   >
                     <Radio value="existing" style={{ marginRight: 0 }} />
                     <FolderOpenOutlined style={{ color: PURPLE, fontSize: 14 }} />
@@ -614,7 +637,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                         style={{ flex: 1, minWidth: 0 }}
                         options={sortedExistingHubs.map((h) => ({
                           value: h.id,
-                          label: `Add to: ${h.name}` }))}
+                          label: `Add to: ${h.name}`
+                        }))}
                       />
                     ) : (
                       <span
@@ -625,7 +649,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                           color: "var(--text-slate-700)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          whiteSpace: "nowrap" }}
+                          whiteSpace: "nowrap"
+                        }}
                       >
                         Add to: <span style={{ fontWeight: 600 }}>{sortedExistingHubs[0]?.name}</span>
                       </span>
@@ -641,7 +666,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       borderRadius: 10,
                       border: `1px solid ${targetMode === "new" ? PURPLE : "var(--border-slate-200)"}`,
                       background: targetMode === "new" ? "rgba(114, 46, 209, 0.06)" : "var(--bg-pure-white)",
-                      cursor: "pointer" }}
+                      cursor: "pointer"
+                    }}
                   >
                     <Radio value="new" style={{ marginRight: 0 }} />
                     <PlusOutlined style={{ color: "var(--text-slate-400)", fontSize: 13 }} />
@@ -656,199 +682,209 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             {/* Ticket picker — hidden when launched from inside a ticket. */}
             {!lockedTicket && (
               <>
-            <Text
-              strong
-              style={{
-                display: "block",
-                fontSize: 13,
-                marginBottom: 8,
-                color: "var(--text-slate-700)" }}
-            >
-              Link a ticket{" "}
-              <span style={{ fontWeight: 400, color: "var(--text-slate-400)" }}>
-                (optional)
-              </span>
-            </Text>
-            <Select
-              showSearch
-              allowClear
-              value={selectedTicket?.id}
-              placeholder="Search tickets by number or title…"
-              filterOption={false}
-              onSearch={setTicketSearch}
-              onChange={(value) => {
-                if (!value) {
-                  setSelectedTicket(null);
-                  return;
-                }
-                // Show the list-row data immediately, then fetch the full ticket
-                // (the list endpoint may not include the description field).
-                const stub = ticketOptions.find((x) => x.id === value) || null;
-                setSelectedTicket(stub);
-                const seq = ++selectedFetchSeqRef.current;
-                setSelectedTicketLoading(true);
-                TicketService.getTicketById(value)
-                  .then((full) => {
-                    if (selectedFetchSeqRef.current !== seq) return;
-                    setSelectedTicket(full);
-                  })
-                  .catch((err) => {
-                    if (selectedFetchSeqRef.current !== seq) return;
-                    console.error("Failed to fetch ticket detail", err);
-                  })
-                  .finally(() => {
-                    if (selectedFetchSeqRef.current === seq) {
-                      setSelectedTicketLoading(false);
-                    }
-                  });
-              }}
-              onClear={() => {
-                setSelectedTicket(null);
-                selectedFetchSeqRef.current++;
-                setSelectedTicketLoading(false);
-              }}
-              loading={ticketsLoading}
-              notFoundContent={
-                ticketsLoading ? (
-                  <div style={{ textAlign: "center", padding: 8 }}>
-                    <LoadingSpinner size="small" fullScreen={false} />
-                  </div>
-                ) : (
-                  <span style={{ fontSize: 12, color: "var(--text-slate-400)" }}>
-                    No tickets found
+                <Text
+                  strong
+                  style={{
+                    display: "block",
+                    fontSize: 13,
+                    marginBottom: 8,
+                    color: "var(--text-slate-700)"
+                  }}
+                >
+                  Link a ticket{" "}
+                  <span style={{ fontWeight: 400, color: "var(--text-slate-400)" }}>
+                    (optional)
                   </span>
-                )
-              }
-              suffixIcon={<TagOutlined style={{ color: "var(--text-slate-400)" }} />}
-              style={{ width: "100%", marginBottom: 14 }}
-              size="large"
-              options={ticketOptions.map((t) => ({
-                value: t.id,
-                label: (
-                  <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: "var(--text-slate-700)",
-                        lineHeight: 1.2 }}
-                    >
-                      {t.ticketNumber}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-slate-400)",
-                        lineHeight: 1.2,
-                        maxWidth: 480,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap" }}
-                    >
-                      {t.title}
-                    </span>
-                  </div>
-                ) }))}
-            />
-
-            {/* Ticket-aware suggestions / warning */}
-            {selectedTicket && (
-              <div style={{ marginBottom: 16 }}>
-                {selectedTicketLoading ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "8px 12px",
-                      borderRadius: 10,
-                      background: "var(--bg-slate-50)",
-                      border: "1px solid var(--border-slate-200)",
-                      color: "var(--text-slate-600)",
-                      fontSize: 12 }}
-                  >
-                    <LoadingSpinner size="small" fullScreen={false} />
-                    <span>Loading ticket description…</span>
-                  </div>
-                ) : ticketHasDescription ? (
-                  <>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                        color: "var(--text-slate-400)" }}
-                    >
-                      Suggestions for this ticket
-                    </Text>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
-                        marginTop: 6 }}
-                    >
-                      {SUGGESTION_TEMPLATES.map((s) => (
-                        <button
-                          key={s.key}
-                          onClick={() => {
-                            const ctx = `${s.prefix} for ticket ${selectedTicket.ticketNumber} — ${selectedTicket.title}.\n\nContext from ticket description:\n${ticketDescriptionText}`;
-                            setPrompt(ctx);
-                          }}
+                </Text>
+                <Select
+                  showSearch
+                  allowClear
+                  value={selectedTicket?.id}
+                  placeholder="Search tickets by number or title…"
+                  filterOption={false}
+                  onSearch={setTicketSearch}
+                  onChange={(value) => {
+                    if (!value) {
+                      setSelectedTicket(null);
+                      return;
+                    }
+                    // Show the list-row data immediately, then fetch the full ticket
+                    // (the list endpoint may not include the description field).
+                    const stub = ticketOptions.find((x) => x.id === value) || null;
+                    setSelectedTicket(stub);
+                    const seq = ++selectedFetchSeqRef.current;
+                    setSelectedTicketLoading(true);
+                    TicketService.getTicketById(value)
+                      .then((full) => {
+                        if (selectedFetchSeqRef.current !== seq) return;
+                        setSelectedTicket(full);
+                      })
+                      .catch((err) => {
+                        if (selectedFetchSeqRef.current !== seq) return;
+                        console.error("Failed to fetch ticket detail", err);
+                      })
+                      .finally(() => {
+                        if (selectedFetchSeqRef.current === seq) {
+                          setSelectedTicketLoading(false);
+                        }
+                      });
+                  }}
+                  onClear={() => {
+                    setSelectedTicket(null);
+                    selectedFetchSeqRef.current++;
+                    setSelectedTicketLoading(false);
+                  }}
+                  loading={ticketsLoading}
+                  notFoundContent={
+                    ticketsLoading ? (
+                      <div style={{ textAlign: "center", padding: 8 }}>
+                        <ZukvoLoader size="md" />
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--text-slate-400)" }}>
+                        No tickets found
+                      </span>
+                    )
+                  }
+                  suffixIcon={<TagOutlined style={{ color: "var(--text-slate-400)" }} />}
+                  style={{ width: "100%", marginBottom: 14 }}
+                  size="large"
+                  options={ticketOptions.map((t) => ({
+                    value: t.id,
+                    label: (
+                      <div style={{ display: "flex", flexDirection: "column", padding: "2px 0" }}>
+                        <span
                           style={{
-                            padding: "5px 10px",
-                            fontSize: 11.5,
-                            borderRadius: 999,
-                            border: "1px solid var(--border-slate-200)",
-                            background: "var(--bg-pure-white)",
+                            fontSize: 12,
+                            fontWeight: 600,
                             color: "var(--text-slate-700)",
-                            cursor: "pointer",
-                            transition: "all 0.15s" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "var(--bg-slate-50)";
-                            e.currentTarget.style.borderColor = PURPLE;
-                            e.currentTarget.style.color = PURPLE;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "var(--bg-pure-white)";
-                            e.currentTarget.style.borderColor = "var(--border-slate-200)";
-                            e.currentTarget.style.color = "var(--text-slate-700)";
+                            lineHeight: 1.2
                           }}
                         >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "8px 12px",
-                      borderRadius: 10,
-                      background: "rgba(245, 158, 11, 0.08)",
-                      border: "1px solid rgba(245, 158, 11, 0.25)",
-                      color: "#b45309",
-                      fontSize: 12,
-                      fontWeight: 500 }}
-                  >
-                    <WarningOutlined />
-                    <span>Description needed</span>
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        color: "var(--text-slate-400)",
-                        fontWeight: 400 }}
-                    >
-                      This ticket has no description — Zai needs more context.
-                    </span>
+                          {t.ticketNumber}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: "var(--text-slate-400)",
+                            lineHeight: 1.2,
+                            maxWidth: 480,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          {t.title}
+                        </span>
+                      </div>
+                    )
+                  }))}
+                />
+
+                {/* Ticket-aware suggestions / warning */}
+                {selectedTicket && (
+                  <div style={{ marginBottom: 16 }}>
+                    {selectedTicketLoading ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          background: "var(--bg-slate-50)",
+                          border: "1px solid var(--border-slate-200)",
+                          color: "var(--text-slate-600)",
+                          fontSize: 12
+                        }}
+                      >
+                        <ZukvoLoader size="sm" />
+                        <span>Loading ticket description…</span>
+                      </div>
+                    ) : ticketHasDescription ? (
+                      <>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            color: "var(--text-slate-400)"
+                          }}
+                        >
+                          Suggestions for this ticket
+                        </Text>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            marginTop: 6
+                          }}
+                        >
+                          {SUGGESTION_TEMPLATES.map((s) => (
+                            <button
+                              key={s.key}
+                              onClick={() => {
+                                const ctx = `${s.prefix} for ticket ${selectedTicket.ticketNumber} — ${selectedTicket.title}.\n\nContext from ticket description:\n${ticketDescriptionText}`;
+                                setPrompt(ctx);
+                              }}
+                              style={{
+                                padding: "5px 10px",
+                                fontSize: 11.5,
+                                borderRadius: 999,
+                                border: "1px solid var(--border-slate-200)",
+                                background: "var(--bg-pure-white)",
+                                color: "var(--text-slate-700)",
+                                cursor: "pointer",
+                                transition: "all 0.15s"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "var(--bg-slate-50)";
+                                e.currentTarget.style.borderColor = PURPLE;
+                                e.currentTarget.style.color = PURPLE;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "var(--bg-pure-white)";
+                                e.currentTarget.style.borderColor = "var(--border-slate-200)";
+                                e.currentTarget.style.color = "var(--text-slate-700)";
+                              }}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          background: "rgba(245, 158, 11, 0.08)",
+                          border: "1px solid rgba(245, 158, 11, 0.25)",
+                          color: "#b45309",
+                          fontSize: 12,
+                          fontWeight: 500
+                        }}
+                      >
+                        <WarningOutlined />
+                        <span>Description needed</span>
+                        <span
+                          style={{
+                            marginLeft: "auto",
+                            color: "var(--text-slate-400)",
+                            fontWeight: 400
+                          }}
+                        >
+                          This ticket has no description — Zai needs more context.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
               </>
             )}
 
@@ -864,7 +900,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                         fontWeight: 600,
                         letterSpacing: "0.06em",
                         textTransform: "uppercase",
-                        color: "var(--text-slate-400)" }}
+                        color: "var(--text-slate-400)"
+                      }}
                     >
                       Suggestions for this ticket
                     </Text>
@@ -873,7 +910,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                         display: "flex",
                         flexWrap: "wrap",
                         gap: 6,
-                        marginTop: 6 }}
+                        marginTop: 6
+                      }}
                     >
                       {LOCKED_TICKET_SUGGESTIONS.map((s) => (
                         <button
@@ -887,7 +925,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                             background: "var(--bg-pure-white)",
                             color: "var(--text-slate-700)",
                             cursor: "pointer",
-                            transition: "all 0.15s" }}
+                            transition: "all 0.15s"
+                          }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = "var(--bg-slate-50)";
                             e.currentTarget.style.borderColor = PURPLE;
@@ -916,7 +955,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       border: "1px solid rgba(245, 158, 11, 0.25)",
                       color: "#b45309",
                       fontSize: 12,
-                      fontWeight: 500 }}
+                      fontWeight: 500
+                    }}
                   >
                     <WarningOutlined />
                     <span>Description is mandatory</span>
@@ -924,7 +964,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       style={{
                         marginLeft: "auto",
                         color: "var(--text-slate-400)",
-                        fontWeight: 400 }}
+                        fontWeight: 400
+                      }}
                     >
                       Add a description to this ticket before generating.
                     </span>
@@ -939,7 +980,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                 display: "block",
                 fontSize: 13,
                 marginBottom: 8,
-                color: "var(--text-slate-700)" }}
+                color: "var(--text-slate-700)"
+              }}
             >
               What should this hub contain?
             </Text>
@@ -953,7 +995,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                 borderRadius: 12,
                 fontSize: 13.5,
                 padding: "12px 14px",
-                resize: "none" }}
+                resize: "none"
+              }}
               onPressEnter={(e) => {
                 if ((e as any).metaKey || (e as any).ctrlKey) {
                   e.preventDefault();
@@ -963,53 +1006,56 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
             />
 
             {!lockedTicket && (
-            <div style={{ marginTop: 12 }}>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "var(--text-slate-400)" }}
-              >
-                Try
-              </Text>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 6,
-                  marginTop: 6 }}
-              >
-                {PROMPT_SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setPrompt(s)}
-                    style={{
-                      padding: "5px 10px",
-                      fontSize: 11.5,
-                      borderRadius: 999,
-                      border: "1px solid var(--border-slate-200)",
-                      background: "var(--bg-pure-white)",
-                      color: "var(--text-slate-700)",
-                      cursor: "pointer",
-                      transition: "all 0.15s" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--bg-slate-50)";
-                      e.currentTarget.style.borderColor = PURPLE;
-                      e.currentTarget.style.color = PURPLE;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "var(--bg-pure-white)";
-                      e.currentTarget.style.borderColor = "var(--border-slate-200)";
-                      e.currentTarget.style.color = "var(--text-slate-700)";
-                    }}
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div style={{ marginTop: 12 }}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--text-slate-400)"
+                  }}
+                >
+                  Try
+                </Text>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginTop: 6
+                  }}
+                >
+                  {PROMPT_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setPrompt(s)}
+                      style={{
+                        padding: "5px 10px",
+                        fontSize: 11.5,
+                        borderRadius: 999,
+                        border: "1px solid var(--border-slate-200)",
+                        background: "var(--bg-pure-white)",
+                        color: "var(--text-slate-700)",
+                        cursor: "pointer",
+                        transition: "all 0.15s"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--bg-slate-50)";
+                        e.currentTarget.style.borderColor = PURPLE;
+                        e.currentTarget.style.color = PURPLE;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "var(--bg-pure-white)";
+                        e.currentTarget.style.borderColor = "var(--border-slate-200)";
+                        e.currentTarget.style.color = "var(--text-slate-700)";
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
             )}
 
             <div
@@ -1019,7 +1065,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                 justifyContent: "space-between",
                 marginTop: 18,
                 paddingTop: 14,
-                borderTop: "1px solid var(--border-slate-200)" }}
+                borderTop: "1px solid var(--border-slate-200)"
+              }}
             >
               <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
                 <ArrowLeftOutlined style={{ marginRight: 4, transform: "rotate(-90deg)" }} />
@@ -1044,7 +1091,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                     paddingInline: 18,
                     background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
                     border: "none",
-                    boxShadow: "0 4px 12px rgba(114, 46, 209, 0.32)" }}
+                    boxShadow: "0 4px 12px rgba(114, 46, 209, 0.32)"
+                  }}
                 >
                   Generate
                 </Button>

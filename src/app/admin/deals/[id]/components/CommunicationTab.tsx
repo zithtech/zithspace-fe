@@ -1,11 +1,12 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
+
 
 import React, { useState, useEffect } from 'react';
 import { List, Card, Button, Form, Input, Select, Modal, message, Empty, Avatar, Tag } from 'antd';
 import { MailOutlined, UserOutlined } from '@ant-design/icons';
 import { dealService, DealCommunication } from '@/services/dealService';
 import dayjs from 'dayjs';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 interface CommunicationTabProps {
   dealId: string;
@@ -64,7 +65,7 @@ const CommunicationTab: React.FC<CommunicationTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" className="shadow-sm">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><LoadingSpinner fullScreen={false} /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" /></div>
         ) : communications.length > 0 ? (
           <List
             itemLayout="horizontal"

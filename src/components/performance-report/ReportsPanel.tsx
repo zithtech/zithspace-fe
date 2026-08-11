@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { apiClient } from '@/lib/axios';
 
@@ -9,7 +8,8 @@ import {
   CalendarOutlined,
   DownloadOutlined,
   FilePdfOutlined,
-  InboxOutlined } from '@ant-design/icons';
+  InboxOutlined
+} from '@ant-design/icons';
 import {
   Ticket,
   Timer,
@@ -21,7 +21,8 @@ import {
   Briefcase,
   Building2,
   Mail,
-  CalendarRange } from 'lucide-react';
+  CalendarRange
+} from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
 import { TimelineTree } from '@/components/projects/overview/TimelineTree';
 import { PerformanceTracker } from '@/components/time-tracking/PerformanceTracker';
@@ -39,6 +40,7 @@ import { usePermission } from '@/hooks/usePermission';
 import PerformanceReportService, { ReportTicket, ReportMember } from '@/services/performanceReportService';
 import { ticketPoints, POINT_RULES, MISSING_DATA_PENALTY } from './ticketPoints';
 import { timeTrackingPoints, pointsColor as scoreColor, fmtHM } from './moduleScores';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { RangePicker } = DatePicker;
@@ -77,7 +79,8 @@ const RANGE_PRESETS: ReadonlyArray<{ key: string; label: string; get: () => [Day
     get: () => [
       dayjs().subtract(1, 'month').startOf('month'),
       dayjs().subtract(1, 'month').endOf('month'),
-    ] },
+    ]
+  },
   { key: 'last_7', label: '7 days', get: () => [dayjs().subtract(6, 'day'), dayjs()] },
   { key: 'last_30', label: '30 days', get: () => [dayjs().subtract(29, 'day'), dayjs()] },
 ];
@@ -107,7 +110,7 @@ export default function ReportsPanel() {
             setDropdownOptions(res.data);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [selected ? 'open' : 'closed']);
 
@@ -186,7 +189,8 @@ export default function ReportsPanel() {
           bodEnabled: duConfig.bod,
           eodEnabled: duConfig.eod,
           weights: moduleWeights,
-          tickets }),
+          tickets
+        }),
         resolveAvatar(selected.member.avatarUrl),
       ]);
       setPrintAvatar(avatar);
@@ -213,7 +217,8 @@ export default function ReportsPanel() {
           (settings?.modules ?? []).map((m) => ({
             key: m.moduleKey as ModuleWeight['key'],
             weight: Number(m.weight) || 0,
-            enabled: m.isEnabled }))
+            enabled: m.isEnabled
+          }))
         );
       })
       .catch(() => { });
@@ -229,7 +234,8 @@ export default function ReportsPanel() {
           from: r[0].format('YYYY-MM-DD'),
           to: r[1].format('YYYY-MM-DD'),
           projectId: pid || undefined,
-          memberId: mid || undefined });
+          memberId: mid || undefined
+        });
         setTickets(rows);
         setApplied({ projectId: pid || undefined, memberId: mid || undefined, range: [r[0], r[1]] });
         setHasRun(true);
@@ -278,7 +284,8 @@ export default function ReportsPanel() {
       notTracked,
       onTimePct: pct(onTime),
       delayedPct: pct(delayed),
-      notTrackedPct: pct(notTracked) };
+      notTrackedPct: pct(notTracked)
+    };
   }, [tickets]);
 
   // Ticket Points: score every worked ticket on how far tracked time ran over
@@ -294,7 +301,8 @@ export default function ReportsPanel() {
         byId.set(t.id, {
           status: t.status,
           estimateHours: t.estimateHours || 0,
-          trackedSeconds: t.trackedSeconds || 0 });
+          trackedSeconds: t.trackedSeconds || 0
+        });
     }
     const scores: number[] = [];
     byId.forEach((v) => scores.push(ticketPoints(v, statusMarks)));
@@ -363,7 +371,8 @@ export default function ReportsPanel() {
                 color: '#fff',
                 fontSize: 17,
                 fontWeight: 800,
-                flexShrink: 0 }}
+                flexShrink: 0
+              }}
             >
               {m.name?.charAt(0)?.toUpperCase()}
             </Avatar>
@@ -399,40 +408,42 @@ export default function ReportsPanel() {
           <div className="prr-head-right">
             <span className="prr-switch-label">Viewing</span>
             <SearchableDropdown
-            placeholder="Choose User"
-            searchPlaceholder="Search user..."
-            itemNoun="users"
-            value={m.id}
-            onChange={(userId) => {
-              const opt = dropdownOptions.find((o) => o.value === userId);
-              if (opt) {
-                const newMember: ReportMember = {
-                  id: opt.value,
-                  name: opt.label,
-                  avatarUrl: opt.avatarUrl || null,
-                  workEmail: opt.email || null,
-                  position: opt.position || null,
-                  department: null,
-                  grade: null };
-                setSelected({ member: newMember, projectId: selected.projectId });
-              }
-            }}
-            options={[
-              ...(dropdownOptions.some(o => o.value === m.id) ? [] : [{
-                value: m.id,
-                label: m.name,
-                description: m.position || m.department || '',
-                avatarUrl: m.avatarUrl
-              }]),
-              ...dropdownOptions.map((o) => ({
-                value: o.value,
-                label: o.label,
-                description: o.position || '',
-                avatarUrl: o.avatarUrl }))
-            ]}
-            width={320}
-            showSelectedAvatar
-            avatarColor="#3b82f6"
+              placeholder="Choose User"
+              searchPlaceholder="Search user..."
+              itemNoun="users"
+              value={m.id}
+              onChange={(userId) => {
+                const opt = dropdownOptions.find((o) => o.value === userId);
+                if (opt) {
+                  const newMember: ReportMember = {
+                    id: opt.value,
+                    name: opt.label,
+                    avatarUrl: opt.avatarUrl || null,
+                    workEmail: opt.email || null,
+                    position: opt.position || null,
+                    department: null,
+                    grade: null
+                  };
+                  setSelected({ member: newMember, projectId: selected.projectId });
+                }
+              }}
+              options={[
+                ...(dropdownOptions.some(o => o.value === m.id) ? [] : [{
+                  value: m.id,
+                  label: m.name,
+                  description: m.position || m.department || '',
+                  avatarUrl: m.avatarUrl
+                }]),
+                ...dropdownOptions.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                  description: o.position || '',
+                  avatarUrl: o.avatarUrl
+                }))
+              ]}
+              width={320}
+              showSelectedAvatar
+              avatarColor="#3b82f6"
             />
           </div>
         </div>
@@ -503,7 +514,8 @@ export default function ReportsPanel() {
               items: [
                 { key: 'pdf', icon: <FilePdfOutlined />, label: 'Download as PDF' },
                 // { key: 'word', icon: <FileWordOutlined />, label: 'Download as Word' },
-              ] }}
+              ]
+            }}
           >
             <Button icon={<DownloadOutlined />} loading={downloading === 'pdf' || downloading === 'word'}>
               Download
@@ -533,7 +545,7 @@ export default function ReportsPanel() {
       <div className="prr-results">
         {loading ? (
           <div className="prr-center">
-            <LoadingSpinner message="Building report…" fullScreen={false} />
+            <ZukvoLoader message="Building report…" />
           </div>
         ) : !hasRun ? (
           <div className="prr-center">
@@ -619,7 +631,8 @@ export default function ReportsPanel() {
                       controlled={{
                         projectId: applied.projectId,
                         userIds: applied.memberId ? [applied.memberId] : [],
-                        range: applied.range }}
+                        range: applied.range
+                      }}
                       onAverageChange={handleTtAverage}
                     />
                   </>
@@ -708,7 +721,8 @@ export default function ReportsPanel() {
                       {
                         status: t.status,
                         estimateHours: t.estimateHours ?? 0,
-                        trackedSeconds: t.trackedSeconds ?? 0 },
+                        trackedSeconds: t.trackedSeconds ?? 0
+                      },
                       statusMarks
                     )
                   }

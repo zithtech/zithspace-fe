@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Tag, DatePicker, message, Row, Col, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -14,6 +13,7 @@ import ReimbursementV2Service, {
   DashboardSummary, CategorySpend, UserSpend,
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, StatusTag } from './ui';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 export default function DashboardPanel() {
   const perms = usePermission() as any;
@@ -91,7 +91,7 @@ export default function DashboardPanel() {
             <div style={{ position: 'relative' }}>
               {loading && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner size="medium" fullScreen={false} />
+                  <ZukvoLoader size="md" />
                 </div>
               )}
               <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" loading={false} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
@@ -103,7 +103,7 @@ export default function DashboardPanel() {
             <div style={{ position: 'relative' }}>
               {loading && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner size="medium" fullScreen={false} />
+                  <ZukvoLoader size="md" />
                 </div>
               )}
               <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" loading={false} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -24,7 +23,8 @@ import {
   ConfigProvider,
   Divider,
   App,
-  theme as antdTheme } from "antd";
+  theme as antdTheme
+} from "antd";
 import {
   PlusOutlined,
   EditOutlined,
@@ -58,13 +58,15 @@ import {
   AppstoreOutlined,
   CloseCircleOutlined,
   TableOutlined,
-  MenuOutlined } from "@ant-design/icons";
+  MenuOutlined
+} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import ReleasePlanService, {
   ReleasePlan,
   ReleasePlanFormData,
-  ProjectTicket } from "@/services/releasePlanService";
+  ProjectTicket
+} from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { useSocket } from "@/providers/SocketProvider";
@@ -73,6 +75,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { TicketDetailDrawer } from "@/components/projects/drawer/TicketDetailDrawer";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -213,7 +216,8 @@ export default function SprintPlanComponent() {
   const [tableFilters, setTableFilters] = useState({
     search: "",
     projectId: "",
-    status: "" });
+    status: ""
+  });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -331,7 +335,8 @@ export default function SprintPlanComponent() {
           {
             search: search || undefined,
             limit: search ? 50 : 20,
-            excludeReleasePlan: editingPlan?.id }
+            excludeReleasePlan: editingPlan?.id
+          }
         );
 
         setAvailableTickets(tickets || []);
@@ -400,7 +405,8 @@ export default function SprintPlanComponent() {
         goal: values?.goal || "",
         status: editingPlan ? editingPlan.status : "planning",
         type: "sprint_plan",
-        tickets: values?.tickets || [] };
+        tickets: values?.tickets || []
+      };
 
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
@@ -449,7 +455,8 @@ export default function SprintPlanComponent() {
         endDate: fullPlan?.endDate ? dayjs(fullPlan.endDate) : null,
         goal: fullPlan?.goal,
         priority: fullPlan?.priority,
-        tickets: ticketIds });
+        tickets: ticketIds
+      });
 
       if (projectId) {
         await loadTicketsByProject(projectId);
@@ -595,7 +602,8 @@ export default function SprintPlanComponent() {
       all: base.length,
       active: base.filter(p => p.status === 'active').length,
       planning: base.filter(p => p.status === 'planning').length,
-      completed: base.filter(p => p.status === 'completed').length };
+      completed: base.filter(p => p.status === 'completed').length
+    };
   }, [allPlans, tableFilters.projectId, tableFilters.search]);
 
   // List vs Calendar vs Table view
@@ -762,7 +770,8 @@ export default function SprintPlanComponent() {
             continuesRight: e.isAfter(weekEnd),
             color: getProjectColor(projectId),
             projectName: projectObj?.name,
-            lane: 0 };
+            lane: 0
+          };
         })
         .sort((a, b) => a.startCol - b.startCol || b.span - a.span);
 
@@ -1177,7 +1186,7 @@ export default function SprintPlanComponent() {
 
                 <div className="sp-cal-body sp-cal-body-weeks">
                   {loading ? (
-                    <div className="sp-card-loading"><LoadingSpinner fullScreen={false} /></div>
+                    <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
                   ) : calendarData.weeks.map((week, wi) => {
                     const lanes = calendarData.maxLanesByWeek[wi];
                     const ribbonHeight = lanes > 0 ? lanes * 26 + 14 : 0;
@@ -1319,7 +1328,8 @@ export default function SprintPlanComponent() {
                                             className="sp-cal-tooltip-bar-fill"
                                             style={{
                                               width: `${hoverPct}%`,
-                                              background: `linear-gradient(90deg, ${hoverProgressColor}, ${hoverProgressColor}cc)` }}
+                                              background: `linear-gradient(90deg, ${hoverProgressColor}, ${hoverProgressColor}cc)`
+                                            }}
                                           />
                                         </div>
 
@@ -1370,7 +1380,8 @@ export default function SprintPlanComponent() {
                                         top: 6 + r.lane * 26,
                                         background: `linear-gradient(135deg, ${cfg.dot}1f, ${cfg.dot}40)`,
                                         borderColor: `${cfg.dot}66`,
-                                        color: cfg.dot }}
+                                        color: cfg.dot
+                                      }}
                                       onClick={() => handleViewTickets(r.plan)}
                                     >
                                       <span className={`sp-cal-ribbon-dot ${cfg.pulse ? 'pulse' : ''}`} style={{ background: cfg.dot }} />
@@ -1450,7 +1461,7 @@ export default function SprintPlanComponent() {
                 <div className="sp-plist">
                   {loading ? (
                     <div className="sp-card-loading">
-                      <LoadingSpinner fullScreen={false} />
+                      <ZukvoLoader size="md" />
                     </div>
                   ) : pagedSprintPlans.length === 0 ? (
                     <div className="sp-empty-state">
@@ -1588,7 +1599,8 @@ export default function SprintPlanComponent() {
                                     style={{
                                       background: `linear-gradient(135deg, ${statusCfg.bg}, ${statusCfg.dot}26)`,
                                       borderColor: statusCfg.border,
-                                      color: statusCfg.color }}
+                                      color: statusCfg.color
+                                    }}
                                   >
                                     <span
                                       className={`sp-plist-status-dot ${statusCfg.pulse ? 'pulse' : ''}`}
@@ -1628,7 +1640,8 @@ export default function SprintPlanComponent() {
                                   className="sp-plist-bar-fill"
                                   style={{
                                     width: `${pct}%`,
-                                    background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)` }}
+                                    background: `linear-gradient(90deg, ${progressAccent}, ${progressAccent}cc)`
+                                  }}
                                 />
                               </div>
                               <div className="sp-plist-chips">
@@ -1861,7 +1874,7 @@ export default function SprintPlanComponent() {
                 </div>
 
                 {loading ? (
-                  <div className="sp-card-loading"><LoadingSpinner fullScreen={false} /></div>
+                  <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
                 ) : pagedSprintPlans.length === 0 ? (
                   <div className="sp-empty-state">
                     <div className="sp-empty-icon">
@@ -2179,7 +2192,8 @@ export default function SprintPlanComponent() {
                 algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
                 token: {
                   colorBgContainer: theme === 'dark' ? '#161B22' : '#ffffff',
-                  colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B' },
+                  colorText: theme === 'dark' ? '#F1F5F9' : '#1E293B'
+                },
                 components: {
                   Input: { borderRadius: 0 },
                   Select: { borderRadius: 0 },
@@ -2262,7 +2276,7 @@ export default function SprintPlanComponent() {
                     optionLabelProp="label"
                     onSearch={handleTicketSearch}
                     filterOption={false}
-                    notFoundContent={ticketLoading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
+                    notFoundContent={ticketLoading ? <ZukvoLoader size="sm" /> : null}
                     options={ticketOptions}
                     dropdownStyle={{ borderRadius: 0 }}
                     optionRender={(option) => {

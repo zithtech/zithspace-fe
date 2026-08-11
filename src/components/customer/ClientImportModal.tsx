@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -8,7 +7,8 @@ import {
   Input,
   Button,
   message,
-  Tooltip } from "antd";
+  Tooltip
+} from "antd";
 import {
   Search,
   Building2,
@@ -16,7 +16,8 @@ import {
   Import,
   X,
   Ban,
-  Users } from "lucide-react";
+  Users
+} from "lucide-react";
 import { ClientV2, ClientV2Service } from "@/services/clientV2Service";
 import { Customer } from "@/services/customersService";
 import type { ColumnsType } from "antd/es/table";
@@ -124,16 +125,17 @@ export default function ClientImportModal({
     value,
     icon: Icon,
     accent }: {
-    label: string;
-    value: string | number;
-    icon: any;
-    accent: string;
-  }) => (
+      label: string;
+      value: string | number;
+      icon: any;
+      accent: string;
+    }) => (
     <div
       className="rounded-xl px-4 py-3 flex items-center gap-3 relative overflow-hidden"
       style={{
         background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)" }}
+        border: "1px solid var(--border-color)"
+      }}
     >
       <span
         className="absolute left-0 top-0 bottom-0 w-[3px]"
@@ -144,7 +146,8 @@ export default function ClientImportModal({
         style={{
           background: `${accent}14`,
           color: accent,
-          border: `1px solid ${accent}33` }}
+          border: `1px solid ${accent}33`
+        }}
       >
         <Icon size={15} strokeWidth={2.25} />
       </div>
@@ -191,7 +194,8 @@ export default function ClientImportModal({
           style={{ accentColor: "#2563eb" }}
           onClick={(e) => e.stopPropagation()}
         />
-      ) },
+      )
+    },
     {
       title: "CLIENT",
       key: "client",
@@ -202,7 +206,8 @@ export default function ClientImportModal({
             style={{
               background: "var(--bg-blue-50)",
               color: "var(--text-blue-700)",
-              border: "1px solid var(--border-blue-200)" }}
+              border: "1px solid var(--border-blue-200)"
+            }}
           >
             {record.companyName.charAt(0).toUpperCase()}
           </div>
@@ -221,7 +226,8 @@ export default function ClientImportModal({
             </div>
           </div>
         </div>
-      ) },
+      )
+    },
     {
       title: "CODE",
       dataIndex: "clientCode",
@@ -235,11 +241,13 @@ export default function ClientImportModal({
             color: "var(--text-secondary)",
             border: "1px solid var(--border-color)",
             fontFamily:
-              "ui-monospace, SFMono-Regular, Menlo, monospace" }}
+              "ui-monospace, SFMono-Regular, Menlo, monospace"
+          }}
         >
           {text || "—"}
         </span>
-      ) },
+      )
+    },
     {
       title: "STATUS",
       key: "status",
@@ -251,7 +259,8 @@ export default function ClientImportModal({
             style={{
               background: "#ecfdf5",
               color: "#047857",
-              border: "1px solid #a7f3d0" }}
+              border: "1px solid #a7f3d0"
+            }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
@@ -265,7 +274,8 @@ export default function ClientImportModal({
             style={{
               background: "var(--bg-slate-50)",
               color: "var(--text-secondary)",
-              border: "1px solid var(--border-color)" }}
+              border: "1px solid var(--border-color)"
+            }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
@@ -273,7 +283,8 @@ export default function ClientImportModal({
             />
             Inactive
           </span>
-        ) },
+        )
+    },
   ];
 
   return (
@@ -288,16 +299,19 @@ export default function ClientImportModal({
         styles={{
           mask: {
             backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)" },
+            background: "rgba(15, 23, 42, 0.45)"
+          },
           content: { padding: 0, borderRadius: 20, overflow: "hidden" },
-          body: { padding: 0 } }}
+          body: { padding: 0 }
+        }}
       >
         {/* HEADER */}
         <div
           className="px-6 py-4 flex items-start justify-between gap-3 border-b"
           style={{
             background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <div className="flex items-start gap-3 min-w-0">
             <div
@@ -305,7 +319,8 @@ export default function ClientImportModal({
               style={{
                 background: "var(--bg-blue-50)",
                 color: "var(--text-blue-700)",
-                border: "1px solid var(--border-blue-200)" }}
+                border: "1px solid var(--border-blue-200)"
+              }}
             >
               <Import size={18} strokeWidth={2.25} />
             </div>
@@ -378,7 +393,8 @@ export default function ClientImportModal({
                 height: 36,
                 borderRadius: 8,
                 background: "var(--bg-secondary)",
-                borderColor: "var(--border-color)" }}
+                borderColor: "var(--border-color)"
+              }}
             />
             <div className="flex items-center gap-2">
               {selectedClients.length > 0 && (
@@ -412,10 +428,11 @@ export default function ClientImportModal({
               className="flex justify-center items-center h-64 rounded-xl"
               style={{
                 background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)" }}
+                border: "1px solid var(--border-color)"
+              }}
             >
               <div className="text-center">
-                <LoadingSpinner size="medium" fullScreen={false} />
+                <ZukvoLoader size="md" />
                 <div
                   className="mt-3 text-[12px] font-medium"
                   style={{ color: "var(--text-secondary)" }}
@@ -429,14 +446,16 @@ export default function ClientImportModal({
               className="flex flex-col items-center justify-center py-16 rounded-xl"
               style={{
                 background: "var(--bg-secondary)",
-                border: "1.5px dashed var(--border-color)" }}
+                border: "1.5px dashed var(--border-color)"
+              }}
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
                 style={{
                   background: "var(--bg-blue-50)",
                   color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)" }}
+                  border: "1px solid var(--border-blue-200)"
+                }}
               >
                 <Building2 size={20} strokeWidth={2} />
               </div>
@@ -459,17 +478,20 @@ export default function ClientImportModal({
               className="rounded-xl overflow-hidden"
               style={{
                 background: "var(--bg-secondary)",
-                border: "1px solid var(--border-color)" }}
+                border: "1px solid var(--border-color)"
+              }}
             >
               <Table
                 columns={columns}
                 dataSource={filteredClients}
                 rowKey="id"
-                pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 8,
+                pagination={{
+                  pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 8,
                   showSizeChanger: false,
                   style: { padding: "12px 20px" },
                   showTotal: (total, range) =>
-                    `${range[0]}–${range[1]} of ${total}` }}
+                    `${range[0]}–${range[1]} of ${total}`
+                }}
                 size="middle"
                 scroll={{ x: 720 }}
                 className="client-import-table"
@@ -479,7 +501,8 @@ export default function ClientImportModal({
                       record.id,
                       !selectedClients.includes(record.id)
                     ),
-                  className: "cursor-pointer" })}
+                  className: "cursor-pointer"
+                })}
                 rowClassName={(record) =>
                   selectedClients.includes(record.id)
                     ? "client-row-selected"
@@ -495,7 +518,8 @@ export default function ClientImportModal({
           className="px-6 py-3 flex items-center justify-between gap-3 border-t"
           style={{
             background: "var(--bg-secondary)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <Tooltip
             title={
@@ -538,13 +562,13 @@ export default function ClientImportModal({
                 height: 36,
                 fontWeight: 600,
                 background:
-                  selectedClients.length > 0 ? "#2563eb" : undefined }}
+                  selectedClients.length > 0 ? "#2563eb" : undefined
+              }}
             >
               Import{" "}
               {selectedClients.length > 0
-                ? `${selectedClients.length} client${
-                    selectedClients.length !== 1 ? "s" : ""
-                  }`
+                ? `${selectedClients.length} client${selectedClients.length !== 1 ? "s" : ""
+                }`
                 : "clients"}
             </Button>
           </div>

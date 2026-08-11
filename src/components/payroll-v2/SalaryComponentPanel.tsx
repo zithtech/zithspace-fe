@@ -2,7 +2,6 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button,
   Table,
@@ -47,6 +46,7 @@ import PayrollV2Service, {
   ComponentCalcType,
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const { TextArea } = Input;
 
@@ -213,16 +213,16 @@ function ToggleRow({
 
 // Salary Component panel — header + stat cards + filters + table + create/edit drawer.
 export default function SalaryComponentPanel() {
-    const {
-      canReadPayrollComponents,
-      canCreatePayrollComponents,
-      canUpdatePayrollComponents,
-      canDeletePayrollComponents,
-    } = usePermission();
+  const {
+    canReadPayrollComponents,
+    canCreatePayrollComponents,
+    canUpdatePayrollComponents,
+    canDeletePayrollComponents,
+  } = usePermission();
 
-    console.log("Forcing HMR update for SalaryComponentPanel...");
+  console.log("Forcing HMR update for SalaryComponentPanel...");
 
-    const [rows, setRows] = useState<PayComponent[]>([]);
+  const [rows, setRows] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(false);
 
   // filters
@@ -551,7 +551,7 @@ export default function SalaryComponentPanel() {
       <div className="pvc-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table

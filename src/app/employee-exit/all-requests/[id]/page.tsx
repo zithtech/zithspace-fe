@@ -1,10 +1,9 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import { 
+import {
   Card,
   Typography,
   Button,
@@ -48,7 +47,8 @@ import {
   HelpCircle,
   MapPin,
   Mail,
-  Users } from 'lucide-react';
+  Users
+} from 'lucide-react';
 
 // Components
 import MainLayout from '@/components/layout/MainLayout';
@@ -60,6 +60,7 @@ import { ExitTypeService, ExitType } from '@/services/exitTypeService';
 import { ReasonForExitService, ReasonForExit } from '@/services/reasonForExitService';
 import { PositionService, Position } from '@/services/positionService';
 import { DepartmentService } from '@/services/departmentService';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text, Paragraph } = Typography;
@@ -90,7 +91,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
       background: "var(--bg-pure-white)",
       borderRadius: "10px",
       border: "1px solid var(--border-slate-100)",
-      transition: "all 0.2s ease" }}
+      transition: "all 0.2s ease"
+    }}
   >
     {icon && (
       <div
@@ -103,7 +105,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
           width: "32px",
           height: "32px",
           background: `${color}10`,
-          borderRadius: "8px" }}
+          borderRadius: "8px"
+        }}
       >
         {React.cloneElement(icon as React.ReactElement, { size: 16 })}
       </div>
@@ -116,7 +119,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
           color: "var(--text-slate-400)",
           textTransform: "uppercase",
           letterSpacing: "0.5px",
-          marginBottom: "2px" }}
+          marginBottom: "2px"
+        }}
       >
         {label}
       </div>
@@ -124,7 +128,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
         style={{
           fontSize: "13px",
           color: "var(--text-slate-900)",
-          fontWeight: 500 }}
+          fontWeight: 500
+        }}
       >
         {value || "-"}
       </div>
@@ -208,7 +213,7 @@ export default function ExitRequestViewPage() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <LoadingSpinner message="Loading Exit Details..." size="large" fullScreen={false} />
+            <ZukvoLoader message="Loading Exit Details..." size="lg" />
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -405,7 +410,7 @@ export default function ExitRequestViewPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: '24px 32px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
-          
+
 
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Space size={16} align="center">

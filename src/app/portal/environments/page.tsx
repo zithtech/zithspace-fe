@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -30,6 +29,7 @@ import {
   daysUntil,
   fmtRelative
 } from "./_ui";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* --------------------------------------------------------------- */
 
@@ -154,7 +154,7 @@ export default function PortalEnvironmentsListPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div

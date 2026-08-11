@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Switch, InputNumber, TimePicker, message, Tag, Tooltip, Drawer } from 'antd';
@@ -16,13 +15,16 @@ import {
   Clock,
   CalendarClock,
   Info,
-  ListChecks } from 'lucide-react';
+  ListChecks
+} from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PerformanceReportService, {
   ModuleKey,
   PerfReportSettings,
-  TicketStatusUsage } from '@/services/performanceReportService';
+  TicketStatusUsage
+} from '@/services/performanceReportService';
 import { suggestStatusMark, normalizeStatus } from './ticketPoints';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 
 const PALETTE = {
@@ -32,7 +34,8 @@ const PALETTE = {
   violet: '#8B5CF6',
   pink: '#EC4899',
   cyan: '#06B6D4',
-  slate: '#64748B' } as const;
+  slate: '#64748B'
+} as const;
 
 // Static presentation metadata for each scoring module. Keys must match the
 // backend MODULE_KEYS; descriptions mirror the product spec for the Settings
@@ -45,27 +48,33 @@ const MODULE_META: Record<
     label: 'Attendance',
     icon: <CalendarCheck size={20} />,
     color: PALETTE.blue,
-    description: 'Punch-in/out punctuality and total regular hours present.' },
+    description: 'Punch-in/out punctuality and total regular hours present.'
+  },
   leaves: {
     label: 'Leaves',
     icon: <CalendarOff size={20} />,
     color: PALETTE.green,
-    description: 'Planned vs. unplanned leaves and loss-of-pay (LOP) data.' },
+    description: 'Planned vs. unplanned leaves and loss-of-pay (LOP) data.'
+  },
   time_tracking: {
     label: 'Time Tracking',
     icon: <Timer size={20} />,
     color: PALETTE.amber,
-    description: 'Actual time logged on specific projects, tasks, or clients.' },
+    description: 'Actual time logged on specific projects, tasks, or clients.'
+  },
   daily_updates: {
     label: 'Daily Updates',
     icon: <NotebookPen size={20} />,
     color: PALETTE.violet,
-    description: 'Compliance & quality of BOD plans & EOD status reports.' },
+    description: 'Compliance & quality of BOD plans & EOD status reports.'
+  },
   tickets: {
     label: 'Tickets',
     icon: <Ticket size={20} />,
     color: PALETTE.pink,
-    description: 'Ticket resolution times, volume, and customer satisfaction (CSAT).' } };
+    description: 'Ticket resolution times, volume, and customer satisfaction (CSAT).'
+  }
+};
 
 // Sub-selectable parts of a module, stored in that module's free-form `config`
 // jsonb on the backend. Daily Updates is split into BOD / EOD; admins may keep
@@ -76,7 +85,8 @@ const MODULE_SUBOPTIONS: Partial<
   daily_updates: [
     { key: 'bod', label: 'BOD', hint: 'Beginning-of-Day plans' },
     { key: 'eod', label: 'EOD', hint: 'End-of-Day status reports' },
-  ] };
+  ]
+};
 
 /** Resolve a module's sub-option on/off map from its config (default ON). */
 function readSubSelection(
@@ -128,7 +138,8 @@ export default function SettingsPanel() {
         moduleKey: m.moduleKey,
         isEnabled: m.isEnabled,
         weight: Number(m.weight),
-        config: m.config ?? {} }))
+        config: m.config ?? {}
+      }))
     );
   }, []);
 
@@ -230,7 +241,8 @@ export default function SettingsPanel() {
   // Write the working copy into the Tickets module config (persisted on Save).
   const applyStatusMarks = () => {
     patchModule('tickets', {
-      config: { ...(ticketsModule?.config ?? {}), statusMarks: statusDraft } });
+      config: { ...(ticketsModule?.config ?? {}), statusMarks: statusDraft }
+    });
     setStatusDrawerOpen(false);
   };
 
@@ -277,7 +289,9 @@ export default function SettingsPanel() {
           moduleKey: m.moduleKey,
           isEnabled: m.isEnabled,
           weight: m.weight,
-          config: m.config ?? {} })) });
+          config: m.config ?? {}
+        }))
+      });
       hydrate(saved);
       message.success('Performance report settings saved');
     } catch (err: any) {
@@ -290,7 +304,7 @@ export default function SettingsPanel() {
   if (loading) {
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
-        <LoadingSpinner fullScreen={false} />
+        <ZukvoLoader size="md" />
       </div>
     );
   }
@@ -436,7 +450,8 @@ export default function SettingsPanel() {
                           className="prs-sub-chip"
                           style={{
                             ['--accent' as any]: meta.color,
-                            cursor: readOnly || !m.isEnabled ? 'not-allowed' : 'pointer' }}
+                            cursor: readOnly || !m.isEnabled ? 'not-allowed' : 'pointer'
+                          }}
                         >
                           {o.label}
                         </Tag.CheckableTag>
@@ -485,7 +500,8 @@ export default function SettingsPanel() {
                     className="prs-mod-bar-fill"
                     style={{
                       width: `${Math.min(m.weight, 100)}%`,
-                      background: m.isEnabled ? meta.color : '#cbd5e1' }}
+                      background: m.isEnabled ? meta.color : '#cbd5e1'
+                    }}
                   />
                 </div>
               </div>
@@ -527,7 +543,7 @@ export default function SettingsPanel() {
 
         {statusLoading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : statusList.length === 0 ? (
           <div className="prs-sm-empty">No ticket statuses found for this workspace yet.</div>

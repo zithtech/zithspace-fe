@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Table,
   Button,
@@ -39,6 +38,7 @@ import {
   SprintReportsService,
   SprintReportListItem,
 } from "@/services/sprintReportsService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 type ProjectOption = {
   value: string;
@@ -683,7 +683,7 @@ export default function ReportsHub() {
             <div className="pp-table-wrap" style={{ position: 'relative' }}>
               {loading && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner size="medium" fullScreen={false} />
+                  <ZukvoLoader size="md" />
                 </div>
               )}
               <Table

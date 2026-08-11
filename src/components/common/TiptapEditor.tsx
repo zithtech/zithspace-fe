@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -25,8 +24,10 @@ import {
   CodeOutlined,
   HighlightOutlined,
   UndoOutlined,
-  RedoOutlined } from "@ant-design/icons";
+  RedoOutlined
+} from "@ant-design/icons";
 import { apiClient } from "@/lib/axios";
+import ZukvoLoader from "./ZukvoLoader";
 
 
 interface TiptapEditorProps {
@@ -56,22 +57,30 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3] } }),
+          levels: [1, 2, 3]
+        }
+      }),
       Image.configure({
         inline: true,
         allowBase64: false,
         HTMLAttributes: {
-          class: "tiptap-image" } }),
+          class: "tiptap-image"
+        }
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
           target: "_blank",
-          rel: "noopener noreferrer" } }),
+          rel: "noopener noreferrer"
+        }
+      }),
       Underline,
       TextAlign.configure({
-        types: ["heading", "paragraph"] }),
+        types: ["heading", "paragraph"]
+      }),
       Highlight.configure({
-        multicolor: false }),
+        multicolor: false
+      }),
     ],
     content,
     editable,
@@ -83,7 +92,10 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
     editorProps: {
       attributes: {
         class: "tiptap-editor-content",
-        style: `min-height: ${minHeight}px; max-height: ${maxHeight}px; overflow-y: auto;` } } });
+        style: `min-height: ${minHeight}px; max-height: ${maxHeight}px; overflow-y: auto;`
+      }
+    }
+  });
 
   React.useImperativeHandle(ref, () => ({
     insertContentAtCursor: (html: string) => {
@@ -141,7 +153,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
           try {
             // Upload to backend
             const response = await apiClient.post("/api/tickets/upload-image", {
-              image: base64 });
+              image: base64
+            });
 
             if (response.data.success && response.data.data.url) {
               // Insert image at cursor position
@@ -197,7 +210,7 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   }, [editor]);
 
   if (!editor) {
-    return <LoadingSpinner fullScreen={false} />;
+    return <ZukvoLoader size="md" />;
   }
 
   return (
@@ -219,7 +232,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             gap: "4px",
             padding: "8px",
             borderBottom: "1px solid var(--border-color)",
-            backgroundColor: "var(--bg-secondary)" }}
+            backgroundColor: "var(--bg-secondary)"
+          }}
         >
           {/* Text Formatting */}
           <button
@@ -278,7 +292,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Headings */}
@@ -327,7 +342,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Lists */}
@@ -355,7 +371,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Alignment */}
@@ -398,7 +415,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Link & Image */}
@@ -418,7 +436,7 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             style={buttonStyle}
             title="Upload Image"
           >
-            {uploading ? <LoadingSpinner size="small" fullScreen={false} /> : <PictureOutlined />}
+            {uploading ? <ZukvoLoader size="sm" /> : <PictureOutlined />}
           </button>
 
           <div
@@ -426,7 +444,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Code */}
@@ -445,7 +464,8 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
               width: "1px",
               height: "24px",
               backgroundColor: "var(--border-color)",
-              margin: "0 4px" }}
+              margin: "0 4px"
+            }}
           />
 
           {/* Undo/Redo */}
@@ -620,4 +640,5 @@ const buttonStyle: React.CSSProperties = {
   color: "var(--text-slate-500)",
   transition: "all 0.2s",
   minWidth: "32px",
-  height: "32px" };
+  height: "32px"
+};

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -48,6 +47,7 @@ import {
 import { ImplementationPartnerService } from "@/services/implementationPartner.service";
 import { RecruitmentClientService } from "@/services/recruitmentClient.service";
 import { SearchOutlined } from "@ant-design/icons";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -272,7 +272,7 @@ export default function ViewVendorPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <LoadingSpinner message="Loading vendor details..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading vendor details..." size="lg" />
         </div>
       </MainLayout>
     );

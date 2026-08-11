@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -31,6 +30,7 @@ import {
 } from "@/services/recruitment.service";
 import AttachmentSection, { AttachmentItem } from "./AttachmentSection";
 import dayjs from "dayjs";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Option } = Select;
@@ -310,7 +310,7 @@ export default function RequisitionForm({
   if (fetching)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <LoadingSpinner message="Loading requisition details..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading requisition details..." size="lg" />
       </div>
     );
 

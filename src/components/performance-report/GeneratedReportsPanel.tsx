@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -27,12 +26,14 @@ import {
   Pagination,
   Popconfirm,
   Progress,
-  message } from 'antd';
+  message
+} from 'antd';
 import {
   FilePdfOutlined,
   DeleteOutlined,
   DownloadOutlined,
-  ThunderboltOutlined } from '@ant-design/icons';
+  ThunderboltOutlined
+} from '@ant-design/icons';
 import {
   Search,
   SlidersHorizontal,
@@ -42,19 +43,22 @@ import {
   Gauge,
   FileSearch,
   Building2,
-  Briefcase } from 'lucide-react';
+  Briefcase
+} from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import { ProjectService } from '@/services/projectService';
 import PerformanceReportService, {
   GeneratedReport,
-  ReportMember } from '@/services/performanceReportService';
+  ReportMember
+} from '@/services/performanceReportService';
 import ReportPrintable from './ReportPrintable';
 import { gatherReportData, ReportModel } from './reportPdfData';
 import { reportToPdfBlob } from '@/app/tickets/reports/[sprintId]/reportExport';
 import { ModuleWeight } from './OverviewSection';
 import { performanceBand, pointsColor } from './moduleScores';
 import { usePermission } from '@/hooks/usePermission';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { RangePicker } = DatePicker;
@@ -128,7 +132,8 @@ export default function GeneratedReportsPanel() {
     statusMarks: {},
     bod: true,
     eod: true,
-    weights: [] });
+    weights: []
+  });
 
   useEffect(() => {
     PerformanceReportService.getSettings()
@@ -139,7 +144,8 @@ export default function GeneratedReportsPanel() {
           statusMarks: tk?.statusMarks ?? {},
           bod: du?.bod !== false,
           eod: du?.eod !== false,
-          weights: (s?.modules ?? []).map((m) => ({ key: m.moduleKey as ModuleWeight['key'], weight: Number(m.weight) || 0, enabled: m.isEnabled })) };
+          weights: (s?.modules ?? []).map((m) => ({ key: m.moduleKey as ModuleWeight['key'], weight: Number(m.weight) || 0, enabled: m.isEnabled }))
+        };
       })
       .catch(() => { });
   }, []);
@@ -247,7 +253,8 @@ export default function GeneratedReportsPanel() {
           const tickets = await PerformanceReportService.getTicketReport({
             from: range[0].format('YYYY-MM-DD'),
             to: range[1].format('YYYY-MM-DD'),
-            memberId: m.id });
+            memberId: m.id
+          });
           const model = await gatherReportData({
             userId: m.id,
             range,
@@ -255,7 +262,8 @@ export default function GeneratedReportsPanel() {
             bodEnabled: cfg.bod,
             eodEnabled: cfg.eod,
             weights: cfg.weights,
-            tickets });
+            tickets
+          });
           const avatar = await resolveAvatar(m.avatarUrl);
           setPrintJob({ member: m, model, avatar, range });
           await new Promise((r) => setTimeout(r, 350));
@@ -279,9 +287,11 @@ export default function GeneratedReportsPanel() {
               timeTracking: model.timeTracking.score,
               dailyUpdates: model.dailyUpdates.score,
               attendance: model.attendance.score,
-              leaves: model.leaves.score },
+              leaves: model.leaves.score
+            },
             summary: { stages: model.stages },
-            pdfBase64 });
+            pdfBase64
+          });
           ok += 1;
         } catch {
           fail += 1;
@@ -319,7 +329,8 @@ export default function GeneratedReportsPanel() {
           key: d.format('YYYY-MM'),
           label: d.format('MMMM YYYY'),
           sub: isThis ? 'This month' : '',
-          range: (isThis ? [d.startOf('month'), dayjs()] : [d.startOf('month'), d.endOf('month')]) as [Dayjs, Dayjs] };
+          range: (isThis ? [d.startOf('month'), dayjs()] : [d.startOf('month'), d.endOf('month')]) as [Dayjs, Dayjs]
+        };
       }),
     []
   );
@@ -397,7 +408,8 @@ export default function GeneratedReportsPanel() {
       members: new Set(filtered.map((r) => r.userId)).size,
       avg: scored.length
         ? Math.round(scored.reduce((a, r) => a + (r.overallScore as number), 0) / scored.length)
-        : null };
+        : null
+    };
   }, [filtered]);
 
   // Active filters, rendered as removable chips under the toolbar.
@@ -413,13 +425,15 @@ export default function GeneratedReportsPanel() {
         key: 'member',
         label: 'Member',
         value: memberOptions.find((o) => o.value === member)?.label ?? '—',
-        clear: () => setMember(undefined) });
+        clear: () => setMember(undefined)
+      });
     if (monthRange)
       out.push({
         key: 'months',
         label: 'Period',
         value: `${monthRange[0].format('MMM YYYY')} – ${monthRange[1].format('MMM YYYY')}`,
-        clear: () => setMonthRange(null) });
+        clear: () => setMonthRange(null)
+      });
     return out;
   }, [search, dept, subDept, member, monthRange, memberOptions]);
 
@@ -522,7 +536,8 @@ export default function GeneratedReportsPanel() {
                 <span className="gr-opt-ic">
                   <Building2 size={13} />
                 </span>
-              ) }))}
+              )
+            }))}
             width={240}
             allowClear
           />
@@ -539,7 +554,8 @@ export default function GeneratedReportsPanel() {
                 <span className="gr-opt-ic">
                   <Briefcase size={13} />
                 </span>
-              ) }))}
+              )
+            }))}
             width={240}
             allowClear
           />
@@ -682,7 +698,8 @@ export default function GeneratedReportsPanel() {
                             <span
                               style={{
                                 width: `${Math.max(0, Math.min(100, v ?? 0))}%`,
-                                background: pointsColor(v) }}
+                                background: pointsColor(v)
+                              }}
                             />
                           </div>
                         </div>
@@ -793,7 +810,7 @@ export default function GeneratedReportsPanel() {
             </div>
 
             {candidatesLoading ? (
-              <div className="wz-center"><LoadingSpinner fullScreen={false} /></div>
+              <div className="wz-center"><ZukvoLoader size="md" /></div>
             ) : wizResolved.length === 0 ? (
               <div className="wz-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No members match" /></div>
             ) : (

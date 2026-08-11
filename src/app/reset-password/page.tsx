@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { Form, Input, Button, Typography, Alert, Progress } from 'antd';
@@ -8,6 +7,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AuthService } from '@/services/authService';
 import AuthShell, { authSubmitStyle } from '@/components/auth/AuthShell';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -88,7 +88,7 @@ function ResetPasswordForm() {
   if (validating) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
         <div style={{ marginTop: 16 }}>
           <Text style={{ fontSize: 13, color: '#5A6982' }}>Verifying reset link...</Text>
         </div>
@@ -256,7 +256,7 @@ function ResetPasswordForm() {
 function ResetPasswordSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <Spin size="large" />
+      <ZukvoLoader size="lg" />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from "react";
 import { Modal, Tabs, Button, App } from "antd";
@@ -16,6 +15,7 @@ import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprint
 import { SummaryTab } from "./tabs/SummaryTab";
 import { PendingTicketsTab } from "./tabs/PendingTicketsTab";
 import { CompletedTicketsTab } from "./tabs/CompletedTicketsTab";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 interface SprintCompletionModalProps {
@@ -221,7 +221,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             background: 'var(--sc-canvas)'
           }}
         >
-          <LoadingSpinner message="Loading sprint data" size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading sprint data" size="lg" />
         </div>
       ) : (
         <Tabs

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import React, { useEffect, useRef, useState } from "react";
@@ -40,6 +39,7 @@ import {
   portalInvoiceService,
   PortalInvoiceDetail
 } from "@/services/portalInvoiceService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const p = {
   surface: "#ffffff",
@@ -199,7 +199,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
           justifyContent: "center"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

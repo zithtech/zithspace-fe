@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Avatar, Table, Tag, Tooltip, message } from 'antd';
@@ -12,6 +11,7 @@ import LeaveV2Service from '@/services/leaveV2Service';
 import PerformanceReportService, { ReportLeave } from '@/services/performanceReportService';
 import { pointsColor, fmtHM } from './moduleScores';
 import EmptyState from './EmptyState';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 // Full hours earns full marks for a present day.
@@ -35,7 +35,8 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   wfh: { label: 'WFH', color: 'cyan' },
   late: { label: 'Late', color: 'red' },
   'half-day': { label: 'Half day', color: 'gold' },
-  absent: { label: 'Absent', color: 'default' } };
+  absent: { label: 'Absent', color: 'default' }
+};
 
 const workMins = (r: Attendance) =>
   r.effectiveWorkMinutes ?? r.workingMinutes ?? r.totalWorkMinutes ?? 0;
@@ -63,7 +64,8 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
             startDate: range[0].startOf('day').toISOString(),
             endDate: range[1].endOf('day').toISOString(),
             page: 1,
-            limit: 500 }),
+            limit: 500
+          }),
           LeaveV2Service.getLeaveHolidayDates().catch(() => [] as string[]),
           PerformanceReportService.getLeaveReport({ from, to, memberId: userId || undefined }).catch(
             () => [] as ReportLeave[]
@@ -179,7 +181,8 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
             </div>
           </div>
         );
-      } },
+      }
+    },
     { title: 'Date', key: 'date', width: 120, render: (_, r) => dayjs(r.date).format('MMM D, YYYY') },
     { title: 'Clock In', key: 'in', width: 100, render: (_, r) => fmtTime(r.clockIn) },
     { title: 'Clock Out', key: 'out', width: 100, render: (_, r) => fmtTime(r.clockOut) },
@@ -187,7 +190,8 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
       title: 'Hours',
       key: 'hours',
       width: 90,
-      render: (_, r) => <strong style={{ color: 'var(--text-slate-700)' }}>{fmtHM(workMins(r) * 60)}</strong> },
+      render: (_, r) => <strong style={{ color: 'var(--text-slate-700)' }}>{fmtHM(workMins(r) * 60)}</strong>
+    },
     {
       title: 'Late by',
       key: 'late',
@@ -197,7 +201,8 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
           <span style={{ color: '#dc2626', fontWeight: 600 }}>{fmtHM(r.lateMinutes! * 60)}</span>
         ) : (
           <span style={{ color: 'var(--text-slate-400)' }}>—</span>
-        ) },
+        )
+    },
     {
       title: 'Status',
       key: 'status',
@@ -205,13 +210,14 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
       render: (_, r) => {
         const m = STATUS_META[r.status] || { label: r.status, color: 'default' };
         return <Tag color={m.color}>{m.label}</Tag>;
-      } },
+      }
+    },
   ];
 
   if (loading) {
     return (
       <div className="prr-center">
-        <LoadingSpinner message="Loading attendance…" fullScreen={false} />
+        <ZukvoLoader message="Loading attendance…" />
       </div>
     );
   }

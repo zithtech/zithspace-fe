@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -42,6 +41,7 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined }
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EllipsisOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 function LetterGenerationContent() {
   const { user } = useAuth();
@@ -1064,7 +1064,7 @@ function LetterGenerationContent() {
             {loading && templates.length === 0 ? (
               <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner message='Loading active templates...' size="medium" fullScreen={false} />
+                  <ZukvoLoader message='Loading active templates...' size="md" />
                 </div>
               </div>
             ) : templates.length === 0 ? (
@@ -1075,7 +1075,7 @@ function LetterGenerationContent() {
               <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

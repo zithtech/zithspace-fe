@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +18,8 @@ import {
   ProfileOutlined,
   ArrowRightOutlined,
   InfoCircleOutlined,
-  CloseOutlined } from '@ant-design/icons';
+  CloseOutlined
+} from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, {
@@ -27,8 +27,10 @@ import LeaveV2Service, {
   AccrualSettings,
   LeavePolicyDetail,
   LeavePolicyListItem,
-  LeaveTypeV2 } from '@/services/leaveV2Service';
+  LeaveTypeV2
+} from '@/services/leaveV2Service';
 import MailConfiguration from './MailConfiguration';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
@@ -133,12 +135,14 @@ export default function ConfigurationPanel() {
 
   // ── Policy table ─────────────────────────────────────────────────────────────
   const policyCols: ColumnsType<LeavePolicyListItem> = [
-    { title: 'Policy', dataIndex: 'name', key: 'name', render: (v, r) => (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 2, background: r.isActive ? PALETTE.blue : PALETTE.grey }} />
-        <span style={{ fontWeight: 600 }}>{v}</span>
-      </span>
-    ) },
+    {
+      title: 'Policy', dataIndex: 'name', key: 'name', render: (v, r) => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: r.isActive ? PALETTE.blue : PALETTE.grey }} />
+          <span style={{ fontWeight: 600 }}>{v}</span>
+        </span>
+      )
+    },
     { title: 'Term', dataIndex: 'termCycle', key: 'term', render: (v) => <Tag>{TERM_LABEL[v] ?? v}</Tag> },
     { title: 'LOP', dataIndex: 'lopOnExhaustion', key: 'lop', render: (v) => (v ? <Tag color="red">On</Tag> : <Tag>Off</Tag>) },
     { title: 'Applies To', dataIndex: 'assignmentCount', key: 'a', render: (v) => `${v} target${v === 1 ? '' : 's'}` },
@@ -147,7 +151,7 @@ export default function ConfigurationPanel() {
 
   const expandedPolicy = (row: LeavePolicyListItem) => {
     const d = polDetail[row.id];
-    if (!d) return <div style={{ padding: 12 }}><LoadingSpinner size="small" fullScreen={false} /> Loading…</div>;
+    if (!d) return <div style={{ padding: 12 }}><ZukvoLoader size="sm" /> Loading…</div>;
     return (
       <div style={{ padding: '6px 12px', background: 'var(--bg-slate-50)' }}>
         <Table
@@ -172,9 +176,9 @@ export default function ConfigurationPanel() {
     <div className="lvc">
       <div className="lvc-header">
         <div className="lvc-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -196,118 +200,118 @@ export default function ConfigurationPanel() {
           children: (
             <>
               {/* SETTINGS ROW */}
-      <div className="lvc-cards">
-        <div className="lvc-card">
-          <div className="lvc-card-head"><CalendarOutlined style={{ color: PALETTE.blue }} /> Leave Year</div>
-          <div className="lvc-card-body">
-            <div className="lvc-field-label">Year starts in</div>
-            <SearchableDropdown
-              placeholder="Month"
-              itemNoun="months"
-              allowClear={false}
-              value={settings ? String(settings.leaveYearStartMonth) : undefined}
-              onChange={(v) => saveMonth(Number(v))}
-              options={MONTHS}
-              style={{ width: 200, height: 38, marginTop: 6 }}
-              width={220}
-            />
-            <div className="lvc-hint">{savingMonth ? 'Saving…' : 'Quarter / half / yearly terms are computed from this month.'}</div>
-          </div>
-        </div>
-        <div className="lvc-card">
-          <div className="lvc-card-head"><ThunderboltOutlined style={{ color: PALETTE.amber }} /> Accrual Scheduler</div>
-          <div className="lvc-card-body">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Switch checked={!!settings?.schedulerEnabled} disabled />
-              <Tag color={settings?.schedulerEnabled ? 'green' : 'default'}>{settings?.schedulerEnabled ? 'Enabled' : 'Disabled'}</Tag>
-            </div>
-            <div className="lvc-hint">
-              Monthly auto-run {settings?.schedulerEnabled ? 'is active.' : 'is off.'} Toggle via the <code>LEAVE_ACCRUAL_ENABLED</code> env flag (server). You can always run manually below.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RUN ACCRUAL */}
-      <div className="lvc-section">
-        <div className="lvc-section-head"><PlayCircleOutlined style={{ color: PALETTE.green }} /> Manual Accrual Run</div>
-        <div className="lvc-run-bar">
-          <div className="lvc-run-field">
-            <span className="lvc-field-label">Year</span>
-            <InputNumber style={{ width: 110 }} min={2000} max={2100} value={year} onChange={(v) => setYear(Number(v ?? now.getUTCFullYear()))} />
-          </div>
-          <div className="lvc-run-field">
-            <span className="lvc-field-label">Month</span>
-            <SearchableDropdown placeholder="Month" itemNoun="months" allowClear={false} value={String(month)} onChange={(v) => setMonth(Number(v))} options={MONTHS} style={{ width: 150, height: 36 }} width={200} />
-          </div>
-          <Button icon={<EyeOutlined />} loading={running === 'preview'} disabled={!!running} onClick={() => run(true)} style={{ height: 36, borderRadius: 6 }}>Preview</Button>
-          <Button type="primary" icon={<PlayCircleOutlined />} loading={running === 'apply'} disabled={!!running} onClick={() => run(false)} style={{ height: 36, borderRadius: 6 }}>Run Accrual</Button>
-        </div>
-
-        {result && (
-          <div className="lvc-result">
-            <div className="lvc-result-banner" style={{ background: result.dryRun ? TINT.amber : TINT.green, color: result.dryRun ? PALETTE.amber : PALETTE.green }}>
-              <InfoCircleOutlined /> {result.dryRun ? 'Preview (nothing written)' : 'Applied to the ledger'} — {MONTHS[result.month - 1].label} {result.year}
-              <button type="button" className="lvc-result-close" onClick={() => setResult(null)} aria-label="Close" style={{ color: result.dryRun ? PALETTE.amber : PALETTE.green }}>
-                <CloseOutlined />
-              </button>
-            </div>
-            <div className="lvc-result-stats">
-              {[
-                { label: 'Employees', value: result.employees, icon: <TeamOutlined />, color: PALETTE.blue },
-                { label: 'Policies', value: result.policies, icon: <ProfileOutlined />, color: PALETTE.grey },
-                { label: result.dryRun ? 'Would credit' : 'Credited', value: result.credited, icon: <CheckCircleOutlined />, color: PALETTE.green },
-                { label: 'Skipped', value: result.skipped, icon: <MinusCircleOutlined />, color: PALETTE.grey },
-              ].map((s) => (
-                <div key={s.label} className="lvc-rstat">
-                  <span className="lvc-rstat-icon" style={{ color: s.color }}>{s.icon}</span>
-                  <div><div className="lvc-rstat-val">{s.value}</div><div className="lvc-rstat-label">{s.label}</div></div>
+              <div className="lvc-cards">
+                <div className="lvc-card">
+                  <div className="lvc-card-head"><CalendarOutlined style={{ color: PALETTE.blue }} /> Leave Year</div>
+                  <div className="lvc-card-body">
+                    <div className="lvc-field-label">Year starts in</div>
+                    <SearchableDropdown
+                      placeholder="Month"
+                      itemNoun="months"
+                      allowClear={false}
+                      value={settings ? String(settings.leaveYearStartMonth) : undefined}
+                      onChange={(v) => saveMonth(Number(v))}
+                      options={MONTHS}
+                      style={{ width: 200, height: 38, marginTop: 6 }}
+                      width={220}
+                    />
+                    <div className="lvc-hint">{savingMonth ? 'Saving…' : 'Quarter / half / yearly terms are computed from this month.'}</div>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="lvc-result-grid">
-              <div>
-                <div className="lvc-mini-head">By Leave Type</div>
-                {result.byLeaveType.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing credited" /> :
-                  <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} />}
+                <div className="lvc-card">
+                  <div className="lvc-card-head"><ThunderboltOutlined style={{ color: PALETTE.amber }} /> Accrual Scheduler</div>
+                  <div className="lvc-card-body">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Switch checked={!!settings?.schedulerEnabled} disabled />
+                      <Tag color={settings?.schedulerEnabled ? 'green' : 'default'}>{settings?.schedulerEnabled ? 'Enabled' : 'Disabled'}</Tag>
+                    </div>
+                    <div className="lvc-hint">
+                      Monthly auto-run {settings?.schedulerEnabled ? 'is active.' : 'is off.'} Toggle via the <code>LEAVE_ACCRUAL_ENABLED</code> env flag (server). You can always run manually below.
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
-                {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
-                  <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} />}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* POLICY ALLOCATIONS */}
-      <div className="lvc-section">
-        <div className="lvc-section-head">
-          <ProfileOutlined style={{ color: PALETTE.blue }} /> Policy Allocations
-          {canReadLeavePolicy && <button type="button" className="lvc-link" onClick={() => router.push('/leaves-v2/policy')}>Manage <ArrowRightOutlined /></button>}
-        </div>
-        <div className="lvc-table-wrap" style={{ position: 'relative' }}>
-          {polLoading && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
-            </div>
-          )}
-          <Table
-            rowKey="id"
-            size="small"
-            className="lvc-table"
-            loading={false}
-            columns={policyCols}
-            dataSource={policies}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
-            scroll={{ x: 'max-content' }}
-            expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
-            locale={{ emptyText: 'No active policies' }}
-          />
-        </div>
-      </div>
+              {/* RUN ACCRUAL */}
+              <div className="lvc-section">
+                <div className="lvc-section-head"><PlayCircleOutlined style={{ color: PALETTE.green }} /> Manual Accrual Run</div>
+                <div className="lvc-run-bar">
+                  <div className="lvc-run-field">
+                    <span className="lvc-field-label">Year</span>
+                    <InputNumber style={{ width: 110 }} min={2000} max={2100} value={year} onChange={(v) => setYear(Number(v ?? now.getUTCFullYear()))} />
+                  </div>
+                  <div className="lvc-run-field">
+                    <span className="lvc-field-label">Month</span>
+                    <SearchableDropdown placeholder="Month" itemNoun="months" allowClear={false} value={String(month)} onChange={(v) => setMonth(Number(v))} options={MONTHS} style={{ width: 150, height: 36 }} width={200} />
+                  </div>
+                  <Button icon={<EyeOutlined />} loading={running === 'preview'} disabled={!!running} onClick={() => run(true)} style={{ height: 36, borderRadius: 6 }}>Preview</Button>
+                  <Button type="primary" icon={<PlayCircleOutlined />} loading={running === 'apply'} disabled={!!running} onClick={() => run(false)} style={{ height: 36, borderRadius: 6 }}>Run Accrual</Button>
+                </div>
+
+                {result && (
+                  <div className="lvc-result">
+                    <div className="lvc-result-banner" style={{ background: result.dryRun ? TINT.amber : TINT.green, color: result.dryRun ? PALETTE.amber : PALETTE.green }}>
+                      <InfoCircleOutlined /> {result.dryRun ? 'Preview (nothing written)' : 'Applied to the ledger'} — {MONTHS[result.month - 1].label} {result.year}
+                      <button type="button" className="lvc-result-close" onClick={() => setResult(null)} aria-label="Close" style={{ color: result.dryRun ? PALETTE.amber : PALETTE.green }}>
+                        <CloseOutlined />
+                      </button>
+                    </div>
+                    <div className="lvc-result-stats">
+                      {[
+                        { label: 'Employees', value: result.employees, icon: <TeamOutlined />, color: PALETTE.blue },
+                        { label: 'Policies', value: result.policies, icon: <ProfileOutlined />, color: PALETTE.grey },
+                        { label: result.dryRun ? 'Would credit' : 'Credited', value: result.credited, icon: <CheckCircleOutlined />, color: PALETTE.green },
+                        { label: 'Skipped', value: result.skipped, icon: <MinusCircleOutlined />, color: PALETTE.grey },
+                      ].map((s) => (
+                        <div key={s.label} className="lvc-rstat">
+                          <span className="lvc-rstat-icon" style={{ color: s.color }}>{s.icon}</span>
+                          <div><div className="lvc-rstat-val">{s.value}</div><div className="lvc-rstat-label">{s.label}</div></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="lvc-result-grid">
+                      <div>
+                        <div className="lvc-mini-head">By Leave Type</div>
+                        {result.byLeaveType.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing credited" /> :
+                          <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} />}
+                      </div>
+                      <div>
+                        <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
+                        {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
+                          <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} />}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* POLICY ALLOCATIONS */}
+              <div className="lvc-section">
+                <div className="lvc-section-head">
+                  <ProfileOutlined style={{ color: PALETTE.blue }} /> Policy Allocations
+                  {canReadLeavePolicy && <button type="button" className="lvc-link" onClick={() => router.push('/leaves-v2/policy')}>Manage <ArrowRightOutlined /></button>}
+                </div>
+                <div className="lvc-table-wrap" style={{ position: 'relative' }}>
+                  {polLoading && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <ZukvoLoader size="md" />
+                    </div>
+                  )}
+                  <Table
+                    rowKey="id"
+                    size="small"
+                    className="lvc-table"
+                    loading={false}
+                    columns={policyCols}
+                    dataSource={policies}
+                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
+                    scroll={{ x: 'max-content' }}
+                    expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
+                    locale={{ emptyText: 'No active policies' }}
+                  />
+                </div>
+              </div>
             </>
           )
         },

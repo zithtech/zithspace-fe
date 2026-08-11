@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -313,6 +312,7 @@ const AssetsTab = ({ data }: any) => {
 };
 
 import { PromotionModal } from "@/components/new-profile/PromotionModal";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* ---------------- MAIN PAGE COMPONENT ---------------- */
 
@@ -463,7 +463,7 @@ export default function OnboardedViewPage() {
     return (
       <OnboardingGuard itemKey="employees">
         <div style={{ height: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <LoadingSpinner message="Loading Employee Information..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading Employee Information..." size="lg" />
         </div>
       </OnboardingGuard>
     );

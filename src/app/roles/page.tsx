@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -68,6 +67,7 @@ import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -1077,7 +1077,7 @@ export default function RolesPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!user || isLoading || !canReadRole) {
-    if (isLoading) return <LoadingSpinner message="Loading roles..." />;
+    if (isLoading) return <ZukvoLoader message="Loading roles..." />;
     return null;
   }
 
@@ -1335,7 +1335,7 @@ export default function RolesPage() {
               {/* Table */}
               {loading && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <LoadingSpinner size="medium" fullScreen={false} />
+                  <ZukvoLoader size="md" />
                 </div>
               )}
               <Table
@@ -1868,10 +1868,10 @@ export default function RolesPage() {
                         const perms = filteredByResource[resource];
                         const allPermsForRes = resource === 'letter'
                           ? [
-                              ...(allPermissions['letter'] || []),
-                              ...(allPermissions['letter_template'] || []),
-                              ...(allPermissions['letter.format'] || [])
-                            ]
+                            ...(allPermissions['letter'] || []),
+                            ...(allPermissions['letter_template'] || []),
+                            ...(allPermissions['letter.format'] || [])
+                          ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const selectedCount = allPermsForRes.filter((p) =>

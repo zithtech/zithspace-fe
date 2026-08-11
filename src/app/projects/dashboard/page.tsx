@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 
 import TicketDashboard from '@/components/projects/TicketDashboard';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function ProjectsDashboardPage() {
@@ -35,7 +35,7 @@ export default function ProjectsDashboardPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <LoadingSpinner message="Orchestrating ticket dashboard..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Orchestrating ticket dashboard..." size="lg" />
         </div>
       </MainLayout>
     );

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -17,11 +16,13 @@ import {
   ExternalLink,
   Activity,
   Users,
-  User as UserIcon } from "lucide-react";
+  User as UserIcon
+} from "lucide-react";
 import {
   portalApprovalsService,
   PortalApprovalDetail,
-  PortalApprovalApprover } from "@/services/portalApprovalsService";
+  PortalApprovalApprover
+} from "@/services/portalApprovalsService";
 import {
 
   p,
@@ -30,7 +31,8 @@ import {
   SUBJECT_LABEL,
   fmtDate,
   fmtDateTime,
-  fmtRelative } from "../_ui";
+  fmtRelative
+} from "../_ui";
 
 /* --------------------------------------------------------------- */
 
@@ -69,9 +71,10 @@ export default function PortalApprovalDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center" }}
+          justifyContent: "center"
+        }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }
@@ -89,7 +92,8 @@ export default function PortalApprovalDetailPage() {
               border: `1px solid ${p.text}`,
               borderRadius: 8,
               fontSize: 13,
-              cursor: "pointer" }}
+              cursor: "pointer"
+            }}
           >
             Back to approvals
           </button>
@@ -121,7 +125,8 @@ export default function PortalApprovalDetailPage() {
           color: p.textMuted,
           fontSize: 13,
           cursor: "pointer",
-          marginBottom: 14 }}
+          marginBottom: 14
+        }}
       >
         <ArrowLeft size={14} />
         Back to approvals
@@ -134,7 +139,8 @@ export default function PortalApprovalDetailPage() {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
           borderRadius: 14,
-          marginBottom: 16 }}
+          marginBottom: 16
+        }}
       >
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <div
@@ -144,13 +150,13 @@ export default function PortalApprovalDetailPage() {
               borderRadius: 10,
               background: isMyTurn ? p.warningBg : p.accentBg,
               color: isMyTurn ? p.warningText : p.accentText,
-              border: `1px solid ${
-                isMyTurn ? p.warningBorder : p.accentBorder
-              }`,
+              border: `1px solid ${isMyTurn ? p.warningBorder : p.accentBorder
+                }`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0 }}
+              flexShrink: 0
+            }}
           >
             <CheckSquare size={20} />
           </div>
@@ -160,7 +166,8 @@ export default function PortalApprovalDetailPage() {
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
-                flexWrap: "wrap" }}
+                flexWrap: "wrap"
+              }}
             >
               <span
                 style={{
@@ -171,7 +178,8 @@ export default function PortalApprovalDetailPage() {
                   background: p.surfaceMuted,
                   border: `1px solid ${p.border}`,
                   borderRadius: 6,
-                  color: p.textMuted }}
+                  color: p.textMuted
+                }}
               >
                 {data.approvalNumber}
               </span>
@@ -186,7 +194,8 @@ export default function PortalApprovalDetailPage() {
                   color: TONE[st.tone].text,
                   borderRadius: 999,
                   fontSize: 11.5,
-                  fontWeight: 500 }}
+                  fontWeight: 500
+                }}
               >
                 <StIcon size={11} />
                 {st.label}
@@ -199,7 +208,8 @@ export default function PortalApprovalDetailPage() {
                   color: p.purpleText,
                   borderRadius: 999,
                   fontSize: 11.5,
-                  fontWeight: 500 }}
+                  fontWeight: 500
+                }}
               >
                 {SUBJECT_LABEL[data.subjectType] || data.subjectType}
               </span>
@@ -211,7 +221,8 @@ export default function PortalApprovalDetailPage() {
                 fontWeight: 600,
                 color: p.text,
                 letterSpacing: "-0.01em",
-                lineHeight: 1.25 }}
+                lineHeight: 1.25
+              }}
             >
               {data.title}
             </h1>
@@ -222,7 +233,8 @@ export default function PortalApprovalDetailPage() {
                 gap: 14,
                 flexWrap: "wrap",
                 fontSize: 12.5,
-                color: p.textSubtle }}
+                color: p.textSubtle
+              }}
             >
               {data.subjectLabel && <span>{data.subjectLabel}</span>}
               {data.projectName && (
@@ -236,7 +248,8 @@ export default function PortalApprovalDetailPage() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4 }}
+                    gap: 4
+                  }}
                 >
                   <UserIcon size={11} />
                   Requested by {data.requestedByName}
@@ -250,14 +263,15 @@ export default function PortalApprovalDetailPage() {
                     gap: 4,
                     color:
                       new Date(data.dueDate) < new Date() &&
-                      data.status === "open"
+                        data.status === "open"
                         ? p.dangerText
                         : p.textSubtle,
                     fontWeight:
                       new Date(data.dueDate) < new Date() &&
-                      data.status === "open"
+                        data.status === "open"
                         ? 600
-                        : 500 }}
+                        : 500
+                  }}
                 >
                   <Calendar size={11} />
                   Due {fmtDateTime(data.dueDate)}
@@ -271,7 +285,8 @@ export default function PortalApprovalDetailPage() {
                   fontSize: 13.5,
                   color: p.textMuted,
                   lineHeight: 1.6,
-                  whiteSpace: "pre-wrap" }}
+                  whiteSpace: "pre-wrap"
+                }}
               >
                 {data.description}
               </div>
@@ -293,7 +308,8 @@ export default function PortalApprovalDetailPage() {
                   color: p.accentText,
                   fontSize: 12.5,
                   textDecoration: "none",
-                  fontWeight: 500 }}
+                  fontWeight: 500
+                }}
               >
                 <Link2 size={13} />
                 Open preview
@@ -316,7 +332,8 @@ export default function PortalApprovalDetailPage() {
               alignItems: "center",
               justifyContent: "space-between",
               gap: 14,
-              flexWrap: "wrap" }}
+              flexWrap: "wrap"
+            }}
           >
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <Hourglass size={18} color={p.warningText} />
@@ -325,7 +342,8 @@ export default function PortalApprovalDetailPage() {
                   style={{
                     fontSize: 13.5,
                     fontWeight: 600,
-                    color: p.warningText }}
+                    color: p.warningText
+                  }}
                 >
                   Awaiting your sign-off
                 </div>
@@ -349,7 +367,8 @@ export default function PortalApprovalDetailPage() {
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: "pointer" }}
+                  cursor: "pointer"
+                }}
               >
                 <XCircle size={14} />
                 Reject
@@ -367,7 +386,8 @@ export default function PortalApprovalDetailPage() {
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: "pointer" }}
+                  cursor: "pointer"
+                }}
               >
                 <CheckCircle2 size={14} />
                 Approve
@@ -382,17 +402,17 @@ export default function PortalApprovalDetailPage() {
               padding: "12px 14px",
               background:
                 data.me.decision === "approved" ? p.successBg : p.dangerBg,
-              border: `1px solid ${
-                data.me.decision === "approved"
-                  ? p.successBorder
-                  : p.dangerBorder
-              }`,
+              border: `1px solid ${data.me.decision === "approved"
+                ? p.successBorder
+                : p.dangerBorder
+                }`,
               borderRadius: 10,
               color:
                 data.me.decision === "approved"
                   ? p.successText
                   : p.dangerText,
-              fontSize: 13 }}
+              fontSize: 13
+            }}
           >
             You {data.me.decision} this {fmtRelative(data.me.decidedAt)}
             {data.me.decisionNote && (
@@ -410,7 +430,8 @@ export default function PortalApprovalDetailPage() {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
           gap: 16,
-          alignItems: "flex-start" }}
+          alignItems: "flex-start"
+        }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {data.attachments.length > 0 && (
@@ -433,7 +454,8 @@ export default function PortalApprovalDetailPage() {
                       color: p.accentText,
                       textDecoration: "none",
                       fontSize: 12.5,
-                      fontWeight: 500 }}
+                      fontWeight: 500
+                    }}
                   >
                     <FileText size={12} />
                     {a.file_name}
@@ -452,7 +474,8 @@ export default function PortalApprovalDetailPage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 6 }}
+                gap: 6
+              }}
             >
               {data.approvers.map((ap) => (
                 <ApproverRow key={ap.id} ap={ap} />
@@ -471,7 +494,8 @@ export default function PortalApprovalDetailPage() {
                     style={{
                       fontSize: 12,
                       color: p.textMuted,
-                      padding: "3px 0" }}
+                      padding: "3px 0"
+                    }}
                   >
                     <span style={{ color: p.text, fontWeight: 500 }}>
                       {describeEvent(e)}
@@ -481,8 +505,8 @@ export default function PortalApprovalDetailPage() {
                       {e.actorPortalName
                         ? ` · ${e.actorPortalName}`
                         : e.actorStaffName
-                        ? ` · ${e.actorStaffName}`
-                        : ""}
+                          ? ` · ${e.actorStaffName}`
+                          : ""}
                     </span>
                   </div>
                 ))}
@@ -509,13 +533,15 @@ export default function PortalApprovalDetailPage() {
               message:
                 decisionOpen === "approved"
                   ? "Thank you — approved"
-                  : "Decision recorded" });
+                  : "Decision recorded"
+            });
             setDecisionOpen(null);
             load();
           } catch (err: any) {
             notify.error({
               message: "Decision failed",
-              description: err?.message });
+              description: err?.message
+            });
           }
         }}
       />
@@ -540,7 +566,8 @@ function ProgressBar({ data }: { data: PortalApprovalDetail }) {
           justifyContent: "space-between",
           fontSize: 12.5,
           color: p.textMuted,
-          marginBottom: 6 }}
+          marginBottom: 6
+        }}
       >
         <span>{decidedApprove} of {required.length} required approved</span>
         <span style={{ fontWeight: 600, color: p.text }}>{pct}%</span>
@@ -551,21 +578,24 @@ function ProgressBar({ data }: { data: PortalApprovalDetail }) {
           background: p.neutralBg,
           borderRadius: 999,
           overflow: "hidden",
-          display: "flex" }}
+          display: "flex"
+        }}
       >
         <div
           style={{
             width: `${pct}%`,
             background: p.success,
-            transition: "width 200ms ease" }}
+            transition: "width 200ms ease"
+          }}
         />
         <div
           style={{
             width: `${required.length > 0
               ? Math.round((decidedReject / required.length) * 100)
               : 0
-            }%`,
-            background: p.danger }}
+              }%`,
+            background: p.danger
+          }}
         />
       </div>
       <div
@@ -575,7 +605,8 @@ function ProgressBar({ data }: { data: PortalApprovalDetail }) {
           flexDirection: "column",
           gap: 4,
           fontSize: 12,
-          color: p.textSubtle }}
+          color: p.textSubtle
+        }}
       >
         <span>
           <CheckCircle2
@@ -610,8 +641,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
     ap.decision === "approved"
       ? TONE.success
       : ap.decision === "rejected"
-      ? TONE.danger
-      : TONE.warning;
+        ? TONE.danger
+        : TONE.warning;
   return (
     <div
       style={{
@@ -622,7 +653,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
         padding: "10px 12px",
         background: p.surfaceMuted,
         border: `1px solid ${p.border}`,
-        borderRadius: 9 }}
+        borderRadius: 9
+      }}
     >
       <div style={{ display: "flex", gap: 10, alignItems: "center", minWidth: 0 }}>
         <div
@@ -638,7 +670,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
             justifyContent: "center",
             fontSize: 11,
             fontWeight: 600,
-            flexShrink: 0 }}
+            flexShrink: 0
+          }}
         >
           {name
             .split(" ")
@@ -656,7 +689,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
               color: p.text,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap" }}
+              whiteSpace: "nowrap"
+            }}
           >
             {name}
           </div>
@@ -666,7 +700,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
                 marginTop: 3,
                 fontSize: 11.5,
                 color: p.textMuted,
-                fontStyle: "italic" }}
+                fontStyle: "italic"
+              }}
             >
               &ldquo;{ap.decisionNote}&rdquo;
             </div>
@@ -685,7 +720,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
           borderRadius: 999,
           fontSize: 11.5,
           fontWeight: 500,
-          flexShrink: 0 }}
+          flexShrink: 0
+        }}
       >
         {ap.decision === "approved" ? (
           <CheckCircle2 size={11} />
@@ -697,8 +733,8 @@ function ApproverRow({ ap }: { ap: PortalApprovalApprover }) {
         {ap.decision === "approved"
           ? `Approved ${fmtRelative(ap.decidedAt)}`
           : ap.decision === "rejected"
-          ? `Rejected ${fmtRelative(ap.decidedAt)}`
-          : "Pending"}
+            ? `Rejected ${fmtRelative(ap.decidedAt)}`
+            : "Pending"}
       </span>
     </div>
   );
@@ -727,17 +763,18 @@ function Card({
   title,
   icon: Icon,
   children }: {
-  title: string;
-  icon: any;
-  children: React.ReactNode;
-}) {
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+  }) {
   return (
     <div
       style={{
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden" }}
+        overflow: "hidden"
+      }}
     >
       <div
         style={{
@@ -751,7 +788,8 @@ function Card({
           letterSpacing: "0.08em",
           display: "flex",
           alignItems: "center",
-          gap: 6 }}
+          gap: 6
+        }}
       >
         <Icon size={12} />
         {title}
@@ -767,10 +805,10 @@ function DecisionModal({
   decision,
   onCancel,
   onConfirm }: {
-  decision: "approved" | "rejected" | null;
-  onCancel: () => void;
-  onConfirm: (note?: string) => Promise<void>;
-}) {
+    decision: "approved" | "rejected" | null;
+    onCancel: () => void;
+    onConfirm: (note?: string) => Promise<void>;
+  }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
@@ -791,8 +829,10 @@ function DecisionModal({
         content: {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
-          padding: 0 },
-        body: { padding: 0 } }}
+          padding: 0
+        },
+        body: { padding: 0 }
+      }}
     >
       <div
         style={{
@@ -800,7 +840,8 @@ function DecisionModal({
           borderBottom: `1px solid ${p.border}`,
           display: "flex",
           gap: 12,
-          alignItems: "flex-start" }}
+          alignItems: "flex-start"
+        }}
       >
         <div
           style={{
@@ -809,12 +850,12 @@ function DecisionModal({
             borderRadius: 9,
             background: isApprove ? p.successBg : p.dangerBg,
             color: isApprove ? p.successText : p.dangerText,
-            border: `1px solid ${
-              isApprove ? p.successBorder : p.dangerBorder
-            }`,
+            border: `1px solid ${isApprove ? p.successBorder : p.dangerBorder
+              }`,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center" }}
+            justifyContent: "center"
+          }}
         >
           {isApprove ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
         </div>
@@ -826,7 +867,8 @@ function DecisionModal({
             style={{
               marginTop: 3,
               fontSize: 12.5,
-              color: p.textSubtle }}
+              color: p.textSubtle
+            }}
           >
             {isApprove
               ? "Your approval is final and goes into the audit trail."
@@ -852,7 +894,8 @@ function DecisionModal({
             gap: 8,
             marginTop: 14,
             paddingTop: 12,
-            borderTop: `1px solid ${p.border}` }}
+            borderTop: `1px solid ${p.border}`
+          }}
         >
           <button
             onClick={onCancel}
@@ -864,7 +907,8 @@ function DecisionModal({
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 500,
-              cursor: "pointer" }}
+              cursor: "pointer"
+            }}
           >
             Cancel
           </button>
@@ -894,7 +938,8 @@ function DecisionModal({
                 submitting || (!isApprove && !note.trim()) ? 0.6 : 1,
               display: "inline-flex",
               alignItems: "center",
-              gap: 6 }}
+              gap: 6
+            }}
           >
             {isApprove ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
             {submitting ? "Submitting…" : isApprove ? "Approve" : "Reject"}

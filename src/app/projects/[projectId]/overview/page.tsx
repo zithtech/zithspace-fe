@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -28,9 +27,11 @@ import {
   RiseOutlined,
   ClockCircleOutlined,
   CheckSquareOutlined,
-  HistoryOutlined } from "@ant-design/icons";
+  HistoryOutlined
+} from "@ant-design/icons";
 import { Menu } from "lucide-react";
 import dayjs from "dayjs";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 type ViewKey = "overview" | "sprint" | "timeline" | "team";
@@ -39,7 +40,8 @@ const STATUS_TINT: Record<string, { color: string; bg: string }> = {
   active: { color: "#10b981", bg: "rgba(16,185,129,0.12)" },
   planning: { color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   "on-hold": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-  completed: { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" } };
+  completed: { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" }
+};
 
 const ProjectOverviewPage = () => {
   const router = useRouter();
@@ -48,7 +50,8 @@ const ProjectOverviewPage = () => {
   const { data: overviewData, isLoading, error, refetch } = useQuery({
     queryKey: ["projectOverview", projectId],
     queryFn: () => ProjectService.getProjectOverview(projectId),
-    enabled: !!projectId });
+    enabled: !!projectId
+  });
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -61,7 +64,8 @@ const ProjectOverviewPage = () => {
   const { data: timelineTickets, isLoading: timelineLoading } = useQuery({
     queryKey: ["projectTimeline", projectId],
     queryFn: () => ProjectService.getProjectTimeline(projectId),
-    enabled: !!projectId && activeView === "timeline" });
+    enabled: !!projectId && activeView === "timeline"
+  });
 
   const sprints = overviewData?.sprints ?? [];
   const team = overviewData?.team ?? [];
@@ -70,7 +74,7 @@ const ProjectOverviewPage = () => {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "calc(100vh - 64px)" }}>
-          <LoadingSpinner message="Loading project overview..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading project overview..." size="lg" />
         </div>
       </MainLayout>
     );
@@ -138,7 +142,8 @@ const ProjectOverviewPage = () => {
           <span style={{ flexGrow: projectProgress, background: "#3b82f6" }} />
           <span style={{ flexGrow: 100 - projectProgress, background: "var(--border-slate-200)" }} />
         </div>
-      ) },
+      )
+    },
     {
       key: "tickets",
       label: "Tickets",
@@ -147,7 +152,8 @@ const ProjectOverviewPage = () => {
       tint: "rgba(139,92,246,0.10)",
       value: `${ticketSummary.total}`,
       sub: `${ticketSummary.completed} done`,
-      foot: <Bar done={ticketSummary.completed} active={ticketSummary.inProgress} rest={ticketSummary.notStarted} /> },
+      foot: <Bar done={ticketSummary.completed} active={ticketSummary.inProgress} rest={ticketSummary.notStarted} />
+    },
     {
       key: "sprints",
       label: "Sprints",
@@ -156,7 +162,8 @@ const ProjectOverviewPage = () => {
       tint: "rgba(14,165,233,0.10)",
       value: `${sprintSummary.total}`,
       sub: `${sprintSummary.completed} completed`,
-      foot: <Bar done={sprintSummary.completed} active={sprintSummary.inProgress} rest={sprintSummary.notStarted} /> },
+      foot: <Bar done={sprintSummary.completed} active={sprintSummary.inProgress} rest={sprintSummary.notStarted} />
+    },
     {
       key: "hours",
       label: "Hours Logged",
@@ -165,7 +172,8 @@ const ProjectOverviewPage = () => {
       tint: "rgba(16,185,129,0.10)",
       value: `${timeStats.totalHours}h`,
       sub: `${timeStats.daysWorked}d · ${avgPerDay}h / day`,
-      foot: null },
+      foot: null
+    },
   ];
 
   return (
@@ -314,9 +322,10 @@ const ProjectOverviewPage = () => {
                     height: 320,
                     background: "var(--bg-pure-white)",
                     border: "1px solid var(--border-color)",
-                    borderRadius: 10 }}
+                    borderRadius: 10
+                  }}
                 >
-                  <LoadingSpinner message="Loading timeline..." fullScreen={false} />
+                  <ZukvoLoader message="Loading timeline..." />
                 </div>
               ) : (
                 <TimelineTree tickets={timelineTickets ?? []} />

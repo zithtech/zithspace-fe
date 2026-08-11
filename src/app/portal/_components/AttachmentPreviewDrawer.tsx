@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { Drawer } from "antd";
@@ -14,6 +13,7 @@ import {
   Link2,
   AlertTriangle
 } from "lucide-react";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /**
  * In-app preview drawer for both uploaded files and external links.
@@ -310,7 +310,7 @@ export default function AttachmentPreviewDrawer({
                   gap: 8
                 }}
               >
-                <LoadingSpinner size="small" fullScreen={false} /> Loading preview…
+                <ZukvoLoader size="sm" /> Loading preview…
               </div>
             )}
             <iframe

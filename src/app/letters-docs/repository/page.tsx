@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -35,6 +34,7 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined }
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
@@ -415,7 +415,7 @@ export default function DocumentRepositoryPage() {
         {loading && documents.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner message='Loading document repository...' size="medium" fullScreen={false} />
+              <ZukvoLoader message='Loading document repository...' size="md" />
             </div>
           </div>
         ) : documents.length === 0 ? (
@@ -456,7 +456,7 @@ export default function DocumentRepositoryPage() {
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
             {loading && (
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <LoadingSpinner size="medium" fullScreen={false} />
+                <ZukvoLoader size="md" />
               </div>
             )}
             <Table

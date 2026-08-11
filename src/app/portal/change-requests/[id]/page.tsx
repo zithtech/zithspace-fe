@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -41,6 +40,7 @@ import {
   fmtRelative
 } from "../_crUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const INDIGO = "#4f46e5";
@@ -116,7 +116,7 @@ export default function PortalCrDetailPage() {
           justifyContent: "center"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

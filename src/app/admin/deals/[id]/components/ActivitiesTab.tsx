@@ -1,11 +1,10 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
-
 import React, { useState, useEffect } from 'react';
 import { Timeline, Card, Button, Form, Input, DatePicker, Select, Modal, message, Empty, Typography } from 'antd';
 import { PlusOutlined, PhoneOutlined, VideoCameraOutlined, MailOutlined, FileTextOutlined } from '@ant-design/icons';
 import { dealService, DealActivity } from '@/services/dealService';
 import dayjs from 'dayjs';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -85,7 +84,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" style={glassStyle}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><LoadingSpinner fullScreen={false} /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" /></div>
         ) : activities.length > 0 ? (
           <div style={{ padding: '20px' }}>
             <Timeline

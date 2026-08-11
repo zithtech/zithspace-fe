@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -36,6 +35,7 @@ import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
 import { Avatar, Tooltip, Typography, Select } from 'antd';
 import TicketLifecycleShell, { ProjectFilterOption } from '@/components/projects/TicketLifecycleShell';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -338,7 +338,7 @@ export default function TicketsArchivedPage() {
             alignItems: 'center'
           }}
         >
-          <LoadingSpinner message="Loading archived repository..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading archived repository..." size="lg" />
         </div>
       </MainLayout>
     );
@@ -459,7 +459,7 @@ export default function TicketsArchivedPage() {
         <div style={{ position: 'relative' }}>
           {(isLoading || isFetching || isRefreshing || statsLoading) && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           )}
           <Table

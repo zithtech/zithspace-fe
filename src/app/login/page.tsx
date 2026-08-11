@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,6 +24,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
 import Logo from '@/assets/logo/Zukvologo.png';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -550,7 +550,7 @@ function LoginFormWithParams() {
   if (user) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
         <div style={{ marginTop: 16 }}>
           <Text type="secondary">Redirecting...</Text>
         </div>
@@ -721,7 +721,7 @@ function LoginFormWithParams() {
 function LoginFormSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <LoadingSpinner size="large" fullScreen={false} />
+      <ZukvoLoader size="lg" />
       <div style={{ marginTop: 16 }}>
         <Text type="secondary">Loading login form...</Text>
       </div>

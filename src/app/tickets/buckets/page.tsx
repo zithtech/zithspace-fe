@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +7,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 
 import BucketManagementPage from "@/components/projects/buckets/BucketManagementPage";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function BucketsPage() {
@@ -27,7 +27,7 @@ export default function BucketsPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <LoadingSpinner message="Loading buckets..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading buckets..." size="lg" />
         </div>
       </MainLayout>
     );

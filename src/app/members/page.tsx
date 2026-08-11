@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Card,
   Table,
@@ -76,6 +75,7 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawerProps } from "@/components/common/DrawerSection";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -518,8 +518,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input 
-                placeholder="jane@company.com" 
+              <Input
+                placeholder="jane@company.com"
                 onKeyPress={(e) => {
                   if (e.key === ' ') {
                     e.preventDefault();
@@ -537,8 +537,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input 
-                placeholder="jane@personal.com" 
+              <Input
+                placeholder="jane@personal.com"
                 onKeyPress={(e) => {
                   if (e.key === ' ') {
                     e.preventDefault();
@@ -863,98 +863,98 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         }}
       >
         <div className="flex items-start gap-3 min-w-0">
-        <Avatar
-          size={46}
-          shape="square"
-          src={member.avatarUrl}
-          style={{
-            background: gradientFor(member.id || member.name || "x"),
-            color: "#fff",
-            fontSize: 18,
-            fontWeight: 800,
-            borderRadius: 12,
-            flexShrink: 0,
-          }}
-        >
-          {initialsOf(member.name || "")}
-        </Avatar>
-        <div className="min-w-0">
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-              {member.name}
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: member.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
-                color: member.isActive ? "#10b981" : "#ef4444",
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.02em",
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: member.isActive ? "#10b981" : "#ef4444" }} />
-              {member.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginTop: 2 }}>
-            {member.position?.title || "—"}
-          </div>
-          {/* Meta row: Created By · Updated By · Updated — single line */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginTop: 6,
-            flexWrap: "nowrap",
-            overflow: "hidden",
-            minWidth: 0,
-          }}>
-            {member.createdBy && (
-              <>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                  <UserOutlined style={{ fontSize: 10 }} />
-                  <span>Created by</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {member.createdBy}
-                  </span>
-                </span>
-                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
-              </>
-            )}
-            {member.updatedBy && (
-              <>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                  <EditOutlined style={{ fontSize: 10 }} />
-                  <span>Updated by</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {member.updatedBy}
-                  </span>
-                </span>
-                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
-              </>
-            )}
-            {member.updatedAt && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                <CalendarOutlined style={{ fontSize: 10 }} />
-                <span style={{ fontWeight: 600, color: "var(--text-slate-600)", whiteSpace: "nowrap" }}>
-                  {dayjs(member.updatedAt).format("DD MMM YYYY")}
-                </span>
+          <Avatar
+            size={46}
+            shape="square"
+            src={member.avatarUrl}
+            style={{
+              background: gradientFor(member.id || member.name || "x"),
+              color: "#fff",
+              fontSize: 18,
+              fontWeight: 800,
+              borderRadius: 12,
+              flexShrink: 0,
+            }}
+          >
+            {initialsOf(member.name || "")}
+          </Avatar>
+          <div className="min-w-0">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+                {member.name}
               </span>
-            )}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  background: member.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
+                  color: member.isActive ? "#10b981" : "#ef4444",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.02em",
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: member.isActive ? "#10b981" : "#ef4444" }} />
+                {member.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginTop: 2 }}>
+              {member.position?.title || "—"}
+            </div>
+            {/* Meta row: Created By · Updated By · Updated — single line */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 6,
+              flexWrap: "nowrap",
+              overflow: "hidden",
+              minWidth: 0,
+            }}>
+              {member.createdBy && (
+                <>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                    <UserOutlined style={{ fontSize: 10 }} />
+                    <span>Created by</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {member.createdBy}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+                </>
+              )}
+              {member.updatedBy && (
+                <>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                    <EditOutlined style={{ fontSize: 10 }} />
+                    <span>Updated by</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {member.updatedBy}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+                </>
+              )}
+              {member.updatedAt && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                  <CalendarOutlined style={{ fontSize: 10 }} />
+                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", whiteSpace: "nowrap" }}>
+                    {dayjs(member.updatedAt).format("DD MMM YYYY")}
+                  </span>
+                </span>
+              )}
+            </div>
+
           </div>
-
         </div>
-      </div>
 
-      {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {(canUpdateUser || canManageUsers) && (
             <button
               type="button"
@@ -1626,7 +1626,7 @@ export default function MembersPage() {
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
       const serverError = error?.response?.data?.message || error?.response?.data?.error || error?.message || "";
-      
+
       if (typeof serverError === "string" && serverError.toLowerCase().includes("phone")) {
         messageApi.error("This phone number already exists. Please use a different phone number.");
       } else if (error instanceof ApiError) {
@@ -2160,7 +2160,7 @@ export default function MembersPage() {
   );
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading members..." />;
+    return <ZukvoLoader message="Loading members..." />;
   }
 
   if (!canReadUser) {
@@ -2168,7 +2168,7 @@ export default function MembersPage() {
   }
 
   if (!user || isLoading || !canReadUser) {
-    if (isLoading) return <LoadingSpinner message="Loading members..." />;
+    if (isLoading) return <ZukvoLoader message="Loading members..." />;
     return null;
   }
 
@@ -2355,7 +2355,7 @@ export default function MembersPage() {
               <div className="pp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

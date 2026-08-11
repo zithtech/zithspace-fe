@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -27,6 +26,7 @@ import AiNarrativeSection from "./AiNarrativeSection";
 import { SnapshotContext } from "./_shared";
 import { SprintReportsService } from "@/services/sprintReportsService";
 import { downloadReportPdf, downloadReportDocx } from "./reportExport";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 type DistRow = { label: string; count: number; points?: number };
@@ -804,7 +804,7 @@ function ExportButton({
       disabled={disabled}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      {busy ? <LoadingSpinner fullScreen={false} /> : <DownloadIcon />}
+      {busy ? <ZukvoLoader size="md" /> : <DownloadIcon />}
       {label}
     </button>
   );

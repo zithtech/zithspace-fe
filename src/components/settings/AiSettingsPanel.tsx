@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -30,6 +29,7 @@ import {
   AiProviderKind,
   PlatformCatalogEntry
 } from '@/services/aiSettings.service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const { Text } = Typography;
 
@@ -355,7 +355,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
   if (loading) {
     return (
       <div style={{ padding: 80, textAlign: 'center' }}>
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

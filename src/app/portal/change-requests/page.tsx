@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -55,6 +54,7 @@ import {
   fmtRelative
 } from "./_crUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 dayjs.extend(quarterOfYear);
@@ -485,7 +485,7 @@ export default function PortalCrListPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -32,6 +31,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import type { ColumnsType } from "antd/es/table";
 
 import isBetween from "dayjs/plugin/isBetween";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 dayjs.extend(isBetween);
 
@@ -531,7 +531,7 @@ export default function DashboardPage() {
     return (
       <MainLayout>
         <div style={{ padding: 100, textAlign: "center" }}>
-          <LoadingSpinner fullScreen={false} />
+          <ZukvoLoader size="md" />
         </div>
       </MainLayout>
     );

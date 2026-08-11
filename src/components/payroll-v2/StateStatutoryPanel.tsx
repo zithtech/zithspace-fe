@@ -2,7 +2,6 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Switch, Select, InputNumber, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -15,6 +14,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
   PtStateListItem, PtSlab, LwfState, LwfFrequency,
 } from '@/services/payrollV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const PALETTE = { cyan: '#06B6D4', green: '#10B981', red: '#EF4444', amber: '#F59E0B', violet: '#8B5CF6', grey: '#94A3B8' } as const;
 const TINT = { cyan: 'rgba(6,182,212,0.10)', green: 'rgba(16,185,129,0.10)', violet: 'rgba(139,92,246,0.10)' } as const;
@@ -304,7 +304,7 @@ export default function StateStatutoryPanel() {
       <div className="pvss-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         {view === 'pt'

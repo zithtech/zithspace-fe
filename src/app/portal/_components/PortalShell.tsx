@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -25,6 +24,7 @@ import {
 import { Dropdown } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
 import ChangePasswordModal from "./ChangePasswordModal";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const NAV: {
@@ -93,7 +93,7 @@ export default function PortalShell({
           background: "#fafafa"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

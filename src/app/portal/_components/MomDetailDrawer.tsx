@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { Drawer, Empty } from "antd";
@@ -41,6 +40,7 @@ import {
   PortalMomDetail,
   PortalMomAttachment
 } from "@/services/portalMomService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — consistent with portal premium-dense theme
@@ -246,7 +246,7 @@ export default function MomDetailDrawer({
             justifyContent: "center"
           }}
         >
-          <LoadingSpinner size="large" fullScreen={false} />
+          <ZukvoLoader size="lg" />
         </div>
       ) : !mom ? (
         <div style={{ padding: 64, textAlign: "center" }}>

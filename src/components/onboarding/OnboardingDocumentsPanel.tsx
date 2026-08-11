@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -51,6 +50,7 @@ import type { EmployeeDocument, DocumentStats } from '@/services/onboardingServi
 
 import { drawerFormStyles } from '@/components/common/DrawerSection';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -615,7 +615,7 @@ export default function OnboardingDocumentsPanel() {
         {loading ? (
           <div className="ob-doc-center">
             <Space direction="vertical" align="center">
-              <LoadingSpinner size="large" fullScreen={false} />
+              <ZukvoLoader size="lg" />
               <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
             </Space>
           </div>

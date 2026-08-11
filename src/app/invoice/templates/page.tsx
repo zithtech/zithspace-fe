@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Typography,
@@ -46,6 +45,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -501,7 +501,7 @@ export default function InvoiceTemplatePage() {
 
                   </button>
                 </Tooltip>
-                
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -795,7 +795,7 @@ export default function InvoiceTemplatePage() {
               <div className="pp-table-wrap" style={{ position: 'relative' }}>
                 {isFetching && !isLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

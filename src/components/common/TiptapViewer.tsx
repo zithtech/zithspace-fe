@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -9,6 +8,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
+import ZukvoLoader from "./ZukvoLoader";
 
 
 
@@ -25,28 +25,39 @@ export default function TiptapViewer({
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3] } }),
+          levels: [1, 2, 3]
+        }
+      }),
       Image.configure({
         inline: true,
         HTMLAttributes: {
-          class: "tiptap-image" } }),
+          class: "tiptap-image"
+        }
+      }),
       Link.configure({
         openOnClick: true,
         HTMLAttributes: {
           target: "_blank",
-          rel: "noopener noreferrer" } }),
+          rel: "noopener noreferrer"
+        }
+      }),
       Underline,
       TextAlign.configure({
-        types: ["heading", "paragraph"] }),
+        types: ["heading", "paragraph"]
+      }),
       Highlight.configure({
-        multicolor: false }),
+        multicolor: false
+      }),
     ],
     content,
     editable: false,
     editorProps: {
       attributes: {
         class: "tiptap-viewer-content",
-        style: minHeight > 0 ? `min-height: ${minHeight}px;` : "" } } });
+        style: minHeight > 0 ? `min-height: ${minHeight}px;` : ""
+      }
+    }
+  });
 
   // Update content when prop changes
   React.useEffect(() => {
@@ -56,12 +67,12 @@ export default function TiptapViewer({
   }, [content, editor]);
 
   if (!editor) {
-    return <LoadingSpinner fullScreen={false} />;
+    return <ZukvoLoader size="md" />;
   }
 
   return (
     <div className="tiptap-viewer-wrapper  prose prose-lg max-w-none focus:outline-none ">
-        <EditorContent editor={editor} />
+      <EditorContent editor={editor} />
 
       <style jsx global>{`
         .tiptap-viewer-content {

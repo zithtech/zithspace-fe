@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tabs, Modal, Input, Form, message, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BankOutlined, DollarOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, { ApprovalInboxItem, AdvanceInboxItem } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, tablePaginationConfig } from './ui';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 type PayTarget = { kind: 'claim' | 'advance'; id: string; label: string } | null;
 
@@ -54,13 +54,17 @@ export default function FinancePanel() {
   };
 
   const claimCols: ColumnsType<ApprovalInboxItem> = [
-    { title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Title', dataIndex: 'title', render: (v) => v || '—' },
-    { title: 'Amount', dataIndex: 'baseAmount', align: 'right', render: (v, r) => (
-      <div><div style={{ fontWeight: 600 }}>{money(v, r.baseCurrency)}</div>
-      {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.totalAmount, r.currency)}</div>}</div>) },
+    {
+      title: 'Amount', dataIndex: 'baseAmount', align: 'right', render: (v, r) => (
+        <div><div style={{ fontWeight: 600 }}>{money(v, r.baseCurrency)}</div>
+          {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.totalAmount, r.currency)}</div>}</div>)
+    },
     { title: 'Approved', dataIndex: 'decidedAt', render: (v) => fmtDate(v) },
     {
       title: 'Actions', key: 'actions', width: 130, align: 'right',
@@ -69,9 +73,11 @@ export default function FinancePanel() {
   ];
 
   const advanceCols: ColumnsType<AdvanceInboxItem> = [
-    { title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Purpose', dataIndex: 'purpose', render: (v) => v || '—' },
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
@@ -99,7 +105,7 @@ export default function FinancePanel() {
               <div className="rvp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table rowKey="id" size="middle" loading={false} columns={claimCols} dataSource={claims}
@@ -113,7 +119,7 @@ export default function FinancePanel() {
               <div className="rvp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table rowKey="id" size="middle" loading={false} columns={advanceCols} dataSource={advances}
@@ -165,27 +171,27 @@ export default function FinancePanel() {
 
           <div className="p-5 pb-1">
             <Form form={form} layout="vertical" requiredMark={false}>
-              <Form.Item 
-                name="paymentReference" 
-                label={<span style={{ color: 'var(--text-secondary)' }}>Payment reference</span>} 
+              <Form.Item
+                name="paymentReference"
+                label={<span style={{ color: 'var(--text-secondary)' }}>Payment reference</span>}
                 rules={[{ required: true, message: 'Reference required' }]}
               >
-                <Input 
-                  placeholder="e.g. NEFT-2024-00123" 
+                <Input
+                  placeholder="e.g. NEFT-2024-00123"
                   style={{
                     background: 'var(--bg-primary)',
                     borderColor: 'var(--border-color)',
                     color: 'var(--text-primary)',
-                  }} 
+                  }}
                 />
               </Form.Item>
-              <Form.Item 
-                name="remarks" 
+              <Form.Item
+                name="remarks"
                 label={<span style={{ color: 'var(--text-secondary)' }}>Remarks</span>}
               >
-                <Input.TextArea 
-                  rows={3} 
-                  placeholder="Optional" 
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Optional"
                   style={{
                     background: 'var(--bg-primary)',
                     borderColor: 'var(--border-color)',

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -24,6 +23,7 @@ import {
   PortalSprintDetail,
   PortalSprintTicket
 } from "@/services/portalSprintService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const p = {
   surface: "#ffffff",
@@ -210,7 +210,7 @@ export default function PortalSprintDetailPage() {
           justifyContent: "center"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

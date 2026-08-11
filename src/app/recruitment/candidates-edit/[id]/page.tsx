@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -17,6 +16,7 @@ import { useCandidate } from "@/hooks/useCandidate";
 import candidateService from "@/services/candidateService";
 import { REGEX } from "@/utils/regex";
 import moment from "moment-timezone";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -353,7 +353,7 @@ export default function CandidateEdit() {
           <div style={{ padding: "24px", flex: 1, overflowY: "auto" }}>
             {isFetching ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <LoadingSpinner size="large" fullScreen={false} />
+                <ZukvoLoader size="lg" />
               </div>
             ) : (
               <Form form={form} layout="vertical">

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -61,6 +60,7 @@ import {
   fmtRelative,
 } from "./_ticketUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const INDIGO = "#4f46e5";
 const INDIGO_BG = "#eef2ff";
@@ -477,7 +477,7 @@ export default function PortalTicketsPage() {
               borderRadius: 12,
             }}
           >
-            <LoadingSpinner message="" fullScreen={false} />
+            <ZukvoLoader message="" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

@@ -1,6 +1,5 @@
 "use client";
 import { Spin } from 'antd';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -64,6 +63,7 @@ import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 
 const { Title, Text } = Typography;
@@ -1024,7 +1024,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
-                <LoadingSpinner size="large" fullScreen={false} />
+                <ZukvoLoader size="lg" />
                 <div style={{ marginTop: 16, color: "var(--text-slate-400)", fontWeight: 500 }}>Fetching status updates...</div>
               </div>
             ) : updates.length === 0 ? (

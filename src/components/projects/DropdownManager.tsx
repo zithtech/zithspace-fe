@@ -2,7 +2,6 @@
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -53,6 +52,7 @@ import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdo
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -709,7 +709,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 <div className="dm-table-wrapper" style={{ position: 'relative' }}>
                   {dataLoading && (
                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <LoadingSpinner size="medium" fullScreen={false} />
+                      <ZukvoLoader size="md" />
                     </div>
                   )}
                   <Table
@@ -861,7 +861,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               className="lead-drawer-form customer-drawer-form"
             >
               <DefinitionPreview form={form} dropdownTypes={dropdownTypes} />
-              
+
               <SectionCard step="STEP 1" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Taxonomy" subtitle="Classification details">
                 <Form.Item
                   name="type"

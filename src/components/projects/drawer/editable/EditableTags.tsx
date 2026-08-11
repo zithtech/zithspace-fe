@@ -1,8 +1,8 @@
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from 'react';
 import { AutoComplete, Tag, Typography, Tooltip } from 'antd';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import type { RefSelectProps } from 'antd';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -82,7 +82,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
         if (trimmedDraft && !exactMatch && !draftIsExistingTag) {
             filtered.unshift({
                 value: trimmedDraft,
-                label: `+ Create "${trimmedDraft}"` });
+                label: `+ Create "${trimmedDraft}"`
+            });
         }
 
         return filtered;
@@ -151,7 +152,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                 alignItems: 'center',
                 gap: 4,
                 width: '100%',
-                minHeight: 24 }}
+                minHeight: 24
+            }}
         >
             {tags.length === 0 && !isAdding && (
                 <Text
@@ -186,7 +188,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4,
-                            lineHeight: '18px' }}
+                            lineHeight: '18px'
+                        }}
                     >
                         {tag}
                     </Tag>
@@ -210,7 +213,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                     notFoundContent={null}
                     filterOption={false}
                     style={{
-                        width: 180 }}
+                        width: 180
+                    }}
                 />
             ) : (
                 !disabled && (
@@ -238,7 +242,8 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                                 background: 'transparent',
                                 cursor: loading ? 'not-allowed' : 'pointer',
                                 lineHeight: '18px',
-                                opacity: loading ? 0.5 : 1 }}
+                                opacity: loading ? 0.5 : 1
+                            }}
                         >
                             <PlusOutlined style={{ fontSize: 10 }} />
                             {tags.length === 0 ? 'Add' : ''}
@@ -247,7 +252,7 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                 )
             )}
 
-            {loading && <LoadingSpinner size="small" fullScreen={false} />}
+            {loading && <ZukvoLoader size="sm" />}
         </div>
     );
 };

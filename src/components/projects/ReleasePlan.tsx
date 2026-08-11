@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
@@ -24,7 +23,8 @@ import {
   Empty,
   Popconfirm,
   Tooltip,
-  Tabs } from "antd";
+  Tabs
+} from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
   PlusOutlined,
@@ -36,16 +36,19 @@ import {
   RocketOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
-  StopOutlined } from "@ant-design/icons";
+  StopOutlined
+} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import ReleasePlanService, {
   ReleasePlan,
   ReleasePlanFormData,
-  ProjectTicket } from "@/services/releasePlanService";
+  ProjectTicket
+} from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { usePermission } from "@/hooks/usePermission";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const { Title, Text, Paragraph } = Typography;
@@ -61,7 +64,8 @@ export default function ReleasePlanComponent() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification({
-    placement: 'top' });
+    placement: 'top'
+  });
   const {
     canCreateTicketPlan,
     canReadTicketPlan,
@@ -90,7 +94,7 @@ export default function ReleasePlanComponent() {
 
   const ticketOptions = useMemo(() => {
     const optionsMap = new Map<string, { label: string; value: string; item: any }>();
-    
+
     // Add available tickets
     availableTickets.forEach(t => {
       optionsMap.set(t.id, {
@@ -160,22 +164,25 @@ export default function ReleasePlanComponent() {
     try {
       setLoading(true);
       const data = await ReleasePlanService.getReleasePlans({
-        type: activeTab });
+        type: activeTab
+      });
       setReleasePlans(data?.data || []);
       if (!loading) { // Only show message if it's a manual refresh
         api.success({
           message: "Refreshed",
           description: "Plans updated successfully",
-          
-          duration: 3 });
+
+          duration: 3
+        });
       }
     } catch (error) {
       console.error("Failed to load release plans:", error);
       api.error({
         message: "Error",
         description: "Failed to load release plans",
-        
-        duration: 4 });
+
+        duration: 4
+      });
     } finally {
       setLoading(false);
     }
@@ -206,7 +213,8 @@ export default function ReleasePlanComponent() {
           {
             search: search || undefined,
             limit: search ? 50 : 20,
-            excludeReleasePlan: editingPlan?.id }
+            excludeReleasePlan: editingPlan?.id
+          }
         );
 
         setAvailableTickets(tickets || []);
@@ -215,8 +223,9 @@ export default function ReleasePlanComponent() {
         api.error({
           message: "Error",
           description: "Failed to load tickets",
-          
-          duration: 4 });
+
+          duration: 4
+        });
         setAvailableTickets([]);
       } finally {
         setTicketLoading(false);
@@ -291,22 +300,25 @@ export default function ReleasePlanComponent() {
         goal: values?.goal || "",
         status: "planning", // Default status
         type: activeTab as any,
-        tickets: values?.tickets || [] };
+        tickets: values?.tickets || []
+      };
 
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
         api.success({
           message: "Success",
           description: "Plans updated successfully",
-          
-          duration: 3 });
+
+          duration: 3
+        });
       } else {
         await ReleasePlanService.createReleasePlan(formData);
         api.success({
           message: "Success",
           description: "Plans created successfully",
-          
-          duration: 3 });
+
+          duration: 3
+        });
       }
 
       handleCloseModal();
@@ -317,8 +329,9 @@ export default function ReleasePlanComponent() {
       api.error({
         message: "Error",
         description: errorMessage,
-        
-        duration: 4 });
+
+        duration: 4
+      });
     } finally {
       setSaving(false);
     }
@@ -349,7 +362,8 @@ export default function ReleasePlanComponent() {
       goal: plan?.goal,
       priority: plan?.priority,
       tickets: ticketIds, // Pre-fill tickets
-      notes: plan?.notes });
+      notes: plan?.notes
+    });
 
     // Load available tickets (excluding current Plans tickets)
     loadTicketsByProject(projectId);
@@ -362,16 +376,18 @@ export default function ReleasePlanComponent() {
       api.success({
         message: "Success",
         description: "Plans deleted successfully",
-        
-        duration: 3 });
+
+        duration: 3
+      });
       loadData();
     } catch (error) {
       console.error("Failed to delete Plans:", error);
       api.error({
         message: "Error",
         description: "Failed to delete Plans",
-        
-        duration: 4 });
+
+        duration: 4
+      });
     }
   };
 
@@ -380,12 +396,14 @@ export default function ReleasePlanComponent() {
       await ReleasePlanService.startSprint(plan.id);
       api.success({
         message: "Success",
-        description: "Sprint started successfully" });
+        description: "Sprint started successfully"
+      });
       loadData();
     } catch (error: any) {
       api.error({
         message: "Error",
-        description: error.message || "Failed to start sprint" });
+        description: error.message || "Failed to start sprint"
+      });
     }
   };
 
@@ -400,7 +418,8 @@ export default function ReleasePlanComponent() {
     loadData();
     api.success({
       message: "Success",
-      description: "Sprint completed successfully" });
+      description: "Sprint completed successfully"
+    });
   };
 
   const handleCloseModal = () => {
@@ -426,7 +445,7 @@ export default function ReleasePlanComponent() {
   const handleViewTickets = async (plan: ReleasePlan) => {
     setDrawerVisible(true);
     setDrawerReleasePlan(plan); // Show cached data first
-    
+
     // Fetch fresh data in the background
     try {
       const freshPlan = await ReleasePlanService.getReleasePlanById(plan.id);
@@ -483,7 +502,8 @@ export default function ReleasePlanComponent() {
             })()}
           </Text>
         </div>
-      ) },
+      )
+    },
     {
       title: "Progress",
       dataIndex: "progress",
@@ -500,7 +520,8 @@ export default function ReleasePlanComponent() {
             completed
           </Text>
         </div>
-      ) },
+      )
+    },
     {
       title: "Status",
       dataIndex: "status",
@@ -509,14 +530,16 @@ export default function ReleasePlanComponent() {
         <Tag color={getStatusColor(status)}>
           {status.replace("_", " ").toUpperCase()}
         </Tag>
-      ) },
+      )
+    },
     {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
       render: (priority: string) => (
         <Tag color={getPriorityColor(priority)}>{priority}</Tag>
-      ) },
+      )
+    },
     {
       title: "Deadline",
       dataIndex: "deadline",
@@ -527,7 +550,8 @@ export default function ReleasePlanComponent() {
             {dayjs(deadline).format("MMM DD, YYYY")}
           </Text>
         </div>
-      ) },
+      )
+    },
     {
       title: "Start Date",
       dataIndex: "startDate",
@@ -537,7 +561,8 @@ export default function ReleasePlanComponent() {
         <Text style={{ fontSize: 12 }}>
           {date ? dayjs(date).format("MMM DD") : "-"}
         </Text>
-      ) },
+      )
+    },
     {
       title: "End Date",
       dataIndex: "endDate",
@@ -547,7 +572,8 @@ export default function ReleasePlanComponent() {
         <Text style={{ fontSize: 12 }}>
           {date ? dayjs(date).format("MMM DD") : "-"}
         </Text>
-      ) },
+      )
+    },
 
     {
       title: "Actions",
@@ -556,18 +582,18 @@ export default function ReleasePlanComponent() {
       render: (_: any, record: ReleasePlan) => (
         <Space size="small">
           {activeTab === 'sprint_plan' && record.status === 'planning' && canUpdateTicketPlan && (
-             <Popconfirm
-                title="Start Sprint"
-                description="Are you sure you want to start this sprint? This will be the active sprint for the project."
-                onConfirm={() => handleStartSprint(record)}
-                okText="Start"
-                cancelText="Cancel"
-              >
+            <Popconfirm
+              title="Start Sprint"
+              description="Are you sure you want to start this sprint? This will be the active sprint for the project."
+              onConfirm={() => handleStartSprint(record)}
+              okText="Start"
+              cancelText="Cancel"
+            >
               <Tooltip title="Start Sprint">
-                <Button 
-                  type="text" 
-                  size="small" 
-                  icon={<PlayCircleOutlined style={{ color: '#52c41a' }} />} 
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<PlayCircleOutlined style={{ color: '#52c41a' }} />}
                 />
               </Tooltip>
             </Popconfirm>
@@ -620,7 +646,8 @@ export default function ReleasePlanComponent() {
             </Popconfirm>
           )}
         </Space>
-      ) },
+      )
+    },
   ];
 
   return (
@@ -667,7 +694,8 @@ export default function ReleasePlanComponent() {
                 <CalendarOutlined />
                 Sprint Plans
               </span>
-            ) },
+            )
+          },
           {
             key: "demo_plan",
             label: (
@@ -675,7 +703,8 @@ export default function ReleasePlanComponent() {
                 <PlayCircleOutlined />
                 Demo Plans
               </span>
-            ) },
+            )
+          },
           {
             key: "release_plan",
             label: (
@@ -683,7 +712,8 @@ export default function ReleasePlanComponent() {
                 <RocketOutlined />
                 Release Plans
               </span>
-            ) },
+            )
+          },
         ]}
       />
 
@@ -693,11 +723,13 @@ export default function ReleasePlanComponent() {
           dataSource={releasePlans}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
+          pagination={{
+            pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items` }}
+              `${range[0]}-${range[1]} of ${total} items`
+          }}
         />
       </Card>
 
@@ -719,7 +751,8 @@ export default function ReleasePlanComponent() {
         maskClosable={false}
         footer={null}
         styles={{
-          body: { maxHeight: "70vh", overflowY: "auto", padding: "0 12px" } }}
+          body: { maxHeight: "70vh", overflowY: "auto", padding: "0 12px" }
+        }}
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item
@@ -731,9 +764,9 @@ export default function ReleasePlanComponent() {
           </Form.Item>
 
           <Form.Item label={<Text strong>Sprint Goal</Text>} name="goal">
-            <TextArea 
-              rows={3} 
-              placeholder="What is the main objective of this sprint?" 
+            <TextArea
+              rows={3}
+              placeholder="What is the main objective of this sprint?"
               style={{ resize: 'none' }}
             />
           </Form.Item>
@@ -741,29 +774,29 @@ export default function ReleasePlanComponent() {
           <div style={{ background: '#f9f9f9', padding: 16, borderRadius: 8, marginBottom: 24 }}>
             <Text strong style={{ display: 'block', marginBottom: 12 }}>Schedule</Text>
             <Row gutter={16}>
-               <Col span={24} style={{ marginBottom: 16 }}>
-                 <Form.Item label="Duration" style={{ margin: 0 }}>
-                   <Select 
-                     placeholder="Select duration" 
-                     onChange={(val) => {
-                       const start = form.getFieldValue('startDate') || dayjs();
-                       let end = dayjs(start);
-                       if (val === '1w') end = end.add(1, 'week');
-                       if (val === '2w') end = end.add(2, 'week');
-                       if (val === '3w') end = end.add(3, 'week');
-                       if (val === '4w') end = end.add(4, 'week');
-                       form.setFieldsValue({ startDate: start, endDate: end, deadline: end }); 
-                     }}
-                   >
-                     <Select.Option value="custom">Custom</Select.Option>
-                     <Select.Option value="1w">1 Week</Select.Option>
-                     <Select.Option value="2w">2 Weeks</Select.Option>
-                     <Select.Option value="3w">3 Weeks</Select.Option>
-                     <Select.Option value="4w">4 Weeks</Select.Option>
-                   </Select>
-                 </Form.Item>
-               </Col>
-               <Col span={12}>
+              <Col span={24} style={{ marginBottom: 16 }}>
+                <Form.Item label="Duration" style={{ margin: 0 }}>
+                  <Select
+                    placeholder="Select duration"
+                    onChange={(val) => {
+                      const start = form.getFieldValue('startDate') || dayjs();
+                      let end = dayjs(start);
+                      if (val === '1w') end = end.add(1, 'week');
+                      if (val === '2w') end = end.add(2, 'week');
+                      if (val === '3w') end = end.add(3, 'week');
+                      if (val === '4w') end = end.add(4, 'week');
+                      form.setFieldsValue({ startDate: start, endDate: end, deadline: end });
+                    }}
+                  >
+                    <Select.Option value="custom">Custom</Select.Option>
+                    <Select.Option value="1w">1 Week</Select.Option>
+                    <Select.Option value="2w">2 Weeks</Select.Option>
+                    <Select.Option value="3w">3 Weeks</Select.Option>
+                    <Select.Option value="4w">4 Weeks</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
                 <Form.Item
                   label="Start Date"
                   name="startDate"
@@ -794,32 +827,32 @@ export default function ReleasePlanComponent() {
               options={projects}
             />
           </Form.Item>
-          
+
           <Form.Item label="Issues" name="tickets" tooltip="Select issues to include in this sprint">
-             <Select
-                mode="multiple"
-                placeholder="Search and select issues..."
-                style={{ width: '100%' }}
-                optionLabelProp="label"
-                onSearch={handleTicketSearch}
-                filterOption={false}
-                notFoundContent={ticketLoading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
-                options={ticketOptions}
-                optionRender={(option) => {
-                   const t = option.data.item;
-                   return (
-                     <Space align="center">
-                       <Tag>{t.ticketNumber}</Tag>
-                       <Text ellipsis style={{ maxWidth: 300 }}>{t.title}</Text>
-                       <Tag color={getStatusColor(t.status)} style={{ fontSize: 10 }}>{t.status.replace("_", " ")}</Tag>
-                     </Space>
-                   );
-                }}
-             />
+            <Select
+              mode="multiple"
+              placeholder="Search and select issues..."
+              style={{ width: '100%' }}
+              optionLabelProp="label"
+              onSearch={handleTicketSearch}
+              filterOption={false}
+              notFoundContent={ticketLoading ? <ZukvoLoader size="sm" /> : null}
+              options={ticketOptions}
+              optionRender={(option) => {
+                const t = option.data.item;
+                return (
+                  <Space align="center">
+                    <Tag>{t.ticketNumber}</Tag>
+                    <Text ellipsis style={{ maxWidth: 300 }}>{t.title}</Text>
+                    <Tag color={getStatusColor(t.status)} style={{ fontSize: 10 }}>{t.status.replace("_", " ")}</Tag>
+                  </Space>
+                );
+              }}
+            />
           </Form.Item>
-          
-           {/* Hidden field for legacy mapping if needed, or handle in submit */}
-           <Form.Item name="deadline" hidden><Input /></Form.Item>
+
+          {/* Hidden field for legacy mapping if needed, or handle in submit */}
+          <Form.Item name="deadline" hidden><Input /></Form.Item>
         </Form>
 
         <div
@@ -829,7 +862,8 @@ export default function ReleasePlanComponent() {
             marginTop: 24,
             display: "flex",
             justifyContent: "flex-end",
-            gap: 12 }}
+            gap: 12
+          }}
         >
           <Button onClick={handleCloseModal}>Cancel</Button>
           <Button
@@ -907,8 +941,8 @@ export default function ReleasePlanComponent() {
                             ticket?.status === "completed"
                               ? "success"
                               : ticket?.status === "in_progress"
-                              ? "processing"
-                              : "default"
+                                ? "processing"
+                                : "default"
                           }
                         >
                           {ticket?.status?.replace("_", " ")}
@@ -918,8 +952,8 @@ export default function ReleasePlanComponent() {
                             ticket?.priority === "P1"
                               ? "red"
                               : ticket?.priority === "P2"
-                              ? "orange"
-                              : "green"
+                                ? "orange"
+                                : "green"
                           }
                         >
                           {ticket?.priority}

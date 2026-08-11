@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Avatar, Dropdown, Tooltip, App, Select, Checkbox } from "antd";
 import {
   MoreHorizontal,
@@ -20,6 +19,7 @@ import type {
 } from "@/services/bugListService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -164,7 +164,7 @@ export default function HivebugTable({
     <div className="hb-table-wrapper" style={{ position: 'relative' }}>
       {loading && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <LoadingSpinner size="medium" fullScreen={false} />
+          <ZukvoLoader size="md" />
         </div>
       )}
       <table className="hb-table">

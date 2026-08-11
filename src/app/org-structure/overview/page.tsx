@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useMemo, useEffect } from "react";
 import { Typography, Tag, Row, Col, Tooltip, Skeleton, Input, Space, Button } from "antd";
 import {
@@ -9,7 +8,8 @@ import {
   User,
   ShieldCheck,
   Search,
-  ChevronRight } from "lucide-react";
+  ChevronRight
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -19,6 +19,7 @@ import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeade
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -118,7 +119,8 @@ const HX_META: Record<
   grade: { color: "#3b82f6", tint: "rgba(59,130,246,0.12)", label: "Grade level", icon: (s) => <ShieldCheck size={s} /> },
   dept: { color: "#06b6d4", tint: "rgba(6,182,212,0.12)", label: "Department", icon: (s) => <Building2 size={s} /> },
   sub: { color: "#f97316", tint: "rgba(249,115,22,0.12)", label: "Sub-department", icon: (s) => <Layers size={s} /> },
-  pos: { color: "#8b5cf6", tint: "rgba(139,92,246,0.12)", label: "Position", icon: (s) => <User size={s} /> } };
+  pos: { color: "#8b5cf6", tint: "rgba(139,92,246,0.12)", label: "Position", icon: (s) => <User size={s} /> }
+};
 
 const HxNode: React.FC<{
   node: HxNodeData;
@@ -211,7 +213,8 @@ export default function OverviewPage() {
     return {
       positions: gradePositions.length,
       departments: deptIds.size,
-      subDepartments: subDeptIds.size };
+      subDepartments: subDeptIds.size
+    };
   };
 
   // Org-wide stats
@@ -224,7 +227,8 @@ export default function OverviewPage() {
     // Grade with most positions
     const gradeCounts = grades.map((g) => ({
       name: g.name,
-      count: positions.filter((p) => p.gradeId === g.key).length }));
+      count: positions.filter((p) => p.gradeId === g.key).length
+    }));
     const topGrade = gradeCounts.sort((a, b) => b.count - a.count)[0];
 
     return {
@@ -234,7 +238,8 @@ export default function OverviewPage() {
       positions: positions.length,
       positionsWithSubDept,
       positionsDirect,
-      topGrade };
+      topGrade
+    };
   }, [grades, positions]);
 
   const selectedGrade = grades.find((g) => g.key === activeStep);
@@ -274,7 +279,8 @@ export default function OverviewPage() {
           id: deptId,
           name: pos.departmentName || 'Unknown Dept',
           positions: [],
-          subDepts: new Map() });
+          subDepts: new Map()
+        });
       }
       const deptEntry = deptMap.get(deptId)!;
 
@@ -282,7 +288,8 @@ export default function OverviewPage() {
         if (!deptEntry.subDepts.has(pos.subDepartmentId)) {
           deptEntry.subDepts.set(pos.subDepartmentId, {
             name: pos.subDepartmentName || 'Unknown Sub-Dept',
-            positions: [] });
+            positions: []
+          });
         }
         deptEntry.subDepts.get(pos.subDepartmentId)!.positions.push(pos);
       } else {
@@ -300,13 +307,16 @@ export default function OverviewPage() {
           key: `pos-${p.id}`,
           type: "pos" as const,
           name: p.title,
-          leaf: true })) }));
+          leaf: true
+        }))
+      }));
 
       const directPosNodes: HxNodeData[] = d.positions.map((p) => ({
         key: `pos-${p.id}`,
         type: "pos",
         name: p.title,
-        leaf: true }));
+        leaf: true
+      }));
 
       const childCount = d.positions.length + Array.from(d.subDepts.values()).reduce((s, sd) => s + sd.positions.length, 0);
 
@@ -315,7 +325,8 @@ export default function OverviewPage() {
         type: "dept",
         name: d.name,
         count: childCount,
-        children: [...subDeptNodes, ...directPosNodes] };
+        children: [...subDeptNodes, ...directPosNodes]
+      };
     });
 
     return [
@@ -325,7 +336,8 @@ export default function OverviewPage() {
         name: selectedGrade.name,
         code: selectedGrade.code,
         count: filteredPositions.length,
-        children: deptNodes },
+        children: deptNodes
+      },
     ] as HxNodeData[];
   }, [selectedGrade, positions, treeSearch]);
 
@@ -349,7 +361,7 @@ export default function OverviewPage() {
   if (authLoading) {
     return (
       <div className="org-ov-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <LoadingSpinner message="Loading Organization View..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading Organization View..." size="lg" />
       </div>
     );
   }
@@ -373,7 +385,8 @@ export default function OverviewPage() {
             marginBottom: 14,
             position: 'sticky',
             top: 0,
-            zIndex: 100 }}
+            zIndex: 100
+          }}
           extra={
             <Space size={12} align="center">
               {canReadActivityLog && (

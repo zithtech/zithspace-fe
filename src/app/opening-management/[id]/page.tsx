@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -13,7 +12,8 @@ import {
   Col,
   Tabs,
   Divider,
-  notification } from 'antd';
+  notification
+} from 'antd';
 import {
   ArrowLeft,
   Briefcase,
@@ -28,7 +28,8 @@ import {
   Building2,
   Info,
   Timer,
-  History } from 'lucide-react';
+  History
+} from 'lucide-react';
 
 // Components
 import MainLayout from '@/components/layout/MainLayout';
@@ -40,6 +41,7 @@ import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position as PositionType } from '@/services/positionService';
 import { MembersService } from '@/services/membersService';
 import { CompanyDetailsService, CompanyBranch } from '@/services/companyDetailsService';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -55,7 +57,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
       background: "#ffffff",
       borderRadius: "8px",
       border: "1px solid #f1f5f9",
-      transition: "all 0.2s ease" }}
+      transition: "all 0.2s ease"
+    }}
   >
     {icon && (
       <div
@@ -68,7 +71,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
           width: "28px",
           height: "28px",
           background: `${color}10`,
-          borderRadius: "6px" }}
+          borderRadius: "6px"
+        }}
       >
         {React.cloneElement(icon as React.ReactElement, { size: 14 })}
       </div>
@@ -81,7 +85,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
           color: "#94a3b8",
           textTransform: "uppercase",
           letterSpacing: "0.3px",
-          marginBottom: "0px" }}
+          marginBottom: "0px"
+        }}
       >
         {label}
       </div>
@@ -89,7 +94,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
         style={{
           fontSize: "13px",
           color: "#1e293b",
-          fontWeight: 500 }}
+          fontWeight: 500
+        }}
       >
         {value || "-"}
       </div>
@@ -167,7 +173,7 @@ export default function OpeningDetailPage() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <LoadingSpinner message="Loading Opening Details..." size="large" fullScreen={false} />
+            <ZukvoLoader message="Loading Opening Details..." size="lg" />
           </div>
         </MainLayout>
       </ProtectedRoute>

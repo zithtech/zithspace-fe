@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import candidateService from "@/services/candidateService";
 import dayjs from "dayjs";
 import moment from "moment-timezone";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -49,7 +49,7 @@ export default function CandidateProfile() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-            <LoadingSpinner size="large" fullScreen={false} />
+            <ZukvoLoader size="lg" />
           </div>
         </MainLayout>
       </ProtectedRoute>

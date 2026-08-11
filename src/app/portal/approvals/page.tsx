@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,13 +13,15 @@ import {
   XCircle,
   Clock,
   Users,
-  Calendar } from "lucide-react";
+  Calendar
+} from "lucide-react";
 
 const { Title, Text } = Typography;
 import {
   portalApprovalsService,
   PortalApprovalListItem,
-  PortalApprovalMeta } from "@/services/portalApprovalsService";
+  PortalApprovalMeta
+} from "@/services/portalApprovalsService";
 import {
 
   p,
@@ -28,7 +29,8 @@ import {
   STATUS_META,
   SUBJECT_LABEL,
   fmtDate,
-  fmtRelative } from "./_ui";
+  fmtRelative
+} from "./_ui";
 
 const FILTER_TABS = [
   { key: "ALL", label: "All" },
@@ -56,7 +58,8 @@ export default function PortalApprovalsListPage() {
         page,
         limit,
         status: status === "ALL" ? undefined : status,
-        mine });
+        mine
+      });
       setItems(res.data);
       setMeta(res.meta);
     } catch {
@@ -88,7 +91,8 @@ export default function PortalApprovalsListPage() {
       open: c.open || 0,
       approved: c.approved || 0,
       rejected: c.rejected || 0,
-      total: meta?.total || 0 };
+      total: meta?.total || 0
+    };
   }, [meta]);
 
   return (
@@ -104,7 +108,8 @@ export default function PortalApprovalsListPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
+        }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
           <Col flex="1 1 auto" style={{ minWidth: 0 }}>
@@ -113,13 +118,15 @@ export default function PortalApprovalsListPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap" }}
+                flexWrap: "wrap"
+              }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8 }}
+                  gap: 8
+                }}
               >
                 <div
                   style={{
@@ -131,7 +138,8 @@ export default function PortalApprovalsListPage() {
                     justifyContent: "center",
                     background:
                       "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6" }}
+                    color: "#3b82f6"
+                  }}
                 >
                   <CheckSquareOutlined style={{ fontSize: 18, color: "#3b82f6" }} />
                 </div>
@@ -142,7 +150,8 @@ export default function PortalApprovalsListPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em" }}
+                    letterSpacing: "-0.01em"
+                  }}
                 >
                   Sign-offs
                 </Title>
@@ -153,7 +162,8 @@ export default function PortalApprovalsListPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px" }}
+                  margin: "0 12px"
+                }}
               />
 
               <div>
@@ -162,7 +172,8 @@ export default function PortalApprovalsListPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600 }}
+                    fontWeight: 600
+                  }}
                 >
                   Designs, requirements, UAT, production releases — anything we need your formal approval on.
                 </Text>
@@ -174,191 +185,200 @@ export default function PortalApprovalsListPage() {
 
       <div style={{ padding: "32px 40px 56px", maxWidth: 1180 }}>
 
-      {/* Summary */}
-      {summary.total > 0 && (
+        {/* Summary */}
+        {summary.total > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              marginBottom: 18
+            }}
+          >
+            <SummaryCard
+              label="Waiting on you"
+              value={summary.open}
+              tone="warning"
+              icon={Hourglass}
+            />
+            <SummaryCard
+              label="Approved"
+              value={summary.approved}
+              tone="success"
+              icon={CheckCircle2}
+            />
+            <SummaryCard
+              label="Rejected"
+              value={summary.rejected}
+              tone="danger"
+              icon={XCircle}
+            />
+            <SummaryCard
+              label="Total"
+              value={summary.total}
+              tone="neutral"
+              icon={CheckSquare}
+            />
+          </div>
+        )}
+
+        {/* Filter row */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            display: "flex",
+            justifyContent: "space-between",
             gap: 12,
-            marginBottom: 18 }}
+            flexWrap: "wrap",
+            marginBottom: 12,
+            alignItems: "center"
+          }}
         >
-          <SummaryCard
-            label="Waiting on you"
-            value={summary.open}
-            tone="warning"
-            icon={Hourglass}
-          />
-          <SummaryCard
-            label="Approved"
-            value={summary.approved}
-            tone="success"
-            icon={CheckCircle2}
-          />
-          <SummaryCard
-            label="Rejected"
-            value={summary.rejected}
-            tone="danger"
-            icon={XCircle}
-          />
-          <SummaryCard
-            label="Total"
-            value={summary.total}
-            tone="neutral"
-            icon={CheckSquare}
-          />
-        </div>
-      )}
-
-      {/* Filter row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 12,
-          alignItems: "center" }}
-      >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {FILTER_TABS.map((tab) => {
-            const active = status === tab.key;
-            const count =
-              tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
-            return (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setStatus(tab.key);
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {FILTER_TABS.map((tab) => {
+              const active = status === tab.key;
+              const count =
+                tab.key === "ALL" ? meta?.total : meta?.counts?.[tab.key as never];
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setStatus(tab.key);
+                    setPage(1);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "7px 12px",
+                    background: active ? "#4f46e5" : p.surfaceElevated,
+                    color: active ? "#ffffff" : p.textMuted,
+                    border: `1px solid ${active ? "#4f46e5" : p.border}`,
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  {tab.label}
+                  {count != null && count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "1px 7px",
+                        borderRadius: 999,
+                        background: active
+                          ? "rgba(255,255,255,0.15)"
+                          : p.neutralBg,
+                        color: active ? "#ffffff" : p.textSubtle
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <span
+              style={{
+                fontSize: 12,
+                color: p.textSubtle,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6
+              }}
+            >
+              <Switch
+                size="small"
+                checked={mine}
+                onChange={(v) => {
+                  setMine(v);
                   setPage(1);
                 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "7px 12px",
-                  background: active ? "#4f46e5" : p.surfaceElevated,
-                  color: active ? "#ffffff" : p.textMuted,
-                  border: `1px solid ${active ? "#4f46e5" : p.border}`,
-                  borderRadius: 999,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: "pointer" }}
-              >
-                {tab.label}
-                {count != null && count > 0 && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "1px 7px",
-                      borderRadius: 999,
-                      background: active
-                        ? "rgba(255,255,255,0.15)"
-                        : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span
-            style={{
-              fontSize: 12,
-              color: p.textSubtle,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6 }}
-          >
-            <Switch
-              size="small"
-              checked={mine}
-              onChange={(v) => {
-                setMine(v);
-                setPage(1);
-              }}
+              />
+              Only approvals where I&apos;m an approver
+            </span>
+            <Input
+              allowClear
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              prefix={<Search size={14} color={p.textFaint} />}
+              placeholder="Search…"
+              style={{ width: 240 }}
             />
-            Only approvals where I&apos;m an approver
-          </span>
-          <Input
-            allowClear
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            prefix={<Search size={14} color={p.textFaint} />}
-            placeholder="Search…"
-            style={{ width: 240 }}
-          />
+          </div>
         </div>
-      </div>
 
-      {/* Body */}
-      {loading ? (
-        <div
-          style={{
-            padding: 80,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12 }}
-        >
-          <LoadingSpinner fullScreen={false} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: 64,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px dashed ${p.border}`,
-            borderRadius: 12 }}
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ color: p.textSubtle, fontSize: 13 }}>
-                {search
-                  ? `No approvals match "${search}".`
-                  : mine
-                  ? "Nothing waiting on your decision."
-                  : "No approvals raised yet."}
-              </span>
-            }
-          />
-        </div>
-      ) : (
-        <div
-          style={{
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-            overflow: "hidden" }}
-        >
-          {filtered.map((a, i) => (
-            <Row key={a.id} a={a} first={i === 0} />
-          ))}
-        </div>
-      )}
+        {/* Body */}
+        {loading ? (
+          <div
+            style={{
+              padding: 80,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12
+            }}
+          >
+            <ZukvoLoader size="md" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div
+            style={{
+              padding: 64,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px dashed ${p.border}`,
+              borderRadius: 12
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                  {search
+                    ? `No approvals match "${search}".`
+                    : mine
+                      ? "Nothing waiting on your decision."
+                      : "No approvals raised yet."}
+                </span>
+              }
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+              overflow: "hidden"
+            }}
+          >
+            {filtered.map((a, i) => (
+              <Row key={a.id} a={a} first={i === 0} />
+            ))}
+          </div>
+        )}
 
-      {meta && meta.total > limit && (
-        <div
-          style={{
-            marginTop: 16,
-            display: "flex",
-            justifyContent: "flex-end" }}
-        >
-          <Pagination
-            current={page}
-            pageSize={limit}
-            total={meta.total}
-            onChange={setPage}
-            showSizeChanger={false}
-          />
-        </div>
-      )}
+        {meta && meta.total > limit && (
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "flex-end"
+            }}
+          >
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={meta.total}
+              onChange={setPage}
+              showSizeChanger={false}
+            />
+          </div>
+        )}
 
         <style jsx global>{`
           .portal-mom-header-container,
@@ -434,7 +454,7 @@ export default function PortalApprovalsListPage() {
             stroke: #cbd5e1 !important;
           }
         `}</style>
-    </div>
+      </div>
     </div>
   );
 }
@@ -446,11 +466,11 @@ function SummaryCard({
   value,
   tone,
   icon: Icon }: {
-  label: string;
-  value: number;
-  tone: "warning" | "success" | "danger" | "neutral";
-  icon: any;
-}) {
+    label: string;
+    value: number;
+    tone: "warning" | "success" | "danger" | "neutral";
+    icon: any;
+  }) {
   const t = TONE[tone];
   return (
     <div
@@ -461,7 +481,8 @@ function SummaryCard({
         borderRadius: 12,
         display: "flex",
         gap: 12,
-        alignItems: "center" }}
+        alignItems: "center"
+      }}
     >
       <div
         style={{
@@ -474,7 +495,8 @@ function SummaryCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0 }}
+          flexShrink: 0
+        }}
       >
         <Icon size={16} />
       </div>
@@ -485,7 +507,8 @@ function SummaryCard({
             fontWeight: 600,
             color: p.textSubtle,
             textTransform: "uppercase",
-            letterSpacing: "0.06em" }}
+            letterSpacing: "0.06em"
+          }}
         >
           {label}
         </div>
@@ -495,7 +518,8 @@ function SummaryCard({
             fontWeight: 600,
             color: p.text,
             letterSpacing: "-0.01em",
-            marginTop: 2 }}
+            marginTop: 2
+          }}
         >
           {value}
         </div>
@@ -507,9 +531,9 @@ function SummaryCard({
 function Row({
   a,
   first }: {
-  a: PortalApprovalListItem;
-  first: boolean;
-}) {
+    a: PortalApprovalListItem;
+    first: boolean;
+  }) {
   const [hover, setHover] = useState(false);
   const st = STATUS_META[a.status] || STATUS_META.open;
   const StIcon = st.icon;
@@ -535,7 +559,8 @@ function Row({
         textDecoration: "none",
         color: "inherit",
         transition: "background 120ms ease",
-        alignItems: "center" }}
+        alignItems: "center"
+      }}
     >
       <div
         style={{
@@ -543,13 +568,13 @@ function Row({
           height: 36,
           borderRadius: 9,
           background: needsMyDecision ? p.warningBg : p.accentBg,
-          border: `1px solid ${
-            needsMyDecision ? p.warningBorder : p.accentBorder
-          }`,
+          border: `1px solid ${needsMyDecision ? p.warningBorder : p.accentBorder
+            }`,
           color: needsMyDecision ? p.warningText : p.accentText,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center" }}
+          justifyContent: "center"
+        }}
       >
         <CheckSquare size={16} />
       </div>
@@ -559,7 +584,8 @@ function Row({
             display: "flex",
             gap: 8,
             alignItems: "center",
-            flexWrap: "wrap" }}
+            flexWrap: "wrap"
+          }}
         >
           <span
             style={{
@@ -569,7 +595,8 @@ function Row({
               background: p.surfaceMuted,
               border: `1px solid ${p.border}`,
               borderRadius: 6,
-              color: p.textMuted }}
+              color: p.textMuted
+            }}
           >
             {a.approvalNumber}
           </span>
@@ -580,7 +607,8 @@ function Row({
               color: p.text,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap" }}
+              whiteSpace: "nowrap"
+            }}
           >
             {a.title}
           </span>
@@ -593,7 +621,8 @@ function Row({
                 background: p.warningBg,
                 border: `1px solid ${p.warningBorder}`,
                 color: p.warningText,
-                borderRadius: 999 }}
+                borderRadius: 999
+              }}
             >
               Needs your decision
             </span>
@@ -607,7 +636,8 @@ function Row({
                 background: p.successBg,
                 border: `1px solid ${p.successBorder}`,
                 color: p.successText,
-                borderRadius: 999 }}
+                borderRadius: 999
+              }}
             >
               You approved
             </span>
@@ -621,7 +651,8 @@ function Row({
                 background: p.dangerBg,
                 border: `1px solid ${p.dangerBorder}`,
                 color: p.dangerText,
-                borderRadius: 999 }}
+                borderRadius: 999
+              }}
             >
               You rejected
             </span>
@@ -635,7 +666,8 @@ function Row({
             display: "flex",
             gap: 10,
             flexWrap: "wrap",
-            alignItems: "center" }}
+            alignItems: "center"
+          }}
         >
           <span
             style={{
@@ -645,7 +677,8 @@ function Row({
               color: p.purpleText,
               borderRadius: 999,
               fontSize: 11,
-              fontWeight: 500 }}
+              fontWeight: 500
+            }}
           >
             {SUBJECT_LABEL[a.subjectType] || a.subjectType}
           </span>
@@ -670,7 +703,8 @@ function Row({
             color: TONE[st.tone].text,
             borderRadius: 999,
             fontSize: 11.5,
-            fontWeight: 500 }}
+            fontWeight: 500
+          }}
         >
           <StIcon size={11} />
           {st.label}
@@ -682,7 +716,8 @@ function Row({
           color: p.textMuted,
           display: "inline-flex",
           alignItems: "center",
-          gap: 4 }}
+          gap: 4
+        }}
       >
         <Users size={11} />
         {progress}
@@ -700,7 +735,8 @@ function Row({
               : 400,
           display: "inline-flex",
           alignItems: "center",
-          gap: 4 }}
+          gap: 4
+        }}
       >
         {a.dueDate ? (
           <>

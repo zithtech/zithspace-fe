@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -308,6 +307,7 @@ const DocumentRow = ({ field, remove, handleFileUpload, messageApi }: any) => {
 };
 import { LeadMailDrawer } from "@/components/leads/LeadMailDrawer";
 import { WebsiteLeadDrawer } from "@/components/leads/WebsiteLeadDrawer";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { TextArea } = Input;
@@ -4647,7 +4647,7 @@ export default function LeadsPage() {
         >
           {timelineLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <LoadingSpinner size="large" fullScreen={false} />
+              <ZukvoLoader size="lg" />
             </div>
           ) : timelineData.length === 0 ? (
             <Empty description="No activity recorded yet" />

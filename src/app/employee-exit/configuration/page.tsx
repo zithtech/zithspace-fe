@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from 'react';
 import { Typography, Tabs, Card, Input, Button, Dropdown } from 'antd';
@@ -22,6 +21,7 @@ import ReasonForExitPage from '@/components/employee-exit/configuration/ReasonFo
 import ChecklistConfigPage from '@/components/employee-exit/configuration/ChecklistConfigPage';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position } from '@/services/positionService';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -41,7 +41,7 @@ export default function EmployeeExitConfigurationPage() {
   const [activeTab, setActiveTab] = useState('notice-period-policy');
   const [triggers, setTriggers] = useState<Record<string, number>>({});
   const [searchText, setSearchText] = useState('');
-  
+
   const [filterPolicy, setFilterPolicy] = useState<string | null>(null);
   const [filterLevel, setFilterLevel] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
@@ -51,8 +51,8 @@ export default function EmployeeExitConfigurationPage() {
   const [positions, setPositions] = useState<Position[]>([]);
 
   React.useEffect(() => {
-    GradeService.getAllGrades().then(res => setGrades(res || [])).catch(() => {});
-    PositionService.getAll().then(res => setPositions(res || [])).catch(() => {});
+    GradeService.getAllGrades().then(res => setGrades(res || [])).catch(() => { });
+    PositionService.getAll().then(res => setPositions(res || [])).catch(() => { });
   }, []);
 
   const roleOptions = React.useMemo(() => {
@@ -74,7 +74,7 @@ export default function EmployeeExitConfigurationPage() {
   if (authLoading || !canReadExitConfig) {
     return (
       <div style={{ padding: 100, textAlign: 'center' }}>
-        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading..." size="lg" />
       </div>
     );
   }
@@ -134,7 +134,7 @@ export default function EmployeeExitConfigurationPage() {
           <strong style={{ fontSize: 16, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', marginRight: 8 }}>
             {tabTitles[activeTab] || 'Configuration'}
           </strong>
-          <Input 
+          <Input
             prefix={<Search size={16} style={{ color: 'var(--text-slate-400)' }} />}
             placeholder="Search..."
             style={{ width: 240, borderRadius: 6, height: 36 }}
@@ -173,7 +173,7 @@ export default function EmployeeExitConfigurationPage() {
               />
             </>
           )}
-          
+
           {(activeTab === 'approval-workflow' || activeTab === 'exit-type' || activeTab === 'reason-for-exit') && (
             <SearchableDropdown
               placeholder="Status"
@@ -186,18 +186,18 @@ export default function EmployeeExitConfigurationPage() {
             />
           )}
         </div>
-        
+
         {activeTab !== 'checklist-config' && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setTriggers(prev => ({ ...prev, [activeTab]: (prev[activeTab] || 0) + 1 }))}
-            style={{ 
-              background: 'var(--premium-blue)', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 6, 
-              padding: '8px 16px', 
-              fontSize: 13, 
+            style={{
+              background: 'var(--premium-blue)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              padding: '8px 16px',
+              fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
@@ -224,7 +224,8 @@ export default function EmployeeExitConfigurationPage() {
           />
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .config-tabs .ant-tabs-content-holder {
           flex: 1;
           display: flex;

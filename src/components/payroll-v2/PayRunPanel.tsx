@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -9,13 +8,16 @@ import {
   PlusOutlined, ReloadOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined,
   TeamOutlined, DollarOutlined, CalendarOutlined, UserOutlined, SyncOutlined,
   SendOutlined, CheckCircleOutlined, CloseCircleOutlined, BranchesOutlined,
-  LockOutlined, BankOutlined, FilePdfOutlined, DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
+  LockOutlined, BankOutlined, FilePdfOutlined, DownloadOutlined, InfoCircleOutlined
+} from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
 
   PayRun, PayRunDetail, PayRunItem, PayRunStatus, PayRunLine, PayRunApproval, PayPayslip, PayBankFile, MemberOption, ComponentCategory,
-  PayslipJob, PayslipJobItem } from '@/services/payrollV2Service';
+  PayslipJob, PayslipJobItem
+} from '@/services/payrollV2Service';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 const PALETTE = { green: '#10B981', blue: '#3B82F6', amber: '#F59E0B', red: '#EF4444', violet: '#8B5CF6', slate: '#64748B' } as const;
 const TINT = { green: 'rgba(16,185,129,0.10)', blue: 'rgba(59,130,246,0.10)', amber: 'rgba(245,158,11,0.10)', slate: 'rgba(100,116,139,0.12)' } as const;
@@ -27,11 +29,13 @@ const STATUS_META: Record<PayRunStatus, { label: string; color: string }> = {
   approved: { label: 'Approved', color: 'blue' },
   finalized: { label: 'Finalized', color: 'green' },
   paid: { label: 'Paid', color: 'green' },
-  cancelled: { label: 'Cancelled', color: 'red' } };
+  cancelled: { label: 'Cancelled', color: 'red' }
+};
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const BANK_FMT_LABEL: Record<string, string> = {
-  generic_csv: 'Generic CSV', hdfc: 'HDFC Bank', icici: 'ICICI Bank', sbi: 'State Bank of India', axis: 'Axis Bank', kotak: 'Kotak Mahindra' };
+  generic_csv: 'Generic CSV', hdfc: 'HDFC Bank', icici: 'ICICI Bank', sbi: 'State Bank of India', axis: 'Axis Bank', kotak: 'Kotak Mahindra'
+};
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 const initials = (name: string) => name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
@@ -290,7 +294,8 @@ export default function PayRunPanel() {
           <span className="pvr-cal" style={{ background: TINT.green, color: PALETTE.green }}><CalendarOutlined /></span>
           <div><div style={{ fontWeight: 700 }}>{r.periodLabel}</div><div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{r.payGroupName}</div></div>
         </div>
-      ) },
+      )
+    },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s: PayRunStatus) => <Tag color={STATUS_META[s].color}>{STATUS_META[s].label}</Tag> },
     { title: 'Employees', dataIndex: 'employeeCount', key: 'employeeCount', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Gross', dataIndex: 'totalGross', key: 'gross', render: (v) => money(v) },
@@ -309,7 +314,8 @@ export default function PayRunPanel() {
           </Avatar>
           <div><div style={{ fontWeight: 600 }}>{empName(it.employeeId)}</div>{it.structureName && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{it.structureName}</div>}</div>
         </div>
-      ) },
+      )
+    },
     { title: 'Monthly CTC', dataIndex: 'monthlyCtc', key: 'ctc', render: (v) => money(v) },
     {
       title: 'LOP days', key: 'lop', width: 110,
@@ -317,7 +323,8 @@ export default function PayRunPanel() {
         <InputNumber size="small" min={0} max={it.totalDays} value={lopEdits[it.id] ?? it.lopDays} style={{ width: 76 }}
           onChange={(v) => setLopEdits((p) => ({ ...p, [it.id]: Number(v ?? 0) }))}
           onBlur={() => saveLop(it)} onPressEnter={() => saveLop(it)} disabled={savingItem === it.id} />
-      ) : <span>{it.lopDays}</span> },
+      ) : <span>{it.lopDays}</span>
+    },
     { title: 'Paid days', dataIndex: 'paidDays', key: 'paid', render: (v, it) => <span>{v} / {it.totalDays}</span> },
     { title: 'Gross', dataIndex: 'gross', key: 'gross', render: (v) => money(v) },
     { title: 'Deductions', dataIndex: 'totalDeductions', key: 'ded', render: (v) => <span style={{ color: PALETTE.red }}>−{money(v)}</span> },
@@ -328,10 +335,11 @@ export default function PayRunPanel() {
         const ps = payslips.get(it.employeeId);
         if (ps) return <a href={ps.fileUrl} target="_blank" rel="noreferrer" style={{ color: PALETTE.blue }}><DownloadOutlined /> PDF</a>;
         const st = payslipItems.get(it.employeeId)?.status;
-        if (st === 'processing' || st === 'pending') return <LoadingSpinner size="small" fullScreen={false} />;
+        if (st === 'processing' || st === 'pending') return <ZukvoLoader size="sm" />;
         if (st === 'failed') return <Tooltip title={payslipItems.get(it.employeeId)?.error || 'Generation failed'}><span style={{ color: PALETTE.red, fontWeight: 600 }}>Failed</span></Tooltip>;
         return <span style={{ color: 'var(--text-slate-300)' }}>—</span>;
-      } }] : []),
+      }
+    }] : []),
   ];
 
   if (!canReadPayrollRun) {
@@ -366,7 +374,7 @@ export default function PayRunPanel() {
       <div className="pvr-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         {runs.length === 0 && !loading
@@ -523,7 +531,7 @@ export default function PayRunPanel() {
 
           <div className="pvr-drawer-body">
             {detailLoading || !detail ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><LoadingSpinner fullScreen={false} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
             ) : (
               <>
                 <div className="pvr-summary">
@@ -543,8 +551,8 @@ export default function PayRunPanel() {
                         {payslipJob.status === 'running' || payslipJob.status === 'queued'
                           ? <Tag color="processing">In progress</Tag>
                           : payslipJob.status === 'completed' ? <Tag color="green">Completed</Tag>
-                          : payslipJob.status === 'completed_with_errors' ? <Tag color="orange">Completed with errors</Tag>
-                          : <Tag color="red">Failed</Tag>}
+                            : payslipJob.status === 'completed_with_errors' ? <Tag color="orange">Completed with errors</Tag>
+                              : <Tag color="red">Failed</Tag>}
                       </span>
                       <span className="pvr-genbar-count">{payslipJob.succeeded} / {payslipJob.total} generated{payslipJob.failed > 0 ? ` · ${payslipJob.failed} failed` : ''}</span>
                     </div>
@@ -620,7 +628,8 @@ export default function PayRunPanel() {
                         ))}
                         {it.lopDeduction > 0 && <div className="pvr-bd-lop">LOP deduction: −{money(it.lopDeduction)} ({it.lopDays} day{it.lopDays === 1 ? '' : 's'})</div>}
                       </div>
-                    ) }}
+                    )
+                  }}
                 />
               </>
             )}

@@ -1,6 +1,5 @@
 "use client";
 import { Spin } from 'antd';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -24,6 +23,7 @@ import {
   RequisitionAttachment
 } from "@/services/recruitment.service";
 import dayjs from "dayjs";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 
 const { Title, Text } = Typography;
@@ -97,7 +97,7 @@ export default function RequisitionDetailPage() {
   if (loading)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
 

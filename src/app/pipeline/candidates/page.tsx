@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
 import { App } from 'antd';
 import Link from 'next/link';
@@ -33,6 +32,7 @@ import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/c
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 export default function CandidatesPage() {
   const { message } = App.useApp();
@@ -164,7 +164,7 @@ export default function CandidatesPage() {
         let statusColor = '#64748b';
         let bgColor = 'rgba(100,116,139,0.10)';
         let ringColor = 'rgba(100,116,139,0.25)';
-        
+
         if (status === 'Applied') { statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)'; }
         if (status === 'Screening') { statusColor = '#6366f1'; bgColor = 'rgba(99,102,241,0.10)'; ringColor = 'rgba(99,102,241,0.25)'; }
         if (status === 'Shortlisted') { statusColor = '#8b5cf6'; bgColor = 'rgba(139,92,246,0.10)'; ringColor = 'rgba(139,92,246,0.25)'; }
@@ -330,7 +330,7 @@ export default function CandidatesPage() {
             ]}
           />
         </div>
-        
+
         <div className="w-56">
           <SearchableDropdown
             value={roleFilter}
@@ -342,7 +342,7 @@ export default function CandidatesPage() {
             ]}
           />
         </div>
-        
+
         <div className="w-48">
           <SearchableDropdown
             value={expFilter}
@@ -363,7 +363,7 @@ export default function CandidatesPage() {
           <div className="pp-table-wrap" style={{ position: 'relative' }}>
             {loading && (
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <LoadingSpinner size="medium" fullScreen={false} />
+                <ZukvoLoader size="md" />
               </div>
             )}
             <Table
@@ -641,7 +641,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           } catch (attachErr: any) {
             setError(
               attachErr?.response?.data?.error ||
-                'Candidate saved, but could not be added to the opening'
+              'Candidate saved, but could not be added to the opening'
             );
             return;
           }
@@ -764,11 +764,10 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                           const f = e.dataTransfer.files?.[0];
                           if (f) processFile(f);
                         }}
-                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-                          isDragging
-                            ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10'
-                            : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
+                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${isDragging
+                          ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          }`}
                       >
                         <span
                           className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -910,9 +909,8 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                             <div
                               className="absolute inset-0 rounded-full"
                               style={{
-                                background: `conic-gradient(${
-                                  match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
-                                } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
+                                background: `conic-gradient(${match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
+                                  } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
                               }}
                             />
                             <div
@@ -1012,10 +1010,10 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                     )}
                   </SectionCard>
                 )}
-                
-                <SectionCard 
-                  title={editCandidate ? "Edit Details" : "Verify Details"} 
-                  step={editCandidate ? undefined : "STEP 3"} 
+
+                <SectionCard
+                  title={editCandidate ? "Edit Details" : "Verify Details"}
+                  step={editCandidate ? undefined : "STEP 3"}
                   icon={<Edit2 size={14} />}
                 >
                   <div className="grid grid-cols-2 gap-4">

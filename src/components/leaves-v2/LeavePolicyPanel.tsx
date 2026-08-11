@@ -1,6 +1,5 @@
 'use client';
 import { Spin } from 'antd';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -17,7 +16,8 @@ import {
   Row,
   Col,
   Space,
-  Form } from 'antd';
+  Form
+} from 'antd';
 import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -35,7 +35,8 @@ import {
   CloseOutlined,
   InfoCircleOutlined,
   UsergroupAddOutlined,
-  ProfileOutlined } from '@ant-design/icons';
+  ProfileOutlined
+} from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -47,8 +48,10 @@ import LeaveV2Service, {
   ScopeOption,
   TermCycle,
   AccrualMethod,
-  TERM_MONTHS } from '@/services/leaveV2Service';
+  TERM_MONTHS
+} from '@/services/leaveV2Service';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+import ZukvoLoader from '../common/ZukvoLoader';
 
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
@@ -56,7 +59,8 @@ const TINT = {
   blue: 'rgba(59,130,246,0.10)',
   green: 'rgba(16,185,129,0.10)',
   red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)' } as const;
+  grey: 'rgba(148,163,184,0.12)'
+} as const;
 
 const localLvpStyles = `
   /* Fix layout for drawer form row alignment */
@@ -203,7 +207,7 @@ export default function LeavePolicyPanel() {
 
   // Load all leave types once (active ones drive the dropdown; all resolve names).
   useEffect(() => {
-    LeaveV2Service.listLeaveTypes(true).then(setLeaveTypes).catch(() => {});
+    LeaveV2Service.listLeaveTypes(true).then(setLeaveTypes).catch(() => { });
   }, []);
 
   const onExpandRow = async (expanded: boolean, record: LeavePolicyListItem) => {
@@ -246,7 +250,8 @@ export default function LeavePolicyPanel() {
     total: rows.length,
     active: rows.filter((r) => r.isActive).length,
     allocations: rows.reduce((s, r) => s + r.lineCount, 0),
-    targets: rows.reduce((s, r) => s + r.assignmentCount, 0) }), [rows]);
+    targets: rows.reduce((s, r) => s + r.assignmentCount, 0)
+  }), [rows]);
 
   const statCells = [
     { key: 'total', title: 'Total Policies', value: stats.total, period: 'configured', icon: <ProfileOutlined />, color: PALETTE.blue, tint: TINT.blue, trend: TRENDS.a },
@@ -387,7 +392,9 @@ export default function LeavePolicyPanel() {
           accrualMethod: l.accrualMethod,
           countPerPeriod: l.countPerPeriod || 0,
           carryForward: l.carryForward,
-          carryForwardMax: l.carryForward ? l.carryForwardMax ?? null : null })) };
+          carryForwardMax: l.carryForward ? l.carryForwardMax ?? null : null
+        }))
+      };
       if (editingId) {
         await LeaveV2Service.updatePolicy(editingId, payload);
         message.success('Policy updated');
@@ -425,7 +432,8 @@ export default function LeavePolicyPanel() {
           <span style={{ width: 8, height: 8, borderRadius: 2, background: r.isActive ? PALETTE.blue : PALETTE.grey, display: 'inline-block' }} />
           <span style={{ fontWeight: 600 }}>{r.name}</span>
         </div>
-      ) },
+      )
+    },
     { title: 'Code', dataIndex: 'code', key: 'code', render: (v) => <Tag style={{ fontFamily: 'monospace' }}>{v}</Tag> },
     { title: 'Term', dataIndex: 'termCycle', key: 'termCycle', render: (v: TermCycle) => <span style={{ color: 'var(--text-slate-600)' }}>{termLabel(v).split(' ')[0]}</span> },
     {
@@ -436,12 +444,14 @@ export default function LeavePolicyPanel() {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-slate-600)' }}>
           <ApartmentOutlined style={{ color: PALETTE.grey }} /> {v} target{v === 1 ? '' : 's'}
         </span>
-      ) },
+      )
+    },
     {
       title: 'Leave Types',
       dataIndex: 'lineCount',
       key: 'lineCount',
-      render: (v) => <Tag color="blue">{v} mapped</Tag> },
+      render: (v) => <Tag color="blue">{v} mapped</Tag>
+    },
     { title: 'Status', dataIndex: 'isActive', key: 'isActive', render: (v) => (v ? <Tag color="blue">Active</Tag> : <Tag>Inactive</Tag>) },
     {
       title: '',
@@ -467,7 +477,8 @@ export default function LeavePolicyPanel() {
             </ConfirmDialog>
           )}
         </div>
-      ) },
+      )
+    },
   ];
 
   if (!canReadLeavePolicy) {
@@ -492,7 +503,7 @@ export default function LeavePolicyPanel() {
   const expandedRowRender = (record: LeavePolicyListItem) => {
     const d = expandedCache[record.id];
     if (expandLoading[record.id] || !d) {
-      return <div style={{ padding: '14px 16px', color: 'var(--text-slate-400)', fontSize: 12.5 }}><LoadingSpinner size="small" fullScreen={false} /> &nbsp;Loading details…</div>;
+      return <div style={{ padding: '14px 16px', color: 'var(--text-slate-400)', fontSize: 12.5 }}><ZukvoLoader size="sm" /> &nbsp;Loading details…</div>;
     }
     const childCols: ColumnsType<typeof d.lines[number]> = [
       {
@@ -506,7 +517,8 @@ export default function LeavePolicyPanel() {
               <span style={{ fontWeight: 600 }}>{t?.name ?? l.leaveTypeId}</span>
             </span>
           );
-        } },
+        }
+      },
       { title: 'Accrual', key: 'accrual', render: (_, l) => (l.accrualMethod === 'monthly' ? 'Monthly accrual' : 'Whole term') },
       { title: 'Count', key: 'count', render: (_, l) => `${l.countPerPeriod} ${l.accrualMethod === 'monthly' ? '/ month' : '/ term'}` },
       { title: `Total / ${termLabel(d.termCycle).split(' ')[0].toLowerCase()}`, key: 'total', render: (_, l) => <strong style={{ color: PALETTE.blue }}>{l.allocation ?? '—'}</strong> },
@@ -533,9 +545,9 @@ export default function LeavePolicyPanel() {
       {/* 1) HEADER */}
       <div className="lvp-header">
         <div className="lvp-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -604,7 +616,7 @@ export default function LeavePolicyPanel() {
       <div className="lvp-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table
@@ -620,7 +632,8 @@ export default function LeavePolicyPanel() {
           expandable={{
             expandedRowRender,
             onExpand: onExpandRow,
-            rowExpandable: (r) => r.lineCount > 0 }}
+            rowExpandable: (r) => r.lineCount > 0
+          }}
         />
       </div>
 
@@ -652,13 +665,15 @@ export default function LeavePolicyPanel() {
           body: { padding: 0, background: 'var(--customers-page-bg)' },
           footer: { padding: 0, border: 'none' },
           wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' }
+        }}
         footer={
           <div
             className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
             style={{
               background: 'var(--bg-secondary)',
-              borderColor: 'var(--border-color)' }}
+              borderColor: 'var(--border-color)'
+            }}
           >
             <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
               At least one target and one allocation are required
@@ -685,7 +700,8 @@ export default function LeavePolicyPanel() {
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
             background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-            borderColor: 'var(--border-color)' }}
+            borderColor: 'var(--border-color)'
+          }}
         >
           <div className="flex items-start gap-3 min-w-0">
             <div
@@ -693,7 +709,8 @@ export default function LeavePolicyPanel() {
               style={{
                 background: editingId ? TINT.green : TINT.blue,
                 color: editingId ? PALETTE.green : PALETTE.blue,
-                border: '1px solid var(--border-blue-200)' }}
+                border: '1px solid var(--border-blue-200)'
+              }}
             >
               {editingId ? <EditOutlined style={{ fontSize: 18 }} /> : <PlusOutlined style={{ fontSize: 18 }} />}
             </div>

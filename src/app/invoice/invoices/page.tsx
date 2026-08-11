@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -84,6 +83,7 @@ import type {
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -986,7 +986,7 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><LoadingSpinner message="Loading" size="large" fullScreen={false} /></div></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><ZukvoLoader message="Loading" size="lg" /></div></MainLayout>;
   if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
@@ -1468,7 +1468,7 @@ export default function InvoiceInvoicesPage() {
               <div className="pp-table-wrap" style={{ position: 'relative' }}>
                 {isFetching && !isLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table
@@ -1962,7 +1962,7 @@ export default function InvoiceInvoicesPage() {
       >
         {isPaymentLoading ? (
           <div className="flex flex-col justify-center items-center h-56">
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
             <span className="mt-3 text-xs" style={{ color: 'var(--text-slate-500)' }}>Loading payment history...</span>
           </div>
         ) : !paymentHistory ? (

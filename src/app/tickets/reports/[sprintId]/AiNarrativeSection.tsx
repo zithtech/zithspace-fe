@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/axios";
@@ -8,7 +7,9 @@ import {
   Panel,
   SectionTitle,
   SectionSkeleton,
-  SectionError } from "./_shared";
+  SectionError
+} from "./_shared";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 type Severity = "low" | "medium" | "high" | "info" | "warn" | "critical";
 
@@ -97,15 +98,14 @@ export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: 
             type="button"
             onClick={generate}
             disabled={generating}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              generating
-                ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-wait"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${generating
+              ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-wait"
+              : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
           >
             {generating ? (
               <>
-                <LoadingSpinner fullScreen={false} />
+                <ZukvoLoader size="md" />
                 Generating…
               </>
             ) : (
@@ -142,7 +142,7 @@ export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: 
                 disabled={generating}
                 className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
               >
-                {generating ? <LoadingSpinner fullScreen={false} /> : <RefreshIcon />}
+                {generating ? <ZukvoLoader size="md" /> : <RefreshIcon />}
                 {generating ? "Regenerating…" : "Regenerate"}
               </button>
             </div>
@@ -237,17 +237,20 @@ function WinsConcernsPanel({
   title,
   items,
   tone }: {
-  title: string;
-  items: string[];
-  tone: "emerald" | "rose";
-}) {
+    title: string;
+    items: string[];
+    tone: "emerald" | "rose";
+  }) {
   const toneStyles = {
     emerald: {
       label: "text-emerald-700 dark:text-emerald-300",
-      dot: "bg-emerald-500" },
+      dot: "bg-emerald-500"
+    },
     rose: {
       label: "text-rose-700 dark:text-rose-300",
-      dot: "bg-rose-500" } }[tone];
+      dot: "bg-rose-500"
+    }
+  }[tone];
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
@@ -276,8 +279,8 @@ function WinsConcernsPanel({
 
 function PredictionCard({
   prediction }: {
-  prediction: AiNarrative["predictions"][number];
-}) {
+    prediction: AiNarrative["predictions"][number];
+  }) {
   const styles =
     prediction.severity === "critical"
       ? "border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10"
@@ -307,8 +310,8 @@ function PredictionCard({
 
 function DelayPatternRow({
   pattern }: {
-  pattern: AiNarrative["delayPatterns"][number];
-}) {
+    pattern: AiNarrative["delayPatterns"][number];
+  }) {
   const dotStyle =
     pattern.severity === "high"
       ? "bg-rose-500"

@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Input, Empty, Pagination, Select, DatePicker, Button } from "antd";
@@ -33,6 +32,7 @@ import {
   PortalMomMeta
 } from "@/services/portalMomService";
 import { usePortalSocket } from "@/providers/PortalSocketProvider";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 /* ─────────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ export default function PortalMomPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : filteredItems.length === 0 ? (
           <div

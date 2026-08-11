@@ -1,10 +1,10 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -34,15 +34,15 @@ export default function LegacyTicketsRedirect() {
   }, [authLoading, canReadTicket, router]);
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
       height: '100vh',
       flexDirection: 'column',
       gap: 16
     }}>
-      <LoadingSpinner size="large" fullScreen={false} />
+      <ZukvoLoader size="lg" />
       <p style={{ color: '#8c8c8c' }}>Redirecting to project selection...</p>
     </div>
   );

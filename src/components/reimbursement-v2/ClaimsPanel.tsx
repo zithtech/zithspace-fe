@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, DatePicker, Tooltip,
   message, notification, Upload, Descriptions, Divider, Empty, Checkbox, Modal,
@@ -21,6 +20,7 @@ import ReimbursementV2Service, {
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -384,7 +384,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       <div className="rvp-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="middle" loading={false} columns={columns} dataSource={filtered}

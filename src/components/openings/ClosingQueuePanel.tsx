@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from 'next/navigation';
 import { App, Alert, Button, Empty, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -9,6 +8,7 @@ import { CheckCheck, RotateCw } from 'lucide-react';
 
 import OpeningV2Service, { type ClosureCandidate } from '@/services/openingV2Service';
 import { OpeningStyles, PALETTE, PanelHeader, StatusChip, TINT } from './ui';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 // Phase 7 — openings that have met their hiring target but are still open.
 //
@@ -121,7 +121,7 @@ export default function ClosingQueuePanel() {
         <div className="omp-table-wrap" style={{ position: 'relative' }}>
           {loading && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <LoadingSpinner size="medium" fullScreen={false} />
+              <ZukvoLoader size="md" />
             </div>
           )}
           <Table<ClosureCandidate>

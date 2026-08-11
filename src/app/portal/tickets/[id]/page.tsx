@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -37,6 +36,7 @@ import {
   fmtRelative
 } from "../_ticketUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const INDIGO = "#4f46e5";
@@ -100,7 +100,7 @@ export default function PortalTicketDetailPage() {
           justifyContent: "center"
         }}
       >
-        <LoadingSpinner size="large" fullScreen={false} />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

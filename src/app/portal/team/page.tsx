@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -30,6 +29,7 @@ import {
   portalTeamService,
   PortalTeamMember
 } from "@/services/portalTeamService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -459,7 +459,7 @@ export default function PortalTeamPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div

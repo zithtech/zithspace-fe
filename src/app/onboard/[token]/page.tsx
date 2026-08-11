@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -22,6 +21,7 @@ import {
 import { PlusOutlined, DeleteOutlined, UploadOutlined, PaperClipOutlined, HomeOutlined, ContactsOutlined, IdcardOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { PublicOnboardingService } from "@/services/onboardingService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -658,7 +658,7 @@ export default function PublicOnboardPage() {
   if (loading) {
     return (
       <div style={{ ...pageWrap, justifyContent: "center" }}>
-        <LoadingSpinner message="Loading your onboarding form..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading your onboarding form..." size="lg" />
       </div>
     );
   }

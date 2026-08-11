@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -36,6 +35,7 @@ const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+import ZukvoLoader from '../common/ZukvoLoader';
 
 
 
@@ -324,7 +324,7 @@ export default function LeaveAdjustmentPanel() {
       <div className="lvadj-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="small" className="lvadj-table" loading={false} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />

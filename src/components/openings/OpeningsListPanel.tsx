@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from 'next/navigation';
 import { App, Button, Table, Tooltip, Empty } from 'antd';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -49,6 +48,7 @@ import {
 } from './ui';
 import { useReferenceData } from './useReferenceData';
 import OpeningFormDrawer from './OpeningFormDrawer';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 // The working list of openings. `archived` is a prop rather than a filter here
 // so the Archive page can reuse this panel wholesale — the two views differ only
@@ -260,34 +260,34 @@ export default function OpeningsListPanel({
           <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 4 }}>
             {archived
               ? perms.canManageOpenings && (
-                  <Tooltip title="Restore from archive">
+                <Tooltip title="Restore from archive">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ArchiveRestore size={14} />}
+                    onClick={() => handleUnarchive(r.id)}
+                  />
+                </Tooltip>
+              )
+              : perms.canDeleteOpening && (
+                <ConfirmDialog
+                  tone="danger"
+                  icon={<Trash2 size={18} />}
+                  title="Delete this opening?"
+                  description="It will be removed from the list."
+                  confirmText="Delete"
+                  onConfirm={() => handleDelete(r.id)}
+                >
+                  <Tooltip title="Delete">
                     <Button
                       type="text"
                       size="small"
-                      icon={<ArchiveRestore size={14} />}
-                      onClick={() => handleUnarchive(r.id)}
+                      danger
+                      icon={<Trash2 size={14} />}
                     />
                   </Tooltip>
-                )
-              : perms.canDeleteOpening && (
-                  <ConfirmDialog
-                    tone="danger"
-                    icon={<Trash2 size={18} />}
-                    title="Delete this opening?"
-                    description="It will be removed from the list."
-                    confirmText="Delete"
-                    onConfirm={() => handleDelete(r.id)}
-                  >
-                    <Tooltip title="Delete">
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<Trash2 size={14} />}
-                      />
-                    </Tooltip>
-                  </ConfirmDialog>
-                )}
+                </ConfirmDialog>
+              )}
           </div>
         ),
       },
@@ -544,7 +544,7 @@ export default function OpeningsListPanel({
       <div className="omp-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table<OpeningListItem>

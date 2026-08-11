@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import {
   Table,
@@ -62,6 +61,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -1033,7 +1033,7 @@ export default function ClientsV2ListPage() {
                     <div className="cm-table-card" style={{ position: 'relative' }}>
                       {loading && (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          <LoadingSpinner size="medium" fullScreen={false} />
+                          <ZukvoLoader size="md" />
                         </div>
                       )}
                       <Table

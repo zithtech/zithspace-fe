@@ -2,7 +2,6 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Input, Switch, Select, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -15,6 +14,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
   ApprovalWorkflowListItem, ApprovalStep, ApproverType, ApproverOption,
 } from '@/services/payrollV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const PALETTE = { sky: '#0EA5E9', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = { sky: 'rgba(14,165,233,0.10)', green: 'rgba(16,185,129,0.10)' } as const;
@@ -226,7 +226,7 @@ export default function ApprovalWorkflowPanel() {
       <div className="pvw-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="small" className="pvw-table" loading={false} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />

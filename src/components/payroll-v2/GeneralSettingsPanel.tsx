@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, InputNumber, Switch, message } from 'antd';
@@ -21,6 +20,7 @@ import PayrollV2Service, {
   UpdatePayrollSettingsInput,
   SalaryCalcBasis
 } from '@/services/payrollV2Service';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', amber: '#F59E0B', red: '#EF4444', violet: '#8B5CF6' } as const;
 const TINT = {
@@ -179,7 +179,7 @@ export default function GeneralSettingsPanel() {
       </div>
 
       {loading ? (
-        <div className="pv-loading"><LoadingSpinner fullScreen={false} /></div>
+        <div className="pv-loading"><ZukvoLoader size="md" /></div>
       ) : (
         <div className="pv-sections">
           {/* ---------------- Financial Year & Pay ---------------- */}

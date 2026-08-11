@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -16,7 +15,8 @@ import {
   Select,
   DatePicker,
   Tooltip,
-  Tag } from "antd";
+  Tag
+} from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -35,7 +35,8 @@ import {
   Clock,
   CheckCircle,
   Mail,
-  DollarSign } from "lucide-react";
+  DollarSign
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ReloadOutlined } from "@ant-design/icons";
 import isBetween from "dayjs/plugin/isBetween";
@@ -46,10 +47,12 @@ import {
   useBulkRestoreInvoices,
   usePermanentDeleteInvoice,
   useBulkPermanentDeleteInvoices,
-  invoiceKeys } from "@/hooks/useInvoices";
+  invoiceKeys
+} from "@/hooks/useInvoices";
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title } = Typography;
@@ -137,7 +140,8 @@ export default function InvoiceTrashPage() {
   const { data, isLoading, isFetching, refetch } = useDeletedInvoices({
     page: pagination.page,
     limit: pagination.limit,
-    search: debouncedSearch });
+    search: debouncedSearch
+  });
 
   const restoreMutation = useRestoreInvoice();
   const bulkRestoreMutation = useBulkRestoreInvoices();
@@ -191,7 +195,8 @@ export default function InvoiceTrashPage() {
     completed: 0,
     failed: 0,
     currentInvoice: null,
-    isDeleting: false });
+    isDeleting: false
+  });
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
@@ -213,7 +218,8 @@ export default function InvoiceTrashPage() {
         } catch (error: any) {
           messageApi.error(error.message || "Failed to restore invoice");
         }
-      } });
+      }
+    });
   };
 
   const handleBulkRestore = () => {
@@ -234,7 +240,8 @@ export default function InvoiceTrashPage() {
         } catch (error: any) {
           messageApi.error(error.message || "Failed to restore invoices");
         }
-      } });
+      }
+    });
   };
 
   const openDeleteModal = (record: any) => {
@@ -277,20 +284,23 @@ export default function InvoiceTrashPage() {
       completed: 0,
       failed: 0,
       currentInvoice: "Processing bulk deletion...",
-      isDeleting: true });
+      isDeleting: true
+    });
 
     try {
       await bulkDeleteMutation.mutateAsync(ids);
       setBulkDeleteProgress((prev) => ({
         ...prev,
         completed: selectedInvoices.length,
-        currentInvoice: "Finished" }));
+        currentInvoice: "Finished"
+      }));
     } catch (error: any) {
       console.error("Bulk permanent delete failed:", error);
       setBulkDeleteProgress((prev) => ({
         ...prev,
         failed: selectedInvoices.length,
-        isDeleting: false }));
+        isDeleting: false
+      }));
     }
 
     setTimeout(() => {
@@ -300,7 +310,8 @@ export default function InvoiceTrashPage() {
         completed: 0,
         failed: 0,
         currentInvoice: null,
-        isDeleting: false });
+        isDeleting: false
+      });
       setSelectedRowKeys([]);
       setSelectedInvoices([]);
       refetch();
@@ -315,13 +326,13 @@ export default function InvoiceTrashPage() {
     color,
     bgColor,
     sub }: {
-    label: string;
-    value: string | number;
-    icon: any;
-    color: string;
-    bgColor: string;
-    sub?: string;
-  }) => (
+      label: string;
+      value: string | number;
+      icon: any;
+      color: string;
+      bgColor: string;
+      sub?: string;
+    }) => (
     <div className="pp-stat-card">
       <div className="pp-stat-top">
         <div className="pp-stat-left">
@@ -357,7 +368,8 @@ export default function InvoiceTrashPage() {
               style={{
                 background: "var(--bg-blue-50)",
                 color: "var(--text-blue-700)",
-                border: "1px solid var(--border-blue-200)" }}
+                border: "1px solid var(--border-blue-200)"
+              }}
             >
               {companyName.charAt(0).toUpperCase()}
             </div>
@@ -377,7 +389,8 @@ export default function InvoiceTrashPage() {
             </div>
           </div>
         );
-      } },
+      }
+    },
     {
       title: "DATE",
       dataIndex: "invoiceDate",
@@ -389,7 +402,8 @@ export default function InvoiceTrashPage() {
         >
           {date ? dayjs(date).format("MMM D, YYYY") : "—"}
         </span>
-      ) },
+      )
+    },
     {
       title: "DUE DATE",
       dataIndex: "dueDate",
@@ -401,7 +415,8 @@ export default function InvoiceTrashPage() {
         >
           {date ? dayjs(date).format("MMM D, YYYY") : "—"}
         </span>
-      ) },
+      )
+    },
     {
       title: "DELETED",
       dataIndex: "deletedAt",
@@ -412,12 +427,14 @@ export default function InvoiceTrashPage() {
           style={{
             background: "rgba(248,113,113,0.10)",
             color: "#f87171",
-            border: "1px solid rgba(248,113,113,0.25)" }}
+            border: "1px solid rgba(248,113,113,0.25)"
+          }}
         >
           <Trash2 size={10} />
           {date ? dayjs(date).format("MMM D, YYYY") : "—"}
         </span>
-      ) },
+      )
+    },
     {
       title: "STATUS",
       dataIndex: "status",
@@ -429,33 +446,40 @@ export default function InvoiceTrashPage() {
             bg: "rgba(16,185,129,0.10)",
             color: "#10b981",
             border: "rgba(16,185,129,0.25)",
-            label: "Paid" },
+            label: "Paid"
+          },
           submitted: {
             bg: "rgba(59,130,246,0.10)",
             color: "#3b82f6",
             border: "rgba(59,130,246,0.25)",
-            label: "Submitted" },
+            label: "Submitted"
+          },
           pending: {
             bg: "rgba(59,130,246,0.10)",
             color: "#3b82f6",
             border: "rgba(59,130,246,0.25)",
-            label: "Pending" },
+            label: "Pending"
+          },
           draft: {
             bg: "rgba(100,116,139,0.10)",
             color: "#64748b",
             border: "rgba(100,116,139,0.25)",
-            label: "Draft" },
+            label: "Draft"
+          },
           overdue: {
             bg: "rgba(248,113,113,0.10)",
             color: "#f87171",
             border: "rgba(248,113,113,0.25)",
-            label: "Overdue" } };
+            label: "Overdue"
+          }
+        };
         const cfg =
           map[frontendStatus?.toLowerCase()] || {
             bg: "rgba(100,116,139,0.10)",
             color: "#64748b",
             border: "rgba(100,116,139,0.25)",
-            label: frontendStatus || "Unknown" };
+            label: frontendStatus || "Unknown"
+          };
         return (
           <span
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
@@ -487,7 +511,8 @@ export default function InvoiceTrashPage() {
         >
           ${Number(v || 0).toLocaleString()}
         </span>
-      ) },
+      )
+    },
     {
       title: "ACTIONS",
       align: "center",
@@ -507,7 +532,8 @@ export default function InvoiceTrashPage() {
                 style={{
                   background: "var(--bg-secondary)",
                   color: "#10b981",
-                  border: "1px solid var(--border-color)" }}
+                  border: "1px solid var(--border-color)"
+                }}
               >
                 <RotateCcw size={11} strokeWidth={2.25} />
                 Restore
@@ -542,7 +568,8 @@ export default function InvoiceTrashPage() {
                   style={{
                     background: "var(--bg-secondary)",
                     color: "#f87171",
-                    border: "1px solid var(--border-color)" }}
+                    border: "1px solid var(--border-color)"
+                  }}
                 >
                   <Trash2 size={11} strokeWidth={2.25} />
                   Delete
@@ -551,7 +578,8 @@ export default function InvoiceTrashPage() {
             </Tooltip>
           )}
         </div>
-      ) },
+      )
+    },
   ];
 
   const rowSelection = {
@@ -559,7 +587,8 @@ export default function InvoiceTrashPage() {
     onChange: (keys: React.Key[], rows: any[]) => {
       setSelectedRowKeys(keys);
       setSelectedInvoices(rows);
-    } };
+    }
+  };
 
   const filterCount =
     (statusFilter ? 1 : 0) + (dateRange && dateRange[0] && dateRange[1] ? 1 : 0);
@@ -568,7 +597,7 @@ export default function InvoiceTrashPage() {
     return (
       <MainLayout>
         <div className="flex justify-center items-center h-screen">
-          <LoadingSpinner size="large" fullScreen={false} />
+          <ZukvoLoader size="lg" />
         </div>
       </MainLayout>
     );
@@ -585,7 +614,8 @@ export default function InvoiceTrashPage() {
           minHeight: "calc(100vh - 54px)",
           display: "flex",
           flexDirection: "column",
-          fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" }}
+          fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif"
+        }}
       >
         {/* TOP BAR */}
         <div
@@ -593,7 +623,8 @@ export default function InvoiceTrashPage() {
           style={{
             background:
               "color-mix(in oklab, var(--customers-page-bg) 85%, transparent)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <div className="px-6 py-2 md:py-0 min-h-[48px] md:h-12 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
@@ -612,7 +643,8 @@ export default function InvoiceTrashPage() {
                   style={{
                     background: "rgba(248,113,113,0.1)",
                     color: "#f87171",
-                    border: "1px solid rgba(248,113,113,0.2)" }}
+                    border: "1px solid rgba(248,113,113,0.2)"
+                  }}
                 >
                   <Trash2 size={13} strokeWidth={2.25} />
                 </div>
@@ -645,14 +677,16 @@ export default function InvoiceTrashPage() {
                   }
                   onClick={async () => {
                     await queryClient.invalidateQueries({
-                      queryKey: invoiceKeys.lists() });
+                      queryKey: invoiceKeys.lists()
+                    });
                     refetch();
                   }}
                   className="flex-1 md:flex-initial flex items-center justify-center"
                   style={{
                     borderRadius: 6,
                     height: 30,
-                    width: 30 }}
+                    width: 30
+                  }}
                 />
               </Tooltip>
               <Button
@@ -663,7 +697,8 @@ export default function InvoiceTrashPage() {
                   borderRadius: 6,
                   height: 30,
                   fontWeight: 600,
-                  fontSize: 12 }}
+                  fontSize: 12
+                }}
               >
                 <span>Back to invoices</span>
               </Button>
@@ -706,7 +741,8 @@ export default function InvoiceTrashPage() {
               style={{
                 background: "var(--bg-secondary)",
                 border: "1px solid var(--border-color)",
-                borderRadius: 0 }}
+                borderRadius: 0
+              }}
             >
               {/* Status */}
               <div className="flex items-center gap-1.5">
@@ -775,7 +811,8 @@ export default function InvoiceTrashPage() {
                   borderRadius: 6,
                   background: "var(--bg-secondary)",
                   borderColor: "var(--border-color)",
-                  fontSize: 12 }}
+                  fontSize: 12
+                }}
               />
 
               {/* Clear */}
@@ -800,7 +837,8 @@ export default function InvoiceTrashPage() {
                 className="rounded-none px-3.5 py-1.5 mb-2.5 flex items-center justify-between"
                 style={{
                   background: "rgba(59,130,246,0.1)",
-                  border: "1px solid rgba(59,130,246,0.2)" }}
+                  border: "1px solid rgba(59,130,246,0.2)"
+                }}
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle2
@@ -825,7 +863,8 @@ export default function InvoiceTrashPage() {
                         borderRadius: 6,
                         height: 28,
                         fontSize: 11.5,
-                        fontWeight: 600 }}
+                        fontWeight: 600
+                      }}
                     >
                       Restore
                     </Button>
@@ -843,7 +882,8 @@ export default function InvoiceTrashPage() {
                         height: 28,
                         fontSize: 11.5,
                         fontWeight: 600,
-                        background: "#f87171" }}
+                        background: "#f87171"
+                      }}
                     >
                       Delete permanently
                     </Button>
@@ -869,23 +909,26 @@ export default function InvoiceTrashPage() {
                 className="flex flex-col justify-center items-center h-64 rounded-none"
                 style={{
                   background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)" }}
+                  border: "1px solid var(--border-color)"
+                }}
               >
-                <LoadingSpinner fullScreen={false} />
+                <ZukvoLoader size="md" />
               </div>
             ) : filteredInvoices.length === 0 ? (
               <div
                 className="flex flex-col items-center justify-center py-20 rounded-none"
                 style={{
                   background: "var(--bg-secondary)",
-                  border: "1.5px dashed var(--border-color)" }}
+                  border: "1.5px dashed var(--border-color)"
+                }}
               >
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center mb-3.5"
                   style={{
                     background: "rgba(248,113,113,0.1)",
                     color: "#f87171",
-                    border: "1px solid rgba(248,113,113,0.2)" }}
+                    border: "1px solid rgba(248,113,113,0.2)"
+                  }}
                 >
                   <Trash2 size={20} strokeWidth={2} />
                 </div>
@@ -895,7 +938,8 @@ export default function InvoiceTrashPage() {
                     color: "var(--text-primary)",
                     margin: 0,
                     fontWeight: 700,
-                    fontSize: 14 }}
+                    fontSize: 14
+                  }}
                 >
                   {searchText || filterCount > 0
                     ? "No deleted invoices match"
@@ -906,7 +950,8 @@ export default function InvoiceTrashPage() {
                     color: "var(--text-secondary)",
                     fontSize: 12,
                     marginTop: 4,
-                    marginBottom: 16 }}
+                    marginBottom: 16
+                  }}
                 >
                   {searchText || filterCount > 0
                     ? "Try adjusting your search or filters"
@@ -920,7 +965,8 @@ export default function InvoiceTrashPage() {
                       borderRadius: 6,
                       height: 32,
                       fontSize: 12,
-                      fontWeight: 600 }}
+                      fontWeight: 600
+                    }}
                   >
                     Back to invoices
                   </Button>
@@ -932,11 +978,12 @@ export default function InvoiceTrashPage() {
                 style={{
                   position: 'relative',
                   background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)" }}
+                  border: "1px solid var(--border-color)"
+                }}
               >
                 {isFetching && !isLoading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table
@@ -946,7 +993,8 @@ export default function InvoiceTrashPage() {
                   columns={columns}
                   dataSource={filteredInvoices.map((inv) => ({
                     ...inv,
-                    key: inv.id }))}
+                    key: inv.id
+                  }))}
                   pagination={false}
                   scroll={{ x: 1100 }}
                   className="trash-table"
@@ -997,7 +1045,8 @@ export default function InvoiceTrashPage() {
                 onChange={(v) => setPagination({ page: 1, limit: v })}
                 options={[10, 20, 25, 50, 100].map((n) => ({
                   value: n,
-                  label: `${n} / page` }))}
+                  label: `${n} / page`
+                }))}
                 popupMatchSelectWidth={120}
               />
             </div>
@@ -1103,14 +1152,17 @@ export default function InvoiceTrashPage() {
           body: { padding: 0 },
           mask: {
             backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)" },
-          content: { padding: 0, borderRadius: 12, overflow: "hidden" } }}
+            background: "rgba(15, 23, 42, 0.45)"
+          },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" }
+        }}
       >
         <div
           className="px-6 pt-5 pb-4 border-b"
           style={{
             background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <div className="flex items-start gap-3">
             <div
@@ -1118,7 +1170,8 @@ export default function InvoiceTrashPage() {
               style={{
                 background: "rgba(248,113,113,0.1)",
                 color: "#f87171",
-                border: "1px solid rgba(248,113,113,0.2)" }}
+                border: "1px solid rgba(248,113,113,0.2)"
+              }}
             >
               <Trash2 size={18} strokeWidth={2.25} />
             </div>
@@ -1209,7 +1262,8 @@ export default function InvoiceTrashPage() {
               className="rounded-none p-3 mb-5 flex items-start gap-2"
               style={{
                 background: "rgba(248,113,113,0.1)",
-                border: "1px solid rgba(248,113,113,0.2)" }}
+                border: "1px solid rgba(248,113,113,0.2)"
+              }}
             >
               <AlertCircle
                 size={14}
@@ -1258,14 +1312,17 @@ export default function InvoiceTrashPage() {
           body: { padding: 0 },
           mask: {
             backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)" },
-          content: { padding: 0, borderRadius: 12, overflow: "hidden" } }}
+            background: "rgba(15, 23, 42, 0.45)"
+          },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" }
+        }}
       >
         <div
           className="px-6 pt-5 pb-4 border-b"
           style={{
             background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <div className="flex items-start gap-3">
             <div
@@ -1273,7 +1330,8 @@ export default function InvoiceTrashPage() {
               style={{
                 background: "rgba(248,113,113,0.1)",
                 color: "#f87171",
-                border: "1px solid rgba(248,113,113,0.2)" }}
+                border: "1px solid rgba(248,113,113,0.2)"
+              }}
             >
               <Trash2 size={18} strokeWidth={2.25} />
             </div>
@@ -1299,7 +1357,8 @@ export default function InvoiceTrashPage() {
             className="rounded-none p-3 mb-4 max-h-64 overflow-y-auto"
             style={{
               background: "var(--bg-slate-50)",
-              border: "1px solid var(--border-color)" }}
+              border: "1px solid var(--border-color)"
+            }}
           >
             <div
               className="text-[10.5px] font-semibold uppercase tracking-[0.08em] mb-2"
@@ -1342,7 +1401,8 @@ export default function InvoiceTrashPage() {
             className="rounded-none p-3 mb-5 flex items-start gap-2"
             style={{
               background: "rgba(248,113,113,0.1)",
-              border: "1px solid rgba(248,113,113,0.2)" }}
+              border: "1px solid rgba(248,113,113,0.2)"
+            }}
           >
             <AlertCircle
               size={14}
@@ -1386,14 +1446,17 @@ export default function InvoiceTrashPage() {
           body: { padding: 0 },
           mask: {
             backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)" },
-          content: { padding: 0, borderRadius: 12, overflow: "hidden" } }}
+            background: "rgba(15, 23, 42, 0.45)"
+          },
+          content: { padding: 0, borderRadius: 12, overflow: "hidden" }
+        }}
       >
         <div
           className="px-6 pt-5 pb-4 border-b"
           style={{
             background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)" }}
+            borderColor: "var(--border-color)"
+          }}
         >
           <div className="flex items-start gap-3">
             <div
@@ -1401,7 +1464,8 @@ export default function InvoiceTrashPage() {
               style={{
                 background: "rgba(59,130,246,0.1)",
                 color: "#3B82F6",
-                border: "1px solid rgba(59,130,246,0.2)" }}
+                border: "1px solid rgba(59,130,246,0.2)"
+              }}
             >
               <RefreshCw size={18} strokeWidth={2.25} className="animate-spin" />
             </div>

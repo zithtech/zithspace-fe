@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -13,7 +12,8 @@ import {
   Tooltip,
   Switch,
   Drawer,
-  Popover } from "antd";
+  Popover
+} from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Trophy,
@@ -27,7 +27,8 @@ import {
   Tag as TagIcon,
   Settings,
   Building2,
-  MoreHorizontal } from "lucide-react";
+  MoreHorizontal
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -42,6 +43,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -110,7 +112,7 @@ export default function PositionsPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <LoadingSpinner message="Loading Positions..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading Positions..." size="lg" />
       </div>
     );
   }
@@ -147,7 +149,8 @@ export default function PositionsPage() {
         message: "Position Removed",
         description: "The position has been successfully deleted.",
         placement: "topRight",
-        duration: 2 });
+        duration: 2
+      });
     }
   };
 
@@ -165,7 +168,8 @@ export default function PositionsPage() {
           message: `Position ${editingKey ? "Updated" : "Created"}`,
           description: `The role "${payload.title}" has been successfully saved.`,
           placement: "topRight",
-          duration: 2 });
+          duration: 2
+        });
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -187,7 +191,8 @@ export default function PositionsPage() {
             <span className="orgx-row-name__code">{record.code}</span>
           </div>
         </div>
-      ) },
+      )
+    },
     {
       title: "Context",
       key: "context",
@@ -199,7 +204,8 @@ export default function PositionsPage() {
             <span className="orgx-row-context__sub">{record.subDepartmentName}</span>
           )}
         </div>
-      ) },
+      )
+    },
     {
       title: "Grade",
       dataIndex: "gradeName",
@@ -207,7 +213,8 @@ export default function PositionsPage() {
       width: 150,
       render: (grade: string) => (
         <span className={`orgx-row-soft-tag${!grade ? " is-muted" : ""}`}>{grade || "Not assigned"}</span>
-      ) },
+      )
+    },
     {
       title: "Status",
       dataIndex: "isActive",
@@ -218,7 +225,8 @@ export default function PositionsPage() {
           <span className="orgx-status-dot" />
           {isActive ? "Active" : "Inactive"}
         </span>
-      ) },
+      )
+    },
     {
       title: "",
       key: "actions",
@@ -246,7 +254,8 @@ export default function PositionsPage() {
             </ConfirmDialog>
           )}
         </div>
-      ) },
+      )
+    },
   ];
 
   const hasAdvancedFilter = !!gradeFilter || !!departmentFilter || !!subDepartmentFilter;
@@ -284,12 +293,12 @@ export default function PositionsPage() {
     const avatar = (record.code?.substring(0, 2) || record.title?.substring(0, 2) || "PS").toUpperCase();
     const canAct = canUpdateOrgPosition || canDeleteOrgPosition;
     const context = [record.departmentName, record.subDepartmentName].filter(Boolean).join(" › ");
-    
+
     const actionContent = (
       <div className="ant-dropdown-menu" style={{ border: 'none', boxShadow: 'none' }}>
         {canUpdateOrgPosition && (
-          <div 
-            className="ant-dropdown-menu-item" 
+          <div
+            className="ant-dropdown-menu-item"
             onClick={(e) => { e.stopPropagation(); setOpenCardId(null); handleEdit(record); }}
           >
             {positionMenuLabel("Edit position", "Modify title, grade or status", <Edit size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
@@ -326,9 +335,9 @@ export default function PositionsPage() {
             <div className="omx-card-sub">{record.code || record.gradeName || "—"}</div>
           </div>
           {canAct && (
-            <Popover 
-              content={actionContent} 
-              trigger="click" 
+            <Popover
+              content={actionContent}
+              trigger="click"
               placement="bottomRight"
               open={openCardId === record.id}
               onOpenChange={(open) => {
@@ -360,338 +369,343 @@ export default function PositionsPage() {
       {contextHolder}
       <div className="orgx-shell">
         <TimeTrackingHeader
-            icon={<Trophy size={20} color="#3b82f6" />}
-            title="Positions"
-            description="Define and manage organization roles, grade assignments, and designations."
-            style={{
-              borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
-              marginBottom: 8,
-              position: 'sticky',
-              top: 0,
-              zIndex: 100 }}
-            extra={
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                {canReadActivityLog && (
-                  <Button
-                    icon={<History size={15} />}
-                    onClick={() => setHistoryOpen(true)}
-                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    History
-                  </Button>
-                )}
-                {canCreateOrgPosition && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={15} />}
-                    onClick={handleAdd}
-                    className="orgx-primary-btn"
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
-                    New Position
-                  </Button>
-                )}
-              </div>
-            }
-          />
-
-            <OrgModuleScaffold<PositionViewData>
-              search={searchText}
-              onSearchChange={setSearchText}
-              searchPlaceholder="Search by title or code…"
-              view={view}
-              onViewChange={setView}
-              loading={loading}
-              stats={stats}
-              columns={columns}
-              data={filteredData}
-              rowKey="id"
-              renderCard={renderPositionCard}
-              filters={
-                <>
-                  <SearchableDropdown
-                    placeholder="All statuses"
-                    searchPlaceholder="Search statuses"
-                    itemNoun="statuses"
-                    value={statusFilter ?? undefined}
-                    onChange={(v) => setStatusFilter(v ?? null)}
-                    options={[
-                      { value: "active", label: "Active" },
-                      { value: "inactive", label: "Inactive" },
-                    ]}
-                    width={180}
-                    style={{ width: 138, height: 32 }}
-                  />
-                  <SearchableDropdown
-                    placeholder="All grades"
-                    searchPlaceholder="Search grades"
-                    itemNoun="grades"
-                    loading={gradesLoading}
-                    value={gradeFilter ?? undefined}
-                    onChange={(v) => setGradeFilter(v ?? null)}
-                    options={(grades ?? []).map((g: any) => ({ value: g.key, label: g.name }))}
-                    width={220}
-                    style={{ width: 150, height: 32 }}
-                    disabled={!grades || grades.length === 0}
-                  />
-                  <SearchableDropdown
-                    placeholder="All departments"
-                    searchPlaceholder="Search departments"
-                    itemNoun="departments"
-                    loading={departmentsLoading}
-                    value={departmentFilter ?? undefined}
-                    onChange={(v) => {
-                      setDepartmentFilter(v ?? null);
-                      setSubDepartmentFilter(null);
-                    }}
-                    options={departments.map((d) => ({ value: d.id, label: d.name }))}
-                    width={240}
-                    style={{ width: 168, height: 32 }}
-                    disabled={departments.length === 0}
-                  />
-                  <SearchableDropdown
-                    placeholder="All sub-depts"
-                    searchPlaceholder="Search sub-departments"
-                    itemNoun="sub-departments"
-                    loading={subDepartmentsLoading}
-                    value={subDepartmentFilter ?? undefined}
-                    onChange={(v) => setSubDepartmentFilter(v ?? null)}
-                    options={subDepartments
-                      .filter((sd) => !departmentFilter || sd.parentDepartmentId === departmentFilter)
-                      .map((sd) => ({ value: sd.id, label: sd.name }))}
-                    width={240}
-                    style={{ width: 168, height: 32 }}
-                    disabled={subDepartments.length === 0}
-                  />
-                  {(hasAdvancedFilter || statusFilter) && (
-                    <Button
-                      className="orgx-clear-btn"
-                      onClick={() => {
-                        setStatusFilter(null);
-                        setGradeFilter(null);
-                        setDepartmentFilter(null);
-                        setSubDepartmentFilter(null);
-                      }}
-                    >
-                      Reset
-                    </Button>
-                  )}
-                </>
-              }
-              emptyTitle="No positions found"
-              emptySubtitle="Define your first role to populate the org structure."
-              emptyAction={
-                canCreateOrgPosition ? (
-                  <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
-                    New Position
-                  </Button>
-                ) : undefined
-              }
-            />
-
-          {/* Drawer */}
-          <Drawer
-            rootClassName="leave-drawer-root"
-            title={null}
-            open={isDrawerOpen}
-            onClose={() => setIsDrawerOpen(false)}
-            width={720}
-            closable={false}
-            destroyOnClose
-            styles={{
-              header: { display: 'none' },
-              body: { padding: 0, background: 'var(--customers-page-bg)' },
-              footer: { padding: 0, border: 'none' },
-              wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
-            footer={
-              <div
-                className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)' }}
-              >
-                <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
-                  Fields marked required must be filled
-                </span>
-                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
-                  Cancel
+          icon={<Trophy size={20} color="#3b82f6" />}
+          title="Positions"
+          description="Define and manage organization roles, grade assignments, and designations."
+          style={{
+            borderBottom: "1px solid var(--border-slate-200)",
+            padding: "9.5px 32px",
+            marginBottom: 8,
+            position: 'sticky',
+            top: 0,
+            zIndex: 100
+          }}
+          extra={
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  History
                 </Button>
+              )}
+              {canCreateOrgPosition && (
                 <Button
                   type="primary"
-                  loading={submitting}
-                  onClick={handleSave}
-                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
-                  icon={editingKey ? <Edit size={14} /> : <Plus size={14} />}
+                  icon={<Plus size={15} />}
+                  onClick={handleAdd}
+                  className="orgx-primary-btn"
+                  style={{ display: "flex", alignItems: "center" }}
                 >
-                  {editingKey ? "Save Changes" : "Create Position"}
+                  New Position
                 </Button>
-              </div>
-            }
-          >
-            <style>{formStyles}</style>
-            <div
-              className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
-              style={{
-                background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-                borderColor: 'var(--border-color)' }}
-            >
-              <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: 'rgba(59,130,246,0.10)',
-                    color: '#3b82f6',
-                    border: '1px solid var(--border-blue-200)' }}
-                >
-                  {editingKey ? <Edit size={18} /> : <Trophy size={18} />}
-                </div>
-                <div className="min-w-0">
-                  <div
-                    className="text-[15px] font-semibold leading-tight"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {editingKey ? "Edit Position" : "New Position"}
-                  </div>
-                  <div
-                    className="text-[12px] mt-0.5"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Configure a role with its grade and department classification.
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDrawerOpen(false)}
-                aria-label="Close"
-                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <X size={16} />
-              </button>
+              )}
             </div>
+          }
+        />
 
-            <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
-              <Form 
-                form={form} 
-                layout="horizontal"
-                labelCol={{ span: 8 }}
-                wrapperCol={{ span: 16 }}
-                labelAlign="left"
-                colon={false}
-                requiredMark="optional"
-                className="customer-drawer-form"
-                onValuesChange={(changed) => {
-                  if (changed.title !== undefined && !editingKey) {
-                    form.setFieldsValue({ code: generateCodeFromName(changed.title) });
-                  }
+        <OrgModuleScaffold<PositionViewData>
+          search={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Search by title or code…"
+          view={view}
+          onViewChange={setView}
+          loading={loading}
+          stats={stats}
+          columns={columns}
+          data={filteredData}
+          rowKey="id"
+          renderCard={renderPositionCard}
+          filters={
+            <>
+              <SearchableDropdown
+                placeholder="All statuses"
+                searchPlaceholder="Search statuses"
+                itemNoun="statuses"
+                value={statusFilter ?? undefined}
+                onChange={(v) => setStatusFilter(v ?? null)}
+                options={[
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+                width={180}
+                style={{ width: 138, height: 32 }}
+              />
+              <SearchableDropdown
+                placeholder="All grades"
+                searchPlaceholder="Search grades"
+                itemNoun="grades"
+                loading={gradesLoading}
+                value={gradeFilter ?? undefined}
+                onChange={(v) => setGradeFilter(v ?? null)}
+                options={(grades ?? []).map((g: any) => ({ value: g.key, label: g.name }))}
+                width={220}
+                style={{ width: 150, height: 32 }}
+                disabled={!grades || grades.length === 0}
+              />
+              <SearchableDropdown
+                placeholder="All departments"
+                searchPlaceholder="Search departments"
+                itemNoun="departments"
+                loading={departmentsLoading}
+                value={departmentFilter ?? undefined}
+                onChange={(v) => {
+                  setDepartmentFilter(v ?? null);
+                  setSubDepartmentFilter(null);
+                }}
+                options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                width={240}
+                style={{ width: 168, height: 32 }}
+                disabled={departments.length === 0}
+              />
+              <SearchableDropdown
+                placeholder="All sub-depts"
+                searchPlaceholder="Search sub-departments"
+                itemNoun="sub-departments"
+                loading={subDepartmentsLoading}
+                value={subDepartmentFilter ?? undefined}
+                onChange={(v) => setSubDepartmentFilter(v ?? null)}
+                options={subDepartments
+                  .filter((sd) => !departmentFilter || sd.parentDepartmentId === departmentFilter)
+                  .map((sd) => ({ value: sd.id, label: sd.name }))}
+                width={240}
+                style={{ width: 168, height: 32 }}
+                disabled={subDepartments.length === 0}
+              />
+              {(hasAdvancedFilter || statusFilter) && (
+                <Button
+                  className="orgx-clear-btn"
+                  onClick={() => {
+                    setStatusFilter(null);
+                    setGradeFilter(null);
+                    setDepartmentFilter(null);
+                    setSubDepartmentFilter(null);
+                  }}
+                >
+                  Reset
+                </Button>
+              )}
+            </>
+          }
+          emptyTitle="No positions found"
+          emptySubtitle="Define your first role to populate the org structure."
+          emptyAction={
+            canCreateOrgPosition ? (
+              <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
+                New Position
+              </Button>
+            ) : undefined
+          }
+        />
+
+        {/* Drawer */}
+        <Drawer
+          rootClassName="leave-drawer-root"
+          title={null}
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          width={720}
+          closable={false}
+          destroyOnClose
+          styles={{
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--customers-page-bg)' },
+            footer: { padding: 0, border: 'none' },
+            wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+            mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' }
+          }}
+          footer={
+            <div
+              className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: 'var(--border-color)'
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                Fields marked required must be filled
+              </span>
+              <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                loading={submitting}
+                onClick={handleSave}
+                style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                icon={editingKey ? <Edit size={14} /> : <Plus size={14} />}
+              >
+                {editingKey ? "Save Changes" : "Create Position"}
+              </Button>
+            </div>
+          }
+        >
+          <style>{formStyles}</style>
+          <div
+            className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+            style={{
+              background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+              borderColor: 'var(--border-color)'
+            }}
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'rgba(59,130,246,0.10)',
+                  color: '#3b82f6',
+                  border: '1px solid var(--border-blue-200)'
                 }}
               >
-                <SectionCard
-                  icon={<TagIcon />}
-                  title="Identity"
-                  subtitle="Naming and identifier"
-                  step="STEP 1"
+                {editingKey ? <Edit size={18} /> : <Trophy size={18} />}
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="text-[15px] font-semibold leading-tight"
+                  style={{ color: 'var(--text-primary)' }}
                 >
-                  <Form.Item
-                    name="title"
-                    label="Position title"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input placeholder="e.g. Senior Software Engineer" />
-                  </Form.Item>
-                  <Form.Item
-                    name="code"
-                    label="Code"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input placeholder="Auto-generated" />
-                  </Form.Item>
-                </SectionCard>
-
-                <SectionCard
-                  icon={<Building2 />}
-                  title="Classification"
-                  subtitle="Grade and department"
-                  step="STEP 2"
+                  {editingKey ? "Edit Position" : "New Position"}
+                </div>
+                <div
+                  className="text-[12px] mt-0.5"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  <Form.Item
-                    name="gradeId"
-                    label="Grade"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <SearchableDropdown
-                      placeholder="Select grade"
-                      options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="departmentId"
-                    label="Department"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <SearchableDropdown
-                      placeholder="Select department"
-                      options={departments.map((d) => ({ value: d.id, label: d.name }))}
-                    />
-                  </Form.Item>
-                  <Form.Item 
-                    name="subDepartmentId" 
-                    label="Sub-department"
-                    style={{ marginBottom: 14 }}
-                  >
-                    <SearchableDropdown
-                      placeholder="Select sub-department (optional)"
-                      options={subDepartments.map((sd) => ({ value: sd.id, label: sd.name }))}
-                    />
-                  </Form.Item>
-                </SectionCard>
-
-                <SectionCard
-                  icon={<Settings />}
-                  title="Operations"
-                  subtitle="Status and description"
-                  step="STEP 3"
-                >
-                  <Form.Item 
-                    name="status" 
-                    valuePropName="checked" 
-                    initialValue={true} 
-                    label="Active status" 
-                    tooltip="Enable this position for recruitment and assignment."
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item 
-                    name="description" 
-                    label="Role description (optional)"
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Define the core responsibilities…"
-                      maxLength={240}
-                      showCount
-                    />
-                  </Form.Item>
-                </SectionCard>
-              </Form>
+                  Configure a role with its grade and department classification.
+                </div>
+              </div>
             </div>
-          </Drawer>
-        </div>
-        <TransactionHistoryDrawer
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          module="OrgStructure"
-        />
-        <style jsx global>{`
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(false)}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              className="customer-drawer-form"
+              onValuesChange={(changed) => {
+                if (changed.title !== undefined && !editingKey) {
+                  form.setFieldsValue({ code: generateCodeFromName(changed.title) });
+                }
+              }}
+            >
+              <SectionCard
+                icon={<TagIcon />}
+                title="Identity"
+                subtitle="Naming and identifier"
+                step="STEP 1"
+              >
+                <Form.Item
+                  name="title"
+                  label="Position title"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input placeholder="e.g. Senior Software Engineer" />
+                </Form.Item>
+                <Form.Item
+                  name="code"
+                  label="Code"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input placeholder="Auto-generated" />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard
+                icon={<Building2 />}
+                title="Classification"
+                subtitle="Grade and department"
+                step="STEP 2"
+              >
+                <Form.Item
+                  name="gradeId"
+                  label="Grade"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <SearchableDropdown
+                    placeholder="Select grade"
+                    options={grades.map((g: any) => ({ value: g.key, label: g.name }))}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="departmentId"
+                  label="Department"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <SearchableDropdown
+                    placeholder="Select department"
+                    options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="subDepartmentId"
+                  label="Sub-department"
+                  style={{ marginBottom: 14 }}
+                >
+                  <SearchableDropdown
+                    placeholder="Select sub-department (optional)"
+                    options={subDepartments.map((sd) => ({ value: sd.id, label: sd.name }))}
+                  />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard
+                icon={<Settings />}
+                title="Operations"
+                subtitle="Status and description"
+                step="STEP 3"
+              >
+                <Form.Item
+                  name="status"
+                  valuePropName="checked"
+                  initialValue={true}
+                  label="Active status"
+                  tooltip="Enable this position for recruitment and assignment."
+                  style={{ marginBottom: 14 }}
+                >
+                  <Switch />
+                </Form.Item>
+                <Form.Item
+                  name="description"
+                  label="Role description (optional)"
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Define the core responsibilities…"
+                    maxLength={240}
+                    showCount
+                  />
+                </Form.Item>
+              </SectionCard>
+            </Form>
+          </div>
+        </Drawer>
+      </div>
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        module="OrgStructure"
+      />
+      <style jsx global>{`
           .orgx-shell .saas-header-container {
             padding: 9.5px 32px !important;
           }

@@ -55,13 +55,13 @@ import SquadViewDrawer from '@/components/squad/SquadViewDrawer';
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
 import { Menu } from 'lucide-react';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const { Text } = Typography;
 
@@ -420,10 +420,10 @@ export default function SquadManagement() {
       { key: 'edit', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Manage</span><span className="sq-menu-desc">Edit squad configuration</span></span></div> },
       { key: 'archive', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#4f46e5', background: 'rgba(79,70,229,0.12)' }}>{squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />}</span><span className="sq-menu-text"><span className="sq-menu-title">{squad.isArchived ? 'Unarchive' : 'Archive'}</span><span className="sq-menu-desc">{squad.isArchived ? 'Restore squad to active list' : 'Archive this squad'}</span></span></div> },
       { type: 'divider' as const },
-      { 
-        key: 'delete', 
-        danger: true, 
-        disabled: !canDeleteSquad, 
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteSquad,
         label: (
           <ConfirmDialog
             tone="danger"
@@ -438,7 +438,7 @@ export default function SquadManagement() {
               <span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span>
             </div>
           </ConfirmDialog>
-        ) 
+        )
       },
     ],
     onClick: ({ key, domEvent }: any) => {
@@ -744,7 +744,7 @@ export default function SquadManagement() {
               <div className="sq-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

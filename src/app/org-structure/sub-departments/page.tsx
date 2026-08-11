@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -11,7 +10,8 @@ import {
   Tooltip,
   Switch,
   Drawer,
-  Popover } from "antd";
+  Popover
+} from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
@@ -26,7 +26,8 @@ import {
   Settings,
   Building2,
   Trash2,
-  MoreHorizontal } from "lucide-react";
+  MoreHorizontal
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -38,6 +39,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -94,7 +96,7 @@ export default function SubDepartmentsPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <LoadingSpinner message="Loading Sub-Departments..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading Sub-Departments..." size="lg" />
       </div>
     );
   }
@@ -131,7 +133,8 @@ export default function SubDepartmentsPage() {
         message: "Sub-Department Removed",
         description: "The sub-department has been successfully deleted.",
         placement: "topRight",
-        duration: 2 });
+        duration: 2
+      });
       fetchSubDepartments();
     }
   };
@@ -149,7 +152,8 @@ export default function SubDepartmentsPage() {
           message: `Sub-Department ${editingId ? "Updated" : "Created"}`,
           description: `The sub-department "${values.name}" has been successfully saved.`,
           placement: "topRight",
-          duration: 2 });
+          duration: 2
+        });
         fetchSubDepartments();
       }
     } catch (error) {
@@ -172,7 +176,8 @@ export default function SubDepartmentsPage() {
             <span className="orgx-row-name__code">{record.code}</span>
           </div>
         </div>
-      ) },
+      )
+    },
     {
       title: "Parent Department",
       dataIndex: "parentDepartmentId",
@@ -187,7 +192,8 @@ export default function SubDepartmentsPage() {
             {deptName || "Not assigned"}
           </span>
         );
-      } },
+      }
+    },
     {
       title: "Status",
       dataIndex: "isActive",
@@ -198,7 +204,8 @@ export default function SubDepartmentsPage() {
           <span className="orgx-status-dot" />
           {isActive ? "Active" : "Inactive"}
         </span>
-      ) },
+      )
+    },
     {
       title: "",
       key: "actions",
@@ -226,7 +233,8 @@ export default function SubDepartmentsPage() {
             </>
           )}
         </div>
-      ) },
+      )
+    },
   ];
 
   const CARD_ACCENTS: [string, string][] = [
@@ -262,13 +270,13 @@ export default function SubDepartmentsPage() {
     const deptName =
       record.parentDepartment?.name ||
       departments.find((d) => d.id === record.parentDepartmentId)?.name;
-      
+
     const actionContent = (
       <div className="ant-dropdown-menu" style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 4, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
         {canManageOrg && (
           <>
-            <div 
-              className="ant-dropdown-menu-item" 
+            <div
+              className="ant-dropdown-menu-item"
               onClick={(e) => { e.stopPropagation(); setOpenCardId(null); handleEdit(record); }}
             >
               {subDeptMenuLabel("Edit sub-department", "Modify name, code or status", <Edit size={14} />, "#3b82f6", "rgba(59,130,246,0.10)")}
@@ -304,9 +312,9 @@ export default function SubDepartmentsPage() {
             <div className="omx-card-sub">{record.code}</div>
           </div>
           {canManageOrg && (
-            <Popover 
-              content={actionContent} 
-              trigger="click" 
+            <Popover
+              content={actionContent}
+              trigger="click"
               placement="bottomRight"
               open={openCardId === record.id}
               onOpenChange={(open) => {
@@ -341,248 +349,253 @@ export default function SubDepartmentsPage() {
       {contextHolder}
       <div className="orgx-shell">
         <TimeTrackingHeader
-            icon={<GitBranch size={20} color="#3b82f6" />}
-            title="Sub-Departments"
-            description="Define specialized organizational branches and nested business units."
-            style={{
-              borderBottom: "1px solid var(--border-slate-200)",
-              padding: "9.5px 32px",
-              marginBottom: 8,
-              position: 'sticky',
-              top: 0,
-              zIndex: 100 }}
-            extra={
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                {canReadActivityLog && (
-                  <Button
-                    icon={<History size={15} />}
-                    onClick={() => setHistoryOpen(true)}
-                    style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    History
-                  </Button>
-                )}
-                {canManageOrg && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={15} />}
-                    onClick={handleAdd}
-                    className="orgx-primary-btn"
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
-                    New Sub-Department
-                  </Button>
-                )}
-              </div>
-            }
-          />
-
-          <OrgModuleScaffold<any>
-            search={searchText}
-            onSearchChange={setSearchText}
-            searchPlaceholder="Search by name, code, or description…"
-            meta={<><strong>{filteredData.length}</strong> of {totalSubDepartments} sub-departments</>}
-            view={view}
-            onViewChange={setView}
-            onRefresh={fetchSubDepartments}
-            loading={subDepartmentsLoading}
-            stats={stats}
-            columns={columns}
-            data={filteredData}
-            rowKey="id"
-            renderCard={renderSubDepartmentCard}
-            emptyTitle="No sub-departments found"
-            emptySubtitle="Create your first sub-department to organize nested business units."
-            emptyAction={
-              canManageOrg ? (
-                <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
-                  New Sub-Department
+          icon={<GitBranch size={20} color="#3b82f6" />}
+          title="Sub-Departments"
+          description="Define specialized organizational branches and nested business units."
+          style={{
+            borderBottom: "1px solid var(--border-slate-200)",
+            padding: "9.5px 32px",
+            marginBottom: 8,
+            position: 'sticky',
+            top: 0,
+            zIndex: 100
+          }}
+          extra={
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {canReadActivityLog && (
+                <Button
+                  icon={<History size={15} />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ borderRadius: 10, height: 38, fontWeight: 600, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  History
                 </Button>
-              ) : undefined
-            }
-          />
-
-          {/* Drawer */}
-          <Drawer
-            rootClassName="leave-drawer-root"
-            title={null}
-            open={isDrawerOpen}
-            onClose={() => setIsDrawerOpen(false)}
-            width={720}
-            closable={false}
-            destroyOnClose
-            styles={{
-              header: { display: 'none' },
-              body: { padding: 0, background: 'var(--customers-page-bg)' },
-              footer: { padding: 0, border: 'none' },
-              wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
-            footer={
-              <div
-                className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)' }}
-              >
-                <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
-                  Fields marked required must be filled
-                </span>
-                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
-                  Cancel
-                </Button>
+              )}
+              {canManageOrg && (
                 <Button
                   type="primary"
-                  loading={submitting}
-                  onClick={handleSave}
-                  style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
-                  icon={editingId ? <Edit size={14} /> : <Plus size={14} />}
+                  icon={<Plus size={15} />}
+                  onClick={handleAdd}
+                  className="orgx-primary-btn"
+                  style={{ display: "flex", alignItems: "center" }}
                 >
-                  {editingId ? "Save Changes" : "Create Sub-Department"}
+                  New Sub-Department
                 </Button>
-              </div>
-            }
-          >
-            <style>{formStyles}</style>
-            <div
-              className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
-              style={{
-                background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-                borderColor: 'var(--border-color)' }}
-            >
-              <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: 'rgba(59,130,246,0.10)',
-                    color: '#3b82f6',
-                    border: '1px solid var(--border-blue-200)' }}
-                >
-                  {editingId ? <Edit size={18} /> : <GitBranch size={18} />}
-                </div>
-                <div className="min-w-0">
-                  <div
-                    className="text-[15px] font-semibold leading-tight"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {editingId ? "Edit Sub-Department" : "New Sub-Department"}
-                  </div>
-                  <div
-                    className="text-[12px] mt-0.5"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Configure a specialized branch within a parent department.
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDrawerOpen(false)}
-                aria-label="Close"
-                className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <X size={16} />
-              </button>
+              )}
             </div>
+          }
+        />
 
-            <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
-              <Form 
-                form={form} 
-                layout="horizontal"
-                labelCol={{ span: 8 }}
-                wrapperCol={{ span: 16 }}
-                labelAlign="left"
-                colon={false}
-                requiredMark="optional"
-                className="customer-drawer-form"
-                onValuesChange={(changed) => {
-                  if (changed.name !== undefined && !editingId) {
-                    form.setFieldsValue({ code: generateCodeFromName(changed.name) });
-                  }
+        <OrgModuleScaffold<any>
+          search={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Search by name, code, or description…"
+          meta={<><strong>{filteredData.length}</strong> of {totalSubDepartments} sub-departments</>}
+          view={view}
+          onViewChange={setView}
+          onRefresh={fetchSubDepartments}
+          loading={subDepartmentsLoading}
+          stats={stats}
+          columns={columns}
+          data={filteredData}
+          rowKey="id"
+          renderCard={renderSubDepartmentCard}
+          emptyTitle="No sub-departments found"
+          emptySubtitle="Create your first sub-department to organize nested business units."
+          emptyAction={
+            canManageOrg ? (
+              <Button type="primary" icon={<Plus size={15} />} onClick={handleAdd} className="orgx-primary-btn">
+                New Sub-Department
+              </Button>
+            ) : undefined
+          }
+        />
+
+        {/* Drawer */}
+        <Drawer
+          rootClassName="leave-drawer-root"
+          title={null}
+          open={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          width={720}
+          closable={false}
+          destroyOnClose
+          styles={{
+            header: { display: 'none' },
+            body: { padding: 0, background: 'var(--customers-page-bg)' },
+            footer: { padding: 0, border: 'none' },
+            wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
+            mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' }
+          }}
+          footer={
+            <div
+              className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
+              style={{
+                background: 'var(--bg-secondary)',
+                borderColor: 'var(--border-color)'
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
+                Fields marked required must be filled
+              </span>
+              <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8, height: 36 }}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                loading={submitting}
+                onClick={handleSave}
+                style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
+                icon={editingId ? <Edit size={14} /> : <Plus size={14} />}
+              >
+                {editingId ? "Save Changes" : "Create Sub-Department"}
+              </Button>
+            </div>
+          }
+        >
+          <style>{formStyles}</style>
+          <div
+            className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
+            style={{
+              background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
+              borderColor: 'var(--border-color)'
+            }}
+          >
+            <div className="flex items-start gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'rgba(59,130,246,0.10)',
+                  color: '#3b82f6',
+                  border: '1px solid var(--border-blue-200)'
                 }}
               >
-                <SectionCard
-                  icon={<TagIcon />}
-                  title="Identity"
-                  subtitle="Naming and identifier"
-                  step="STEP 1"
+                {editingId ? <Edit size={18} /> : <GitBranch size={18} />}
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="text-[15px] font-semibold leading-tight"
+                  style={{ color: 'var(--text-primary)' }}
                 >
-                  <Form.Item
-                    name="name"
-                    label="Sub-Department name"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input placeholder="e.g. Talent Acquisition" />
-                  </Form.Item>
-                  <Form.Item
-                    name="code"
-                    label="Code"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input placeholder="Auto-generated from name" />
-                  </Form.Item>
-                </SectionCard>
-
-                <SectionCard
-                  icon={<Building2 />}
-                  title="Parent Context"
-                  subtitle="Parent department selection"
-                  step="STEP 2"
+                  {editingId ? "Edit Sub-Department" : "New Sub-Department"}
+                </div>
+                <div
+                  className="text-[12px] mt-0.5"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  <Form.Item
-                    name="parentDepartmentId"
-                    label="Parent department"
-                    rules={[{ required: true, message: "Required" }]}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <SearchableDropdown
-                      placeholder="Select parent department"
-                      options={departments.map((d) => ({ value: d.id, label: d.name }))}
-                    />
-                  </Form.Item>
-                </SectionCard>
-
-                <SectionCard
-                  icon={<Settings />}
-                  title="Operations"
-                  subtitle="Status and description"
-                  step="STEP 3"
-                >
-                  <Form.Item 
-                    name="isActive" 
-                    valuePropName="checked" 
-                    initialValue={true} 
-                    label="Active status" 
-                    tooltip="Enable or disable this organizational branch."
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item 
-                    name="description" 
-                    label="Description (optional)"
-                    style={{ marginBottom: 14 }}
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Define the core responsibilities of this unit…"
-                      maxLength={240}
-                      showCount
-                    />
-                  </Form.Item>
-                </SectionCard>
-              </Form>
+                  Configure a specialized branch within a parent department.
+                </div>
+              </div>
             </div>
-          </Drawer>
-        </div>
-        <TransactionHistoryDrawer
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          module="OrgStructure"
-        />
-        <style jsx global>{`
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(false)}
+              aria-label="Close"
+              className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 8 }}
+              wrapperCol={{ span: 16 }}
+              labelAlign="left"
+              colon={false}
+              requiredMark="optional"
+              className="customer-drawer-form"
+              onValuesChange={(changed) => {
+                if (changed.name !== undefined && !editingId) {
+                  form.setFieldsValue({ code: generateCodeFromName(changed.name) });
+                }
+              }}
+            >
+              <SectionCard
+                icon={<TagIcon />}
+                title="Identity"
+                subtitle="Naming and identifier"
+                step="STEP 1"
+              >
+                <Form.Item
+                  name="name"
+                  label="Sub-Department name"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input placeholder="e.g. Talent Acquisition" />
+                </Form.Item>
+                <Form.Item
+                  name="code"
+                  label="Code"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input placeholder="Auto-generated from name" />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard
+                icon={<Building2 />}
+                title="Parent Context"
+                subtitle="Parent department selection"
+                step="STEP 2"
+              >
+                <Form.Item
+                  name="parentDepartmentId"
+                  label="Parent department"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 14 }}
+                >
+                  <SearchableDropdown
+                    placeholder="Select parent department"
+                    options={departments.map((d) => ({ value: d.id, label: d.name }))}
+                  />
+                </Form.Item>
+              </SectionCard>
+
+              <SectionCard
+                icon={<Settings />}
+                title="Operations"
+                subtitle="Status and description"
+                step="STEP 3"
+              >
+                <Form.Item
+                  name="isActive"
+                  valuePropName="checked"
+                  initialValue={true}
+                  label="Active status"
+                  tooltip="Enable or disable this organizational branch."
+                  style={{ marginBottom: 14 }}
+                >
+                  <Switch />
+                </Form.Item>
+                <Form.Item
+                  name="description"
+                  label="Description (optional)"
+                  style={{ marginBottom: 14 }}
+                >
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Define the core responsibilities of this unit…"
+                    maxLength={240}
+                    showCount
+                  />
+                </Form.Item>
+              </SectionCard>
+            </Form>
+          </div>
+        </Drawer>
+      </div>
+      <TransactionHistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        module="OrgStructure"
+      />
+      <style jsx global>{`
           .orgx-shell .saas-header-container {
             padding: 9.5px 32px !important;
           }

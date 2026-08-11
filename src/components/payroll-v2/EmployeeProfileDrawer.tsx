@@ -1,10 +1,10 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from 'react';
 import { Button, Input, Select, Drawer, Avatar, message, Space } from 'antd';
 import { CloseOutlined, IdcardOutlined, BankOutlined, SafetyCertificateOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import PayrollV2Service, { MemberOption, TaxRegime, UpsertProfileInput } from '@/services/payrollV2Service';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const PALETTE = { slate: '#64748B', green: '#10B981', blue: '#3B82F6', violet: '#8B5CF6' } as const;
@@ -12,7 +12,8 @@ const TINT = { slate: 'rgba(100,116,139,0.12)', green: 'rgba(16,185,129,0.10)', 
 
 const EMPTY: UpsertProfileInput = {
   pan: '', uan: '', pfNumber: '', esiNumber: '', taxRegime: 'new',
-  accountHolderName: '', bankName: '', bankAccountNumber: '', bankIfsc: '' };
+  accountHolderName: '', bankName: '', bankAccountNumber: '', bankIfsc: ''
+};
 
 const initials = (name: string) => name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
@@ -43,12 +44,12 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 export default function EmployeeProfileDrawer({
   open, employee, canEdit, onClose, onSaved }: {
-  open: boolean;
-  employee: MemberOption | null;
-  canEdit: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
+    open: boolean;
+    employee: MemberOption | null;
+    canEdit: boolean;
+    onClose: () => void;
+    onSaved: () => void;
+  }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<UpsertProfileInput>(EMPTY);
@@ -61,7 +62,8 @@ export default function EmployeeProfileDrawer({
         setForm(p ? {
           pan: p.pan ?? '', uan: p.uan ?? '', pfNumber: p.pfNumber ?? '', esiNumber: p.esiNumber ?? '',
           taxRegime: p.taxRegime, accountHolderName: p.accountHolderName ?? '', bankName: p.bankName ?? '',
-          bankAccountNumber: p.bankAccountNumber ?? '', bankIfsc: p.bankIfsc ?? '' } : { ...EMPTY, accountHolderName: employee.label });
+          bankAccountNumber: p.bankAccountNumber ?? '', bankIfsc: p.bankIfsc ?? ''
+        } : { ...EMPTY, accountHolderName: employee.label });
       })
       .catch(() => message.error('Failed to load profile'))
       .finally(() => setLoading(false));
@@ -100,7 +102,7 @@ export default function EmployeeProfileDrawer({
         </div>
 
         <div className="epd-body">
-          {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><LoadingSpinner fullScreen={false} /></div> : (
+          {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div> : (
             <>
               <SectionCard icon={<SafetyCertificateOutlined />} tint={TINT.violet} color={PALETTE.violet} title="Statutory IDs" subtitle="Identity & compliance numbers">
                 <Field label="PAN" hint="10-character income-tax PAN"><Input value={form.pan ?? ''} maxLength={10} onChange={(e) => set('pan', e.target.value.toUpperCase())} placeholder="ABCDE1234F" style={{ fontFamily: 'monospace' }} /></Field>

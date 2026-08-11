@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -17,7 +16,8 @@ import {
   message,
   notification,
   Divider,
-  Breadcrumb } from "antd";
+  Breadcrumb
+} from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -26,10 +26,12 @@ import {
   SaveOutlined,
   EditOutlined,
   EyeOutlined,
-  InfoCircleOutlined } from "@ant-design/icons";
+  InfoCircleOutlined
+} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { ImplementationPartnerService } from "@/services/implementationPartner.service";
 import AttachmentSection, { AttachmentItem } from "../../recruitment/job-requisitions/components/AttachmentSection";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -58,14 +60,15 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
     setFetching(true);
     try {
       const partner = await ImplementationPartnerService.getPartnerById(partnerId);
-      
+
       if (partner.documents && Array.isArray(partner.documents)) {
         partner.documents = partner.documents.map((doc: any) => ({
           id: doc.id,
           fileName: doc.documentType ? `${doc.documentType} Document` : "Document",
           fileUrl: doc.documentUrl,
           category: doc.documentType || "Other",
-          isNew: false }));
+          isNew: false
+        }));
       }
 
       form.setFieldsValue(partner);
@@ -90,7 +93,8 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
           documentType: doc.category || "Other",
           fileName: doc.fileName || "document.pdf",
           base64: doc.isNew ? doc.fileUrl : undefined,
-          documentUrl: !doc.isNew ? doc.fileUrl : undefined }));
+          documentUrl: !doc.isNew ? doc.fileUrl : undefined
+        }));
       }
 
       if (isEdit && id) {
@@ -113,7 +117,7 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
   if (fetching) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: "#f5f5f5" }}>
-        <LoadingSpinner message="Loading partner details..." size="large" fullScreen={false} />
+        <ZukvoLoader message="Loading partner details..." size="lg" />
       </div>
     );
   }
@@ -129,8 +133,8 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Space size="middle">
-            <Button 
-              icon={<ArrowLeftOutlined />} 
+            <Button
+              icon={<ArrowLeftOutlined />}
               onClick={() => router.push("/implementation-partner")}
               style={{ borderRadius: "8px" }}
             />
@@ -143,13 +147,13 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
               </Text>
             </div>
           </Space>
-          
+
           {!isView && (
             <Space>
               <Button onClick={() => form.resetFields()}>Reset</Button>
-              <Button 
-                type="primary" 
-                icon={<SaveOutlined />} 
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
                 loading={loading}
                 onClick={() => form.submit()}
               >
@@ -238,50 +242,50 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
                 </Form.Item>
               </Col>
             </Row>
-            </Card>
+          </Card>
 
-            {/* Section 2: Contact Persons */}
-            <Card title={<Space><PlusOutlined />Contact Person Details</Space>} style={{ marginBottom: 24, borderRadius: '8px' }}>
-              <Form.List name="contactPersons">
-                {(fields, { add, remove }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }) => (
-                      <div key={key} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: fields.length > 1 ? '1px dashed #f0f0f0' : 'none' }}>
-                        <Row gutter={16}>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'personName']} label="Contact Name" rules={[{ required: true, message: 'Required' }]}>
-                              <Input placeholder="Contact name" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'designation']} label="Designation">
-                              <Input placeholder="e.g. Manager" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'email']} label="Email">
-                              <Input placeholder="Email address" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                        <Row gutter={16}>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'phone']} label="Phone Number">
-                              <Input placeholder="Phone number" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={13}>
-                            <Form.Item {...restField} name={[name, 'linkedInUrl']} label="LinkedIn Profile">
-                              <Input placeholder="https://..." />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </Form.List>
-            </Card>
+          {/* Section 2: Contact Persons */}
+          <Card title={<Space><PlusOutlined />Contact Person Details</Space>} style={{ marginBottom: 24, borderRadius: '8px' }}>
+            <Form.List name="contactPersons">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <div key={key} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: fields.length > 1 ? '1px dashed #f0f0f0' : 'none' }}>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'personName']} label="Contact Name" rules={[{ required: true, message: 'Required' }]}>
+                            <Input placeholder="Contact name" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'designation']} label="Designation">
+                            <Input placeholder="e.g. Manager" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'email']} label="Email">
+                            <Input placeholder="Email address" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'phone']} label="Phone Number">
+                            <Input placeholder="Phone number" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={13}>
+                          <Form.Item {...restField} name={[name, 'linkedInUrl']} label="LinkedIn Profile">
+                            <Input placeholder="https://..." />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
+                  ))}
+                </>
+              )}
+            </Form.List>
+          </Card>
 
           {/* Section 3: Business Details */}
           <Card title="Business Details" style={{ marginBottom: 24, borderRadius: '8px' }}>
@@ -406,9 +410,9 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
             <div style={{ textAlign: "right", marginTop: 24, paddingBottom: 48 }}>
               <Space size="large">
                 <Button size="large" onClick={() => router.push("/implementation-partner")}>Cancel</Button>
-                <Button 
-                  type="primary" 
-                  size="large" 
+                <Button
+                  type="primary"
+                  size="large"
                   loading={loading}
                   onClick={() => form.submit()}
                   style={{ minWidth: 150 }}

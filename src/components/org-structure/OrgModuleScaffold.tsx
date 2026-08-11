@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Select, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -11,6 +10,7 @@ import {
   RefreshCw,
   PackageOpen,
 } from "lucide-react";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 /**
  * Shared content-area scaffold for every Org-structure data submodule
@@ -235,7 +235,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
           <div className="omx-table-wrap" style={{ position: 'relative' }}>
             {loading && (
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <LoadingSpinner size="medium" fullScreen={false} />
+                <ZukvoLoader size="md" />
               </div>
             )}
             <Table
@@ -251,13 +251,13 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
               onRow={(record) =>
                 onRowClick
                   ? {
-                      onClick: (e) => {
-                        const t = e.target as HTMLElement;
-                        if (t.closest("button, input, .ant-select, .ant-dropdown-trigger, .ant-popover-open")) return;
-                        onRowClick(record);
-                      },
-                      className: "omx-row",
-                    }
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest("button, input, .ant-select, .ant-dropdown-trigger, .ant-popover-open")) return;
+                      onRowClick(record);
+                    },
+                    className: "omx-row",
+                  }
                   : {}
               }
             />

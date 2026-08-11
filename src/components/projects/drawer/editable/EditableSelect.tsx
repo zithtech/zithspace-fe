@@ -1,7 +1,7 @@
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect, useRef } from 'react';
 import { Select, Typography, Tag, Space, Avatar } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -64,7 +64,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     };
 
     const normalize = (val: string | undefined) => val?.toLowerCase().replace(/ /g, '_');
-    
+
     const selectedOption = options.find(opt => normalize(opt.value) === normalize(value as string));
 
     const hasValue = !!value;
@@ -124,7 +124,8 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 purple: '#8b5cf6', magenta: '#ec4899',
                 green: '#10b981', lime: '#84cc16',
                 gold: '#f59e0b', orange: '#f97316', volcano: '#ef4444', red: '#dc2626',
-                default: '#94a3b8' };
+                default: '#94a3b8'
+            };
             const c = opt.color || 'default';
             const dotColor = c.startsWith('#') ? c : (dotColorMap[c] || dotColorMap.default);
             return (
@@ -134,7 +135,8 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                             width: 6, height: 6, borderRadius: '50%',
                             background: dotColor, display: 'inline-block',
                             boxShadow: `0 0 0 3px ${dotColor}1f`,
-                            flexShrink: 0 }}
+                            flexShrink: 0
+                        }}
                     />
                     <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)' }}>
                         {opt.label}
@@ -180,12 +182,13 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 minHeight: plain ? 'auto' : '28px',
                 display: 'flex',
                 alignItems: 'center',
-                transition: 'background 0.2s' }}
+                transition: 'background 0.2s'
+            }}
             className={plain ? "" : "editable-field-hover"}
             title={label || placeholder}
         >
             <div style={{ flex: 1 }}>{renderValue()}</div>
-            {loading && <LoadingSpinner size="small" fullScreen={false} />}
+            {loading && <ZukvoLoader size="sm" />}
             {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`

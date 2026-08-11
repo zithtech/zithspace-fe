@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -93,6 +92,7 @@ import { approvalsService } from "@/services/approvalsService";
 import { milestoneService } from "@/services/milestoneService";
 import { releaseService } from "@/services/releaseService";
 import { currencyOptions } from "@/utils/currencyOptions";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -773,7 +773,7 @@ export default function ClientV2DetailsPage() {
         <MainLayout>
           <div className="cd-loading">
             <div className="cd-loading-card">
-              <LoadingSpinner size="large" fullScreen={false} />
+              <ZukvoLoader size="lg" />
               <Text className="cd-loading-text">Loading client profile…</Text>
             </div>
             <style jsx global>{`

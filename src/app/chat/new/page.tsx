@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect } from 'react';
@@ -9,6 +8,7 @@ import { channelService } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
 import { MembersService } from '@/services/membersService';
 import { UserOutlined } from '@ant-design/icons';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -19,7 +19,7 @@ interface Member {
 }
 
 export default function NewChatPage() {
-  useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
+    useActivitySource({ section: "HOME", module: "Messages", page: "MessagesView" });
     const { token } = theme.useToken();
     const router = useRouter();
     const { setChannels, channels } = useChatStore();
@@ -110,7 +110,7 @@ export default function NewChatPage() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
                 {loading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                        <LoadingSpinner fullScreen={false} />
+                        <ZukvoLoader size="md" />
                     </div>
                 ) : searchResults.length > 0 ? (
                     <List

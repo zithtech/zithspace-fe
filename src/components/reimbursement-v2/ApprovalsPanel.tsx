@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tabs, Modal, Input, Drawer, message, Descriptions, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -16,6 +15,7 @@ import ReimbursementV2Service, {
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 type Pending = { kind: 'claim' | 'advance'; action: 'approve' | 'reject' | 'send-back'; id: string; label: string } | null;
 
@@ -73,9 +73,11 @@ export default function ApprovalsPanel() {
   };
 
   const claimCols: ColumnsType<ApprovalInboxItem> = [
-    { title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Title', dataIndex: 'title', render: (v) => v || '—' },
     { title: 'Items', dataIndex: 'itemCount', align: 'center' },
     { title: 'Amount', dataIndex: 'totalAmount', align: 'right', render: (v, r) => money(v, r.currency) },
@@ -94,9 +96,11 @@ export default function ApprovalsPanel() {
   ];
 
   const advanceCols: ColumnsType<AdvanceInboxItem> = [
-    { title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Purpose', dataIndex: 'purpose', render: (v) => v || '—' },
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
@@ -129,7 +133,7 @@ export default function ApprovalsPanel() {
               <div className="rvp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table rowKey="id" size="middle" loading={false} columns={claimCols} dataSource={claims}
@@ -143,7 +147,7 @@ export default function ApprovalsPanel() {
               <div className="rvp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table rowKey="id" size="middle" loading={false} columns={advanceCols} dataSource={advances}
@@ -298,34 +302,34 @@ export default function ApprovalsPanel() {
         </div>
 
         <div className="px-6 py-6 space-y-5 pb-24">
-        {detail && (
-          <>
-            <SectionCard icon={<EyeOutlined />} title="Claim Info" subtitle="Basic details about this claim">
-              <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
-                <Descriptions.Item label="Status"><StatusTag status={detail.status} /></Descriptions.Item>
-                <Descriptions.Item label="Total">{money(detail.totalAmount, detail.currency)}</Descriptions.Item>
-                <Descriptions.Item label="Title">{detail.title || '—'}</Descriptions.Item>
-              </Descriptions>
-            </SectionCard>
-            <SectionCard icon={<EyeOutlined />} title="Line items" subtitle="Expenses on this claim">
-              {detail.items.map((it) => (
-                <div key={it.id} style={{ padding: '8px 10px', border: '1px solid var(--border-slate-100)', borderRadius: 8, marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, detail.currency)}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}</div>
-                </div>
-              ))}
-            </SectionCard>
-            {detail.attachments.length > 0 && (
-              <SectionCard icon={<EyeOutlined />} title="Receipts" subtitle="Attached bills / invoices">
-                <div style={{ marginTop: 12 }}>
-                  {detail.attachments.map((a) => (
-                    <div key={a.id}><a href={a.fileUrl} target="_blank" rel="noreferrer">{a.fileName}</a></div>
-                  ))}
-                </div>
+          {detail && (
+            <>
+              <SectionCard icon={<EyeOutlined />} title="Claim Info" subtitle="Basic details about this claim">
+                <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
+                  <Descriptions.Item label="Status"><StatusTag status={detail.status} /></Descriptions.Item>
+                  <Descriptions.Item label="Total">{money(detail.totalAmount, detail.currency)}</Descriptions.Item>
+                  <Descriptions.Item label="Title">{detail.title || '—'}</Descriptions.Item>
+                </Descriptions>
               </SectionCard>
-            )}
-          </>
-        )}
+              <SectionCard icon={<EyeOutlined />} title="Line items" subtitle="Expenses on this claim">
+                {detail.items.map((it) => (
+                  <div key={it.id} style={{ padding: '8px 10px', border: '1px solid var(--border-slate-100)', borderRadius: 8, marginBottom: 8 }}>
+                    <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, detail.currency)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}</div>
+                  </div>
+                ))}
+              </SectionCard>
+              {detail.attachments.length > 0 && (
+                <SectionCard icon={<EyeOutlined />} title="Receipts" subtitle="Attached bills / invoices">
+                  <div style={{ marginTop: 12 }}>
+                    {detail.attachments.map((a) => (
+                      <div key={a.id}><a href={a.fileUrl} target="_blank" rel="noreferrer">{a.fileName}</a></div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+            </>
+          )}
         </div>
       </Drawer>
       <RmbStyles />

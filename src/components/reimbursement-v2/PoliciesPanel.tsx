@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, Switch, Tooltip, message, Space,
 } from 'antd';
@@ -19,6 +18,7 @@ import ReimbursementV2Service, {
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const SCOPE_OPTIONS = [
   { value: 'org', label: 'Whole organization' },
@@ -206,7 +206,7 @@ export default function PoliciesPanel() {
       <div className="rvp-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="middle" loading={false} columns={columns} dataSource={filtered}
@@ -302,113 +302,113 @@ export default function PoliciesPanel() {
             requiredMark="optional"
             className="customer-drawer-form"
           >
-          <SectionCard icon={<InfoCircleOutlined />}
-            title="Basics" subtitle="Identity and auto-approval" step="STEP 1">
-            <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
-              <Input placeholder="e.g. Field Staff Policy"
-                onChange={(e) => form.setFieldsValue({ code: toCode(e.target.value) })} />
-            </Form.Item>
-            <Form.Item name="code"
-              label={labelInfo('Code', 'Auto-generated from the name and used as a unique key. It cannot be edited.')}
-              rules={[{ required: true, message: 'Enter a name to generate the code' },
+            <SectionCard icon={<InfoCircleOutlined />}
+              title="Basics" subtitle="Identity and auto-approval" step="STEP 1">
+              <Form.Item name="name" label="Name"
+                rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+                <Input placeholder="e.g. Field Staff Policy"
+                  onChange={(e) => form.setFieldsValue({ code: toCode(e.target.value) })} />
+              </Form.Item>
+              <Form.Item name="code"
+                label={labelInfo('Code', 'Auto-generated from the name and used as a unique key. It cannot be edited.')}
+                rules={[{ required: true, message: 'Enter a name to generate the code' },
                 { pattern: /^[A-Z0-9_-]+$/, message: 'Invalid code' }]}>
-              <Input placeholder="FIELD_STAFF_POLICY" disabled />
-            </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
-              <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
-            </Form.Item>
-            <Form.Item name="autoApproveBelow"
-              label={labelInfo(
-                'Auto-approve claims at or below (₹)',
-                'An amount threshold. If a submitted claim’s total is at or below this value, it is approved automatically and skips the manager. Leave empty to always require approval.'
-              )}
-              rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-              <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="e.g. 500 — leave empty to always require approval" onKeyDown={preventInvalidNumberKeys as any} />
-            </Form.Item>
-            <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
-          </SectionCard>
+                <Input placeholder="FIELD_STAFF_POLICY" disabled />
+              </Form.Item>
+              <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+                <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
+              </Form.Item>
+              <Form.Item name="autoApproveBelow"
+                label={labelInfo(
+                  'Auto-approve claims at or below (₹)',
+                  'An amount threshold. If a submitted claim’s total is at or below this value, it is approved automatically and skips the manager. Leave empty to always require approval.'
+                )}
+                rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="e.g. 500 — leave empty to always require approval" onKeyDown={preventInvalidNumberKeys as any} />
+              </Form.Item>
+              <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
+            </SectionCard>
 
-          <SectionCard icon={<ApartmentOutlined />}
-            title="Applies to" subtitle="Who this policy governs" step="STEP 2">
-            <Form.List name="assignments">
-              {(fields, { add, remove: rm }) => (
-                <>
-                  {fields.map((f) => (
-                    <Space key={f.key} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
-                      <Form.Item name={[f.name, 'scopeType']} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
-                        <SearchableDropdown style={{ width: 180, minHeight: 38 }} options={SCOPE_OPTIONS}
-                          onChange={() => form.setFields([{ name: ['assignments', f.name, 'scopeId'], value: undefined }])} />
-                      </Form.Item>
-                      <Form.Item noStyle
-                        shouldUpdate={(p, c) => p.assignments?.[f.name]?.scopeType !== c.assignments?.[f.name]?.scopeType}>
-                        {() => {
-                          const st = form.getFieldValue(['assignments', f.name, 'scopeType']);
-                          if (!st || st === 'org') return null;
-                          return (
-                            <Form.Item name={[f.name, 'scopeId']} rules={[{ required: true, message: 'Select a target' }]} style={{ marginBottom: 0 }}>
-                              <SearchableDropdown
-                                placeholder={`Select ${SCOPE_OPTIONS.find((s) => s.value === st)?.label?.toLowerCase()}`}
-                                options={scopeOpts[st] || []} style={{ width: 320, minHeight: 38 }} />
-                            </Form.Item>
-                          );
-                        }}
-                      </Form.Item>
-                      <MinusCircleOutlined onClick={() => rm(f.name)} style={{ color: 'var(--text-slate-400)' }} />
-                    </Space>
-                  ))}
-                  <Button type="dashed" onClick={() => add({ scopeType: 'department' })} icon={<PlusOutlined />} block>Add scope</Button>
-                </>
-              )}
-            </Form.List>
-          </SectionCard>
-
-          <SectionCard icon={<ProfileOutlined />}
-            title="Category limit overrides" subtitle="Spend caps for this policy — override the category defaults" step="STEP 3">
-            <div style={{ fontSize: 12, color: 'var(--text-slate-500)', marginBottom: 10 }}>
-              All values are <b>amounts</b> (₹), not counts. Leave a box empty to keep the category’s own limit.
-            </div>
-            <Form.List name="lines">
-              {(fields, { add, remove: rm }) => (
-                <>
-                  {fields.map((f) => (
-                    <div key={f.key} style={{ border: '1px solid var(--border-slate-100)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                      <Space align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
-                        <Form.Item name={[f.name, 'categoryId']} rules={[{ required: true, message: 'Pick a category' }]} style={{ marginBottom: 0, flex: 1 }}>
-                          <SearchableDropdown style={{ minHeight: 38 }} placeholder="Category"
-                            options={cats.map((c) => ({ value: c.id, label: c.name }))} />
+            <SectionCard icon={<ApartmentOutlined />}
+              title="Applies to" subtitle="Who this policy governs" step="STEP 2">
+              <Form.List name="assignments">
+                {(fields, { add, remove: rm }) => (
+                  <>
+                    {fields.map((f) => (
+                      <Space key={f.key} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
+                        <Form.Item name={[f.name, 'scopeType']} rules={[{ required: true }]} style={{ marginBottom: 0 }}>
+                          <SearchableDropdown style={{ width: 180, minHeight: 38 }} options={SCOPE_OPTIONS}
+                            onChange={() => form.setFields([{ name: ['assignments', f.name, 'scopeId'], value: undefined }])} />
+                        </Form.Item>
+                        <Form.Item noStyle
+                          shouldUpdate={(p, c) => p.assignments?.[f.name]?.scopeType !== c.assignments?.[f.name]?.scopeType}>
+                          {() => {
+                            const st = form.getFieldValue(['assignments', f.name, 'scopeType']);
+                            if (!st || st === 'org') return null;
+                            return (
+                              <Form.Item name={[f.name, 'scopeId']} rules={[{ required: true, message: 'Select a target' }]} style={{ marginBottom: 0 }}>
+                                <SearchableDropdown
+                                  placeholder={`Select ${SCOPE_OPTIONS.find((s) => s.value === st)?.label?.toLowerCase()}`}
+                                  options={scopeOpts[st] || []} style={{ width: 320, minHeight: 38 }} />
+                              </Form.Item>
+                            );
+                          }}
                         </Form.Item>
                         <MinusCircleOutlined onClick={() => rm(f.name)} style={{ color: 'var(--text-slate-400)' }} />
                       </Space>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
-                        <Form.Item name={[f.name, 'maxPerClaim']} style={{ marginBottom: 0 }}
-                          label={labelInfo('Per-claim limit', 'Max amount for a single expense of this category.')}
-                          rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-                        </Form.Item>
-                        <Form.Item name={[f.name, 'perDayLimit']} style={{ marginBottom: 0 }}
-                          label={labelInfo('Per-day limit', 'Max total amount per day for this category.')}
-                          rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-                        </Form.Item>
-                        <Form.Item name={[f.name, 'monthlyLimit']} style={{ marginBottom: 0 }}
-                          label={labelInfo('Monthly limit', 'Max total amount per calendar month for this category.')}
-                          rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-                        </Form.Item>
-                        <Form.Item name={[f.name, 'yearlyLimit']} style={{ marginBottom: 0 }}
-                          label={labelInfo('Yearly limit', 'Max total amount per calendar year for this category.')}
-                          rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
-                          <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-                        </Form.Item>
+                    ))}
+                    <Button type="dashed" onClick={() => add({ scopeType: 'department' })} icon={<PlusOutlined />} block>Add scope</Button>
+                  </>
+                )}
+              </Form.List>
+            </SectionCard>
+
+            <SectionCard icon={<ProfileOutlined />}
+              title="Category limit overrides" subtitle="Spend caps for this policy — override the category defaults" step="STEP 3">
+              <div style={{ fontSize: 12, color: 'var(--text-slate-500)', marginBottom: 10 }}>
+                All values are <b>amounts</b> (₹), not counts. Leave a box empty to keep the category’s own limit.
+              </div>
+              <Form.List name="lines">
+                {(fields, { add, remove: rm }) => (
+                  <>
+                    {fields.map((f) => (
+                      <div key={f.key} style={{ border: '1px solid var(--border-slate-100)', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                        <Space align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
+                          <Form.Item name={[f.name, 'categoryId']} rules={[{ required: true, message: 'Pick a category' }]} style={{ marginBottom: 0, flex: 1 }}>
+                            <SearchableDropdown style={{ minHeight: 38 }} placeholder="Category"
+                              options={cats.map((c) => ({ value: c.id, label: c.name }))} />
+                          </Form.Item>
+                          <MinusCircleOutlined onClick={() => rm(f.name)} style={{ color: 'var(--text-slate-400)' }} />
+                        </Space>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
+                          <Form.Item name={[f.name, 'maxPerClaim']} style={{ marginBottom: 0 }}
+                            label={labelInfo('Per-claim limit', 'Max amount for a single expense of this category.')}
+                            rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
+                            <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                          </Form.Item>
+                          <Form.Item name={[f.name, 'perDayLimit']} style={{ marginBottom: 0 }}
+                            label={labelInfo('Per-day limit', 'Max total amount per day for this category.')}
+                            rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
+                            <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                          </Form.Item>
+                          <Form.Item name={[f.name, 'monthlyLimit']} style={{ marginBottom: 0 }}
+                            label={labelInfo('Monthly limit', 'Max total amount per calendar month for this category.')}
+                            rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
+                            <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                          </Form.Item>
+                          <Form.Item name={[f.name, 'yearlyLimit']} style={{ marginBottom: 0 }}
+                            label={labelInfo('Yearly limit', 'Max total amount per calendar year for this category.')}
+                            rules={[{ type: 'number', min: 0, message: '≥ 0' }]}>
+                            <InputNumber min={0} prefix="₹" style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                          </Form.Item>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>Add category override</Button>
-                </>
-              )}
-            </Form.List>
-          </SectionCard>
+                    ))}
+                    <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>Add category override</Button>
+                  </>
+                )}
+              </Form.List>
+            </SectionCard>
           </Form>
         </div>
       </Drawer>

@@ -1,5 +1,5 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Select, DatePicker, Row, Col, Divider, Typography } from "antd";
@@ -36,6 +36,7 @@ import {
   PortalMilestone,
   PortalMilestoneStatus
 } from "@/services/portalMilestoneService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 dayjs.extend(quarterOfYear);
 
@@ -647,7 +648,7 @@ export default function PortalMilestonesPage() {
               borderRadius: 12
             }}
           >
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

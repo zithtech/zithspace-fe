@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -43,6 +42,7 @@ import {
 import { ImplementationPartnerService, ImplementationPartner } from "@/services/implementationPartner.service";
 import { VendorService, Vendor } from "@/services/vendor.service";
 import ClientDrawer from "../../components/ClientDrawer";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Title, Text } = Typography;
@@ -174,7 +174,7 @@ export default function ViewClientPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <LoadingSpinner message="Loading client details..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading client details..." size="lg" />
         </div>
       </MainLayout>
     );

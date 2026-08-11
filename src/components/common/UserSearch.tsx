@@ -1,7 +1,7 @@
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect } from 'react';
 import { Select } from 'antd';
 import { MembersService } from '@/services/membersService';
+import ZukvoLoader from "./ZukvoLoader";
 
 
 interface UserSearchProps {
@@ -46,7 +46,7 @@ export default function UserSearch({ placeholder, style, onChange, value }: User
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             onChange={onChange}
-            notFoundContent={loading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
+            notFoundContent={loading ? <ZukvoLoader size="sm" /> : null}
             options={options}
         />
     );

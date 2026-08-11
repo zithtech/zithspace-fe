@@ -1,11 +1,11 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, Result, Button, Typography } from 'antd';
 import { MailService } from '@/services/mailService';
 import { LoadingOutlined } from '@ant-design/icons';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -47,7 +47,7 @@ function VerifyMailContent() {
     <Card style={{ width: 500, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
       {status === 'loading' && (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <LoadingSpinner fullScreen={false} />
+          <ZukvoLoader size="md" />
           <div style={{ marginTop: 24 }}>
             <Text strong style={{ fontSize: 18 }}>{message}</Text>
           </div>
@@ -95,7 +95,7 @@ export default function VerifyMailPage() {
       <Suspense fallback={
         <Card style={{ width: 500, borderRadius: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <LoadingSpinner fullScreen={false} />
+            <ZukvoLoader size="md" />
             <div style={{ marginTop: 24 }}>
               <Text strong style={{ fontSize: 18 }}>Loading...</Text>
             </div>

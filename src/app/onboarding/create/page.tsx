@@ -1,6 +1,5 @@
 "use client";
 import { Spin } from 'antd';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -31,6 +30,7 @@ import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { MembersService } from "@/services/membersService";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 
 // ── Module palette (Leaves 2.0 aesthetic) ───────────────────────────────────
@@ -758,7 +758,7 @@ const Onboarding = () => (
     <Suspense
       fallback={
         <div style={{ padding: 100, textAlign: "center" }}>
-          <LoadingSpinner size="large" fullScreen={false} />
+          <ZukvoLoader size="lg" />
         </div>
       }
     >

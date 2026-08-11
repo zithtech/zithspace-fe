@@ -1,7 +1,7 @@
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect, useRef } from 'react';
 import { Input, Typography } from 'antd';
 import { EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -96,7 +96,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                         onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         disabled={loading}
-                        suffix={loading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
+                        suffix={loading ? <ZukvoLoader size="sm" /> : null}
                     />
                 )}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, gap: 4 }}>

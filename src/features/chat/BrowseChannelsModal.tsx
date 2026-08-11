@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from 'react';
 import { Modal, List, Button, Typography, message, Empty, theme } from 'antd';
@@ -8,6 +7,7 @@ import { channelService, PublicChannel } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
 import { useRouter } from 'next/navigation';
 import { usePermission } from '@/hooks/usePermission';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text, Title } = Typography;
@@ -82,7 +82,7 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
         >
             {loading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                    <LoadingSpinner fullScreen={false} />
+                    <ZukvoLoader size="md" />
                 </div>
             ) : publicChannels.length === 0 ? (
                 <Empty description="No public channels available" />

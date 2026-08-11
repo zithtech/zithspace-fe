@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, Switch, Tooltip, AutoComplete, message,
 } from 'antd';
@@ -19,6 +18,7 @@ import ReimbursementV2Service, {
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 // Common expense-category names shown as suggestions in the name field.
 const NAME_SUGGESTIONS = [
@@ -233,7 +233,7 @@ export default function CategoriesPanel() {
       <div className="rvp-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table rowKey="id" size="middle" loading={false} columns={columns} dataSource={filtered}
@@ -328,90 +328,90 @@ export default function CategoriesPanel() {
             requiredMark="optional"
             className="customer-drawer-form"
           >
-          <SectionCard icon={<InfoCircleOutlined />}
-            title="Basics" subtitle="Identity and type" step="STEP 1">
-            <Form.Item name="name" label="Name"
-              rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
-              <SearchableDropdown
-                freeText
-                placeholder="Start typing, e.g. Flight Travel"
-                options={NAME_SUGGESTIONS.map((v) => ({ value: v, label: v }))}
-                onChange={(val) => {
-                  const s = String(val || '');
-                  const patch: any = { name: s, code: toCode(s) };
-                  const gl = guessGl(s);
-                  if (gl) patch.glCode = gl;
-                  form.setFieldsValue(patch);
-                }}
-              />
-            </Form.Item>
-            <Form.Item name="code" label={labelInfo('Code', 'Auto-generated from the name and used as a unique key. It cannot be edited.')}
-              rules={[{ required: true, message: 'Enter a name to generate the code' },
+            <SectionCard icon={<InfoCircleOutlined />}
+              title="Basics" subtitle="Identity and type" step="STEP 1">
+              <Form.Item name="name" label="Name"
+                rules={[{ required: true, message: 'Name is required' }, { max: 120, message: 'Too long' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+                <SearchableDropdown
+                  freeText
+                  placeholder="Start typing, e.g. Flight Travel"
+                  options={NAME_SUGGESTIONS.map((v) => ({ value: v, label: v }))}
+                  onChange={(val) => {
+                    const s = String(val || '');
+                    const patch: any = { name: s, code: toCode(s) };
+                    const gl = guessGl(s);
+                    if (gl) patch.glCode = gl;
+                    form.setFieldsValue(patch);
+                  }}
+                />
+              </Form.Item>
+              <Form.Item name="code" label={labelInfo('Code', 'Auto-generated from the name and used as a unique key. It cannot be edited.')}
+                rules={[{ required: true, message: 'Enter a name to generate the code' },
                 { pattern: /^[A-Z0-9_-]+$/, message: 'Invalid code' }]}>
-              <Input placeholder="FLIGHT_TRAVEL" disabled />
-            </Form.Item>
-            <Form.Item name="glCode"
-              label={labelInfo('GL / accounting code', 'General Ledger code that maps this expense to your finance books (e.g. 5001-Travel). Suggested from the name — edit or pick your own. Optional.')}
-              rules={[{ max: 60, message: 'Max 60 characters' },
+                <Input placeholder="FLIGHT_TRAVEL" disabled />
+              </Form.Item>
+              <Form.Item name="glCode"
+                label={labelInfo('GL / accounting code', 'General Ledger code that maps this expense to your finance books (e.g. 5001-Travel). Suggested from the name — edit or pick your own. Optional.')}
+                rules={[{ max: 60, message: 'Max 60 characters' },
                 { pattern: /^[A-Za-z0-9 _./-]*$/, message: 'Letters, numbers and . _ / - only' }]}>
-              <SearchableDropdown
-                freeText
-                placeholder="Suggested from the name — or pick / type your own"
-                options={GL_CATALOG.map((g) => ({ value: g.code, label: g.label }))}
-              />
-            </Form.Item>
-            <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
-              <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
-            </Form.Item>
-            <Form.Item name="kind" label="Type">
-              <SearchableDropdown options={[{ value: 'amount', label: 'Amount (normal expense)' }, { value: 'mileage', label: 'Mileage (per distance)' }]} />
-            </Form.Item>
-            {kind === 'mileage' && (
-              <>
-                <Form.Item name="mileageRate"
-                  label={labelInfo('Rate per unit', 'Amount reimbursed per unit of distance. Claim amount = distance × this rate.')}
-                  rules={[{ required: true, message: 'Rate is required' },
+                <SearchableDropdown
+                  freeText
+                  placeholder="Suggested from the name — or pick / type your own"
+                  options={GL_CATALOG.map((g) => ({ value: g.code, label: g.label }))}
+                />
+              </Form.Item>
+              <Form.Item name="description" label="Description" rules={[{ max: 500, message: 'Max 500 characters' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+                <Input.TextArea rows={2} maxLength={500} placeholder="Optional" />
+              </Form.Item>
+              <Form.Item name="kind" label="Type">
+                <SearchableDropdown options={[{ value: 'amount', label: 'Amount (normal expense)' }, { value: 'mileage', label: 'Mileage (per distance)' }]} />
+              </Form.Item>
+              {kind === 'mileage' && (
+                <>
+                  <Form.Item name="mileageRate"
+                    label={labelInfo('Rate per unit', 'Amount reimbursed per unit of distance. Claim amount = distance × this rate.')}
+                    rules={[{ required: true, message: 'Rate is required' },
                     { type: 'number', min: 0.01, message: 'Must be greater than 0' }]}>
-                  <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="12" onKeyDown={preventInvalidNumberKeys as any} />
-                </Form.Item>
-                <Form.Item name="mileageUnit" label="Unit"
-                  rules={[{ required: true, message: 'Unit is required' },
+                    <InputNumber min={0} step={0.5} style={{ width: '100%' }} placeholder="12" onKeyDown={preventInvalidNumberKeys as any} />
+                  </Form.Item>
+                  <Form.Item name="mileageUnit" label="Unit"
+                    rules={[{ required: true, message: 'Unit is required' },
                     { pattern: /^[A-Za-z]{1,10}$/, message: 'Letters only (e.g. km)' }]}>
-                  <Input placeholder="km" maxLength={10} />
+                    <Input placeholder="km" maxLength={10} />
+                  </Form.Item>
+                </>
+              )}
+            </SectionCard>
+
+            <SectionCard icon={<SettingOutlined />}
+              title="Limits & receipts" subtitle="Caps enforced at submission" step="STEP 2">
+              {kind !== 'mileage' && (
+                <Form.Item name="maxPerClaim"
+                  label={labelInfo('Max per line item', 'The largest single expense allowed in this category. Claims above this are blocked at submission.')}
+                  rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+              )}
+              <>
+                <Form.Item name="perDayLimit" label="Per-day limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+                <Form.Item name="monthlyLimit" label="Monthly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+                <Form.Item name="yearlyLimit" label="Yearly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+                <Form.Item name="receiptRequiredAbove"
+                  label={labelInfo('Receipt required above', 'A receipt is required only when a single expense exceeds this amount. Leave empty to never require one this way.')}
+                  rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
+                  <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" onKeyDown={preventInvalidNumberKeys as any} />
                 </Form.Item>
               </>
-            )}
-          </SectionCard>
-
-          <SectionCard icon={<SettingOutlined />}
-            title="Limits & receipts" subtitle="Caps enforced at submission" step="STEP 2">
-            {kind !== 'mileage' && (
-              <Form.Item name="maxPerClaim"
-                label={labelInfo('Max per line item', 'The largest single expense allowed in this category. Claims above this are blocked at submission.')}
-                rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-            )}
-            <>
-              <Form.Item name="perDayLimit" label="Per-day limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-              <Form.Item name="monthlyLimit" label="Monthly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-              <Form.Item name="yearlyLimit" label="Yearly limit" rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="No limit" onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-              <Form.Item name="receiptRequiredAbove"
-                label={labelInfo('Receipt required above', 'A receipt is required only when a single expense exceeds this amount. Leave empty to never require one this way.')}
-                rules={[{ type: 'number', min: 0, message: 'Must be 0 or more' }]}>
-                <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-            </>
-            <Form.Item name="receiptRequired"
-              label={labelInfo('Always require a receipt', 'When on, every expense in this category needs a receipt regardless of amount.')} valuePropName="checked"><Switch /></Form.Item>
-            <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
-          </SectionCard>
+              <Form.Item name="receiptRequired"
+                label={labelInfo('Always require a receipt', 'When on, every expense in this category needs a receipt regardless of amount.')} valuePropName="checked"><Switch /></Form.Item>
+              <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
+            </SectionCard>
           </Form>
         </div>
       </Drawer>

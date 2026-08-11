@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import {
@@ -10,9 +9,11 @@ import {
   Tag,
   Typography,
   Empty,
-  Divider } from "antd";
+  Divider
+} from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { ReleasePlan } from "@/services/releasePlanService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -42,7 +43,8 @@ export function SprintSelector({
       style={{
         marginTop: 12,
         maxHeight: 400,
-        overflowY: "auto" }}
+        overflowY: "auto"
+      }}
     >
       <div style={{ marginBottom: 12 }}>
         <Text strong>Select Sprint or Create New:</Text>
@@ -63,7 +65,7 @@ export function SprintSelector({
             style={{ display: "flex", flexDirection: "column", gap: 8 }}
           >
             {loading ? (
-              <LoadingSpinner size="small" fullScreen={false} />
+              <ZukvoLoader size="sm" />
             ) : (
               sprints.map((sprint) => (
                 <Radio
@@ -78,8 +80,8 @@ export function SprintSelector({
                         sprint.status === "active"
                           ? "green"
                           : sprint.status === "planning"
-                          ? "blue"
-                          : "default"
+                            ? "blue"
+                            : "default"
                       }
                     >
                       {sprint.status.toUpperCase()}

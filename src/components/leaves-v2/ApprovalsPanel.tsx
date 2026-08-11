@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Avatar, message, Tooltip, DatePicker } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -22,6 +21,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
+import ZukvoLoader from '../common/ZukvoLoader';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
@@ -60,7 +60,7 @@ export default function ApprovalsPanel() {
     try {
       setRows(await LeaveV2Service.getApprovals());
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||'Failed to load approvals');
+      message.error(err?.response?.data?.error || err?.message || 'Failed to load approvals');
     } finally {
       setLoading(false);
     }
@@ -86,13 +86,13 @@ export default function ApprovalsPanel() {
 
   const userOptions = useMemo(() => {
     const seen = new Map<string, { label: string, avatarUrl: string | null }>();
-    rows.forEach((r) => { 
+    rows.forEach((r) => {
       if (r.userId && !seen.has(r.userId)) {
-        seen.set(r.userId, { 
-          label: r.userName || r.userEmail || r.userId, 
-          avatarUrl: r.userAvatarUrl || null 
-        }); 
-      } 
+        seen.set(r.userId, {
+          label: r.userName || r.userEmail || r.userId,
+          avatarUrl: r.userAvatarUrl || null
+        });
+      }
     });
     return Array.from(seen, ([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl })).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
@@ -132,7 +132,7 @@ export default function ApprovalsPanel() {
       message.success(action === 'approve' ? 'Request approved' : 'Request rejected');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||`Failed to ${action}`);
+      message.error(err?.response?.data?.error || err?.message || `Failed to ${action}`);
     } finally {
       setBusyId(null);
     }
@@ -145,7 +145,7 @@ export default function ApprovalsPanel() {
       message.success(approve ? 'Withdrawal confirmed' : 'Withdrawal declined');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||`Failed to ${approve ? 'confirm' : 'decline'} withdrawal`);
+      message.error(err?.response?.data?.error || err?.message || `Failed to ${approve ? 'confirm' : 'decline'} withdrawal`);
     } finally {
       setBusyId(null);
     }
@@ -315,9 +315,9 @@ export default function ApprovalsPanel() {
     <div className="lvap">
       <div className="lvap-header">
         <div className="lvap-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -399,7 +399,7 @@ export default function ApprovalsPanel() {
       <div className="lvap-table-wrap" style={{ position: 'relative' }}>
         {loading && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner size="medium" fullScreen={false} />
+            <ZukvoLoader size="md" />
           </div>
         )}
         <Table

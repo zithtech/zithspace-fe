@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -43,6 +42,7 @@ import {
   UserProfile
 } from "@/services/authService";
 import { ApiError } from "@/lib/axios";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Text } = Typography;
@@ -322,7 +322,7 @@ export default function ProfilePage() {
             justifyContent: "center"
           }}
         >
-          <LoadingSpinner message="Loading your profile..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading your profile..." size="lg" fullscreen />
         </div>
       </MainLayout>
     );

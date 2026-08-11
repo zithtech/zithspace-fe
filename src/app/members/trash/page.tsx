@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import "../../projects/projects.css";
 
@@ -11,6 +10,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 
 import MemberTrashManagementPage from "@/components/members/trash/MemberTrashManagementPage";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 export default function MembersTrashPage() {
@@ -38,9 +38,10 @@ export default function MembersTrashPage() {
             minHeight: "calc(100vh - 64px)",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center" }}
+            alignItems: "center"
+          }}
         >
-          <LoadingSpinner message="Loading member trash..." size="large" fullScreen={false} />
+          <ZukvoLoader message="Loading member trash..." size="lg" />
         </div>
       </MainLayout>
     );

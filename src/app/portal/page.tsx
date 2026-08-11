@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -60,6 +59,7 @@ import {
   portalMilestoneService,
   PortalMilestone
 } from "@/services/portalMilestoneService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — tight, dense, premium
@@ -240,7 +240,7 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
 
 const LoadingState: React.FC = () => (
   <div style={{ padding: "22px 16px", textAlign: "center", flex: 1 }}>
-    <LoadingSpinner size="small" fullScreen={false} />
+    <ZukvoLoader size="sm" />
   </div>
 );
 

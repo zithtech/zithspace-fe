@@ -1,5 +1,4 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from 'react';
 import { Layout, Button, Typography, Tooltip, message, theme } from 'antd';
@@ -13,6 +12,7 @@ import { useChatStore } from '@/store/chatStore';
 import { channelService } from '@/services/channelService';
 import { streamClient } from '@/services/streamClient';
 import { usePermission } from '@/hooks/usePermission';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 const { Sider } = Layout;
@@ -150,7 +150,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {loading ? (
                             <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                                <LoadingSpinner size="small" fullScreen={false} />
+                                <ZukvoLoader size="sm" />
                             </div>
                         ) : (
                             <ChannelList />

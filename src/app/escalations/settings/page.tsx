@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Typography,
   Button,
@@ -62,6 +61,7 @@ import { useRouter } from 'next/navigation';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const { Text } = Typography;
 
@@ -376,257 +376,257 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 
         {/* Drawer Form Content */}
         <div style={{ padding: "16px 16px", flex: 1, overflowY: "auto" }}>
-        <Form 
-          form={form} 
-          layout="horizontal" 
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-          labelAlign="left"
-          colon={false}
-          className="customer-drawer-form"
-          onFinish={onSubmit}
-        >
-          {/* Section 1: Identity */}
-          <SectionCard
-            step="STEP 1"
-            icon={<AppstoreOutlined />}
-            title="Identity"
-            subtitle="A clear name everyone can recognise"
+          <Form
+            form={form}
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            className="customer-drawer-form"
+            onFinish={onSubmit}
           >
-
-            <Form.Item
-              name="name"
-              label="Display name"
-              rules={[
-                { required: true, message: 'Enter a name' },
-                { 
-                  pattern: /^[a-zA-Z0-9\s]+$/, 
-                  message: 'Name can only contain letters, numbers, and spaces' 
-                }
-              ]}
+            {/* Section 1: Identity */}
+            <SectionCard
+              step="STEP 1"
+              icon={<AppstoreOutlined />}
+              title="Identity"
+              subtitle="A clear name everyone can recognise"
             >
-              <Input
-                placeholder={
-                  activeTab === 'categories'
-                    ? 'e.g. Deployment Failure'
-                    : activeTab === 'priorities'
-                      ? 'e.g. Critical'
-                      : 'e.g. In Review'
-                }
-                className="es-input"
-                maxLength={64}
-                showCount
-                onKeyPress={(e) => {
-                  if (!/^[a-zA-Z0-9\s]+$/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
-                  if (val !== e.target.value) {
-                    form.setFieldValue('name', val);
-                  }
-                }}
-              />
-            </Form.Item>
 
-            {activeTab === 'categories' && (
-              <Form.Item name="description" label="Description (optional)">
-                <Input.TextArea
-                  rows={3}
-                  placeholder="Briefly describe when this category should be used"
-                  className="es-textarea"
-                  maxLength={240}
+              <Form.Item
+                name="name"
+                label="Display name"
+                rules={[
+                  { required: true, message: 'Enter a name' },
+                  {
+                    pattern: /^[a-zA-Z0-9\s]+$/,
+                    message: 'Name can only contain letters, numbers, and spaces'
+                  }
+                ]}
+              >
+                <Input
+                  placeholder={
+                    activeTab === 'categories'
+                      ? 'e.g. Deployment Failure'
+                      : activeTab === 'priorities'
+                        ? 'e.g. Critical'
+                        : 'e.g. In Review'
+                  }
+                  className="es-input"
+                  maxLength={64}
                   showCount
+                  onKeyPress={(e) => {
+                    if (!/^[a-zA-Z0-9\s]+$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                    if (val !== e.target.value) {
+                      form.setFieldValue('name', val);
+                    }
+                  }}
                 />
               </Form.Item>
-            )}
-          </SectionCard>
 
-          {/* Section: Severity (priorities only) */}
-          {activeTab === 'priorities' && (
-            <SectionCard
-              step="STEP 2"
-              icon={<FireOutlined />}
-              title="Severity weight"
-              subtitle="Higher weight = higher severity. 80+ shows as High Priority on the dashboard."
-            >
-              <div className="es-severity" style={{ padding: "0 8px 12px 8px" }}>
-                <Form.Item name="weight" style={{ marginBottom: 0 }}>
-                  <Slider
-                    min={0}
-                    max={100}
-                    className="es-severity-slider"
-                    tooltip={{ formatter: (v) => `${v}` }}
-                    marks={{
-                      0: <span className="es-severity-mark">Low</span>,
-                      30: <span className="es-severity-mark">Med</span>,
-                      60: <span className="es-severity-mark">High</span>,
-                      80: <span className="es-severity-mark is-critical">Critical</span>,
-                      100: '',
-                    }}
+              {activeTab === 'categories' && (
+                <Form.Item name="description" label="Description (optional)">
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Briefly describe when this category should be used"
+                    className="es-textarea"
+                    maxLength={240}
+                    showCount
                   />
                 </Form.Item>
-                <div className="es-severity-value" style={{ marginTop: 20, textAlign: "center" }}>
-                  <span className="es-severity-value__big" style={{ fontSize: 32, fontWeight: 700, color: "var(--text-slate-900)" }}>{watchedWeight}</span>
-                  <span className="es-severity-value__sub" style={{ fontSize: 16, color: "var(--text-slate-400)" }}>/ 100</span>
-                </div>
-              </div>
+              )}
             </SectionCard>
-          )}
 
-          {/* Section: Appearance (compact) */}
-          <SectionCard
-            step={activeTab === 'priorities' ? 'STEP 3' : 'STEP 2'}
-            icon={<BgColorsOutlined />}
-            title="Appearance"
-            subtitle="Pick a color & visibility"
-          >
-            <Form.Item label="Color Indicator" style={{ marginBottom: 14 }}>
-              <div className="es-swatch-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {COLOR_PRESETS.map((c) => {
-                  const isSelected = watchedColor.toLowerCase() === c.hex.toLowerCase();
-                  return (
-                    <Tooltip key={c.hex} title={c.name}>
-                      <button
-                        type="button"
-                        className={`es-swatch${isSelected ? ' is-selected' : ''}`}
-                        style={{ 
-                          background: c.hex, 
-                          width: 32, 
-                          height: 32, 
-                          borderRadius: '50%',
-                          border: isSelected ? `2px solid var(--text-slate-900)` : '2px solid transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => form.setFieldValue('color', c.hex)}
-                        aria-label={c.name}
-                      >
-                        {isSelected && <CheckOutlined style={{ color: '#fff', fontSize: 16 }} />}
-                      </button>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-              <Form.Item name="color" noStyle>
-                <Input type="hidden" />
-              </Form.Item>
-            </Form.Item>
-
-            <Form.Item label="Visibility" style={{ marginBottom: 14 }}>
-              <div className="es-visibility-row" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Form.Item
-                  name="isActive"
-                  valuePropName="checked"
-                  initialValue={true}
-                  noStyle
-                >
-                  <Switch size="small" />
-                </Form.Item>
-                <div style={{ fontSize: 13, color: watchedIsActive ? 'var(--text-slate-800)' : 'var(--text-slate-400)' }}>
-                  {watchedIsActive ? <EyeOutlined style={{ marginRight: 6 }} /> : <EyeInvisibleOutlined style={{ marginRight: 6 }} />}
-                  <span>
-                    {watchedIsActive ? 'Visible to new escalations' : 'Hidden from new escalations'}
-                  </span>
+            {/* Section: Severity (priorities only) */}
+            {activeTab === 'priorities' && (
+              <SectionCard
+                step="STEP 2"
+                icon={<FireOutlined />}
+                title="Severity weight"
+                subtitle="Higher weight = higher severity. 80+ shows as High Priority on the dashboard."
+              >
+                <div className="es-severity" style={{ padding: "0 8px 12px 8px" }}>
+                  <Form.Item name="weight" style={{ marginBottom: 0 }}>
+                    <Slider
+                      min={0}
+                      max={100}
+                      className="es-severity-slider"
+                      tooltip={{ formatter: (v) => `${v}` }}
+                      marks={{
+                        0: <span className="es-severity-mark">Low</span>,
+                        30: <span className="es-severity-mark">Med</span>,
+                        60: <span className="es-severity-mark">High</span>,
+                        80: <span className="es-severity-mark is-critical">Critical</span>,
+                        100: '',
+                      }}
+                    />
+                  </Form.Item>
+                  <div className="es-severity-value" style={{ marginTop: 20, textAlign: "center" }}>
+                    <span className="es-severity-value__big" style={{ fontSize: 32, fontWeight: 700, color: "var(--text-slate-900)" }}>{watchedWeight}</span>
+                    <span className="es-severity-value__sub" style={{ fontSize: 16, color: "var(--text-slate-400)" }}>/ 100</span>
+                  </div>
                 </div>
-              </div>
-            </Form.Item>
-          </SectionCard>
+              </SectionCard>
+            )}
 
-          {/* Section: Behavior (statuses only) */}
-          {activeTab === 'statuses' && (
+            {/* Section: Appearance (compact) */}
             <SectionCard
-              step="STEP 3"
-              icon={<BulbOutlined />}
-              title="Behavior"
-              subtitle="How this status behaves in the lifecycle"
+              step={activeTab === 'priorities' ? 'STEP 3' : 'STEP 2'}
+              icon={<BgColorsOutlined />}
+              title="Appearance"
+              subtitle="Pick a color & visibility"
             >
-              <div className="es-toggle-cards" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Form.Item name="isDefault" valuePropName="checked" hidden>
-                  <Switch />
+              <Form.Item label="Color Indicator" style={{ marginBottom: 14 }}>
+                <div className="es-swatch-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {COLOR_PRESETS.map((c) => {
+                    const isSelected = watchedColor.toLowerCase() === c.hex.toLowerCase();
+                    return (
+                      <Tooltip key={c.hex} title={c.name}>
+                        <button
+                          type="button"
+                          className={`es-swatch${isSelected ? ' is-selected' : ''}`}
+                          style={{
+                            background: c.hex,
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            border: isSelected ? `2px solid var(--text-slate-900)` : '2px solid transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => form.setFieldValue('color', c.hex)}
+                          aria-label={c.name}
+                        >
+                          {isSelected && <CheckOutlined style={{ color: '#fff', fontSize: 16 }} />}
+                        </button>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+                <Form.Item name="color" noStyle>
+                  <Input type="hidden" />
                 </Form.Item>
-                <button
-                  type="button"
-                  className={`es-toggle-card${watchedIsDefault ? ' is-on is-default' : ''}`}
-                  onClick={() => form.setFieldValue('isDefault', !watchedIsDefault)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 16px',
-                    borderRadius: 8,
-                    border: watchedIsDefault ? '1px solid var(--premium-blue)' : '1px solid var(--border-color)',
-                    background: watchedIsDefault ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg-pure-white)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ fontSize: 18, color: watchedIsDefault ? 'var(--premium-blue)' : 'var(--text-slate-400)' }}>
-                    <StarOutlined />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Default status</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>New escalations start with this status</div>
-                  </div>
-                  <Switch checked={watchedIsDefault} size="small" />
-                </button>
+              </Form.Item>
 
-                <Form.Item name="isFinal" valuePropName="checked" hidden>
-                  <Switch />
-                </Form.Item>
-                <button
-                  type="button"
-                  className={`es-toggle-card${watchedIsFinal ? ' is-on is-final' : ''}`}
-                  onClick={() => form.setFieldValue('isFinal', !watchedIsFinal)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 16px',
-                    borderRadius: 8,
-                    border: watchedIsFinal ? '1px solid #10b981' : '1px solid var(--border-color)',
-                    background: watchedIsFinal ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-pure-white)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div style={{ fontSize: 18, color: watchedIsFinal ? '#10b981' : 'var(--text-slate-400)' }}>
-                    <CheckCircleFilled />
+              <Form.Item label="Visibility" style={{ marginBottom: 14 }}>
+                <div className="es-visibility-row" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Form.Item
+                    name="isActive"
+                    valuePropName="checked"
+                    initialValue={true}
+                    noStyle
+                  >
+                    <Switch size="small" />
+                  </Form.Item>
+                  <div style={{ fontSize: 13, color: watchedIsActive ? 'var(--text-slate-800)' : 'var(--text-slate-400)' }}>
+                    {watchedIsActive ? <EyeOutlined style={{ marginRight: 6 }} /> : <EyeInvisibleOutlined style={{ marginRight: 6 }} />}
+                    <span>
+                      {watchedIsActive ? 'Visible to new escalations' : 'Hidden from new escalations'}
+                    </span>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Final state</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Terminal stage — counts toward "resolved" stats</div>
-                  </div>
-                  <Switch checked={watchedIsFinal} size="small" />
-                </button>
-              </div>
+                </div>
+              </Form.Item>
             </SectionCard>
-          )}
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 8,
-            padding: '12px 16px',
-            background: 'var(--bg-blue-50)',
-            borderRadius: 6,
-            color: 'var(--text-slate-700)',
-            fontSize: 13,
-            lineHeight: 1.4,
-            marginTop: 24,
-          }}>
-            <InfoCircleOutlined style={{ color: 'var(--premium-blue)', marginTop: 2 }} />
-            <span>
-              {editingItem ? 'Saving will update this item across all related escalations instantly.' : 'This item becomes available the moment you save.'}
-            </span>
-          </div>
+            {/* Section: Behavior (statuses only) */}
+            {activeTab === 'statuses' && (
+              <SectionCard
+                step="STEP 3"
+                icon={<BulbOutlined />}
+                title="Behavior"
+                subtitle="How this status behaves in the lifecycle"
+              >
+                <div className="es-toggle-cards" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <Form.Item name="isDefault" valuePropName="checked" hidden>
+                    <Switch />
+                  </Form.Item>
+                  <button
+                    type="button"
+                    className={`es-toggle-card${watchedIsDefault ? ' is-on is-default' : ''}`}
+                    onClick={() => form.setFieldValue('isDefault', !watchedIsDefault)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 16px',
+                      borderRadius: 8,
+                      border: watchedIsDefault ? '1px solid var(--premium-blue)' : '1px solid var(--border-color)',
+                      background: watchedIsDefault ? 'rgba(59, 130, 246, 0.04)' : 'var(--bg-pure-white)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ fontSize: 18, color: watchedIsDefault ? 'var(--premium-blue)' : 'var(--text-slate-400)' }}>
+                      <StarOutlined />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Default status</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>New escalations start with this status</div>
+                    </div>
+                    <Switch checked={watchedIsDefault} size="small" />
+                  </button>
 
-          {/* Description suppressed in form summary, but description still bound for categories */}
-          {activeTab !== 'categories' && watchedDescription && null}
-        </Form>
+                  <Form.Item name="isFinal" valuePropName="checked" hidden>
+                    <Switch />
+                  </Form.Item>
+                  <button
+                    type="button"
+                    className={`es-toggle-card${watchedIsFinal ? ' is-on is-final' : ''}`}
+                    onClick={() => form.setFieldValue('isFinal', !watchedIsFinal)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 16px',
+                      borderRadius: 8,
+                      border: watchedIsFinal ? '1px solid #10b981' : '1px solid var(--border-color)',
+                      background: watchedIsFinal ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-pure-white)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ fontSize: 18, color: watchedIsFinal ? '#10b981' : 'var(--text-slate-400)' }}>
+                      <CheckCircleFilled />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-slate-900)' }}>Final state</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>Terminal stage — counts toward "resolved" stats</div>
+                    </div>
+                    <Switch checked={watchedIsFinal} size="small" />
+                  </button>
+                </div>
+              </SectionCard>
+            )}
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              padding: '12px 16px',
+              background: 'var(--bg-blue-50)',
+              borderRadius: 6,
+              color: 'var(--text-slate-700)',
+              fontSize: 13,
+              lineHeight: 1.4,
+              marginTop: 24,
+            }}>
+              <InfoCircleOutlined style={{ color: 'var(--premium-blue)', marginTop: 2 }} />
+              <span>
+                {editingItem ? 'Saving will update this item across all related escalations instantly.' : 'This item becomes available the moment you save.'}
+              </span>
+            </div>
+
+            {/* Description suppressed in form summary, but description still bound for categories */}
+            {activeTab !== 'categories' && watchedDescription && null}
+          </Form>
         </div>
         {/* Footer rendering has been moved to main Drawer component */}
       </div>
@@ -1246,7 +1246,7 @@ export default function EscalationSettingsPage() {
               <div className="es-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

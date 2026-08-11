@@ -1,5 +1,5 @@
 "use client";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
+
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { Suspense, useState, useEffect } from "react";
@@ -26,6 +26,7 @@ import DayView from "@/components/calendar/DayView";
 import EventFormDrawer from "@/components/calendar/EventFormDrawer";
 import EventDrawer from "@/components/calendar/EventDrawer";
 import dayjs, { Dayjs } from "dayjs";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Sider, Content } = Layout;
 
@@ -316,7 +317,7 @@ function CalendarPageContent() {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <LoadingSpinner fullScreen={false} />
+                                    <ZukvoLoader size="md" />
                                 </div>
                             ) : !connectedProvider ? (
                                 <EmptyState />
@@ -364,7 +365,7 @@ function CalendarPageContent() {
                                     justifyContent: 'center',
                                     zIndex: 10
                                 }}>
-                                    <LoadingSpinner fullScreen={false} />
+                                    <ZukvoLoader size="md" />
                                 </div>
                             )}
                         </div>
@@ -498,7 +499,7 @@ export default function CalendarPage() {
     return (
         <Suspense fallback={
             <div style={{ padding: 48, textAlign: 'center' }}>
-                <LoadingSpinner fullScreen={false} />
+                <ZukvoLoader size="md" />
             </div>
         }>
             <CalendarPageContent />

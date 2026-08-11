@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -47,6 +46,7 @@ import {
 import { Sparkles, Check, AlertCircle, LayoutGrid, List, Menu } from 'lucide-react';
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -440,7 +440,7 @@ export default function AccountsSettingsPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-                
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={loading || isFetching} /></button>
@@ -647,7 +647,7 @@ export default function AccountsSettingsPage() {
               <div className="pp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

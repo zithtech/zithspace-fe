@@ -1,10 +1,10 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from 'react';
 import { Drawer, Button, Tag, Avatar, message, Empty } from 'antd';
 import { CloseOutlined, HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import PayrollV2Service, { MemberOption, EmployeeAssignmentListItem } from '@/services/payrollV2Service';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 const PALETTE = { slate: '#64748B', green: '#10B981', red: '#EF4444', blue: '#3B82F6' } as const;
@@ -16,10 +16,10 @@ const initials = (name: string) => name.split(' ').map((w) => w[0]).filter(Boole
 
 export default function AssignmentHistoryDrawer({
   open, employee, onClose }: {
-  open: boolean;
-  employee: MemberOption | null;
-  onClose: () => void;
-}) {
+    open: boolean;
+    employee: MemberOption | null;
+    onClose: () => void;
+  }) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<EmployeeAssignmentListItem[]>([]);
 
@@ -58,7 +58,7 @@ export default function AssignmentHistoryDrawer({
 
         <div className="ahd-body">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><LoadingSpinner fullScreen={false} /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div>
           ) : rows.length === 0 ? (
             <Empty description="No salary assignments yet" style={{ marginTop: 48 }} />
           ) : (

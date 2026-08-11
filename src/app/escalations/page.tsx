@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Typography,
   Button,
@@ -66,6 +65,7 @@ import { useActivitySource } from '@/hooks/useActivitySource';
 import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 dayjs.extend(relativeTime);
 
@@ -759,64 +759,64 @@ export default function EscalationListPage() {
         {/* My Hub uses a single "targeting me" view, so the left rail is dropped
             and its header is moved into the main area (below). */}
         {!isMyHub && (
-        <>
-        {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
-        <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
-          <div className="es-sidebar-top">
-            <div className="es-side-head">
-              <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
-              <div className="es-side-head-text">
-                <div className="es-side-title">Escalations</div>
-                <div className="es-side-subtitle">Quality & Performance</div>
-              </div>
-            </div>
-
-            {canCreateEscalation && !isMyHub && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="es-create-btn"
-                onClick={() => setCreateDrawerOpen(true)}
-                block
-              >
-                Raise Escalation
-              </Button>
-            )}
-          </div>
-
-          <div className="es-side-scroll">
-            {!isMyHub && (
-              <>
-                <div className="es-side-section-label">Views</div>
-                <div className="es-side-list">
-                  {viewsList.map((v) => {
-                    const active = savedView === v.key;
-                    return (
-                      <button
-                        key={v.key}
-                        type="button"
-                        className={`es-view-item ${active ? 'is-active' : ''}`}
-                        onClick={() => {
-                          if (v.key === 'trash') {
-                            router.push('/escalations/trash');
-                          } else {
-                            setSavedView(v.key);
-                            router.replace(`/escalations?view=${v.key}`);
-                          }
-                        }}
-                      >
-                        <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
-                        <span className="es-view-label">{v.label}</span>
-                        <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
-                      </button>
-                    );
-                  })}
+          <>
+            {mobileSidebarOpen && <div className="es-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
+            <aside className={`es-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
+              <div className="es-sidebar-top">
+                <div className="es-side-head">
+                  <div className="es-side-logo"><AlertOutlined style={{ color: isDark ? '#ffffff' : '#3b82f6' }} /></div>
+                  <div className="es-side-head-text">
+                    <div className="es-side-title">Escalations</div>
+                    <div className="es-side-subtitle">Quality & Performance</div>
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
-        </aside>
-        </>
+
+                {canCreateEscalation && !isMyHub && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    className="es-create-btn"
+                    onClick={() => setCreateDrawerOpen(true)}
+                    block
+                  >
+                    Raise Escalation
+                  </Button>
+                )}
+              </div>
+
+              <div className="es-side-scroll">
+                {!isMyHub && (
+                  <>
+                    <div className="es-side-section-label">Views</div>
+                    <div className="es-side-list">
+                      {viewsList.map((v) => {
+                        const active = savedView === v.key;
+                        return (
+                          <button
+                            key={v.key}
+                            type="button"
+                            className={`es-view-item ${active ? 'is-active' : ''}`}
+                            onClick={() => {
+                              if (v.key === 'trash') {
+                                router.push('/escalations/trash');
+                              } else {
+                                setSavedView(v.key);
+                                router.replace(`/escalations?view=${v.key}`);
+                              }
+                            }}
+                          >
+                            <span className="es-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
+                            <span className="es-view-label">{v.label}</span>
+                            <span className="es-view-count">{(viewCounts as any)[v.key]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </aside>
+          </>
         )}
 
         {/* ============================ MAIN ============================ */}
@@ -944,7 +944,7 @@ export default function EscalationListPage() {
               <div className="es-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

@@ -1,5 +1,4 @@
 'use client';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Tooltip, message } from 'antd';
@@ -14,6 +13,7 @@ import { AttendanceService, Attendance } from '@/services/attendanceService';
 import LeaveV2Service from '@/services/leaveV2Service';
 import { pointsColor } from './moduleScores';
 import EmptyState from './EmptyState';
+import ZukvoLoader from "../common/ZukvoLoader";
 
 
 interface Props {
@@ -60,14 +60,16 @@ export default function DailyUpdatesSection({
             startDate: from,
             endDate: to,
             projectId: projectId || undefined,
-            userId: userId || undefined }),
+            userId: userId || undefined
+          }),
           AttendanceService.getAttendance({
             member: userId || undefined,
             projectId: projectId || undefined,
             startDate: range[0].startOf('day').toISOString(),
             endDate: range[1].endOf('day').toISOString(),
             page: 1,
-            limit: 500 }).catch(() => ({ data: [] as Attendance[] } as any)),
+            limit: 500
+          }).catch(() => ({ data: [] as Attendance[] } as any)),
           LeaveV2Service.getLeaveHolidayDates().catch(() => [] as string[]),
         ]);
         if (cancelled) return;
@@ -188,7 +190,7 @@ export default function DailyUpdatesSection({
   if (loading) {
     return (
       <div className="prr-center">
-        <LoadingSpinner message="Loading daily updates…" fullScreen={false} />
+        <ZukvoLoader message="Loading daily updates…" />
       </div>
     );
   }

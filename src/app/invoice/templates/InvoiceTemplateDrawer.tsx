@@ -1,4 +1,3 @@
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useEffect } from 'react';
 import {
   Drawer,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 
@@ -311,7 +311,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
 
         {isFetching ? (
           <div className="flex items-center justify-center py-20">
-            <LoadingSpinner message="Loading template details..." fullScreen={false} />
+            <ZukvoLoader message="Loading template details..." />
           </div>
         ) : (
           <Form

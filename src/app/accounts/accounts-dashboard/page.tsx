@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
@@ -60,6 +59,7 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -1011,7 +1011,7 @@ export default function AccountsPage() {
               <div className="pp-table-wrap" style={{ position: 'relative' }}>
                 {loading && (
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <LoadingSpinner size="medium" fullScreen={false} />
+                    <ZukvoLoader size="md" />
                   </div>
                 )}
                 <Table

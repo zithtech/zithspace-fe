@@ -20,11 +20,13 @@ import {
   DeleteOutlined,
   ExperimentOutlined,
   FileSearchOutlined,
-  PlayCircleOutlined } from "@ant-design/icons";
+  PlayCircleOutlined
+} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { api as axios } from "@/lib/axios";
 import SearchableDropdown, {
-  SearchableDropdownOption } from "@/components/common/SearchableDropdown";
+  SearchableDropdownOption
+} from "@/components/common/SearchableDropdown";
 import { usePermission } from "@/hooks/usePermission";
 import type { QaEntityType, TicketQaLink } from "@/services/ticketService";
 
@@ -59,7 +61,8 @@ const QA_GROUPS: QaGroup[] = [
     href: (id) => `/qa-workspace/test-scope/${id}`,
     color: "#1890ff",
     tint: "#e6f7ff",
-    icon: <FileSearchOutlined /> },
+    icon: <FileSearchOutlined />
+  },
   {
     type: "case",
     label: "Cases",
@@ -70,7 +73,8 @@ const QA_GROUPS: QaGroup[] = [
     href: (id) => `/qa-workspace/test-cases/${id}`,
     color: "#52c41a",
     tint: "#f6ffed",
-    icon: <ExperimentOutlined /> },
+    icon: <ExperimentOutlined />
+  },
   {
     type: "run",
     label: "Runs",
@@ -81,7 +85,8 @@ const QA_GROUPS: QaGroup[] = [
     href: (id) => `/qa-workspace/test-runs/${id}`,
     color: "#64748b",
     tint: "#f1f5f9",
-    icon: <PlayCircleOutlined /> },
+    icon: <PlayCircleOutlined />
+  },
 ];
 
 interface QaLinksSectionProps {
@@ -107,7 +112,8 @@ const useQaOptionsFor = (group: QaGroup, enabled: boolean) => {
     },
     enabled,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000 });
+    gcTime: 10 * 60 * 1000
+  });
 };
 
 export default function QaLinksSection({
@@ -125,7 +131,8 @@ export default function QaLinksSection({
   const canPick: Record<QaEntityType, boolean> = {
     scope: canEdit && (canReadScope || canManageQa),
     case: canEdit && (canReadCase || canManageQa),
-    run: canEdit && (canReadRun || canManageQa) };
+    run: canEdit && (canReadRun || canManageQa)
+  };
   const showPickers = canPick.scope || canPick.case || canPick.run;
 
   const scopeOptions = useQaOptionsFor(QA_GROUPS[0], canPick.scope);
@@ -134,7 +141,8 @@ export default function QaLinksSection({
   const optionQueries = {
     scope: scopeOptions,
     case: caseOptions,
-    run: runOptions } as const;
+    run: runOptions
+  } as const;
 
   const linksByType = useMemo(() => {
     const grouped: Record<QaEntityType, TicketQaLink[]> = { scope: [], case: [], run: [] };
@@ -176,7 +184,8 @@ export default function QaLinksSection({
       .map((r) => ({
         value: r.id,
         label: r[group.nameKey] || "Untitled",
-        description: [r[group.subKey], r.status].filter(Boolean).join(" • ") || undefined }));
+        description: [r[group.subKey], r.status].filter(Boolean).join(" • ") || undefined
+      }));
   };
 
   return (
@@ -201,7 +210,8 @@ export default function QaLinksSection({
             marginBottom: 14,
             backgroundColor: "var(--bg-secondary)",
             border: "1px solid var(--border-color)",
-            borderRadius: 12 }}
+            borderRadius: 12
+          }}
         >
           {QA_GROUPS.filter((g) => canPick[g.type]).map((group) => {
             const query = optionQueries[group.type];
@@ -239,7 +249,8 @@ export default function QaLinksSection({
             textAlign: "center",
             backgroundColor: "var(--bg-secondary)",
             borderRadius: 8,
-            border: "1px dashed var(--border-color)" }}
+            border: "1px dashed var(--border-color)"
+          }}
         >
           <Text type="secondary" style={{ fontSize: 13 }}>
             {showPickers ? "No QA records linked yet" : "QA hasn't linked anything to this ticket"}
@@ -261,7 +272,8 @@ export default function QaLinksSection({
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                     display: "block",
-                    marginBottom: 8 }}
+                    marginBottom: 8
+                  }}
                 >
                   {group.label} ({items.length})
                 </Text>
@@ -280,7 +292,8 @@ export default function QaLinksSection({
                         border: "1px solid var(--border-color)",
                         borderRadius: 12,
                         transition: "all 0.2s",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                      }}
                     >
                       <div
                         style={{
@@ -293,7 +306,8 @@ export default function QaLinksSection({
                           alignItems: "center",
                           justifyContent: "center",
                           fontSize: 14,
-                          flexShrink: 0 }}
+                          flexShrink: 0
+                        }}
                       >
                         {group.icon}
                       </div>
@@ -311,7 +325,8 @@ export default function QaLinksSection({
                             fontWeight: 600,
                             fontSize: 13,
                             color: "#1890ff",
-                            lineHeight: 1.4 }}
+                            lineHeight: 1.4
+                          }}
                         >
                           <span style={{ wordBreak: "break-word" }}>
                             {link.name || "Untitled"}
@@ -330,7 +345,8 @@ export default function QaLinksSection({
                                 borderRadius: 4,
                                 color: group.color,
                                 backgroundColor: group.tint,
-                                border: "none" }}
+                                border: "none"
+                              }}
                             >
                               {link.status}
                             </Tag>

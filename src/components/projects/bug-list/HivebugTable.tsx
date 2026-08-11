@@ -11,6 +11,7 @@ import {
   Trash2,
   RotateCcw,
   CheckCircle,
+  History,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -19,6 +20,8 @@ import type {
 } from "@/services/bugListService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import TicketHistoryDrawer from "./TicketHistoryDrawer";
+import { useMarkBugRecurring } from "@/hooks/useBugList";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -152,6 +155,8 @@ export default function HivebugTable({
     canManageBugs 
   } = usePermission();
 
+  const [historyDrawerBug, setHistoryDrawerBug] = useState<BugListItem | null>(null);
+
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
     selectableBugs.length > 0 &&
@@ -178,6 +183,8 @@ export default function HivebugTable({
             <th style={{ width: 120 }}>ASSIGNEE</th>
             <th style={{ width: 160 }}>CREATED</th>
             <th className="hb-col-ticket" style={{ width: 120 }}>TICKET</th>
+            <th style={{ width: 80, textAlign: 'center' }}>RECURRING</th>
+            <th style={{ width: 60, textAlign: 'center' }}>HISTORY</th>
             <th className="hb-col-actions" style={{ width: 40 }}></th>
           </tr>
         </thead>
@@ -215,10 +222,16 @@ export default function HivebugTable({
               isArchiveView={isArchiveView}
               isNestedInSheet={isNestedInSheet}
               isNestedInFolder={isNestedInFolder}
+              onOpenHistory={() => setHistoryDrawerBug(bug)}
             />
           ))}
         </tbody>
       </table>
+      <TicketHistoryDrawer 
+        bug={historyDrawerBug} 
+        open={!!historyDrawerBug} 
+        onClose={() => setHistoryDrawerBug(null)} 
+      />
     </div>
   );
 }
@@ -240,6 +253,7 @@ interface BugRowProps {
   isArchiveView?: boolean;
   isNestedInSheet?: boolean;
   isNestedInFolder?: boolean;
+  onOpenHistory: () => void;
 }
 
 function BugRow({
@@ -259,8 +273,9 @@ function BugRow({
   isArchiveView,
   isNestedInSheet,
   isNestedInFolder,
+  onOpenHistory,
 }: BugRowProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { 
     canUpdateBug, 
@@ -268,6 +283,7 @@ function BugRow({
     canCreateTicket, 
     canManageBugs 
   } = usePermission();
+  const { mutate: markRecurring, isPending: isMarkingRecurring } = useMarkBugRecurring();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
@@ -422,6 +438,54 @@ function BugRow({
             <Plus size={11} /> Create
           </button>
         )}
+      </td>
+      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <Tooltip title={bug.isRecurring ? "This bug has recurred" : "Mark as recurring"}>
+          <Checkbox
+            checked={bug.isRecurring}
+            disabled={!ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug || isTrashView || isArchiveView}
+            onChange={(e) => {
+              if (e.target.checked) {
+                modal.confirm({
+                  title: 'Mark Bug as Recurring',
+                  content: 'Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history.',
+                  okText: 'Yes, mark as recurring',
+                  cancelText: 'Cancel',
+                  onOk: () => {
+                    markRecurring(bug.id);
+                  }
+                });
+              }
+            }}
+          />
+        </Tooltip>
+      </td>
+      <td style={{ textAlign: 'center' }} onClick={(e) => {
+        e.stopPropagation();
+        if (ticketLinked || (bug.ticketHistory && bug.ticketHistory.length > 0)) {
+          onOpenHistory();
+        }
+      }}>
+        <Tooltip title="View Ticket History">
+          <button
+            type="button"
+            disabled={!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: (!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)) ? 'not-allowed' : 'pointer',
+              color: (!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)) ? '#d1d5db' : '#6b7280',
+              padding: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 4
+            }}
+            className="hb-icon-btn"
+          >
+            <History size={16} />
+          </button>
+        </Tooltip>
       </td>
       <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
         <Dropdown

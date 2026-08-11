@@ -3,13 +3,13 @@
 import { use } from 'react'
 import dynamic from 'next/dynamic'
 
-import LoadingSpinner from '@/components/common/LoadingSpinner'
+import ZukvoLoader from '@/components/common/ZukvoLoader'
 
 const DocumentWorkspace = dynamic(
     () => import('@/components/documenthub/DocumentWorkspace'),
     {
         ssr: false,
-        loading: () => <LoadingSpinner message="Loading workspace..." />
+        loading: () => <ZukvoLoader message="Loading workspace..." />
     }
 )
 

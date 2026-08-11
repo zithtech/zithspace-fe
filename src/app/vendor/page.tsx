@@ -32,6 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import { VendorService, Vendor } from "@/services/vendor.service";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -298,18 +299,20 @@ export default function VendorListPage() {
               </div>
             </Space>
 
-            <Table
-              columns={columns}
-              dataSource={data}
-              rowKey="id"
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], ...pagination,
-                showSizeChanger: true,
-                showTotal: (totalItem) => `Total ${totalItem} vendors`,
-              }}
-              loading={loading}
-              onChange={handleTableChange}
-              size="middle"
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                columns={columns}
+                dataSource={data}
+                rowKey="id"
+                pagination={{
+                  pageSizeOptions: [10, 20, 25, 50, 100], ...pagination,
+                  showSizeChanger: true,
+                  showTotal: (totalItem) => `Total ${totalItem} vendors`,
+                }}
+                onChange={handleTableChange}
+                size="middle"
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </div>
 

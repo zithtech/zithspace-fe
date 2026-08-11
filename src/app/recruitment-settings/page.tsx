@@ -57,6 +57,7 @@ import {
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useRecruitmentSettings } from "@/hooks/useRecruitmentSettings";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { Title } = Typography;
@@ -358,8 +359,12 @@ export default function actionStatus(){
     ];
 
     const tabItems = [
-        { key: '1', label: 'Status Configuration', children: <Table loading={loading} columns={columns} dataSource={dataSource} pagination={false} /> },
-        { key: '2', label: 'Action Configurations', children: <Table loading={loading} columns={actionColumns} dataSource={actionDataSource} pagination={false} /> },
+        { key: '1', label: 'Status Configuration', children: <ZukvoLoadingOverlay loading={loading} message="">
+        <Table columns={columns} dataSource={dataSource} pagination={false} />
+        </ZukvoLoadingOverlay> },
+        { key: '2', label: 'Action Configurations', children: <ZukvoLoadingOverlay loading={loading} message="">
+        <Table columns={actionColumns} dataSource={actionDataSource} pagination={false} />
+        </ZukvoLoadingOverlay> },
     ];
 
     return(

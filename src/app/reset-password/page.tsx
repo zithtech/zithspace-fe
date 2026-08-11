@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Form, Input, Button, Typography, Alert, Spin, Progress } from 'antd';
+import { Form, Input, Button, Typography, Alert, Progress } from 'antd';
 import { LockOutlined, CheckCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -87,7 +89,7 @@ function ResetPasswordForm() {
   if (validating) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
         <div style={{ marginTop: 16 }}>
           <Text style={{ fontSize: 13, color: '#5A6982' }}>Verifying reset link...</Text>
         </div>
@@ -255,7 +257,7 @@ function ResetPasswordForm() {
 function ResetPasswordSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <Spin size="large" />
+      <ZukvoLoader size="lg" />
     </div>
   );
 }

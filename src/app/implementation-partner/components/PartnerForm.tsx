@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import {
@@ -17,7 +19,6 @@ import {
   notification,
   Divider,
   Breadcrumb,
-  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -116,7 +117,7 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
   if (fetching) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: "#f5f5f5" }}>
-        <Spin size="large" tip="Loading partner details..." />
+        <ZukvoLoader size="lg" message="Loading partner details..." />
       </div>
     );
   }

@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, message, Spin } from "antd";
+import { Input, message } from "antd";
 import { ThunderboltOutlined, SendOutlined, CloseOutlined } from "@ant-design/icons";
 import { BlockNoteEditor } from "@blocknote/core";
 import { documentHubService as DocumentHubService } from "@/services/documentHub";
@@ -405,7 +407,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
               onPressEnter={() => applyRewrite(instruction)}
               suffix={
                 busy ? (
-                  <Spin size="small" />
+                  <ZukvoLoader size="sm" />
                 ) : (
                   <button
                     onMouseDown={(e) => e.preventDefault()}
@@ -445,7 +447,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                   color: "var(--text-slate-600)",
                 }}
               >
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
                 <span>Zai is rewriting your selection…</span>
               </div>
             )}

@@ -13,6 +13,7 @@ import {
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ExitInterviewsPage() {
   const router = useRouter();
@@ -206,7 +207,9 @@ export default function ExitInterviewsPage() {
         </div>
 
         <div className="exit-table-wrap">
-          <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" loading={loading} pagination={false} scroll={{ x: 900 }} />
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" pagination={false} scroll={{ x: 900 }} />
+                  </ZukvoLoadingOverlay>
         </div>
       </div>
 

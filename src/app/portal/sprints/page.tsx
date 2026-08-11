@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Spin, Pagination, Select, DatePicker, Row as AntRow, Col, Divider, Typography } from "antd";
+import {  Pagination, Select, DatePicker, Row as AntRow, Col, Divider, Typography } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
 dayjs.extend(quarterOfYear);
@@ -695,7 +697,7 @@ export default function PortalSprintsPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div

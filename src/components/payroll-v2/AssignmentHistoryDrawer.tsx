@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from 'react';
-import { Drawer, Button, Tag, Avatar, Spin, message, Empty } from 'antd';
+import { Drawer, Button, Tag, Avatar, message, Empty } from 'antd';
 import { CloseOutlined, HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import PayrollV2Service, { MemberOption, EmployeeAssignmentListItem } from '@/services/payrollV2Service';
 
@@ -57,7 +59,7 @@ export default function AssignmentHistoryDrawer({
 
         <div className="ahd-body">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><Spin /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div>
           ) : rows.length === 0 ? (
             <Empty description="No salary assignments yet" style={{ marginTop: 48 }} />
           ) : (

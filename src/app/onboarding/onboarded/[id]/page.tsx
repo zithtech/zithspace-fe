@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,7 +14,6 @@ import {
   Tabs,
   Tag,
   Divider,
-  Spin,
   message,
   Image,
 } from 'antd';
@@ -463,7 +464,7 @@ export default function OnboardedViewPage() {
     return (
       <OnboardingGuard itemKey="employees">
         <div style={{ height: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Spin size="large" tip="Loading Employee Information..." />
+          <ZukvoLoader size="lg" message="Loading Employee Information..." />
         </div>
       </OnboardingGuard>
     );

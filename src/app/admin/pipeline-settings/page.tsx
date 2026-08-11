@@ -54,6 +54,7 @@ import { CSS } from '@dnd-kit/utilities';
 import MainLayout from '@/components/layout/MainLayout';
 import pipelineStageService, { PipelineStage, CreatePipelineStagePayload } from '@/services/pipelineStageService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -124,7 +125,7 @@ export default function PipelineSettingsPage() {
       const oldIndex = stages.findIndex((i) => i.id === active.id);
       const newIndex = stages.findIndex((i) => i.id === over?.id);
       const newStages = arrayMove(stages, oldIndex, newIndex);
-      
+
       setStages(newStages);
 
       try {
@@ -148,8 +149,8 @@ export default function PipelineSettingsPage() {
   const handleEdit = (stage: PipelineStage) => {
     setEditingStage(stage);
     form.setFieldsValue({
-        ...stage,
-        color: stage.color || '#1677ff'
+      ...stage,
+      color: stage.color || '#1677ff'
     });
     setIsModalVisible(true);
   };
@@ -168,7 +169,7 @@ export default function PipelineSettingsPage() {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // Extract hex from ColorPicker if it's an object
       const colorValue = typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || '#1677ff';
 
@@ -283,17 +284,17 @@ export default function PipelineSettingsPage() {
       align: 'right' as const,
       render: (_, record) => (
         <Space size={8}>
-          <Button 
+          <Button
             type="text"
-            icon={<EditOutlined />} 
-            onClick={() => handleEdit(record)} 
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
             className="hover-btn"
           />
-          <Button 
+          <Button
             type="text"
-            icon={<DeleteOutlined />} 
-            danger 
-            onClick={() => handleDelete(record.id)} 
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleDelete(record.id)}
             className="hover-btn"
           />
         </Space>
@@ -336,19 +337,20 @@ export default function PipelineSettingsPage() {
                 items={stages.map((i) => i.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <Table
-                  components={{
-                    body: {
-                      row: Row,
-                    },
-                  }}
-                  rowKey="id"
-                  columns={columns}
-                  dataSource={stages}
-                  pagination={false}
-                  loading={loading}
-                  className="pipeline-table"
-                />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                    components={{
+                      body: {
+                        row: Row,
+                      },
+                    }}
+                    rowKey="id"
+                    columns={columns}
+                    dataSource={stages}
+                    pagination={false}
+                    className="pipeline-table"
+                  />
+                </ZukvoLoadingOverlay>
               </SortableContext>
             </DndContext>
           </Card>
@@ -394,31 +396,31 @@ export default function PipelineSettingsPage() {
       ),
     },
     {
-       key: 'reasons',
-       label: (
-         <span>
-           <QuestionCircleOutlined />
-           Loss Reasons
-         </span>
-       ),
-       children: (
-         <div style={{ padding: '40px', textAlign: 'center' }}>
-           <QuestionCircleOutlined style={{ fontSize: '48px', color: 'var(--text-slate-300)', marginBottom: '16px' }} />
-           <Title level={4} style={{ color: 'var(--text-slate-900)' }}>Loss Reason Configuration</Title>
-           <Text style={{ color: 'var(--text-slate-500)' }}>Configure common reasons why deals are lost to improve your sales insights.</Text>
-           <div style={{ marginTop: '24px' }}>
-             <Button disabled style={{ borderRadius: 8 }}>Manage Loss Reasons</Button>
-           </div>
-         </div>
-       ),
+      key: 'reasons',
+      label: (
+        <span>
+          <QuestionCircleOutlined />
+          Loss Reasons
+        </span>
+      ),
+      children: (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <QuestionCircleOutlined style={{ fontSize: '48px', color: 'var(--text-slate-300)', marginBottom: '16px' }} />
+          <Title level={4} style={{ color: 'var(--text-slate-900)' }}>Loss Reason Configuration</Title>
+          <Text style={{ color: 'var(--text-slate-500)' }}>Configure common reasons why deals are lost to improve your sales insights.</Text>
+          <div style={{ marginTop: '24px' }}>
+            <Button disabled style={{ borderRadius: 8 }}>Manage Loss Reasons</Button>
+          </div>
+        </div>
+      ),
     }
   ];
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        background: "var(--bg-pure-white)", 
+      <div style={{
+        margin: "0 -24px",
+        background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)",
         display: "flex",
         flexDirection: "column",
@@ -432,9 +434,9 @@ export default function PipelineSettingsPage() {
         />
 
         <div style={{ padding: "0 32px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
             items={tabItems}
             size="large"
             type="line"

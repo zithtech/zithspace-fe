@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React from "react";
 import {
@@ -10,7 +12,6 @@ import {
   Typography,
   Empty,
   Divider,
-  Spin,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { Bucket } from "@/services/bucketService";
@@ -65,7 +66,7 @@ export function BucketSelector({
             style={{ display: "flex", flexDirection: "column", gap: 8 }}
           >
             {loading ? (
-              <Spin size="small" />
+              <ZukvoLoader size="sm" />
             ) : (
               buckets.map((bucket) => (
                 <Radio

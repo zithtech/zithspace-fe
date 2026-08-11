@@ -15,6 +15,7 @@ import { PositionService, Position } from '@/services/positionService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -26,7 +27,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<any>(null);
-  
+
   const [form] = Form.useForm();
   const levelType = Form.useWatch('levelType', form);
   const { message: messageApi } = App.useApp();
@@ -73,7 +74,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
   const handleAdd = () => {
     setEditingWorkflow(null);
     form.resetFields();
-    form.setFieldsValue({ 
+    form.setFieldsValue({
       levelType: 'positions',
       useReportingManager: true,
       additionalSteps: []
@@ -89,7 +90,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
 
   const handleEdit = (record: any) => {
     setEditingWorkflow(record);
-    
+
     // Parse steps
     const hasReportingManager = record.steps.some((s: any) => s.approverType === 'ReportingManager');
     const additionalSteps = record.steps.filter((s: any) => s.approverType !== 'ReportingManager').map((s: any) => ({
@@ -124,7 +125,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
     try {
       const values = await form.validateFields();
       setLoading(true);
-      
+
       const payloadSteps = [];
       let currentOrder = 1;
 
@@ -156,7 +157,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
 
       await ApprovalWorkflowService.saveSequence(payload);
       messageApi.success('Approval workflow saved successfully');
-      
+
       setModalVisible(false);
       fetchData();
     } catch (error: any) {
@@ -221,10 +222,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
           {record.steps.map((step: any, idx: number) => (
             <React.Fragment key={step.id}>
-              <Tag style={{ 
-                borderRadius: 6, 
-                background: "var(--bg-slate-50)", 
-                border: "1px solid var(--border-slate-200)", 
+              <Tag style={{
+                borderRadius: 6,
+                background: "var(--bg-slate-50)",
+                border: "1px solid var(--border-slate-200)",
                 color: "var(--text-slate-700)",
                 padding: "2px 8px",
                 display: "flex",
@@ -254,10 +255,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
       render: (_: any, record: any) => (
         <Space size={4}>
           <Tooltip title="Configure Workflow">
-            <Button 
-              type="text" 
-              icon={<Edit size={18} style={{ color: 'var(--text-slate-400)' }} />} 
-              onClick={() => handleEdit(record)} 
+            <Button
+              type="text"
+              icon={<Edit size={18} style={{ color: 'var(--text-slate-400)' }} />}
+              onClick={() => handleEdit(record)}
             />
           </Tooltip>
           <ConfirmDialog
@@ -267,10 +268,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
             placement="bottomRight"
           >
             <Tooltip title="Remove">
-              <Button 
-                type="text" 
-                danger 
-                icon={<Trash2 size={18} />} 
+              <Button
+                type="text"
+                danger
+                icon={<Trash2 size={18} />}
               />
             </Tooltip>
           </ConfirmDialog>
@@ -283,14 +284,15 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '0' }}>
       <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
         <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
-          <Table 
-            className="pp-table"
-            columns={columns} 
-            dataSource={filteredWorkflows} 
-            rowKey={(r) => `${r.levelType}-${r.levelId}`} 
-            loading={loading}
-            pagination={false}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              className="pp-table"
+              columns={columns}
+              dataSource={filteredWorkflows}
+              rowKey={(r) => `${r.levelType}-${r.levelId}`}
+              pagination={false}
+            />
+          </ZukvoLoadingOverlay>
         </div>
       </div>
 
@@ -304,10 +306,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
           >
             <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
-            <Button 
-              type="primary" 
-              loading={loading} 
-              onClick={handleSubmit} 
+            <Button
+              type="primary"
+              loading={loading}
+              onClick={handleSubmit}
               style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
             >
               {editingWorkflow ? 'Update Workflow' : 'Save Workflow'}
@@ -316,7 +318,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
         }
       >
         <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
-        
+
         <div
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{ background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)', borderColor: 'var(--border-color)' }}
@@ -347,14 +349,14 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
           </button>
         </div>
 
-        <Form 
-          form={form} 
-          layout="vertical" 
-          requiredMark={false} 
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
           className="customer-drawer-form"
         >
           <div className="px-6 py-6 space-y-5 pb-24">
-            
+
             <SectionCard title="Target Role" icon={<Briefcase size={16} />}>
               <div style={{ display: 'flex', gap: 16 }}>
                 <Form.Item
@@ -371,7 +373,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
                     ]}
                   />
                 </Form.Item>
-                
+
                 <Form.Item
                   name="levelId"
                   label={<Text strong style={{ fontSize: 13 }}>Specific Role</Text>}
@@ -394,10 +396,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
             </SectionCard>
 
             <SectionCard title="Workflow Sequence" icon={<ShieldCheck size={16} />}>
-              <div style={{ 
-                background: "var(--bg-slate-50)", 
-                border: "1px solid var(--border-slate-200)", 
-                borderRadius: 8, 
+              <div style={{
+                background: "var(--bg-slate-50)",
+                border: "1px solid var(--border-slate-200)",
+                borderRadius: 8,
                 padding: "16px",
                 marginBottom: 16
               }}>
@@ -421,10 +423,10 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
                 {(fields, { add, remove }) => (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {fields.map((field, index) => (
-                      <div key={field.key} style={{ 
-                        background: "var(--bg-secondary)", 
-                        border: "1px solid var(--border-color)", 
-                        borderRadius: 8, 
+                      <div key={field.key} style={{
+                        background: "var(--bg-secondary)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: 8,
                         padding: "16px",
                         position: 'relative'
                       }}>
@@ -433,11 +435,11 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
                             Step {form.getFieldValue('useReportingManager') ? index + 2 : index + 1}
                           </Text>
                         </div>
-                        
-                        <Button 
-                          type="text" 
-                          danger 
-                          icon={<Trash2 size={16} />} 
+
+                        <Button
+                          type="text"
+                          danger
+                          icon={<Trash2 size={16} />}
                           onClick={() => remove(field.name)}
                           style={{ position: 'absolute', top: 8, right: 8 }}
                         />
@@ -479,7 +481,7 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
                                     mode="multiple"
                                     placeholder={`Select ${type.toLowerCase()}(s)`}
                                     options={
-                                      type === 'Position' 
+                                      type === 'Position'
                                         ? positions.map(p => ({ label: p.title, value: p.id }))
                                         : grades.map(g => ({ label: g.name || g.gradeName, value: g.id }))
                                     }
@@ -494,11 +496,11 @@ const ApprovalWorkflowPage: React.FC<{ searchText?: string, createTrigger?: numb
                         </div>
                       </div>
                     ))}
-                    
-                    <Button 
-                      type="dashed" 
-                      onClick={() => add({ mandatory: true, approverType: 'Position' })} 
-                      block 
+
+                    <Button
+                      type="dashed"
+                      onClick={() => add({ mandatory: true, approverType: 'Position' })}
+                      block
                       icon={<Plus size={16} />}
                       style={{ height: 40, borderColor: "var(--premium-blue)", color: "var(--premium-blue)" }}
                     >

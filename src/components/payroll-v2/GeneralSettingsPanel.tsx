@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, InputNumber, Switch, message, Spin } from 'antd';
+import { Button, InputNumber, Switch, message } from 'antd';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import {
   SlidersHorizontal,
@@ -177,7 +179,7 @@ export default function GeneralSettingsPanel() {
       </div>
 
       {loading ? (
-        <div className="pv-loading"><Spin /></div>
+        <div className="pv-loading"><ZukvoLoader size="md" /></div>
       ) : (
         <div className="pv-sections">
           {/* ---------------- Financial Year & Pay ---------------- */}

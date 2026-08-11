@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -18,7 +20,6 @@ import {
   Drawer,
   List,
   Avatar,
-  Spin,
   Popconfirm,
   Tooltip,
   ConfigProvider,
@@ -1185,7 +1186,7 @@ export default function SprintPlanComponent() {
 
                 <div className="sp-cal-body sp-cal-body-weeks">
                   {loading ? (
-                    <div className="sp-card-loading"><Spin /></div>
+                    <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
                   ) : calendarData.weeks.map((week, wi) => {
                     const lanes = calendarData.maxLanesByWeek[wi];
                     const ribbonHeight = lanes > 0 ? lanes * 26 + 14 : 0;
@@ -1460,7 +1461,7 @@ export default function SprintPlanComponent() {
                 <div className="sp-plist">
                   {loading ? (
                     <div className="sp-card-loading">
-                      <Spin />
+                      <ZukvoLoader size="md" />
                     </div>
                   ) : pagedSprintPlans.length === 0 ? (
                     <div className="sp-empty-state">
@@ -1873,7 +1874,7 @@ export default function SprintPlanComponent() {
                 </div>
 
                 {loading ? (
-                  <div className="sp-card-loading"><Spin /></div>
+                  <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
                 ) : pagedSprintPlans.length === 0 ? (
                   <div className="sp-empty-state">
                     <div className="sp-empty-icon">
@@ -2275,7 +2276,7 @@ export default function SprintPlanComponent() {
                     optionLabelProp="label"
                     onSearch={handleTicketSearch}
                     filterOption={false}
-                    notFoundContent={ticketLoading ? <Spin size="small" /> : null}
+                    notFoundContent={ticketLoading ? <ZukvoLoader size="sm" /> : null}
                     options={ticketOptions}
                     dropdownStyle={{ borderRadius: 0 }}
                     optionRender={(option) => {

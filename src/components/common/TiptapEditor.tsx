@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -8,7 +10,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
-import { message, Spin } from "antd";
+import { message } from "antd";
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -209,7 +211,7 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   }, [editor]);
 
   if (!editor) {
-    return <Spin />;
+    return <ZukvoLoader size="md" />;
   }
 
   return (
@@ -435,7 +437,7 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
             style={buttonStyle}
             title="Upload Image"
           >
-            {uploading ? <Spin size="small" /> : <PictureOutlined />}
+            {uploading ? <ZukvoLoader size="sm" /> : <PictureOutlined />}
           </button>
 
           <div

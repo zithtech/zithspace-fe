@@ -1,6 +1,8 @@
-
-
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
+
+
 
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -23,7 +25,6 @@ import {
   Modal,
   App,
   Divider,
-  Spin,
   Drawer
 } from "antd";
 import {
@@ -1435,7 +1436,7 @@ export default function InvoiceNewinvoicePage() {
                     />
                   ) : (
                     <div className="flex justify-center p-12">
-                      <Spin size="large" />
+                      <ZukvoLoader size="lg" />
                     </div>
                   )}
                 </div>

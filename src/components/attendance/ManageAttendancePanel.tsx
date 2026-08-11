@@ -50,6 +50,7 @@ import { ProjectService } from '@/services/projectService';
 import { useSocket } from '@/providers/SocketProvider';
 import { breakLabel, BREAK_TYPES } from '@/components/attendance/breakTypes';
 import { CoffeeOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 interface LiveStatus {
   state?: string;
@@ -385,22 +386,22 @@ export default function ManageAttendancePanel() {
 
       // Validate if the member has an approved leave on this date using the new LeaveV2Service
       const allLeaveRequests = await LeaveV2Service.getApprovals();
-      
+
       let hasOverlap = false;
-      
+
       if (allLeaveRequests && allLeaveRequests.length > 0) {
         const selectedDateStr = selectedDate.format('YYYY-MM-DD');
         for (const leave of allLeaveRequests) {
           // Filter by the selected member's user ID
           if (leave.userId !== values.member) continue;
-          
+
           const lStatus = leave.status || 'unknown';
           const lStart = dayjs(leave.fromDate).format('YYYY-MM-DD');
           const lEnd = dayjs(leave.toDate).format('YYYY-MM-DD');
-          
+
           // Check locally if the leave is approved (case-insensitive)
           if (lStatus.toLowerCase() !== 'approved') continue;
-          
+
           if (selectedDateStr >= lStart && selectedDateStr <= lEnd) {
             hasOverlap = true;
             break;
@@ -421,24 +422,24 @@ export default function ManageAttendancePanel() {
       // session; a break row attaches its type/reason to the preceding work
       // session (the gap to the next session IS the break duration).
       const rawRows = (values.timeline || []).filter((r: any) => r && r.start);
-      
+
       let currentDayOffset = 0;
       let lastTime = 0;
 
       const mappedRows = rawRows.map((r: any) => {
         let s = atDate(r.start).add(currentDayOffset, 'day');
-        
+
         if (s.valueOf() < lastTime) {
           currentDayOffset += 1;
           s = s.add(1, 'day');
         }
-        
+
         let e = r.end ? atDate(r.end).add(currentDayOffset, 'day') : null;
         if (e && e.isBefore(s)) {
           e = e.add(1, 'day');
           currentDayOffset += 1;
         }
-        
+
         lastTime = e ? e.valueOf() : s.valueOf();
         return { ...r, s, e };
       });
@@ -531,11 +532,11 @@ export default function ManageAttendancePanel() {
       key: 'member',
       render: (_, r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar 
-            size={32} 
-            src={r.member?.avatarUrl} 
-            style={{ 
-              backgroundColor: r.member?.avatarUrl ? 'transparent' : avatarColorFor(r.member?.id || r.member?.name || ''), 
+          <Avatar
+            size={32}
+            src={r.member?.avatarUrl}
+            style={{
+              backgroundColor: r.member?.avatarUrl ? 'transparent' : avatarColorFor(r.member?.id || r.member?.name || ''),
               color: '#fff',
               fontSize: 12,
               fontWeight: 600
@@ -809,21 +810,22 @@ export default function ManageAttendancePanel() {
 
       {/* ── 4) TABLE ──────────────────────────────────────────────────────────── */}
       <div className="att-table-wrap" style={{ overflowX: 'auto' }}>
-        <Table
-          rowKey="id"
-          size="small"
-          className="att-table"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          onRow={() => ({ className: 'att-row' })}
-          expandable={{
-            expandedRowRender: renderSessions,
-            rowExpandable: (record) => ((record as ExtendedAttendance).sessions?.length || 0) > 0,
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="att-table"
+            columns={columns}
+            dataSource={rows}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={() => ({ className: 'att-row' })}
+            expandable={{
+              expandedRowRender: renderSessions,
+              rowExpandable: (record) => ((record as ExtendedAttendance).sessions?.length || 0) > 0,
+            }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* Sticky footer pager */}
@@ -943,14 +945,14 @@ export default function ManageAttendancePanel() {
 
         {/* Content */}
         <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
-          <Form 
-            form={form} 
+          <Form
+            form={form}
             layout="horizontal"
             labelCol={{ span: 8 }}
             wrapperCol={{ span: 16 }}
             labelAlign="left"
             colon={false}
-            requiredMark="optional" 
+            requiredMark="optional"
             className="customer-drawer-form att-drawer-form"
           >
             {/* STEP 1 — Record Details */}
@@ -1009,202 +1011,202 @@ export default function ManageAttendancePanel() {
               </Form.Item>
             </SectionCard>
 
-              {/* STEP 2 — Work & Breaks timeline */}
-              {statusValue !== 'absent' && (
-                <SectionCard
-                  icon={<ClockCircleOutlined />}
-                  title="Work & Breaks"
-                  subtitle="Build the day's intervals — work periods split by typed breaks"
-                  step="STEP 2"
-                >
-                  <Form.List name="timeline">
-                    {(fields, { add, remove }) => {
-                      const addRow = (type: string) => {
-                        const tl = form.getFieldValue('timeline') || [];
-                        const last = tl[tl.length - 1];
-                        add({ type, start: last?.end || null, end: null, reason: '' });
-                      };
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                          {fields.map((field, idx) => (
-                            <Form.Item key={field.key} noStyle shouldUpdate>
-                              {() => {
-                                const type = form.getFieldValue(['timeline', field.name, 'type']) || 'work';
-                                const isWork = type === 'work';
-                                const bt = BREAK_TYPES.find((b) => b.value === type);
-                                const accent = isWork ? PALETTE.blue : bt?.color || PALETTE.grey;
-                                const start = form.getFieldValue(['timeline', field.name, 'start']);
-                                const end = form.getFieldValue(['timeline', field.name, 'end']);
-                                const normStart = start ? dayjs().hour(dayjs(start).hour()).minute(dayjs(start).minute()).second(0).millisecond(0) : null;
-                                const normEnd = end ? dayjs().hour(dayjs(end).hour()).minute(dayjs(end).minute()).second(0).millisecond(0) : null;
-                                const dur =
-                                  normStart && normEnd && normEnd.isAfter(normStart)
-                                    ? normEnd.diff(normStart, 'minute')
-                                    : 0;
-                                const needReason = REASON_TYPES.has(type);
-                                return (
+            {/* STEP 2 — Work & Breaks timeline */}
+            {statusValue !== 'absent' && (
+              <SectionCard
+                icon={<ClockCircleOutlined />}
+                title="Work & Breaks"
+                subtitle="Build the day's intervals — work periods split by typed breaks"
+                step="STEP 2"
+              >
+                <Form.List name="timeline">
+                  {(fields, { add, remove }) => {
+                    const addRow = (type: string) => {
+                      const tl = form.getFieldValue('timeline') || [];
+                      const last = tl[tl.length - 1];
+                      add({ type, start: last?.end || null, end: null, reason: '' });
+                    };
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {fields.map((field, idx) => (
+                          <Form.Item key={field.key} noStyle shouldUpdate>
+                            {() => {
+                              const type = form.getFieldValue(['timeline', field.name, 'type']) || 'work';
+                              const isWork = type === 'work';
+                              const bt = BREAK_TYPES.find((b) => b.value === type);
+                              const accent = isWork ? PALETTE.blue : bt?.color || PALETTE.grey;
+                              const start = form.getFieldValue(['timeline', field.name, 'start']);
+                              const end = form.getFieldValue(['timeline', field.name, 'end']);
+                              const normStart = start ? dayjs().hour(dayjs(start).hour()).minute(dayjs(start).minute()).second(0).millisecond(0) : null;
+                              const normEnd = end ? dayjs().hour(dayjs(end).hour()).minute(dayjs(end).minute()).second(0).millisecond(0) : null;
+                              const dur =
+                                normStart && normEnd && normEnd.isAfter(normStart)
+                                  ? normEnd.diff(normStart, 'minute')
+                                  : 0;
+                              const needReason = REASON_TYPES.has(type);
+                              return (
+                                <div
+                                  className="att-timeline-item"
+                                  style={{
+                                    border: '1px solid var(--border-color)',
+                                    borderLeft: `3px solid ${accent}`,
+                                    borderRadius: 8,
+                                    padding: '10px 12px 12px',
+                                    background: 'var(--bg-pure-white)',
+                                  }}
+                                >
+                                  {/* Row header: index + label + duration + remove */}
                                   <div
-                                    className="att-timeline-item"
                                     style={{
-                                      border: '1px solid var(--border-color)',
-                                      borderLeft: `3px solid ${accent}`,
-                                      borderRadius: 8,
-                                      padding: '10px 12px 12px',
-                                      background: 'var(--bg-pure-white)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      marginBottom: 8,
                                     }}
                                   >
-                                    {/* Row header: index + label + duration + remove */}
-                                    <div
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        marginBottom: 8,
-                                      }}
-                                    >
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <span
-                                          style={{
-                                            width: 20,
-                                            height: 20,
-                                            borderRadius: 999,
-                                            background: `${accent}1A`,
-                                            color: accent,
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: 10.5,
-                                            fontWeight: 800,
-                                          }}
-                                        >
-                                          {idx + 1}
-                                        </span>
-                                        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent, letterSpacing: '-0.01em' }}>
-                                          {isWork ? 'Work interval' : bt?.label || 'Break'}
-                                        </span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                      <span
+                                        style={{
+                                          width: 20,
+                                          height: 20,
+                                          borderRadius: 999,
+                                          background: `${accent}1A`,
+                                          color: accent,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: 10.5,
+                                          fontWeight: 800,
+                                        }}
+                                      >
+                                        {idx + 1}
                                       </span>
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                                        {dur > 0 && (
-                                          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-slate-500)', fontVariantNumeric: 'tabular-nums' }}>
-                                            {formatDuration(dur)}
-                                          </span>
-                                        )}
-                                        {fields.length > 1 && (
-                                          <Tooltip title="Remove">
-                                            <Button
-                                              type="text"
-                                              size="small"
-                                              danger
-                                              icon={<MinusCircleOutlined />}
-                                              onClick={() => remove(field.name)}
-                                            />
-                                          </Tooltip>
-                                        )}
+                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: accent, letterSpacing: '-0.01em' }}>
+                                        {isWork ? 'Work interval' : bt?.label || 'Break'}
                                       </span>
-                                    </div>
+                                    </span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                                      {dur > 0 && (
+                                        <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-slate-500)', fontVariantNumeric: 'tabular-nums' }}>
+                                          {formatDuration(dur)}
+                                        </span>
+                                      )}
+                                      {fields.length > 1 && (
+                                        <Tooltip title="Remove">
+                                          <Button
+                                            type="text"
+                                            size="small"
+                                            danger
+                                            icon={<MinusCircleOutlined />}
+                                            onClick={() => remove(field.name)}
+                                          />
+                                        </Tooltip>
+                                      )}
+                                    </span>
+                                  </div>
 
-                                    <Row gutter={10} align="top">
-                                      <Col span={10}>
-                                        <Form.Item
-                                          {...field}
-                                          key="type"
-                                          name={[field.name, 'type']}
-                                          rules={[{ required: true, message: 'Type' }]}
-                                        >
-                                          <Select size="large" options={INTERVAL_TYPE_OPTIONS} placeholder="Type" />
-                                        </Form.Item>
-                                      </Col>
-                                      <Col span={7}>
-                                        <Form.Item
-                                          {...field}
-                                          key="start"
-                                          name={[field.name, 'start']}
-                                          rules={[{ required: true, message: 'Start' }]}
-                                        >
-                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
-                                        </Form.Item>
-                                      </Col>
-                                      <Col span={7}>
-                                        <Form.Item
-                                          {...field}
-                                          key="end"
-                                          name={[field.name, 'end']}
-                                          rules={[
-                                            ({ getFieldValue }) => ({
-                                              validator(_, value) {
-                                                const s = getFieldValue(['timeline', field.name, 'start']);
-                                                if (!value || !s) return Promise.resolve();
-                                                const normS = dayjs().hour(dayjs(s).hour()).minute(dayjs(s).minute()).second(0).millisecond(0);
-                                                let normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
-                                                if (normE.isBefore(normS)) {
-                                                  normE = normE.add(1, 'day');
-                                                }
-                                                if (normE.isAfter(normS)) return Promise.resolve();
-                                                return Promise.reject(new Error('After start'));
-                                              },
-                                            }),
-                                          ]}
-                                        >
-                                          <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
-                                        </Form.Item>
-                                      </Col>
-                                    </Row>
-
-                                    {needReason && (
+                                  <Row gutter={10} align="top">
+                                    <Col span={10}>
                                       <Form.Item
                                         {...field}
-                                        key="reason"
-                                        name={[field.name, 'reason']}
-                                        style={{ marginBottom: 0, marginTop: 10 }}
+                                        key="type"
+                                        name={[field.name, 'type']}
+                                        rules={[{ required: true, message: 'Type' }]}
                                       >
-                                        <Input size="large" placeholder="Reason (optional)" />
+                                        <Select size="large" options={INTERVAL_TYPE_OPTIONS} placeholder="Type" />
                                       </Form.Item>
-                                    )}
-                                  </div>
-                                );
-                              }}
-                            </Form.Item>
-                          ))}
+                                    </Col>
+                                    <Col span={7}>
+                                      <Form.Item
+                                        {...field}
+                                        key="start"
+                                        name={[field.name, 'start']}
+                                        rules={[{ required: true, message: 'Start' }]}
+                                      >
+                                        <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="Start" popupClassName="att-tp-popup" />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col span={7}>
+                                      <Form.Item
+                                        {...field}
+                                        key="end"
+                                        name={[field.name, 'end']}
+                                        rules={[
+                                          ({ getFieldValue }) => ({
+                                            validator(_, value) {
+                                              const s = getFieldValue(['timeline', field.name, 'start']);
+                                              if (!value || !s) return Promise.resolve();
+                                              const normS = dayjs().hour(dayjs(s).hour()).minute(dayjs(s).minute()).second(0).millisecond(0);
+                                              let normE = dayjs().hour(dayjs(value).hour()).minute(dayjs(value).minute()).second(0).millisecond(0);
+                                              if (normE.isBefore(normS)) {
+                                                normE = normE.add(1, 'day');
+                                              }
+                                              if (normE.isAfter(normS)) return Promise.resolve();
+                                              return Promise.reject(new Error('After start'));
+                                            },
+                                          }),
+                                        ]}
+                                      >
+                                        <TimePicker format="h:mm a" use12Hours size="large" needConfirm={false} style={{ width: '100%' }} placeholder="End" popupClassName="att-tp-popup" />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
 
-                          <Row gutter={10}>
-                            <Col span={12}>
-                              <Button block type="dashed" onClick={() => addRow('work')} icon={<PlusOutlined />} style={{ height: 40, fontWeight: 600 }}>
-                                Add work interval
-                              </Button>
-                            </Col>
-                            <Col span={12}>
-                              <Button block type="dashed" onClick={() => addRow('lunch')} icon={<CoffeeOutlined />} style={{ height: 40, fontWeight: 600 }}>
-                                Add break
-                              </Button>
-                            </Col>
-                          </Row>
-
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 8,
-                              padding: '10px 12px',
-                              borderRadius: 8,
-                              background: TINT.blue,
-                              fontSize: 11.5,
-                              color: 'var(--text-slate-600)',
-                              fontWeight: 500,
-                              lineHeight: 1.5,
+                                  {needReason && (
+                                    <Form.Item
+                                      {...field}
+                                      key="reason"
+                                      name={[field.name, 'reason']}
+                                      style={{ marginBottom: 0, marginTop: 10 }}
+                                    >
+                                      <Input size="large" placeholder="Reason (optional)" />
+                                    </Form.Item>
+                                  )}
+                                </div>
+                              );
                             }}
-                          >
-                            <InfoCircleOutlined style={{ color: PALETTE.blue, marginTop: 2, flexShrink: 0 }} />
-                            <span>
-                              The last work interval's end time becomes the clock-out (day complete). Gaps
-                              between work intervals are counted as breaks.
-                            </span>
-                          </div>
+                          </Form.Item>
+                        ))}
+
+                        <Row gutter={10}>
+                          <Col span={12}>
+                            <Button block type="dashed" onClick={() => addRow('work')} icon={<PlusOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                              Add work interval
+                            </Button>
+                          </Col>
+                          <Col span={12}>
+                            <Button block type="dashed" onClick={() => addRow('lunch')} icon={<CoffeeOutlined />} style={{ height: 40, fontWeight: 600 }}>
+                              Add break
+                            </Button>
+                          </Col>
+                        </Row>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            background: TINT.blue,
+                            fontSize: 11.5,
+                            color: 'var(--text-slate-600)',
+                            fontWeight: 500,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          <InfoCircleOutlined style={{ color: PALETTE.blue, marginTop: 2, flexShrink: 0 }} />
+                          <span>
+                            The last work interval's end time becomes the clock-out (day complete). Gaps
+                            between work intervals are counted as breaks.
+                          </span>
                         </div>
-                      );
-                    }}
-                  </Form.List>
-                </SectionCard>
-              )}
+                      </div>
+                    );
+                  }}
+                </Form.List>
+              </SectionCard>
+            )}
           </Form>
         </div>
       </Drawer>

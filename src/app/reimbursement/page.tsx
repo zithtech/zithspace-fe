@@ -1,11 +1,13 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Tabs, Spin } from "antd";
+import { Space, Typography, Tabs } from "antd";
 import Link from "next/link";
 import {
   UserOutlined,
@@ -49,9 +51,7 @@ export default function ReimbursementPage() {
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" message="Loading" />
           </div>
         </div>
       </MainLayout>

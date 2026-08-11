@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState, useCallback } from 'react';
-import { Layout, Typography, Button, Spin, message, theme } from 'antd';
+import { Layout, Typography, Button, message, theme } from 'antd';
 import {
     VideoCameraOutlined,
     PhoneOutlined,
@@ -154,7 +156,7 @@ export default function ChannelPage() {
             }}>
                 {loading ? (
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Spin />
+                        <ZukvoLoader size="md" />
                     </div>
                 ) : (
                     <MessageList channelId={channelId} />

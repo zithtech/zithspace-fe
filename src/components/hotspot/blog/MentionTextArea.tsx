@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Input, Spin } from 'antd';
+import { Input } from 'antd';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { PALETTE, TINT } from '@/components/openings/ui';
 import { avatarColorFor, initialsFor } from '@/components/common/SearchableDropdown';
@@ -207,7 +209,7 @@ export default function MentionTextArea({
         <div className="hsb-mta-menu">
           {loading && suggestions.length === 0 ? (
             <div className="hsb-mta-loading">
-              <Spin size="small" />
+              <ZukvoLoader size="sm" />
             </div>
           ) : (
             suggestions.map((user, i) => (

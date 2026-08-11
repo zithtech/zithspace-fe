@@ -14,6 +14,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
   PtStateListItem, PtSlab, LwfState, LwfFrequency,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { cyan: '#06B6D4', green: '#10B981', red: '#EF4444', amber: '#F59E0B', violet: '#8B5CF6', grey: '#94A3B8' } as const;
 const TINT = { cyan: 'rgba(6,182,212,0.10)', green: 'rgba(16,185,129,0.10)', violet: 'rgba(139,92,246,0.10)' } as const;
@@ -302,8 +303,12 @@ export default function StateStatutoryPanel() {
 
       <div className="pvss-table-wrap">
         {view === 'pt'
-          ? <Table rowKey="id" size="small" className="pvss-table" loading={loading} columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
-          : <Table rowKey="id" size="small" className="pvss-table" loading={loading} columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />}
+          ? <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table rowKey="id" size="small" className="pvss-table" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
+                  </ZukvoLoadingOverlay>
+          : <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table rowKey="id" size="small" className="pvss-table" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
+                  </ZukvoLoadingOverlay>}
       </div>
 
       {total > 0 && (

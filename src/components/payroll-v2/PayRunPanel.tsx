@@ -1,8 +1,10 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Spin, Empty } from 'antd';
+import { Button, Table, Tag, Drawer, Modal, Select, Input, InputNumber, Avatar, message, Tooltip, Space, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined, ReloadOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined,
@@ -16,6 +18,7 @@ import PayrollV2Service, {
   PayRun, PayRunDetail, PayRunItem, PayRunStatus, PayRunLine, PayRunApproval, PayPayslip, PayBankFile, MemberOption, ComponentCategory,
   PayslipJob, PayslipJobItem,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { green: '#10B981', blue: '#3B82F6', amber: '#F59E0B', red: '#EF4444', violet: '#8B5CF6', slate: '#64748B' } as const;
 const TINT = { green: 'rgba(16,185,129,0.10)', blue: 'rgba(59,130,246,0.10)', amber: 'rgba(245,158,11,0.10)', slate: 'rgba(100,116,139,0.12)' } as const;
@@ -334,7 +337,7 @@ export default function PayRunPanel() {
         const ps = payslips.get(it.employeeId);
         if (ps) return <a href={ps.fileUrl} target="_blank" rel="noreferrer" style={{ color: PALETTE.blue }}><DownloadOutlined /> PDF</a>;
         const st = payslipItems.get(it.employeeId)?.status;
-        if (st === 'processing' || st === 'pending') return <Spin size="small" />;
+        if (st === 'processing' || st === 'pending') return <ZukvoLoader size="sm" />;
         if (st === 'failed') return <Tooltip title={payslipItems.get(it.employeeId)?.error || 'Generation failed'}><span style={{ color: PALETTE.red, fontWeight: 600 }}>Failed</span></Tooltip>;
         return <span style={{ color: 'var(--text-slate-300)' }}>—</span>;
       },
@@ -373,7 +376,9 @@ export default function PayRunPanel() {
       <div className="pvr-table-wrap">
         {runs.length === 0 && !loading
           ? <div style={{ padding: 48 }}><Empty description="No pay runs yet — create one to get started" /></div>
-          : <Table rowKey="id" size="small" className="pvr-table" loading={loading} columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} />}
+          : <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table rowKey="id" size="small" className="pvr-table" columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} />
+                  </ZukvoLoadingOverlay>}
       </div>
 
       {/* CREATE MODAL */}
@@ -525,7 +530,7 @@ export default function PayRunPanel() {
 
           <div className="pvr-drawer-body">
             {detailLoading || !detail ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spin /></div>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
             ) : (
               <>
                 <div className="pvr-summary">

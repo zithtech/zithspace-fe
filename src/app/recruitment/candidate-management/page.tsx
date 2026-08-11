@@ -48,6 +48,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import candidateService, { CandidateResponse } from "@/services/candidateService";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { Title } = Typography;
@@ -96,7 +97,7 @@ export default function CandidateManagement() {
         content: error.message || "An error occurred while deleting.",
         style: { marginTop: '80px' }
       });
-    }   
+    }
   };
 
 
@@ -109,7 +110,7 @@ export default function CandidateManagement() {
         <span style={{ textTransform: "capitalize" }}>{text}</span>
         const initial = text ? text.charAt(0).toUpperCase() : "?";
         return (
-          <Space style={{gap:10}}>
+          <Space style={{ gap: 10 }}>
             <Avatar style={{ backgroundColor: "#54a5f1ff" }}>{initial}</Avatar>
             <span style={{ textTransform: "capitalize", fontWeight: 500 }}>{text}</span>
           </Space>
@@ -181,8 +182,8 @@ export default function CandidateManagement() {
         const menuItems = [
           { key: "edit", icon: <EditOutlined />, label: "Edit" },
           { key: "view", icon: <EyeOutlined />, label: "View Profile" },
-          { 
-            key: "delete", 
+          {
+            key: "delete",
             label: (
               <div onClick={(e) => e.stopPropagation()}>
                 <Popconfirm
@@ -203,11 +204,11 @@ export default function CandidateManagement() {
 
         return (
           <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={["click"]}>
-            <Button 
-              type="text" 
-              icon={<MoreOutlined />} 
-              // Removed e.stopPropagation() here to ensure Dropdown opens correctly.
-              // Propagation to the Row is handled in Table's onRow.
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+            // Removed e.stopPropagation() here to ensure Dropdown opens correctly.
+            // Propagation to the Row is handled in Table's onRow.
             />
           </Dropdown>
         );
@@ -244,11 +245,11 @@ export default function CandidateManagement() {
             </Col>
           </Row>
 
+          <ZukvoLoadingOverlay loading={loading} message="">
             <Table
               columns={columns}
               dataSource={candidates}
               rowKey="id"
-              loading={loading}
               scroll={{ x: "max-content", y: "calc(100vh - 290px)" }}
               pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
               onRow={(record) => ({
@@ -263,7 +264,8 @@ export default function CandidateManagement() {
                 style: { cursor: "pointer" },
               })}
             />
-        
+          </ZukvoLoadingOverlay>
+
         </div>
       </MainLayout>
     </ProtectedRoute>

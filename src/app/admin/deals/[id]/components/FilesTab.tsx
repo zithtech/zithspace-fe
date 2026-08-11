@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  Card, 
-  Upload, 
-  message, 
-  Spin, 
-  Space, 
-  Typography, 
+import {
+  Table,
+  Card,
+  Upload,
+  message,
+  Spin,
+  Space,
+  Typography,
   Button,
   Modal,
   Form,
@@ -16,16 +16,17 @@ import {
   Select,
   Tag
 } from 'antd';
-import { 
-  InboxOutlined, 
-  FileOutlined, 
-  DownloadOutlined, 
+import {
+  InboxOutlined,
+  FileOutlined,
+  DownloadOutlined,
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined
 } from '@ant-design/icons';
 import { dealService, DealFile } from '@/services/dealService';
 import dayjs from 'dayjs';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Dragger } = Upload;
 const { Text, Title } = Typography;
@@ -78,7 +79,7 @@ const FilesTab: React.FC<FilesTabProps> = ({ dealId }) => {
     try {
       setLoading(true);
       const file = fileList[0];
-      
+
       // Convert file to base64
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -184,13 +185,14 @@ const FilesTab: React.FC<FilesTabProps> = ({ dealId }) => {
       </div>
 
       <Card variant="borderless" style={glassStyle}>
-        <Table 
-          columns={columns as any} 
-          dataSource={files} 
-          loading={loading}
-          rowKey="id"
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20 }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            columns={columns as any}
+            dataSource={files}
+            rowKey="id"
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20 }}
+          />
+        </ZukvoLoadingOverlay>
       </Card>
 
       <Modal

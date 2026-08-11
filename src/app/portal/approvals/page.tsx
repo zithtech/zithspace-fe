@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Input, Empty, Spin, Pagination, Switch, Row as AntRow, Col, Divider, Typography } from "antd";
+import { Input, Empty, Pagination, Switch, Row as AntRow, Col, Divider, Typography } from "antd";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import {
   CheckSquare,
@@ -321,7 +323,7 @@ export default function PortalApprovalsListPage() {
             borderRadius: 12,
           }}
         >
-          <Spin />
+          <ZukvoLoader size="md" />
         </div>
       ) : filtered.length === 0 ? (
         <div

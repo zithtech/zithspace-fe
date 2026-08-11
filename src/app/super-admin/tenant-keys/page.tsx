@@ -2,15 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import { Table, Button, message, Space, Typography, Card, Tag, Tooltip } from "antd";
-import { 
-  KeyOutlined, 
-  ReloadOutlined, 
-  SafetyCertificateOutlined, 
+import {
+  KeyOutlined,
+  ReloadOutlined,
+  SafetyCertificateOutlined,
   CheckCircleFilled,
   WarningFilled,
   ApiOutlined
 } from "@ant-design/icons";
 import { apiClient } from "@/lib/axios";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -132,7 +133,7 @@ export default function TenantKeysPage() {
       title: "Secret Key",
       dataIndex: "web_inquiry_secret_key",
       key: "web_inquiry_secret_key",
-      render: (key: string | null) => 
+      render: (key: string | null) =>
         key ? (
           <div className="bg-gray-50 dark:bg-[#1e252e] border border-gray-200 dark:border-[#30363d] rounded-lg px-3 py-1.5 inline-flex items-center group transition-colors hover:bg-gray-100 dark:hover:bg-[#252c35] hover:border-gray-300 dark:hover:border-[#40464d]">
             <Text copyable={{ text: key }} className="text-gray-600 dark:text-gray-300 font-mono text-[13px]">
@@ -164,8 +165,8 @@ export default function TenantKeysPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f1419] p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <Card 
-          bordered={false} 
+        <Card
+          bordered={false}
           className="shadow-xl rounded-2xl overflow-hidden border border-gray-100 dark:border-[#1e252e] dark:bg-[#151b23]"
           styles={{ body: { padding: 0 } }}
         >
@@ -185,7 +186,7 @@ export default function TenantKeysPage() {
                   </Text>
                 </div>
               </div>
-              
+
               <Space size="small">
                 <Tooltip title="Refresh Data">
                   <Button
@@ -211,19 +212,20 @@ export default function TenantKeysPage() {
 
           {/* Table Section */}
           <div className="p-0 overflow-x-auto w-full">
-            <Table
-              columns={columns}
-              dataSource={tenants}
-              rowKey="id"
-              loading={loading}
-              scroll={{ x: 1000 }}
-              pagination={{ 
-                pageSize: 15,
-                className: "px-4 py-3 border-t border-gray-100 dark:border-[#1e252e] m-0",
-                showTotal: (total) => `Total ${total} tenants`
-              }}
-              className="tenant-keys-table"
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                columns={columns}
+                dataSource={tenants}
+                rowKey="id"
+                scroll={{ x: 1000 }}
+                pagination={{
+                  pageSize: 15,
+                  className: "px-4 py-3 border-t border-gray-100 dark:border-[#1e252e] m-0",
+                  showTotal: (total) => `Total ${total} tenants`
+                }}
+                className="tenant-keys-table"
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </Card>
       </div>

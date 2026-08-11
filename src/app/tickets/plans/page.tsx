@@ -1,11 +1,12 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Spin } from 'antd';
 import SprintPlan from '@/components/projects/SprintPlan';
 
 export default function ProjectsSprintPlanPage() {
@@ -31,7 +32,7 @@ export default function ProjectsSprintPlanPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating plans repository..." />
+          <ZukvoLoader size="lg" message="Orchestrating plans repository..." />
         </div>
       </MainLayout>
     );

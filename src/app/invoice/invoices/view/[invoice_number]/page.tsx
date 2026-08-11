@@ -1,13 +1,15 @@
-
-
-
-
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
+
+
+
+
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Button, Typography, Table, Divider, Space, Tag, Spin, Alert } from "antd";
+import { Card, Button, Typography, Table, Divider, Space, Tag, Alert } from "antd";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
@@ -148,7 +150,7 @@ export default function ViewInvoicePage() {
 
   // Loading state
   if (authLoading || isLoading || settingsLoading) {
-    return <Card><Spin tip="Loading invoice..." /></Card>;
+    return <Card><ZukvoLoader size="md" message="Loading invoice..." /></Card>;
   }
 
   if (!canReadInvoice) return null;

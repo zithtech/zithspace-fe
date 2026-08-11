@@ -37,6 +37,7 @@ import {
   useUpdateReimbursementSetting,
   useDeleteReimbursementSetting,
 } from "@/hooks/usereimbursementsettings";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -349,20 +350,21 @@ export default function ReimbursementSettings() {
         `}</style>
 
       <div className="mt-3 flex-1 overflow-hidden">
-        <Table
-          className="settings-table"
-          rowKey="id"
-          columns={columns(handleEdit, handleConfirmDelete)}
-          dataSource={filteredData}
-          loading={isLoading}
-          pagination={{
-            pageSize: 8,
-            showSizeChanger: false,
-            showQuickJumper: false,
-            position: ["bottomRight"],
-          }}
-          locale={{ emptyText: "No settings found" }}
-        />
+        <ZukvoLoadingOverlay loading={isLoading} message="">
+              <Table
+                        className="settings-table"
+                        rowKey="id"
+                        columns={columns(handleEdit, handleConfirmDelete)}
+                        dataSource={filteredData}
+                        pagination={{
+                          pageSize: 8,
+                          showSizeChanger: false,
+                          showQuickJumper: false,
+                          position: ["bottomRight"],
+                        }}
+                        locale={{ emptyText: "No settings found" }}
+                      />
+              </ZukvoLoadingOverlay>
       </div>
 
       {/* ================= MODAL ================= */}

@@ -14,6 +14,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
   ApprovalWorkflowListItem, ApprovalStep, ApproverType, ApproverOption,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { sky: '#0EA5E9', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = { sky: 'rgba(14,165,233,0.10)', green: 'rgba(16,185,129,0.10)' } as const;
@@ -223,7 +224,9 @@ export default function ApprovalWorkflowPanel() {
       </div>
 
       <div className="pvw-table-wrap">
-        <Table rowKey="id" size="small" className="pvw-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table rowKey="id" size="small" className="pvw-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

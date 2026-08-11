@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useEffect, useState } from 'react';
-import { Spin, message } from 'antd';
+import {  message } from 'antd';
 import dayjs from 'dayjs';
 import { api } from '@/lib/axios';
 import { useTheme } from '@/context/ThemeContext';
@@ -61,7 +62,7 @@ export default function OrgHistoryTimeline({ employeeId }: OrgHistoryTimelinePro
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

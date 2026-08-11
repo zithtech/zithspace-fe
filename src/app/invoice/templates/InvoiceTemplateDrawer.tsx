@@ -1,3 +1,4 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useEffect } from 'react';
 import {
   Drawer,
@@ -7,7 +8,6 @@ import {
   Select,
   Switch,
   Popconfirm,
-  Spin,
   App,
 } from 'antd';
 import {
@@ -310,7 +310,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
 
         {isFetching ? (
           <div className="flex items-center justify-center py-20">
-            <Spin tip="Loading template details..." />
+            <ZukvoLoader size="md" message="Loading template details..." />
           </div>
         ) : (
           <Form

@@ -52,6 +52,7 @@ import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdo
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -705,13 +706,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 </div>
 
                 {/* Table */}
-                <div className="dm-table-wrapper">
-                  <Table
-                    columns={columns}
-                    dataSource={filteredItems}
-                    rowKey="id"
-                    loading={dataLoading}
-                    pagination={false}
+                <ZukvoLoadingOverlay loading={dataLoading} message="">
+                  <div className="dm-table-wrapper">
+                    <Table
+                      columns={columns}
+                      dataSource={filteredItems}
+                      rowKey="id"
+                      pagination={false}
                     size="middle"
                     className="premium-table workstation-grid"
                     scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
@@ -752,7 +753,8 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                       ),
                     }}
                   />
-                </div>
+                  </div>
+                </ZukvoLoadingOverlay>
               </div>
             );
           })()

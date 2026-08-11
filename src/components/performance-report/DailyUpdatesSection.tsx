@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, Tooltip, message } from 'antd';
+import {  Tooltip, message } from 'antd';
 import { CalendarOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { NotebookPen } from 'lucide-react';
 import dayjs, { Dayjs } from 'dayjs';
@@ -189,7 +191,7 @@ export default function DailyUpdatesSection({
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Loading daily updates…" />
+        <ZukvoLoader size="md" message="Loading daily updates…" />
       </div>
     );
   }

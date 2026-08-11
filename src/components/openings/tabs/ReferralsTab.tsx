@@ -5,6 +5,7 @@ import OpeningV2Service, { OpeningReferral } from '@/services/openingV2Service';
 import { commonDrawerProps, drawerFormStyles as formStyles, SectionCard } from '@/components/common/DrawerSection';
 import { User, FileText, Briefcase, Trash2 } from 'lucide-react';
 import { MembersService } from '@/services/membersService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ReferralsTab({ openingId }: { openingId: string }) {
   const [referrals, setReferrals] = useState<OpeningReferral[]>([]);
@@ -12,7 +13,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [membersMap, setMembersMap] = useState<Record<string, any>>({});
-  
+
   const [selectedReferral, setSelectedReferral] = useState<OpeningReferral | null>(null);
   const [viewResumeUrl, setViewResumeUrl] = useState<string | null>(null);
 
@@ -59,12 +60,12 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
     if (e) {
       e.stopPropagation();
     }
-    
+
     setConvertingId(ref.id);
     try {
       const { PipelineService } = await import('@/services/pipelineService');
       const opening = await OpeningV2Service.get(openingId);
-      
+
       const candidateRes = await PipelineService.createCandidate({
         role: opening.jobTitle || 'Candidate',
         name: ref.name,
@@ -87,7 +88,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
       });
 
       await OpeningV2Service.considerAsCandidate(openingId, ref.id);
-      
+
       message.success('Converted referral to candidate successfully!');
       if (selectedReferral?.id === ref.id) {
         setSelectedReferral({ ...ref, status: 'converted' });
@@ -103,7 +104,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
 
   const handleDelete = async (ref: OpeningReferral, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    
+
     setDeletingId(ref.id);
     try {
       await OpeningV2Service.deleteReferral(openingId, ref.id);
@@ -201,19 +202,20 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
         </div>
       </div>
       <div className="omp-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          dataSource={referrals}
-          columns={columns}
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 800 }}
-          onRow={(record) => ({
-            onClick: () => setSelectedReferral(record),
-            style: { cursor: 'pointer' },
-          })}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            dataSource={referrals}
+            columns={columns}
+            pagination={false}
+            scroll={{ x: 800 }}
+            onRow={(record) => ({
+              onClick: () => setSelectedReferral(record),
+              style: { cursor: 'pointer' },
+            })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       <Drawer
@@ -276,7 +278,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {renderFieldValue('Experience', selectedReferral.totalExperience != null ? `${selectedReferral.totalExperience} yrs` : null)}
                 {renderFieldValue(
-                  'Skills', 
+                  'Skills',
                   selectedReferral.skills?.length ? (
                     <Space size={[0, 4]} wrap>
                       {selectedReferral.skills.map(skill => <Tag key={skill}>{skill}</Tag>)}
@@ -292,9 +294,9 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
                 {renderFieldValue(
                   'Resume',
                   selectedReferral.resumeUrl ? (
-                    <Button 
-                      type="link" 
-                      style={{ padding: 0, height: 'auto', lineHeight: 1 }} 
+                    <Button
+                      type="link"
+                      style={{ padding: 0, height: 'auto', lineHeight: 1 }}
                       onClick={() => setViewResumeUrl(selectedReferral.resumeUrl!)}
                     >
                       View Resume
@@ -320,11 +322,11 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
         width={800}
       >
         {viewResumeUrl && (
-          <iframe 
-            src={getFullUrl(viewResumeUrl)} 
-            width="100%" 
-            height="100%" 
-            style={{ border: 'none' }} 
+          <iframe
+            src={getFullUrl(viewResumeUrl)}
+            width="100%"
+            height="100%"
+            style={{ border: 'none' }}
           />
         )}
       </Drawer>

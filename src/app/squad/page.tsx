@@ -55,13 +55,13 @@ import SquadViewDrawer from '@/components/squad/SquadViewDrawer';
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { usePermission } from '@/hooks/usePermission';
 import { useActivitySource } from '@/hooks/useActivitySource';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import dayjs from 'dayjs';
 import { Menu } from 'lucide-react';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -420,10 +420,10 @@ export default function SquadManagement() {
       { key: 'edit', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#64748b', background: 'rgba(100,116,139,0.12)' }}><EditOutlined /></span><span className="sq-menu-text"><span className="sq-menu-title">Manage</span><span className="sq-menu-desc">Edit squad configuration</span></span></div> },
       { key: 'archive', disabled: !canUpdateSquad, label: <div className="sq-menu-item"><span className="sq-menu-ic" style={{ color: '#4f46e5', background: 'rgba(79,70,229,0.12)' }}>{squad.isArchived ? <RollbackOutlined /> : <InboxOutlined />}</span><span className="sq-menu-text"><span className="sq-menu-title">{squad.isArchived ? 'Unarchive' : 'Archive'}</span><span className="sq-menu-desc">{squad.isArchived ? 'Restore squad to active list' : 'Archive this squad'}</span></span></div> },
       { type: 'divider' as const },
-      { 
-        key: 'delete', 
-        danger: true, 
-        disabled: !canDeleteSquad, 
+      {
+        key: 'delete',
+        danger: true,
+        disabled: !canDeleteSquad,
         label: (
           <ConfirmDialog
             tone="danger"
@@ -438,7 +438,7 @@ export default function SquadManagement() {
               <span className="sq-menu-text"><span className="sq-menu-title">Delete</span><span className="sq-menu-desc">Remove this squad</span></span>
             </div>
           </ConfirmDialog>
-        ) 
+        )
       },
     ],
     onClick: ({ key, domEvent }: any) => {
@@ -740,127 +740,129 @@ export default function SquadManagement() {
 
           {/* Table / grid */}
           <div className="sq-body">
-            {view === 'list' ? (
-              <div className="sq-table-wrap">
-                <Table
-                  columns={columns}
-                  dataSource={pagedSquads}
-                  loading={loading}
-                  rowKey="id"
-                  size="small"
-                  className="sq-table"
-                  scroll={{ x: 'max-content' }}
-                  rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
-                  pagination={false}
-                  locale={{ emptyText: emptyState }}
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger')) return;
-                      handleOpen(record);
-                    },
-                    className: 'sq-row',
-                  })}
-                />
-              </div>
-            ) : (
-              <div className="sq-grid">
-                {loading ? (
-                  <div className="sq-grid-loading">Loading…</div>
-                ) : filteredSquads.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                ) : (
-                  filteredSquads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((s) => {
-                    const isArchived = s.isArchived;
-                    const meta = isArchived
-                      ? { label: 'Archived', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' }
-                      : s.squadStatus
-                        ? { label: 'Active', color: '#10b981', bg: 'rgba(16,185,129,0.10)' }
-                        : { label: 'Inactive', color: '#64748b', bg: 'rgba(100,116,139,0.10)' };
+            <ZukvoLoadingOverlay loading={loading} message="">
+              {view === 'list' ? (
+                <div className="sq-table-wrap">
+                  <Table
+                    columns={columns}
+                    dataSource={pagedSquads}
+                    rowKey="id"
+                    size="small"
+                    className="sq-table"
+                    scroll={{ x: 'max-content' }}
+                    rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
+                    pagination={false}
+                    locale={{ emptyText: emptyState }}
+                    onRow={(record) => ({
+                      onClick: (e) => {
+                        const t = e.target as HTMLElement;
+                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger')) return;
+                        handleOpen(record);
+                      },
+                      className: 'sq-row',
+                    })}
+                  />
 
-                    const title = s.squadName;
-                    const accent = accentFor(s.id || s.squadName);
+                </div>
+              ) : (
+                <div className="sq-grid">
+                  {loading ? (
+                    <div className="sq-grid-loading">Loading…</div>
+                  ) : filteredSquads.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  ) : (
+                    filteredSquads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((s) => {
+                      const isArchived = s.isArchived;
+                      const meta = isArchived
+                        ? { label: 'Archived', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' }
+                        : s.squadStatus
+                          ? { label: 'Active', color: '#10b981', bg: 'rgba(16,185,129,0.10)' }
+                          : { label: 'Inactive', color: '#64748b', bg: 'rgba(100,116,139,0.10)' };
 
-                    const all = s.squadMembers || [];
-                    const headsArr = all.filter(m => m.memberType === 'HEAD');
-                    const subHeadsArr = all.filter(m => m.memberType === 'SUB_HEAD');
-                    const membersArr = all.filter(m => m.memberType === 'MEMBER');
-                    const heads = headsArr.length;
-                    const subHeads = subHeadsArr.length;
-                    const members = membersArr.length;
-                    const ordered = [...headsArr, ...subHeadsArr, ...membersArr];
+                      const title = s.squadName;
+                      const accent = accentFor(s.id || s.squadName);
 
-                    return (
-                      <div key={s.id} className="sc-card" onClick={() => handleOpen(s)}>
-                        <div className="sc-top">
-                          <div className="sc-avatar" style={{ background: '#3B82F6' }}>
-                            {initialsOf(title)}
-                          </div>
-                          <div className="sc-identity-body">
-                            <div className="sc-title">{title}</div>
-                            <div className="sc-client-line">
-                              <span className="sc-client-key">Code:</span>
-                              <span className="sc-client-val">{s.squadCode}</span>
+                      const all = s.squadMembers || [];
+                      const headsArr = all.filter(m => m.memberType === 'HEAD');
+                      const subHeadsArr = all.filter(m => m.memberType === 'SUB_HEAD');
+                      const membersArr = all.filter(m => m.memberType === 'MEMBER');
+                      const heads = headsArr.length;
+                      const subHeads = subHeadsArr.length;
+                      const members = membersArr.length;
+                      const ordered = [...headsArr, ...subHeadsArr, ...membersArr];
+
+                      return (
+                        <div key={s.id} className="sc-card" onClick={() => handleOpen(s)}>
+                          <div className="sc-top">
+                            <div className="sc-avatar" style={{ background: '#3B82F6' }}>
+                              {initialsOf(title)}
+                            </div>
+                            <div className="sc-identity-body">
+                              <div className="sc-title">{title}</div>
+                              <div className="sc-client-line">
+                                <span className="sc-client-key">Code:</span>
+                                <span className="sc-client-val">{s.squadCode}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span className="sc-status-tag" style={{ color: meta.color, background: meta.bg }}>
+                                {meta.label}
+                              </span>
+                              <Dropdown menu={actionMenu(s)} overlayClassName="sq-action-pop" trigger={['click']} placement="bottomRight">
+                                <button type="button" className="sc-actions" onClick={(e) => e.stopPropagation()}>
+                                  <EllipsisOutlined />
+                                </button>
+                              </Dropdown>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span className="sc-status-tag" style={{ color: meta.color, background: meta.bg }}>
-                              {meta.label}
-                            </span>
-                            <Dropdown menu={actionMenu(s)} overlayClassName="sq-action-pop" trigger={['click']} placement="bottomRight">
-                              <button type="button" className="sc-actions" onClick={(e) => e.stopPropagation()}>
-                                <EllipsisOutlined />
+
+                          <div className="sc-foot">
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-slate-50)', overflowX: 'auto' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  <CrownOutlined style={{ fontSize: 12 }} /> Heads
+                                  <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{heads}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  <StarOutlined style={{ fontSize: 12 }} /> Sub-Heads
+                                  <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{subHeads}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                  <UserOutlined style={{ fontSize: 12 }} /> Members
+                                  <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{members}</span>
+                                </div>
+                              </div>
+                              {ordered.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 12 }}>
+                                  <Avatar.Group max={{ count: 3 }} size={26}>
+                                    {ordered.map(m => (
+                                      <Tooltip key={m.id} title={`${m.member.name} · ${m.memberType}`}>
+                                        <Avatar style={{ background: 'var(--bg-slate-200)', color: 'var(--text-slate-700)', fontSize: 10.5, fontWeight: 700, border: '2px solid var(--bg-slate-50)' }}>
+                                          {initialsOf(m.member.name)}
+                                        </Avatar>
+                                      </Tooltip>
+                                    ))}
+                                  </Avatar.Group>
+                                </div>
+                              )}
+                            </div>
+                            <div className="sc-foot-row" style={{ justifyContent: 'center', gap: '32px', padding: '10px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }}>
+                              <button type="button" className="sc-view-btn" onClick={(e) => { e.stopPropagation(); handleOpen(s); }}>
+                                <EyeOutlined /> View Details
                               </button>
-                            </Dropdown>
-                          </div>
-                        </div>
-
-                        <div className="sc-foot">
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg-slate-50)', overflowX: 'auto' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                <CrownOutlined style={{ fontSize: 12 }} /> Heads
-                                <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{heads}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                <StarOutlined style={{ fontSize: 12 }} /> Sub-Heads
-                                <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{subHeads}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--text-slate-500)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                <UserOutlined style={{ fontSize: 12 }} /> Members
-                                <span style={{ border: '1px solid var(--border-slate-200)', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, background: 'var(--bg-pure-white)', color: 'var(--text-slate-700)' }}>{members}</span>
-                              </div>
+                              <div style={{ width: 1, height: 14, background: 'var(--border-slate-300, #cbd5e1)' }} />
+                              <button type="button" className="sc-manage-btn" onClick={(e) => { e.stopPropagation(); handleManage(s); }} disabled={!canUpdateSquad}>
+                                <EditOutlined /> Manage
+                              </button>
                             </div>
-                            {ordered.length > 0 && (
-                              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 12 }}>
-                                <Avatar.Group max={{ count: 3 }} size={26}>
-                                  {ordered.map(m => (
-                                    <Tooltip key={m.id} title={`${m.member.name} · ${m.memberType}`}>
-                                      <Avatar style={{ background: 'var(--bg-slate-200)', color: 'var(--text-slate-700)', fontSize: 10.5, fontWeight: 700, border: '2px solid var(--bg-slate-50)' }}>
-                                        {initialsOf(m.member.name)}
-                                      </Avatar>
-                                    </Tooltip>
-                                  ))}
-                                </Avatar.Group>
-                              </div>
-                            )}
-                          </div>
-                          <div className="sc-foot-row" style={{ justifyContent: 'center', gap: '32px', padding: '10px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }}>
-                            <button type="button" className="sc-view-btn" onClick={(e) => { e.stopPropagation(); handleOpen(s); }}>
-                              <EyeOutlined /> View Details
-                            </button>
-                            <div style={{ width: 1, height: 14, background: 'var(--border-slate-300, #cbd5e1)' }} />
-                            <button type="button" className="sc-manage-btn" onClick={(e) => { e.stopPropagation(); handleManage(s); }} disabled={!canUpdateSquad}>
-                              <EditOutlined /> Manage
-                            </button>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {total > 0 && (

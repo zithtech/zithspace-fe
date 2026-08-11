@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Switch, InputNumber, TimePicker, message, Spin, Tag, Tooltip, Drawer } from 'antd';
+import { Button, Switch, InputNumber, TimePicker, message, Tag, Tooltip, Drawer } from 'antd';
 import dayjs from 'dayjs';
 import {
   CalendarCheck,
@@ -302,7 +304,7 @@ export default function SettingsPanel() {
   if (loading) {
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
-        <Spin />
+        <ZukvoLoader size="md" />
       </div>
     );
   }
@@ -541,7 +543,7 @@ export default function SettingsPanel() {
 
         {statusLoading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : statusList.length === 0 ? (
           <div className="prs-sm-empty">No ticket statuses found for this workspace yet.</div>

@@ -1,8 +1,10 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Select, Button, Table, Tag, message, Spin, Empty } from 'antd';
+import { Select, Button, Table, Tag, message, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined, DownloadOutlined, BarChartOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
@@ -124,7 +126,7 @@ export default function ReportsPanel() {
       </div>
 
       {loadingReg ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spin /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : !reg ? (
         <div style={{ padding: 56 }}><Empty description={runs.length ? 'Select a pay run' : 'No pay runs yet'} /></div>
       ) : (

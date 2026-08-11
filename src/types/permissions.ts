@@ -84,6 +84,21 @@ export const Permissions = {
   QA_RUN_READ:     'qa.run.read',
   QA_RUN_UPDATE:   'qa.run.update',
   QA_RUN_DELETE:   'qa.run.delete',
+  // QA Submissions — reporting completed testing, then QA Sign-off and PM Approval.
+  // Submit / sign-off / approve are separate from update on purpose: they are
+  // the three distinct authorities in the workflow, not editing operations.
+  QA_SUBMISSION_CREATE:   'qa.submission.create',
+  QA_SUBMISSION_READ:     'qa.submission.read',
+  QA_SUBMISSION_UPDATE:   'qa.submission.update',
+  QA_SUBMISSION_DELETE:   'qa.submission.delete',
+  QA_SUBMISSION_SUBMIT:   'qa.submission.submit',
+  QA_SUBMISSION_SIGNOFF:  'qa.submission.signoff',
+  QA_APPROVAL_READ:       'qa.approval.read',
+  QA_APPROVAL_APPROVE:    'qa.approval.approve',
+  QA_APPROVAL_SEND_BACK:  'qa.approval.send_back',
+  // Cross-scope reporting exposes the whole QA estate, so it is granted
+  // separately from being able to read the runs you work on.
+  QA_ANALYTICS_READ:      'qa.analytics.read',
   QA_MANAGE:       'qa.manage',
 
   // Attendance
@@ -425,6 +440,19 @@ export const Permissions = {
   OPENING_UPDATE: 'opening.update',
   OPENING_DELETE: 'opening.delete',
   OPENING_MANAGE: 'opening.manage', // external career portal settings, hiring workflows, and ATS config
+
+  // Hotspot
+  HOTSPOT_OPENING_READ: 'hotspot.opening.read',
+  HOTSPOT_OPENING_CREATE: 'hotspot.opening.create',
+  HOTSPOT_CIRCULATION_READ: 'hotspot.circulation.read',
+  HOTSPOT_CIRCULATION_CREATE: 'hotspot.circulation.create',
+  HOTSPOT_CIRCULATION_UPDATE: 'hotspot.circulation.update',
+  HOTSPOT_CIRCULATION_DELETE: 'hotspot.circulation.delete',
+  HOTSPOT_CIRCULATION_PIN: 'hotspot.circulation.pin',
+  HOTSPOT_BLOG_READ: 'hotspot.blog.read',
+  HOTSPOT_BLOG_CREATE: 'hotspot.blog.create',
+  HOTSPOT_BLOG_UPDATE: 'hotspot.blog.update',
+  HOTSPOT_BLOG_DELETE: 'hotspot.blog.delete',
 
   // User Profile
   PROFILE_CREATE: 'profile.create',

@@ -124,7 +124,7 @@ const accentFor = (key: string): [string, string] => {
 
 export default function EscalationListPage() {
   console.log("Forcing HMR reload for EscalationListPage 2");
-  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationList" });
+  useActivitySource({ section: "HR", module: "Escalations", page: "EscalationList" });
   const router = useRouter();
   const pathname = usePathname();
   // When rendered under /my-hub, this is the personal "escalations targeting me"

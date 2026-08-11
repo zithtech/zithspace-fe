@@ -116,6 +116,16 @@ export class EmployeeOnboardingService {
     }
   }
 
+  /** HR: regenerate an expired invite link. */
+  static async regenerateInvite(inviteId: string): Promise<any> {
+    try {
+      return await api.post<any>(`/api/onboarding/invite/${inviteId}/regenerate`, {});
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error("Failed to regenerate invite");
+    }
+  }
+
   /** HR: disable a public link. */
   static async revokeInvite(inviteId: string): Promise<any> {
     try {

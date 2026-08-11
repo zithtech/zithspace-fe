@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
 import { MembersService } from "@/services/membersService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { usePermission } from "@/hooks/usePermission";
 
 import {
   Target,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { Drawer, Button, Dropdown, MenuProps, message, Tag as AntTag } from "antd";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { saveAs } from "file-saver";
 import TiptapViewer from "@/components/common/TiptapViewer";
 
@@ -182,8 +184,8 @@ function LinkPreviewDrawer({
           )}
 
           {target && !loaded && !showFallback && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
-              Loading preview…
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ZukvoLoader size="md" message="Loading preview…" />
             </div>
           )}
 
@@ -561,7 +563,12 @@ function DrawerTicketItem({ ticket, onOpenTicket }: { ticket: any, onOpenTicket?
   }, [ticket]);
 
   if (!ticketData) {
-    return <span className="text-sm font-medium text-zinc-500 animate-pulse">Loading ticket...</span>;
+    // Same card shell as the loaded row, so the ticket doesn't jump into place.
+    return (
+      <div className="w-full flex items-center p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <ZukvoLoader size="sm" message="Loading ticket…" />
+      </div>
+    );
   }
 
   const titlePart = ticketData.title || ticketData.name || ticketData.link || ticketData.id || ticket;
@@ -870,6 +877,7 @@ function TestScopeExport({
             {(() => {
               const fields = [
                 { key: 'testSuites', label: 'Test Suites' },
+                { key: 'testRuns', label: 'Test Runs' },
                 { key: 'testCases', label: 'Test Cases' },
                 { key: 'bugSheets', label: 'Bug Sheets' },
                 { key: 'devTickets', label: 'Dev Tickets' },
@@ -1046,6 +1054,9 @@ function TestScopeExportRunner({
 
 export default function TestScopeView({ id }: { id: string }) {
   const { open: openTicketDrawer } = useTicketDrawer();
+  // MainLayout already blocks the route, but this component owns the fetches —
+  // without its own check they would still fire for a user who can't read scopes.
+  const { canReadScope } = usePermission();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -1064,6 +1075,8 @@ export default function TestScopeView({ id }: { id: string }) {
   const hideExportMsg = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (!canReadScope) return;
+
     // Fetch Sprints
     axios.get("/api/release-plans").then((res: any) => {
       const data = Array.isArray(res) ? res : (res.data || []);
@@ -1090,9 +1103,11 @@ export default function TestScopeView({ id }: { id: string }) {
       });
       setUsersMap(map);
     }).catch(console.error);
-  }, []);
+  }, [canReadScope]);
 
   useEffect(() => {
+    if (!canReadScope) return;
+
     let active = true;
     axios.get(`/api/v2/qa/test-scopes/${id}`)
       .then((res: any) => {
@@ -1105,7 +1120,7 @@ export default function TestScopeView({ id }: { id: string }) {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [id]);
+  }, [id, canReadScope]);
 
   useEffect(() => {
     const el = stickyRef.current;
@@ -1124,8 +1139,10 @@ export default function TestScopeView({ id }: { id: string }) {
     scrollRoot
   );
 
+  if (!canReadScope) return null;
+
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading details...</div>;
+    return <ZukvoLoader size="lg" fullscreen message="Loading the test scope…" />;
   }
 
   if (!data) {
@@ -1490,6 +1507,7 @@ export default function TestScopeView({ id }: { id: string }) {
               {(() => {
                 const fields = [
                   { key: 'testSuites', label: 'Test Suites' },
+                { key: 'testRuns', label: 'Test Runs' },
                   { key: 'testCases', label: 'Test Cases' },
                   { key: 'bugSheets', label: 'Bug Sheets' },
                   { key: 'devTickets', label: 'Dev Tickets' },

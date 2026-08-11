@@ -639,7 +639,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 
 export default function EscalationSettingsPage() {
   console.log("Forcing HMR reload for EscalationSettingsPage");
-  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationSettings" });
+  useActivitySource({ section: "HR", module: "Escalations", page: "EscalationSettings" });
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { canManageEscalations } = usePermission();

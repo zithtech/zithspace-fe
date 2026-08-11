@@ -431,6 +431,22 @@ export const usePermission = () => {
     canDeleteOpening: hasPermission(Permissions.OPENING_DELETE),
     canManageOpenings: hasPermission(Permissions.OPENING_MANAGE),
 
+    // ─── Hotspot ────────────────────────────────────────────────────
+    canReadHotspot:            hasAnyPermission(Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ),
+    canReadHotspotOpening:     hasPermission(Permissions.HOTSPOT_OPENING_READ),
+    canCreateHotspotOpening:   hasPermission(Permissions.HOTSPOT_OPENING_CREATE),
+    
+    canReadHotspotCirculation:   hasPermission(Permissions.HOTSPOT_CIRCULATION_READ),
+    canCreateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_CREATE),
+    canUpdateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_UPDATE),
+    canDeleteHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_DELETE),
+    canPinHotspotCirculation:    hasPermission(Permissions.HOTSPOT_CIRCULATION_PIN),
+    
+    canReadHotspotBlog:   hasPermission(Permissions.HOTSPOT_BLOG_READ),
+    canCreateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_CREATE),
+    canUpdateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_UPDATE),
+    canDeleteHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_DELETE),
+
     // ─── User Profile ───────────────────────────────────────────────
     canCreateProfile: hasPermission(Permissions.PROFILE_CREATE),
     canReadProfile:   hasPermission(Permissions.PROFILE_READ),
@@ -476,6 +492,22 @@ export const usePermission = () => {
     canReadRun:     hasPermission(Permissions.QA_RUN_READ),
     canUpdateRun:   hasPermission(Permissions.QA_RUN_UPDATE),
     canDeleteRun:   hasPermission(Permissions.QA_RUN_DELETE),
+    // QA Submissions — qa.manage stands in for every submission action, the
+    // same way it does for the rest of QA Space.
+    canCreateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_CREATE, Permissions.QA_MANAGE),
+    canReadSubmission:   hasAnyPermission(Permissions.QA_SUBMISSION_READ, Permissions.QA_MANAGE),
+    canUpdateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_UPDATE, Permissions.QA_MANAGE),
+    canDeleteSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_DELETE, Permissions.QA_MANAGE),
+    canSubmitSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SUBMIT, Permissions.QA_MANAGE),
+    canSignOffSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SIGNOFF, Permissions.QA_MANAGE),
+    canReadPmApproval:   hasAnyPermission(Permissions.QA_APPROVAL_READ, Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canApproveSubmission: hasAnyPermission(Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canSendBackSubmission: hasAnyPermission(
+      Permissions.QA_APPROVAL_SEND_BACK,
+      Permissions.QA_APPROVAL_APPROVE,
+      Permissions.QA_MANAGE,
+    ),
+    canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
     canManageQa:    hasPermission(Permissions.QA_MANAGE),
 
     // ─── System / General ───────────────────────────────────────────

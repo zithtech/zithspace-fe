@@ -1,10 +1,11 @@
 "use client";
 
-import { Card, Row, Col, Typography } from "antd";
+import { Card, Row, Col, Typography, Input } from "antd";
 import { FaHome } from "react-icons/fa";
+import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 
 import ViewField from "@/components/common/ViewField";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const { Text } = Typography;
 
@@ -26,6 +27,20 @@ const formatDOB = (dobStr?: string) => {
   } catch {
     return dobStr;
   }
+};
+
+const MaskedPersonalField = ({ label, value }: { label: string; value: string }) => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>{label}</Typography.Text>
+      <Input.Password
+        value={value}
+        readOnly
+        variant="borderless"
+        style={{ padding: 0, fontSize: 13, fontWeight: 500, color: 'var(--text-slate-900)', backgroundColor: 'transparent' }}
+      />
+    </div>
+  );
 };
 
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
@@ -122,6 +137,31 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               value={profile?.personal?.workEmail || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
+            />
+          </Col>
+        </Row>
+
+        {/* 🔹 Sensitive Details */}
+        <div style={{ marginTop: 24, marginBottom: 12 }}>
+          <Text strong style={{ fontSize: 14 }}>Identity Details</Text>
+        </div>
+        <Row gutter={[16, 16]}>
+          <Col span={8}>
+            <MaskedPersonalField
+              label="Aadhaar Number"
+              value={profile?.personal?.aadhaar || "—"}
+            />
+          </Col>
+          <Col span={8}>
+            <MaskedPersonalField
+              label="PAN Number"
+              value={profile?.personal?.pan || "—"}
+            />
+          </Col>
+          <Col span={8}>
+            <MaskedPersonalField
+              label="Passport Number"
+              value={profile?.personal?.passport || "—"}
             />
           </Col>
         </Row>

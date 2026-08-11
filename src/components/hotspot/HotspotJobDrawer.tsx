@@ -3,6 +3,7 @@ import { Drawer, Button, Typography, Tag, Divider, Space } from 'antd';
 import { OpeningListItem } from '@/services/openingV2Service';
 import { Briefcase, Clock, Users, Building2, Calendar, FileText, CheckCircle2, Flame, GraduationCap, Banknote, Laptop } from 'lucide-react';
 import { experienceRange, salaryRange, relativeDays, PALETTE, TINT } from '@/components/openings/ui';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -14,6 +15,8 @@ interface HotspotJobDrawerProps {
 }
 
 export default function HotspotJobDrawer({ open, opening, onClose, onApply }: HotspotJobDrawerProps) {
+  const { canCreateHotspotOpening } = usePermission();
+  
   if (!opening) return null;
 
   return (
@@ -27,9 +30,11 @@ export default function HotspotJobDrawer({ open, opening, onClose, onApply }: Ho
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '16px 24px' }}>
           <Button size="large" onClick={onClose} style={{ borderRadius: 8, fontWeight: 600 }}>Close</Button>
-          <Button size="large" type="primary" onClick={onApply} style={{ borderRadius: 8, fontWeight: 600, padding: '0 32px' }}>
-            Apply / Refer
-          </Button>
+          {canCreateHotspotOpening && (
+            <Button size="large" type="primary" onClick={onApply} style={{ borderRadius: 8, fontWeight: 600, padding: '0 32px' }}>
+              Apply / Refer
+            </Button>
+          )}
         </div>
       }
     >

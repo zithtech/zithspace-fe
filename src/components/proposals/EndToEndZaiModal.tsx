@@ -13,7 +13,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useActiveCompany, useCompanies } from '@/hooks/useCompanies';
 import { useQuery } from '@tanstack/react-query';
-import { CompanyLocationService } from '@/services/companyLocationService';
+import { CompanyDetailsService, formatAddress } from '@/services/companyDetailsService';
 
 const { Text } = Typography;
 
@@ -461,9 +461,9 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
   const { user } = useAuth();
   const { data: activeCompany } = useActiveCompany();
   const { data: companiesData } = useCompanies({});
-  const { data: locations } = useQuery({
-    queryKey: ['company-locations'],
-    queryFn: () => CompanyLocationService.getAll(),
+  const { data: companyDetails } = useQuery({
+    queryKey: ['company-details', 'overview'],
+    queryFn: () => CompanyDetailsService.getOverview(),
   });
 
   const company = activeCompany || (companiesData?.data && companiesData.data.length > 0 ? companiesData.data[0] : null);
@@ -564,11 +564,10 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
   }, [visible]);
 
   React.useEffect(() => {
-    let bestAddress = '';
-    if (locations && locations.length > 0) {
-      const loc = locations[0];
-      bestAddress = [loc.flatNumber, loc.street, loc.area, loc.city, loc.state, loc.country, loc.pincode].filter(Boolean).join(', ');
-    }
+    // The registered company address is the proposal's letterhead; fall back
+    // to the first branch, then to the active company record.
+    let bestAddress = formatAddress(companyDetails?.company) ||
+      formatAddress(companyDetails?.branches?.[0]);
     if (!bestAddress) {
       bestAddress = [company?.plotNo, company?.street, company?.city, company?.country].filter(Boolean).join(', ');
     }
@@ -581,9 +580,9 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
       senderContact: prev.senderContact || user?.phone || company?.phone || '',
       senderEmail: prev.senderEmail || user?.email || '',
       senderAddress: prev.senderAddress || bestAddress || '',
-      senderWebsite: prev.senderWebsite || (company as any)?.website || '',
+      senderWebsite: prev.senderWebsite || companyDetails?.company?.website || (company as any)?.website || '',
     }));
-  }, [user, company, locations]);
+  }, [user, company, companyDetails]);
 
   const { setBlocks } = useProposalStore();
 

@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, Empty } from "antd";
+import { Empty } from "antd";
 import {
   ArrowLeft,
   Calendar,
@@ -23,15 +24,16 @@ import {
   FileText,
   FileType2,
   Image as ImageIcon,
-  Link2,
+  Link2
 } from "lucide-react";
 import AttachmentPreviewDrawer, {
-  PreviewAttachment,
+  PreviewAttachment
 } from "@/app/portal/_components/AttachmentPreviewDrawer";
 import {
+
   portalMomService,
   PortalMomDetail,
-  PortalMomAttachment,
+  PortalMomAttachment
 } from "@/services/portalMomService";
 
 const p = {
@@ -61,7 +63,7 @@ const p = {
   purpleText: "#6d28d9",
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const ACTION_META: Record<
@@ -74,7 +76,7 @@ const ACTION_META: Record<
     icon: Circle,
     bg: p.warningBg,
     border: p.warningBorder,
-    text: p.warningText,
+    text: p.warningText
   },
   in_progress: {
     label: "In progress",
@@ -82,7 +84,7 @@ const ACTION_META: Record<
     icon: Pause,
     bg: p.accentBg,
     border: p.accentBorder,
-    text: p.accentText,
+    text: p.accentText
   },
   done: {
     label: "Done",
@@ -90,7 +92,7 @@ const ACTION_META: Record<
     icon: CheckCircle2,
     bg: p.successBg,
     border: p.successBorder,
-    text: p.successText,
+    text: p.successText
   },
   cancelled: {
     label: "Cancelled",
@@ -98,7 +100,7 @@ const ACTION_META: Record<
     icon: XCircle,
     bg: p.neutralBg,
     border: p.neutralBorder,
-    text: p.neutralText,
+    text: p.neutralText
   },
   converted: {
     label: "Converted to ticket",
@@ -106,8 +108,8 @@ const ACTION_META: Record<
     icon: GitPullRequest,
     bg: p.purpleBg,
     border: p.purpleBorder,
-    text: p.purpleText,
-  },
+    text: p.purpleText
+  }
 };
 
 function fmtDateTime(iso: string | null) {
@@ -118,7 +120,7 @@ function fmtDateTime(iso: string | null) {
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit"
     });
   } catch {
     return iso;
@@ -131,7 +133,7 @@ function fmtDate(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -218,10 +220,10 @@ export default function PortalMomDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -240,7 +242,7 @@ export default function PortalMomDetailPage() {
               border: `1px solid ${p.text}`,
               borderRadius: 8,
               fontSize: 13,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             Back to meetings
@@ -266,7 +268,7 @@ export default function PortalMomDetailPage() {
           color: p.textMuted,
           fontSize: 13,
           cursor: "pointer",
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         <ArrowLeft size={14} />
@@ -280,7 +282,7 @@ export default function PortalMomDetailPage() {
           background: "transparent",
           border: "1px solid #e2e8f0",
           borderRadius: 16,
-          marginBottom: 16,
+          marginBottom: 16
         }}
       >
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
@@ -295,7 +297,7 @@ export default function PortalMomDetailPage() {
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.25)",
+              boxShadow: "0 6px 16px -2px rgba(99, 102, 241, 0.25)"
             }}
           >
             <Calendar size={22} color="#ffffff" />
@@ -306,7 +308,7 @@ export default function PortalMomDetailPage() {
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <span
@@ -319,7 +321,7 @@ export default function PortalMomDetailPage() {
                   border: "1px solid rgba(99, 102, 241, 0.15)",
                   borderRadius: 6,
                   color: "#4f46e5",
-                  letterSpacing: "0.02em",
+                  letterSpacing: "0.02em"
                 }}
               >
                 {mom.momNumber}
@@ -334,7 +336,7 @@ export default function PortalMomDetailPage() {
                     padding: "2px 8px",
                     borderRadius: 6,
                     textTransform: "uppercase",
-                    letterSpacing: "0.04em",
+                    letterSpacing: "0.04em"
                   }}
                 >
                   {mom.project.name}
@@ -349,7 +351,7 @@ export default function PortalMomDetailPage() {
                 fontWeight: 700,
                 color: "#0f172a",
                 letterSpacing: "-0.02em",
-                lineHeight: 1.25,
+                lineHeight: 1.25
               }}
             >
               {mom.title}
@@ -362,7 +364,7 @@ export default function PortalMomDetailPage() {
                 flexWrap: "wrap",
                 alignItems: "center",
                 fontSize: 12.5,
-                color: "#64748b",
+                color: "#64748b"
               }}
             >
               <MetaPiece icon={<Clock size={12} color="#6366f1" style={{ opacity: 0.85 }} />} value={fmtDateTime(mom.meetingDate)} />
@@ -398,7 +400,7 @@ export default function PortalMomDetailPage() {
                   textDecoration: "none",
                   fontWeight: 600,
                   boxShadow: "0 1px 2px rgba(37, 99, 235, 0.04)",
-                  transition: "all 0.2s ease",
+                  transition: "all 0.2s ease"
                 }}
               >
                 <Video size={13.5} color="#2563eb" />
@@ -416,7 +418,7 @@ export default function PortalMomDetailPage() {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1fr) 280px",
           gap: 16,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -431,7 +433,7 @@ export default function PortalMomDetailPage() {
                   fontSize: 13.5,
                   color: p.textMuted,
                   lineHeight: 1.6,
-                  whiteSpace: "pre-wrap",
+                  whiteSpace: "pre-wrap"
                 }}
               >
                 {mom.summary || mom.aiSummary}
@@ -441,7 +443,7 @@ export default function PortalMomDetailPage() {
                   style={{
                     marginTop: 14,
                     paddingTop: 14,
-                    borderTop: `1px dashed ${p.border}`,
+                    borderTop: `1px dashed ${p.border}`
                   }}
                 >
                   <div
@@ -454,7 +456,7 @@ export default function PortalMomDetailPage() {
                       marginBottom: 6,
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 5,
+                      gap: 5
                     }}
                   >
                     <Sparkles size={11} />
@@ -465,7 +467,7 @@ export default function PortalMomDetailPage() {
                       fontSize: 13,
                       color: p.textMuted,
                       lineHeight: 1.6,
-                      whiteSpace: "pre-wrap",
+                      whiteSpace: "pre-wrap"
                     }}
                   >
                     {mom.aiSummary}
@@ -492,7 +494,7 @@ export default function PortalMomDetailPage() {
                       color: "#1e293b",
                       lineHeight: 1.55,
                       paddingBottom: index === mom.decisions.length - 1 ? 0 : 10,
-                      borderBottom: index === mom.decisions.length - 1 ? "none" : "1px solid #f1f5f9",
+                      borderBottom: index === mom.decisions.length - 1 ? "none" : "1px solid #f1f5f9"
                     }}
                   >
                     <span
@@ -502,17 +504,17 @@ export default function PortalMomDetailPage() {
                         borderRadius: "50%",
                         background: "#8b5cf6",
                         marginTop: 7,
-                        flexShrink: 0,
+                        flexShrink: 0
                       }}
                     />
                     <div style={{ flex: 1 }}>
                       <span style={{ fontWeight: 500 }}>{d.decision}</span>
                       {d.decided_by && (
-                        <span 
-                          style={{ 
-                            color: "#64748b", 
-                            fontSize: 12, 
-                            marginLeft: 8, 
+                        <span
+                          style={{
+                            color: "#64748b",
+                            fontSize: 12,
+                            marginLeft: 8,
                             fontWeight: 500,
                             background: "#f1f5f9",
                             padding: "1px 6px",
@@ -550,7 +552,7 @@ export default function PortalMomDetailPage() {
                         background: "#ffffff",
                         border: "1px solid #e2e8f0",
                         borderRadius: 12,
-                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)",
+                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.02)"
                       }}
                     >
                       <div
@@ -558,7 +560,7 @@ export default function PortalMomDetailPage() {
                           display: "flex",
                           justifyContent: "space-between",
                           gap: 12,
-                          alignItems: "flex-start",
+                          alignItems: "flex-start"
                         }}
                       >
                         <div style={{ minWidth: 0, flex: 1 }}>
@@ -567,7 +569,7 @@ export default function PortalMomDetailPage() {
                               fontSize: 13.5,
                               color: "#0f172a",
                               lineHeight: 1.5,
-                              fontWeight: 600,
+                              fontWeight: 600
                             }}
                           >
                             {ai.text}
@@ -580,7 +582,7 @@ export default function PortalMomDetailPage() {
                               flexWrap: "wrap",
                               alignItems: "center",
                               fontSize: 11.5,
-                              color: "#64748b",
+                              color: "#64748b"
                             }}
                           >
                             {ai.ownerName && (
@@ -590,7 +592,7 @@ export default function PortalMomDetailPage() {
                                   padding: "2px 8px",
                                   borderRadius: 6,
                                   color: "#334155",
-                                  fontWeight: 500,
+                                  fontWeight: 500
                                 }}
                               >
                                 👤 {ai.ownerName}
@@ -603,7 +605,7 @@ export default function PortalMomDetailPage() {
                                   padding: "2px 8px",
                                   borderRadius: 6,
                                   color: "#ef4444",
-                                  fontWeight: 500,
+                                  fontWeight: 500
                                 }}
                               >
                                 Due {fmtDate(ai.dueDate)}
@@ -618,7 +620,7 @@ export default function PortalMomDetailPage() {
                                   border: "1px solid #ddd6fe",
                                   padding: "2px 8px",
                                   borderRadius: 6,
-                                  fontWeight: 600,
+                                  fontWeight: 600
                                 }}
                               >
                                 → {ai.convertedTicketNumber}
@@ -638,7 +640,7 @@ export default function PortalMomDetailPage() {
                             borderRadius: 999,
                             fontSize: 11.5,
                             fontWeight: 600,
-                            flexShrink: 0,
+                            flexShrink: 0
                           }}
                         >
                           <Icon size={11} />
@@ -685,7 +687,7 @@ export default function PortalMomDetailPage() {
                           fileSizeBytes: a.fileSizeBytes,
                           mimeType: a.mimeType,
                           linkUrl: a.linkUrl,
-                          linkLabel: a.linkLabel,
+                          linkLabel: a.linkLabel
                         });
                       }}
                     />
@@ -710,7 +712,7 @@ export default function PortalMomDetailPage() {
                       style={{
                         display: "flex",
                         gap: 10,
-                        alignItems: "center",
+                        alignItems: "center"
                       }}
                     >
                       <div
@@ -718,8 +720,8 @@ export default function PortalMomDetailPage() {
                           width: 32,
                           height: 32,
                           borderRadius: 8,
-                          background: isInternal 
-                            ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" 
+                          background: isInternal
+                            ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"
                             : "linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)",
                           border: `1px solid ${isInternal ? "#bfdbfe" : "#f5d0fe"}`,
                           color: isInternal ? "#2563eb" : "#d946ef",
@@ -729,7 +731,7 @@ export default function PortalMomDetailPage() {
                           fontSize: 11,
                           fontWeight: 700,
                           flexShrink: 0,
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
                         }}
                       >
                         {(a.name || "?")
@@ -748,7 +750,7 @@ export default function PortalMomDetailPage() {
                             color: "#0f172a",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            whiteSpace: "nowrap"
                           }}
                         >
                           {a.name}
@@ -759,7 +761,7 @@ export default function PortalMomDetailPage() {
                             color: "#64748b",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            whiteSpace: "nowrap"
                           }}
                         >
                           {a.role || a.party || "Attendee"}
@@ -787,12 +789,11 @@ export default function PortalMomDetailPage() {
 function AttachmentRow({
   attachment,
   externalHref,
-  onOpen,
-}: {
-  attachment: PortalMomAttachment;
-  externalHref: string | null;
-  onOpen: () => void;
-}) {
+  onOpen }: {
+    attachment: PortalMomAttachment;
+    externalHref: string | null;
+    onOpen: () => void;
+  }) {
   const [hover, setHover] = useState(false);
   const isFile = attachment.kind === "file";
   const isImage = !!attachment.mimeType?.startsWith("image/");
@@ -800,10 +801,10 @@ function AttachmentRow({
   const Icon = !isFile
     ? Link2
     : isImage
-    ? ImageIcon
-    : isPdf
-    ? FileType2
-    : FileText;
+      ? ImageIcon
+      : isPdf
+        ? FileType2
+        : FileText;
 
   const label = isFile
     ? attachment.fileName || "File"
@@ -811,8 +812,8 @@ function AttachmentRow({
   const sub = isFile
     ? attachment.mimeType || "file"
     : attachment.linkUrl
-    ? new URL(attachment.linkUrl).hostname.replace(/^www\./, "")
-    : "";
+      ? new URL(attachment.linkUrl).hostname.replace(/^www\./, "")
+      : "";
 
   const rowStyle: React.CSSProperties = {
     display: "flex",
@@ -829,7 +830,7 @@ function AttachmentRow({
     textDecoration: "none",
     color: hover ? "#2563eb" : "inherit",
     boxSizing: "border-box",
-    boxShadow: hover ? "0 4px 12px -2px rgba(37, 99, 235, 0.05)" : "0 1px 2px rgba(0, 0, 0, 0.02)",
+    boxShadow: hover ? "0 4px 12px -2px rgba(37, 99, 235, 0.05)" : "0 1px 2px rgba(0, 0, 0, 0.02)"
   };
 
   const inner = (
@@ -846,7 +847,7 @@ function AttachmentRow({
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          transition: "all 0.2s ease",
+          transition: "all 0.2s ease"
         }}
       >
         <Icon size={14} color={isFile ? "#4f46e5" : "#7c3aed"} />
@@ -859,7 +860,7 @@ function AttachmentRow({
             color: hover ? "#1d4ed8" : "#1e293b",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {label}
@@ -871,7 +872,7 @@ function AttachmentRow({
             color: "#64748b",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {sub}
@@ -922,32 +923,31 @@ function Card({
   title,
   icon: Icon,
   accent,
-  children,
-}: {
-  title: string;
-  icon: any;
-  accent?: boolean;
-  children: React.ReactNode;
-}) {
+  children }: {
+    title: string;
+    icon: any;
+    accent?: boolean;
+    children: React.ReactNode;
+  }) {
   return (
     <div
       style={{
         background: "transparent",
         border: "1px solid #e2e8f0",
         borderRadius: 16,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
         style={{
           padding: "12px 18px",
           borderBottom: accent ? "1px solid rgba(99, 102, 241, 0.15)" : "1px solid #e2e8f0",
-          background: accent 
-            ? "rgba(99, 102, 241, 0.04)" 
+          background: accent
+            ? "rgba(99, 102, 241, 0.04)"
             : "rgba(248, 250, 252, 0.4)",
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 8
         }}
       >
         <Icon size={14} color={accent ? "#4f46e5" : "#64748b"} />
@@ -957,7 +957,7 @@ function Card({
             fontWeight: 700,
             color: accent ? "#4f46e5" : "#334155",
             textTransform: "uppercase",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.06em"
           }}
         >
           {title}

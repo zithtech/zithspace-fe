@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip } from "antd";
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
@@ -850,14 +851,19 @@ function TestRunsContent() {
 
                 {/* Table or Grid */}
                 {viewMode === 'list' ? (
-                  <div className="sc-tablewrap">
+                  <div className="sc-tablewrap" style={{ position: 'relative' }}>
+                    {loading && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <LoadingSpinner size="medium" fullScreen={false} />
+                      </div>
+                    )}
                     <Table
                       className="ts-table sc-table"
                       dataSource={pagedRuns}
                       columns={columns}
                       rowKey="id"
                       pagination={false}
-                      loading={loading}
+                      loading={false}
                       onRow={(record) => ({
                         onClick: () => openExecuteDrawer(record),
                       })}

@@ -1,13 +1,15 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, Suspense } from 'react';
-import { Card, Form, Input, Button, Typography, Alert, Spin } from 'antd';
+import { Card, Form, Input, Button, Typography, Alert } from 'antd';
 import { UserOutlined, MailOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import Logo from '@/assets/logo/Zukvologo.png';
 import { AuthService } from '@/services/authService';
+
 
 const { Title, Text } = Typography;
 
@@ -133,8 +135,7 @@ function ForgotPasswordForm() {
               fontWeight: 500,
               background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
               border: 'none',
-              borderRadius: 8,
-            }}
+              borderRadius: 8 }}
           >
             {loading ? 'Sending...' : 'Send Reset Link'}
           </Button>
@@ -162,8 +163,7 @@ export default function ForgotPasswordPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
-      }}
+        padding: 20 }}
     >
       <Card
         style={{
@@ -171,13 +171,10 @@ export default function ForgotPasswordPage() {
           maxWidth: 400,
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
           borderRadius: 12,
-          border: 'none',
-        }}
+          border: 'none' }}
         styles={{
           body: {
-            padding: 32,
-          },
-        }}
+            padding: 32 } }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div
@@ -187,8 +184,7 @@ export default function ForgotPasswordPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 20px',
-            }}
+              margin: '0 auto 20px' }}
           >
             <Image
               src={Logo}
@@ -204,7 +200,7 @@ export default function ForgotPasswordPage() {
           </Title>
         </div>
 
-        <Suspense fallback={<Spin size="large" style={{ display: 'block', margin: '0 auto' }} />}>
+        <Suspense fallback={<LoadingSpinner size="large" fullScreen={false} />}>
           <ForgotPasswordForm />
         </Suspense>
 

@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Input, message, Spin } from 'antd';
+import { Button, Input, message } from 'antd';
 import {
   Sparkles,
   Wand2,
@@ -9,10 +10,10 @@ import {
   Expand,
   Briefcase,
   Check,
-  X,
-} from 'lucide-react';
+  X } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalStore } from '@/store/proposalStore';
+
 
 type QuickAction = {
   key: string;
@@ -26,26 +27,22 @@ const QUICK_ACTIONS: QuickAction[] = [
     key: 'rewrite',
     label: 'Rewrite',
     icon: <Wand2 size={12} />,
-    prompt: 'Rewrite this passage to be clearer and more polished. Preserve the meaning exactly.',
-  },
+    prompt: 'Rewrite this passage to be clearer and more polished. Preserve the meaning exactly.' },
   {
     key: 'shorten',
     label: 'Shorten',
     icon: <Scissors size={12} />,
-    prompt: 'Make this passage significantly shorter while preserving the key point.',
-  },
+    prompt: 'Make this passage significantly shorter while preserving the key point.' },
   {
     key: 'expand',
     label: 'Expand',
     icon: <Expand size={12} />,
-    prompt: 'Expand this passage with more detail and persuasive context.',
-  },
+    prompt: 'Expand this passage with more detail and persuasive context.' },
   {
     key: 'formal',
     label: 'Formal',
     icon: <Briefcase size={12} />,
-    prompt: 'Rewrite this passage in a more formal, professional tone for a client proposal.',
-  },
+    prompt: 'Rewrite this passage in a more formal, professional tone for a client proposal.' },
 ];
 
 const MIN_SELECTION_CHARS = 2;
@@ -128,8 +125,7 @@ export const FloatingAIToolbar: React.FC = () => {
     savedSelection.current = { text, blockId: id };
     setPos({
       top: Math.max(8, rect.top - TOOLBAR_OFFSET),
-      left: rect.left + rect.width / 2,
-    });
+      left: rect.left + rect.width / 2 });
     setVisible(true);
   }, [loading, suggestion, showCustom]);
 
@@ -195,8 +191,7 @@ export const FloatingAIToolbar: React.FC = () => {
         blockId: snapshot.blockId,
         blockType: block.type,
         currentData: { selection: snapshot.text, fullBlock: block.data },
-        userPrompt: fullPrompt,
-      });
+        userPrompt: fullPrompt });
 
       const payload = res?.data?.data ?? res?.data ?? res;
       let suggested = '';
@@ -303,7 +298,7 @@ export const FloatingAIToolbar: React.FC = () => {
         </div>
       ) : loading ? (
         <div className="pb-ai-toolbar__loading">
-          <Spin size="small" />
+          <LoadingSpinner size="small" fullScreen={false} />
           <span>Zai is thinking…</span>
         </div>
       ) : showCustom ? (

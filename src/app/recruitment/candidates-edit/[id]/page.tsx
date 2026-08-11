@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -6,8 +7,8 @@ import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 
-import { Row, Col, Typography, Button, Space, Form, Input, Select, Card, DatePicker, Switch, TimePicker, Upload, Checkbox, message, Spin, Empty } from "antd";
-import { SaveOutlined, SendOutlined, ReloadOutlined, PlusOutlined, MinusCircleOutlined, UploadOutlined, FileOutlined, DeleteOutlined,ArrowLeftOutlined } from "@ant-design/icons";
+import { Row, Col, Typography, Button, Space, Form, Input, Select, Card, DatePicker, Switch, TimePicker, Upload, Checkbox, message, Empty } from "antd";
+import { SaveOutlined, SendOutlined, ReloadOutlined, PlusOutlined, MinusCircleOutlined, UploadOutlined, FileOutlined, DeleteOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 
 import { useParams, useRouter } from "next/navigation";
 import { Country, State, City } from "country-state-city";
@@ -49,15 +50,15 @@ const DocumentUploadCard = ({ fileList, onChange, title, multiple = false }: any
   return (
     <div style={{ border: "1px solid #d9d9d9", borderRadius: "8px", padding: "16px", height: "250px", display: "flex", flexDirection: "column" }}>
       <Title level={5} style={{ marginBottom: 16, fontSize: "14px", flexShrink: 0 }}>{title}</Title>
-      
+
       {(!hasFile || multiple) && (
         <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
           {!hasFile && (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No file uploaded" style={{ marginBottom: 16 }} />
           )}
-          <Upload 
-            beforeUpload={() => false} 
-            multiple={multiple} 
+          <Upload
+            beforeUpload={() => false}
+            multiple={multiple}
             maxCount={multiple ? undefined : 1}
             fileList={currentFiles}
             onChange={onChange}
@@ -84,11 +85,11 @@ const DocumentUploadCard = ({ fileList, onChange, title, multiple = false }: any
                     </Text>
                   )}
                 </div>
-                <Button 
-                  type="text" 
-                  danger 
+                <Button
+                  type="text"
+                  danger
                   size="small"
-                  icon={<DeleteOutlined />} 
+                  icon={<DeleteOutlined />}
                   onClick={() => {
                     const newFileList = currentFiles.filter((f: any) => f.uid !== file.uid);
                     onChange(newFileList);
@@ -140,23 +141,23 @@ export default function CandidateEdit() {
               workExperience: data.workExperiences?.map((exp: any) => ({
                 ...exp,
                 startDate: exp.startDate ? dayjs(exp.startDate) : undefined,
-                endDate: exp.endDate ? dayjs(exp.endDate) : undefined,
+                endDate: exp.endDate ? dayjs(exp.endDate) : undefined
               })) || [],
               skillsMatrix: data.skills?.map((skill: any) => ({
                 ...skill,
-                lastUsedYear: skill.lastUsedYear ? dayjs(skill.lastUsedYear) : undefined,
+                lastUsedYear: skill.lastUsedYear ? dayjs(skill.lastUsedYear) : undefined
               })) || [],
               education: data.educations?.map((edu: any) => ({
                 ...edu,
                 startDate: edu.startDate ? dayjs(edu.startDate) : undefined,
-                endDate: edu.endDate ? dayjs(edu.endDate) : undefined,
+                endDate: edu.endDate ? dayjs(edu.endDate) : undefined
               })) || [],
               interviewSlots: data.interviewSlots?.map((slot: any) => ({
                 ...slot,
                 interviewDate: slot.interviewDate ? dayjs(slot.interviewDate) : undefined,
                 startTime: slot.startTime && slot.startTime !== "Invalid Date" ? dayjs(`2000-01-01T${slot.startTime}`) : undefined,
                 endTime: slot.endTime && slot.endTime !== "Invalid Date" ? dayjs(`2000-01-01T${slot.endTime}`) : undefined,
-                timezone: slot.timezone,
+                timezone: slot.timezone
               })) || [],
               // We assume confirmation is granted if editing an existing profile
               candidateConfirmation: true
@@ -200,7 +201,7 @@ export default function CandidateEdit() {
   ];
   const timezones = zones.map((zone) => ({
     label: moment().tz(zone).format("z"),
-    value: zone,
+    value: zone
   }));
 
   const handleReset = () => {
@@ -220,24 +221,24 @@ export default function CandidateEdit() {
         workExperience: values.workExperience?.map((exp: any) => ({
           ...exp,
           startDate: exp.startDate?.toISOString(),
-          endDate: exp.endDate?.toISOString(),
+          endDate: exp.endDate?.toISOString()
         })),
         skillsMatrix: values.skillsMatrix?.map((skill: any) => ({
           ...skill,
-          lastUsedYear: skill.lastUsedYear?.toISOString(),
+          lastUsedYear: skill.lastUsedYear?.toISOString()
         })),
         education: values.education?.map((edu: any) => ({
           ...edu,
           startDate: edu.startDate?.toISOString(),
-          endDate: edu.endDate?.toISOString(),
+          endDate: edu.endDate?.toISOString()
         })),
         interviewSlots: values.interviewSlots?.map((slot: any) => ({
           ...slot,
           interviewDate: slot.interviewDate?.toISOString(),
           startTime: slot.startTime?.format("HH:mm"),
           endTime: slot.endTime?.format("HH:mm"),
-          timezone: slot.timezone,
-        })),
+          timezone: slot.timezone
+        }))
       };
 
       const processFile = async (fileList: any) => {
@@ -281,7 +282,7 @@ export default function CandidateEdit() {
         drivingLicense: drivingLicenseData,
         visaDocument: visaDocumentData,
         identityProof: identityProofData,
-        certifications: certificationsData,
+        certifications: certificationsData
       };
 
       // Call the hook to update data
@@ -299,24 +300,24 @@ export default function CandidateEdit() {
     }
     return e?.fileList;
   };
-const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const defaultTimezone =
-  zones.includes(detectedZone) ? detectedZone : "Asia/Kolkata";
+  const defaultTimezone =
+    zones.includes(detectedZone) ? detectedZone : "Asia/Kolkata";
   return (
     <ProtectedRoute>
       <MainLayout>
         <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", overflow: "hidden" }}>
           {/* Fixed Header Section */}
-         
+
           <div
             style={{
               flexShrink: 0,
               zIndex: 1000,
-//backgroundColor: "#fff",
+              //backgroundColor: "#fff",
               padding: "16px 24px",
-             // borderBottom: "1px solid #e8e8e8",
-             // boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+              // borderBottom: "1px solid #e8e8e8",
+              // boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
             }}
           >
             <div>
@@ -352,16 +353,16 @@ const defaultTimezone =
           <div style={{ padding: "24px", flex: 1, overflowY: "auto" }}>
             {isFetching ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <Spin size="large" />
+                <LoadingSpinner size="large" fullScreen={false} />
               </div>
             ) : (
               <Form form={form} layout="vertical">
                 <Card title="Personal Details" bordered={false}>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item 
-                        label="Full Legal Name" 
-                        name="fullName" 
+                      <Form.Item
+                        label="Full Legal Name"
+                        name="fullName"
                         normalize={(value) => value ? value.replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase()) : value}
                         rules={[
                           { required: true, message: "Please enter full legal name" }
@@ -877,7 +878,7 @@ const defaultTimezone =
                           </Row>
                         ))}
                         <Form.Item>
-                          <Button type="dashed" onClick={() => add({ })} block icon={<PlusOutlined />}>
+                          <Button type="dashed" onClick={() => add({})} block icon={<PlusOutlined />}>
                             Add Interview Slot
                           </Button>
                         </Form.Item>
@@ -950,7 +951,7 @@ const defaultTimezone =
                     rules={[
                       {
                         validator: (_, value) =>
-                          value ? Promise.resolve() : Promise.reject(new Error("You must confirm the provided information is accurate.")),
+                          value ? Promise.resolve() : Promise.reject(new Error("You must confirm the provided information is accurate."))
                       },
                     ]}
                     style={{ marginBottom: 0 }}

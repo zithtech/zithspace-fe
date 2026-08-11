@@ -2352,13 +2352,18 @@ export default function MembersPage() {
           {/* Main Body */}
           <div className="pp-body">
             {view === 'list' ? (
-              <div className="pp-table-wrap">
+              <div className="pp-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   className="pp-table"
                   columns={columns}
                   dataSource={members}
                   rowKey="id"
-                  loading={loading}
+                  loading={false}
                   pagination={false}
                   scroll={{ x: 1024 }}
                   locale={{ emptyText: emptyState }}

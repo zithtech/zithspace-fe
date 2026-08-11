@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import {
@@ -9,11 +10,10 @@ import {
   Tag,
   Typography,
   Empty,
-  Divider,
-  Spin,
-} from "antd";
+  Divider } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { ReleasePlan } from "@/services/releasePlanService";
+
 
 const { Text } = Typography;
 
@@ -34,8 +34,7 @@ export function SprintSelector({
   selectedSprintId,
   onSelectSprint,
   onCreateNewSprint,
-  onClose,
-}: SprintSelectorProps) {
+  onClose }: SprintSelectorProps) {
   if (!visible) return null;
 
   return (
@@ -43,8 +42,7 @@ export function SprintSelector({
       style={{
         marginTop: 12,
         maxHeight: 400,
-        overflowY: "auto",
-      }}
+        overflowY: "auto" }}
     >
       <div style={{ marginBottom: 12 }}>
         <Text strong>Select Sprint or Create New:</Text>
@@ -65,7 +63,7 @@ export function SprintSelector({
             style={{ display: "flex", flexDirection: "column", gap: 8 }}
           >
             {loading ? (
-              <Spin size="small" />
+              <LoadingSpinner size="small" fullScreen={false} />
             ) : (
               sprints.map((sprint) => (
                 <Radio

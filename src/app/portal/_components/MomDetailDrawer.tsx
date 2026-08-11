@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Spin, Empty } from "antd";
+import { Drawer, Empty } from "antd";
 import {
   X,
   Calendar,
@@ -29,15 +30,16 @@ import {
   User,
   CalendarRange,
   Eye,
-  Download,
+  Download
 } from "lucide-react";
 import AttachmentPreviewDrawer, {
-  PreviewAttachment,
+  PreviewAttachment
 } from "@/app/portal/_components/AttachmentPreviewDrawer";
 import {
+
   portalMomService,
   PortalMomDetail,
-  PortalMomAttachment,
+  PortalMomAttachment
 } from "@/services/portalMomService";
 
 /* ─────────────────────────────────────────────────────────
@@ -57,7 +59,7 @@ const T = {
   accentBg: "#eef2ff",
   accentBorder: "#c7d2fe",
   numFont:
-    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
 };
 
 const ACTION_META: Record<
@@ -69,36 +71,36 @@ const ACTION_META: Record<
     icon: Circle,
     bg: "#fffbeb",
     border: "#fde68a",
-    text: "#92400e",
+    text: "#92400e"
   },
   in_progress: {
     label: "In progress",
     icon: Pause,
     bg: "#eef2ff",
     border: "#c7d2fe",
-    text: "#4338ca",
+    text: "#4338ca"
   },
   done: {
     label: "Done",
     icon: CheckCircle2,
     bg: "#ecfdf5",
     border: "#a7f3d0",
-    text: "#047857",
+    text: "#047857"
   },
   cancelled: {
     label: "Cancelled",
     icon: XCircle,
     bg: "#f1f5f9",
     border: "#e2e8f0",
-    text: "#475569",
+    text: "#475569"
   },
   converted: {
     label: "Converted",
     icon: GitPullRequest,
     bg: "#f5f3ff",
     border: "#ddd6fe",
-    text: "#6d28d9",
-  },
+    text: "#6d28d9"
+  }
 };
 
 function fmtDateTime(iso: string | null) {
@@ -109,7 +111,7 @@ function fmtDateTime(iso: string | null) {
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit"
     });
   } catch {
     return iso;
@@ -122,7 +124,7 @@ function fmtDate(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -135,7 +137,7 @@ function fmtDateShort(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
-      year: "numeric",
+      year: "numeric"
     });
   } catch {
     return iso;
@@ -147,7 +149,7 @@ function fmtTime(iso: string | null) {
   try {
     return new Date(iso).toLocaleTimeString(undefined, {
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit"
     });
   } catch {
     return "—";
@@ -187,8 +189,7 @@ export interface MomDetailDrawerProps {
 
 export default function MomDetailDrawer({
   momId,
-  onClose,
-}: MomDetailDrawerProps) {
+  onClose }: MomDetailDrawerProps) {
   const [mom, setMom] = useState<PortalMomDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [previewAttachment, setPreviewAttachment] =
@@ -229,7 +230,7 @@ export default function MomDetailDrawer({
       styles={{
         body: { padding: 0, background: T.pageBg },
         header: { display: "none" },
-        mask: { background: "rgba(15, 23, 42, 0.32)" },
+        mask: { background: "rgba(15, 23, 42, 0.32)" }
       }}
     >
       {/* Sticky header */}
@@ -242,10 +243,10 @@ export default function MomDetailDrawer({
             padding: 80,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
-          <Spin size="large" />
+          <LoadingSpinner size="large" fullScreen={false} />
         </div>
       ) : !mom ? (
         <div style={{ padding: 64, textAlign: "center" }}>
@@ -264,7 +265,7 @@ export default function MomDetailDrawer({
             padding: "16px 20px 32px",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: 12
           }}
         >
           <MetaStrip mom={mom} />
@@ -282,7 +283,7 @@ export default function MomDetailDrawer({
               display: "grid",
               gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
               gap: 12,
-              alignItems: "start",
+              alignItems: "start"
             }}
           >
             <AttendeesSection mom={mom} />
@@ -328,7 +329,7 @@ const DrawerHeader: React.FC<{
       zIndex: 10,
       background: T.cardBg,
       borderBottom: `1px solid ${T.border}`,
-      padding: "14px 20px",
+      padding: "14px 20px"
     }}
   >
     <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -343,7 +344,7 @@ const DrawerHeader: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Calendar size={18} strokeWidth={2.2} />
@@ -354,7 +355,7 @@ const DrawerHeader: React.FC<{
             display: "flex",
             gap: 8,
             alignItems: "center",
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           {mom ? (
@@ -372,7 +373,7 @@ const DrawerHeader: React.FC<{
                     border: `1px solid ${T.border}`,
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 4
                   }}
                 >
                   <Building2 size={10} />
@@ -387,7 +388,7 @@ const DrawerHeader: React.FC<{
                 width: 80,
                 height: 16,
                 background: T.borderSoft,
-                borderRadius: 4,
+                borderRadius: 4
               }}
             />
           )}
@@ -403,7 +404,7 @@ const DrawerHeader: React.FC<{
             overflow: "hidden",
             display: "-webkit-box",
             WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
+            WebkitBoxOrient: "vertical"
           }}
         >
           {mom?.title || (loading ? "Loading meeting…" : "Meeting")}
@@ -428,7 +429,7 @@ const DrawerHeader: React.FC<{
               textDecoration: "none",
               fontWeight: 600,
               whiteSpace: "nowrap",
-              transition: "background 120ms ease",
+              transition: "background 120ms ease"
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#dbeafe";
@@ -457,7 +458,7 @@ const DrawerHeader: React.FC<{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
+            transition: "background 120ms ease, color 120ms ease, border-color 120ms ease"
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = T.borderSoft;
@@ -487,16 +488,16 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
     : "—";
   const fullDate = dateObj
     ? dateObj.toLocaleDateString(undefined, {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    })
     : "Date not set";
   const time = dateObj
     ? dateObj.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit"
+    })
     : null;
   const duration = mom.durationMinutes ? `${mom.durationMinutes} min` : null;
 
@@ -512,7 +513,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-        gap: 12,
+        gap: 12
       }}
     >
       {/* WHEN */}
@@ -528,7 +529,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
             display: "flex",
             alignItems: "baseline",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <div
@@ -538,7 +539,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               color: T.text,
               letterSpacing: "-0.02em",
               lineHeight: 1.2,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {fullDate}
@@ -552,7 +553,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               border: `1px solid ${T.accentBorder}`,
               padding: "1px 7px",
               borderRadius: 999,
-              letterSpacing: "0.02em",
+              letterSpacing: "0.02em"
             }}
           >
             {weekday}
@@ -568,7 +569,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
             color: T.textMuted,
             fontWeight: 600,
             flexWrap: "wrap",
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           {time && (
@@ -576,7 +577,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 5
               }}
             >
               <Clock size={12} color={T.textSubtle} />
@@ -591,7 +592,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                     width: 3,
                     height: 3,
                     borderRadius: "50%",
-                    background: T.textFaint,
+                    background: T.textFaint
                   }}
                 />
               )}
@@ -599,7 +600,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 5
                 }}
               >
                 <Clock size={12} color={T.textSubtle} />
@@ -628,7 +629,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
             display: "flex",
             alignItems: "baseline",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <div
@@ -641,7 +642,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              maxWidth: "100%",
+              maxWidth: "100%"
             }}
             title={whereTitle}
           >
@@ -657,7 +658,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 border: "1px solid #99f6e4",
                 padding: "1px 7px",
                 borderRadius: 999,
-                letterSpacing: "0.02em",
+                letterSpacing: "0.02em"
               }}
             >
               Remote
@@ -673,7 +674,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
             fontSize: 12.5,
             color: T.textMuted,
             fontWeight: 600,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           {whereSub ? (
@@ -683,7 +684,7 @@ const MetaStrip: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 style={{
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  whiteSpace: "nowrap"
                 }}
                 title={whereSub}
               >
@@ -726,14 +727,14 @@ const MetaCard: React.FC<{
       minHeight: 84,
       display: "flex",
       flexDirection: "column",
-      gap: 6,
+      gap: 6
     }}
   >
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 7,
+        gap: 7
       }}
     >
       <div
@@ -747,7 +748,7 @@ const MetaCard: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Icon size={12} strokeWidth={2.4} />
@@ -758,7 +759,7 @@ const MetaCard: React.FC<{
           fontWeight: 700,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: accent,
+          color: accent
         }}
       >
         {label}
@@ -783,7 +784,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
       label: "Open",
       value: openCount,
       accent: openCount > 0 ? "#b45309" : "#059669",
-      icon: openCount > 0 ? Circle : CheckCircle2,
+      icon: openCount > 0 ? Circle : CheckCircle2
     },
     { label: "Attachments", value: mom.attachments?.length || 0, accent: "#be123c", icon: Paperclip },
   ];
@@ -792,7 +793,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-        gap: 8,
+        gap: 8
       }}
     >
       {tiles.map((t) => (
@@ -805,7 +806,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
             padding: "10px 12px",
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 10
           }}
         >
           <div
@@ -819,7 +820,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <t.icon size={13} strokeWidth={2.4} />
@@ -832,7 +833,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 fontWeight: 600,
                 letterSpacing: "0.07em",
                 textTransform: "uppercase",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap"
               }}
             >
               {t.label}
@@ -845,7 +846,7 @@ const KPITiles: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 lineHeight: 1.1,
                 marginTop: 1,
                 letterSpacing: "-0.02em",
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {t.value}
@@ -873,7 +874,7 @@ const Section: React.FC<{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
       borderRadius: 12,
-      overflow: "hidden",
+      overflow: "hidden"
     }}
   >
     <div
@@ -883,7 +884,7 @@ const Section: React.FC<{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#fcfcfd",
+        background: "#fcfcfd"
       }}
     >
       <div
@@ -894,7 +895,7 @@ const Section: React.FC<{
           fontWeight: 600,
           color: T.text,
           fontSize: 12.5,
-          letterSpacing: "-0.005em",
+          letterSpacing: "-0.005em"
         }}
       >
         <span style={{ color: accent, display: "inline-flex" }}>
@@ -911,7 +912,7 @@ const Section: React.FC<{
               border: `1px solid ${accent}33`,
               padding: "1px 7px",
               borderRadius: 999,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {count}
@@ -940,7 +941,7 @@ const SummarySection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
           fontSize: 13,
           color: T.textMuted,
           lineHeight: 1.65,
-          whiteSpace: "pre-wrap",
+          whiteSpace: "pre-wrap"
         }}
       >
         {mom.summary || mom.aiSummary}
@@ -950,7 +951,7 @@ const SummarySection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
           style={{
             marginTop: 14,
             paddingTop: 14,
-            borderTop: `1px dashed ${T.border}`,
+            borderTop: `1px dashed ${T.border}`
           }}
         >
           <div
@@ -963,7 +964,7 @@ const SummarySection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               marginBottom: 6,
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
+              gap: 5
             }}
           >
             <Sparkles size={11} />
@@ -974,7 +975,7 @@ const SummarySection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               fontSize: 12.5,
               color: T.textMuted,
               lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
+              whiteSpace: "pre-wrap"
             }}
           >
             {mom.aiSummary}
@@ -1004,7 +1005,7 @@ const DecisionsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
             borderBottom:
               index === mom.decisions.length - 1
                 ? "none"
-                : `1px solid ${T.borderSoft}`,
+                : `1px solid ${T.borderSoft}`
           }}
         >
           <div
@@ -1021,7 +1022,7 @@ const DecisionsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
               fontSize: 10.5,
               fontWeight: 700,
               flexShrink: 0,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {index + 1}
@@ -1032,7 +1033,7 @@ const DecisionsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                 fontSize: 13,
                 color: T.text,
                 lineHeight: 1.55,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
               {d.decision}
@@ -1046,7 +1047,7 @@ const DecisionsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 <User size={10} />
@@ -1094,7 +1095,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               background: "#fffbeb",
               border: "1px solid #fde68a",
               padding: "1px 8px",
-              borderRadius: 999,
+              borderRadius: 999
             }}
           >
             {openCount} open
@@ -1108,7 +1109,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
               background: "#ecfdf5",
               border: "1px solid #a7f3d0",
               padding: "1px 8px",
-              borderRadius: 999,
+              borderRadius: 999
             }}
           >
             All resolved
@@ -1127,7 +1128,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                 padding: "11px 13px",
                 background: "#fafbfc",
                 border: `1px solid ${T.borderSoft}`,
-                borderRadius: 10,
+                borderRadius: 10
               }}
             >
               <div
@@ -1135,7 +1136,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 10,
-                  alignItems: "flex-start",
+                  alignItems: "flex-start"
                 }}
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -1144,7 +1145,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                       fontSize: 13,
                       color: T.text,
                       lineHeight: 1.5,
-                      fontWeight: 600,
+                      fontWeight: 600
                     }}
                   >
                     {ai.text}
@@ -1155,7 +1156,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                       display: "flex",
                       gap: 6,
                       flexWrap: "wrap",
-                      alignItems: "center",
+                      alignItems: "center"
                     }}
                   >
                     {ai.ownerName && (
@@ -1170,7 +1171,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                           borderRadius: 999,
                           color: T.textMuted,
                           fontSize: 11,
-                          fontWeight: 600,
+                          fontWeight: 600
                         }}
                       >
                         <User size={10} />
@@ -1189,7 +1190,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                           borderRadius: 999,
                           color: "#b91c1c",
                           fontSize: 11,
-                          fontWeight: 600,
+                          fontWeight: 600
                         }}
                       >
                         <CalendarDays size={10} />
@@ -1209,7 +1210,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                           padding: "1.5px 7px",
                           borderRadius: 999,
                           fontSize: 10.5,
-                          fontWeight: 700,
+                          fontWeight: 700
                         }}
                       >
                         <GitPullRequest size={10} />
@@ -1231,7 +1232,7 @@ const ActionItemsSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => {
                     fontSize: 11,
                     fontWeight: 700,
                     flexShrink: 0,
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   <Icon size={11} />
@@ -1274,7 +1275,7 @@ const AttendeesSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
               style={{
                 display: "flex",
                 gap: 10,
-                alignItems: "center",
+                alignItems: "center"
               }}
             >
               <div
@@ -1291,7 +1292,7 @@ const AttendeesSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                   fontSize: 10.5,
                   fontWeight: 700,
                   flexShrink: 0,
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "-0.01em"
                 }}
               >
                 {initials}
@@ -1304,7 +1305,7 @@ const AttendeesSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                     color: T.text,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   {a.name}
@@ -1316,7 +1317,7 @@ const AttendeesSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                    fontWeight: 500,
+                    fontWeight: 500
                   }}
                 >
                   {a.role || (isInternal ? "Internal" : "Client")}
@@ -1333,7 +1334,7 @@ const AttendeesSection: React.FC<{ mom: PortalMomDetail }> = ({ mom }) => (
                   background: isInternal ? "#eef2ff" : "#fdf4ff",
                   border: `1px solid ${isInternal ? "#c7d2fe" : "#f5d0fe"}`,
                   color: isInternal ? "#4338ca" : "#a21caf",
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 {a.party}
@@ -1379,7 +1380,7 @@ const AttachmentsSection: React.FC<{
                   fileSizeBytes: a.fileSizeBytes,
                   mimeType: a.mimeType,
                   linkUrl: a.linkUrl,
-                  linkLabel: a.linkLabel,
+                  linkLabel: a.linkLabel
                 })
               }
               onDownload={() => {
@@ -1430,12 +1431,12 @@ const AttachmentRow: React.FC<{
     ? attachment.mimeType || "file"
     : attachment.linkUrl
       ? (() => {
-          try {
-            return new URL(attachment.linkUrl).hostname.replace(/^www\./, "");
-          } catch {
-            return "";
-          }
-        })()
+        try {
+          return new URL(attachment.linkUrl).hostname.replace(/^www\./, "");
+        } catch {
+          return "";
+        }
+      })()
       : "";
 
   const rowStyle: React.CSSProperties = {
@@ -1454,7 +1455,7 @@ const AttachmentRow: React.FC<{
     textDecoration: "none",
     color: "inherit",
     boxSizing: "border-box" as const,
-    overflow: "hidden" as const,
+    overflow: "hidden" as const
   };
 
   const inner = (
@@ -1470,7 +1471,7 @@ const AttachmentRow: React.FC<{
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Icon size={13} />
@@ -1483,7 +1484,7 @@ const AttachmentRow: React.FC<{
             color: T.text,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {label}
@@ -1496,7 +1497,7 @@ const AttachmentRow: React.FC<{
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           {sub}
@@ -1551,7 +1552,7 @@ const MomNumberPill: React.FC<{ momNumber: string }> = ({ momNumber }) => (
       whiteSpace: "nowrap",
       display: "inline-flex",
       alignItems: "center",
-      gap: 3,
+      gap: 3
     }}
   >
     <Hash size={9} />

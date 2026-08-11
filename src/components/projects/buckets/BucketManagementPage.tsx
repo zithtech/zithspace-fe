@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Button,
@@ -681,7 +682,12 @@ export default function BucketManagementPage() {
 
   const renderTable = () => {
     return (
-      <div className="bh2-table-shell">
+      <div className="bh2-table-shell" style={{ position: 'relative' }}>
+        {(isLoading || isRefreshing) && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           columns={columns}
           dataSource={pagedBuckets}

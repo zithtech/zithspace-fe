@@ -1,16 +1,16 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Input,
   Empty,
-  Spin,
   Tooltip,
   Modal,
   message,
   ConfigProvider,
   theme as antdTheme,
-  Select,
+  Select
 } from "antd";
 import {
   Search,
@@ -40,16 +40,17 @@ import {
   ChevronDown,
   ArrowUpRight,
   Pencil,
-  Trash2,
+  Trash2
 } from "lucide-react";
 import {
   portalDocumentService,
   PortalDocument,
   PortalDocumentMeta,
-  DocumentSource,
+  DocumentSource
 } from "@/services/portalDocumentService";
 import { usePortalSocket } from "@/providers/PortalSocketProvider";
 import { portalClient } from "@/lib/portalAxios";
+
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — premium dense
@@ -68,7 +69,7 @@ const T = {
   accentBg: "#eef2ff",
   accentBorder: "#c7d2fe",
   numFont:
-    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
 };
 
 const GAP = 12;
@@ -105,7 +106,7 @@ function fmtDate(iso: string | null | undefined) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return String(iso);
@@ -153,7 +154,7 @@ export default function PortalDocumentsPage() {
         category,
         search: search || undefined,
         projectId,
-        source,
+        source
       });
       setDocs(res.data);
       setMeta(res.meta);
@@ -250,7 +251,7 @@ export default function PortalDocumentsPage() {
   const sourceCounts = meta?.sourceCounts || {
     all: docs.length,
     client: 0,
-    internal: 0,
+    internal: 0
   };
 
   const stats = useMemo(() => {
@@ -266,7 +267,7 @@ export default function PortalDocumentsPage() {
       client: sourceCounts.client,
       internal: sourceCounts.internal,
       thisMonth,
-      categories: categoriesCount,
+      categories: categoriesCount
     };
   }, [docs, sourceCounts]);
 
@@ -276,7 +277,7 @@ export default function PortalDocumentsPage() {
         background: T.pageBg,
         height: "100vh",
         overflowY: "auto",
-        overflowX: "hidden",
+        overflowX: "hidden"
       }}
     >
       <div
@@ -287,7 +288,7 @@ export default function PortalDocumentsPage() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: GAP,
+          gap: GAP
         }}
       >
         <style>{`
@@ -331,10 +332,10 @@ export default function PortalDocumentsPage() {
               textAlign: "center",
               background: T.cardBg,
               border: `1px solid ${T.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : docs.length === 0 ? (
           <div
@@ -343,7 +344,7 @@ export default function PortalDocumentsPage() {
               textAlign: "center",
               background: T.cardBg,
               border: `1px dashed ${T.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
             <Empty
@@ -551,7 +552,7 @@ const Hero: React.FC<{
       gap: 16,
       position: "relative",
       overflow: "hidden",
-      flexWrap: "wrap",
+      flexWrap: "wrap"
     }}
   >
     <div
@@ -561,7 +562,7 @@ const Hero: React.FC<{
         top: 0,
         bottom: 0,
         width: 3,
-        background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
+        background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)"
       }}
     />
     {/* Title + description */}
@@ -572,7 +573,7 @@ const Hero: React.FC<{
         flex: "1 1 200px",
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 14
       }}
     >
       <div
@@ -586,7 +587,7 @@ const Hero: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <FolderOpen size={19} strokeWidth={2.2} />
@@ -609,7 +610,7 @@ const Hero: React.FC<{
             fontSize: 12,
             color: T.textSubtle,
             marginTop: 3,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           Every document your account team has shared — and anything you upload here for them.
@@ -625,7 +626,7 @@ const Hero: React.FC<{
         gap: 6,
         flexShrink: 0,
         alignItems: "stretch",
-        flexWrap: "wrap",
+        flexWrap: "wrap"
       }}
     >
       {/* Stat cards */}
@@ -635,7 +636,7 @@ const Hero: React.FC<{
           display: "flex",
           gap: 6,
           alignItems: "stretch",
-          flexWrap: "wrap",
+          flexWrap: "wrap"
         }}
       >
         {[
@@ -651,7 +652,7 @@ const Hero: React.FC<{
               borderRadius: 8,
               background: "#fafbfc",
               minWidth: 72,
-              textAlign: "center",
+              textAlign: "center"
             }}
           >
             <div
@@ -660,7 +661,7 @@ const Hero: React.FC<{
                 fontWeight: 600,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: T.textSubtle,
+                color: T.textSubtle
               }}
             >
               {s.label}
@@ -673,7 +674,7 @@ const Hero: React.FC<{
                 marginTop: 2,
                 letterSpacing: "-0.02em",
                 lineHeight: 1.1,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {s.value}
@@ -703,7 +704,7 @@ const Hero: React.FC<{
             fontSize: 12.5,
             fontWeight: 600,
             cursor: "pointer",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           <Plus size={14} strokeWidth={2.5} />
@@ -723,13 +724,13 @@ const Hero: React.FC<{
             cursor: "pointer",
             display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
           <RefreshCw
             size={14}
             style={{
-              animation: loading ? "portal-docs-spin 1s linear infinite" : undefined,
+              animation: loading ? "portal-docs-spin 1s linear infinite" : undefined
             }}
           />
         </button>
@@ -818,37 +819,37 @@ const SourceTabs: React.FC<{
     accentBorder: string;
     count: number;
   }[] = [
-    {
-      key: "all",
-      label: "All documents",
-      sub: "Everything shared",
-      icon: FolderOpen,
-      accent: "#4338ca",
-      accentBg: "#eef2ff",
-      accentBorder: "#c7d2fe",
-      count: counts.all,
-    },
-    {
-      key: "internal",
-      label: "From Zukvo",
-      sub: "Shared by your account team",
-      icon: Briefcase,
-      accent: "#0d9488",
-      accentBg: "#ccfbf1",
-      accentBorder: "#99f6e4",
-      count: counts.internal,
-    },
-    {
-      key: "client",
-      label: "From your team",
-      sub: "Uploaded via the portal",
-      icon: Users,
-      accent: "#7c3aed",
-      accentBg: "#f5f3ff",
-      accentBorder: "#ddd6fe",
-      count: counts.client,
-    },
-  ];
+      {
+        key: "all",
+        label: "All documents",
+        sub: "Everything shared",
+        icon: FolderOpen,
+        accent: "#4338ca",
+        accentBg: "#eef2ff",
+        accentBorder: "#c7d2fe",
+        count: counts.all
+      },
+      {
+        key: "internal",
+        label: "From Zukvo",
+        sub: "Shared by your account team",
+        icon: Briefcase,
+        accent: "#0d9488",
+        accentBg: "#ccfbf1",
+        accentBorder: "#99f6e4",
+        count: counts.internal
+      },
+      {
+        key: "client",
+        label: "From your team",
+        sub: "Uploaded via the portal",
+        icon: Users,
+        accent: "#7c3aed",
+        accentBg: "#f5f3ff",
+        accentBorder: "#ddd6fe",
+        count: counts.client
+      },
+    ];
 
   return (
     <>
@@ -857,7 +858,7 @@ const SourceTabs: React.FC<{
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: GAP,
+          gap: GAP
         }}
       >
         {tabs.map((tab) => {
@@ -879,7 +880,7 @@ const SourceTabs: React.FC<{
                 cursor: "pointer",
                 textAlign: "left",
                 transition: "all 150ms ease",
-                minHeight: 64,
+                minHeight: 64
               }}
             >
               <div
@@ -893,7 +894,7 @@ const SourceTabs: React.FC<{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 <Icon size={16} strokeWidth={2.3} />
@@ -904,7 +905,7 @@ const SourceTabs: React.FC<{
                     fontSize: 13,
                     fontWeight: 700,
                     color: active ? tab.accent : T.text,
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   {tab.label}
@@ -917,7 +918,7 @@ const SourceTabs: React.FC<{
                     fontWeight: 500,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   {tab.sub}
@@ -930,7 +931,7 @@ const SourceTabs: React.FC<{
                   color: active ? tab.accent : T.text,
                   fontVariantNumeric: "tabular-nums",
                   letterSpacing: "-0.02em",
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 {tab.count}
@@ -985,22 +986,21 @@ const FilterBar: React.FC<{
   setCategory,
   categories,
   viewMode,
-  setViewMode,
-}) => (
-  <div
-    className="portal-docs-page portal-docs-filterbar"
-    style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      padding: "10px 12px",
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap",
-      alignItems: "center",
-    }}
-  >
-    <style>{`
+  setViewMode }) => (
+    <div
+      className="portal-docs-page portal-docs-filterbar"
+      style={{
+        background: T.cardBg,
+        border: `1px solid ${T.border}`,
+        borderRadius: 12,
+        padding: "10px 12px",
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }}
+    >
+      <style>{`
       @media (max-width: 640px) {
         .portal-docs-filterbar { padding: 10px !important; gap: 8px !important; }
         .portal-docs-filterbar .ant-select { width: 100% !important; }
@@ -1008,148 +1008,148 @@ const FilterBar: React.FC<{
         .portal-docs-filterbar > div:last-child { margin-left: auto; }
       }
     `}</style>
-    {/* Project filter */}
-    <Select
-      className={`portal-docs-project-select${projectId ? " is-active" : ""}`}
-      popupClassName="portal-docs-popup"
-      allowClear
-      placeholder={
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.textSubtle,
-            fontWeight: 500,
-          }}
-        >
-          <FolderOpen size={14} />
-          {projects.length === 0
-            ? "No projects yet"
-            : `All projects · ${projects.length}`}
-        </span>
-      }
-      value={projectId}
-      onChange={(v) => setProjectId(v as string | undefined)}
-      style={{ width: 240 }}
-      options={projects.map((proj) => ({
-        value: proj.id,
-        label: proj.name,
-        code: proj.code,
-      }))}
-      optionRender={(option) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <FolderOpen size={13} color={T.textSubtle} />
-          <span style={{ fontWeight: 600, color: T.text }}>
-            {String(option.label)}
-          </span>
-          {(option.data as any)?.code && (
-            <span
-              style={{
-                marginLeft: "auto",
-                fontFamily: T.numFont,
-                fontSize: 11,
-                color: T.textFaint,
-              }}
-            >
-              {(option.data as any).code}
-            </span>
-          )}
-        </div>
-      )}
-      labelRender={(label) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.accent,
-            fontWeight: 600,
-          }}
-        >
-          <FolderOpen size={14} />
-          {String(label.label ?? "")}
-        </span>
-      )}
-    />
-
-    {/* Category filter */}
-    <Select
-      popupClassName="portal-docs-popup"
-      allowClear
-      placeholder={
-        <span style={{ color: T.textSubtle, fontWeight: 500 }}>
-          All categories
-        </span>
-      }
-      value={category}
-      onChange={(v) => setCategory(v as string | undefined)}
-      style={{ width: 180 }}
-      options={categories.map((c) => ({ value: c, label: c }))}
-    />
-
-    <Input
-      allowClear
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      prefix={<Search size={14} color={T.textSubtle} />}
-      placeholder="Search file name, type, or tag…"
-      style={{
-        flex: 1,
-        minWidth: 240,
-        height: 34,
-      }}
-    />
-
-    <div
-      style={{
-        display: "inline-flex",
-        background: T.borderSoft,
-        padding: 3,
-        borderRadius: 8,
-        border: `1px solid ${T.border}`,
-        height: 34,
-        boxSizing: "border-box",
-        alignItems: "center",
-      }}
-    >
-      {[
-        { mode: "list" as const, icon: <ListIcon size={13} />, label: "List" },
-        {
-          mode: "card" as const,
-          icon: <LayoutGrid size={13} />,
-          label: "Cards",
-        },
-      ].map(({ mode, icon, label }) => {
-        const active = viewMode === mode;
-        return (
-          <button
-            key={mode}
-            onClick={() => setViewMode(mode)}
+      {/* Project filter */}
+      <Select
+        className={`portal-docs-project-select${projectId ? " is-active" : ""}`}
+        popupClassName="portal-docs-popup"
+        allowClear
+        placeholder={
+          <span
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
-              padding: "0 10px",
-              height: 26,
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 5,
-              border: active ? `1px solid ${T.border}` : "1px solid transparent",
-              cursor: "pointer",
-              background: active ? T.cardBg : "transparent",
-              color: active ? T.text : T.textSubtle,
-              transition: "background 120ms ease, color 120ms ease",
+              gap: 6,
+              color: T.textSubtle,
+              fontWeight: 500
             }}
           >
-            {icon}
-            {label}
-          </button>
-        );
-      })}
+            <FolderOpen size={14} />
+            {projects.length === 0
+              ? "No projects yet"
+              : `All projects · ${projects.length}`}
+          </span>
+        }
+        value={projectId}
+        onChange={(v) => setProjectId(v as string | undefined)}
+        style={{ width: 240 }}
+        options={projects.map((proj) => ({
+          value: proj.id,
+          label: proj.name,
+          code: proj.code
+        }))}
+        optionRender={(option) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FolderOpen size={13} color={T.textSubtle} />
+            <span style={{ fontWeight: 600, color: T.text }}>
+              {String(option.label)}
+            </span>
+            {(option.data as any)?.code && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontFamily: T.numFont,
+                  fontSize: 11,
+                  color: T.textFaint
+                }}
+              >
+                {(option.data as any).code}
+              </span>
+            )}
+          </div>
+        )}
+        labelRender={(label) => (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: T.accent,
+              fontWeight: 600
+            }}
+          >
+            <FolderOpen size={14} />
+            {String(label.label ?? "")}
+          </span>
+        )}
+      />
+
+      {/* Category filter */}
+      <Select
+        popupClassName="portal-docs-popup"
+        allowClear
+        placeholder={
+          <span style={{ color: T.textSubtle, fontWeight: 500 }}>
+            All categories
+          </span>
+        }
+        value={category}
+        onChange={(v) => setCategory(v as string | undefined)}
+        style={{ width: 180 }}
+        options={categories.map((c) => ({ value: c, label: c }))}
+      />
+
+      <Input
+        allowClear
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        prefix={<Search size={14} color={T.textSubtle} />}
+        placeholder="Search file name, type, or tag…"
+        style={{
+          flex: 1,
+          minWidth: 240,
+          height: 34
+        }}
+      />
+
+      <div
+        style={{
+          display: "inline-flex",
+          background: T.borderSoft,
+          padding: 3,
+          borderRadius: 8,
+          border: `1px solid ${T.border}`,
+          height: 34,
+          boxSizing: "border-box",
+          alignItems: "center"
+        }}
+      >
+        {[
+          { mode: "list" as const, icon: <ListIcon size={13} />, label: "List" },
+          {
+            mode: "card" as const,
+            icon: <LayoutGrid size={13} />,
+            label: "Cards"
+          },
+        ].map(({ mode, icon, label }) => {
+          const active = viewMode === mode;
+          return (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "0 10px",
+                height: 26,
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 5,
+                border: active ? `1px solid ${T.border}` : "1px solid transparent",
+                cursor: "pointer",
+                background: active ? T.cardBg : "transparent",
+                color: active ? T.text : T.textSubtle,
+                transition: "background 120ms ease, color 120ms ease"
+              }}
+            >
+              {icon}
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
 
 /* ─────────────────────────────────────────────────────────
  * Single flat table
@@ -1165,7 +1165,7 @@ const DocumentsTable: React.FC<{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
       borderRadius: 12,
-      overflow: "hidden",
+      overflow: "hidden"
     }}
   >
     <div style={{ overflowX: "auto" }}>
@@ -1193,7 +1193,7 @@ const DocumentsTable: React.FC<{
                       display: "flex",
                       alignItems: "center",
                       gap: 11,
-                      minWidth: 0,
+                      minWidth: 0
                     }}
                   >
                     <div
@@ -1207,7 +1207,7 @@ const DocumentsTable: React.FC<{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0,
+                        flexShrink: 0
                       }}
                     >
                       <Icon size={13} />
@@ -1223,7 +1223,7 @@ const DocumentsTable: React.FC<{
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           letterSpacing: "-0.005em",
-                          transition: "color 120ms ease",
+                          transition: "color 120ms ease"
                         }}
                         title={doc.fileName}
                       >
@@ -1238,7 +1238,7 @@ const DocumentsTable: React.FC<{
                           display: "flex",
                           alignItems: "center",
                           gap: 6,
-                          flexWrap: "wrap",
+                          flexWrap: "wrap"
                         }}
                       >
                         <span>{doc.documentType}</span>
@@ -1252,7 +1252,7 @@ const DocumentsTable: React.FC<{
                               borderRadius: 4,
                               color: T.accent,
                               fontWeight: 600,
-                              fontSize: 10,
+                              fontSize: 10
                             }}
                           >
                             v{doc.version}
@@ -1268,7 +1268,7 @@ const DocumentsTable: React.FC<{
                               border: `1px solid ${T.border}`,
                               color: T.textMuted,
                               borderRadius: 4,
-                              fontWeight: 500,
+                              fontWeight: 500
                             }}
                           >
                             {t}
@@ -1294,7 +1294,7 @@ const DocumentsTable: React.FC<{
                         color: T.textMuted,
                         borderRadius: 6,
                         fontWeight: 600,
-                        whiteSpace: "nowrap",
+                        whiteSpace: "nowrap"
                       }}
                     >
                       {doc.category}
@@ -1320,7 +1320,7 @@ const DocumentsTable: React.FC<{
                         fontWeight: 600,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        whiteSpace: "nowrap"
                       }}
                       title={doc.projectName}
                     >
@@ -1342,7 +1342,7 @@ const DocumentsTable: React.FC<{
                       fontWeight: 500,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      textOverflow: "ellipsis"
                     }}
                   >
                     {doc.uploadedByName || "—"}
@@ -1354,7 +1354,7 @@ const DocumentsTable: React.FC<{
                       fontSize: 12,
                       color: T.textMuted,
                       fontVariantNumeric: "tabular-nums",
-                      whiteSpace: "nowrap",
+                      whiteSpace: "nowrap"
                     }}
                     title={fmtDate(doc.createdAt)}
                   >
@@ -1366,7 +1366,7 @@ const DocumentsTable: React.FC<{
                     style={{
                       display: "flex",
                       gap: 6,
-                      justifyContent: "flex-end",
+                      justifyContent: "flex-end"
                     }}
                   >
                     <Tooltip title={looksExternal ? "Open link" : "Open"}>
@@ -1410,7 +1410,7 @@ const DocumentsTable: React.FC<{
                             style={{
                               ...iconBtn(false),
                               color: "#b91c1c",
-                              borderColor: "#fecaca",
+                              borderColor: "#fecaca"
                             }}
                             aria-label="Delete"
                           >
@@ -1441,12 +1441,11 @@ const iconBtn = (hover: boolean): React.CSSProperties => ({
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  transition: "all 120ms ease",
+  transition: "all 120ms ease"
 });
 
 const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
-  uploadedByPortal,
-}) => {
+  uploadedByPortal }) => {
   if (uploadedByPortal) {
     return (
       <span
@@ -1460,7 +1459,7 @@ const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
           background: "#f5f3ff",
           border: "1px solid #ddd6fe",
           color: "#6d28d9",
-          borderRadius: 999,
+          borderRadius: 999
         }}
       >
         <Users size={10} />
@@ -1480,7 +1479,7 @@ const SourcePill: React.FC<{ uploadedByPortal: boolean }> = ({
         background: "#ccfbf1",
         border: "1px solid #99f6e4",
         color: "#0d9488",
-        borderRadius: 999,
+        borderRadius: 999
       }}
     >
       <Briefcase size={10} />
@@ -1502,7 +1501,7 @@ const DocumentsGrid: React.FC<{
     style={{
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-      gap: GAP,
+      gap: GAP
     }}
   >
     {docs.map((doc) => (
@@ -1541,7 +1540,7 @@ const DocCard: React.FC<{
         display: "flex",
         flexDirection: "column",
         gap: 10,
-        minHeight: 178,
+        minHeight: 178
       }}
     >
       <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
@@ -1556,7 +1555,7 @@ const DocCard: React.FC<{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <Icon size={17} />
@@ -1573,7 +1572,7 @@ const DocCard: React.FC<{
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              transition: "color 150ms ease",
+              transition: "color 150ms ease"
             }}
             title={doc.fileName}
           >
@@ -1585,7 +1584,7 @@ const DocCard: React.FC<{
               display: "flex",
               flexWrap: "wrap",
               gap: 5,
-              alignItems: "center",
+              alignItems: "center"
             }}
           >
             <span style={{ fontSize: 11, color: T.textSubtle, fontWeight: 500 }}>
@@ -1601,7 +1600,7 @@ const DocCard: React.FC<{
                   border: `1px solid ${T.accentBorder}`,
                   color: T.accent,
                   borderRadius: 999,
-                  fontFamily: T.numFont,
+                  fontFamily: T.numFont
                 }}
               >
                 v{doc.version}
@@ -1618,7 +1617,7 @@ const DocCard: React.FC<{
             display: "flex",
             gap: 5,
             flexWrap: "wrap",
-            alignItems: "center",
+            alignItems: "center"
           }}
         >
           {doc.category && (
@@ -1630,7 +1629,7 @@ const DocCard: React.FC<{
                 border: `1px solid ${T.border}`,
                 color: T.textMuted,
                 borderRadius: 6,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               {doc.category}
@@ -1648,7 +1647,7 @@ const DocCard: React.FC<{
                 border: `1px solid ${T.accentBorder}`,
                 color: T.accent,
                 borderRadius: 6,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               <FolderOpen size={10} />
@@ -1663,7 +1662,7 @@ const DocCard: React.FC<{
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: 4,
+            gap: 4
           }}
         >
           {doc.tags.slice(0, 4).map((t) => (
@@ -1679,7 +1678,7 @@ const DocCard: React.FC<{
                 borderRadius: 999,
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 3,
+                gap: 3
               }}
             >
               <TagIcon size={9} color={T.textSubtle} />
@@ -1702,7 +1701,7 @@ const DocCard: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: 8
         }}
       >
         <div
@@ -1716,7 +1715,7 @@ const DocCard: React.FC<{
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            minWidth: 0,
+            minWidth: 0
           }}
         >
           <Clock size={10} />
@@ -1761,7 +1760,7 @@ const DocCard: React.FC<{
                   style={{
                     ...iconBtn(hover),
                     color: "#b91c1c",
-                    borderColor: "#fecaca",
+                    borderColor: "#fecaca"
                   }}
                   aria-label="Delete"
                 >
@@ -1800,13 +1799,12 @@ function UploadModal({
   open,
   projects,
   onClose,
-  onUploaded,
-}: {
-  open: boolean;
-  projects: { id: string; name: string; code: string | null }[];
-  onClose: () => void;
-  onUploaded: () => void;
-}) {
+  onUploaded }: {
+    open: boolean;
+    projects: { id: string; name: string; code: string | null }[];
+    onClose: () => void;
+    onUploaded: () => void;
+  }) {
   const [mode, setMode] = useState<"file" | "url">("file");
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -1870,20 +1868,20 @@ function UploadModal({
     try {
       const common = {
         documentType: docType.trim() || undefined,
-        projectId: projectId || null,
+        projectId: projectId || null
       };
       if (mode === "file") {
         const base64 = await fileToDataUrl(file!);
         await portalDocumentService.upload({
           ...common,
           base64,
-          fileName: displayName.trim() || file!.name,
+          fileName: displayName.trim() || file!.name
         });
       } else {
         await portalDocumentService.upload({
           ...common,
           externalUrl: url.trim(),
-          fileName: displayName.trim() || undefined,
+          fileName: displayName.trim() || undefined
         });
       }
       message.success("Document added");
@@ -1905,9 +1903,9 @@ function UploadModal({
             colorBgContainer: "#ffffff",
             colorText: "#0f172a",
             colorTextPlaceholder: "#94a3b8",
-            colorBorder: "#e2e8f0",
-          },
-        },
+            colorBorder: "#e2e8f0"
+          }
+        }
       }}
     >
       <Modal
@@ -1927,7 +1925,7 @@ function UploadModal({
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 12,
+            gap: 12
           }}
         >
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -1942,7 +1940,7 @@ function UploadModal({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                flexShrink: 0,
+                flexShrink: 0
               }}
             >
               <FileUp size={16} />
@@ -1953,7 +1951,7 @@ function UploadModal({
                   fontSize: 16,
                   fontWeight: 700,
                   color: T.text,
-                  letterSpacing: "-0.015em",
+                  letterSpacing: "-0.015em"
                 }}
               >
                 Add a document
@@ -1963,7 +1961,7 @@ function UploadModal({
                   marginTop: 2,
                   fontSize: 12,
                   color: T.textSubtle,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 Upload a file, or paste a link to one stored elsewhere.
@@ -1983,7 +1981,7 @@ function UploadModal({
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              flexShrink: 0,
+              flexShrink: 0
             }}
             aria-label="Close"
           >
@@ -2029,7 +2027,7 @@ function UploadModal({
                     background: dragging ? T.accentBg : "#fafbfc",
                     textAlign: "center",
                     cursor: "pointer",
-                    transition: "all 150ms ease",
+                    transition: "all 150ms ease"
                   }}
                 >
                   <UploadCloud
@@ -2042,7 +2040,7 @@ function UploadModal({
                       fontSize: 13,
                       fontWeight: 600,
                       color: T.text,
-                      marginBottom: 4,
+                      marginBottom: 4
                     }}
                   >
                     Drop a file or click to browse
@@ -2060,7 +2058,7 @@ function UploadModal({
                     borderRadius: 10,
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 10
                   }}
                 >
                   <div
@@ -2073,7 +2071,7 @@ function UploadModal({
                       border: `1px solid ${T.accentBorder}`,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "center"
                     }}
                   >
                     <FileText size={14} />
@@ -2086,7 +2084,7 @@ function UploadModal({
                         color: T.text,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        whiteSpace: "nowrap"
                       }}
                     >
                       {file.name}
@@ -2107,7 +2105,7 @@ function UploadModal({
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
-                      justifyContent: "center",
+                      justifyContent: "center"
                     }}
                     aria-label="Remove file"
                   >
@@ -2162,7 +2160,7 @@ function UploadModal({
                 options={projects.map((proj) => ({
                   value: proj.id,
                   label: proj.name,
-                  code: proj.code,
+                  code: proj.code
                 }))}
               />
             </FieldLabel>
@@ -2175,7 +2173,7 @@ function UploadModal({
             padding: "14px 22px 16px",
             display: "flex",
             justifyContent: "flex-end",
-            gap: 8,
+            gap: 8
           }}
         >
           <button
@@ -2189,7 +2187,7 @@ function UploadModal({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: submitting ? "not-allowed" : "pointer",
+              cursor: submitting ? "not-allowed" : "pointer"
             }}
           >
             Cancel
@@ -2210,7 +2208,7 @@ function UploadModal({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: submitting ? "not-allowed" : "pointer",
+              cursor: submitting ? "not-allowed" : "pointer"
             }}
           >
             {submitting ? "Adding…" : "Add document"}
@@ -2242,7 +2240,7 @@ const ModeTab: React.FC<{
       fontSize: 12,
       fontWeight: 600,
       cursor: "pointer",
-      transition: "all 120ms ease",
+      transition: "all 120ms ease"
     }}
   >
     {icon}
@@ -2262,7 +2260,7 @@ const FieldLabel: React.FC<{
         letterSpacing: "0.07em",
         textTransform: "uppercase",
         color: T.textSubtle,
-        marginBottom: 4,
+        marginBottom: 4
       }}
     >
       {label}
@@ -2278,13 +2276,12 @@ function EditDocumentModal({
   doc,
   projects,
   onClose,
-  onSaved,
-}: {
-  doc: PortalDocument | null;
-  projects: { id: string; name: string; code: string | null }[];
-  onClose: () => void;
-  onSaved: () => void;
-}) {
+  onSaved }: {
+    doc: PortalDocument | null;
+    projects: { id: string; name: string; code: string | null }[];
+    onClose: () => void;
+    onSaved: () => void;
+  }) {
   const [fileName, setFileName] = useState("");
   const [category, setCategory] = useState("");
   const [docType, setDocType] = useState("");
@@ -2312,7 +2309,7 @@ function EditDocumentModal({
         fileName: fileName.trim(),
         category: category.trim() || undefined,
         documentType: docType.trim() || undefined,
-        projectId: projectId ?? null,
+        projectId: projectId ?? null
       });
       message.success("Document updated");
       onSaved();
@@ -2333,9 +2330,9 @@ function EditDocumentModal({
             colorBgContainer: "#ffffff",
             colorText: "#0f172a",
             colorTextPlaceholder: "#94a3b8",
-            colorBorder: "#e2e8f0",
-          },
-        },
+            colorBorder: "#e2e8f0"
+          }
+        }
       }}
     >
       <Modal
@@ -2353,7 +2350,7 @@ function EditDocumentModal({
             borderBottom: `1px solid ${T.border}`,
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 12
           }}
         >
           <div
@@ -2367,7 +2364,7 @@ function EditDocumentModal({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <Pencil size={16} />
@@ -2378,7 +2375,7 @@ function EditDocumentModal({
                 fontSize: 16,
                 fontWeight: 700,
                 color: T.text,
-                letterSpacing: "-0.015em",
+                letterSpacing: "-0.015em"
               }}
             >
               Edit document
@@ -2388,7 +2385,7 @@ function EditDocumentModal({
                 marginTop: 2,
                 fontSize: 12,
                 color: T.textSubtle,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
               Update name and classification. The file itself isn't replaced.
@@ -2407,7 +2404,7 @@ function EditDocumentModal({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
+              flexShrink: 0
             }}
             aria-label="Close"
           >
@@ -2451,7 +2448,7 @@ function EditDocumentModal({
               options={projects.map((proj) => ({
                 value: proj.id,
                 label: proj.name,
-                code: proj.code,
+                code: proj.code
               }))}
             />
           </FieldLabel>
@@ -2462,7 +2459,7 @@ function EditDocumentModal({
             padding: "14px 22px 16px",
             display: "flex",
             justifyContent: "flex-end",
-            gap: 8,
+            gap: 8
           }}
         >
           <button
@@ -2476,7 +2473,7 @@ function EditDocumentModal({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: saving ? "not-allowed" : "pointer",
+              cursor: saving ? "not-allowed" : "pointer"
             }}
           >
             Cancel
@@ -2494,7 +2491,7 @@ function EditDocumentModal({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: saving ? "not-allowed" : "pointer",
+              cursor: saving ? "not-allowed" : "pointer"
             }}
           >
             {saving ? "Saving…" : "Save changes"}

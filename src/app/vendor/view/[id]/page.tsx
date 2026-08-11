@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -20,12 +21,11 @@ import {
   notification,
   Tooltip,
   Breadcrumb,
-  Spin,
   Timeline,
   Drawer,
   Collapse,
   Divider,
-  Select,
+  Select
 } from "antd";
 import {
   EditOutlined,
@@ -35,7 +35,7 @@ import {
   DeleteOutlined,
   GlobalOutlined,
   DownloadOutlined,
-  UploadOutlined,
+  UploadOutlined
 } from "@ant-design/icons";
 import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
@@ -43,11 +43,12 @@ import {
   Vendor,
   VendorContactPerson,
   VendorDocument,
-  VendorService,
+  VendorService
 } from "@/services/vendor.service";
 import { ImplementationPartnerService } from "@/services/implementationPartner.service";
 import { RecruitmentClientService } from "@/services/recruitmentClient.service";
 import { SearchOutlined } from "@ant-design/icons";
+
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -68,7 +69,7 @@ export default function ViewVendorPage() {
   const [documentPreview, setDocumentPreview] = useState<{ url: string; visible: boolean; type: string }>({
     url: "",
     visible: false,
-    type: "",
+    type: ""
   });
 
   // Relations state
@@ -100,7 +101,7 @@ export default function ViewVendorPage() {
           ...doc,
           id: doc.id,
           fileName: doc.documentType ? `${doc.documentType} Document` : "Document",
-          category: doc.documentType || "Other",
+          category: doc.documentType || "Other"
         }));
       }
 
@@ -178,7 +179,7 @@ export default function ViewVendorPage() {
         } catch (error) {
           notification.error({ message: "Failed to Delete Contact" });
         }
-      },
+      }
     });
   };
 
@@ -258,7 +259,7 @@ export default function ViewVendorPage() {
         } catch (error) {
           notification.error({ message: "Failed to Delete Document" });
         }
-      },
+      }
     });
   };
 
@@ -271,7 +272,7 @@ export default function ViewVendorPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <Spin size="large" tip="Loading vendor details..." />
+          <LoadingSpinner message="Loading vendor details..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -292,14 +293,14 @@ export default function ViewVendorPage() {
           <Button type="text" icon={<EyeOutlined />} onClick={() => window.open(url, "_blank")} />
         ) : (
           "N/A"
-        ),
+        )
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteContact(record.id)} />
-      ),
+      )
     },
   ];
 
@@ -315,7 +316,7 @@ export default function ViewVendorPage() {
           <Button type="text" icon={<EyeOutlined />} onClick={() => router.push(`/implementation-partner/view/${record.id}`)} />
           <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemovePartner(record.id)} />
         </Space>
-      ),
+      )
     },
   ];
 
@@ -331,7 +332,7 @@ export default function ViewVendorPage() {
           <Button type="text" icon={<EyeOutlined />} onClick={() => router.push(`/recruitment-client/view/${record.id}`)} />
           <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveClient(record.id)} />
         </Space>
-      ),
+      )
     },
   ];
 
@@ -346,7 +347,7 @@ export default function ViewVendorPage() {
           <Button type="text" icon={<EyeOutlined />} onClick={() => window.open(record.documentUrl, "_blank")} />
           <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteDocument(record.id)} />
         </Space>
-      ),
+      )
     },
   ];
 
@@ -697,20 +698,20 @@ export default function ViewVendorPage() {
               }
               options={allPartners.map(p => ({
                 value: p.id,
-                label: `${p.companyName} (${p.website || 'No website'})`,
+                label: `${p.companyName} (${p.website || 'No website'})`
               }))}
               allowClear
             />
           </div>
 
           {selectedPartnerId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Partner details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkPartner(selectedPartnerId)}
                   disabled={assignedPartners.some(p => p.id === selectedPartnerId)}
                   loading={linkingRelation}
@@ -784,20 +785,20 @@ export default function ViewVendorPage() {
               }
               options={allClients.map(c => ({
                 value: c.id,
-                label: `${c.clientName} (${c.website || 'No website'})`,
+                label: `${c.clientName} (${c.website || 'No website'})`
               }))}
               allowClear
             />
           </div>
 
           {selectedClientId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Client details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkClient(selectedClientId)}
                   disabled={assignedClients.some(c => c.id === selectedClientId)}
                   loading={linkingRelation}

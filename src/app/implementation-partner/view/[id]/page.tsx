@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -20,7 +21,6 @@ import {
     notification,
     Tooltip,
     Breadcrumb,
-    Spin,
     Timeline,
     Drawer,
     Collapse,
@@ -293,7 +293,7 @@ export default function ViewPartnerPage() {
         return (
             <MainLayout>
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-                    <Spin size="large" tip="Loading partner details..." />
+                    <LoadingSpinner message="Loading partner details..." size="large" fullScreen={false} />
                 </div>
             </MainLayout>
         );
@@ -375,11 +375,11 @@ export default function ViewPartnerPage() {
     const clientColumns = [
         { title: "Client Name", dataIndex: "clientName", key: "clientName" },
         { title: "Industry", dataIndex: "industry", key: "industry", render: (val: string) => val || "N/A" },
-        { 
-            title: "Website", 
-            dataIndex: "website", 
-            key: "website", 
-            render: (url: string) => url ? <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer">{url}</a> : "N/A" 
+        {
+            title: "Website",
+            dataIndex: "website",
+            key: "website",
+            render: (url: string) => url ? <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer">{url}</a> : "N/A"
         },
         { title: "Email", dataIndex: "companyEmail", key: "companyEmail", render: (val: string) => val || "N/A" },
         { title: "Location", key: "location", render: (_: any, record: any) => [record.city, record.country].filter(Boolean).join(", ") || "N/A" },
@@ -395,11 +395,11 @@ export default function ViewPartnerPage() {
 
     const vendorColumns = [
         { title: "Vendor Name", dataIndex: "companyName", key: "companyName" },
-        { 
-            title: "Website", 
-            dataIndex: "website", 
-            key: "website", 
-            render: (url: string) => url ? <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer">{url}</a> : "N/A" 
+        {
+            title: "Website",
+            dataIndex: "website",
+            key: "website",
+            render: (url: string) => url ? <a href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer">{url}</a> : "N/A"
         },
         { title: "Contact", dataIndex: "companyPhone", key: "companyPhone", render: (val: string) => val || "N/A" },
         { title: "Location Status", key: "locationStatus", render: (_: any, record: any) => [record.city, record.country].filter(Boolean).join(", ") || "N/A" },
@@ -537,10 +537,10 @@ export default function ViewPartnerPage() {
                                             <Col span={6}>{renderFieldValue("Business Type", businessDetail.businessType)}</Col>
                                             <Col span={6}>{renderFieldValue("Year Established", businessDetail.yearEstabliliesh)}</Col>
 
-                                             <Col span={6}>{renderFieldValue("Total Employees", businessDetail.totalEmployees)}</Col>
-                                             <Col span={6}>{renderFieldValue("Tax ID", businessDetail.taxId)}</Col>
-                                             <Col span={6}>{renderFieldValue("Assigned Clients", assignedClients.length)}</Col>
-                                             <Col span={6}>{renderFieldValue("Visa Sponsorship", relations.supportsVisaSponsorship, true)}</Col>
+                                            <Col span={6}>{renderFieldValue("Total Employees", businessDetail.totalEmployees)}</Col>
+                                            <Col span={6}>{renderFieldValue("Tax ID", businessDetail.taxId)}</Col>
+                                            <Col span={6}>{renderFieldValue("Assigned Clients", assignedClients.length)}</Col>
+                                            <Col span={6}>{renderFieldValue("Visa Sponsorship", relations.supportsVisaSponsorship, true)}</Col>
                                             <Col span={6}>
                                                 {relations.supportsVisaSponsorship
                                                     ? renderFieldValue("Visa Types", relations.visaTypesSupported)
@@ -590,16 +590,16 @@ export default function ViewPartnerPage() {
                             <TabPane tab="Client" key="client">
                                 <div style={{ padding: 24 }}>
                                     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                                      <Button 
-                                    type="primary" 
-                                    icon={<PlusOutlined />} 
-                                    onClick={() => {
-                                        fetchAllRelationsForDrawers();
-                                        setIsClientDrawerOpen(true);
-                                    }}
-                                >
-                                    Upload
-                                </Button>
+                                        <Button
+                                            type="primary"
+                                            icon={<PlusOutlined />}
+                                            onClick={() => {
+                                                fetchAllRelationsForDrawers();
+                                                setIsClientDrawerOpen(true);
+                                            }}
+                                        >
+                                            Upload
+                                        </Button>
                                     </div>
                                     <Table
                                         dataSource={assignedClients}
@@ -615,9 +615,9 @@ export default function ViewPartnerPage() {
                             <TabPane tab="Vendor" key="vendor">
                                 <div style={{ padding: 24 }}>
                                     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button 
-                                            type="primary" 
-                                            icon={<PlusOutlined />} 
+                                        <Button
+                                            type="primary"
+                                            icon={<PlusOutlined />}
                                             onClick={() => {
                                                 fetchAllRelationsForDrawers();
                                                 setIsVendorDrawerOpen(true);
@@ -786,13 +786,13 @@ export default function ViewPartnerPage() {
                     </div>
 
                     {selectedClientId && (
-                        <Card 
+                        <Card
                             title={<Title level={5} style={{ margin: 0 }}>Client details</Title>}
                             extra={
-                                <Button 
-                                    type="primary" 
+                                <Button
+                                    type="primary"
                                     size="small"
-                                    icon={<PlusOutlined />} 
+                                    icon={<PlusOutlined />}
                                     onClick={() => handleAssignClient(selectedClientId)}
                                     disabled={assignedClients.some(c => c.id === selectedClientId)}
                                 >
@@ -876,13 +876,13 @@ export default function ViewPartnerPage() {
                     </div>
 
                     {selectedVendorId && (
-                        <Card 
+                        <Card
                             title={<Title level={5} style={{ margin: 0 }}>Vendor details</Title>}
                             extra={
-                                <Button 
-                                    type="primary" 
+                                <Button
+                                    type="primary"
                                     size="small"
-                                    icon={<PlusOutlined />} 
+                                    icon={<PlusOutlined />}
                                     onClick={() => handleAssignVendor(selectedVendorId)}
                                     disabled={assignedVendors.some(v => v.id === selectedVendorId)}
                                 >

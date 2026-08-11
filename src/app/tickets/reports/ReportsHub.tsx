@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Table,
   Button,
@@ -679,11 +680,16 @@ export default function ReportsHub() {
         {/* Body */}
         <div className="pp-body">
           {view === "list" ? (
-            <div className="pp-table-wrap">
+            <div className="pp-table-wrap" style={{ position: 'relative' }}>
+              {loading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner size="medium" fullScreen={false} />
+                </div>
+              )}
               <Table
                 columns={columns}
                 dataSource={pagedReports}
-                loading={loading}
+                loading={false}
                 rowKey="sprintId"
                 size="small"
                 className="pp-table"

@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Spin, Select, DatePicker, Row, Col, Divider, Typography } from "antd";
+import { Select, DatePicker, Row, Col, Divider, Typography } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
 import {
@@ -27,12 +28,13 @@ import {
   Target,
   AlertTriangle,
   ArrowUpRight,
-  Activity,
+  Activity
 } from "lucide-react";
 import {
+
   portalMilestoneService,
   PortalMilestone,
-  PortalMilestoneStatus,
+  PortalMilestoneStatus
 } from "@/services/portalMilestoneService";
 
 dayjs.extend(quarterOfYear);
@@ -76,7 +78,7 @@ const p = {
   purpleText: "#6d28d9",
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const STATUS_META: Record<
@@ -94,36 +96,36 @@ const STATUS_META: Record<
     icon: Circle,
     bg: p.neutralBg,
     border: p.neutralBorder,
-    color: p.neutralText,
+    color: p.neutralText
   },
   in_progress: {
     label: "In progress",
     icon: Clock,
     bg: p.indigoBg,
     border: p.indigoBorder,
-    color: p.indigoText,
+    color: p.indigoText
   },
   completed: {
     label: "Completed",
     icon: CheckCircle2,
     bg: p.successBg,
     border: p.successBorder,
-    color: p.successText,
+    color: p.successText
   },
   on_hold: {
     label: "On hold",
     icon: PauseCircle,
     bg: p.purpleBg,
     border: p.purpleBorder,
-    color: p.purpleText,
+    color: p.purpleText
   },
   cancelled: {
     label: "Cancelled",
     icon: XCircle,
     bg: p.dangerBg,
     border: p.dangerBorder,
-    color: p.dangerText,
-  },
+    color: p.dangerText
+  }
 };
 
 const FILTER_TABS: { key: string; label: string }[] = [
@@ -140,7 +142,7 @@ function fmtDateShort(iso: string | null | undefined): string {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return String(iso);
@@ -173,7 +175,7 @@ function milestoneTiming(m: PortalMilestone):
       return {
         label: ago === 0 ? "Delivered today" : `Delivered ${ago}d ago`,
         tone: "success",
-        icon: CheckCircle2,
+        icon: CheckCircle2
       };
     }
   }
@@ -197,11 +199,10 @@ function milestoneTiming(m: PortalMilestone):
 
 function StatusPill({
   status,
-  compact,
-}: {
-  status: PortalMilestoneStatus;
-  compact?: boolean;
-}) {
+  compact }: {
+    status: PortalMilestoneStatus;
+    compact?: boolean;
+  }) {
   const meta = STATUS_META[status] || STATUS_META.not_started;
   const Icon = meta.icon;
   return (
@@ -218,7 +219,7 @@ function StatusPill({
         fontSize: compact ? 10.5 : 11,
         fontWeight: 600,
         letterSpacing: "0.01em",
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       <Icon size={10} />
@@ -230,18 +231,17 @@ function StatusPill({
 function TimingChip({
   tone,
   icon: Icon,
-  label,
-}: {
-  tone: "indigo" | "warning" | "danger" | "neutral" | "success";
-  icon: any;
-  label: string;
-}) {
+  label }: {
+    tone: "indigo" | "warning" | "danger" | "neutral" | "success";
+    icon: any;
+    label: string;
+  }) {
   const toneMap = {
     indigo: { bg: p.indigoBg, border: p.indigoBorder, color: p.indigoText },
     warning: { bg: p.warningBg, border: p.warningBorder, color: p.warningText },
     danger: { bg: p.dangerBg, border: p.dangerBorder, color: p.dangerText },
     neutral: { bg: p.neutralBg, border: p.neutralBorder, color: p.neutralText },
-    success: { bg: p.successBg, border: p.successBorder, color: p.successText },
+    success: { bg: p.successBg, border: p.successBorder, color: p.successText }
   };
   const t = toneMap[tone];
   return (
@@ -258,7 +258,7 @@ function TimingChip({
         fontSize: 10.5,
         fontWeight: 600,
         fontVariantNumeric: "tabular-nums",
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       <Icon size={9} />
@@ -270,12 +270,11 @@ function TimingChip({
 function ProgressBar({
   percent,
   tone = "indigo",
-  height = 5,
-}: {
-  percent: number;
-  tone?: "indigo" | "success" | "warning";
-  height?: number;
-}) {
+  height = 5 }: {
+    percent: number;
+    tone?: "indigo" | "success" | "warning";
+    height?: number;
+  }) {
   const color =
     tone === "success" ? p.success : tone === "warning" ? p.warning : p.indigo;
   const safe = Math.min(100, Math.max(0, percent));
@@ -286,7 +285,7 @@ function ProgressBar({
         height,
         background: p.neutralBg,
         borderRadius: 999,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -294,7 +293,7 @@ function ProgressBar({
           width: `${safe}%`,
           height: "100%",
           background: color,
-          transition: "width 200ms ease",
+          transition: "width 200ms ease"
         }}
       />
     </div>
@@ -321,14 +320,14 @@ export default function PortalMilestonesPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
+    } catch { }
   }, []);
 
   const setViewPersist = (v: ViewMode) => {
     setView(v);
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -358,7 +357,7 @@ export default function PortalMilestonesPage() {
       if (m.projectId && m.projectName && !seen.has(m.projectId)) {
         seen.set(m.projectId, {
           id: m.projectId,
-          name: m.projectName,
+          name: m.projectName
         });
       }
     }
@@ -402,7 +401,7 @@ export default function PortalMilestonesPage() {
       not_started: 0,
       completed: 0,
       on_hold: 0,
-      cancelled: 0,
+      cancelled: 0
     };
     for (const m of items) c[m.status] = (c[m.status] || 0) + 1;
     return c;
@@ -427,7 +426,7 @@ export default function PortalMilestonesPage() {
       style={{
         height: "100vh",
         overflowY: "auto",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff"
       }}
     >
       {/* Workstation Header */}
@@ -440,7 +439,7 @@ export default function PortalMilestonesPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
@@ -450,7 +449,7 @@ export default function PortalMilestonesPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -465,7 +464,7 @@ export default function PortalMilestonesPage() {
                     background:
                       "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
                     color: p.indigo,
-                    border: `1px solid ${p.indigoBorder}`,
+                    border: `1px solid ${p.indigoBorder}`
                   }}
                 >
                   <Flag size={17} color={p.indigo} />
@@ -477,7 +476,7 @@ export default function PortalMilestonesPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Milestones
@@ -489,7 +488,7 @@ export default function PortalMilestonesPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -499,7 +498,7 @@ export default function PortalMilestonesPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   Where each milestone of your delivery stands today, with a transparent breakdown of the work behind it.
@@ -522,7 +521,7 @@ export default function PortalMilestonesPage() {
             gap: 12,
             flexWrap: "wrap",
             alignItems: "center",
-            marginBottom: 10,
+            marginBottom: 10
           }}
         >
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -548,7 +547,7 @@ export default function PortalMilestonesPage() {
                     fontWeight: 600,
                     letterSpacing: "0.01em",
                     cursor: "pointer",
-                    transition: "all 120ms ease",
+                    transition: "all 120ms ease"
                   }}
                 >
                   {tab.label}
@@ -563,7 +562,7 @@ export default function PortalMilestonesPage() {
                           ? "rgba(255,255,255,0.18)"
                           : p.neutralBg,
                         color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
+                        fontVariantNumeric: "tabular-nums"
                       }}
                     >
                       {count}
@@ -618,7 +617,7 @@ export default function PortalMilestonesPage() {
                   currentMilestones.length === 1
                     ? "1fr"
                     : "repeat(auto-fit, minmax(440px, 1fr))",
-                gap: 12,
+                gap: 12
               }}
             >
               {currentMilestones.map((m) => (
@@ -645,10 +644,10 @@ export default function PortalMilestonesPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px solid ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <EmptyState
@@ -669,7 +668,7 @@ export default function PortalMilestonesPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
-              gap: 12,
+              gap: 12
             }}
           >
             {restItems.map((m) => (
@@ -915,11 +914,10 @@ export default function PortalMilestonesPage() {
 
 function ViewToggle({
   view,
-  onChange,
-}: {
-  view: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
+  onChange }: {
+    view: ViewMode;
+    onChange: (v: ViewMode) => void;
+  }) {
   return (
     <div className="premium-view-toggle" role="group" aria-label="View mode">
       <button
@@ -947,19 +945,18 @@ function ViewToggle({
 function SectionLabel({
   icon: Icon,
   label,
-  count,
-}: {
-  icon: any;
-  label: string;
-  count?: number;
-}) {
+  count }: {
+    icon: any;
+    label: string;
+    count?: number;
+  }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: 8,
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <Icon size={13} color={p.indigo} />
@@ -969,7 +966,7 @@ function SectionLabel({
           fontWeight: 700,
           color: p.textMuted,
           textTransform: "uppercase",
-          letterSpacing: "0.09em",
+          letterSpacing: "0.09em"
         }}
       >
         {label}
@@ -983,7 +980,7 @@ function SectionLabel({
             padding: "0 6px",
             background: p.neutralBg,
             borderRadius: 999,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           {count}
@@ -994,7 +991,7 @@ function SectionLabel({
           flex: 1,
           height: 1,
           background: p.neutralBorder,
-          marginLeft: 2,
+          marginLeft: 2
         }}
       />
     </div>
@@ -1008,16 +1005,15 @@ function FilterBar({
   projectId,
   onProjectChange,
   datePicked,
-  onDateChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
-}) {
+  onDateChange }: {
+    search: string;
+    onSearchChange: (v: string) => void;
+    projects: { id: string; name: string }[];
+    projectId: string | undefined;
+    onProjectChange: (v: string | undefined) => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
+  }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const today = dayjs();
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
@@ -1029,7 +1025,7 @@ function FilterBar({
       value: [
         today.subtract(1, "month").startOf("month"),
         today.subtract(1, "month").endOf("month"),
-      ],
+      ]
     },
     { label: "This quarter", value: [today.startOf("quarter"), today.endOf("quarter")] },
     { label: "Next 30 days", value: [today, today.add(30, "day")] },
@@ -1042,7 +1038,7 @@ function FilterBar({
         gap: 8,
         alignItems: "stretch",
         flexWrap: "wrap",
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <div
@@ -1063,7 +1059,7 @@ function FilterBar({
           boxShadow: searchFocused
             ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
             : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
+          transition: "border-color 140ms ease, box-shadow 140ms ease"
         }}
       >
         <Search
@@ -1086,7 +1082,7 @@ function FilterBar({
             background: "transparent",
             color: p.text,
             fontSize: 13,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         />
         {search && (
@@ -1106,7 +1102,7 @@ function FilterBar({
               border: "none",
               borderRadius: 999,
               color: p.textSubtle,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <X size={11} />
@@ -1128,7 +1124,7 @@ function FilterBar({
             color: p.textFaint,
             fontSize: 10,
             fontWeight: 600,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
           }}
         >
           /
@@ -1145,7 +1141,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Folder size={13} color={p.textFaint} />
@@ -1162,7 +1158,7 @@ function FilterBar({
         style={{ width: 220, height: 34 }}
         options={projects.map((proj) => ({
           value: proj.id,
-          label: proj.name,
+          label: proj.name
         }))}
         notFoundContent={
           <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
@@ -1195,25 +1191,23 @@ function ActiveFilterChips({
   datePicked,
   onClearDateRange,
   statusFilter,
-  onClearStatus,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onClearDateRange: () => void;
-  statusFilter: string | undefined;
-  onClearStatus: () => void;
-}) {
+  onClearStatus }: {
+    search: string;
+    onClearSearch: () => void;
+    projectName: string | undefined;
+    onClearProject: () => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onClearDateRange: () => void;
+    statusFilter: string | undefined;
+    onClearStatus: () => void;
+  }) {
   const hasDates = !!(datePicked && (datePicked[0] || datePicked[1]));
   const any = !!search || !!projectName || hasDates || !!statusFilter;
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${
-        datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (
@@ -1223,7 +1217,7 @@ function ActiveFilterChips({
         gap: 6,
         alignItems: "center",
         flexWrap: "wrap",
-        marginBottom: 14,
+        marginBottom: 14
       }}
     >
       <span
@@ -1236,7 +1230,7 @@ function ActiveFilterChips({
           color: p.textSubtle,
           textTransform: "uppercase",
           letterSpacing: "0.07em",
-          marginRight: 2,
+          marginRight: 2
         }}
       >
         <SlidersHorizontal size={11} />
@@ -1287,7 +1281,7 @@ function ActiveFilterChips({
           color: p.indigoText,
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         Clear all
@@ -1299,12 +1293,11 @@ function ActiveFilterChips({
 function FilterChip({
   icon: Icon,
   label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
+  onClear }: {
+    icon: any;
+    label: string;
+    onClear: () => void;
+  }) {
   return (
     <span
       className="premium-filter-chip"
@@ -1319,7 +1312,7 @@ function FilterChip({
         borderRadius: 999,
         fontSize: 11.5,
         fontWeight: 600,
-        lineHeight: 1.2,
+        lineHeight: 1.2
       }}
     >
       <Icon size={10} />
@@ -1328,7 +1321,7 @@ function FilterChip({
           maxWidth: 180,
           overflow: "hidden",
           textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          whiteSpace: "nowrap"
         }}
       >
         {label}
@@ -1348,7 +1341,7 @@ function FilterChip({
           border: "none",
           borderRadius: 999,
           color: p.indigoText,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         <X size={10} />
@@ -1365,7 +1358,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
         textAlign: "center",
         background: p.surfaceTinted,
         border: `1px dashed ${p.neutralBorder}`,
-        borderRadius: 12,
+        borderRadius: 12
       }}
     >
       <div
@@ -1378,7 +1371,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 12,
+          marginBottom: 12
         }}
       >
         <Target size={18} color={p.textFaint} />
@@ -1415,7 +1408,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
         border: `1px solid ${p.indigoBorder}`,
         borderRadius: 12,
         overflow: "hidden",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <div
@@ -1425,7 +1418,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.indigo}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${p.indigo}, ${p.accent})`
         }}
       />
 
@@ -1434,7 +1427,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1448,7 +1441,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
                 letterSpacing: "0.08em",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap"
               }}
             >
               {milestone.projectName}
@@ -1460,7 +1453,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
               display: "flex",
               alignItems: "baseline",
               gap: 9,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <span
@@ -1469,7 +1462,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
                 fontWeight: 700,
                 color: p.text,
                 letterSpacing: "-0.01em",
-                lineHeight: 1.2,
+                lineHeight: 1.2
               }}
             >
               {milestone.name}
@@ -1496,7 +1489,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
             fontSize: 11.5,
             fontWeight: 600,
             flexShrink: 0,
-            transition: "background 140ms ease, gap 140ms ease",
+            transition: "background 140ms ease, gap 140ms ease"
           }}
         >
           View details
@@ -1513,7 +1506,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           {milestone.description}
@@ -1527,7 +1520,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginBottom: 6,
+            marginBottom: 6
           }}
         >
           <span
@@ -1535,7 +1528,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
               fontSize: 11,
               fontWeight: 600,
               color: p.textMuted,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {milestone.itemsDone} of {milestone.itemsTotal} items complete
@@ -1546,7 +1539,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
               fontWeight: 700,
               color: p.text,
               fontVariantNumeric: "tabular-nums",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.01em"
             }}
           >
             {milestone.progress}%
@@ -1565,7 +1558,7 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
           background: p.surface,
           border: `1px solid ${p.border}`,
           borderRadius: 8,
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
         <CurrentStat
@@ -1594,24 +1587,24 @@ function CurrentMilestoneCard({ milestone }: { milestone: PortalMilestone }) {
             endDays != null && endDays >= 0
               ? "Ends in"
               : endDays != null && endDays < 0
-              ? "Overdue"
-              : "Ends"
+                ? "Overdue"
+                : "Ends"
           }
           value={
             endDays == null
               ? fmtDateShort(milestone.estEndDate)
               : endDays > 0
-              ? `${endDays}d`
-              : endDays === 0
-              ? "today"
-              : `${-endDays}d`
+                ? `${endDays}d`
+                : endDays === 0
+                  ? "today"
+                  : `${-endDays}d`
           }
           tone={
             endDays != null && endDays < 0
               ? p.dangerText
               : endDays != null && endDays <= 3
-              ? p.warningText
-              : p.text
+                ? p.warningText
+                : p.text
           }
           divider
         />
@@ -1625,20 +1618,19 @@ function CurrentStat({
   label,
   value,
   tone,
-  divider,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone: string;
-  divider?: boolean;
-}) {
+  divider }: {
+    icon: any;
+    label: string;
+    value: string;
+    tone: string;
+    divider?: boolean;
+  }) {
   return (
     <div
       style={{
         padding: "9px 12px",
         borderLeft: divider ? `1px solid ${p.border}` : "none",
-        minWidth: 0,
+        minWidth: 0
       }}
     >
       <div
@@ -1650,7 +1642,7 @@ function CurrentStat({
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <Icon size={10} />
@@ -1666,7 +1658,7 @@ function CurrentStat({
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "ellipsis",
+          textOverflow: "ellipsis"
         }}
       >
         {value}
@@ -1690,7 +1682,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
         border: `1px solid ${p.border}`,
         borderRadius: 10,
         overflow: "hidden",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <button
@@ -1706,7 +1698,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
           background: "transparent",
           border: "none",
           cursor: "pointer",
-          color: "inherit",
+          color: "inherit"
         }}
       >
         <div
@@ -1714,7 +1706,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 8,
+            gap: 8
           }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -1728,7 +1720,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                   letterSpacing: "0.07em",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  whiteSpace: "nowrap"
                 }}
               >
                 <FolderKanban
@@ -1744,7 +1736,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                 display: "flex",
                 alignItems: "baseline",
                 gap: 7,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <span
@@ -1753,7 +1745,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                   fontWeight: 700,
                   color: p.text,
                   letterSpacing: "-0.005em",
-                  lineHeight: 1.3,
+                  lineHeight: 1.3
                 }}
               >
                 {milestone.name}
@@ -1772,7 +1764,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <StatusPill status={milestone.status} compact />
@@ -1793,7 +1785,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
               display: "-webkit-box",
               WebkitLineClamp: 1,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {milestone.description}
@@ -1807,7 +1799,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "baseline",
-              marginBottom: 4,
+              marginBottom: 4
             }}
           >
             <span
@@ -1815,7 +1807,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                 fontSize: 10.5,
                 color: p.textSubtle,
                 fontWeight: 600,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {milestone.itemsDone}/{milestone.itemsTotal} items
@@ -1825,7 +1817,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                 fontSize: 11,
                 color: p.text,
                 fontWeight: 700,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {milestone.progress}%
@@ -1837,8 +1829,8 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
               milestone.status === "completed"
                 ? "success"
                 : milestone.status === "in_progress"
-                ? "indigo"
-                : "indigo"
+                  ? "indigo"
+                  : "indigo"
             }
           />
         </div>
@@ -1851,7 +1843,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
             gap: 8,
             fontSize: 10.5,
             color: p.textSubtle,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span
@@ -1859,7 +1851,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
               display: "inline-flex",
               gap: 4,
               alignItems: "center",
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Calendar size={10} />
@@ -1872,7 +1864,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                 gap: 4,
                 alignItems: "center",
                 color: p.successText,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               <CheckCircle2 size={10} />
@@ -1886,7 +1878,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
         <div
           style={{
             padding: "0 14px 14px 15px",
-            borderTop: `1px solid ${p.border}`,
+            borderTop: `1px solid ${p.border}`
           }}
         >
           {milestone.description && (
@@ -1900,7 +1892,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                 fontSize: 12.5,
                 color: p.textMuted,
                 lineHeight: 1.55,
-                whiteSpace: "pre-wrap",
+                whiteSpace: "pre-wrap"
               }}
             >
               {milestone.description}
@@ -1918,7 +1910,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                   letterSpacing: "0.07em",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 6
                 }}
               >
                 <ListChecks size={11} />
@@ -1929,7 +1921,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                   marginTop: 8,
                   display: "flex",
                   flexDirection: "column",
-                  gap: 6,
+                  gap: 6
                 }}
               >
                 {milestone.items.map((it) => (
@@ -1943,10 +1935,9 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                       background: it.isCompleted
                         ? p.successBg
                         : p.surfaceMuted,
-                      border: `1px solid ${
-                        it.isCompleted ? p.successBorder : p.border
-                      }`,
-                      borderRadius: 8,
+                      border: `1px solid ${it.isCompleted ? p.successBorder : p.border
+                        }`,
+                      borderRadius: 8
                     }}
                   >
                     <div
@@ -1957,14 +1948,13 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                         background: it.isCompleted
                           ? p.successText
                           : p.surfaceElevated,
-                        border: `1px solid ${
-                          it.isCompleted ? p.successText : p.borderStrong
-                        }`,
+                        border: `1px solid ${it.isCompleted ? p.successText : p.borderStrong
+                          }`,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#ffffff",
-                        flexShrink: 0,
+                        flexShrink: 0
                       }}
                     >
                       {it.isCompleted && <CheckSquare size={11} />}
@@ -1978,7 +1968,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                           textDecoration: it.isCompleted
                             ? "line-through"
                             : "none",
-                          opacity: it.isCompleted ? 0.7 : 1,
+                          opacity: it.isCompleted ? 0.7 : 1
                         }}
                       >
                         {it.name}
@@ -1988,7 +1978,7 @@ function MilestoneCardCompact({ milestone }: { milestone: PortalMilestone }) {
                           style={{
                             marginTop: 2,
                             fontSize: 11,
-                            color: p.textSubtle,
+                            color: p.textSubtle
                           }}
                         >
                           {it.description}
@@ -2013,7 +2003,7 @@ function MilestoneList({ items }: { items: PortalMilestone[] }) {
         background: p.surface,
         border: `1px solid ${p.border}`,
         borderRadius: 10,
-        overflowX: "auto",
+        overflowX: "auto"
       }}
     >
       <div
@@ -2030,7 +2020,7 @@ function MilestoneList({ items }: { items: PortalMilestone[] }) {
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <div>Milestone</div>
@@ -2054,11 +2044,10 @@ function MilestoneList({ items }: { items: PortalMilestone[] }) {
 
 function MilestoneRow({
   milestone,
-  isLast,
-}: {
-  milestone: PortalMilestone;
-  isLast: boolean;
-}) {
+  isLast }: {
+    milestone: PortalMilestone;
+    isLast: boolean;
+  }) {
   const [open, setOpen] = useState(false);
   const timing = milestoneTiming(milestone);
   return (
@@ -2081,7 +2070,7 @@ function MilestoneRow({
           border: "none",
           borderBottom: isLast && !open ? "none" : `1px solid ${p.border}`,
           cursor: "pointer",
-          color: "inherit",
+          color: "inherit"
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -2093,7 +2082,7 @@ function MilestoneRow({
               letterSpacing: "-0.005em",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {milestone.name}
@@ -2106,7 +2095,7 @@ function MilestoneRow({
                 color: p.textSubtle,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap"
               }}
             >
               {milestone.description}
@@ -2123,7 +2112,7 @@ function MilestoneRow({
             gap: 5,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           <FolderKanban size={11} color={p.textFaint} />
@@ -2135,7 +2124,7 @@ function MilestoneRow({
             display: "flex",
             flexDirection: "column",
             gap: 4,
-            alignItems: "flex-start",
+            alignItems: "flex-start"
           }}
         >
           <StatusPill status={milestone.status} compact />
@@ -2154,7 +2143,7 @@ function MilestoneRow({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "baseline",
-              marginBottom: 4,
+              marginBottom: 4
             }}
           >
             <span
@@ -2162,7 +2151,7 @@ function MilestoneRow({
                 fontSize: 10.5,
                 color: p.textSubtle,
                 fontWeight: 600,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {milestone.itemsDone}/{milestone.itemsTotal}
@@ -2172,7 +2161,7 @@ function MilestoneRow({
                 fontSize: 11,
                 color: p.text,
                 fontWeight: 700,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {milestone.progress}%
@@ -2195,7 +2184,7 @@ function MilestoneRow({
             fontSize: 12,
             fontWeight: 600,
             color: p.text,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           {milestone.itemsDone}
@@ -2212,7 +2201,7 @@ function MilestoneRow({
             display: "inline-flex",
             alignItems: "center",
             gap: 4,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <Calendar size={11} color={p.textFaint} />
@@ -2239,7 +2228,7 @@ function MilestoneRow({
           style={{
             padding: "14px 16px 16px",
             background: p.surfaceTinted,
-            borderBottom: isLast ? "none" : `1px solid ${p.border}`,
+            borderBottom: isLast ? "none" : `1px solid ${p.border}`
           }}
         >
           {milestone.description && (
@@ -2253,7 +2242,7 @@ function MilestoneRow({
                 fontSize: 12.5,
                 color: p.textMuted,
                 lineHeight: 1.55,
-                whiteSpace: "pre-wrap",
+                whiteSpace: "pre-wrap"
               }}
             >
               {milestone.description}
@@ -2271,7 +2260,7 @@ function MilestoneRow({
                   marginBottom: 8,
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 5
                 }}
               >
                 <ListChecks size={11} />
@@ -2287,10 +2276,9 @@ function MilestoneRow({
                       gap: 10,
                       padding: "7px 10px",
                       background: it.isCompleted ? p.successBg : p.surface,
-                      border: `1px solid ${
-                        it.isCompleted ? p.successBorder : p.border
-                      }`,
-                      borderRadius: 8,
+                      border: `1px solid ${it.isCompleted ? p.successBorder : p.border
+                        }`,
+                      borderRadius: 8
                     }}
                   >
                     <div
@@ -2301,14 +2289,13 @@ function MilestoneRow({
                         background: it.isCompleted
                           ? p.successText
                           : p.surfaceElevated,
-                        border: `1px solid ${
-                          it.isCompleted ? p.successText : p.borderStrong
-                        }`,
+                        border: `1px solid ${it.isCompleted ? p.successText : p.borderStrong
+                          }`,
                         display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#ffffff",
-                        flexShrink: 0,
+                        flexShrink: 0
                       }}
                     >
                       {it.isCompleted && <CheckSquare size={11} />}
@@ -2322,7 +2309,7 @@ function MilestoneRow({
                           textDecoration: it.isCompleted
                             ? "line-through"
                             : "none",
-                          opacity: it.isCompleted ? 0.7 : 1,
+                          opacity: it.isCompleted ? 0.7 : 1
                         }}
                       >
                         {it.name}
@@ -2332,7 +2319,7 @@ function MilestoneRow({
                           style={{
                             marginTop: 2,
                             fontSize: 11,
-                            color: p.textSubtle,
+                            color: p.textSubtle
                           }}
                         >
                           {it.description}

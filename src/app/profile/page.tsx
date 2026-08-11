@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,11 +10,10 @@ import {
   Button,
   Form,
   Avatar,
-  Spin,
   Tooltip,
   Modal,
   Slider,
-  message,
+  message
 } from "antd";
 import Cropper from "react-easy-crop";
 import {
@@ -34,15 +34,16 @@ import {
   ApartmentOutlined,
   GlobalOutlined,
   ReloadOutlined,
-  UserSwitchOutlined,
+  UserSwitchOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
   AuthService,
   UpdateProfileData,
-  UserProfile,
+  UserProfile
 } from "@/services/authService";
 import { ApiError } from "@/lib/axios";
+
 
 const { Text } = Typography;
 
@@ -56,7 +57,7 @@ const GREEN_TINT = "rgba(16,185,129,0.10)";
 const ROLE_META: Record<string, { label: string; icon: React.ReactNode }> = {
   super_admin: { label: "Super Admin", icon: <CrownOutlined /> },
   admin: { label: "Admin", icon: <SafetyCertificateOutlined /> },
-  user: { label: "User", icon: <IdcardOutlined /> },
+  user: { label: "User", icon: <IdcardOutlined /> }
 };
 
 interface ProfileFormData {
@@ -102,15 +103,14 @@ function SectionCard({
   color,
   title,
   subtitle,
-  children,
-}: {
-  icon: React.ReactNode;
-  tint: string;
-  color: string;
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}) {
+  children }: {
+    icon: React.ReactNode;
+    tint: string;
+    color: string;
+    title: string;
+    subtitle: string;
+    children: React.ReactNode;
+  }) {
   return (
     <section className="pp-card">
       <div className="pp-card-head">
@@ -165,7 +165,7 @@ export default function ProfilePage() {
           workEmail: data.workEmail || "",
           dateOfBirth: data.dateOfBirth
             ? dayjs(data.dateOfBirth).format("YYYY-MM-DD")
-            : "",
+            : ""
         });
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -185,7 +185,7 @@ export default function ProfilePage() {
         phone: values.phone,
         personalEmail: values.personalEmail,
         workEmail: values.workEmail,
-        dateOfBirth: values.dateOfBirth || null,
+        dateOfBirth: values.dateOfBirth || null
       };
       const updatedProfile = await AuthService.updateProfile(updateData);
       message.success("Profile updated successfully");
@@ -195,7 +195,7 @@ export default function ProfilePage() {
           name: updatedProfile.name,
           personalEmail: updatedProfile.personalEmail,
           workEmail: updatedProfile.workEmail,
-          phone: updatedProfile.phone,
+          phone: updatedProfile.phone
         });
       }
     } catch (err) {
@@ -214,7 +214,7 @@ export default function ProfilePage() {
       await AuthService.changePassword({
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
-        confirmPassword: values.confirmPassword,
+        confirmPassword: values.confirmPassword
       });
       message.success("Password updated successfully");
       passwordForm.resetFields();
@@ -267,7 +267,7 @@ export default function ProfilePage() {
         phone: userProfile?.phone || "",
         personalEmail: userProfile?.personalEmail || "",
         workEmail: userProfile?.workEmail || "",
-        avatarUrl: base64,
+        avatarUrl: base64
       });
       setUserProfile(updated);
       message.success("Avatar updated");
@@ -319,10 +319,10 @@ export default function ProfilePage() {
             minHeight: "60vh",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
-          <Spin size="large" tip="Loading your profile..." />
+          <LoadingSpinner message="Loading your profile..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -363,7 +363,7 @@ export default function ProfilePage() {
                     color: BLUE,
                     fontSize: 22,
                     fontWeight: 700,
-                    border: "1px solid var(--border-slate-200)",
+                    border: "1px solid var(--border-slate-200)"
                   }}
                 >
                   {!userProfile?.avatarUrl &&
@@ -414,7 +414,7 @@ export default function ProfilePage() {
                     <span
                       className="pp-status-dot"
                       style={{
-                        background: userProfile?.isActive ? GREEN : "#94a3b8",
+                        background: userProfile?.isActive ? GREEN : "#94a3b8"
                       }}
                     />
                     {userProfile?.isActive ? "Active" : "Inactive"}
@@ -482,7 +482,7 @@ export default function ProfilePage() {
                         { required: true, message: "Required" },
                         {
                           pattern: /^[A-Za-z\s.-]+$/,
-                          message: "Please enter a valid name (letters, spaces, dots, and hyphens only)",
+                          message: "Please enter a valid name (letters, spaces, dots, and hyphens only)"
                         },
                       ]}
                       getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s.-]/g, '')}
@@ -635,7 +635,7 @@ export default function ProfilePage() {
                           return Promise.reject(
                             new Error("Passwords do not match"),
                           );
-                        },
+                        }
                       }),
                     ]}
                   >
@@ -657,7 +657,7 @@ export default function ProfilePage() {
                               background:
                                 i < strength.score
                                   ? strength.color
-                                  : "var(--border-slate-100)",
+                                  : "var(--border-slate-100)"
                             }}
                           />
                         ))}
@@ -667,7 +667,7 @@ export default function ProfilePage() {
                           marginTop: 6,
                           display: "flex",
                           justifyContent: "space-between",
-                          fontSize: 11.5,
+                          fontSize: 11.5
                         }}
                       >
                         <span style={{ color: "var(--text-slate-500)" }}>
@@ -768,7 +768,7 @@ export default function ProfilePage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 16,
+                  fontSize: 16
                 }}
               >
                 <CameraOutlined />
@@ -778,7 +778,7 @@ export default function ProfilePage() {
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
-                    color: "var(--text-slate-900)",
+                    color: "var(--text-slate-900)"
                   }}
                 >
                   Edit Profile Photo
@@ -815,7 +815,7 @@ export default function ProfilePage() {
               width: "100%",
               background: "#0f172a",
               borderRadius: 12,
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {selectedImage && (
@@ -838,7 +838,7 @@ export default function ProfilePage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 8,
+                marginBottom: 8
               }}
             >
               <Text
@@ -847,7 +847,7 @@ export default function ProfilePage() {
                   color: "var(--text-slate-500)",
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
-                  fontWeight: 700,
+                  fontWeight: 700
                 }}
               >
                 Zoom

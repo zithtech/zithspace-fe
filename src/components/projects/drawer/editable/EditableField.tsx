@@ -1,6 +1,8 @@
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect, useRef } from 'react';
-import { Input, Typography, Spin } from 'antd';
+import { Input, Typography } from 'antd';
 import { EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+
 
 const { Text } = Typography;
 
@@ -25,8 +27,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
     textStyle,
     emptyText = 'Click to edit',
     editIconVisibility = 'hover',
-    disabled = false,
-}) => {
+    disabled = false }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentValue, setCurrentValue] = useState<string | number>('');
     const [loading, setLoading] = useState(false);
@@ -95,7 +96,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                         onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         disabled={loading}
-                        suffix={loading ? <Spin size="small" /> : null}
+                        suffix={loading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
                     />
                 )}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, gap: 4 }}>

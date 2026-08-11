@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -17,13 +18,12 @@ import {
   Input,
   Tooltip,
   Breadcrumb,
-  Spin,
   Timeline,
   notification,
   Divider,
   Drawer,
   Collapse,
-  Select,
+  Select
 } from "antd";
 import {
   EditOutlined,
@@ -32,17 +32,18 @@ import {
   EyeOutlined,
   DeleteOutlined,
   EnvironmentOutlined,
-  SearchOutlined,
+  SearchOutlined
 } from "@ant-design/icons";
 import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   RecruitmentClientService,
-  RecruitmentClient,
+  RecruitmentClient
 } from "@/services/recruitmentClient.service";
 import { ImplementationPartnerService, ImplementationPartner } from "@/services/implementationPartner.service";
 import { VendorService, Vendor } from "@/services/vendor.service";
 import ClientDrawer from "../../components/ClientDrawer";
+
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -160,7 +161,7 @@ export default function ViewClientPage() {
         } catch (error) {
           notification.error({ message: "Failed to Delete Contact" });
         }
-      },
+      }
     });
   };
 
@@ -173,7 +174,7 @@ export default function ViewClientPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <Spin size="large" tip="Loading client details..." />
+          <LoadingSpinner message="Loading client details..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -193,14 +194,14 @@ export default function ViewClientPage() {
           <Button type="text" icon={<EyeOutlined />} onClick={() => window.open(url, "_blank")} />
         ) : (
           "N/A"
-        ),
+        )
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleDeleteContact(record.id)} />
-      ),
+      )
     },
   ];
 
@@ -229,7 +230,7 @@ export default function ViewClientPage() {
       key: "action",
       render: (_: any, record: any) => (
         <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemovePartner(record.id)} />
-      ),
+      )
     },
   ];
 
@@ -255,7 +256,7 @@ export default function ViewClientPage() {
       key: "action",
       render: (_: any, record: any) => (
         <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveVendor(record.id)} />
-      ),
+      )
     },
   ];
 
@@ -612,20 +613,20 @@ export default function ViewClientPage() {
               }
               options={allPartners.map(p => ({
                 value: p.id,
-                label: `${p.companyName} (${p.website || 'No website'})`,
+                label: `${p.companyName} (${p.website || 'No website'})`
               }))}
               allowClear
             />
           </div>
 
           {selectedPartnerId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Partner details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkPartner(selectedPartnerId)}
                   disabled={assignedPartners.some(p => p.id === selectedPartnerId)}
                   loading={linkingPartner}
@@ -698,20 +699,20 @@ export default function ViewClientPage() {
               }
               options={allVendors.map(v => ({
                 value: v.id,
-                label: `${v.companyName} (${v.website || 'No website'})`,
+                label: `${v.companyName} (${v.website || 'No website'})`
               }))}
               allowClear
             />
           </div>
 
           {selectedVendorId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Vendor details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkVendor(selectedVendorId)}
                   disabled={assignedVendors.some(v => v.id === selectedVendorId)}
                   loading={linkingVendor}

@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
-import { Popover, Button, Input, Select, Form, Spin, App } from "antd";
+import { Popover, Button, Input, Select, Form, App } from "antd";
 import {
   PlayCircleFilled,
   PauseCircleFilled,
@@ -15,13 +16,13 @@ import {
   FileText,
   Square,
   ArrowUpRight,
-  Timer,
-} from "lucide-react";
+  Timer } from "lucide-react";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
 import { ProjectService } from "@/services/projectService";
 import TicketService from "@/services/ticketService";
 import { useRouter } from "next/navigation";
+
 
 interface TimeTrackerPopoverProps {
   isMenuItem?: boolean;
@@ -32,8 +33,7 @@ type TimerState = "running" | "paused" | "idle";
 
 export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
   isMenuItem,
-  showContentOnly,
-}) => {
+  showContentOnly }) => {
   const { notification, message } = App.useApp();
   const {
     activeEntry,
@@ -45,8 +45,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     startMultipleTimers,
     pauseTimer,
     resumeTimer,
-    stopTimer,
-  } = useTimeTrackerStore();
+    stopTimer } = useTimeTrackerStore();
 
   const { 
     withAttendanceGuard, 
@@ -81,8 +80,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
         ticketId: tIds,
         description: runningOrPaused[0].description,
         billable: runningOrPaused.some((e) => e.billable),
-        billingRate: runningOrPaused[0].billingRate,
-      });
+        billingRate: runningOrPaused[0].billingRate });
       if (pIds.length > 0) {
         loadTickets(pIds);
       }
@@ -187,8 +185,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           ticketId: tId,
           description: values.description,
           billable: values.billable,
-          billingRate: values.billingRate,
-        };
+          billingRate: values.billingRate };
       });
 
       await withAttendanceGuard(async () => {
@@ -223,21 +220,17 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       label: "Running",
       dot: "#10b981",
       ring: "rgba(16, 185, 129, 0.18)",
-      text: "#059669",
-    },
+      text: "#059669" },
     paused: {
       label: "Paused",
       dot: "#f59e0b",
       ring: "rgba(245, 158, 11, 0.18)",
-      text: "#d97706",
-    },
+      text: "#d97706" },
     idle: {
       label: "Ready to track",
       dot: "#94a3b8",
       ring: "rgba(148, 163, 184, 0.18)",
-      text: "#64748b",
-    },
-  };
+      text: "#64748b" } };
 
   const renderContent = () => (
     <div
@@ -246,7 +239,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     >
       {isLoading && (
         <div className="ttp-loading">
-          <Spin size="small" />
+          <LoadingSpinner size="small" fullScreen={false} />
         </div>
       )}
 
@@ -257,8 +250,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
             className="ttp-status-dot"
             style={{
               background: stateMeta[state].dot,
-              boxShadow: state === "running" ? `0 0 0 4px ${stateMeta[state].ring}` : "none",
-            }}
+              boxShadow: state === "running" ? `0 0 0 4px ${stateMeta[state].ring}` : "none" }}
           />
           <span style={{ color: stateMeta[state].text }}>
             {stateMeta[state].label}
@@ -414,8 +406,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
               const searchableLabel = `${t.ticketNumber ? `[${t.ticketNumber}] ` : ""}${t.title}${projectSuffix}`;
               return {
                 label: searchableLabel,
-                value: t.id,
-              };
+                value: t.id };
             })}
           />
         </Form.Item>
@@ -707,8 +698,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-          }}
+            alignItems: "center" }}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Timer size={14} />

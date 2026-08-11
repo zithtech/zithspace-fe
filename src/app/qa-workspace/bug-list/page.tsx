@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -6,8 +7,9 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
+
 import BugListPage from "@/components/projects/bug-list/BugListPage";
+
 
 /**
  * Bug List — part of QA Space (it used to live under Tickets at
@@ -41,10 +43,10 @@ export default function QaBugListRoute() {
             alignItems: "center",
             overflow: "hidden",
             width: "100%",
-            maxWidth: "100vw",
+            maxWidth: "100vw"
           }}
         >
-          <Spin size="large" tip="Loading bug list..." />
+          <LoadingSpinner message="Loading bug list..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -62,7 +64,7 @@ export default function QaBugListRoute() {
           height: "100%",
           overflow: "hidden",
           width: "100%",
-          maxWidth: "100vw",
+          maxWidth: "100vw"
         }}
       >
         <BugListPage />

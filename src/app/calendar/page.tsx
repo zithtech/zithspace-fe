@@ -1,14 +1,15 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { Suspense, useState, useEffect } from "react";
-import { Layout, Typography, Button, App as AntApp, Spin } from "antd";
+import { Layout, Typography, Button, App as AntApp } from "antd";
 import {
     CalendarOutlined,
     GoogleOutlined,
     WindowsOutlined,
     LoadingOutlined,
-    ArrowRightOutlined,
+    ArrowRightOutlined
 } from "@ant-design/icons";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
@@ -40,14 +41,13 @@ function CalendarPageContent() {
         updateEvent,
         deleteEvent,
         syncAll,
-        clearMessages,
-    } = useCalendar();
+        clearMessages } = useCalendar();
 
-    const { 
-        canCreateCalendar, 
-        canUpdateCalendar, 
+    const {
+        canCreateCalendar,
+        canUpdateCalendar,
         canDeleteCalendar,
-        canManageCalendar 
+        canManageCalendar
     } = usePermission();
 
     const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
@@ -279,14 +279,14 @@ function CalendarPageContent() {
                         onNavigate={handleNavigate}
                         currentDateRange={formatRange()}
                         onCreateEvent={() => {
-                        if (!connectedProvider) {
-                            message.warning('Please connect a calendar first');
-                            return;
-                        }
-                        setSelectedEvent(null);
-                        setInitialDateForModal(currentDate);
-                        setShowFormDrawer(true);
-                    }}
+                            if (!connectedProvider) {
+                                message.warning('Please connect a calendar first');
+                                return;
+                            }
+                            setSelectedEvent(null);
+                            setInitialDateForModal(currentDate);
+                            setShowFormDrawer(true);
+                        }}
                         provider={connectedProvider}
                         providerName={providerInfo.name}
                         providerIcon={providerInfo.icon}
@@ -294,7 +294,7 @@ function CalendarPageContent() {
                         eventCount={filteredEvents.length}
                         canCreate={canCreateCalendar}
                     />
-                    
+
 
 
                     <Content style={{ position: 'relative', overflow: 'hidden', padding: '16px 24px 24px' }}>
@@ -306,7 +306,7 @@ function CalendarPageContent() {
                                 border: '1px solid var(--cal-border)',
                                 boxShadow: 'var(--cal-card-shadow)',
                                 overflow: 'hidden',
-                                position: 'relative',
+                                position: 'relative'
                             }}
                         >
                             {providerLoading ? (
@@ -314,9 +314,9 @@ function CalendarPageContent() {
                                     height: '100%',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
+                                    justifyContent: 'center'
                                 }}>
-                                    <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
+                                    <LoadingSpinner fullScreen={false} />
                                 </div>
                             ) : !connectedProvider ? (
                                 <EmptyState />
@@ -362,9 +362,9 @@ function CalendarPageContent() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    zIndex: 10,
+                                    zIndex: 10
                                 }}>
-                                    <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
+                                    <LoadingSpinner fullScreen={false} />
                                 </div>
                             )}
                         </div>
@@ -433,7 +433,7 @@ function EmptyState() {
             justifyContent: 'center',
             padding: 48,
             textAlign: 'center',
-            background: 'var(--cal-empty-grad)',
+            background: 'var(--cal-empty-grad)'
         }}>
             <div style={{
                 width: 96,
@@ -444,7 +444,7 @@ function EmptyState() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 24,
-                boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+                boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)'
             }}>
                 <CalendarOutlined style={{ fontSize: 44, color: '#FFFFFF' }} />
             </div>
@@ -466,7 +466,7 @@ function EmptyState() {
                         background: 'var(--cal-brand)',
                         borderColor: 'var(--cal-brand)',
                         boxShadow: '0 4px 12px -2px rgba(79, 70, 229, 0.45)',
-                        fontWeight: 600,
+                        fontWeight: 600
                     }}
                 >
                     Connect calendar <ArrowRightOutlined />
@@ -478,7 +478,7 @@ function EmptyState() {
                         height: 44,
                         padding: '0 18px',
                         borderRadius: 10,
-                        fontWeight: 500,
+                        fontWeight: 500
                     }}
                 >
                     Learn more
@@ -494,11 +494,11 @@ function EmptyState() {
 }
 
 export default function CalendarPage() {
-  useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationCalendar" });
+    useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationCalendar" });
     return (
         <Suspense fallback={
             <div style={{ padding: 48, textAlign: 'center' }}>
-                <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--cal-brand)' }} spin />} />
+                <LoadingSpinner fullScreen={false} />
             </div>
         }>
             <CalendarPageContent />

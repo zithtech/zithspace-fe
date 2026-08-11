@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -46,7 +47,7 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 export default function StructuresManagementPage() {
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
-  
+
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {
       router.push('/dashboard');
@@ -266,9 +267,11 @@ export default function StructuresManagementPage() {
         <LetterStatsCards statCells={statCells} />
 
         {/* Structures List */}
-        {loading ? (
+        {loading && filteredStructures.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            Loading custom structures...
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner message='Loading custom structures...' size="medium" fullScreen={false} />
+            </div>
           </div>
         ) : filteredStructures.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center' }}>
@@ -284,7 +287,12 @@ export default function StructuresManagementPage() {
             )}
           </div>
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {loading && (
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <LoadingSpinner size="medium" fullScreen={false} />
+              </div>
+            )}
             <Table
               rowKey="id"
               size="small"

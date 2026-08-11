@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -13,7 +14,6 @@ import {
   Dropdown,
   Modal,
   Table,
-  Spin,
   Tooltip,
   Form,
   App,
@@ -516,7 +516,7 @@ export default function InvoiceproCustomerPage() {
     },
   ];
 
-  if (authLoading) return <MainLayout><Spin /></MainLayout>;
+  if (authLoading) return <MainLayout><LoadingSpinner fullScreen={false} /></MainLayout>;
   if (!canReadInvoiceCustomer) return null;
 
   return (
@@ -624,7 +624,7 @@ export default function InvoiceproCustomerPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -640,7 +640,7 @@ export default function InvoiceproCustomerPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -879,10 +879,16 @@ export default function InvoiceproCustomerPage() {
               <div
                 className="overflow-hidden"
                 style={{
+                  position: 'relative',
                   background: "var(--bg-pure-white)",
                   border: "1px solid var(--border-slate-200)",
                 }}
               >
+                {isFetching && !isLoading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   rowKey="id"
                   columns={columns}

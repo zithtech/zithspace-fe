@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
@@ -20,12 +21,10 @@ import {
   Drawer,
   List,
   Avatar,
-  Spin,
   Empty,
   Popconfirm,
   Tooltip,
-  Tabs,
-} from "antd";
+  Tabs } from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
   PlusOutlined,
@@ -37,18 +36,17 @@ import {
   RocketOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
-  StopOutlined,
-} from "@ant-design/icons";
+  StopOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import ReleasePlanService, {
   ReleasePlan,
   ReleasePlanFormData,
-  ProjectTicket,
-} from "@/services/releasePlanService";
+  ProjectTicket } from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { usePermission } from "@/hooks/usePermission";
+
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -63,8 +61,7 @@ export default function ReleasePlanComponent() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification({
-    placement: 'top',
-  });
+    placement: 'top' });
   const {
     canCreateTicketPlan,
     canReadTicketPlan,
@@ -163,16 +160,14 @@ export default function ReleasePlanComponent() {
     try {
       setLoading(true);
       const data = await ReleasePlanService.getReleasePlans({
-        type: activeTab,
-      });
+        type: activeTab });
       setReleasePlans(data?.data || []);
       if (!loading) { // Only show message if it's a manual refresh
         api.success({
           message: "Refreshed",
           description: "Plans updated successfully",
           
-          duration: 3,
-        });
+          duration: 3 });
       }
     } catch (error) {
       console.error("Failed to load release plans:", error);
@@ -180,8 +175,7 @@ export default function ReleasePlanComponent() {
         message: "Error",
         description: "Failed to load release plans",
         
-        duration: 4,
-      });
+        duration: 4 });
     } finally {
       setLoading(false);
     }
@@ -212,8 +206,7 @@ export default function ReleasePlanComponent() {
           {
             search: search || undefined,
             limit: search ? 50 : 20,
-            excludeReleasePlan: editingPlan?.id,
-          }
+            excludeReleasePlan: editingPlan?.id }
         );
 
         setAvailableTickets(tickets || []);
@@ -223,8 +216,7 @@ export default function ReleasePlanComponent() {
           message: "Error",
           description: "Failed to load tickets",
           
-          duration: 4,
-        });
+          duration: 4 });
         setAvailableTickets([]);
       } finally {
         setTicketLoading(false);
@@ -299,8 +291,7 @@ export default function ReleasePlanComponent() {
         goal: values?.goal || "",
         status: "planning", // Default status
         type: activeTab as any,
-        tickets: values?.tickets || [],
-      };
+        tickets: values?.tickets || [] };
 
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
@@ -308,16 +299,14 @@ export default function ReleasePlanComponent() {
           message: "Success",
           description: "Plans updated successfully",
           
-          duration: 3,
-        });
+          duration: 3 });
       } else {
         await ReleasePlanService.createReleasePlan(formData);
         api.success({
           message: "Success",
           description: "Plans created successfully",
           
-          duration: 3,
-        });
+          duration: 3 });
       }
 
       handleCloseModal();
@@ -329,8 +318,7 @@ export default function ReleasePlanComponent() {
         message: "Error",
         description: errorMessage,
         
-        duration: 4,
-      });
+        duration: 4 });
     } finally {
       setSaving(false);
     }
@@ -361,8 +349,7 @@ export default function ReleasePlanComponent() {
       goal: plan?.goal,
       priority: plan?.priority,
       tickets: ticketIds, // Pre-fill tickets
-      notes: plan?.notes,
-    });
+      notes: plan?.notes });
 
     // Load available tickets (excluding current Plans tickets)
     loadTicketsByProject(projectId);
@@ -376,8 +363,7 @@ export default function ReleasePlanComponent() {
         message: "Success",
         description: "Plans deleted successfully",
         
-        duration: 3,
-      });
+        duration: 3 });
       loadData();
     } catch (error) {
       console.error("Failed to delete Plans:", error);
@@ -385,8 +371,7 @@ export default function ReleasePlanComponent() {
         message: "Error",
         description: "Failed to delete Plans",
         
-        duration: 4,
-      });
+        duration: 4 });
     }
   };
 
@@ -395,16 +380,12 @@ export default function ReleasePlanComponent() {
       await ReleasePlanService.startSprint(plan.id);
       api.success({
         message: "Success",
-        description: "Sprint started successfully",
-        
-      });
+        description: "Sprint started successfully" });
       loadData();
     } catch (error: any) {
       api.error({
         message: "Error",
-        description: error.message || "Failed to start sprint",
-        
-      });
+        description: error.message || "Failed to start sprint" });
     }
   };
 
@@ -419,9 +400,7 @@ export default function ReleasePlanComponent() {
     loadData();
     api.success({
       message: "Success",
-      description: "Sprint completed successfully",
-      
-    });
+      description: "Sprint completed successfully" });
   };
 
   const handleCloseModal = () => {
@@ -504,8 +483,7 @@ export default function ReleasePlanComponent() {
             })()}
           </Text>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Progress",
       dataIndex: "progress",
@@ -522,8 +500,7 @@ export default function ReleasePlanComponent() {
             completed
           </Text>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Status",
       dataIndex: "status",
@@ -532,16 +509,14 @@ export default function ReleasePlanComponent() {
         <Tag color={getStatusColor(status)}>
           {status.replace("_", " ").toUpperCase()}
         </Tag>
-      ),
-    },
+      ) },
     {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
       render: (priority: string) => (
         <Tag color={getPriorityColor(priority)}>{priority}</Tag>
-      ),
-    },
+      ) },
     {
       title: "Deadline",
       dataIndex: "deadline",
@@ -552,8 +527,7 @@ export default function ReleasePlanComponent() {
             {dayjs(deadline).format("MMM DD, YYYY")}
           </Text>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Start Date",
       dataIndex: "startDate",
@@ -563,8 +537,7 @@ export default function ReleasePlanComponent() {
         <Text style={{ fontSize: 12 }}>
           {date ? dayjs(date).format("MMM DD") : "-"}
         </Text>
-      ),
-    },
+      ) },
     {
       title: "End Date",
       dataIndex: "endDate",
@@ -574,8 +547,7 @@ export default function ReleasePlanComponent() {
         <Text style={{ fontSize: 12 }}>
           {date ? dayjs(date).format("MMM DD") : "-"}
         </Text>
-      ),
-    },
+      ) },
 
     {
       title: "Actions",
@@ -648,8 +620,7 @@ export default function ReleasePlanComponent() {
             </Popconfirm>
           )}
         </Space>
-      ),
-    },
+      ) },
   ];
 
   return (
@@ -696,8 +667,7 @@ export default function ReleasePlanComponent() {
                 <CalendarOutlined />
                 Sprint Plans
               </span>
-            ),
-          },
+            ) },
           {
             key: "demo_plan",
             label: (
@@ -705,8 +675,7 @@ export default function ReleasePlanComponent() {
                 <PlayCircleOutlined />
                 Demo Plans
               </span>
-            ),
-          },
+            ) },
           {
             key: "release_plan",
             label: (
@@ -714,8 +683,7 @@ export default function ReleasePlanComponent() {
                 <RocketOutlined />
                 Release Plans
               </span>
-            ),
-          },
+            ) },
         ]}
       />
 
@@ -729,8 +697,7 @@ export default function ReleasePlanComponent() {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
+              `${range[0]}-${range[1]} of ${total} items` }}
         />
       </Card>
 
@@ -752,8 +719,7 @@ export default function ReleasePlanComponent() {
         maskClosable={false}
         footer={null}
         styles={{
-          body: { maxHeight: "70vh", overflowY: "auto", padding: "0 12px" },
-        }}
+          body: { maxHeight: "70vh", overflowY: "auto", padding: "0 12px" } }}
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item
@@ -837,7 +803,7 @@ export default function ReleasePlanComponent() {
                 optionLabelProp="label"
                 onSearch={handleTicketSearch}
                 filterOption={false}
-                notFoundContent={ticketLoading ? <Spin size="small" /> : null}
+                notFoundContent={ticketLoading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
                 options={ticketOptions}
                 optionRender={(option) => {
                    const t = option.data.item;
@@ -863,8 +829,7 @@ export default function ReleasePlanComponent() {
             marginTop: 24,
             display: "flex",
             justifyContent: "flex-end",
-            gap: 12,
-          }}
+            gap: 12 }}
         >
           <Button onClick={handleCloseModal}>Cancel</Button>
           <Button

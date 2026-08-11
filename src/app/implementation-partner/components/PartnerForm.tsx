@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -16,9 +17,7 @@ import {
   message,
   notification,
   Divider,
-  Breadcrumb,
-  Spin,
-} from "antd";
+  Breadcrumb } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -27,11 +26,11 @@ import {
   SaveOutlined,
   EditOutlined,
   EyeOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
+  InfoCircleOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { ImplementationPartnerService } from "@/services/implementationPartner.service";
 import AttachmentSection, { AttachmentItem } from "../../recruitment/job-requisitions/components/AttachmentSection";
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -66,8 +65,7 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
           fileName: doc.documentType ? `${doc.documentType} Document` : "Document",
           fileUrl: doc.documentUrl,
           category: doc.documentType || "Other",
-          isNew: false,
-        }));
+          isNew: false }));
       }
 
       form.setFieldsValue(partner);
@@ -92,8 +90,7 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
           documentType: doc.category || "Other",
           fileName: doc.fileName || "document.pdf",
           base64: doc.isNew ? doc.fileUrl : undefined,
-          documentUrl: !doc.isNew ? doc.fileUrl : undefined,
-        }));
+          documentUrl: !doc.isNew ? doc.fileUrl : undefined }));
       }
 
       if (isEdit && id) {
@@ -116,7 +113,7 @@ export default function PartnerForm({ id, mode }: PartnerFormProps) {
   if (fetching) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: "#f5f5f5" }}>
-        <Spin size="large" tip="Loading partner details..." />
+        <LoadingSpinner message="Loading partner details..." size="large" fullScreen={false} />
       </div>
     );
   }

@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import "../../projects/projects.css";
 
@@ -8,8 +9,9 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
+
 import MemberTrashManagementPage from "@/components/members/trash/MemberTrashManagementPage";
+
 
 export default function MembersTrashPage() {
   const { isLoading: authLoading } = useAuth();
@@ -36,10 +38,9 @@ export default function MembersTrashPage() {
             minHeight: "calc(100vh - 64px)",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
-          }}
+            alignItems: "center" }}
         >
-          <Spin size="large" tip="Loading member trash..." />
+          <LoadingSpinner message="Loading member trash..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );

@@ -1,12 +1,14 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, List, Button, Typography, Spin, message, Empty, theme } from 'antd';
+import { Modal, List, Button, Typography, message, Empty, theme } from 'antd';
 import { NumberOutlined, TeamOutlined } from '@ant-design/icons';
 import { channelService, PublicChannel } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
 import { useRouter } from 'next/navigation';
 import { usePermission } from '@/hooks/usePermission';
+
 
 const { Text, Title } = Typography;
 
@@ -80,7 +82,7 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
         >
             {loading ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                    <Spin />
+                    <LoadingSpinner fullScreen={false} />
                 </div>
             ) : publicChannels.length === 0 ? (
                 <Empty description="No public channels available" />

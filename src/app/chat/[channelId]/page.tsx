@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState, useCallback } from 'react';
-import { Layout, Typography, Button, Spin, message, theme } from 'antd';
+import { Layout, Typography, Button, message, theme } from 'antd';
 import {
     VideoCameraOutlined,
     PhoneOutlined,
@@ -20,6 +21,7 @@ import MessageInput from '@/features/chat/MessageInput';
 import { useMessages } from '@/hooks/useMessages';
 import ChannelSettingsModal from '@/features/chat/ChannelSettingsModal';
 import { usePermission } from '@/hooks/usePermission';
+
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -154,7 +156,7 @@ export default function ChannelPage() {
             }}>
                 {loading ? (
                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Spin />
+                        <LoadingSpinner fullScreen={false} />
                     </div>
                 ) : (
                     <MessageList channelId={channelId} />

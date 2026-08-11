@@ -741,11 +741,16 @@ export default function SquadManagement() {
           {/* Table / grid */}
           <div className="sq-body">
             {view === 'list' ? (
-              <div className="sq-table-wrap">
+              <div className="sq-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   columns={columns}
                   dataSource={pagedSquads}
-                  loading={loading}
+                  loading={false}
                   rowKey="id"
                   size="small"
                   className="sq-table"

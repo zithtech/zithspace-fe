@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -12,25 +13,22 @@ import {
   Alert,
   Space,
   Typography,
-  Spin,
   Tag,
   message,
-  theme,
-} from 'antd';
+  theme } from 'antd';
 import {
   RobotOutlined,
   ThunderboltFilled,
   ApiOutlined,
   KeyOutlined,
-  CheckCircleFilled,
-} from '@ant-design/icons';
+  CheckCircleFilled } from '@ant-design/icons';
 import {
+
   AiSettingsService,
   AiSettings,
   AiMode,
   AiProviderKind,
-  PlatformCatalogEntry,
-} from '@/services/aiSettings.service';
+  PlatformCatalogEntry } from '@/services/aiSettings.service';
 
 const { Text, Title } = Typography;
 
@@ -106,8 +104,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
         provider,
         apiKey: apiKey || undefined, // backend falls back to the saved key
         baseUrl: baseUrl || undefined,
-        model: model || undefined,
-      });
+        model: model || undefined });
       setModels(found);
       messageApi.success(
         found.length ? `Connected — ${found.length} model${found.length === 1 ? '' : 's'} available` : 'Connected (no model list returned)',
@@ -141,8 +138,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
               model,
               baseUrl: baseUrl || undefined,
               ...(apiKey ? { apiKey } : {}), // keep existing key if left blank
-            }),
-      });
+            }) });
       messageApi.success('AI settings saved');
       setApiKey('');
       setCurrent((prev) => ({
@@ -150,8 +146,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
         ...saved,
         hasApiKey: saved.hasApiKey,
         lastError: null,
-        lastErrorAt: null,
-      }));
+        lastErrorAt: null }));
     } catch (e: any) {
       messageApi.error(e?.message || 'Failed to save AI settings');
     } finally {
@@ -165,7 +160,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
   if (loading) {
     return (
       <div style={{ padding: 80, textAlign: 'center' }}>
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -183,8 +178,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
           maxWidth: '100%',
           borderRadius: 0,
           border: `1px solid ${token.colorBorder}`,
-          background: 'transparent',
-        }}
+          background: 'transparent' }}
         styles={{ body: { padding: 0, background: 'transparent' } }}
       >
         {/* Header Block inside the Card */}
@@ -193,8 +187,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
           borderBottom: `1px solid ${token.colorBorderSecondary}`,
           background: `linear-gradient(180deg, ${token.colorFillAlter} 0%, ${token.colorBgContainer} 100%)`,
           borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
-        }}>
+          borderTopRightRadius: 0 }}>
           <Space size={14} align="center">
             <div style={{
               width: 42,
@@ -205,8 +198,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-            }}>
+              boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)' }}>
               <RobotOutlined style={{ fontSize: 22 }} />
             </div>
             <div>
@@ -382,8 +374,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: 12,
-            }}>
+              gap: 12 }}>
               <Space size={12}>
                 <Switch checked={isActive} onChange={setIsActive} disabled={!canManage} />
                 <div>
@@ -409,8 +400,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
                   background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
                   color: '#fff',
                   border: 'none',
-                  boxShadow: '0 4px 12px -3px rgba(59, 130, 246, 0.3)',
-                }}
+                  boxShadow: '0 4px 12px -3px rgba(59, 130, 246, 0.3)' }}
               >
                 Save Configuration
               </Button>

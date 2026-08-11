@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -1087,12 +1088,17 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'auto', position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
           <Table
             className="mtt-team-table"
             columns={userColumns}
             dataSource={pagedData}
-            loading={loading}
+            loading={false}
             rowKey={(record) => record.id}
             expandable={{ expandedRowRender }}
             pagination={false}

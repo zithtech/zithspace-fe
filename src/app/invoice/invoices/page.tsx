@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -21,12 +22,11 @@ import {
   Alert,
   Popover,
   Drawer,
-  Spin,
   App,
   Menu,
   Progress,
   Timeline,
-  Skeleton,
+  Skeleton
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
@@ -59,7 +59,7 @@ import {
   RefreshCw,
   Paperclip,
   LayoutGrid,
-  List,
+  List
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -84,6 +84,7 @@ import type {
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+
 
 const { Title, Text } = Typography;
 
@@ -185,7 +186,7 @@ const INVOICE_STATUS_META: Record<
   'PAID': { label: 'Paid', color: '#10b981', bg: 'rgba(16,185,129,0.10)', ring: 'rgba(16,185,129,0.25)' },
   'PARTIALLY_PAID': { label: 'Partially Paid', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', ring: 'rgba(59,130,246,0.25)' },
   'OVERDUE': { label: 'Overdue', color: '#f87171', bg: 'rgba(248,113,113,0.10)', ring: 'rgba(248,113,113,0.25)' },
-  'CANCELLED': { label: 'Cancelled', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' },
+  'CANCELLED': { label: 'Cancelled', color: '#64748b', bg: 'rgba(100,116,139,0.10)', ring: 'rgba(100,116,139,0.25)' }
 };
 
 export default function InvoiceInvoicesPage() {
@@ -276,11 +277,10 @@ export default function InvoiceInvoicesPage() {
   const {
     data: paymentHistory,
     isLoading: isPaymentLoading,
-    refetch: refetchPaymentHistory,
-  } = useInvoicePaymentHistory(
-    transactionInvoice?.id,
-    !!transactionDrawerOpen
-  );
+    refetch: refetchPaymentHistory } = useInvoicePaymentHistory(
+      transactionInvoice?.id,
+      !!transactionDrawerOpen
+    );
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [activeView, setActiveView] = useState<"all" | "draft" | "awaiting" | "paid" | "overdue">("all");
@@ -414,14 +414,14 @@ export default function InvoiceInvoicesPage() {
       label: menuLabel("View Details", "Open detailed view", <Eye size={14} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
       onClick: () => {
         router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
-      },
+      }
     },
     canUpdateInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
       key: "edit",
       label: menuLabel("Edit Invoice", "Modify invoice information", <Edit2 size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
       onClick: () => {
         router.push(`/invoice/newinvoice?edit=${record.id}`);
-      },
+      }
     },
     {
       key: "download",
@@ -435,12 +435,12 @@ export default function InvoiceInvoicesPage() {
       disabled: isDownloading,
       onClick: () => {
         downloadInvoice(record.id);
-      },
+      }
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "send_quick",
       label: menuLabel("Quick Send Email", "Send email directly", <Mail size={14} />, '#10b981', 'rgba(16,185,129,0.12)'),
-      onClick: () => handleQuickSend(record),
+      onClick: () => handleQuickSend(record)
     },
     canSendInvoiceMail && !['DRAFT', 'PENDING'].includes(record.status) && {
       key: "compose_email",
@@ -448,7 +448,7 @@ export default function InvoiceInvoicesPage() {
       onClick: () => {
         setSelectedInvoiceForEmail(record);
         setEmailDrawerOpen(true);
-      },
+      }
     },
     canReadInvoiceHistory && {
       key: "transactions",
@@ -456,7 +456,7 @@ export default function InvoiceInvoicesPage() {
       onClick: () => {
         setTransactionInvoice(record);
         setTransactionDrawerOpen(true);
-      },
+      }
     },
     (canUpdateInvoice || canDeleteInvoice || canDeleteInvoiceTrash) && { type: "divider" },
     (canDeleteInvoice || canDeleteInvoiceTrash) && {
@@ -561,7 +561,7 @@ export default function InvoiceInvoicesPage() {
       updateStatusMutation.mutate({
         id: approvalInvoice.id,
         status: 'APPROVED',
-        description: values.note,
+        description: values.note
       }, {
         onSuccess: () => {
           setApprovalModalVisible(false);
@@ -598,7 +598,7 @@ export default function InvoiceInvoicesPage() {
       } else {
         updateStatusMutation.mutate({
           id: statusChangeInvoice.id,
-          status: selectedNewStatus,
+          status: selectedNewStatus
         }, {
           onSuccess: () => {
             setStatusChangeModalVisible(false);
@@ -696,7 +696,7 @@ export default function InvoiceInvoicesPage() {
       draft: drafts,
       awaiting: awaiting,
       paid: paid,
-      overdue: overdue,
+      overdue: overdue
     };
   }, [invoices]);
 
@@ -712,7 +712,7 @@ export default function InvoiceInvoicesPage() {
     });
     return Array.from(map.entries()).map(([id, name]) => ({
       value: id,
-      label: name,
+      label: name
     })).sort((a, b) => a.label.localeCompare(b.label));
   }, [invoices]);
 
@@ -760,13 +760,13 @@ export default function InvoiceInvoicesPage() {
               background: "transparent",
               border: "none",
               padding: 0,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             {text}
           </button>
         </Tooltip>
-      ),
+      )
     },
     {
       title: "CUSTOMER",
@@ -790,7 +790,7 @@ export default function InvoiceInvoicesPage() {
             </div>
           </div>
         );
-      },
+      }
     },
     {
       title: "DATE",
@@ -800,7 +800,7 @@ export default function InvoiceInvoicesPage() {
         <div style={{ color: 'var(--text-slate-500)', fontSize: 11.5 }}>
           {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
-      ),
+      )
     },
     {
       title: "DUE DATE",
@@ -813,7 +813,7 @@ export default function InvoiceInvoicesPage() {
             {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
           </div>
         );
-      },
+      }
     },
     {
       title: "AMOUNT",
@@ -823,7 +823,7 @@ export default function InvoiceInvoicesPage() {
         <div className="font-bold" style={{ color: 'var(--text-slate-900)', fontSize: 12.5, whiteSpace: 'nowrap' }}>
           ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
-      ),
+      )
     },
     {
       title: "CLIENT STATUS",
@@ -840,7 +840,7 @@ export default function InvoiceInvoicesPage() {
           return <span style={{ padding: "3.5px 8px", borderRadius: 5, fontSize: 10, fontWeight: 700, color: "#10b981", background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", textTransform: "uppercase", whiteSpace: "nowrap" }}>PAID</span>;
         }
         return <span style={{ color: "var(--text-slate-400)", fontSize: 11.5 }}>{status}</span>;
-      },
+      }
     },
     {
       title: "STATUS",
@@ -909,7 +909,7 @@ export default function InvoiceInvoicesPage() {
             )}
           </div>
         );
-      },
+      }
     },
     {
       title: "BALANCE DUE",
@@ -922,7 +922,7 @@ export default function InvoiceInvoicesPage() {
             ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         );
-      },
+      }
     },
     {
       title: "ACTIONS",
@@ -957,7 +957,7 @@ export default function InvoiceInvoicesPage() {
             />
           </Dropdown>
         );
-      },
+      }
     },
   ];
 
@@ -969,8 +969,8 @@ export default function InvoiceInvoicesPage() {
       setSelectedInvoices(rows);
     },
     getCheckboxProps: (record: any) => ({
-      disabled: record.status === 'CANCELLED',
-    }),
+      disabled: record.status === 'CANCELLED'
+    })
   };
 
   /* ================= BULK DOWNLOAD ================= */
@@ -986,7 +986,7 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><LoadingSpinner message="Loading" size="large" fullScreen={false} /></div></MainLayout>;
   if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
@@ -1255,7 +1255,7 @@ export default function InvoiceInvoicesPage() {
                 className="rounded-none px-4 py-2.5 mb-3 flex items-center justify-between"
                 style={{
                   background: "var(--bg-blue-50)",
-                  border: "1px solid var(--border-blue-200)",
+                  border: "1px solid var(--border-blue-200)"
                 }}
               >
                 <div className="flex items-center gap-2">
@@ -1317,7 +1317,7 @@ export default function InvoiceInvoicesPage() {
                       className="pc-card p-4"
                       style={{
                         background: "var(--bg-slate-50)",
-                        border: "1px solid var(--border-slate-200)",
+                        border: "1px solid var(--border-slate-200)"
                       }}
                     >
                       <Skeleton active avatar paragraph={{ rows: 1 }} />
@@ -1377,7 +1377,7 @@ export default function InvoiceInvoicesPage() {
                         <div
                           className="pc-avatar"
                           style={{
-                            background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                            background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`
                           }}
                         >
                           {initialsOf(companyName)}
@@ -1430,7 +1430,7 @@ export default function InvoiceInvoicesPage() {
                               style={{
                                 fontSize: "11px",
                                 fontWeight: 700,
-                                color: statusCfg.color,
+                                color: statusCfg.color
                               }}
                             >
                               {statusCfg.label.toUpperCase()}
@@ -1465,14 +1465,19 @@ export default function InvoiceInvoicesPage() {
                 })}
               </div>
             ) : (
-              <div className="pp-table-wrap">
+              <div className="pp-table-wrap" style={{ position: 'relative' }}>
+                {isFetching && !isLoading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   size="small"
                   rowSelection={rowSelection}
                   columns={columns}
                   dataSource={pagedInvoices.map((inv) => ({
                     ...inv,
-                    key: inv.id,
+                    key: inv.id
                   }))}
                   pagination={false}
                   scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
@@ -1483,7 +1488,7 @@ export default function InvoiceInvoicesPage() {
                       if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
                       setPreviewInvoiceNumber(record.invoiceNumber);
                     },
-                    className: 'pp-row',
+                    className: 'pp-row'
                   })}
                 />
               </div>
@@ -1957,7 +1962,7 @@ export default function InvoiceInvoicesPage() {
       >
         {isPaymentLoading ? (
           <div className="flex flex-col justify-center items-center h-56">
-            <Spin size="default" />
+            <LoadingSpinner size="medium" fullScreen={false} />
             <span className="mt-3 text-xs" style={{ color: 'var(--text-slate-500)' }}>Loading payment history...</span>
           </div>
         ) : !paymentHistory ? (
@@ -2303,8 +2308,8 @@ export default function InvoiceInvoicesPage() {
           wrapper: { boxShadow: "-12px 0 32px rgba(15, 23, 42, 0.08)" },
           mask: {
             backdropFilter: "blur(2px)",
-            background: "rgba(15, 23, 42, 0.35)",
-          },
+            background: "rgba(15, 23, 42, 0.35)"
+          }
         }}
       >
         <div className="h-full flex flex-col">
@@ -2312,7 +2317,7 @@ export default function InvoiceInvoicesPage() {
             className="px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
             style={{
               background: "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
-              borderColor: "var(--border-color)",
+              borderColor: "var(--border-color)"
             }}
           >
             <div className="flex items-start gap-3 min-w-0">
@@ -2321,7 +2326,7 @@ export default function InvoiceInvoicesPage() {
                 style={{
                   background: "var(--bg-blue-50)",
                   color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
+                  border: "1px solid var(--border-blue-200)"
                 }}
               >
                 <FileText size={18} strokeWidth={2.25} />
@@ -2337,7 +2342,7 @@ export default function InvoiceInvoicesPage() {
                   className="text-[12px] mt-0.5 truncate"
                   style={{
                     color: "var(--text-secondary)",
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
                   }}
                 >
                   {previewInvoiceNumber}
@@ -2357,7 +2362,7 @@ export default function InvoiceInvoicesPage() {
                   style={{
                     borderRadius: 8,
                     height: 32,
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   Full view
@@ -2382,7 +2387,7 @@ export default function InvoiceInvoicesPage() {
                 className="w-full h-full"
                 style={{
                   border: "none",
-                  background: "var(--customers-page-bg)",
+                  background: "var(--customers-page-bg)"
                 }}
                 title="Invoice preview"
               />
@@ -2450,7 +2455,7 @@ export default function InvoiceInvoicesPage() {
                           <Eye size={16} /> View Document
                         </div>
                       </div>
-                    ),
+                    )
                   }))}
                 />
               </div>

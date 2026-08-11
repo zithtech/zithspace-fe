@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -11,20 +12,20 @@ import {
   Button,
   Typography,
   Alert,
-  Spin,
   Checkbox,
   ConfigProvider,
-  theme as antdTheme,
+  theme as antdTheme
 } from 'antd';
 import {
   UserOutlined,
   LockOutlined,
-  LoginOutlined,
+  LoginOutlined
 } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
 import Logo from '@/assets/logo/Zukvologo.png';
+
 
 
 const { Title, Text } = Typography;
@@ -49,7 +50,7 @@ function resolveHostInfo() {
     try {
       rootHost = new URL(envAppUrl).host;
       hasValidEnvRoot = true;
-    } catch (e) {}
+    } catch (e) { }
   }
 
 
@@ -73,7 +74,7 @@ function resolveHostInfo() {
   // If we are currently ON the rootHost, then we don't need to redirect
   // This prevents infinite loops if rootHost is misconfigured to point to itself
   if (window.location.host === rootHost) {
-    subdomain = ""; 
+    subdomain = "";
   }
 
   return { subdomain, rootHost };
@@ -126,19 +127,19 @@ function LoginFormWithParams() {
         const params = new URLSearchParams(hash.substring(1)); // strip '#'
         const token = params.get("access_token");
         const stateStr = params.get("state");
-        
+
         if (token && !window.opener) {
           // Top-level window received Google token
           window.history.replaceState(null, "", window.location.pathname + window.location.search);
-          
+
           let stateSubdomain = "";
           if (stateStr) {
             try {
               const stateObj = JSON.parse(decodeURIComponent(stateStr));
               stateSubdomain = stateObj.subdomain;
-            } catch(e) {}
+            } catch (e) { }
           }
-          
+
           const { subdomain: hostnameSubdomain, rootHost } = resolveHostInfo();
           // Strip 'app.' prefix when building tenant subdomain URLs:
           // app.zukvo.com → zukvo.com, so redirect becomes company1.zukvo.com not company1.app.zukvo.com
@@ -177,7 +178,7 @@ function LoginFormWithParams() {
             });
             return;
           }
-          
+
           // No subdomain — proceed with login on root host (app.zukvo.com)
           setLoading(true);
           AuthService.googleLogin(token).then(async (response) => {
@@ -229,7 +230,7 @@ function LoginFormWithParams() {
               const tenantBaseHost = currentRootHost.startsWith('app.') ? currentRootHost.slice(4) : currentRootHost;
 
               const response = await AuthService.googleLogin(tokenResponse.access_token, effectiveSubdomain || undefined);
-              
+
               if (effectiveSubdomain) {
                 const targetHost = `${effectiveSubdomain}.${tenantBaseHost}`;
                 if (window.location.host === targetHost) {
@@ -251,7 +252,7 @@ function LoginFormWithParams() {
               setLoading(false);
             }
           }
-        },
+        }
       });
       client.requestAccessToken();
     } catch (err) {
@@ -280,7 +281,7 @@ function LoginFormWithParams() {
     const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
     const scope = encodeURIComponent("openid profile email User.Read");
-    
+
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
 
     const width = 600;
@@ -305,7 +306,7 @@ function LoginFormWithParams() {
       if (event.data?.type === "microsoft-token" && event.data?.token) {
         const token = event.data.token;
         cleanup();
-        
+
         try {
           const { subdomain, rootHost } = resolveHostInfo();
 
@@ -380,13 +381,13 @@ function LoginFormWithParams() {
       const { rootHost } = resolveHostInfo();
       const protocol = window.location.protocol;
       const redirectUri = `${protocol}//${rootHost}/login`;
-      
+
       const clientId = "945644412981-eu93b14d7jr5d0gd5s04758lu6mupad8.apps.googleusercontent.com";
       const scope = encodeURIComponent("https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email");
       const state = encodeURIComponent(JSON.stringify({ subdomain: subdomain || '' }));
-      
+
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
-      
+
       window.location.replace(authUrl);
     }
   }, [searchParams]);
@@ -519,7 +520,7 @@ function LoginFormWithParams() {
       form.setFieldsValue({
         email: defaultEmail,
         password: passwordParam || '',
-        remember: rememberMe,
+        remember: rememberMe
       });
     }
 
@@ -532,7 +533,7 @@ function LoginFormWithParams() {
     try {
       setLoading(true);
       setError('');
-      
+
       if (values.remember) {
         localStorage.setItem('remembered_email', values.email);
       } else {
@@ -549,7 +550,7 @@ function LoginFormWithParams() {
   if (user) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
         <div style={{ marginTop: 16 }}>
           <Text type="secondary">Redirecting...</Text>
         </div>
@@ -625,7 +626,7 @@ function LoginFormWithParams() {
               fontSize: 15,
               background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
               border: 'none',
-              boxShadow: '0 8px 22px rgba(37, 99, 235, 0.32)',
+              boxShadow: '0 8px 22px rgba(37, 99, 235, 0.32)'
             }}
           >
             {loading ? 'Signing in...' : 'Sign in'}
@@ -638,7 +639,7 @@ function LoginFormWithParams() {
           display: 'flex',
           alignItems: 'center',
           gap: 14,
-          margin: '24px 0 20px',
+          margin: '24px 0 20px'
         }}
       >
         <span style={{ flex: 1, height: 1, background: 'rgba(148, 163, 184, 0.14)' }} />
@@ -683,7 +684,7 @@ function LoginFormWithParams() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: 'none',
+            boxShadow: 'none'
           }}
         />
         <Button
@@ -708,7 +709,7 @@ function LoginFormWithParams() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: 'none',
+            boxShadow: 'none'
           }}
         />
       </div>
@@ -720,7 +721,7 @@ function LoginFormWithParams() {
 function LoginFormSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <Spin size="large" />
+      <LoadingSpinner size="large" fullScreen={false} />
       <div style={{ marginTop: 16 }}>
         <Text type="secondary">Loading login form...</Text>
       </div>
@@ -765,7 +766,7 @@ function TechBackground() {
           backgroundSize: '72px 72px',
           maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
           WebkitMaskImage:
-            'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)',
+            'radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 78%)'
         }}
       />
 
@@ -795,7 +796,7 @@ function TechBackground() {
               fill="url(#zk-streak-grad)"
               style={{
                 animation: `zk-streak ${streak.dur} linear infinite`,
-                animationDelay: streak.delay,
+                animationDelay: streak.delay
               }}
             />
           ))}
@@ -809,7 +810,7 @@ function TechBackground() {
           inset: 0,
           background:
             'radial-gradient(ellipse 45% 50% at 50% 48%, rgba(37, 99, 235, 0.14) 0%, transparent 72%),' +
-            'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(3, 6, 12, 0.55) 100%)',
+            'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 55%, rgba(3, 6, 12, 0.55) 100%)'
         }}
       />
     </div>
@@ -893,7 +894,7 @@ const loginTheme = {
     colorBorder: 'rgba(148, 163, 184, 0.16)',
     borderRadius: 10,
     fontFamily:
-      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
   },
   components: {
     Input: {
@@ -903,21 +904,21 @@ const loginTheme = {
       activeBorderColor: '#3B82F6',
       activeShadow: '0 0 0 3px rgba(59, 130, 246, 0.16)',
       controlHeight: 48,
-      borderRadius: 999,
+      borderRadius: 999
     },
     Form: {
-      itemMarginBottom: 12,
+      itemMarginBottom: 12
     },
     Checkbox: {
       colorBgContainer: 'rgba(148, 163, 184, 0.08)',
-      colorBorder: 'rgba(148, 163, 184, 0.28)',
+      colorBorder: 'rgba(148, 163, 184, 0.28)'
     },
     Button: {
       controlHeight: 48,
       borderRadius: 999,
-      fontWeight: 600,
-    },
-  },
+      fontWeight: 600
+    }
+  }
 };
 
 export default function LoginPage() {
@@ -934,7 +935,7 @@ export default function LoginPage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: 20,
-          overflow: 'hidden',
+          overflow: 'hidden'
         }}
       >
         <style>{backgroundStyles + formStyles}</style>
@@ -944,7 +945,7 @@ export default function LoginPage() {
             position: 'relative',
             zIndex: 1,
             width: '100%',
-            maxWidth: 380,
+            maxWidth: 380
           }}
         >
           {/* Logo + wordmark lockup */}
@@ -954,7 +955,7 @@ export default function LoginPage() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 12,
-              marginBottom: 32,
+              marginBottom: 32
             }}
           >
             <Image
@@ -972,7 +973,7 @@ export default function LoginPage() {
                 fontWeight: 600,
                 fontSize: 32,
                 letterSpacing: '-0.02em',
-                lineHeight: 1,
+                lineHeight: 1
               }}
             >
               Zukvo

@@ -1,11 +1,11 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from "react";
 import {
   Drawer,
   Space,
   Typography,
-  Spin,
   Empty,
   Tabs,
   Tag,
@@ -20,8 +20,7 @@ import {
   Tooltip,
   message,
   Popconfirm,
-  App,
-} from "antd";
+  App } from "antd";
 import {
   FolderOutlined,
   TeamOutlined,
@@ -29,12 +28,12 @@ import {
   UserAddOutlined,
   DeleteOutlined,
   EyeOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
+  CloseOutlined } from "@ant-design/icons";
 import { useBucket, useRemoveBucketMember } from "@/hooks/useBuckets";
 import { BucketMemberManager } from "./BucketMemberManager";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+
 
 dayjs.extend(relativeTime);
 
@@ -49,8 +48,7 @@ interface BucketDetailDrawerProps {
 export function BucketDetailDrawer({
   bucketId,
   open,
-  onClose,
-}: BucketDetailDrawerProps) {
+  onClose }: BucketDetailDrawerProps) {
   const { message: messageApi } = App.useApp();
   const [activeTab, setActiveTab] = useState("overview");
   const [memberManagerOpen, setMemberManagerOpen] = useState(false);
@@ -100,8 +98,7 @@ export function BucketDetailDrawer({
             </div>
           </Space>
         );
-      },
-    },
+      } },
     {
       title: "Role",
       dataIndex: "role",
@@ -111,8 +108,7 @@ export function BucketDetailDrawer({
         <Tag color={role === "editor" ? "blue" : "default"}>
           {role.toUpperCase()}
         </Tag>
-      ),
-    },
+      ) },
     {
       title: "Added",
       dataIndex: "createdAt",
@@ -122,8 +118,7 @@ export function BucketDetailDrawer({
         <Tooltip title={dayjs(date).format("MMM DD, YYYY HH:mm")}>
           <Text type="secondary">{dayjs(date).fromNow()}</Text>
         </Tooltip>
-      ),
-    },
+      ) },
     {
       title: "Actions",
       key: "actions",
@@ -151,8 +146,7 @@ export function BucketDetailDrawer({
             </Tooltip>
           </Popconfirm>
         );
-      },
-    },
+      } },
   ];
 
   // Ticket columns
@@ -162,14 +156,12 @@ export function BucketDetailDrawer({
       dataIndex: "ticketNumber",
       key: "ticketNumber",
       width: 130,
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
-    },
+      render: (text: string) => <Tag color="blue">{text}</Tag> },
     {
       title: "Title",
       dataIndex: "title",
       key: "title",
-      ellipsis: true,
-    },
+      ellipsis: true },
     {
       title: "Status",
       dataIndex: "status",
@@ -180,15 +172,13 @@ export function BucketDetailDrawer({
           completed: "success",
           in_progress: "processing",
           in_testing: "warning",
-          not_started: "default",
-        };
+          not_started: "default" };
         return (
           <Tag color={colorMap[status] || "default"}>
             {status.replace("_", " ").toUpperCase()}
           </Tag>
         );
-      },
-    },
+      } },
     {
       title: "Priority",
       dataIndex: "priority",
@@ -198,11 +188,9 @@ export function BucketDetailDrawer({
         const colorMap: Record<string, string> = {
           P1: "red",
           P2: "orange",
-          P3: "green",
-        };
+          P3: "green" };
         return <Tag color={colorMap[priority] || "default"}>{priority}</Tag>;
-      },
-    },
+      } },
     {
       title: "Actions",
       key: "actions",
@@ -219,8 +207,7 @@ export function BucketDetailDrawer({
             }}
           />
         </Tooltip>
-      ),
-    },
+      ) },
   ];
 
   return (
@@ -236,8 +223,7 @@ export function BucketDetailDrawer({
                   width: 12,
                   height: 12,
                   borderRadius: "50%",
-                  backgroundColor: bucket?.color || "#1890ff",
-                }}
+                  backgroundColor: bucket?.color || "#1890ff" }}
               />
               <Text strong style={{ fontSize: 16 }}>
                 {bucket?.name || "Bucket"}
@@ -253,7 +239,7 @@ export function BucketDetailDrawer({
       >
         {isLoading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>
-            <Spin size="large" />
+            <LoadingSpinner size="large" fullScreen={false} />
           </div>
         ) : !bucket ? (
           <Empty description="Bucket not found" />
@@ -314,8 +300,7 @@ export function BucketDetailDrawer({
                       </Descriptions>
                     </Card>
                   </Space>
-                ),
-              },
+                ) },
               {
                 key: "members",
                 label: (
@@ -346,12 +331,10 @@ export function BucketDetailDrawer({
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                             description="No members yet"
                           />
-                        ),
-                      }}
+                        ) }}
                     />
                   </Space>
-                ),
-              },
+                ) },
               {
                 key: "tickets",
                 label: (
@@ -366,8 +349,7 @@ export function BucketDetailDrawer({
                     description="Ticket list view coming soon"
                     style={{ marginTop: 40 }}
                   />
-                ),
-              },
+                ) },
             ]}
           />
         )}

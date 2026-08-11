@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Select, message, Tooltip, Spin } from 'antd';
+import { Button, Table, Select, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ClockCircleOutlined,
@@ -18,8 +19,7 @@ import {
   CoffeeOutlined,
   ThunderboltOutlined,
   DashboardOutlined,
-  FieldTimeOutlined,
-} from '@ant-design/icons';
+  FieldTimeOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -30,11 +30,11 @@ import {
   AttendanceService,
   Attendance,
   TodayAttendance,
-  AttendanceState,
-} from '@/services/attendanceService';
+  AttendanceState } from '@/services/attendanceService';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { getDeviceLocation } from '@/lib/geolocation';
 import { useSocket } from '@/providers/SocketProvider';
+
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
 const PALETTE = {
@@ -42,15 +42,13 @@ const PALETTE = {
   green: '#10B981',
   amber: '#F59E0B',
   red: '#EF4444',
-  grey: '#94A3B8',
-} as const;
+  grey: '#94A3B8' } as const;
 const TINT = {
   blue: 'rgba(59,130,246,0.10)',
   green: 'rgba(16,185,129,0.10)',
   amber: 'rgba(245,158,11,0.12)',
   red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+  grey: 'rgba(148,163,184,0.12)' } as const;
 
 interface TodayStatus extends TodayAttendance {
   shift?: { id: string; name: string; startTime: string; endTime: string; isFlexible?: boolean };
@@ -63,15 +61,13 @@ interface TodayStatus extends TodayAttendance {
 const STATUS_META: Record<string, { label: string; color: string; tint: string; icon: React.ReactNode }> = {
   present: { label: 'Present', color: PALETTE.green, tint: TINT.green, icon: <PresentIcon /> },
   late: { label: 'Late', color: PALETTE.amber, tint: TINT.amber, icon: <ExclamationCircleOutlined /> },
-  absent: { label: 'Absent', color: PALETTE.red, tint: TINT.red, icon: <CloseCircleOutlined /> },
-};
+  absent: { label: 'Absent', color: PALETTE.red, tint: TINT.red, icon: <CloseCircleOutlined /> } };
 
 const STATE_META: Record<AttendanceState, { label: string; color: string }> = {
   not_started: { label: 'Not started', color: PALETTE.grey },
   working: { label: 'Working', color: PALETTE.green },
   paused: { label: 'On break', color: PALETTE.amber },
-  complete: { label: 'Complete', color: PALETTE.blue },
-};
+  complete: { label: 'Complete', color: PALETTE.blue } };
 
 const formatDuration = (minutes?: number) => {
   if (!minutes && minutes !== 0) return '-';
@@ -135,8 +131,7 @@ export default function ClockInOutPanel() {
         limit: tablePageSize,
         member: user.id,
         startDate: monthStart.toISOString(),
-        endDate: monthEnd.toISOString(),
-      });
+        endDate: monthEnd.toISOString() });
       setRows(res.data);
       setServerTotal(res.pagination.total);
     } catch (err: any) {
@@ -212,8 +207,7 @@ export default function ClockInOutPanel() {
             syncTimer({
               ...e,
               status: 'RUNNING',
-              logs: [{ id: `optimistic-${e.id}`, action: 'RESUMED', createdAt: nowIso }, ...(e.logs || [])],
-            }),
+              logs: [{ id: `optimistic-${e.id}`, action: 'RESUMED', createdAt: nowIso }, ...(e.logs || [])] }),
           );
       }
       await AttendanceService.resume({ resumeTimers, ...(loc ?? {}) });
@@ -245,8 +239,7 @@ export default function ClockInOutPanel() {
     {
       title: 'Work Hours',
       key: 'workHours',
-      render: (_, r: any) => formatDuration(r.effectiveWorkMinutes ?? r.totalWorkMinutes),
-    },
+      render: (_, r: any) => formatDuration(r.effectiveWorkMinutes ?? r.totalWorkMinutes) },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -257,14 +250,12 @@ export default function ClockInOutPanel() {
           <span
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 10px',
-              borderRadius: 999, background: meta.tint, color: meta.color, fontSize: 12, fontWeight: 600,
-            }}
+              borderRadius: 999, background: meta.tint, color: meta.color, fontSize: 12, fontWeight: 600 }}
           >
             {meta.icon} {meta.label}
           </span>
         );
-      },
-    },
+      } },
   ];
 
   // Expandable child row — lists every work session + the breaks between them.
@@ -346,7 +337,7 @@ export default function ClockInOutPanel() {
         {/* action */}
         <div className="cio-band-action">
           {!today ? (
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           ) : state === 'not_started' ? (
             <Button
               type="primary"
@@ -491,12 +482,17 @@ export default function ClockInOutPanel() {
         <CalendarOutlined /> {monthLabel} · My Attendance
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
-      <div className="cio-table-wrap" style={{ overflowX: 'auto' }}>
+      <div className="cio-table-wrap" style={{ overflowX: 'auto', position: 'relative' }}>
+        {tableLoading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           rowKey="id"
           size="small"
           className="cio-table"
-          loading={tableLoading}
+          loading={false}
           columns={columns}
           dataSource={rows}
           pagination={false}
@@ -504,8 +500,7 @@ export default function ClockInOutPanel() {
           onRow={() => ({ className: 'cio-row' })}
           expandable={{
             expandedRowRender: renderSessions,
-            rowExpandable: (record) => (record.sessions?.length || 0) > 0,
-          }}
+            rowExpandable: (record) => (record.sessions?.length || 0) > 0 }}
         />
       </div>
 

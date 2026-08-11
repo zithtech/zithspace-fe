@@ -1,12 +1,14 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Select, Button, Table, Tag, message, Spin, Empty } from 'antd';
+import { Select, Button, Table, Tag, message, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined, DownloadOutlined, BarChartOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, { PayRun, SalaryRegister, RegisterRow } from '@/services/payrollV2Service';
+
 
 const PALETTE = { violet: '#8B5CF6', green: '#10B981', red: '#EF4444', blue: '#3B82F6', slate: '#64748B' } as const;
 const TINT = { violet: 'rgba(139,92,246,0.10)', green: 'rgba(16,185,129,0.10)', blue: 'rgba(59,130,246,0.10)', red: 'rgba(239,68,68,0.10)' } as const;
@@ -70,19 +72,16 @@ export default function ReportsPanel() {
     if (!reg) return [];
     const earn: ColumnsType<RegisterRow> = reg.earningCols.map((c) => ({
       title: c.name, key: `e_${c.code}`, align: 'right' as const, width: 110,
-      render: (_: any, r: RegisterRow) => money(r.amounts[c.code] ?? 0),
-    }));
+      render: (_: any, r: RegisterRow) => money(r.amounts[c.code] ?? 0) }));
     const ded: ColumnsType<RegisterRow> = reg.deductionCols.map((c) => ({
       title: c.name, key: `d_${c.code}`, align: 'right' as const, width: 110,
-      render: (_: any, r: RegisterRow) => <span style={{ color: PALETTE.red }}>{(r.amounts[c.code] ?? 0) ? '−' : ''}{money(r.amounts[c.code] ?? 0)}</span>,
-    }));
+      render: (_: any, r: RegisterRow) => <span style={{ color: PALETTE.red }}>{(r.amounts[c.code] ?? 0) ? '−' : ''}{money(r.amounts[c.code] ?? 0)}</span> }));
     return [
       {
         title: 'Employee', key: 'emp', fixed: 'left' as const, width: 180,
         render: (_: any, r: RegisterRow) => (
           <div><div style={{ fontWeight: 600 }}>{r.name}</div>{r.designation && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{r.designation}</div>}</div>
-        ),
-      },
+        ) },
       { title: 'Paid', key: 'paid', width: 64, align: 'center' as const, render: (_: any, r: RegisterRow) => <span>{r.paidDays}</span> },
       { title: 'LOP', key: 'lop', width: 60, align: 'center' as const, render: (_: any, r: RegisterRow) => (r.lopDays > 0 ? <Tag color="orange" style={{ margin: 0 }}>{r.lopDays}</Tag> : '—') },
       ...earn,
@@ -124,7 +123,7 @@ export default function ReportsPanel() {
       </div>
 
       {loadingReg ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spin /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><LoadingSpinner fullScreen={false} /></div>
       ) : !reg ? (
         <div style={{ padding: 56 }}><Empty description={runs.length ? 'Select a pay run' : 'No pay runs yet'} /></div>
       ) : (

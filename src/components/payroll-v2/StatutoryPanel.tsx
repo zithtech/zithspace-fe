@@ -1,12 +1,13 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, InputNumber, Switch, Input, message, Spin } from 'antd';
+import { Button, InputNumber, Switch, Input, message } from 'antd';
 import { Landmark, Save, RotateCcw, ShieldCheck, PiggyBank, Percent, Building2, Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
-  PfConfig, EsiConfig, UpdatePfInput, UpdateEsiInput,
-} from '@/services/payrollV2Service';
+
+  PfConfig, EsiConfig, UpdatePfInput, UpdateEsiInput } from '@/services/payrollV2Service';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', amber: '#F59E0B', violet: '#8B5CF6' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', amber: 'rgba(245,158,11,0.10)', violet: 'rgba(139,92,246,0.10)' } as const;
@@ -19,19 +20,16 @@ type View = 'pf' | 'esi';
 const EMPTY_PF: UpdatePfInput = {
   enabled: true, employeeRate: 12, employerRate: 12, wageCeiling: 15000, restrictToCeiling: true,
   includeEmployerInCtc: true, epsEnabled: true, epsRate: 8.33, edliEnabled: true, edliRate: 0.5,
-  adminChargesRate: 0.5, establishmentCode: '',
-};
+  adminChargesRate: 0.5, establishmentCode: '' };
 const EMPTY_ESI: UpdateEsiInput = {
-  enabled: true, employeeRate: 0.75, employerRate: 3.25, wageThreshold: 21000, establishmentCode: '',
-};
+  enabled: true, employeeRate: 0.75, employerRate: 3.25, wageThreshold: 21000, establishmentCode: '' };
 
 function pfToForm(c: PfConfig): UpdatePfInput {
   return {
     enabled: c.enabled, employeeRate: c.employeeRate, employerRate: c.employerRate, wageCeiling: c.wageCeiling,
     restrictToCeiling: c.restrictToCeiling, includeEmployerInCtc: c.includeEmployerInCtc, epsEnabled: c.epsEnabled,
     epsRate: c.epsRate, edliEnabled: c.edliEnabled, edliRate: c.edliRate, adminChargesRate: c.adminChargesRate,
-    establishmentCode: c.establishmentCode ?? '',
-  };
+    establishmentCode: c.establishmentCode ?? '' };
 }
 function esiToForm(c: EsiConfig): UpdateEsiInput {
   return { enabled: c.enabled, employeeRate: c.employeeRate, employerRate: c.employerRate, wageThreshold: c.wageThreshold, establishmentCode: c.establishmentCode ?? '' };
@@ -160,7 +158,7 @@ export default function StatutoryPanel() {
       </div>
 
       {loading ? (
-        <div className="pvst-loading"><Spin /></div>
+        <div className="pvst-loading"><LoadingSpinner fullScreen={false} /></div>
       ) : view === 'pf' ? (
         <div className="pvst-sections">
           <SectionCard icon={<PiggyBank size={16} />} tint={TINT.blue} color={PALETTE.blue} title="Provident Fund (EPF)" subtitle="Employee & employer contribution and wage ceiling">

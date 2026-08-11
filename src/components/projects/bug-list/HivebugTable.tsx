@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Avatar, Dropdown, Tooltip, App, Select, Checkbox } from "antd";
 import {
   MoreHorizontal,
@@ -145,11 +146,11 @@ export default function HivebugTable({
   isNestedInSheet,
   isNestedInFolder,
 }: HivebugTableProps) {
-  const { 
-    canUpdateBug, 
-    canDeleteBug, 
-    canCreateTicket, 
-    canManageBugs 
+  const {
+    canUpdateBug,
+    canDeleteBug,
+    canCreateTicket,
+    canManageBugs
   } = usePermission();
 
   const selectableBugs = bugs.filter((b) => !b.ticketId);
@@ -160,7 +161,12 @@ export default function HivebugTable({
     selectableBugs.some((b) => selectedIds.has(b.id)) && !allChecked;
 
   return (
-    <div className="hb-table-wrapper">
+    <div className="hb-table-wrapper" style={{ position: 'relative' }}>
+      {loading && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <LoadingSpinner size="medium" fullScreen={false} />
+        </div>
+      )}
       <table className="hb-table">
         <thead>
           <tr>
@@ -182,13 +188,13 @@ export default function HivebugTable({
           </tr>
         </thead>
         <tbody>
-          {loading && bugs.length === 0 && (
+          {/* {loading && bugs.length === 0 && (
             <tr>
               <td colSpan={8} className="hb-empty">
                 Loading…
               </td>
             </tr>
-          )}
+          )} */}
           {!loading && bugs.length === 0 && (
             <tr>
               <td colSpan={8} className="hb-empty">
@@ -204,7 +210,7 @@ export default function HivebugTable({
               onToggle={(c) => onToggle(bug.id, c)}
               onEdit={() => onEdit(bug)}
               onCreateTicket={() => onCreateTicket(bug)}
-               onVerify={() => onVerify(bug)}
+              onVerify={() => onVerify(bug)}
               onReopen={() => onReopen(bug)}
               onIgnore={() => onIgnore(bug)}
               onDelete={() => onDelete(bug)}
@@ -262,11 +268,11 @@ function BugRow({
 }: BugRowProps) {
   const { message } = App.useApp();
   const { open: openTicketDrawer } = useTicketDrawer();
-  const { 
-    canUpdateBug, 
-    canDeleteBug, 
-    canCreateTicket, 
-    canManageBugs 
+  const {
+    canUpdateBug,
+    canDeleteBug,
+    canCreateTicket,
+    canManageBugs
   } = usePermission();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
@@ -285,8 +291,8 @@ function BugRow({
   );
 
   return (
-    <tr 
-      className="hb-tr" 
+    <tr
+      className="hb-tr"
       onClick={() => {
         if (!isTrashView && !isArchiveView) {
           onEdit();
@@ -430,39 +436,39 @@ function BugRow({
           menu={{
             items: isTrashView
               ? [
-                  { 
-                    key: "restore", 
-                    label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
-                    disabled: isNestedInFolder || isNestedInSheet
-                  },
-                  { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
-                ]
+                {
+                  key: "restore",
+                  label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15} />, "#3b82f6", "rgba(59,130,246,0.12)"),
+                  disabled: isNestedInFolder || isNestedInSheet
+                },
+                { type: "divider" as const },
+                { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15} />, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+              ]
               : isArchiveView
-              ? [
-                  { 
-                    key: "restore", 
+                ? [
+                  {
+                    key: "restore",
                     label: (
                       <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
-                        <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
+                        <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15} />, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
                       </Tooltip>
                     ),
                     disabled: isNestedInFolder || isNestedInSheet
                   },
                   { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+                  { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15} />, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
                 ]
-              : [
-                  { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                : [
+                  { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15} />, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
                   ...(bug.status === "converted" || bug.status === "reopened"
                     ? [
-                        { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
-                        { key: "reopen", label: menuLabel("Reopen", "Reopen bug", <RotateCcw size={15}/>, "#f59e0b", "rgba(245,158,11,0.12)"), disabled: !canUpdateBug },
-                      ]
+                      { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15} />, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
+                      { key: "reopen", label: menuLabel("Reopen", "Reopen bug", <RotateCcw size={15} />, "#f59e0b", "rgba(245,158,11,0.12)"), disabled: !canUpdateBug },
+                    ]
                     : []),
-                  { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                  { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15} />, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
                   { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
+                  { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15} />, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
                 ],
             onClick: ({ key }) => {
               if (key === "edit") onEdit();
@@ -516,17 +522,17 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function BugStatusDropdown({ 
-  currentStatus, 
-  onUpdate, 
-  canEdit 
-}: { 
-  currentStatus: string; 
-  onUpdate?: (value: "not started" | "pending" | "completed") => void; 
-  canEdit: boolean; 
+function BugStatusDropdown({
+  currentStatus,
+  onUpdate,
+  canEdit
+}: {
+  currentStatus: string;
+  onUpdate?: (value: "not started" | "pending" | "completed") => void;
+  canEdit: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const currentOption = BUG_STATUS_OPTIONS.find(opt => opt.value === currentStatus);
   const currentColors = BUG_STATUS_COLORS[currentStatus] || BUG_STATUS_COLORS["not started"];
 
@@ -552,20 +558,20 @@ function BugStatusDropdown({
         items: BUG_STATUS_OPTIONS.map((option) => ({
           key: option.value,
           label: (
-            <div style={{ 
-              display: "flex", 
-              alignItems: "center", 
+            <div style={{
+              display: "flex",
+              alignItems: "center",
               gap: "8px",
               padding: "4px 8px"
             }}>
-              <span 
-                style={{ 
-                  width: "8px", 
-                  height: "8px", 
-                  borderRadius: "50%", 
+              <span
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
                   background: BUG_STATUS_COLORS[option.value].dot,
                   flexShrink: 0
-                }} 
+                }}
               />
               <span style={{ fontSize: "13px" }}>{option.label}</span>
             </div>
@@ -582,7 +588,7 @@ function BugStatusDropdown({
         },
       }}
     >
-      <button 
+      <button
         className="hb-bug-status-dropdown"
         style={{
           "--pill-fg": currentColors.fg,

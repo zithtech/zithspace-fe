@@ -1,6 +1,8 @@
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect } from 'react';
-import { Select, Spin } from 'antd';
+import { Select } from 'antd';
 import { MembersService } from '@/services/membersService';
+
 
 interface UserSearchProps {
     placeholder?: string;
@@ -44,7 +46,7 @@ export default function UserSearch({ placeholder, style, onChange, value }: User
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             onChange={onChange}
-            notFoundContent={loading ? <Spin size="small" /> : null}
+            notFoundContent={loading ? <LoadingSpinner size="small" fullScreen={false} /> : null}
             options={options}
         />
     );

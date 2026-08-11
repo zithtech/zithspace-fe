@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import {
@@ -9,11 +10,10 @@ import {
   Tag,
   Typography,
   Empty,
-  Divider,
-  Spin,
-} from "antd";
+  Divider } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { Bucket } from "@/services/bucketService";
+
 
 const { Text } = Typography;
 
@@ -34,8 +34,7 @@ export function BucketSelector({
   selectedBucketId,
   onSelectBucket,
   onCreateNewBucket,
-  onClose,
-}: BucketSelectorProps) {
+  onClose }: BucketSelectorProps) {
   if (!visible) return null;
 
   return (
@@ -43,8 +42,7 @@ export function BucketSelector({
       style={{
         marginTop: 12,
         maxHeight: 400,
-        overflowY: "auto",
-      }}
+        overflowY: "auto" }}
     >
       <div style={{ marginBottom: 12 }}>
         <Text strong>Select Bucket or Create New:</Text>
@@ -65,7 +63,7 @@ export function BucketSelector({
             style={{ display: "flex", flexDirection: "column", gap: 8 }}
           >
             {loading ? (
-              <Spin size="small" />
+              <LoadingSpinner size="small" fullScreen={false} />
             ) : (
               buckets.map((bucket) => (
                 <Radio
@@ -80,8 +78,7 @@ export function BucketSelector({
                           width: 12,
                           height: 12,
                           borderRadius: 2,
-                          backgroundColor: bucket.color,
-                        }}
+                          backgroundColor: bucket.color }}
                       />
                     )}
                     <span style={{ fontWeight: 500 }}>{bucket.name}</span>

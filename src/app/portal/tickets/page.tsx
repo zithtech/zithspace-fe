@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -139,14 +140,14 @@ export default function PortalTicketsPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
+    } catch { }
   }, []);
 
   const setViewPersist = (v: ViewMode) => {
     setView(v);
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
+    } catch { }
   };
 
   const fromIso = datePicked?.[0]
@@ -476,7 +477,7 @@ export default function PortalTicketsPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <LoadingSpinner message="" fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <EmptyState
@@ -484,8 +485,8 @@ export default function PortalTicketsPage() {
               search
                 ? `No tickets match "${search}"`
                 : status !== "ALL"
-                ? "Nothing in this status"
-                : "No tickets yet"
+                  ? "Nothing in this status"
+                  : "No tickets yet"
             }
             body={
               search
@@ -1090,9 +1091,8 @@ function ActiveFilterChips({
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${
-        datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (
@@ -1602,24 +1602,24 @@ function FeaturedTicketCard({ ticket }: { ticket: PortalTicketListItem }) {
             days != null && days >= 0
               ? "Due in"
               : days != null && days < 0
-              ? "Overdue"
-              : "Due"
+                ? "Overdue"
+                : "Due"
           }
           value={
             days == null
               ? fmtDateShort(ticket.dueDate)
               : days > 0
-              ? `${days}d`
-              : days === 0
-              ? "today"
-              : `${-days}d`
+                ? `${days}d`
+                : days === 0
+                  ? "today"
+                  : `${-days}d`
           }
           tone={
             days != null && days < 0
               ? p.dangerText
               : days != null && days <= 1
-              ? p.warningText
-              : p.text
+                ? p.warningText
+                : p.text
           }
           divider
         />

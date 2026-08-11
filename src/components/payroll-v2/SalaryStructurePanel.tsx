@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button,
   Table,
@@ -437,8 +438,13 @@ export default function SalaryStructurePanel() {
       </div>
 
       {/* TABLE */}
-      <div className="pvs-table-wrap">
-        <Table rowKey="id" size="small" className="pvs-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
+      <div className="pvs-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
+        <Table rowKey="id" size="small" className="pvs-table" loading={false} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
       </div>
 
       {total > 0 && (

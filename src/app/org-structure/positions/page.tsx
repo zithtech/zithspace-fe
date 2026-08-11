@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -9,12 +10,10 @@ import {
   Row,
   Col,
   notification,
-  Spin,
   Tooltip,
   Switch,
   Drawer,
-  Popover,
-} from "antd";
+  Popover } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   Trophy,
@@ -28,8 +27,7 @@ import {
   Tag as TagIcon,
   Settings,
   Building2,
-  MoreHorizontal,
-} from "lucide-react";
+  MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -44,6 +42,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
 
 
 
@@ -81,8 +80,7 @@ export default function PositionsPage() {
     loading,
     createPosition,
     updatePosition,
-    deletePosition,
-  } = usePositions();
+    deletePosition } = usePositions();
 
   useEffect(() => {
     if (!authLoading && !canReadOrgPosition) {
@@ -112,7 +110,7 @@ export default function PositionsPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Positions..." />
+        <LoadingSpinner message="Loading Positions..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -149,8 +147,7 @@ export default function PositionsPage() {
         message: "Position Removed",
         description: "The position has been successfully deleted.",
         placement: "topRight",
-        duration: 2,
-      });
+        duration: 2 });
     }
   };
 
@@ -168,8 +165,7 @@ export default function PositionsPage() {
           message: `Position ${editingKey ? "Updated" : "Created"}`,
           description: `The role "${payload.title}" has been successfully saved.`,
           placement: "topRight",
-          duration: 2,
-        });
+          duration: 2 });
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -191,8 +187,7 @@ export default function PositionsPage() {
             <span className="orgx-row-name__code">{record.code}</span>
           </div>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Context",
       key: "context",
@@ -204,8 +199,7 @@ export default function PositionsPage() {
             <span className="orgx-row-context__sub">{record.subDepartmentName}</span>
           )}
         </div>
-      ),
-    },
+      ) },
     {
       title: "Grade",
       dataIndex: "gradeName",
@@ -213,8 +207,7 @@ export default function PositionsPage() {
       width: 150,
       render: (grade: string) => (
         <span className={`orgx-row-soft-tag${!grade ? " is-muted" : ""}`}>{grade || "Not assigned"}</span>
-      ),
-    },
+      ) },
     {
       title: "Status",
       dataIndex: "isActive",
@@ -225,8 +218,7 @@ export default function PositionsPage() {
           <span className="orgx-status-dot" />
           {isActive ? "Active" : "Inactive"}
         </span>
-      ),
-    },
+      ) },
     {
       title: "",
       key: "actions",
@@ -254,8 +246,7 @@ export default function PositionsPage() {
             </ConfirmDialog>
           )}
         </div>
-      ),
-    },
+      ) },
   ];
 
   const hasAdvancedFilter = !!gradeFilter || !!departmentFilter || !!subDepartmentFilter;
@@ -378,8 +369,7 @@ export default function PositionsPage() {
               marginBottom: 8,
               position: 'sticky',
               top: 0,
-              zIndex: 100,
-            }}
+              zIndex: 100 }}
             extra={
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {canReadActivityLog && (
@@ -514,15 +504,13 @@ export default function PositionsPage() {
               body: { padding: 0, background: 'var(--customers-page-bg)' },
               footer: { padding: 0, border: 'none' },
               wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
-            }}
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
             footer={
               <div
                 className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
                 style={{
                   background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)',
-                }}
+                  borderColor: 'var(--border-color)' }}
               >
                 <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
                   Fields marked required must be filled
@@ -547,8 +535,7 @@ export default function PositionsPage() {
               className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
               style={{
                 background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-                borderColor: 'var(--border-color)',
-              }}
+                borderColor: 'var(--border-color)' }}
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
@@ -556,8 +543,7 @@ export default function PositionsPage() {
                   style={{
                     background: 'rgba(59,130,246,0.10)',
                     color: '#3b82f6',
-                    border: '1px solid var(--border-blue-200)',
-                  }}
+                    border: '1px solid var(--border-blue-200)' }}
                 >
                   {editingKey ? <Edit size={18} /> : <Trophy size={18} />}
                 </div>

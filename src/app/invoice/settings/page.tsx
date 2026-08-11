@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useState, useMemo, useRef, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -12,12 +13,11 @@ import {
   Modal,
   Table,
   message,
-  Spin,
   Drawer,
   Tooltip,
   Select,
   Skeleton,
-  Dropdown,
+  Dropdown
 } from "antd";
 
 import {
@@ -49,7 +49,7 @@ import {
   Search,
   LayoutGrid,
   List,
-  MoreVertical,
+  MoreVertical
 } from "lucide-react";
 import GeneralSettings from "./GeneralSettings";
 import InvoiceSetting from "./InvoiceSetting";
@@ -58,7 +58,7 @@ import { useActivateSettingsProfile } from "@/hooks/useInvoiceSettings";
 import {
   Draft,
   Currency,
-  DateFormat,
+  DateFormat
 } from "@/types/invoice";
 
 import BankPaymentSettings from "./PaymentSetting";
@@ -66,10 +66,11 @@ import {
   useSettingsProfiles,
   useDeleteSettingsProfile,
   useCreateSettingsProfile,
-  useUpdateSettingsProfile,
+  useUpdateSettingsProfile
 } from "@/hooks/useInvoiceSettings";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+
 
 const { Title } = Typography;
 
@@ -102,7 +103,7 @@ const DEFAULT_DRAFT: Draft = {
       area: "",
       city: "",
       pincode: "",
-      country: "",
+      country: ""
     },
     primaryColor: "#1890ff",
     companyLogo: null,
@@ -110,18 +111,18 @@ const DEFAULT_DRAFT: Draft = {
     dateFormat: DateFormat.MM_DD_YYYY,
     signature: null,
     gstin: null,
-    pan: null,
+    pan: null
   },
   invoice: {
-    format: "INV-{YYYY}-{###}",
+    format: "INV-{YYYY}-{###}"
   },
   payment: {
     bankName: "",
     accountNumber: "",
     ifscCode: "",
     branchName: "",
-    qrCode: null,
-  },
+    qrCode: null
+  }
 };
 
 const ppMenuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
@@ -228,7 +229,7 @@ export default function InvoiceSettingPage() {
         companyLogo: s.general.companyLogo,
         signature: s.general.signature,
         gstin: s.general.gstin,
-        pan: s.general.pan,
+        pan: s.general.pan
       },
       invoice: { format: s.invoice.format },
       payment: {
@@ -236,8 +237,8 @@ export default function InvoiceSettingPage() {
         accountNumber: s.payment.accountNumber,
         ifscCode: s.payment.ifscCode,
         branchName: s.payment.branchName,
-        qrCode: s.payment.qrCode,
-      },
+        qrCode: s.payment.qrCode
+      }
     });
 
     setEditingId(id);
@@ -264,11 +265,10 @@ export default function InvoiceSettingPage() {
 
   const persistDraft = async ({
     closeOnSuccess,
-    label,
-  }: {
-    closeOnSuccess: boolean;
-    label?: string;
-  }) => {
+    label }: {
+      closeOnSuccess: boolean;
+      label?: string;
+    }) => {
     try {
       await generalFormRef.current?.validateFields();
     } catch {
@@ -281,7 +281,7 @@ export default function InvoiceSettingPage() {
       name: draft.general.companyName || "Untitled",
       general: draft.general,
       invoice: draft.invoice,
-      payment: draft.payment,
+      payment: draft.payment
     };
 
     if (editingId) {
@@ -298,7 +298,7 @@ export default function InvoiceSettingPage() {
           },
           onError: (err: any) => {
             message.error(err?.response?.data?.error || "Update failed");
-          },
+          }
         }
       );
     } else {
@@ -310,7 +310,7 @@ export default function InvoiceSettingPage() {
             setMode("view");
           }
         },
-        onError: (err) => console.error(err),
+        onError: (err) => console.error(err)
       });
     }
   };
@@ -320,18 +320,17 @@ export default function InvoiceSettingPage() {
     label,
     value,
     icon: Icon,
-    accent,
-  }: {
-    label: string;
-    value: string | number;
-    icon: any;
-    accent: string;
-  }) => (
+    accent }: {
+      label: string;
+      value: string | number;
+      icon: any;
+      accent: string;
+    }) => (
     <div
       className="rounded-2xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
       style={{
         background: "var(--bg-secondary)",
-        border: "1px solid var(--border-color)",
+        border: "1px solid var(--border-color)"
       }}
     >
       <span
@@ -343,7 +342,7 @@ export default function InvoiceSettingPage() {
         style={{
           background: `${accent}14`,
           color: accent,
-          border: `1px solid ${accent}33`,
+          border: `1px solid ${accent}33`
         }}
       >
         <Icon size={18} strokeWidth={2.25} />
@@ -372,8 +371,7 @@ export default function InvoiceSettingPage() {
     icon: Icon,
     active,
     completed,
-    onClick,
-  }: any) => (
+    onClick }: any) => (
     <button
       type="button"
       onClick={onClick}
@@ -381,7 +379,7 @@ export default function InvoiceSettingPage() {
       style={{
         background: active ? "var(--bg-blue-50)" : "transparent",
         border: `1px solid ${active ? "var(--border-blue-200)" : "transparent"}`,
-        boxShadow: active ? "0 0 0 3px rgba(96,165,250,0.10)" : "none",
+        boxShadow: active ? "0 0 0 3px rgba(96,165,250,0.10)" : "none"
       }}
     >
       <div
@@ -390,18 +388,18 @@ export default function InvoiceSettingPage() {
           active
             ? {
               background: "#2563eb",
-              color: "#fff",
+              color: "#fff"
             }
             : completed
               ? {
                 background: "rgba(16,185,129,0.08)",
                 color: "#10b981",
-                border: "1px solid rgba(16,185,129,0.25)",
+                border: "1px solid rgba(16,185,129,0.25)"
               }
               : {
                 background: "var(--bg-slate-50)",
                 color: "var(--text-secondary)",
-                border: "1px solid var(--border-color)",
+                border: "1px solid var(--border-color)"
               }
         }
       >
@@ -435,7 +433,7 @@ export default function InvoiceSettingPage() {
     return (
       <MainLayout>
         <div className="h-[60vh] flex items-center justify-center">
-          <Spin tip="Initializing session..." />
+          <LoadingSpinner message="Initializing session..." fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -564,7 +562,7 @@ export default function InvoiceSettingPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -580,7 +578,7 @@ export default function InvoiceSettingPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -618,7 +616,7 @@ export default function InvoiceSettingPage() {
                         className="pc-card p-4"
                         style={{
                           background: "var(--bg-slate-50)",
-                          border: "1px solid var(--border-slate-200)",
+                          border: "1px solid var(--border-slate-200)"
                         }}
                       >
                         <Skeleton active avatar paragraph={{ rows: 1 }} />
@@ -631,7 +629,7 @@ export default function InvoiceSettingPage() {
                     className="flex flex-col items-center justify-center py-20 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--bg-slate-50)]"
                     style={{
                       background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
+                      border: "1.5px dashed var(--border-color)"
                     }}
                   >
                     <div
@@ -639,7 +637,7 @@ export default function InvoiceSettingPage() {
                       style={{
                         background: "var(--bg-blue-50)",
                         color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
+                        border: "1px solid var(--border-blue-200)"
                       }}
                     >
                       <Sparkles size={24} strokeWidth={2} />
@@ -649,7 +647,7 @@ export default function InvoiceSettingPage() {
                       style={{
                         color: "var(--text-primary)",
                         margin: 0,
-                        fontWeight: 700,
+                        fontWeight: 700
                       }}
                     >
                       No settings profiles yet
@@ -659,7 +657,7 @@ export default function InvoiceSettingPage() {
                         color: "var(--text-secondary)",
                         fontSize: 13,
                         marginTop: 6,
-                        marginBottom: 20,
+                        marginBottom: 20
                       }}
                     >
                       Create a profile to start generating invoices.
@@ -676,7 +674,7 @@ export default function InvoiceSettingPage() {
                           borderRadius: 8,
                           height: 38,
                           fontWeight: 600,
-                          background: "#2563eb",
+                          background: "#2563eb"
                         }}
                       >
                         Create profile
@@ -688,7 +686,7 @@ export default function InvoiceSettingPage() {
                     className="flex flex-col items-center justify-center py-16 rounded-2xl"
                     style={{
                       background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
+                      border: "1.5px dashed var(--border-color)"
                     }}
                   >
                     <div
@@ -696,7 +694,7 @@ export default function InvoiceSettingPage() {
                       style={{
                         background: "var(--bg-blue-50)",
                         color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
+                        border: "1px solid var(--border-blue-200)"
                       }}
                     >
                       <Search size={20} strokeWidth={2} />
@@ -706,7 +704,7 @@ export default function InvoiceSettingPage() {
                       style={{
                         color: "var(--text-primary)",
                         margin: 0,
-                        fontWeight: 700,
+                        fontWeight: 700
                       }}
                     >
                       No profiles match your filters
@@ -715,7 +713,7 @@ export default function InvoiceSettingPage() {
                       style={{
                         color: "var(--text-secondary)",
                         fontSize: 13,
-                        marginTop: 6,
+                        marginTop: 6
                       }}
                     >
                       Try adjusting your search or filter
@@ -725,10 +723,16 @@ export default function InvoiceSettingPage() {
                   <div
                     className="overflow-hidden"
                     style={{
+                      position: 'relative',
                       background: "var(--bg-pure-white)",
-                      border: "1px solid var(--border-slate-200)",
+                      border: "1px solid var(--border-slate-200)"
                     }}
                   >
+                    {isFetching && !isLoading && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <LoadingSpinner size="medium" fullScreen={false} />
+                      </div>
+                    )}
                     <Table
                       className="profiles-table"
                       rowKey="id"
@@ -740,7 +744,7 @@ export default function InvoiceSettingPage() {
                           setSelectedProfileForView(record);
                           setViewDrawerVisible(true);
                         },
-                        className: "cursor-pointer",
+                        className: "cursor-pointer"
                       })}
                       columns={[
                         {
@@ -756,7 +760,7 @@ export default function InvoiceSettingPage() {
                                     ? "var(--bg-secondary)"
                                     : "var(--bg-blue-50)",
                                   color: "var(--text-blue-700)",
-                                  border: "1px solid var(--border-color)",
+                                  border: "1px solid var(--border-color)"
                                 }}
                               >
                                 {record.general?.companyLogo ? (
@@ -791,7 +795,7 @@ export default function InvoiceSettingPage() {
                                 </div>
                               </div>
                             </div>
-                          ),
+                          )
                         },
                         {
                           title: "FORMAT",
@@ -805,12 +809,12 @@ export default function InvoiceSettingPage() {
                                 color: "var(--text-primary)",
                                 border: "1px solid var(--border-color)",
                                 fontFamily:
-                                  "ui-monospace, SFMono-Regular, Menlo, monospace",
+                                  "ui-monospace, SFMono-Regular, Menlo, monospace"
                               }}
                             >
                               {record.invoice?.format || "—"}
                             </code>
-                          ),
+                          )
                         },
                         {
                           title: "CURRENCY",
@@ -824,7 +828,7 @@ export default function InvoiceSettingPage() {
                             >
                               {v || "—"}
                             </span>
-                          ),
+                          )
                         },
                         {
                           title: "STATUS",
@@ -838,7 +842,7 @@ export default function InvoiceSettingPage() {
                                 style={{
                                   background: "rgba(16,185,129,0.08)",
                                   color: "#10b981",
-                                  border: "1px solid rgba(16,185,129,0.25)",
+                                  border: "1px solid rgba(16,185,129,0.25)"
                                 }}
                               >
                                 <span
@@ -853,7 +857,7 @@ export default function InvoiceSettingPage() {
                                 style={{
                                   background: "var(--bg-slate-50)",
                                   color: "var(--text-secondary)",
-                                  border: "1px solid var(--border-color)",
+                                  border: "1px solid var(--border-color)"
                                 }}
                               >
                                 <span
@@ -862,7 +866,7 @@ export default function InvoiceSettingPage() {
                                 />
                                 Inactive
                               </span>
-                            ),
+                            )
                         },
                         {
                           title: "",
@@ -896,7 +900,7 @@ export default function InvoiceSettingPage() {
                                     onClick={() =>
                                       activateMutation.mutate({
                                         id: record.id,
-                                        isActive: !record.isActive,
+                                        isActive: !record.isActive
                                       })
                                     }
                                     className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
@@ -927,7 +931,7 @@ export default function InvoiceSettingPage() {
                                 </Tooltip>
                               )}
                             </div>
-                          ),
+                          )
                         },
                       ]}
                     />
@@ -941,7 +945,7 @@ export default function InvoiceSettingPage() {
                         canUpdateInvoiceSetting && {
                           key: "edit",
                           label: ppMenuLabel('Edit', 'Modify settings', <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                          onClick: () => handleEdit(setting.id),
+                          onClick: () => handleEdit(setting.id)
                         },
                         canUpdateInvoiceSetting && {
                           key: "status_toggle",
@@ -949,8 +953,8 @@ export default function InvoiceSettingPage() {
                           onClick: () =>
                             activateMutation.mutate({
                               id: setting.id,
-                              isActive: !setting.isActive,
-                            }),
+                              isActive: !setting.isActive
+                            })
                         },
                         canDeleteInvoiceSetting && { type: "divider" },
                         canDeleteInvoiceSetting && {
@@ -971,7 +975,7 @@ export default function InvoiceSettingPage() {
                                 </div>
                               </ConfirmDialog>
                             </div>
-                          ),
+                          )
                         },
                       ].filter(Boolean);
 
@@ -991,7 +995,7 @@ export default function InvoiceSettingPage() {
                                 setting.general?.companyLogo
                                   ? { background: "var(--bg-slate-50)" }
                                   : {
-                                    background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                                    background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`
                                   }
                               }
                             >
@@ -1052,7 +1056,7 @@ export default function InvoiceSettingPage() {
                                   style={{
                                     fontSize: "11px",
                                     fontWeight: 700,
-                                    color: setting.isActive ? "#10b981" : "#94a3b8",
+                                    color: setting.isActive ? "#10b981" : "#94a3b8"
                                   }}
                                 >
                                   {setting.isActive ? "ACTIVE" : "INACTIVE"}
@@ -1139,7 +1143,7 @@ export default function InvoiceSettingPage() {
                   }}
                   options={[10, 20, 25, 50, 100].map((n) => ({
                     value: n,
-                    label: `${n} / page`,
+                    label: `${n} / page`
                   }))}
                   popupMatchSelectWidth={120}
                 />
@@ -1166,7 +1170,7 @@ export default function InvoiceSettingPage() {
                   className="rounded-2xl p-3"
                   style={{
                     background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-color)",
+                    border: "1px solid var(--border-color)"
                   }}
                 >
                   <div
@@ -1222,7 +1226,7 @@ export default function InvoiceSettingPage() {
                   className="mt-3 rounded-2xl p-4 flex items-start gap-3"
                   style={{
                     background: "var(--bg-blue-50)",
-                    border: "1px solid var(--border-blue-200)",
+                    border: "1px solid var(--border-blue-200)"
                   }}
                 >
                   <div
@@ -1230,7 +1234,7 @@ export default function InvoiceSettingPage() {
                     style={{
                       background: "var(--bg-secondary)",
                       color: "var(--text-blue-700)",
-                      border: "1px solid var(--border-blue-200)",
+                      border: "1px solid var(--border-blue-200)"
                     }}
                   >
                     <Info size={13} />
@@ -1250,7 +1254,7 @@ export default function InvoiceSettingPage() {
                 className="rounded-2xl overflow-hidden flex flex-col min-h-0"
                 style={{
                   background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
+                  border: "1px solid var(--border-color)"
                 }}
               >
                 <div
@@ -1323,7 +1327,7 @@ export default function InvoiceSettingPage() {
               style={{
                 background:
                   "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
-                borderColor: "var(--border-color)",
+                borderColor: "var(--border-color)"
               }}
             >
               <div className="px-8 py-3 flex items-center justify-between gap-4 max-w-[1600px] mx-auto">
@@ -1349,7 +1353,7 @@ export default function InvoiceSettingPage() {
                     style={{
                       borderRadius: 8,
                       height: 36,
-                      fontWeight: 600,
+                      fontWeight: 600
                     }}
                   >
                     Previous
@@ -1362,13 +1366,13 @@ export default function InvoiceSettingPage() {
                       onClick={() =>
                         persistDraft({
                           closeOnSuccess: false,
-                          label: STEP_LABELS[currentStep],
+                          label: STEP_LABELS[currentStep]
                         })
                       }
                       style={{
                         borderRadius: 8,
                         height: 36,
-                        fontWeight: 600,
+                        fontWeight: 600
                       }}
                     >
                       Save {STEP_LABELS[currentStep].toLowerCase()}
@@ -1393,7 +1397,7 @@ export default function InvoiceSettingPage() {
                         borderRadius: 8,
                         height: 36,
                         fontWeight: 600,
-                        background: "#2563eb",
+                        background: "#2563eb"
                       }}
                     >
                       Next step
@@ -1411,7 +1415,7 @@ export default function InvoiceSettingPage() {
                         borderRadius: 8,
                         height: 36,
                         fontWeight: 600,
-                        background: "#10b981",
+                        background: "#10b981"
                       }}
                     >
                       {editingId ? "Update profile" : "Save & finish"}
@@ -1435,12 +1439,12 @@ export default function InvoiceSettingPage() {
           body: { padding: 0, background: "var(--customers-page-bg)" },
           header: { display: "none" },
           wrapper: {
-            boxShadow: "-12px 0 32px rgba(15, 23, 42, 0.08)",
+            boxShadow: "-12px 0 32px rgba(15, 23, 42, 0.08)"
           },
           mask: {
             backdropFilter: "blur(2px)",
-            background: "rgba(15, 23, 42, 0.35)",
-          },
+            background: "rgba(15, 23, 42, 0.35)"
+          }
         }}
       >
         {selectedProfileForView && (
@@ -1451,7 +1455,7 @@ export default function InvoiceSettingPage() {
               style={{
                 background:
                   "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
-                borderColor: "var(--border-color)",
+                borderColor: "var(--border-color)"
               }}
             >
               <div className="flex items-start gap-3 min-w-0">
@@ -1462,7 +1466,7 @@ export default function InvoiceSettingPage() {
                       ? "var(--bg-secondary)"
                       : "var(--bg-blue-50)",
                     color: "var(--text-blue-700)",
-                    border: "1px solid var(--border-color)",
+                    border: "1px solid var(--border-color)"
                   }}
                 >
                   {selectedProfileForView.general?.companyLogo ? (
@@ -1491,12 +1495,12 @@ export default function InvoiceSettingPage() {
                           ? {
                             background: "#ecfdf5",
                             color: "#047857",
-                            border: "1px solid #a7f3d0",
+                            border: "1px solid #a7f3d0"
                           }
                           : {
                             background: "var(--bg-slate-50)",
                             color: "var(--text-secondary)",
-                            border: "1px solid var(--border-color)",
+                            border: "1px solid var(--border-color)"
                           }
                       }
                     >
@@ -1505,7 +1509,7 @@ export default function InvoiceSettingPage() {
                         style={{
                           background: selectedProfileForView.isActive
                             ? "#10b981"
-                            : "#94a3b8",
+                            : "#94a3b8"
                         }}
                       />
                       {selectedProfileForView.isActive ? "Active" : "Inactive"}
@@ -1517,7 +1521,7 @@ export default function InvoiceSettingPage() {
                         color: "var(--text-secondary)",
                         border: "1px solid var(--border-color)",
                         fontFamily:
-                          "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          "ui-monospace, SFMono-Regular, Menlo, monospace"
                       }}
                     >
                       {selectedProfileForView.invoice?.format || "—"}
@@ -1614,7 +1618,7 @@ export default function InvoiceSettingPage() {
                         className="flex flex-col items-center justify-center py-6 rounded-lg"
                         style={{
                           background: "var(--bg-slate-50)",
-                          border: "1px dashed var(--border-color)",
+                          border: "1px dashed var(--border-color)"
                         }}
                       >
                         <MapPin
@@ -1684,7 +1688,7 @@ export default function InvoiceSettingPage() {
                       className="rounded-lg px-3 py-2.5 text-center"
                       style={{
                         background: "var(--bg-slate-50)",
-                        border: "1px solid var(--border-color)",
+                        border: "1px solid var(--border-color)"
                       }}
                     >
                       <code
@@ -1692,7 +1696,7 @@ export default function InvoiceSettingPage() {
                         style={{
                           color: "var(--text-primary)",
                           fontFamily:
-                            "ui-monospace, SFMono-Regular, Menlo, monospace",
+                            "ui-monospace, SFMono-Regular, Menlo, monospace"
                         }}
                       >
                         {selectedProfileForView.invoice?.format?.toUpperCase() ||
@@ -1711,7 +1715,7 @@ export default function InvoiceSettingPage() {
                       className="rounded-lg px-3 py-2.5 text-center"
                       style={{
                         background: "var(--bg-blue-50)",
-                        border: "1px solid var(--border-blue-200)",
+                        border: "1px solid var(--border-blue-200)"
                       }}
                     >
                       <code
@@ -1719,7 +1723,7 @@ export default function InvoiceSettingPage() {
                         style={{
                           color: "var(--text-blue-700)",
                           fontFamily:
-                            "ui-monospace, SFMono-Regular, Menlo, monospace",
+                            "ui-monospace, SFMono-Regular, Menlo, monospace"
                         }}
                       >
                         {previewNumber(
@@ -1777,7 +1781,7 @@ export default function InvoiceSettingPage() {
                         className="rounded-xl p-3 text-center"
                         style={{
                           background: "var(--bg-slate-50)",
-                          border: "1px solid var(--border-color)",
+                          border: "1px solid var(--border-color)"
                         }}
                       >
                         {selectedProfileForView.payment.qrCode ? (
@@ -1786,7 +1790,7 @@ export default function InvoiceSettingPage() {
                               className="rounded-md p-2 mb-2"
                               style={{
                                 background: "var(--bg-secondary)",
-                                border: "1px solid var(--border-color)",
+                                border: "1px solid var(--border-color)"
                               }}
                             >
                               <img
@@ -1825,7 +1829,7 @@ export default function InvoiceSettingPage() {
                     className="flex flex-col items-center justify-center py-8 rounded-lg"
                     style={{
                       background: "var(--bg-slate-50)",
-                      border: "1px dashed var(--border-color)",
+                      border: "1px dashed var(--border-color)"
                     }}
                   >
                     <CreditCard
@@ -1852,7 +1856,7 @@ export default function InvoiceSettingPage() {
                   className="rounded-lg flex justify-center items-center min-h-[100px] py-5"
                   style={{
                     background: "var(--bg-slate-50)",
-                    border: "1px dashed var(--border-color)",
+                    border: "1px dashed var(--border-color)"
                   }}
                 >
                   {selectedProfileForView.general?.signature ? (
@@ -1882,7 +1886,7 @@ export default function InvoiceSettingPage() {
               style={{
                 background:
                   "color-mix(in oklab, var(--bg-secondary) 92%, transparent)",
-                borderColor: "var(--border-color)",
+                borderColor: "var(--border-color)"
               }}
             >
               <Button
@@ -1901,7 +1905,7 @@ export default function InvoiceSettingPage() {
                   onClick={() => {
                     activateMutation.mutate({
                       id: selectedProfileForView.id,
-                      isActive: !selectedProfileForView.isActive,
+                      isActive: !selectedProfileForView.isActive
                     });
                   }}
                   icon={<Power size={14} />}
@@ -1923,7 +1927,7 @@ export default function InvoiceSettingPage() {
                     borderRadius: 8,
                     height: 36,
                     fontWeight: 600,
-                    background: "#2563eb",
+                    background: "#2563eb"
                   }}
                 >
                   Edit profile
@@ -1949,16 +1953,16 @@ export default function InvoiceSettingPage() {
           body: { padding: 0 },
           mask: {
             backdropFilter: "blur(4px)",
-            background: "rgba(15, 23, 42, 0.45)",
+            background: "rgba(15, 23, 42, 0.45)"
           },
-          content: { padding: 0, borderRadius: 20, overflow: "hidden" },
+          content: { padding: 0, borderRadius: 20, overflow: "hidden" }
         }}
       >
         <div
           className="px-6 pt-5 pb-4 border-b"
           style={{
             background: "var(--bg-slate-50)",
-            borderColor: "var(--border-color)",
+            borderColor: "var(--border-color)"
           }}
         >
           <div className="flex items-start gap-3">
@@ -1967,7 +1971,7 @@ export default function InvoiceSettingPage() {
               style={{
                 background: "rgba(248,113,113,0.08)",
                 color: "#f87171",
-                border: "1px solid rgba(248,113,113,0.25)",
+                border: "1px solid rgba(248,113,113,0.25)"
               }}
             >
               <Trash2 size={18} strokeWidth={2.25} />
@@ -2014,7 +2018,7 @@ export default function InvoiceSettingPage() {
             className="rounded-lg p-3 mb-5 flex items-start gap-2"
             style={{
               background: "rgba(248,113,113,0.06)",
-              border: "1px solid rgba(248,113,113,0.20)",
+              border: "1px solid rgba(248,113,113,0.20)"
             }}
           >
             <AlertCircle
@@ -2048,7 +2052,7 @@ export default function InvoiceSettingPage() {
                     onSuccess: () => {
                       setDeleteModalOpen(false);
                       setDeleteId(null);
-                    },
+                    }
                   });
                 }
               }}
@@ -2262,18 +2266,17 @@ const SectionCard = ({
   icon: Icon,
   title,
   subtitle,
-  children,
-}: {
-  icon: any;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) => (
+  children }: {
+    icon: any;
+    title: string;
+    subtitle?: string;
+    children: React.ReactNode;
+  }) => (
   <div
     className="rounded-2xl overflow-hidden"
     style={{
       background: "var(--bg-secondary)",
-      border: "1px solid var(--border-color)",
+      border: "1px solid var(--border-color)"
     }}
   >
     <div
@@ -2285,7 +2288,7 @@ const SectionCard = ({
         style={{
           background: "var(--bg-blue-50)",
           color: "var(--text-blue-700)",
-          border: "1px solid var(--border-blue-200)",
+          border: "1px solid var(--border-blue-200)"
         }}
       >
         <Icon size={13} strokeWidth={2.25} />
@@ -2319,13 +2322,12 @@ const KvRow = ({
   label,
   value,
   mono,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  icon?: any;
-}) => (
+  icon: Icon }: {
+    label: string;
+    value: string;
+    mono?: boolean;
+    icon?: any;
+  }) => (
   <div className="flex items-center justify-between gap-3">
     <span
       className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
@@ -2340,7 +2342,7 @@ const KvRow = ({
         fontFamily: mono
           ? "ui-monospace, SFMono-Regular, Menlo, monospace"
           : undefined,
-        fontWeight: 500,
+        fontWeight: 500
       }}
     >
       {Icon && (
@@ -2357,20 +2359,19 @@ const MetaTile = ({
   sub,
   accent,
   mono,
-  truncate,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent: string;
-  mono?: boolean;
-  truncate?: boolean;
-}) => (
+  truncate }: {
+    label: string;
+    value: string;
+    sub?: string;
+    accent: string;
+    mono?: boolean;
+    truncate?: boolean;
+  }) => (
   <div
     className="rounded-xl px-3.5 py-3 relative overflow-hidden"
     style={{
       background: "var(--bg-secondary)",
-      border: "1px solid var(--border-color)",
+      border: "1px solid var(--border-color)"
     }}
   >
     <span
@@ -2390,7 +2391,7 @@ const MetaTile = ({
         color: "var(--text-primary)",
         fontFamily: mono
           ? "ui-monospace, SFMono-Regular, Menlo, monospace"
-          : undefined,
+          : undefined
       }}
     >
       {value}
@@ -2402,7 +2403,7 @@ const MetaTile = ({
           color: "var(--text-secondary)",
           fontFamily: mono
             ? "ui-monospace, SFMono-Regular, Menlo, monospace"
-            : undefined,
+            : undefined
         }}
       >
         {sub}

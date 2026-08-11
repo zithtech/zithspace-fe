@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, InputNumber, Switch, message, Spin } from 'antd';
+import { Button, InputNumber, Switch, message } from 'antd';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import {
   SlidersHorizontal,
@@ -11,13 +12,14 @@ import {
   Calculator,
   CircleSlash,
   Coins,
-  Menu,
+  Menu
 } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
+
   PayrollSettings,
   UpdatePayrollSettingsInput,
-  SalaryCalcBasis,
+  SalaryCalcBasis
 } from '@/services/payrollV2Service';
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', amber: '#F59E0B', red: '#EF4444', violet: '#8B5CF6' } as const;
@@ -26,7 +28,7 @@ const TINT = {
   green: 'rgba(16,185,129,0.10)',
   amber: 'rgba(245,158,11,0.10)',
   red: 'rgba(239,68,68,0.10)',
-  violet: 'rgba(139,92,246,0.10)',
+  violet: 'rgba(139,92,246,0.10)'
 } as const;
 
 const MONTHS = [
@@ -69,7 +71,7 @@ const EMPTY_FORM: UpdatePayrollSettingsInput = {
   roundingNearest: 1,
   decimalPlaces: 2,
   payDay: 1,
-  enableLop: true,
+  enableLop: true
 };
 
 function toForm(s: PayrollSettings): UpdatePayrollSettingsInput {
@@ -85,7 +87,7 @@ function toForm(s: PayrollSettings): UpdatePayrollSettingsInput {
     roundingNearest: s.roundingNearest,
     decimalPlaces: s.decimalPlaces,
     payDay: s.payDay,
-    enableLop: s.enableLop,
+    enableLop: s.enableLop
   };
 }
 
@@ -177,7 +179,7 @@ export default function GeneralSettingsPanel() {
       </div>
 
       {loading ? (
-        <div className="pv-loading"><Spin /></div>
+        <div className="pv-loading"><LoadingSpinner fullScreen={false} /></div>
       ) : (
         <div className="pv-sections">
           {/* ---------------- Financial Year & Pay ---------------- */}
@@ -400,11 +402,10 @@ export default function GeneralSettingsPanel() {
 
 // ─── small presentational helpers ──────────────────────────────────────────────
 function SectionCard({
-  icon, tint, color, title, subtitle, children,
-}: {
-  icon: React.ReactNode; tint: string; color: string;
-  title: string; subtitle: string; children: React.ReactNode;
-}) {
+  icon, tint, color, title, subtitle, children }: {
+    icon: React.ReactNode; tint: string; color: string;
+    title: string; subtitle: string; children: React.ReactNode;
+  }) {
   return (
     <section className="pv-card">
       <div className="pv-card-head">
@@ -422,14 +423,13 @@ function SectionCard({
 // Thin wrapper over the app-standard SearchableDropdown with payroll-settings
 // defaults: no clear (values are required), no avatar, uniform inline sizing.
 function PayrollSelect({
-  value, onChange, options, searchPlaceholder, itemNoun,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string; description?: string }[];
-  searchPlaceholder?: string;
-  itemNoun?: string;
-}) {
+  value, onChange, options, searchPlaceholder, itemNoun }: {
+    value: string;
+    onChange: (v: string) => void;
+    options: { value: string; label: string; description?: string }[];
+    searchPlaceholder?: string;
+    itemNoun?: string;
+  }) {
   return (
     <SearchableDropdown
       value={value}
@@ -445,10 +445,9 @@ function PayrollSelect({
 }
 
 function Field({
-  label, hint, inlineSwitch, children,
-}: {
-  label: string; hint?: string; inlineSwitch?: boolean; children: React.ReactNode;
-}) {
+  label, hint, inlineSwitch, children }: {
+    label: string; hint?: string; inlineSwitch?: boolean; children: React.ReactNode;
+  }) {
   return (
     <div className="pv-frow">
       <div className="pv-frow-meta">

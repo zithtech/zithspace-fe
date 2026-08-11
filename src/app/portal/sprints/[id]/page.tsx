@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Spin, Empty, Tooltip } from "antd";
+import { Button, Empty, Tooltip } from "antd";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -15,12 +16,13 @@ import {
   ExternalLink,
   Plus,
   Tag as TagIcon,
-  Clock,
+  Clock
 } from "lucide-react";
 import {
+
   portalSprintService,
   PortalSprintDetail,
-  PortalSprintTicket,
+  PortalSprintTicket
 } from "@/services/portalSprintService";
 
 const p = {
@@ -51,7 +53,7 @@ const p = {
   warningText: "#92400e",
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const STATUS_META: Record<
@@ -67,7 +69,7 @@ const STATUS_META: Record<
   in_progress: { label: "In progress", tone: "accent", icon: Activity },
   completed: { label: "Completed", tone: "success", icon: CheckCircle2 },
   done: { label: "Completed", tone: "success", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", tone: "neutral", icon: AlertTriangle },
+  cancelled: { label: "Cancelled", tone: "neutral", icon: AlertTriangle }
 };
 
 const TONE = {
@@ -75,7 +77,7 @@ const TONE = {
   success: { bg: p.successBg, border: p.successBorder, text: p.successText },
   warning: { bg: p.warningBg, border: p.warningBorder, text: p.warningText },
   danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
+  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText }
 };
 
 function fmtDate(iso: string | null) {
@@ -84,7 +86,7 @@ function fmtDate(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -102,7 +104,7 @@ function StatusPill({ status }: { status: string }) {
     STATUS_META[status.toLowerCase()] || {
       label: status,
       tone: "neutral" as const,
-      icon: Layers,
+      icon: Layers
     };
   const tone = TONE[meta.tone];
   const Icon = meta.icon;
@@ -118,7 +120,7 @@ function StatusPill({ status }: { status: string }) {
         color: tone.text,
         borderRadius: 999,
         fontSize: 12.5,
-        fontWeight: 500,
+        fontWeight: 500
       }}
     >
       <Icon size={12} />
@@ -129,11 +131,10 @@ function StatusPill({ status }: { status: string }) {
 
 function ProgressBar({
   percent,
-  tone = "accent",
-}: {
-  percent: number;
-  tone?: "accent" | "success" | "warning";
-}) {
+  tone = "accent" }: {
+    percent: number;
+    tone?: "accent" | "success" | "warning";
+  }) {
   const color =
     tone === "success" ? p.success : tone === "warning" ? p.warning : p.accent;
   const safe = Math.min(100, Math.max(0, percent));
@@ -144,7 +145,7 @@ function ProgressBar({
         height: 6,
         background: p.neutralBg,
         borderRadius: 999,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -152,7 +153,7 @@ function ProgressBar({
           width: `${safe}%`,
           height: "100%",
           background: color,
-          transition: "width 200ms ease",
+          transition: "width 200ms ease"
         }}
       />
     </div>
@@ -206,10 +207,10 @@ export default function PortalSprintDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -231,8 +232,8 @@ export default function PortalSprintDetailPage() {
     activeBucket === "all"
       ? sprint.tickets
       : activeBucket === "addedAfter"
-      ? sprint.tickets.filter((t) => t.addedAfterSprint)
-      : sprint.tickets.filter((t) => t.category === activeBucket);
+        ? sprint.tickets.filter((t) => t.addedAfterSprint)
+        : sprint.tickets.filter((t) => t.category === activeBucket);
 
   return (
     <div style={{ padding: "32px 40px 56px", maxWidth: 1200 }}>
@@ -245,7 +246,7 @@ export default function PortalSprintDetailPage() {
           padding: "4px 8px",
           height: 28,
           color: p.textMuted,
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         Back to sprints
@@ -258,7 +259,7 @@ export default function PortalSprintDetailPage() {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
           borderRadius: 14,
-          marginBottom: 16,
+          marginBottom: 16
         }}
       >
         <div
@@ -266,7 +267,7 @@ export default function PortalSprintDetailPage() {
             display: "flex",
             justifyContent: "space-between",
             gap: 24,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -276,7 +277,7 @@ export default function PortalSprintDetailPage() {
                 fontWeight: 600,
                 color: p.textSubtle,
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.08em"
               }}
             >
               {sprint.project.name}
@@ -288,7 +289,7 @@ export default function PortalSprintDetailPage() {
                 fontSize: 24,
                 fontWeight: 600,
                 color: p.text,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.02em"
               }}
             >
               {sprint.version}
@@ -299,7 +300,7 @@ export default function PortalSprintDetailPage() {
                 display: "flex",
                 gap: 10,
                 alignItems: "center",
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <StatusPill status={sprint.status} />
@@ -309,7 +310,7 @@ export default function PortalSprintDetailPage() {
                   color: p.textSubtle,
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4,
+                  gap: 4
                 }}
               >
                 <Calendar size={12} />
@@ -322,7 +323,7 @@ export default function PortalSprintDetailPage() {
                     color: p.successText,
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 4
                   }}
                 >
                   <CheckCircle2 size={12} />
@@ -343,7 +344,7 @@ export default function PortalSprintDetailPage() {
                   lineHeight: 1.55,
                   display: "flex",
                   gap: 8,
-                  alignItems: "flex-start",
+                  alignItems: "flex-start"
                 }}
               >
                 <Flag size={14} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -362,7 +363,7 @@ export default function PortalSprintDetailPage() {
             marginTop: 22,
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
+            gap: 16
           }}
         >
           <MetricBlock
@@ -374,8 +375,8 @@ export default function PortalSprintDetailPage() {
               sprint.completionPercent >= 100
                 ? "success"
                 : sprint.completionPercent >= 70
-                ? "accent"
-                : "warning"
+                  ? "accent"
+                  : "warning"
             }
           />
           <MetricBlock
@@ -415,7 +416,7 @@ export default function PortalSprintDetailPage() {
             background: p.surfaceElevated,
             border: `1px solid ${p.border}`,
             borderRadius: 12,
-            marginBottom: 16,
+            marginBottom: 16
           }}
         >
           <div
@@ -425,7 +426,7 @@ export default function PortalSprintDetailPage() {
               color: p.textSubtle,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              marginBottom: 10,
+              marginBottom: 10
             }}
           >
             Links
@@ -448,7 +449,7 @@ export default function PortalSprintDetailPage() {
                   color: p.accentText,
                   textDecoration: "none",
                   fontSize: 12.5,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 <ExternalLink size={12} />
@@ -465,7 +466,7 @@ export default function PortalSprintDetailPage() {
           display: "flex",
           gap: 6,
           flexWrap: "wrap",
-          marginBottom: 10,
+          marginBottom: 10
         }}
       >
         {[
@@ -473,18 +474,18 @@ export default function PortalSprintDetailPage() {
           {
             key: "completed" as const,
             label: "Completed",
-            count: sprint.counts.completed,
+            count: sprint.counts.completed
           },
           { key: "open" as const, label: "In progress", count: sprint.counts.open },
           {
             key: "blocked" as const,
             label: "Blocked",
-            count: sprint.counts.blocked,
+            count: sprint.counts.blocked
           },
           {
             key: "addedAfter" as const,
             label: "Added mid-sprint",
-            count: sprint.counts.addedAfter,
+            count: sprint.counts.addedAfter
           },
         ].map((tab) => {
           const active = activeBucket === tab.key;
@@ -503,7 +504,7 @@ export default function PortalSprintDetailPage() {
                 borderRadius: 8,
                 fontSize: 12.5,
                 fontWeight: 500,
-                cursor: "pointer",
+                cursor: "pointer"
               }}
             >
               {tab.label}
@@ -515,7 +516,7 @@ export default function PortalSprintDetailPage() {
                     padding: "1px 7px",
                     borderRadius: 999,
                     background: active ? "rgba(255,255,255,0.15)" : p.neutralBg,
-                    color: active ? "#ffffff" : p.textSubtle,
+                    color: active ? "#ffffff" : p.textSubtle
                   }}
                 >
                   {tab.count}
@@ -532,7 +533,7 @@ export default function PortalSprintDetailPage() {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
           borderRadius: 12,
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
         {filteredTickets.length === 0 ? (
@@ -541,7 +542,7 @@ export default function PortalSprintDetailPage() {
               padding: 56,
               textAlign: "center",
               color: p.textSubtle,
-              fontSize: 13,
+              fontSize: 13
             }}
           >
             No tickets in this view.
@@ -561,7 +562,7 @@ export default function PortalSprintDetailPage() {
                 fontWeight: 600,
                 color: p.textSubtle,
                 textTransform: "uppercase",
-                letterSpacing: "0.06em",
+                letterSpacing: "0.06em"
               }}
             >
               <div>Ticket</div>
@@ -588,15 +589,14 @@ function MetricBlock({
   sub,
   percent,
   tone,
-  icon: Icon,
-}: {
-  label: string;
-  primary: string;
-  sub: string;
-  percent?: number;
-  tone: "accent" | "success" | "warning" | "danger" | "neutral";
-  icon?: any;
-}) {
+  icon: Icon }: {
+    label: string;
+    primary: string;
+    sub: string;
+    percent?: number;
+    tone: "accent" | "success" | "warning" | "danger" | "neutral";
+    icon?: any;
+  }) {
   const t = TONE[tone];
   return (
     <div
@@ -604,7 +604,7 @@ function MetricBlock({
         padding: 14,
         background: p.surfaceMuted,
         border: `1px solid ${p.border}`,
-        borderRadius: 10,
+        borderRadius: 10
       }}
     >
       <div
@@ -616,7 +616,7 @@ function MetricBlock({
           fontWeight: 600,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          letterSpacing: "0.06em"
         }}
       >
         {Icon && <Icon size={11} />}
@@ -629,7 +629,7 @@ function MetricBlock({
           fontWeight: 600,
           color: p.text,
           fontVariantNumeric: "tabular-nums",
-          letterSpacing: "-0.01em",
+          letterSpacing: "-0.01em"
         }}
       >
         {primary}
@@ -644,7 +644,7 @@ function MetricBlock({
           border: `1px solid ${t.border}`,
           padding: "1px 8px",
           borderRadius: 999,
-          display: "inline-block",
+          display: "inline-block"
         }}
       >
         {sub}
@@ -677,8 +677,8 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
       ? dueDays < 0
         ? p.dangerText
         : dueDays <= 3
-        ? p.warningText
-        : p.textMuted
+          ? p.warningText
+          : p.textMuted
       : p.textFaint;
 
   return (
@@ -694,7 +694,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
         borderBottom: `1px solid ${p.border}`,
         background: hover ? p.surfaceMuted : "transparent",
         alignItems: "center",
-        transition: "background 120ms ease",
+        transition: "background 120ms ease"
       }}
     >
       <div style={{ minWidth: 0 }}>
@@ -703,7 +703,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span
@@ -714,7 +714,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               background: p.surfaceMuted,
               border: `1px solid ${p.border}`,
               borderRadius: 6,
-              color: p.textMuted,
+              color: p.textMuted
             }}
           >
             {ticket.ticketNumber}
@@ -727,7 +727,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              minWidth: 0,
+              minWidth: 0
             }}
             title={ticket.title}
           >
@@ -746,7 +746,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
                   borderRadius: 999,
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 3,
+                  gap: 3
                 }}
               >
                 <Plus size={9} />
@@ -761,7 +761,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               marginTop: 4,
               display: "flex",
               gap: 4,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             {ticket.tags.slice(0, 3).map((tag) => (
@@ -776,7 +776,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
                   borderRadius: 999,
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 3,
+                  gap: 3
                 }}
               >
                 <TagIcon size={8} />
@@ -799,7 +799,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               background: p.successBg,
               border: `1px solid ${p.successBorder}`,
               color: p.successText,
-              borderRadius: 999,
+              borderRadius: 999
             }}
           >
             <CheckCircle2 size={11} />
@@ -817,7 +817,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               background: p.dangerBg,
               border: `1px solid ${p.dangerBorder}`,
               color: p.dangerText,
-              borderRadius: 999,
+              borderRadius: 999
             }}
           >
             <AlertTriangle size={11} />
@@ -835,7 +835,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
               background: p.surfaceMuted,
               border: `1px solid ${p.border}`,
               color: p.textMuted,
-              borderRadius: 999,
+              borderRadius: 999
             }}
           >
             <Activity size={11} />
@@ -847,7 +847,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
         style={{
           fontSize: 12,
           fontWeight: 500,
-          color: priorityColor(ticket.priority),
+          color: priorityColor(ticket.priority)
         }}
       >
         {ticket.priority.replace(/\s*\(.*\)/, "")}
@@ -858,7 +858,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
           fontSize: 13,
           fontWeight: 600,
           color: p.text,
-          fontVariantNumeric: "tabular-nums",
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         {ticket.storyPoint || "—"}
@@ -872,7 +872,7 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
           display: "inline-flex",
           alignItems: "center",
           gap: 3,
-          justifyContent: "flex-end",
+          justifyContent: "flex-end"
         }}
       >
         {ticket.dueDate ? (
@@ -881,10 +881,10 @@ function TicketRow({ ticket }: { ticket: PortalSprintTicket }) {
             {dueDays != null && dueDays < 0
               ? `${Math.abs(dueDays)}d over`
               : dueDays === 0
-              ? "Today"
-              : dueDays != null && dueDays <= 7
-              ? `${dueDays}d`
-              : fmtDate(ticket.dueDate)}
+                ? "Today"
+                : dueDays != null && dueDays <= 7
+                  ? `${dueDays}d`
+                  : fmtDate(ticket.dueDate)}
           </>
         ) : (
           <span style={{ color: p.textFaint }}>—</span>

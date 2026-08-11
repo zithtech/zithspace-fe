@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import {
@@ -9,7 +10,6 @@ import {
   Empty,
   Avatar,
   Tooltip,
-  Spin,
   Modal,
   message,
   Button,
@@ -202,17 +202,7 @@ function ProjectSelectContent() {
   if ((!user && !authLoading) || isRedirecting) {
     return (
       <MainLayout>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            background: 'var(--bg-pure-white)',
-          }}
-        >
-          <Spin size="large" tip="Redirecting..." />
-        </div>
+          <LoadingSpinner message="Redirecting..." size="large" fullScreen={false} />
       </MainLayout>
     );
   }
@@ -979,17 +969,7 @@ export default function ProjectSelectPage() {
     <Suspense
       fallback={
         <MainLayout>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '100vh',
-              background: 'var(--bg-pure-white)',
-            }}
-          >
-            <Spin size="large" tip="Loading Zukvo..." />
-          </div>
+          <LoadingSpinner message="Loading Zukvo..." size="large" fullScreen={false} />
         </MainLayout>
       }
     >

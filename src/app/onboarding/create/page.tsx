@@ -1,9 +1,11 @@
 "use client";
+import { Spin } from 'antd';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Spin, message, Modal } from "antd";
+import { Button, message, Modal } from "antd";
 import { Menu } from "lucide-react";
 import {
   UserOutlined,
@@ -16,7 +18,7 @@ import {
   ArrowRightOutlined,
   CheckOutlined,
   SaveOutlined,
-  CheckCircleFilled,
+  CheckCircleFilled
 } from "@ant-design/icons";
 import OnboardingGuard from "@/components/onboarding/OnboardingGuard";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
@@ -30,20 +32,21 @@ import { EmployeeOnboardingService } from "@/services/onboardingService";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { MembersService } from "@/services/membersService";
 
+
 // ── Module palette (Leaves 2.0 aesthetic) ───────────────────────────────────
 const PALETTE = {
   blue: "#3B82F6",
   green: "#10B981",
   violet: "#8B5CF6",
   amber: "#F59E0B",
-  grey: "#94A3B8",
+  grey: "#94A3B8"
 } as const;
 const TINT = {
   blue: "rgba(59,130,246,0.10)",
   green: "rgba(16,185,129,0.10)",
   violet: "rgba(139,92,246,0.10)",
   amber: "rgba(245,158,11,0.10)",
-  grey: "rgba(148,163,184,0.12)",
+  grey: "rgba(148,163,184,0.12)"
 } as const;
 
 const STEPS = [
@@ -91,7 +94,7 @@ const OnboardingContent = () => {
     bank: {},
     history: [],
     assets: [],
-    documents: [],
+    documents: []
   });
   const [resetKey, setResetKey] = useState(0);
   const [syncModalVisible, setSyncModalVisible] = useState(false);
@@ -133,7 +136,7 @@ const OnboardingContent = () => {
               bank: employeeData.bankAndPayroll || employeeData.bank || {},
               history: employeeData.previousCompanyDetails || employeeData.history || [],
               assets: employeeData.assets || [],
-              documents: employeeData.documents || [],
+              documents: employeeData.documents || []
             });
             // Update resetKey to force re-render of components with new data
             setResetKey(prev => prev + 1);
@@ -179,7 +182,7 @@ const OnboardingContent = () => {
         const stepData = currentRef.current.getData();
         setAllData((prev: any) => ({
           ...prev,
-          [stepKeys[current]]: stepData,
+          [stepKeys[current]]: stepData
         }));
       }
       setCurrent((prev) => prev + 1);
@@ -194,7 +197,7 @@ const OnboardingContent = () => {
       const stepData = currentRef.current.getData();
       setAllData((prev: any) => ({
         ...prev,
-        [stepKeys[current]]: stepData,
+        [stepKeys[current]]: stepData
       }));
     }
     setCurrent((prev) => prev - 1);
@@ -241,11 +244,11 @@ const OnboardingContent = () => {
     try {
       const personalData = payload.personal || allData.personal;
       if (personalData?.workEmail || personalData?.mobile) {
-        const res = await MembersService.checkSync({ 
-          workEmail: personalData.workEmail, 
-          phone: personalData.mobile 
+        const res = await MembersService.checkSync({
+          workEmail: personalData.workEmail,
+          phone: personalData.mobile
         });
-        
+
         if (res.exists && res.member) {
           setSyncMemberInfo(res.member);
           setPendingSavePayload(payload);
@@ -257,7 +260,7 @@ const OnboardingContent = () => {
     } catch (e) {
       console.error("Check sync error", e);
     }
-    
+
     return executeSave(payload, actionType);
   };
 
@@ -270,7 +273,7 @@ const OnboardingContent = () => {
         const stepData = currentRef.current.getData();
         updatedData = {
           ...updatedData,
-          [stepKeys[current]]: stepData,
+          [stepKeys[current]]: stepData
         };
         setAllData(updatedData);
       }
@@ -301,7 +304,7 @@ const OnboardingContent = () => {
         const finalStepData = currentRef.current.getData();
         finalData = {
           ...finalData,
-          [stepKeys[current]]: finalStepData,
+          [stepKeys[current]]: finalStepData
         };
       }
 
@@ -311,7 +314,7 @@ const OnboardingContent = () => {
         bank: "bank",
         history: "history",
         assets: "assets",
-        documents: "documents",
+        documents: "documents"
       };
 
       const finalPayload: any = {};
@@ -332,8 +335,8 @@ const OnboardingContent = () => {
       <div className="onb-header">
         <div className="onb-header-top">
           <div className="onb-header-about">
-            <button 
-              className="ob-mobile-menu-btn" 
+            <button
+              className="ob-mobile-menu-btn"
               onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
               aria-label="Open menu"
             >
@@ -755,7 +758,7 @@ const Onboarding = () => (
     <Suspense
       fallback={
         <div style={{ padding: 100, textAlign: "center" }}>
-          <Spin size="large" />
+          <LoadingSpinner size="large" fullScreen={false} />
         </div>
       }
     >

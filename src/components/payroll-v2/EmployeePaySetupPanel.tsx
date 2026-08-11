@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Input, InputNumber, Select, message, Tooltip, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -319,8 +320,13 @@ export default function EmployeePaySetupPanel() {
         {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="pvep-table-wrap">
-        <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
+      <div className="pvep-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
+        <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" loading={false} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
       </div>
 
       {total > 0 && (

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Typography,
   Button,
@@ -1242,14 +1243,19 @@ export default function EscalationSettingsPage() {
                 </Empty>
               </div>
             ) : view === 'list' ? (
-              <div className="es-table-wrap">
+              <div className="es-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   className="es-table"
                   size="small"
                   dataSource={filteredData as any}
                   columns={activeSection.columns as any}
                   rowKey="id"
-                  loading={loading}
+                  loading={false}
                   pagination={false}
                   rowClassName={() => 'es-row'}
                   onRow={(record) => ({

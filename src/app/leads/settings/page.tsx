@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -1641,9 +1642,14 @@ export default function LeadSettingsPage() {
                         {/* Table / grid */}
                         <div className="pp-body">
                             {view === 'list' ? (
-                                <div className="pp-table-wrap">
+                                <div className="pp-table-wrap" style={{ position: 'relative' }}>
+                                    {loading && (
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <LoadingSpinner size="medium" fullScreen={false} />
+                                        </div>
+                                    )}
                                     <Table
-                                        loading={loading}
+                                        loading={false}
                                         columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
                                         dataSource={activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms}
                                         pagination={false}

@@ -1,4 +1,6 @@
 "use client";
+import { Spin } from 'antd';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -16,12 +18,11 @@ import {
   Select,
   DatePicker,
   Empty,
-  Spin,
   App,
   Segmented,
   Tag,
   Pagination,
-  Avatar,
+  Avatar
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -32,7 +33,7 @@ import {
   FilterOutlined,
   CalendarOutlined,
   SearchOutlined,
-  MenuOutlined,
+  MenuOutlined
 } from "@ant-design/icons";
 import {
   Plus,
@@ -63,6 +64,7 @@ import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+
 
 const { Title, Text } = Typography;
 
@@ -129,20 +131,20 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const fetchCounts = async () => {
     try {
       const now = dayjs();
-      
+
       const todayStart = now.startOf('day').format("YYYY-MM-DD");
       const todayEnd = now.endOf('day').format("YYYY-MM-DD");
-      
+
       const weekStart = now.startOf('week').format("YYYY-MM-DD");
       const weekEnd = now.endOf('week').format("YYYY-MM-DD");
-      
+
       const monthStart = now.startOf('month').format("YYYY-MM-DD");
       const monthEnd = now.endOf('month').format("YYYY-MM-DD");
-      
+
       const baseFilters: any = {
         projectId: selectedProject,
         userId: selectedUser,
-        updateType: selectedUpdateType,
+        updateType: selectedUpdateType
       };
 
       const fetchFn = canViewTeam ? DailyUpdateService.getTeamUpdates : DailyUpdateService.getMyUpdates;
@@ -208,7 +210,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
   const [cardPage, setCardPage] = useState(1);
   const [cardPageSize, setCardPageSize] = useState(20);
-  
+
   useEffect(() => {
     setCardPage(1);
   }, [updates]);
@@ -246,7 +248,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       let filters: any = {
         projectId: selectedProject,
         userId: selectedUser,
-        updateType: selectedUpdateType,
+        updateType: selectedUpdateType
       };
 
       // Use date range if available
@@ -331,7 +333,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           style={{
             background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
             fontSize: 9,
-            fontWeight: 800,
+            fontWeight: 800
           }}
         >
           {((name as string) || "?").charAt(0).toUpperCase()}
@@ -942,7 +944,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            
+
             <div style={{
               display: "flex",
               alignItems: "center",
@@ -1022,7 +1024,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
-                <Spin size="large" />
+                <LoadingSpinner size="large" fullScreen={false} />
                 <div style={{ marginTop: 16, color: "var(--text-slate-400)", fontWeight: 500 }}>Fetching status updates...</div>
               </div>
             ) : updates.length === 0 ? (

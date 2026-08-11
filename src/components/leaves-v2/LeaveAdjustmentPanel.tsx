@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -320,8 +321,13 @@ export default function LeaveAdjustmentPanel() {
         {hasFilters && <button type="button" className="lvadj-clear" onClick={() => { setSearch(''); setDirFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="lvadj-table-wrap">
-        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
+      <div className="lvadj-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
+        <Table rowKey="id" size="small" className="lvadj-table" loading={false} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
       </div>
 
       {total > 0 && (

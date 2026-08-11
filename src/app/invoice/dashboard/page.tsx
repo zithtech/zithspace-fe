@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Table, Button, Spin, Skeleton, Tooltip, Calendar } from "antd";
+import { Table, Button, Skeleton, Tooltip, Calendar } from "antd";
 import {
   FileText,
   DollarSign,
@@ -447,9 +448,8 @@ export default function DashboardPage() {
 
     const tooltipText =
       data && (data.created > 0 || data.received > 0)
-        ? `${data.created > 0 ? `Created: ${data.created}` : ""}${
-            data.created > 0 && data.received > 0 ? " · " : ""
-          }${data.received > 0 ? `Received: ${data.received}` : ""}`
+        ? `${data.created > 0 ? `Created: ${data.created}` : ""}${data.created > 0 && data.received > 0 ? " · " : ""
+        }${data.received > 0 ? `Received: ${data.received}` : ""}`
         : null;
 
     const cell = (
@@ -531,7 +531,7 @@ export default function DashboardPage() {
     return (
       <MainLayout>
         <div style={{ padding: 100, textAlign: "center" }}>
-          <Spin />
+          <LoadingSpinner fullScreen={false} />
         </div>
       </MainLayout>
     );

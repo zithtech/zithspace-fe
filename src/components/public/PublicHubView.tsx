@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, Empty, Button, Tooltip, message } from 'antd';
+import { Empty, Button, Tooltip, message } from 'antd';
 import {
     UserOutlined,
     CalendarOutlined,
@@ -11,11 +12,11 @@ import {
     DownOutlined,
     RightOutlined,
     GlobalOutlined,
-    FilePdfOutlined,
-} from '@ant-design/icons';
+    FilePdfOutlined } from '@ant-design/icons';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { documentHubService as DocumentHubService } from '@/services/documentHub';
 import dynamic from 'next/dynamic';
+
 
 const BlockNoteRenderer = dynamic(
     () => import('@/components/public/BlockNoteRenderer'),
@@ -23,10 +24,9 @@ const BlockNoteRenderer = dynamic(
         ssr: false,
         loading: () => (
             <div className="flex items-center justify-center py-16">
-                <Spin />
+                <LoadingSpinner fullScreen={false} />
             </div>
-        ),
-    },
+        ) },
 );
 
 interface PublicHubViewProps {
@@ -212,8 +212,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
     const tree = useMemo<TreeItem[]>(() => {
         const nodes: TreeItem[] = (hub?.treeNodes || []).map((n: any) => ({
             ...n,
-            children: [],
-        }));
+            children: [] }));
         const map = new Map<string, TreeItem>();
         const roots: TreeItem[] = [];
         nodes.forEach((n) => map.set(n.id, n));
@@ -267,8 +266,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             ? 'rgba(59, 130, 246, 0.08)'
                             : 'transparent',
                         color: isSelected ? '#1d4ed8' : '#334155',
-                        boxShadow: isSelected ? 'inset 2px 0 0 #3b82f6' : 'none',
-                    }}
+                        boxShadow: isSelected ? 'inset 2px 0 0 #3b82f6' : 'none' }}
                     onMouseEnter={(e) => {
                         if (!isSelected) {
                             (e.currentTarget as HTMLDivElement).style.backgroundColor =
@@ -296,8 +294,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                 background: 'transparent',
                                 border: 'none',
                                 color: '#94a3b8',
-                                cursor: 'pointer',
-                            }}
+                                cursor: 'pointer' }}
                         >
                             {isExpanded ? (
                                 <DownOutlined style={{ fontSize: 9 }} />
@@ -313,16 +310,14 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             style={{
                                 fontSize: 13,
                                 color: isSelected ? '#3b82f6' : '#94a3b8',
-                                flexShrink: 0,
-                            }}
+                                flexShrink: 0 }}
                         />
                     ) : (
                         <FolderOutlined
                             style={{
                                 fontSize: 13,
                                 color: isSelected ? '#3b82f6' : '#f59e0b',
-                                flexShrink: 0,
-                            }}
+                                flexShrink: 0 }}
                         />
                     )}
                     <Tooltip title={node.title} placement="right" mouseEnterDelay={0.5}>
@@ -334,8 +329,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 flex: 1,
-                                minWidth: 0,
-                            }}
+                                minWidth: 0 }}
                         >
                             {node.title}
                         </span>
@@ -356,7 +350,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                 className="flex flex-col justify-center items-center min-h-screen gap-4"
                 style={{ background: '#f8fafc' }}
             >
-                <Spin size="large" />
+                <LoadingSpinner size="large" fullScreen={false} />
                 <span style={{ color: '#94a3b8', fontSize: 13 }}>
                     Preparing your document workspace…
                 </span>
@@ -372,8 +366,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                     style={{
                         background: '#fff',
                         border: '1px solid #e2e8f0',
-                        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
-                    }}
+                        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)' }}
                 >
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -394,8 +387,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             borderRadius: 9,
                             paddingInline: 18,
                             background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                            border: 'none',
-                        }}
+                            border: 'none' }}
                     >
                         Try again
                     </Button>
@@ -411,8 +403,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                 background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
-                color: '#1e293b',
-            }}
+                color: '#1e293b' }}
         >
             {/* Hero header */}
             <header
@@ -427,8 +418,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                     borderBottom: '1px solid #e2e8f0',
                     position: 'sticky',
                     top: 0,
-                    zIndex: 10,
-                }}
+                    zIndex: 10 }}
             >
                 <div className="flex items-center gap-3 min-w-0">
                     <button
@@ -441,8 +431,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             background: 'transparent',
                             border: 'none',
                             color: '#64748b',
-                            cursor: 'pointer',
-                        }}
+                            cursor: 'pointer' }}
                         onMouseEnter={(e) =>
                             ((e.currentTarget as HTMLButtonElement).style.background = '#f1f5f9')
                         }
@@ -461,8 +450,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             borderRadius: 10,
                             background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                             boxShadow:
-                                '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                        }}
+                                '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)' }}
                     >
                         <ProductOutlined style={{ fontSize: 16 }} />
                     </div>
@@ -473,8 +461,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                 fontSize: 15,
                                 fontWeight: 700,
                                 letterSpacing: '-0.015em',
-                                color: '#0f172a',
-                            }}
+                                color: '#0f172a' }}
                         >
                             {hub?.name}
                         </h1>
@@ -487,8 +474,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                     letterSpacing: '0.06em',
                                     textTransform: 'uppercase',
                                     background: 'rgba(59, 130, 246, 0.1)',
-                                    color: '#1d4ed8',
-                                }}
+                                    color: '#1d4ed8' }}
                             >
                                 <GlobalOutlined style={{ fontSize: 9 }} />
                                 Public
@@ -509,8 +495,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                 fontWeight: 600,
                                 background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                                 borderColor: 'transparent',
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
-                            }}
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)' }}
                             onMouseEnter={(e) => {
                                 (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1.08)';
                             }}
@@ -535,8 +520,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         background: '#fafafa',
                         borderRight: collapsed ? 'none' : '1px solid #e2e8f0',
                         display: 'flex',
-                        flexDirection: 'column',
-                    }}
+                        flexDirection: 'column' }}
                 >
                     {!collapsed && (
                         <>
@@ -547,8 +531,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                     fontWeight: 700,
                                     letterSpacing: '0.08em',
                                     textTransform: 'uppercase',
-                                    color: '#94a3b8',
-                                }}
+                                    color: '#94a3b8' }}
                             >
                                 Explore
                             </div>
@@ -562,8 +545,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                             padding: 24,
                                             textAlign: 'center',
                                             color: '#94a3b8',
-                                            fontSize: 12,
-                                        }}
+                                            fontSize: 12 }}
                                     >
                                         No documents in this hub.
                                     </div>
@@ -581,12 +563,11 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         flex: 1,
                         overflowY: 'auto',
                         background: '#fff',
-                        position: 'relative',
-                    }}
+                        position: 'relative' }}
                 >
                     {docLoading ? (
                         <div className="flex flex-col justify-center items-center h-full gap-3 py-20">
-                            <Spin size="large" />
+                            <LoadingSpinner size="large" fullScreen={false} />
                             <span style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic' }}>
                                 Fetching latest version…
                             </span>
@@ -597,8 +578,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             style={{
                                 maxWidth: 820,
                                 margin: '0 auto',
-                                padding: '40px 28px 80px',
-                            }}
+                                padding: '40px 28px 80px' }}
                         >
                             <header style={{ marginBottom: 28 }}>
                                 <h1
@@ -609,8 +589,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                         marginBottom: 12,
                                         letterSpacing: '-0.025em',
                                         color: '#0f172a',
-                                        lineHeight: 1.15,
-                                    }}
+                                        lineHeight: 1.15 }}
                                 >
                                     {selectedDoc.title}
                                 </h1>
@@ -630,16 +609,14 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                         {new Date(selectedDoc.updatedAt).toLocaleDateString('en-US', {
                                             month: 'short',
                                             day: 'numeric',
-                                            year: 'numeric',
-                                        })}
+                                            year: 'numeric' })}
                                     </span>
                                 </div>
                                 <div
                                     style={{
                                         marginTop: 24,
                                         height: 1,
-                                        background: '#e2e8f0',
-                                    }}
+                                        background: '#e2e8f0' }}
                                 />
                             </header>
                             <div className="prose-container">
@@ -660,8 +637,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                     height: 80,
                                     borderRadius: 999,
                                     background: '#f1f5f9',
-                                    color: '#94a3b8',
-                                }}
+                                    color: '#94a3b8' }}
                             >
                                 <FileTextOutlined style={{ fontSize: 30 }} />
                             </div>
@@ -670,8 +646,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                                     fontSize: 16,
                                     fontWeight: 600,
                                     color: '#475569',
-                                    margin: 0,
-                                }}
+                                    margin: 0 }}
                             >
                                 Nothing selected
                             </h3>
@@ -693,8 +668,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 6,
-                }}
+                    gap: 6 }}
             >
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>
                     Shared via
@@ -706,8 +680,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                         background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                    }}
+                        backgroundClip: 'text' }}
                 >
                     Zukvo
                 </span>
@@ -726,8 +699,7 @@ const PublicHubView: React.FC<PublicHubViewProps> = ({ shareToken }) => {
                             display: none;
                         }
                     }
-                `,
-                }}
+                ` }}
             />
         </div>
     );

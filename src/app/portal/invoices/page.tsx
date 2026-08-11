@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Input, Empty, Spin, Pagination, DatePicker, Drawer, notification } from "antd";
+import { Input, Empty, Pagination, DatePicker, Drawer, notification } from "antd";
 import { PortalInvoiceDetailContent as PortalInvoiceDetailPage } from "./_InvoiceDetail";
 import {
   Receipt,
@@ -16,12 +17,13 @@ import {
   Send,
   CreditCard,
   Clock,
-  FileText,
+  FileText
 } from "lucide-react";
 import {
+
   portalInvoiceService,
   PortalInvoiceListItem,
-  PortalInvoiceListMeta,
+  PortalInvoiceListMeta
 } from "@/services/portalInvoiceService";
 
 /* --------------------------------------------------------------- */
@@ -59,7 +61,7 @@ const p = {
   warningText: "#b45309",
   neutralBg: "#f8fafc",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const STATUS_META: Record<
@@ -75,7 +77,7 @@ const STATUS_META: Record<
   PARTIALLY_PAID: { label: "Partially paid", tone: "warning", icon: CreditCard },
   PAID: { label: "Paid", tone: "success", icon: CheckCircle2 },
   OVERDUE: { label: "Overdue", tone: "danger", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", tone: "neutral", icon: Ban },
+  CANCELLED: { label: "Cancelled", tone: "neutral", icon: Ban }
 };
 
 const STATUS_TONE = {
@@ -83,7 +85,7 @@ const STATUS_TONE = {
   success: { bg: p.successBg, border: p.successBorder, text: p.successText },
   warning: { bg: p.warningBg, border: p.warningBorder, text: p.warningText },
   danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
+  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText }
 };
 
 const FILTER_TABS: { key: string; label: string }[] = [
@@ -107,7 +109,7 @@ function fmtCurrency(value: number | string | null | undefined, currency?: strin
       style: "currency",
       currency: currency || "USD",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(n);
   } catch {
     return `${currency || ""} ${n.toFixed(2)}`.trim();
@@ -120,7 +122,7 @@ function fmtDate(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -150,7 +152,7 @@ export default function PortalInvoicesPage() {
       const res = await portalInvoiceService.list({
         page,
         limit,
-        search: search || undefined,
+        search: search || undefined
       });
       setItems(res.data);
       setMeta(res.meta);
@@ -194,7 +196,7 @@ export default function PortalInvoicesPage() {
         height: "100vh",
         overflowY: "auto",
         backgroundColor: "#fafafa",
-        width: "100%",
+        width: "100%"
       }}
     >
       <div style={{ padding: "24px 32px 48px", maxWidth: 1280, margin: "0 auto", fontFamily: "'Inter', -apple-system, sans-serif" }}>
@@ -213,295 +215,296 @@ export default function PortalInvoicesPage() {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: p.accent }} />
-        
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10, background: p.accentBg, color: p.accentText,
-            display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${p.accentBorder}`
-          }}>
-            <Receipt size={18} />
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: p.accent }} />
+
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 10, background: p.accentBg, color: p.accentText,
+              display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${p.accentBorder}`
+            }}>
+              <Receipt size={18} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 18, fontWeight: 700, color: p.text, margin: 0, letterSpacing: "-0.01em" }}>Invoices</h1>
+              <div style={{ fontSize: 12.5, color: p.textSubtle, marginTop: 2 }}>
+                Every issued invoice, payment logged, and outstanding balance — shared securely.
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: p.text, margin: 0, letterSpacing: "-0.01em" }}>Invoices</h1>
-            <div style={{ fontSize: 12.5, color: p.textSubtle, marginTop: 2 }}>
-              Every issued invoice, payment logged, and outstanding balance — shared securely.
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <MiniStat label="TOTAL" value={summary?.totalInvoices || 0} color={p.accentText} />
+            <MiniStat label="OVERDUE" value={summaryCounts.OVERDUE || overdueCount || 0} color={p.dangerText} />
+            <MiniStat label="UNPAID" value={(summaryCounts.SENT || 0) + (summaryCounts.PARTIALLY_PAID || 0)} color={p.warningText} />
+            <MiniStat label="PAID" value={summaryCounts.PAID || 0} color={p.accentText} />
+            <button style={{
+              width: 44, height: 44, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated,
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: p.textMuted,
+              marginLeft: 4
+            }} onClick={load}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Filter / Search Bar */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+          {/* Search */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "0 14px",
+            border: `1px solid ${p.border}`, borderRadius: 8, background: p.surfaceElevated,
+            height: 40, flex: 1, fontSize: 13, color: p.textSubtle
+          }}>
+            <Search size={16} color={p.textFaint} />
+            <input
+              type="text"
+              placeholder="Search invoices, amounts, descriptions..."
+              style={{ border: "none", outline: "none", background: "transparent", width: "100%", color: p.text }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Date Filter */}
+          <DatePicker.RangePicker
+            style={{ width: 240, height: 40, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated }}
+            onChange={(dates) => {
+              // Hooked up for visual rendering, API connection depends on backend support
+              console.log("Selected dates:", dates);
+            }}
+          />
+        </div>
+
+        {/* Main List Container */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+        .invoice-row:hover { background: #f8fafc !important; }
+        .invoice-row:last-child { border-bottom: none !important; }
+      `}} />
+        <div
+          style={{
+            background: p.surfaceElevated,
+            border: `1px solid ${p.border}`,
+            borderRadius: 12,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            overflowX: "auto"
+          }}
+        >
+          {/* Table header */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "120px 1.5fr 110px 110px 150px 120px 120px 30px",
+            gap: 12,
+            padding: "14px 24px",
+            borderBottom: `1px solid ${p.border}`,
+            background: p.surfaceElevated,
+            fontSize: 10.5,
+            fontWeight: 700,
+            color: p.textSubtle,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            minWidth: "1000px"
+          }}>
+            <div>INVOICE NUMBER</div>
+            <div>CUSTOMER</div>
+            <div>INVOICE DATE</div>
+            <div>DUE DATE</div>
+            <div>CLIENT STATUS</div>
+            <div style={{ textAlign: "right" }}>AMOUNT</div>
+            <div style={{ textAlign: "right" }}>BALANCE DUE</div>
+            <div></div>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 60, textAlign: "center" }}>
+              <LoadingSpinner fullScreen={false} />
+            </div>
+          ) : items.length === 0 ? (
+            <div style={{ padding: 56, textAlign: "center" }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span style={{ color: p.textSubtle }}>
+                    {search
+                      ? `No invoices match "${search}".`
+                      : status === "ALL"
+                        ? "No invoices yet."
+                        : "No invoices in this status."}
+                  </span>
+                }
+              />
+            </div>
+          ) : (
+            <div>
+              {items.map((inv) => (
+                <InvoiceRow
+                  key={inv.id}
+                  inv={inv}
+                  onClick={() => setSelectedId(inv.id)}
+                  onStatusChange={async (newStatus) => {
+                    const previousStatus = inv.clientStatus;
+                    try {
+                      // Optimistic update
+                      setItems((prevItems) =>
+                        prevItems.map(item =>
+                          item.id === inv.id ? { ...item, clientStatus: newStatus } : item
+                        )
+                      );
+                      await portalInvoiceService.updateClientStatus(inv.id, newStatus);
+                      notification.success({ message: "Client status updated" });
+                      // No need to call load() and show a spinner since we optimistically updated
+                    } catch (err: any) {
+                      // Revert optimistic update
+                      setItems((prevItems) =>
+                        prevItems.map(item =>
+                          item.id === inv.id ? { ...item, clientStatus: previousStatus } : item
+                        )
+                      );
+                      notification.error({ message: "Failed to update status", description: err.message });
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer / Pagination */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 24px",
+          background: p.surfaceElevated,
+          border: `1px solid ${p.border}`,
+          borderTop: "none",
+          borderRadius: "0 0 12px 12px",
+          fontSize: 13,
+          flexWrap: "wrap",
+          gap: 12
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: items.length === 0 ? p.textSubtle : hasMore ? p.textSubtle : p.successText,
+            fontWeight: 600
+          }}>
+            <div style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              background: items.length === 0 ? p.textFaint : hasMore ? p.textFaint : p.success
+            }} />
+            {items.length === 0 ? "No invoices to display" : hasMore ? "More pages available" : "All invoices loaded"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, color: p.textMuted, flexWrap: "wrap" }}>
+            {items.length > 0 ? (
+              <span>{(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total} invoices</span>
+            ) : (
+              <span>0 invoices</span>
+            )}
+            <div style={{ display: "flex", gap: 6 }}>
+              {/* Prev Button */}
+              <button
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  border: `1px solid ${p.border}`,
+                  background: p.surfaceElevated,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: (page === 1 || loading) ? "not-allowed" : "pointer",
+                  color: (page === 1 || loading) ? p.textFaint : p.textMuted,
+                  opacity: (page === 1 || loading) ? 0.5 : 1
+                }}
+                disabled={page === 1 || loading}
+                onClick={() => setPage(Math.max(1, page - 1))}
+              >
+                <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
+              </button>
+
+              {/* Current Page Indicator */}
+              <button
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  border: allDisplayedOnCurrentPage ? `1px solid ${p.border}` : `1px solid ${p.accentBorder}`,
+                  background: allDisplayedOnCurrentPage ? p.surfaceMuted : p.accentBg,
+                  color: allDisplayedOnCurrentPage ? p.textSubtle : p.accentText,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "default",
+                  opacity: allDisplayedOnCurrentPage ? 0.6 : 1
+                }}
+              >
+                {page}
+              </button>
+
+              {/* Next Button */}
+              <button
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  border: `1px solid ${p.border}`,
+                  background: p.surfaceElevated,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: (!hasMore || loading) ? "not-allowed" : "pointer",
+                  color: (!hasMore || loading) ? p.textFaint : p.textMuted,
+                  opacity: (!hasMore || loading) ? 0.5 : 1
+                }}
+                disabled={!hasMore || loading}
+                onClick={() => setPage(page + 1)}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+            {/* Limit Selector */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                border: `1px solid ${p.border}`,
+                borderRadius: 16,
+                background: p.surfaceElevated,
+                cursor: allDisplayedOnCurrentPage ? "not-allowed" : "pointer",
+                opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
+                pointerEvents: allDisplayedOnCurrentPage ? "none" : "auto"
+              }}
+            >
+              20 / page <ChevronDown size={14} color={p.textFaint} />
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <MiniStat label="TOTAL" value={summary?.totalInvoices || 0} color={p.accentText} />
-          <MiniStat label="OVERDUE" value={summaryCounts.OVERDUE || overdueCount || 0} color={p.dangerText} />
-          <MiniStat label="UNPAID" value={(summaryCounts.SENT || 0) + (summaryCounts.PARTIALLY_PAID || 0)} color={p.warningText} />
-          <MiniStat label="PAID" value={summaryCounts.PAID || 0} color={p.accentText} />
-          <button style={{
-            width: 44, height: 44, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated,
-            display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: p.textMuted,
-            marginLeft: 4
-          }} onClick={load}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>
-          </button>
-        </div>
+        <Drawer
+          open={!!selectedId}
+          onClose={() => setSelectedId(null)}
+          width={1000}
+          closable={false}
+          destroyOnClose
+          styles={{ body: { padding: 0, background: "#f6f7f9" }, header: { display: "none" } }}
+        >
+          {selectedId && <PortalInvoiceDetailPage invoiceId={selectedId} onClose={() => setSelectedId(null)} />}
+        </Drawer>
       </div>
-
-      {/* Filter / Search Bar */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        {/* Search */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, padding: "0 14px",
-          border: `1px solid ${p.border}`, borderRadius: 8, background: p.surfaceElevated,
-          height: 40, flex: 1, fontSize: 13, color: p.textSubtle
-        }}>
-          <Search size={16} color={p.textFaint} />
-          <input 
-            type="text" 
-            placeholder="Search invoices, amounts, descriptions..."
-            style={{ border: "none", outline: "none", background: "transparent", width: "100%", color: p.text }}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Date Filter */}
-        <DatePicker.RangePicker 
-          style={{ width: 240, height: 40, borderRadius: 8, border: `1px solid ${p.border}`, background: p.surfaceElevated }}
-          onChange={(dates) => {
-             // Hooked up for visual rendering, API connection depends on backend support
-             console.log("Selected dates:", dates);
-          }}
-        />
-      </div>
-
-      {/* Main List Container */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .invoice-row:hover { background: #f8fafc !important; }
-        .invoice-row:last-child { border-bottom: none !important; }
-      `}} />
-      <div
-        style={{
-          background: p.surfaceElevated,
-          border: `1px solid ${p.border}`,
-          borderRadius: 12,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          overflowX: "auto",
-        }}
-      >
-        {/* Table header */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "120px 1.5fr 110px 110px 150px 120px 120px 30px",
-          gap: 12,
-          padding: "14px 24px",
-          borderBottom: `1px solid ${p.border}`,
-          background: p.surfaceElevated,
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: p.textSubtle,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          minWidth: "1000px",
-        }}>
-          <div>INVOICE NUMBER</div>
-          <div>CUSTOMER</div>
-          <div>INVOICE DATE</div>
-          <div>DUE DATE</div>
-          <div>CLIENT STATUS</div>
-          <div style={{ textAlign: "right" }}>AMOUNT</div>
-          <div style={{ textAlign: "right" }}>BALANCE DUE</div>
-          <div></div>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: 60, textAlign: "center" }}>
-            <Spin />
-          </div>
-        ) : items.length === 0 ? (
-          <div style={{ padding: 56, textAlign: "center" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <span style={{ color: p.textSubtle }}>
-                  {search
-                    ? `No invoices match "${search}".`
-                    : status === "ALL"
-                      ? "No invoices yet."
-                      : "No invoices in this status."}
-                </span>
-              }
-            />
-          </div>
-        ) : (
-          <div>
-            {items.map((inv) => (
-              <InvoiceRow 
-                key={inv.id} 
-                inv={inv} 
-                onClick={() => setSelectedId(inv.id)} 
-                onStatusChange={async (newStatus) => {
-                  const previousStatus = inv.clientStatus;
-                  try {
-                    // Optimistic update
-                    setItems((prevItems) => 
-                      prevItems.map(item => 
-                        item.id === inv.id ? { ...item, clientStatus: newStatus } : item
-                      )
-                    );
-                    await portalInvoiceService.updateClientStatus(inv.id, newStatus);
-                    notification.success({ message: "Client status updated" });
-                    // No need to call load() and show a spinner since we optimistically updated
-                  } catch (err: any) {
-                    // Revert optimistic update
-                    setItems((prevItems) => 
-                      prevItems.map(item => 
-                        item.id === inv.id ? { ...item, clientStatus: previousStatus } : item
-                      )
-                    );
-                    notification.error({ message: "Failed to update status", description: err.message });
-                  }
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer / Pagination */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 24px",
-        background: p.surfaceElevated,
-        border: `1px solid ${p.border}`,
-        borderTop: "none",
-        borderRadius: "0 0 12px 12px",
-        fontSize: 13,
-        flexWrap: "wrap",
-        gap: 12,
-      }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          color: items.length === 0 ? p.textSubtle : hasMore ? p.textSubtle : p.successText,
-          fontWeight: 600
-        }}>
-          <div style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            background: items.length === 0 ? p.textFaint : hasMore ? p.textFaint : p.success
-          }} />
-          {items.length === 0 ? "No invoices to display" : hasMore ? "More pages available" : "All invoices loaded"}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, color: p.textMuted, flexWrap: "wrap" }}>
-          {items.length > 0 ? (
-            <span>{(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total} invoices</span>
-          ) : (
-            <span>0 invoices</span>
-          )}
-          <div style={{ display: "flex", gap: 6 }}>
-            {/* Prev Button */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: `1px solid ${p.border}`,
-                background: p.surfaceElevated,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: (page === 1 || loading) ? "not-allowed" : "pointer",
-                color: (page === 1 || loading) ? p.textFaint : p.textMuted,
-                opacity: (page === 1 || loading) ? 0.5 : 1,
-              }}
-              disabled={page === 1 || loading}
-              onClick={() => setPage(Math.max(1, page - 1))}
-            >
-              <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
-            </button>
-
-            {/* Current Page Indicator */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: allDisplayedOnCurrentPage ? `1px solid ${p.border}` : `1px solid ${p.accentBorder}`,
-                background: allDisplayedOnCurrentPage ? p.surfaceMuted : p.accentBg,
-                color: allDisplayedOnCurrentPage ? p.textSubtle : p.accentText,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "default",
-                opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
-              }}
-            >
-              {page}
-            </button>
-
-            {/* Next Button */}
-            <button
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                border: `1px solid ${p.border}`,
-                background: p.surfaceElevated,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: (!hasMore || loading) ? "not-allowed" : "pointer",
-                color: (!hasMore || loading) ? p.textFaint : p.textMuted,
-                opacity: (!hasMore || loading) ? 0.5 : 1,
-              }}
-              disabled={!hasMore || loading}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-          {/* Limit Selector */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 12px",
-              border: `1px solid ${p.border}`,
-              borderRadius: 16,
-              background: p.surfaceElevated,
-              cursor: allDisplayedOnCurrentPage ? "not-allowed" : "pointer",
-              opacity: allDisplayedOnCurrentPage ? 0.6 : 1,
-              pointerEvents: allDisplayedOnCurrentPage ? "none" : "auto",
-            }}
-          >
-            20 / page <ChevronDown size={14} color={p.textFaint} />
-          </div>
-        </div>
-      </div>
-
-      <Drawer
-        open={!!selectedId}
-        onClose={() => setSelectedId(null)}
-        width={1000}
-        closable={false}
-        destroyOnClose
-        styles={{ body: { padding: 0, background: "#f6f7f9" }, header: { display: "none" } }}
-      >
-        {selectedId && <PortalInvoiceDetailPage invoiceId={selectedId} onClose={() => setSelectedId(null)} />}
-      </Drawer>
     </div>
-  </div>
   );
 }
 
@@ -534,14 +537,13 @@ function MiniStat({ label, value, color }: { label: string; value: string | numb
 }
 
 function StatusPill({
-  status,
-}: {
-  status: string;
-}) {
+  status }: {
+    status: string;
+  }) {
   const meta = STATUS_META[status] || {
     label: status,
     tone: "neutral" as const,
-    icon: FileText,
+    icon: FileText
   };
   const tone = STATUS_TONE[meta.tone];
   const Icon = meta.icon;
@@ -558,7 +560,7 @@ function StatusPill({
         borderRadius: 999,
         fontSize: 11.5,
         fontWeight: 600,
-        lineHeight: 1.2,
+        lineHeight: 1.2
       }}
     >
       <Icon size={12} />
@@ -602,7 +604,7 @@ function InvoiceRow({ inv, onClick, onStatusChange }: { inv: PortalInvoiceListIt
         alignItems: "center",
         transition: "background 150ms ease",
         cursor: "pointer",
-        minWidth: "1000px",
+        minWidth: "1000px"
       }}
       className="invoice-row"
     >
@@ -651,7 +653,7 @@ function InvoiceRow({ inv, onClick, onStatusChange }: { inv: PortalInvoiceListIt
             fontSize: 12,
             outline: "none",
             cursor: "pointer",
-            width: "100%",
+            width: "100%"
           }}
         >
           <option value="UNPAID">Unpaid</option>

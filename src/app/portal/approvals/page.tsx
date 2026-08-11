@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Input, Empty, Spin, Pagination, Switch, Row as AntRow, Col, Divider, Typography } from "antd";
+import { Input, Empty, Pagination, Switch, Row as AntRow, Col, Divider, Typography } from "antd";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import {
   CheckSquare,
@@ -13,23 +14,21 @@ import {
   XCircle,
   Clock,
   Users,
-  Calendar,
-} from "lucide-react";
+  Calendar } from "lucide-react";
 
 const { Title, Text } = Typography;
 import {
   portalApprovalsService,
   PortalApprovalListItem,
-  PortalApprovalMeta,
-} from "@/services/portalApprovalsService";
+  PortalApprovalMeta } from "@/services/portalApprovalsService";
 import {
+
   p,
   TONE,
   STATUS_META,
   SUBJECT_LABEL,
   fmtDate,
-  fmtRelative,
-} from "./_ui";
+  fmtRelative } from "./_ui";
 
 const FILTER_TABS = [
   { key: "ALL", label: "All" },
@@ -57,8 +56,7 @@ export default function PortalApprovalsListPage() {
         page,
         limit,
         status: status === "ALL" ? undefined : status,
-        mine,
-      });
+        mine });
       setItems(res.data);
       setMeta(res.meta);
     } catch {
@@ -90,8 +88,7 @@ export default function PortalApprovalsListPage() {
       open: c.open || 0,
       approved: c.approved || 0,
       rejected: c.rejected || 0,
-      total: meta?.total || 0,
-    };
+      total: meta?.total || 0 };
   }, [meta]);
 
   return (
@@ -107,8 +104,7 @@ export default function PortalApprovalsListPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-        }}
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
           <Col flex="1 1 auto" style={{ minWidth: 0 }}>
@@ -117,15 +113,13 @@ export default function PortalApprovalsListPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
-              }}
+                flexWrap: "wrap" }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                }}
+                  gap: 8 }}
               >
                 <div
                   style={{
@@ -137,8 +131,7 @@ export default function PortalApprovalsListPage() {
                     justifyContent: "center",
                     background:
                       "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6",
-                  }}
+                    color: "#3b82f6" }}
                 >
                   <CheckSquareOutlined style={{ fontSize: 18, color: "#3b82f6" }} />
                 </div>
@@ -149,8 +142,7 @@ export default function PortalApprovalsListPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
-                  }}
+                    letterSpacing: "-0.01em" }}
                 >
                   Sign-offs
                 </Title>
@@ -161,8 +153,7 @@ export default function PortalApprovalsListPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
-                }}
+                  margin: "0 12px" }}
               />
 
               <div>
@@ -171,8 +162,7 @@ export default function PortalApprovalsListPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
-                  }}
+                    fontWeight: 600 }}
                 >
                   Designs, requirements, UAT, production releases — anything we need your formal approval on.
                 </Text>
@@ -191,8 +181,7 @@ export default function PortalApprovalsListPage() {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 12,
-            marginBottom: 18,
-          }}
+            marginBottom: 18 }}
         >
           <SummaryCard
             label="Waiting on you"
@@ -229,8 +218,7 @@ export default function PortalApprovalsListPage() {
           gap: 12,
           flexWrap: "wrap",
           marginBottom: 12,
-          alignItems: "center",
-        }}
+          alignItems: "center" }}
       >
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {FILTER_TABS.map((tab) => {
@@ -255,8 +243,7 @@ export default function PortalApprovalsListPage() {
                   borderRadius: 999,
                   fontSize: 12.5,
                   fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                  cursor: "pointer" }}
               >
                 {tab.label}
                 {count != null && count > 0 && (
@@ -269,8 +256,7 @@ export default function PortalApprovalsListPage() {
                       background: active
                         ? "rgba(255,255,255,0.15)"
                         : p.neutralBg,
-                      color: active ? "#ffffff" : p.textSubtle,
-                    }}
+                      color: active ? "#ffffff" : p.textSubtle }}
                   >
                     {count}
                   </span>
@@ -286,8 +272,7 @@ export default function PortalApprovalsListPage() {
               color: p.textSubtle,
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-            }}
+              gap: 6 }}
           >
             <Switch
               size="small"
@@ -318,10 +303,9 @@ export default function PortalApprovalsListPage() {
             textAlign: "center",
             background: p.surfaceElevated,
             border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
+            borderRadius: 12 }}
         >
-          <Spin />
+          <LoadingSpinner fullScreen={false} />
         </div>
       ) : filtered.length === 0 ? (
         <div
@@ -330,8 +314,7 @@ export default function PortalApprovalsListPage() {
             textAlign: "center",
             background: p.surfaceElevated,
             border: `1px dashed ${p.border}`,
-            borderRadius: 12,
-          }}
+            borderRadius: 12 }}
         >
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -352,8 +335,7 @@ export default function PortalApprovalsListPage() {
             background: p.surfaceElevated,
             border: `1px solid ${p.border}`,
             borderRadius: 12,
-            overflow: "hidden",
-          }}
+            overflow: "hidden" }}
         >
           {filtered.map((a, i) => (
             <Row key={a.id} a={a} first={i === 0} />
@@ -366,8 +348,7 @@ export default function PortalApprovalsListPage() {
           style={{
             marginTop: 16,
             display: "flex",
-            justifyContent: "flex-end",
-          }}
+            justifyContent: "flex-end" }}
         >
           <Pagination
             current={page}
@@ -464,8 +445,7 @@ function SummaryCard({
   label,
   value,
   tone,
-  icon: Icon,
-}: {
+  icon: Icon }: {
   label: string;
   value: number;
   tone: "warning" | "success" | "danger" | "neutral";
@@ -481,8 +461,7 @@ function SummaryCard({
         borderRadius: 12,
         display: "flex",
         gap: 12,
-        alignItems: "center",
-      }}
+        alignItems: "center" }}
     >
       <div
         style={{
@@ -495,8 +474,7 @@ function SummaryCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
-        }}
+          flexShrink: 0 }}
       >
         <Icon size={16} />
       </div>
@@ -507,8 +485,7 @@ function SummaryCard({
             fontWeight: 600,
             color: p.textSubtle,
             textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
+            letterSpacing: "0.06em" }}
         >
           {label}
         </div>
@@ -518,8 +495,7 @@ function SummaryCard({
             fontWeight: 600,
             color: p.text,
             letterSpacing: "-0.01em",
-            marginTop: 2,
-          }}
+            marginTop: 2 }}
         >
           {value}
         </div>
@@ -530,8 +506,7 @@ function SummaryCard({
 
 function Row({
   a,
-  first,
-}: {
+  first }: {
   a: PortalApprovalListItem;
   first: boolean;
 }) {
@@ -560,8 +535,7 @@ function Row({
         textDecoration: "none",
         color: "inherit",
         transition: "background 120ms ease",
-        alignItems: "center",
-      }}
+        alignItems: "center" }}
     >
       <div
         style={{
@@ -575,8 +549,7 @@ function Row({
           color: needsMyDecision ? p.warningText : p.accentText,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-        }}
+          justifyContent: "center" }}
       >
         <CheckSquare size={16} />
       </div>
@@ -586,8 +559,7 @@ function Row({
             display: "flex",
             gap: 8,
             alignItems: "center",
-            flexWrap: "wrap",
-          }}
+            flexWrap: "wrap" }}
         >
           <span
             style={{
@@ -597,8 +569,7 @@ function Row({
               background: p.surfaceMuted,
               border: `1px solid ${p.border}`,
               borderRadius: 6,
-              color: p.textMuted,
-            }}
+              color: p.textMuted }}
           >
             {a.approvalNumber}
           </span>
@@ -609,8 +580,7 @@ function Row({
               color: p.text,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
+              whiteSpace: "nowrap" }}
           >
             {a.title}
           </span>
@@ -623,8 +593,7 @@ function Row({
                 background: p.warningBg,
                 border: `1px solid ${p.warningBorder}`,
                 color: p.warningText,
-                borderRadius: 999,
-              }}
+                borderRadius: 999 }}
             >
               Needs your decision
             </span>
@@ -638,8 +607,7 @@ function Row({
                 background: p.successBg,
                 border: `1px solid ${p.successBorder}`,
                 color: p.successText,
-                borderRadius: 999,
-              }}
+                borderRadius: 999 }}
             >
               You approved
             </span>
@@ -653,8 +621,7 @@ function Row({
                 background: p.dangerBg,
                 border: `1px solid ${p.dangerBorder}`,
                 color: p.dangerText,
-                borderRadius: 999,
-              }}
+                borderRadius: 999 }}
             >
               You rejected
             </span>
@@ -668,8 +635,7 @@ function Row({
             display: "flex",
             gap: 10,
             flexWrap: "wrap",
-            alignItems: "center",
-          }}
+            alignItems: "center" }}
         >
           <span
             style={{
@@ -679,8 +645,7 @@ function Row({
               color: p.purpleText,
               borderRadius: 999,
               fontSize: 11,
-              fontWeight: 500,
-            }}
+              fontWeight: 500 }}
           >
             {SUBJECT_LABEL[a.subjectType] || a.subjectType}
           </span>
@@ -705,8 +670,7 @@ function Row({
             color: TONE[st.tone].text,
             borderRadius: 999,
             fontSize: 11.5,
-            fontWeight: 500,
-          }}
+            fontWeight: 500 }}
         >
           <StIcon size={11} />
           {st.label}
@@ -718,8 +682,7 @@ function Row({
           color: p.textMuted,
           display: "inline-flex",
           alignItems: "center",
-          gap: 4,
-        }}
+          gap: 4 }}
       >
         <Users size={11} />
         {progress}
@@ -737,8 +700,7 @@ function Row({
               : 400,
           display: "inline-flex",
           alignItems: "center",
-          gap: 4,
-        }}
+          gap: 4 }}
       >
         {a.dueDate ? (
           <>

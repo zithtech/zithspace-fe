@@ -1,10 +1,12 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
-import { Spin } from 'antd';
+
+
 
 /**
  * Legacy Redirect Page
@@ -40,7 +42,7 @@ export default function LegacyTicketsRedirect() {
       flexDirection: 'column',
       gap: 16
     }}>
-      <Spin size="large" />
+      <LoadingSpinner size="large" fullScreen={false} />
       <p style={{ color: '#8c8c8c' }}>Redirecting to project selection...</p>
     </div>
   );

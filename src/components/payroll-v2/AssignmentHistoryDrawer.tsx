@@ -1,9 +1,11 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from 'react';
-import { Drawer, Button, Tag, Avatar, Spin, message, Empty } from 'antd';
+import { Drawer, Button, Tag, Avatar, message, Empty } from 'antd';
 import { CloseOutlined, HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import PayrollV2Service, { MemberOption, EmployeeAssignmentListItem } from '@/services/payrollV2Service';
+
 
 const PALETTE = { slate: '#64748B', green: '#10B981', red: '#EF4444', blue: '#3B82F6' } as const;
 const TINT = { slate: 'rgba(100,116,139,0.12)', green: 'rgba(16,185,129,0.10)' } as const;
@@ -13,8 +15,7 @@ const money = (n: number) => `₹${inr.format(Math.round(n))}`;
 const initials = (name: string) => name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
 export default function AssignmentHistoryDrawer({
-  open, employee, onClose,
-}: {
+  open, employee, onClose }: {
   open: boolean;
   employee: MemberOption | null;
   onClose: () => void;
@@ -57,7 +58,7 @@ export default function AssignmentHistoryDrawer({
 
         <div className="ahd-body">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><Spin /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><LoadingSpinner fullScreen={false} /></div>
           ) : rows.length === 0 ? (
             <Empty description="No salary assignments yet" style={{ marginTop: 48 }} />
           ) : (

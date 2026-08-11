@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, message } from 'antd';
+import { message } from 'antd';
 import { Ticket, Timer, NotebookPen, CalendarCheck, Plane } from 'lucide-react';
 import { Dayjs } from 'dayjs';
 import PerformanceReportService, { ReportTicket } from '@/services/performanceReportService';
@@ -10,6 +11,7 @@ import { AttendanceService } from '@/services/attendanceService';
 import { TimeTrackingService } from '@/services/timeTracking.service';
 import LeaveV2Service from '@/services/leaveV2Service';
 import {
+
   scoreTickets,
   scoreDailyUpdates,
   scoreAttendance,
@@ -17,8 +19,7 @@ import {
   timeTrackingPoints,
   avgTrackedSeconds,
   pointsColor,
-  performanceBand,
-} from './moduleScores';
+  performanceBand } from './moduleScores';
 
 export interface ModuleWeight {
   key: 'tickets' | 'time_tracking' | 'daily_updates' | 'attendance' | 'leaves';
@@ -45,33 +46,27 @@ const META: Record<
     label: 'Tickets',
     icon: <Ticket size={18} />,
     color: '#EC4899',
-    desc: 'Efficiency & completion versus estimates.',
-  },
+    desc: 'Efficiency & completion versus estimates.' },
   time_tracking: {
     label: 'Time Tracking',
     icon: <Timer size={18} />,
     color: '#F59E0B',
-    desc: 'Tracked hours against the daily target.',
-  },
+    desc: 'Tracked hours against the daily target.' },
   daily_updates: {
     label: 'Daily Updates',
     icon: <NotebookPen size={18} />,
     color: '#8B5CF6',
-    desc: 'BOD/EOD posting on present working days.',
-  },
+    desc: 'BOD/EOD posting on present working days.' },
   attendance: {
     label: 'Attendance',
     icon: <CalendarCheck size={18} />,
     color: '#3B82F6',
-    desc: 'Punctual presence on working days.',
-  },
+    desc: 'Punctual presence on working days.' },
   leaves: {
     label: 'Leaves',
     icon: <Plane size={18} />,
     color: '#10B981',
-    desc: 'Leave kept within entitlement (LOP-free).',
-  },
-};
+    desc: 'Leave kept within entitlement (LOP-free).' } };
 
 const ORDER: ModuleWeight['key'][] = [
   'tickets',
@@ -91,8 +86,7 @@ export default function OverviewSection({
   bodEnabled,
   eodEnabled,
   weights,
-  tickets,
-}: Props) {
+  tickets }: Props) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     ttRows: any[];
@@ -122,22 +116,19 @@ export default function OverviewSection({
             projectId: projectId || undefined,
             startDate: range[0].startOf('day').toISOString(),
             endDate: range[1].endOf('day').toISOString(),
-            timezone: browserTz,
-          }).catch(() => ({ rows: [] })),
+            timezone: browserTz }).catch(() => ({ rows: [] })),
           DailyUpdateService.getTeamUpdates({
             startDate: from,
             endDate: to,
             projectId: projectId || undefined,
-            userId: userId || undefined,
-          }).catch(() => []),
+            userId: userId || undefined }).catch(() => []),
           AttendanceService.getAttendance({
             member: userId || undefined,
             projectId: projectId || undefined,
             startDate: range[0].startOf('day').toISOString(),
             endDate: range[1].endOf('day').toISOString(),
             page: 1,
-            limit: 500,
-          }).catch(() => ({ data: [] } as any)),
+            limit: 500 }).catch(() => ({ data: [] } as any)),
           PerformanceReportService.getLeaveReport({ from, to, memberId: userId || undefined }).catch(
             () => []
           ),
@@ -149,8 +140,7 @@ export default function OverviewSection({
           updates: Array.isArray(updates) ? updates : [],
           attendance: ((att as any)?.data as any[]) || [],
           leaves: leaves || [],
-          holidays: new Set((hol || []).map((d: string) => d.slice(0, 10))),
-        });
+          holidays: new Set((hol || []).map((d: string) => d.slice(0, 10))) });
       } catch (err: any) {
         if (!cancelled) message.error(err?.message || 'Failed to build overview');
       } finally {
@@ -178,17 +168,14 @@ export default function OverviewSection({
         holidays: data.holidays,
         range,
         bodEnabled,
-        eodEnabled,
-      }),
+        eodEnabled }),
       attendance: scoreAttendance({
         attendance: data.attendance,
         holidays: data.holidays,
         leaves: data.leaves,
         range,
-        memberId: userId,
-      }),
-      leaves: scoreLeaves({ leaves: data.leaves, holidays: data.holidays, range, memberId: userId }),
-    };
+        memberId: userId }),
+      leaves: scoreLeaves({ leaves: data.leaves, holidays: data.holidays, range, memberId: userId }) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, tickets, statusMarks, bodEnabled, eodEnabled, userId]);
 
@@ -210,7 +197,7 @@ export default function OverviewSection({
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Building overview…" />
+        <LoadingSpinner message="Building overview…" fullScreen={false} />
       </div>
     );
   }
@@ -244,8 +231,7 @@ export default function OverviewSection({
               transform="rotate(-90 64 64)"
               style={{
                 stroke: pointsColor(combined),
-                strokeDasharray: `${(ringPct / 100) * RING_C} ${RING_C}`,
-              }}
+                strokeDasharray: `${(ringPct / 100) * RING_C} ${RING_C}` }}
             />
           </svg>
           <div className="ov-ring-center">
@@ -277,8 +263,7 @@ export default function OverviewSection({
                     title={`${META[k].label} · ${Number(weightOf(k)!.weight)}%`}
                     style={{
                       width: `${((Number(weightOf(k)!.weight) || 0) / weightTotal) * 100}%`,
-                      background: META[k].color,
-                    }}
+                      background: META[k].color }}
                   />
                 ))}
               </div>

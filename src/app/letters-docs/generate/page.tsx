@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -46,7 +47,7 @@ function LetterGenerationContent() {
   const { user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
   const router = useRouter();
-  
+
   useEffect(() => {
     if (perms.canGenerateLetter === false) {
       router.push('/dashboard');
@@ -1060,14 +1061,23 @@ function LetterGenerationContent() {
               </div>
             </div>
 
-            {loading ? (
-              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>Loading active templates...</div>
+            {loading && templates.length === 0 ? (
+              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner message='Loading active templates...' size="medium" fullScreen={false} />
+                </div>
+              </div>
             ) : templates.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
                 No active document templates available. Please create or activate a template in Template Management first.
               </div>
             ) : view === 'list' ? (
-              <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   rowKey="id"
                   size="small"

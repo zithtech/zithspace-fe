@@ -1,11 +1,13 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Table, Tag, message, Spin, Empty, Tooltip } from 'antd';
+import { Button, Table, Tag, message, Empty, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons';
 import PayrollV2Service, { PayPayslip } from '@/services/payrollV2Service';
+
 
 const PALETTE = { cyan: '#06B6D4', green: '#10B981', red: '#EF4444', slate: '#64748B' } as const;
 const TINT = { cyan: 'rgba(6,182,212,0.10)', green: 'rgba(16,185,129,0.10)' } as const;
@@ -34,7 +36,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
           <span className="mps-cal" style={{ background: TINT.cyan, color: PALETTE.cyan }}><FileTextOutlined /></span>
           <span style={{ fontWeight: 700 }}>{r.periodLabel}</span>
         </div>
-      ),
+      )
     },
     { title: 'Gross', dataIndex: 'gross', key: 'gross', render: (v) => money(v) },
     { title: 'Deductions', dataIndex: 'totalDeductions', key: 'ded', render: (v) => <span style={{ color: PALETTE.red }}>−{money(v)}</span> },
@@ -42,7 +44,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
     { title: 'Net Pay', dataIndex: 'net', key: 'net', render: (v) => <span style={{ fontWeight: 800, color: PALETTE.green }}>{money(v)}</span> },
     {
       title: '', key: 'dl', width: 120, align: 'right',
-      render: (_, r) => <Button size="small" type="primary" ghost icon={<DownloadOutlined />} href={r.fileUrl} target="_blank">Download</Button>,
+      render: (_, r) => <Button size="small" type="primary" ghost icon={<DownloadOutlined />} href={r.fileUrl} target="_blank">Download</Button>
     },
   ];
 
@@ -69,7 +71,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spin /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><LoadingSpinner fullScreen={false} /></div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 56 }}><Empty description="No payslips available yet" /></div>
       ) : (

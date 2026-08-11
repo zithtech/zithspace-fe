@@ -1,9 +1,10 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
@@ -35,7 +36,7 @@ import {
   Wand2,
   CheckCircle2,
   ChevronDown,
-  ChevronUp,
+  ChevronUp
 } from "lucide-react";
 import {
   FilePdfOutlined,
@@ -46,7 +47,7 @@ import {
   SendOutlined,
   PaperClipOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  MenuUnfoldOutlined
 } from "@ant-design/icons";
 import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts, useMailUnreadCount } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
@@ -57,6 +58,7 @@ import TiptapEditor from "@/components/common/TiptapEditor";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+
 
 dayjs.extend(relativeTime);
 
@@ -80,7 +82,7 @@ const PALETTE = {
   slate100: "var(--bg-slate-100)",
   slate50: "var(--bg-slate-50)",
   white: "var(--bg-pure-white)",
-  border: "var(--border-slate-200)",
+  border: "var(--border-slate-200)"
 };
 
 // Avatar style generator based on read status and folder
@@ -97,7 +99,7 @@ const getAvatarStyle = (seed: string, isRead?: boolean, folder?: string) => {
   }
   return {
     background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`,
-    color: "#fff",
+    color: "#fff"
   };
 };
 
@@ -116,42 +118,42 @@ const FOLDERS = [
     label: "Inbox",
     icon: Inbox,
     color: "var(--mail-primary)",
-    tint: "var(--bg-blue-50)",
+    tint: "var(--bg-blue-50)"
   },
   {
     key: "SENT",
     label: "Sent",
     icon: Send,
     color: "var(--mail-emerald)",
-    tint: "var(--bg-green-50)",
+    tint: "var(--bg-green-50)"
   },
   {
     key: "DRAFTS",
     label: "Drafts",
     icon: FileText,
     color: "var(--mail-text-muted)",
-    tint: "var(--bg-slate-100)",
+    tint: "var(--bg-slate-100)"
   },
   {
     key: "SPAM",
     label: "Spam",
     icon: AlertOctagon,
     color: "var(--mail-rose)",
-    tint: "var(--bg-red-50)",
+    tint: "var(--bg-red-50)"
   },
   {
     key: "TRASH",
     label: "Trash",
     icon: Trash2,
     color: "var(--mail-text-muted)",
-    tint: "var(--bg-slate-100)",
+    tint: "var(--bg-slate-100)"
   },
   {
     key: "ARCHIVE",
     label: "Archive",
     icon: Archive,
     color: "var(--mail-text-muted)",
-    tint: "var(--bg-slate-100)",
+    tint: "var(--bg-slate-100)"
   },
 ];
 
@@ -201,10 +203,10 @@ function MailPageContent() {
   }, []);
 
   const { data: threadsData = [], isLoading: threadsLoading } = useMailThreads(
-    selectedFolder, 
-    filter, 
-    debouncedSearch, 
-    toFilter || undefined, 
+    selectedFolder,
+    filter,
+    debouncedSearch,
+    toFilter || undefined,
     fromFilter || undefined
   );
   const { data: messages = [], isLoading: messagesLoading } = useThreadMessages(selectedThreadId);
@@ -241,8 +243,7 @@ function MailPageContent() {
     bulkDestroyThreads,
     isDestroyingThreads,
     emptyTrash,
-    markAsRead,
-  } = useMail();
+    markAsRead } = useMail();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
@@ -542,7 +543,7 @@ function MailPageContent() {
       setInlinePreview({
         url: blobUrl,
         name: att.fileName,
-        type: resolvedType,
+        type: resolvedType
       });
     } catch (error) {
       console.error("Failed to preview attachment:", error);
@@ -1370,7 +1371,7 @@ function MailPageContent() {
                     <Icon size={14} strokeWidth={2} />
                   </div>
                   <span className="mail-folder-label">{f.label}</span>
-                  
+
                   {f.key === "INBOX" && unreadCount > 0 ? (
                     <span className="mail-folder-count" style={!isActive ? { color: "var(--mail-primary)", fontWeight: 600 } : {}}>
                       {unreadCount}
@@ -1431,7 +1432,7 @@ function MailPageContent() {
                   options={contacts
                     .map((u: any) => ({
                       value: u.email || "",
-                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim(),
+                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim()
                     }))
                     .filter((u: any) => u.value)}
                   value={toFilter || ""}
@@ -1444,7 +1445,7 @@ function MailPageContent() {
                   options={contacts
                     .map((u: any) => ({
                       value: u.email || "",
-                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim(),
+                      label: `${u.name || ''} ${u.email ? `(${u.email})` : ""}`.trim()
                     }))
                     .filter((u: any) => u.value)}
                   value={fromFilter || ""}
@@ -1503,7 +1504,7 @@ function MailPageContent() {
                       <RefreshCw
                         size={16}
                         style={{
-                          animation: isSyncing ? "spin 1s linear infinite" : "none",
+                          animation: isSyncing ? "spin 1s linear infinite" : "none"
                         }}
                       />
                     </button>
@@ -1822,7 +1823,7 @@ function MailPageContent() {
                   background: "white",
                   borderRadius: 16,
                   border: `1px solid ${PALETTE.slate200}`,
-                  overflow: "hidden",
+                  overflow: "hidden"
                 }}
               >
                 {inlinePreview.type.startsWith("image/") ? (
@@ -1833,7 +1834,7 @@ function MailPageContent() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      padding: 24,
+                      padding: 24
                     }}
                   >
                     <img
@@ -1991,7 +1992,7 @@ function MailPageContent() {
                               marginBottom: 8,
                               fontSize: 11.5,
                               fontWeight: 500,
-                              color: PALETTE.slate500,
+                              color: PALETTE.slate500
                             }}
                           >
                             <Paperclip size={12} />
@@ -2012,7 +2013,7 @@ function MailPageContent() {
                                 padding: 0,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 3,
+                                gap: 3
                               }}
                             >
                               <Download size={11} />
@@ -2036,7 +2037,7 @@ function MailPageContent() {
                                       color: PALETTE.slate900,
                                       whiteSpace: "nowrap",
                                       overflow: "hidden",
-                                      textOverflow: "ellipsis",
+                                      textOverflow: "ellipsis"
                                     }}
                                   >
                                     {att.fileName}
@@ -2093,7 +2094,7 @@ function MailPageContent() {
                         marginTop: 10,
                         paddingTop: 10,
                         borderTop: `1px solid ${PALETTE.slate200}`,
-                        gap: 8,
+                        gap: 8
                       }}
                     >
                       <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -2109,7 +2110,7 @@ function MailPageContent() {
                           disabled={isFixingReplyGrammar || !quickReply.trim()}
                         >
                           {isFixingReplyGrammar ? (
-                            <Spin size="small" />
+                            <LoadingSpinner size="small" fullScreen={false} />
                           ) : (
                             <CheckCircle2 size={13} className="ai-icon" />
                           )}
@@ -2134,7 +2135,7 @@ function MailPageContent() {
                                 ? lastMsg.subject
                                 : `Re: ${lastMsg.subject}`,
                               body: quickReply,
-                              threadId: selectedThreadId || undefined,
+                              threadId: selectedThreadId || undefined
                             });
 
                             message.success("Reply sent");
@@ -2187,7 +2188,7 @@ function MailPageContent() {
                       filename: file.name || file.fileName,
                       url: file.url || file.response?.fileUrl || file.response?.url,
                       size: file.size,
-                      contentType: file.type || file.contentType,
+                      contentType: file.type || file.contentType
                     }))
                     .filter((a: any) => a.url);
 
@@ -2195,7 +2196,7 @@ function MailPageContent() {
                     ...values,
                     to: values.to || [],
                     attachments: cleanedAttachments,
-                    id: currentDraftId || undefined,
+                    id: currentDraftId || undefined
                   };
                   const result = await saveDraft(draftData);
                   if (result) {
@@ -2234,7 +2235,7 @@ function MailPageContent() {
                 filename: file.name || file.fileName,
                 url: file.url || file.response?.fileUrl || file.response?.url,
                 size: file.size,
-                contentType: file.type || file.contentType,
+                contentType: file.type || file.contentType
               }))
               .filter((a: any) => a.url);
 
@@ -2244,7 +2245,7 @@ function MailPageContent() {
               cc: values.cc || undefined,
               bcc: values.bcc || undefined,
               attachments: cleanedAttachments,
-              scheduledAt: values.scheduledAt?.toISOString() || null,
+              scheduledAt: values.scheduledAt?.toISOString() || null
             };
 
             try {
@@ -2273,7 +2274,7 @@ function MailPageContent() {
             <div className="compose-section-label">From</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               {!mailStatus ? (
-                <Spin size="small" />
+                <LoadingSpinner size="small" fullScreen={false} />
               ) : (
                 <span style={{ fontSize: 13, color: PALETTE.slate700 }}>
                   {mailStatus.connectedEmail || "No connected email found"}
@@ -2312,7 +2313,7 @@ function MailPageContent() {
                 options={contacts
                   .map((u: any) => ({
                     value: u.email || "",
-                    label: `${u.name} (${u.email || "No Email"})`,
+                    label: `${u.name} (${u.email || "No Email"})`
                   }))
                   .filter((u: any) => u.value)}
                 filterOption={(input, option) =>
@@ -2340,7 +2341,7 @@ function MailPageContent() {
                       margin: "1px 4px 1px 0",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 4,
+                      gap: 4
                     }}
                   >
                     {props.label}
@@ -2370,7 +2371,7 @@ function MailPageContent() {
                   options={contacts
                     .map((u: any) => ({
                       value: u.email || "",
-                      label: `${u.name} (${u.email || "No Email"})`,
+                      label: `${u.name} (${u.email || "No Email"})`
                     }))
                     .filter((u: any) => u.value)}
                   variant="borderless"
@@ -2393,7 +2394,7 @@ function MailPageContent() {
                   options={contacts
                     .map((u: any) => ({
                       value: u.email || "",
-                      label: `${u.name} (${u.email || "No Email"})`,
+                      label: `${u.name} (${u.email || "No Email"})`
                     }))
                     .filter((u: any) => u.value)}
                   variant="borderless"
@@ -2418,7 +2419,7 @@ function MailPageContent() {
                 fontSize: 16,
                 fontWeight: 600,
                 color: PALETTE.slate900,
-                letterSpacing: "-0.01em",
+                letterSpacing: "-0.01em"
               }}
             />
           </Form.Item>
@@ -2433,7 +2434,7 @@ function MailPageContent() {
               disabled={isFixingGrammar || isEnhancing}
             >
               {isFixingGrammar ? (
-                <Spin size="small" />
+                <LoadingSpinner size="small" fullScreen={false} />
               ) : (
                 <CheckCircle2 size={13} className="ai-icon" />
               )}
@@ -2446,7 +2447,7 @@ function MailPageContent() {
               disabled={isFixingGrammar || isEnhancing}
             >
               {isEnhancing ? (
-                <Spin size="small" />
+                <LoadingSpinner size="small" fullScreen={false} />
               ) : (
                 <Wand2 size={13} className="ai-icon" />
               )}
@@ -2565,7 +2566,7 @@ function MailPageContent() {
 export default function MailPage() {
   useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationMail" });
   return (
-    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>}>
+    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><LoadingSpinner size="large" fullScreen={false} /></div>}>
       <MailPageContent />
     </Suspense>
   );

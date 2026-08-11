@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -13,15 +14,15 @@ import {
   Col,
   Checkbox,
   Divider,
-  Spin,
   Result,
   message,
   Typography,
-  Upload,
+  Upload
 } from "antd";
 import { PlusOutlined, DeleteOutlined, UploadOutlined, PaperClipOutlined, HomeOutlined, ContactsOutlined, IdcardOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { PublicOnboardingService } from "@/services/onboardingService";
+
 
 const { Title, Text } = Typography;
 
@@ -61,7 +62,7 @@ function mapHistoryDocuments(docs: any[], typeNames: Set<string>) {
       fileName:
         first.fileName ??
         (typeof first.url === "string" ? first.url.split("/").pop() : "") ??
-        "Document",
+        "Document"
     };
     if (typeName && typeNames.has(typeName)) {
       catalog[typeName] = existing;
@@ -89,8 +90,8 @@ function mapHistoryItem(h: any) {
       contactRole: c.contactRole ?? c.role ?? undefined,
       name: c.name ?? c.contactName ?? "",
       mobile: c.mobile ?? c.contactNumber ?? c.phone ?? "",
-      email: c.email ?? c.contactEmail ?? "",
-    })),
+      email: c.email ?? c.contactEmail ?? ""
+    }))
   };
 }
 
@@ -100,7 +101,7 @@ const sectionHeaderStyle: React.CSSProperties = {
   gap: 12,
   margin: "36px 0 24px",
   paddingBottom: 16,
-  borderBottom: "1px solid var(--border-slate-200)",
+  borderBottom: "1px solid var(--border-slate-200)"
 };
 
 const stepBadgeStyle: React.CSSProperties = {
@@ -114,7 +115,7 @@ const stepBadgeStyle: React.CSSProperties = {
   justifyContent: "center",
   fontWeight: 700,
   fontSize: 14,
-  flexShrink: 0,
+  flexShrink: 0
 };
 
 const SectionHeader = ({ step, title, subtitle }: { step: number; title: string; subtitle?: string }) => (
@@ -169,10 +170,10 @@ export default function PublicOnboardPage() {
             p_city: cur.c_city,
             p_state: cur.c_state,
             p_country: cur.c_country,
-            p_pincode: cur.c_pincode,
-          },
-        },
-      },
+            p_pincode: cur.c_pincode
+          }
+        }
+      }
     });
   };
   const [loading, setLoading] = useState(true);
@@ -211,19 +212,19 @@ export default function PublicOnboardPage() {
             dob: toDayjs(personal.dob),
             address: {
               current: { ...(personal?.address?.current ?? {}) },
-              permanent: { ...(personal?.address?.permanent ?? {}) },
-            },
+              permanent: { ...(personal?.address?.permanent ?? {}) }
+            }
           },
           bank: { ...bank },
           history: history.length
             ? history.map((h: any) => ({
-                ...mapHistoryItem(h),
-                // Stash prefilled documents on the form item so each company
-                // card can lazily seed its docState once its Form.List field
-                // key is known.
-                __docPrefill: mapHistoryDocuments(h?.documents, typeNames),
-              }))
-            : [],
+              ...mapHistoryItem(h),
+              // Stash prefilled documents on the form item so each company
+              // card can lazily seed its docState once its Form.List field
+              // key is known.
+              __docPrefill: mapHistoryDocuments(h?.documents, typeNames)
+            }))
+            : []
         });
       } catch (e) {
         if (active) setInvalid(true);
@@ -267,7 +268,7 @@ export default function PublicOnboardPage() {
             c_city: personal?.address?.current?.c_city,
             c_state: personal?.address?.current?.c_state,
             c_country: personal?.address?.current?.c_country,
-            c_pincode: personal?.address?.current?.c_pincode,
+            c_pincode: personal?.address?.current?.c_pincode
           },
           permanent: {
             p_flat: personal?.address?.permanent?.p_flat,
@@ -275,15 +276,15 @@ export default function PublicOnboardPage() {
             p_city: personal?.address?.permanent?.p_city,
             p_state: personal?.address?.permanent?.p_state,
             p_country: personal?.address?.permanent?.p_country,
-            p_pincode: personal?.address?.permanent?.p_pincode,
-          },
+            p_pincode: personal?.address?.permanent?.p_pincode
+          }
         },
         relationship: personal.relationship,
         relationName: personal.relationName,
         relationMobile: personal.relationMobile,
         aadhaar: personal.aadhaar,
         pan: personal.pan,
-        passport: personal.passport,
+        passport: personal.passport
       },
       bank: {
         bankName: bank.bankName,
@@ -296,7 +297,7 @@ export default function PublicOnboardPage() {
         pfNumber: bank.pfNumber,
         esiNumber: bank.esiNumber,
         taxRegime: bank.taxRegime,
-        paymentType: bank.paymentType,
+        paymentType: bank.paymentType
       },
       history: history.map((h: any, idx: number) => {
         const fieldKey = historyKeysRef.current[idx];
@@ -318,11 +319,11 @@ export default function PublicOnboardPage() {
             contactRole: c?.contactRole,
             name: c?.name,
             mobile: c?.mobile,
-            email: c?.email,
+            email: c?.email
           })),
-          documents,
+          documents
         };
-      }),
+      })
     };
 
     setSubmitting(true);
@@ -346,14 +347,14 @@ export default function PublicOnboardPage() {
       if (prev[key]) return prev;
       const prefill = form.getFieldValue(["history", fieldName, "__docPrefill"]) || {
         catalog: {},
-        custom: [],
+        custom: []
       };
       return {
         ...prev,
         [key]: {
           catalog: { ...(prefill.catalog || {}) },
-          custom: Array.isArray(prefill.custom) ? [...prefill.custom] : [],
-        },
+          custom: Array.isArray(prefill.custom) ? [...prefill.custom] : []
+        }
       };
     });
   };
@@ -373,9 +374,9 @@ export default function PublicOnboardPage() {
             ...bucket,
             catalog: {
               ...bucket.catalog,
-              [typeName]: { base64, fileName: file.name },
-            },
-          },
+              [typeName]: { base64, fileName: file.name }
+            }
+          }
         };
       });
     } catch {
@@ -397,7 +398,7 @@ export default function PublicOnboardPage() {
       const bucket = prev[key] || { catalog: {}, custom: [] };
       return {
         ...prev,
-        [key]: { ...bucket, custom: [...bucket.custom, { documentName: "" }] },
+        [key]: { ...bucket, custom: [...bucket.custom, { documentName: "" }] }
       };
     });
   };
@@ -487,7 +488,7 @@ export default function PublicOnboardPage() {
         border: "1px solid #e0e7ff",
         borderRadius: 8,
         padding: "4px 8px",
-        marginTop: 6,
+        marginTop: 6
       }}
     >
       <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3730a3", minWidth: 0 }}>
@@ -572,7 +573,7 @@ export default function PublicOnboardPage() {
                   borderRadius: 8,
                   padding: "10px 12px",
                   marginBottom: 8,
-                  background: "var(--bg-slate-50)",
+                  background: "var(--bg-slate-50)"
                 }}
               >
                 <Row gutter={12} align="middle">
@@ -651,13 +652,13 @@ export default function PublicOnboardPage() {
     padding: "32px 16px",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
+    alignItems: "center"
   };
 
   if (loading) {
     return (
       <div style={{ ...pageWrap, justifyContent: "center" }}>
-        <Spin size="large" tip="Loading your onboarding form..." />
+        <LoadingSpinner message="Loading your onboarding form..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -702,13 +703,13 @@ export default function PublicOnboardPage() {
     backgroundColor: "var(--bg-pure-white, #ffffff)",
     border: "1px solid var(--border-slate-200)",
     borderRadius: 0,
-    marginBottom: 20,
+    marginBottom: 20
   };
 
-  const inputStyle: React.CSSProperties = { 
+  const inputStyle: React.CSSProperties = {
     borderRadius: 8,
     backgroundColor: "transparent",
-    borderColor: "var(--border-slate-200, #e2e8f0)",
+    borderColor: "var(--border-slate-200, #e2e8f0)"
   };
 
   return (
@@ -742,7 +743,7 @@ export default function PublicOnboardPage() {
               fontWeight: 800,
               letterSpacing: "-0.02em",
               color: "var(--premium-blue)",
-              marginBottom: 4,
+              marginBottom: 4
             }}
           >
             Zukvo
@@ -771,376 +772,376 @@ export default function PublicOnboardPage() {
         </div>
 
         <Form form={form} layout="vertical" requiredMark="optional" scrollToFirstError size="large">
-            {/* ----------------- 1. PERSONAL ----------------- */}
-            {showPersonal && (
-              <div style={sectionContainerStyle}>
-                <SectionHeader step={1} title="Personal Details" subtitle="Your basic and identity information" />
-                <Row gutter={16}>
-                  <Col xs={24} sm={8}>
-                    <Form.Item
-                      name={["personal", "firstName"]}
-                      label="First Name"
-                      rules={[
-                        { required: true, message: "First name is required" },
-                        { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
-                      ]}
-                    >
-                      <Input style={inputStyle} placeholder="First name" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item
-                      name={["personal", "lastName"]}
-                      label="Last Name"
-                      rules={[
-                        { required: true, message: "Last name is required" },
-                        { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
-                      ]}
-                    >
-                      <Input style={inputStyle} placeholder="Last name" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "gender"]} label="Gender">
-                      <Select style={inputStyle} placeholder="Select" allowClear
-                        options={[
-                          { value: "Male", label: "Male" },
-                          { value: "Female", label: "Female" },
-                          { value: "Other", label: "Other" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "dob"]} label="Date of Birth">
-                      <DatePicker style={{ ...inputStyle, width: "100%" }} format="YYYY-MM-DD" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "bloodGroup"]} label="Blood Group">
-                      <Select style={inputStyle} placeholder="Select" allowClear
-                        options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((b) => ({ value: b, label: b }))}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item
-                      name={["personal", "mobile"]}
-                      label="Mobile"
-                      rules={[
-                        { required: true, message: "Mobile is required" },
-                        { pattern: /^[0-9]{10,15}$/, message: "Must be 10-15 digits" }
-                      ]}
-                    >
-                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name={["personal", "workEmail"]}
-                      label="Work Email"
-                      rules={[{ type: "email", message: "Enter a valid email" }]}
-                    >
-                      <Input style={inputStyle} placeholder="name@company.com" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item
-                      name={["personal", "personalEmail"]}
-                      label="Personal Email"
-                      rules={[{ type: "email", message: "Enter a valid email" }]}
-                    >
-                      <Input style={inputStyle} placeholder="name@gmail.com" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  <EnvironmentOutlined style={{ marginRight: 6 }} /> Current Address
-                </Divider>
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["personal", "address", "current", "c_flat"]} label="Flat / House / Building">
-                      <Input style={inputStyle} placeholder="Flat / House no." />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["personal", "address", "current", "c_area"]} label="Area / Street">
-                      <Input style={inputStyle} placeholder="Area / Street" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "current", "c_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
-                      <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    margin: "16px 0 12px",
-                    paddingBottom: 6,
-                    borderBottom: "1px solid var(--border-slate-200)",
-                  }}
-                >
-                  <span style={{ color: "var(--text-slate-400)", fontSize: 13, fontWeight: 500 }}><HomeOutlined style={{ marginRight: 6 }} />Permanent Address</span>
-                  <Checkbox
-                    checked={sameAsCurrent}
-                    onChange={(e) => handleSameAsCurrent(e.target.checked)}
-                    style={{ fontSize: 13, color: "#475569" }}
+          {/* ----------------- 1. PERSONAL ----------------- */}
+          {showPersonal && (
+            <div style={sectionContainerStyle}>
+              <SectionHeader step={1} title="Personal Details" subtitle="Your basic and identity information" />
+              <Row gutter={16}>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name={["personal", "firstName"]}
+                    label="First Name"
+                    rules={[
+                      { required: true, message: "First name is required" },
+                      { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
+                    ]}
                   >
-                    Same as Current Address
-                  </Checkbox>
-                </div>
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["personal", "address", "permanent", "p_flat"]} label="Flat / House / Building">
-                      <Input style={inputStyle} placeholder="Flat / House no." />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["personal", "address", "permanent", "p_area"]} label="Area / Street">
-                      <Input style={inputStyle} placeholder="Area / Street" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "address", "permanent", "p_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
-                      <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                    <Input style={inputStyle} placeholder="First name" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name={["personal", "lastName"]}
+                    label="Last Name"
+                    rules={[
+                      { required: true, message: "Last name is required" },
+                      { pattern: /^[A-Za-z\s]+$/, message: "No special characters allowed" }
+                    ]}
+                  >
+                    <Input style={inputStyle} placeholder="Last name" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "gender"]} label="Gender">
+                    <Select style={inputStyle} placeholder="Select" allowClear
+                      options={[
+                        { value: "Male", label: "Male" },
+                        { value: "Female", label: "Female" },
+                        { value: "Other", label: "Other" },
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "dob"]} label="Date of Birth">
+                    <DatePicker style={{ ...inputStyle, width: "100%" }} format="YYYY-MM-DD" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "bloodGroup"]} label="Blood Group">
+                    <Select style={inputStyle} placeholder="Select" allowClear
+                      options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((b) => ({ value: b, label: b }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item
+                    name={["personal", "mobile"]}
+                    label="Mobile"
+                    rules={[
+                      { required: true, message: "Mobile is required" },
+                      { pattern: /^[0-9]{10,15}$/, message: "Must be 10-15 digits" }
+                    ]}
+                  >
+                    <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name={["personal", "workEmail"]}
+                    label="Work Email"
+                    rules={[{ type: "email", message: "Enter a valid email" }]}
+                  >
+                    <Input style={inputStyle} placeholder="name@company.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name={["personal", "personalEmail"]}
+                    label="Personal Email"
+                    rules={[{ type: "email", message: "Enter a valid email" }]}
+                  >
+                    <Input style={inputStyle} placeholder="name@gmail.com" />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  <ContactsOutlined style={{ marginRight: 6 }} /> Emergency Contact
-                </Divider>
-                <Row gutter={16}>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "relationship"]} label="Relationship">
-                      <Select style={inputStyle} placeholder="Select Relationship" allowClear options={[
-                        { value: "father", label: "Father" },
-                        { value: "mother", label: "Mother" },
-                        { value: "spouse", label: "Spouse" },
-                        { value: "guardian", label: "Guardian" },
-                      ]} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "relationName"]} label="Contact Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="Name" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "relationMobile"]} label="Contact Mobile" rules={[
-                      { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" }
-                    ]}>
-                      <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
+              <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <EnvironmentOutlined style={{ marginRight: 6 }} /> Current Address
+              </Divider>
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["personal", "address", "current", "c_flat"]} label="Flat / House / Building">
+                    <Input style={inputStyle} placeholder="Flat / House no." />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["personal", "address", "current", "c_area"]} label="Area / Street">
+                    <Input style={inputStyle} placeholder="Area / Street" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "current", "c_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "current", "c_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "current", "c_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "current", "c_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
+                    <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-                <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
-                  <IdcardOutlined style={{ marginRight: 6 }} /> Identity Documents
-                </Divider>
-                <Row gutter={16}>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "aadhaar"]} label="Aadhaar Number" rules={[
-                      { pattern: /^[0-9]{12}$/, message: "Must be exactly 12 digits" }
-                    ]}>
-                      <Input style={inputStyle} placeholder="Aadhaar" maxLength={12} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "pan"]} label="PAN" rules={[
-                      { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
-                    ]}>
-                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PAN" maxLength={10} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["personal", "passport"]} label="Passport Number" rules={[
-                      { pattern: /^[A-Z]{1}[0-9]{7}$/, message: "Invalid Passport format (e.g. A1234567)" }
-                    ]}>
-                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="Passport (optional)" maxLength={8} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                </div>
-            )}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  margin: "16px 0 12px",
+                  paddingBottom: 6,
+                  borderBottom: "1px solid var(--border-slate-200)"
+                }}
+              >
+                <span style={{ color: "var(--text-slate-400)", fontSize: 13, fontWeight: 500 }}><HomeOutlined style={{ marginRight: 6 }} />Permanent Address</span>
+                <Checkbox
+                  checked={sameAsCurrent}
+                  onChange={(e) => handleSameAsCurrent(e.target.checked)}
+                  style={{ fontSize: 13, color: "#475569" }}
+                >
+                  Same as Current Address
+                </Checkbox>
+              </div>
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["personal", "address", "permanent", "p_flat"]} label="Flat / House / Building">
+                    <Input style={inputStyle} placeholder="Flat / House no." />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["personal", "address", "permanent", "p_area"]} label="Area / Street">
+                    <Input style={inputStyle} placeholder="Area / Street" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "permanent", "p_city"]} label="City" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="City" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "permanent", "p_state"]} label="State" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="State" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "permanent", "p_country"]} label="Country" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="Country" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "address", "permanent", "p_pincode"]} label="Pincode" rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}>
+                    <Input style={inputStyle} placeholder="Pincode" maxLength={6} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            {/* ----------------- 2. BANK & PAYROLL ----------------- */}
-            {showBank && (
-              <div style={sectionContainerStyle}>
-                <SectionHeader step={2} title="Bank & Payroll" subtitle="Salary account and statutory details" />
-                <Row gutter={16}>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "bankName"]} label="Bank Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="Bank name" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "accountHolderName"]} label="Account Holder Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="As per bank records" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "accountNumber"]} label="Account Number" rules={[
-                      { pattern: /^[0-9]{9,18}$/, message: "Account number must be 9-18 digits" }
-                    ]}>
-                      <Input style={inputStyle} placeholder="Account number" maxLength={18} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "ifscCode"]} label="IFSC Code" rules={[
-                      { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: "Invalid IFSC Code format" }
-                    ]}>
-                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="IFSC" />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "branchName"]} label="Branch Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
-                      <Input style={inputStyle} placeholder="Branch" onKeyPress={(e) => {
-                        if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "accountType"]} label="Account Type">
-                      <Select style={inputStyle} placeholder="Select" allowClear
-                        options={[
-                          { value: "Savings", label: "Savings" },
-                          { value: "Current", label: "Current" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "uanNumber"]} label="UAN Number" rules={[
-                      { pattern: /^[0-9]{12}$/, message: "UAN must be 12 digits" }
-                    ]}>
-                      <Input style={inputStyle} placeholder="UAN (optional)" maxLength={12} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "pfNumber"]} label="PF Number" rules={[
-                      { pattern: /^[A-Za-z]{5}[0-9]{17}$/, message: "Invalid PF format (e.g. MHBAN00000640000000123)" }
-                    ]}>
-                      <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PF (optional)" maxLength={22} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Form.Item name={["bank", "esiNumber"]} label="ESI Number" rules={[
-                      { pattern: /^[0-9]{17}$/, message: "ESI must be 17 digits" }
-                    ]}>
-                      <Input style={inputStyle} placeholder="ESI (optional)" maxLength={17} onKeyPress={(e) => {
-                        if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
-                      }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "taxRegime"]} label="Tax Regime">
-                      <Select style={inputStyle} placeholder="Select" allowClear
-                        options={[
-                          { value: "Old", label: "Old Regime" },
-                          { value: "New", label: "New Regime" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Form.Item name={["bank", "paymentType"]} label="Payment Type">
-                      <Select style={inputStyle} placeholder="Select" allowClear
-                        options={[
-                          { value: "Bank Transfer", label: "Bank Transfer" },
-                          { value: "Cheque", label: "Cheque" },
-                          { value: "Cash", label: "Cash" },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                </div>
-            )}
+              <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <ContactsOutlined style={{ marginRight: 6 }} /> Emergency Contact
+              </Divider>
+              <Row gutter={16}>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "relationship"]} label="Relationship">
+                    <Select style={inputStyle} placeholder="Select Relationship" allowClear options={[
+                      { value: "father", label: "Father" },
+                      { value: "mother", label: "Mother" },
+                      { value: "spouse", label: "Spouse" },
+                      { value: "guardian", label: "Guardian" },
+                    ]} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "relationName"]} label="Contact Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="Name" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "relationMobile"]} label="Contact Mobile" rules={[
+                    { pattern: /^[0-9]{7,15}$/, message: "Must be 7-15 digits" }
+                  ]}>
+                    <Input style={inputStyle} placeholder="Mobile number" maxLength={15} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            {/* ----------------- 3. EMPLOYEE HISTORY ----------------- */}
-            {showHistory && (
-              <div style={sectionContainerStyle}>
-                <SectionHeader step={3} title="Employment History" subtitle="Your previous companies (optional)" />
-                <Form.List name="history">
-                  {(fields, { add, remove }) => {
-                    // Keep the ordered field keys in sync with the rendered
-                    // order so submit can map history[i] -> docState[key].
-                    historyKeysRef.current = fields.map((f) => f.key as number);
-                    return (
+              <Divider style={{ margin: "12px 0", color: "var(--text-slate-400)", fontSize: 13 }} orientation="left" orientationMargin={0}>
+                <IdcardOutlined style={{ marginRight: 6 }} /> Identity Documents
+              </Divider>
+              <Row gutter={16}>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "aadhaar"]} label="Aadhaar Number" rules={[
+                    { pattern: /^[0-9]{12}$/, message: "Must be exactly 12 digits" }
+                  ]}>
+                    <Input style={inputStyle} placeholder="Aadhaar" maxLength={12} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "pan"]} label="PAN" rules={[
+                    { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
+                  ]}>
+                    <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PAN" maxLength={10} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["personal", "passport"]} label="Passport Number" rules={[
+                    { pattern: /^[A-Z]{1}[0-9]{7}$/, message: "Invalid Passport format (e.g. A1234567)" }
+                  ]}>
+                    <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="Passport (optional)" maxLength={8} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {/* ----------------- 2. BANK & PAYROLL ----------------- */}
+          {showBank && (
+            <div style={sectionContainerStyle}>
+              <SectionHeader step={2} title="Bank & Payroll" subtitle="Salary account and statutory details" />
+              <Row gutter={16}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "bankName"]} label="Bank Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="Bank name" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "accountHolderName"]} label="Account Holder Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="As per bank records" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "accountNumber"]} label="Account Number" rules={[
+                    { pattern: /^[0-9]{9,18}$/, message: "Account number must be 9-18 digits" }
+                  ]}>
+                    <Input style={inputStyle} placeholder="Account number" maxLength={18} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "ifscCode"]} label="IFSC Code" rules={[
+                    { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: "Invalid IFSC Code format" }
+                  ]}>
+                    <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="IFSC" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "branchName"]} label="Branch Name" rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}>
+                    <Input style={inputStyle} placeholder="Branch" onKeyPress={(e) => {
+                      if (!/^[A-Za-z\s-]$/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "accountType"]} label="Account Type">
+                    <Select style={inputStyle} placeholder="Select" allowClear
+                      options={[
+                        { value: "Savings", label: "Savings" },
+                        { value: "Current", label: "Current" },
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["bank", "uanNumber"]} label="UAN Number" rules={[
+                    { pattern: /^[0-9]{12}$/, message: "UAN must be 12 digits" }
+                  ]}>
+                    <Input style={inputStyle} placeholder="UAN (optional)" maxLength={12} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["bank", "pfNumber"]} label="PF Number" rules={[
+                    { pattern: /^[A-Za-z]{5}[0-9]{17}$/, message: "Invalid PF format (e.g. MHBAN00000640000000123)" }
+                  ]}>
+                    <Input style={{ ...inputStyle, textTransform: "uppercase" }} placeholder="PF (optional)" maxLength={22} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Form.Item name={["bank", "esiNumber"]} label="ESI Number" rules={[
+                    { pattern: /^[0-9]{17}$/, message: "ESI must be 17 digits" }
+                  ]}>
+                    <Input style={inputStyle} placeholder="ESI (optional)" maxLength={17} onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && e.key.length === 1) e.preventDefault();
+                    }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "taxRegime"]} label="Tax Regime">
+                    <Select style={inputStyle} placeholder="Select" allowClear
+                      options={[
+                        { value: "Old", label: "Old Regime" },
+                        { value: "New", label: "New Regime" },
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name={["bank", "paymentType"]} label="Payment Type">
+                    <Select style={inputStyle} placeholder="Select" allowClear
+                      options={[
+                        { value: "Bank Transfer", label: "Bank Transfer" },
+                        { value: "Cheque", label: "Cheque" },
+                        { value: "Cash", label: "Cash" },
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          {/* ----------------- 3. EMPLOYEE HISTORY ----------------- */}
+          {showHistory && (
+            <div style={sectionContainerStyle}>
+              <SectionHeader step={3} title="Employment History" subtitle="Your previous companies (optional)" />
+              <Form.List name="history">
+                {(fields, { add, remove }) => {
+                  // Keep the ordered field keys in sync with the rendered
+                  // order so submit can map history[i] -> docState[key].
+                  historyKeysRef.current = fields.map((f) => f.key as number);
+                  return (
                     <>
                       {fields.map((field, idx) => (
                         <Card
@@ -1225,7 +1226,7 @@ export default function PublicOnboardPage() {
                                       borderRadius: 8,
                                       padding: "10px 12px 2px",
                                       marginBottom: 8,
-                                      background: "var(--bg-slate-50)",
+                                      background: "var(--bg-slate-50)"
                                     }}
                                   >
                                     <div
@@ -1233,7 +1234,7 @@ export default function PublicOnboardPage() {
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        marginBottom: 4,
+                                        marginBottom: 4
                                       }}
                                     >
                                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500)" }}>
@@ -1320,13 +1321,13 @@ export default function PublicOnboardPage() {
                         Add Previous Company
                       </Button>
                     </>
-                    );
-                  }}
-                </Form.List>
-                </div>
-            )}
+                  );
+                }}
+              </Form.List>
+            </div>
+          )}
 
-            <div style={sectionContainerStyle}>
+          <div style={sectionContainerStyle}>
             <Button
               type="primary"
               size="large"
@@ -1342,8 +1343,8 @@ export default function PublicOnboardPage() {
                 Your information is securely transmitted to your employer's HR team.
               </Text>
             </div>
-            </div>
-          </Form>
+          </div>
+        </Form>
 
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>Powered by Zukvo</Text>

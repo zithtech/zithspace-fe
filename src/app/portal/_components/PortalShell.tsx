@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -19,30 +20,31 @@ import {
   ChevronDown,
   LogOut,
   KeyRound,
-  LucideIcon,
+  LucideIcon
 } from "lucide-react";
-import { Dropdown, Spin } from "antd";
+import { Dropdown } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
 import ChangePasswordModal from "./ChangePasswordModal";
+
 
 const NAV: {
   href: string;
   label: string;
   icon: LucideIcon;
 }[] = [
-  { href: "/portal", label: "Home", icon: Home },
-  { href: "/portal/invoices", label: "Invoices", icon: Receipt },
-  { href: "/portal/mom", label: "Meetings", icon: ClipboardList },
-  { href: "/portal/documents", label: "Documents", icon: FileText },
-  { href: "/portal/sprints", label: "Sprints", icon: CalendarCheck },
-  { href: "/portal/milestones", label: "Milestones", icon: Flag },
-  { href: "/portal/change-requests", label: "Change Requests", icon: GitPullRequest },
-  { href: "/portal/approvals", label: "Approvals", icon: CheckSquare },
-  { href: "/portal/tickets", label: "Support", icon: LifeBuoy },
-  { href: "/portal/releases", label: "Releases", icon: Rocket },
-  { href: "/portal/environments", label: "Environments", icon: Server },
-  { href: "/portal/team", label: "Team", icon: Users },
-];
+    { href: "/portal", label: "Home", icon: Home },
+    { href: "/portal/invoices", label: "Invoices", icon: Receipt },
+    { href: "/portal/mom", label: "Meetings", icon: ClipboardList },
+    { href: "/portal/documents", label: "Documents", icon: FileText },
+    { href: "/portal/sprints", label: "Sprints", icon: CalendarCheck },
+    { href: "/portal/milestones", label: "Milestones", icon: Flag },
+    { href: "/portal/change-requests", label: "Change Requests", icon: GitPullRequest },
+    { href: "/portal/approvals", label: "Approvals", icon: CheckSquare },
+    { href: "/portal/tickets", label: "Support", icon: LifeBuoy },
+    { href: "/portal/releases", label: "Releases", icon: Rocket },
+    { href: "/portal/environments", label: "Environments", icon: Server },
+    { href: "/portal/team", label: "Team", icon: Users },
+  ];
 
 /**
  * The portal page slug for a nav href / pathname, e.g. "/portal/mom" -> "mom"
@@ -61,10 +63,9 @@ const TOGGLEABLE_KEYS = new Set(
 );
 
 export default function PortalShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+  children }: {
+    children: React.ReactNode;
+  }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useClientPortalAuth();
@@ -89,10 +90,10 @@ export default function PortalShell({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#fafafa",
+          background: "#fafafa"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -126,14 +127,14 @@ export default function PortalShell({
           flexDirection: "column",
           position: "sticky",
           top: 0,
-          height: "100vh",
+          height: "100vh"
         }}
       >
         {/* Brand */}
         <div
           style={{
             padding: "18px 18px 16px",
-            borderBottom: "1px solid #f1f5f9",
+            borderBottom: "1px solid #f1f5f9"
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -151,7 +152,7 @@ export default function PortalShell({
                 fontWeight: 700,
                 letterSpacing: "-0.02em",
                 fontFamily:
-                  'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}
             >
               Z
@@ -163,7 +164,7 @@ export default function PortalShell({
                   fontWeight: 700,
                   color: "#0f172a",
                   lineHeight: 1.1,
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "-0.01em"
                 }}
               >
                 Zukvo
@@ -175,7 +176,7 @@ export default function PortalShell({
                   color: "#64748b",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  marginTop: 2,
+                  marginTop: 2
                 }}
               >
                 Client Portal
@@ -195,7 +196,7 @@ export default function PortalShell({
                 color: "#0f172a",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap"
               }}
               title={user.client.companyName}
             >
@@ -212,7 +213,7 @@ export default function PortalShell({
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
-            gap: 2,
+            gap: 2
           }}
         >
           {visibleNav.map(({ href, label, icon: Icon }) => {
@@ -236,7 +237,7 @@ export default function PortalShell({
                     ? "1px solid #e2e8f0"
                     : "1px solid transparent",
                   textDecoration: "none",
-                  transition: "background 120ms ease",
+                  transition: "background 120ms ease"
                 }}
               >
                 <Icon size={16} />
@@ -250,7 +251,7 @@ export default function PortalShell({
         <div
           style={{
             padding: 12,
-            borderTop: "1px solid #f1f5f9",
+            borderTop: "1px solid #f1f5f9"
           }}
         >
           <Dropdown
@@ -264,7 +265,7 @@ export default function PortalShell({
                       <KeyRound size={14} /> Change password
                     </span>
                   ),
-                  onClick: () => setChangePwOpen(true),
+                  onClick: () => setChangePwOpen(true)
                 },
                 { type: "divider" },
                 {
@@ -274,9 +275,9 @@ export default function PortalShell({
                       <LogOut size={14} /> Sign out
                     </span>
                   ),
-                  onClick: logout,
+                  onClick: logout
                 },
-              ],
+              ]
             }}
           >
             <button
@@ -290,7 +291,7 @@ export default function PortalShell({
                 border: "1px solid #e5e7eb",
                 borderRadius: 8,
                 cursor: "pointer",
-                textAlign: "left",
+                textAlign: "left"
               }}
             >
               <div
@@ -305,7 +306,7 @@ export default function PortalShell({
                   justifyContent: "center",
                   fontSize: 12,
                   fontWeight: 600,
-                  border: "1px solid #e0e7ff",
+                  border: "1px solid #e0e7ff"
                 }}
               >
                 {initials}
@@ -318,7 +319,7 @@ export default function PortalShell({
                     color: "#111827",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   {user.displayName || user.username}
@@ -329,7 +330,7 @@ export default function PortalShell({
                     color: "#6b7280",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   {user.email}

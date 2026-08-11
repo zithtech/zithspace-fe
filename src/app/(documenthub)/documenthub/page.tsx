@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -69,7 +70,6 @@ import {
   DatePicker,
   Space,
   message,
-  Spin,
   Divider,
   Avatar,
   Segmented,
@@ -1271,7 +1271,7 @@ const DocumentHubPage = () => {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating technical repository..." />
+          <LoadingSpinner message="Orchestrating technical repository..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -1777,13 +1777,19 @@ const DocumentHubPage = () => {
           borderRadius: 0,
           background: 'var(--bg-pure-white)',
           border: 'none',
+          position: 'relative'
         }}
       >
+        {(hubsLoading || hubsFetching) && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           columns={visibleColumns}
           dataSource={pagedHubs}
           rowKey="id"
-          loading={hubsLoading || hubsFetching}
+          loading={false}
           pagination={false}
           size="small"
           className="premium-table dh-table"
@@ -1819,7 +1825,7 @@ const DocumentHubPage = () => {
                 aria-expanded={expanded}
                 style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
               >
-                <RightOutlined style={{ fontSize: 10 }} />
+                {expanded ? <DownOutlined style={{ fontSize: 10 }} /> : <RightOutlined style={{ fontSize: 10 }} />}
               </button>
             ),
             expandIconColumnIndex: 1,
@@ -2557,7 +2563,7 @@ const DocumentHubPage = () => {
             <div className="dh-main-body">
               {hubsLoading && !documentHubs.length ? (
                 <div className="flex items-center justify-center py-16">
-                  <Spin />
+                  <LoadingSpinner fullScreen={false} />
                 </div>
               ) : viewMode === 'cards' ? renderRowCards()
                 : renderTable()}

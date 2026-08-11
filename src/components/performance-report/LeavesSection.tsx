@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Avatar, Spin, Table, Tag, message } from 'antd';
+import { Avatar, Table, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { CalendarOutlined } from '@ant-design/icons';
 import { Plane } from 'lucide-react';
@@ -10,6 +11,7 @@ import PerformanceReportService, { ReportLeave } from '@/services/performanceRep
 import LeaveV2Service from '@/services/leaveV2Service';
 import { pointsColor } from './moduleScores';
 import EmptyState from './EmptyState';
+
 
 interface Props {
   userId?: string;
@@ -26,14 +28,12 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   approved: { label: 'Approved', color: 'green' },
   pending: { label: 'Pending', color: 'gold' },
   rejected: { label: 'Rejected', color: 'red' },
-  cancelled: { label: 'Cancelled', color: 'default' },
-};
+  cancelled: { label: 'Cancelled', color: 'default' } };
 
 const PORTION_LABEL: Record<string, string> = {
   full: 'Full day',
   first_half: 'First half',
-  second_half: 'Second half',
-};
+  second_half: 'Second half' };
 
 const fmtUnits = (n: number) => `${Number(n.toFixed(2))}`;
 
@@ -53,8 +53,7 @@ export default function LeavesSection({ userId, range }: Props) {
           PerformanceReportService.getLeaveReport({
             from: range[0].format('YYYY-MM-DD'),
             to: range[1].format('YYYY-MM-DD'),
-            memberId: userId || undefined,
-          }),
+            memberId: userId || undefined }),
           LeaveV2Service.getLeaveHolidayDates().catch(() => [] as string[]),
         ]);
         if (cancelled) return;
@@ -120,27 +119,23 @@ export default function LeavesSection({ userId, range }: Props) {
             {r.userName || '—'}
           </span>
         </div>
-      ),
-    },
+      ) },
     {
       title: 'Leave Type',
       key: 'type',
-      render: (_, r) => <span style={{ fontWeight: 600 }}>{r.leaveTypeName || '—'}</span>,
-    },
+      render: (_, r) => <span style={{ fontWeight: 600 }}>{r.leaveTypeName || '—'}</span> },
     { title: 'From', key: 'from', width: 110, render: (_, r) => dayjs(r.fromDate).format('MMM D') },
     { title: 'To', key: 'to', width: 110, render: (_, r) => dayjs(r.toDate).format('MMM D') },
     {
       title: 'Portion',
       key: 'portion',
       width: 110,
-      render: (_, r) => <span style={{ color: 'var(--text-slate-500)' }}>{PORTION_LABEL[r.dayPortion] || r.dayPortion}</span>,
-    },
+      render: (_, r) => <span style={{ color: 'var(--text-slate-500)' }}>{PORTION_LABEL[r.dayPortion] || r.dayPortion}</span> },
     {
       title: 'Days',
       key: 'days',
       width: 70,
-      render: (_, r) => <strong>{fmtUnits(r.totalUnits)}</strong>,
-    },
+      render: (_, r) => <strong>{fmtUnits(r.totalUnits)}</strong> },
     {
       title: 'LOP',
       key: 'lop',
@@ -150,8 +145,7 @@ export default function LeavesSection({ userId, range }: Props) {
           <span style={{ color: '#dc2626', fontWeight: 700 }}>{fmtUnits(r.lopUnits)}</span>
         ) : (
           <span style={{ color: 'var(--text-slate-400)' }}>—</span>
-        ),
-    },
+        ) },
     {
       title: 'Status',
       key: 'status',
@@ -159,14 +153,13 @@ export default function LeavesSection({ userId, range }: Props) {
       render: (_, r) => {
         const m = STATUS_META[r.status] || { label: r.status, color: 'default' };
         return <Tag color={m.color}>{m.label}</Tag>;
-      },
-    },
+      } },
   ];
 
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Loading leaves…" />
+        <LoadingSpinner message="Loading leaves…" fullScreen={false} />
       </div>
     );
   }

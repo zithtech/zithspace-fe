@@ -6,11 +6,13 @@ const { Text } = Typography;
 interface LoadingSpinnerProps {
   message?: string;
   size?: 'small' | 'medium' | 'large';
+  fullScreen?: boolean;
 }
 
 export default function LoadingSpinner({ 
   message = 'Loading...', 
-  size = 'medium' 
+  size = 'medium',
+  fullScreen = true
 }: LoadingSpinnerProps) {
   const sizeMap = {
     small: 24,
@@ -25,8 +27,9 @@ export default function LoadingSpinner({
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center', 
-      height: '100vh',
-      background: '#f5f5f5'
+      height: fullScreen ? '100vh' : '100%',
+      minHeight: fullScreen ? undefined : spinnerSize + 40,
+      background: fullScreen ? '#f5f5f5' : 'transparent'
     }}>
       <Space direction="vertical" align="center" size={16}>
         <div 

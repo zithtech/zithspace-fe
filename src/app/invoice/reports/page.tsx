@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -12,7 +13,6 @@ import {
   Select, 
   Button, 
   Divider, 
-  Spin,
   Tooltip
 } from "antd";
 import { 
@@ -47,6 +47,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -118,7 +119,7 @@ export default function InvoiceproReportsPage() {
     </Card>
   );
 
-  if (authLoading) return <MainLayout><div className="flex justify-center items-center h-screen"><Spin size="large" /></div></MainLayout>;
+  if (authLoading) return <MainLayout><div className="flex justify-center items-center h-screen"><LoadingSpinner size="large" fullScreen={false} /></div></MainLayout>;
   if (!canReadInvoiceReport) return null;
 
   return (

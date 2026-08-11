@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -6,8 +7,9 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Suspense } from "react";
-import { Spin } from "antd";
+
 import TimesheetsTab from "@/components/timesheet/TimesheetTable";
+
 
 export default function ApprovalTimesheetsPage() {
   const { isLoading: authLoading } = useAuth();
@@ -42,7 +44,7 @@ export default function ApprovalTimesheetsPage() {
         minHeight: "calc(100vh - 64px)",
         textAlign: 'center' 
       }}>
-        <Spin size="large" tip="Loading..." />
+        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -61,10 +63,9 @@ export default function ApprovalTimesheetsPage() {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              height: "calc(100vh - 64px)",
-            }}
+              height: "calc(100vh - 64px)" }}
           >
-            <Spin size="large" />
+            <LoadingSpinner size="large" fullScreen={false} />
           </div>
         }
       >

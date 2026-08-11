@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tabs, Modal, Input, Form, message, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { BankOutlined, DollarOutlined } from '@ant-design/icons';
@@ -95,8 +96,13 @@ export default function FinancePanel() {
           {
             key: 'claims', label: `Claims (${claims.length})`,
             children: (
-              <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
+              <div className="rvp-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
+                <Table rowKey="id" size="middle" loading={false} columns={claimCols} dataSource={claims}
                   locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
               </div>
             ),
@@ -104,8 +110,13 @@ export default function FinancePanel() {
           {
             key: 'advances', label: `Advances (${advances.length})`,
             children: (
-              <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
+              <div className="rvp-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
+                <Table rowKey="id" size="middle" loading={false} columns={advanceCols} dataSource={advances}
                   locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
               </div>
             ),

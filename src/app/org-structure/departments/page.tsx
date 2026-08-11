@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -7,12 +8,10 @@ import {
   Form,
   Select,
   notification,
-  Spin,
   Tooltip,
   Switch,
   Drawer,
-  Popover,
-} from "antd";
+  Popover } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
@@ -27,8 +26,7 @@ import {
   Settings,
   Users as UsersIcon,
   Trash2,
-  MoreHorizontal,
-} from "lucide-react";
+  MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -42,6 +40,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
 
 
 
@@ -108,7 +107,7 @@ export default function DepartmentsPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Departments..." />
+        <LoadingSpinner message="Loading Departments..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -146,8 +145,7 @@ export default function DepartmentsPage() {
         message: "Department Removed",
         description: "The department has been successfully deleted.",
         placement: "topRight",
-        duration: 2,
-      });
+        duration: 2 });
     }
   };
 
@@ -160,8 +158,7 @@ export default function DepartmentsPage() {
         employmentType: formValues.employmentType,
         headId: formValues.headId,
         description: formValues.description,
-        isActive: formValues.isActive,
-      };
+        isActive: formValues.isActive };
       setSubmitting(true);
       const success = editingKey
         ? await updateDepartment(editingKey, payload)
@@ -172,8 +169,7 @@ export default function DepartmentsPage() {
           message: `Department ${editingKey ? "Updated" : "Added"}`,
           description: `The department "${payload.name}" has been successfully saved.`,
           placement: "topRight",
-          duration: 2,
-        });
+          duration: 2 });
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -195,8 +191,7 @@ export default function DepartmentsPage() {
             <span className="orgx-row-name__code">{record.code}</span>
           </div>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Employment Type",
       dataIndex: "employmentType",
@@ -204,8 +199,7 @@ export default function DepartmentsPage() {
       width: 180,
       render: (type: string) => (
         <span className={`orgx-row-soft-tag${!type ? " is-muted" : ""}`}>{type || "Not assigned"}</span>
-      ),
-    },
+      ) },
     {
       title: "Department Head",
       dataIndex: "head",
@@ -222,8 +216,7 @@ export default function DepartmentsPage() {
             <span className="orgx-row-leader__name is-muted">No head assigned</span>
           )}
         </div>
-      ),
-    },
+      ) },
     {
       title: "Status",
       dataIndex: "isActive",
@@ -234,8 +227,7 @@ export default function DepartmentsPage() {
           <span className="orgx-status-dot" />
           {isActive ? "Active" : "Inactive"}
         </span>
-      ),
-    },
+      ) },
     {
       title: "",
       key: "actions",
@@ -263,8 +255,7 @@ export default function DepartmentsPage() {
             </ConfirmDialog>
           )}
         </div>
-      ),
-    },
+      ) },
   ];
 
   const CARD_ACCENTS: [string, string][] = [
@@ -387,8 +378,7 @@ export default function DepartmentsPage() {
               marginBottom: 8,
               position: 'sticky',
               top: 0,
-              zIndex: 100,
-            }}
+              zIndex: 100 }}
             extra={
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {canReadActivityLog && (
@@ -453,15 +443,13 @@ export default function DepartmentsPage() {
               body: { padding: 0, background: 'var(--customers-page-bg)' },
               footer: { padding: 0, border: 'none' },
               wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
-            }}
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
             footer={
               <div
                 className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
                 style={{
                   background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)',
-                }}
+                  borderColor: 'var(--border-color)' }}
               >
                 <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
                   Fields marked required must be filled
@@ -486,8 +474,7 @@ export default function DepartmentsPage() {
               className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
               style={{
                 background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-                borderColor: 'var(--border-color)',
-              }}
+                borderColor: 'var(--border-color)' }}
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
@@ -495,8 +482,7 @@ export default function DepartmentsPage() {
                   style={{
                     background: 'rgba(59,130,246,0.10)',
                     color: '#3b82f6',
-                    border: '1px solid var(--border-blue-200)',
-                  }}
+                    border: '1px solid var(--border-blue-200)' }}
                 >
                   {editingKey ? <Edit size={18} /> : <Building2 size={18} />}
                 </div>

@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -14,12 +15,10 @@ import {
   Popconfirm,
   Progress,
   Select,
-  Spin,
   Table,
   Tag,
   Tooltip,
-  Typography,
-} from "antd";
+  Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -32,18 +31,17 @@ import {
   ReloadOutlined,
   SearchOutlined,
   UndoOutlined,
-  RestOutlined,
-} from "@ant-design/icons";
+  RestOutlined } from "@ant-design/icons";
 import {
   useTrashTickets,
   useBulkRestoreFromTrash,
   useBulkPermanentlyDelete,
-  useEmptyTrash,
-} from "@/hooks/useTrash";
+  useEmptyTrash } from "@/hooks/useTrash";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import TicketLifecycleShell, { ProjectFilterOption } from "@/components/projects/TicketLifecycleShell";
 import type { TrashTicket } from "@/services/trashService";
+
 
 const { Text } = Typography;
 const RETENTION_DAYS = 7;
@@ -89,8 +87,7 @@ export default function TicketsTrashPage() {
     projectId: selectedProject || undefined,
     search: searchText,
     page,
-    limit: pageSize,
-  });
+    limit: pageSize });
 
   const { mutateAsync: bulkRestore, isPending: isRestoring } = useBulkRestoreFromTrash();
   const { mutateAsync: bulkPermanent, isPending: isPurging } = useBulkPermanentlyDelete();
@@ -118,8 +115,7 @@ export default function TicketsTrashPage() {
       label: p.label,
       code: p.code,
       count: countsMap.get(p.value) || 0,
-      color: PROJECT_PALETTE[i % PROJECT_PALETTE.length],
-    }));
+      color: PROJECT_PALETTE[i % PROJECT_PALETTE.length] }));
   }, [projects, trashData?.summary?.projectCounts]);
 
   const totalAcrossProjects = trashData?.summary?.totalAllTrash ?? 0;
@@ -183,14 +179,12 @@ export default function TicketsTrashPage() {
             textAlign: "left",
             display: "flex",
             flexDirection: "column",
-            gap: 3,
-          }}
+            gap: 3 }}
         >
           <span className="trs2-ticket-id">{record.ticketNumber}</span>
           <Text className="trs2-ticket-title">{record.title}</Text>
         </button>
-      ),
-    },
+      ) },
     {
       title: "Project",
       key: "project",
@@ -205,8 +199,7 @@ export default function TicketsTrashPage() {
             </Text>
           </div>
         );
-      },
-    },
+      } },
     {
       title: "Deleted",
       key: "deletedAt",
@@ -216,8 +209,7 @@ export default function TicketsTrashPage() {
           <Text className="trs2-date-primary">{dayjs(record.deletedAt).format("MMM D, YYYY")}</Text>
           <Text className="trs2-date-secondary">{dayjs(record.deletedAt).fromNow()}</Text>
         </div>
-      ),
-    },
+      ) },
     {
       title: "Deleted By",
       key: "deletedBy",
@@ -232,8 +224,7 @@ export default function TicketsTrashPage() {
             <Text className="trs2-actor-name">{name}</Text>
           </div>
         );
-      },
-    },
+      } },
     {
       title: "Retention",
       key: "retention",
@@ -259,8 +250,7 @@ export default function TicketsTrashPage() {
             />
           </div>
         );
-      },
-    },
+      } },
     {
       title: "Actions",
       key: "actions",
@@ -311,8 +301,7 @@ export default function TicketsTrashPage() {
             </ConfirmDialog>
           )}
         </div>
-      ),
-    },
+      ) },
   ];
 
   if (authLoading) {
@@ -320,9 +309,8 @@ export default function TicketsTrashPage() {
       <MainLayout>
         <div style={{
           minHeight: "calc(100vh - 64px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Spin size="large" tip="Loading trash repository..." />
+          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <LoadingSpinner message="Loading trash repository..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -439,16 +427,21 @@ export default function TicketsTrashPage() {
           </div>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={tickets}
-          rowKey="id"
-          loading={isLoading}
-          size="small"
+        <div style={{ position: 'relative' }}>
+          {(isLoading || isFetching) && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
+          <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            loading={false}
+            size="small"
           rowSelection={{
             selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
+            onChange: setSelectedRowKeys }}
           className="trs2-table"
           locale={{
             emptyText: isLoading ? null : (
@@ -474,11 +467,11 @@ export default function TicketsTrashPage() {
                   </Button>
                 )}
               </div>
-            ),
-          }}
+            ) }}
           pagination={false}
           scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
         />
+        </div>
 
         {/* ── Sticky pagination footer ── */}
         {tickets.length > 0 && (

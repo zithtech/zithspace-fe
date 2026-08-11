@@ -1,11 +1,11 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Button,
-  Spin,
   Empty,
   Modal,
   Form,
@@ -14,7 +14,7 @@ import {
   DatePicker,
   notification,
   Tag,
-  Timeline,
+  Timeline
 } from "antd";
 import {
   ArrowLeft,
@@ -32,12 +32,13 @@ import {
   CreditCard,
   Paperclip,
   Clock,
-  X,
+  X
 } from "lucide-react";
 import dayjs from "dayjs";
 import {
+
   portalInvoiceService,
-  PortalInvoiceDetail,
+  PortalInvoiceDetail
 } from "@/services/portalInvoiceService";
 
 const p = {
@@ -69,7 +70,7 @@ const p = {
   warningText: "#92400e",
   neutralBg: "#f8fafc",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const STATUS_META: Record<
@@ -85,14 +86,14 @@ const STATUS_META: Record<
   PARTIALLY_PAID: { label: "Partially paid", tone: "warning", icon: CreditCard },
   PAID: { label: "Paid", tone: "success", icon: CheckCircle2 },
   OVERDUE: { label: "Overdue", tone: "danger", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", tone: "neutral", icon: Ban },
+  CANCELLED: { label: "Cancelled", tone: "neutral", icon: Ban }
 };
 const STATUS_TONE = {
   accent: { bg: p.accentBg, border: p.accentBorder, text: p.accentText },
   success: { bg: p.successBg, border: p.successBorder, text: p.successText },
   warning: { bg: p.warningBg, border: p.warningBorder, text: p.warningText },
   danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
+  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText }
 };
 
 function fmtCurrency(value: number | string | null | undefined, currency?: string | null) {
@@ -104,7 +105,7 @@ function fmtCurrency(value: number | string | null | undefined, currency?: strin
       style: "currency",
       currency: currency || "USD",
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(n);
   } catch {
     return `${currency || ""} ${n.toFixed(2)}`.trim();
@@ -117,7 +118,7 @@ function fmtDate(iso: string | null | undefined) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return String(iso);
@@ -128,7 +129,7 @@ function StatusPill({ status }: { status: string }) {
   const meta = STATUS_META[status] || {
     label: status,
     tone: "neutral" as const,
-    icon: Receipt,
+    icon: Receipt
   };
   const tone = STATUS_TONE[meta.tone];
   const Icon = meta.icon;
@@ -145,7 +146,7 @@ function StatusPill({ status }: { status: string }) {
         borderRadius: 999,
         fontSize: 12.5,
         fontWeight: 600,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
       }}
     >
       <Icon size={13} />
@@ -176,7 +177,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
     } catch (err: any) {
       notify.error({
         message: "Could not load invoice",
-        description: err?.message,
+        description: err?.message
       });
     } finally {
       setLoading(false);
@@ -195,10 +196,10 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -233,7 +234,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
   const formatCurrency = (val: number, cur: string) => {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: cur || "USD",
+      currency: cur || "USD"
     }).format(val || 0);
   };
 
@@ -255,7 +256,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
       _key: index,
       rowNumber: item.rowNumber || index + 1,
       lineTaxAmount,
-      total,
+      total
     };
   });
 
@@ -265,7 +266,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
       key: "sno",
       width: 60,
       align: "center",
-      render: (_: any, __: any, index: number) => index + 1,
+      render: (_: any, __: any, index: number) => index + 1
     },
     {
       title: "Item",
@@ -280,14 +281,14 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
             </div>
           )}
         </div>
-      ),
+      )
     },
     {
       title: "Qty",
       dataIndex: "quantity",
       key: "quantity",
       align: "center",
-      width: 80,
+      width: 80
     },
     {
       title: "Price",
@@ -295,7 +296,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
       key: "rate",
       align: "right",
       width: 120,
-      render: (value: number) => formatCurrency(value, currencySymbol),
+      render: (value: number) => formatCurrency(value, currencySymbol)
     },
     ...(hasTax ? [{
       title: "Tax %",
@@ -303,14 +304,14 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
       key: "taxRate",
       align: "right",
       width: 80,
-      render: (val: number) => `${val}%`,
+      render: (val: number) => `${val}%`
     }] : []),
     {
       title: "Total",
       key: "total",
       align: "right",
       width: 120,
-      render: (_: any, record: any) => formatCurrency(record.total, currencySymbol),
+      render: (_: any, record: any) => formatCurrency(record.total, currencySymbol)
     },
   ];
 
@@ -325,10 +326,10 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
   const grandTotal = Number(invoice.grandTotal || 0);
 
   const totalQty = tableItems.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0);
-  const totalInWords = "Amount in words not available in portal view"; 
+  const totalInWords = "Amount in words not available in portal view";
   // --- End of mapped props ---
   return (
-    <div style={{ 
+    <div style={{
       background: invoiceId ? "#f6f7f9" : "transparent",
       minHeight: invoiceId ? "100vh" : "auto",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
@@ -373,250 +374,250 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
         </div>
       )}
 
-      <div style={{ 
-        padding: invoiceId ? "16px 20px 32px" : "32px 40px 56px", 
-        maxWidth: 1100, 
-        margin: "0 auto",
+      <div style={{
+        padding: invoiceId ? "16px 20px 32px" : "32px 40px 56px",
+        maxWidth: 1100,
+        margin: "0 auto"
       }}>
         {/* Back - Only show if not in a drawer (i.e. no invoiceId prop) */}
-      {!invoiceId && (
-        <Button
-          type="text"
-          icon={<ArrowLeft size={14} />}
-          onClick={() => router.push("/portal/invoices")}
-          style={{
-            padding: "4px 8px",
-            height: 28,
-            color: p.textMuted,
-            marginBottom: 14,
-          }}
-        >
-          Back to invoices
-        </Button>
-      )}
+        {!invoiceId && (
+          <Button
+            type="text"
+            icon={<ArrowLeft size={14} />}
+            onClick={() => router.push("/portal/invoices")}
+            style={{
+              padding: "4px 8px",
+              height: 28,
+              color: p.textMuted,
+              marginBottom: 14
+            }}
+          >
+            Back to invoices
+          </Button>
+        )}
 
-      {/* Header card */}
-      <div
-        style={{
-          padding: 24,
-          background: `linear-gradient(180deg, ${p.surfaceElevated} 0%, ${p.surfaceMuted} 100%)`,
-          border: `1px solid ${p.border}`,
-          borderRadius: 16,
-          marginBottom: 24,
-          boxShadow: "0 8px 24px -4px rgba(0,0,0,0.03)",
-        }}
-      >
+        {/* Header card */}
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 20,
-            flexWrap: "wrap",
+            padding: 24,
+            background: `linear-gradient(180deg, ${p.surfaceElevated} 0%, ${p.surfaceMuted} 100%)`,
+            border: `1px solid ${p.border}`,
+            borderRadius: 16,
+            marginBottom: 24,
+            boxShadow: "0 8px 24px -4px rgba(0,0,0,0.03)"
           }}
         >
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: p.accent,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              Invoice
-            </div>
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                color: p.text,
-                marginTop: 4,
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              {invoice.invoiceNumber}
-            </div>
-            {invoice.viewedAt && invoice.status !== "VIEWED" && (
-              <div
-                style={{
-                  marginTop: 8,
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    color: p.textSubtle,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Eye size={11} /> First viewed {fmtDate(invoice.viewedAt)}
-                </span>
-              </div>
-            )}
-            {invoice.description && (
-              <div
-                style={{
-                  marginTop: 10,
-                  fontSize: 13,
-                  color: p.textMuted,
-                  maxWidth: 640,
-                }}
-              >
-                {invoice.description}
-              </div>
-            )}
-          </div>
-
           <div
             style={{
               display: "flex",
-              gap: 8,
-              alignItems: "flex-start",
-              flexShrink: 0,
+              justifyContent: "space-between",
+              gap: 20,
+              flexWrap: "wrap"
             }}
           >
-            {invoice.pdfUrl && (
-              <Button
-                icon={<Download size={14} />}
-                onClick={() => window.open(invoice.pdfUrl!, "_blank")}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: p.accent,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em"
+                }}
               >
-                Download PDF
-              </Button>
-            )}
-            {Number(balance) > 0 && invoice.status !== "CANCELLED" && (
-              <Button
-                type="primary"
-                icon={<Upload size={14} />}
-                onClick={() => setUploadOpen(true)}
+                Invoice
+              </div>
+              <div
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  color: p.text,
+                  marginTop: 4,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  letterSpacing: "-0.03em"
+                }}
               >
-                Upload payment proof
-              </Button>
-            )}
-          </div>
-        </div>
+                {invoice.invoiceNumber}
+              </div>
+              {invoice.viewedAt && invoice.status !== "VIEWED" && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      color: p.textSubtle,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}
+                  >
+                    <Eye size={11} /> First viewed {fmtDate(invoice.viewedAt)}
+                  </span>
+                </div>
+              )}
+              {invoice.description && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 13,
+                    color: p.textMuted,
+                    maxWidth: 640
+                  }}
+                >
+                  {invoice.description}
+                </div>
+              )}
+            </div>
 
-        {/* Money strip */}
-        <div
-          style={{
-            marginTop: 24,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 0,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-            overflow: "hidden",
-            boxShadow: "0 2px 10px -4px rgba(0,0,0,0.02)",
-            background: p.surfaceElevated,
-          }}
-        >
-          <MoneyBlock label="Subtotal" value={fmtCurrency(invoice.subtotal, currency)} />
-          <MoneyBlock label="Tax" value={fmtCurrency(invoice.taxTotal, currency)} />
-          {Number(invoice.discountTotal) > 0 && (
-            <MoneyBlock
-              label="Discount"
-              value={`− ${fmtCurrency(invoice.discountTotal, currency)}`}
-            />
-          )}
-          <MoneyBlock label="Total" value={fmtCurrency(total, currency)} emphasized />
-          <MoneyBlock label="Paid" value={fmtCurrency(paid, currency)} tone="success" />
-          <MoneyBlock
-            label="Balance"
-            value={fmtCurrency(balance, currency)}
-            tone={Number(balance) > 0 ? "danger" : "neutral"}
-            emphasized
-          />
-        </div>
-      </div>
-
-      {/* Two-col body */}
-            <div style={{ marginTop: 24 }}>
-        <InvoiceDocument
-          invoice={invoice}
-          settings={settings}
-          customer={customer}
-          tableData={tableData}
-          columns={columns}
-          subtotal={subtotal}
-          taxTotal={taxTotal}
-          discount={discount}
-          grandTotal={grandTotal}
-          totalQty={totalQty}
-          currencySymbol={currencySymbol}
-          totalInWords={totalInWords}
-          hasTax={hasTax}
-          ITEM_COL={ITEM_COL}
-          QTY_COL={QTY_COL}
-          TOTAL_COL={TOTAL_COL}
-          formatCurrency={formatCurrency}
-        />
-        
-        {/* Payment Proofs Section */}
-        {invoice.paymentProofs && invoice.paymentProofs.length > 0 && (
-          <div style={{ marginTop: 32, padding: "0 20px" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: p.text }}>Uploaded Payment Proofs</h3>
-            <div style={{ background: "#fff", padding: "24px 24px 0", borderRadius: 12, border: `1px solid ${p.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
-              <Timeline
-                items={invoice.paymentProofs.map((proof: any) => ({
-                  dot: <CheckCircle2 size={18} color={p.success} style={{ background: "#fff" }} />,
-                  children: (
-                    <div style={{ paddingLeft: 8, paddingBottom: 16 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                        <div>
-                          <div style={{ fontSize: 12, color: p.textSubtle, marginBottom: 2, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>
-                            {proof.payment_date ? dayjs(proof.payment_date).format('MMM DD, YYYY') : "Date not specified"}
-                          </div>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: p.text }}>
-                            {fmtCurrency(proof.amount, invoice.currency)}
-                          </div>
-                        </div>
-                        <Tag color="success" style={{ margin: 0, borderRadius: 4, fontWeight: 600 }}>Uploaded</Tag>
-                      </div>
-                      
-                      {(proof.reference || proof.note) && (
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${p.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
-                          {proof.reference && (
-                            <div style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontSize: 11, color: p.textSubtle, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Reference</span>
-                              <span style={{ fontSize: 13.5, color: p.text, fontWeight: 500 }}>{proof.reference}</span>
-                            </div>
-                          )}
-                          {proof.note && (
-                            <div style={{ display: "flex", flexDirection: "column" }}>
-                              <span style={{ fontSize: 11, color: p.textSubtle, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Note</span>
-                              <span style={{ fontSize: 13.5, color: p.text }}>{proof.note}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div style={{ marginTop: 12 }}>
-                        <Button 
-                          type="link" 
-                          icon={<Eye size={14} />} 
-                          onClick={() => setViewDocumentUrl(proof.file_url)}
-                          style={{ padding: 0, fontWeight: 600 }}
-                        >
-                          View Document
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                }))}
-              />
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
+                flexShrink: 0
+              }}
+            >
+              {invoice.pdfUrl && (
+                <Button
+                  icon={<Download size={14} />}
+                  onClick={() => window.open(invoice.pdfUrl!, "_blank")}
+                >
+                  Download PDF
+                </Button>
+              )}
+              {Number(balance) > 0 && invoice.status !== "CANCELLED" && (
+                <Button
+                  type="primary"
+                  icon={<Upload size={14} />}
+                  onClick={() => setUploadOpen(true)}
+                >
+                  Upload payment proof
+                </Button>
+              )}
             </div>
           </div>
-        )}
 
+          {/* Money strip */}
+          <div
+            style={{
+              marginTop: 24,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 0,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: "0 2px 10px -4px rgba(0,0,0,0.02)",
+              background: p.surfaceElevated
+            }}
+          >
+            <MoneyBlock label="Subtotal" value={fmtCurrency(invoice.subtotal, currency)} />
+            <MoneyBlock label="Tax" value={fmtCurrency(invoice.taxTotal, currency)} />
+            {Number(invoice.discountTotal) > 0 && (
+              <MoneyBlock
+                label="Discount"
+                value={`− ${fmtCurrency(invoice.discountTotal, currency)}`}
+              />
+            )}
+            <MoneyBlock label="Total" value={fmtCurrency(total, currency)} emphasized />
+            <MoneyBlock label="Paid" value={fmtCurrency(paid, currency)} tone="success" />
+            <MoneyBlock
+              label="Balance"
+              value={fmtCurrency(balance, currency)}
+              tone={Number(balance) > 0 ? "danger" : "neutral"}
+              emphasized
+            />
+          </div>
+        </div>
+
+        {/* Two-col body */}
+        <div style={{ marginTop: 24 }}>
+          <InvoiceDocument
+            invoice={invoice}
+            settings={settings}
+            customer={customer}
+            tableData={tableData}
+            columns={columns}
+            subtotal={subtotal}
+            taxTotal={taxTotal}
+            discount={discount}
+            grandTotal={grandTotal}
+            totalQty={totalQty}
+            currencySymbol={currencySymbol}
+            totalInWords={totalInWords}
+            hasTax={hasTax}
+            ITEM_COL={ITEM_COL}
+            QTY_COL={QTY_COL}
+            TOTAL_COL={TOTAL_COL}
+            formatCurrency={formatCurrency}
+          />
+
+          {/* Payment Proofs Section */}
+          {invoice.paymentProofs && invoice.paymentProofs.length > 0 && (
+            <div style={{ marginTop: 32, padding: "0 20px" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: p.text }}>Uploaded Payment Proofs</h3>
+              <div style={{ background: "#fff", padding: "24px 24px 0", borderRadius: 12, border: `1px solid ${p.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+                <Timeline
+                  items={invoice.paymentProofs.map((proof: any) => ({
+                    dot: <CheckCircle2 size={18} color={p.success} style={{ background: "#fff" }} />,
+                    children: (
+                      <div style={{ paddingLeft: 8, paddingBottom: 16 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 12, color: p.textSubtle, marginBottom: 2, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>
+                              {proof.payment_date ? dayjs(proof.payment_date).format('MMM DD, YYYY') : "Date not specified"}
+                            </div>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: p.text }}>
+                              {fmtCurrency(proof.amount, invoice.currency)}
+                            </div>
+                          </div>
+                          <Tag color="success" style={{ margin: 0, borderRadius: 4, fontWeight: 600 }}>Uploaded</Tag>
+                        </div>
+
+                        {(proof.reference || proof.note) && (
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${p.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
+                            {proof.reference && (
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ fontSize: 11, color: p.textSubtle, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Reference</span>
+                                <span style={{ fontSize: 13.5, color: p.text, fontWeight: 500 }}>{proof.reference}</span>
+                              </div>
+                            )}
+                            {proof.note && (
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ fontSize: 11, color: p.textSubtle, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Note</span>
+                                <span style={{ fontSize: 13.5, color: p.text }}>{proof.note}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div style={{ marginTop: 12 }}>
+                          <Button
+                            type="link"
+                            icon={<Eye size={14} />}
+                            onClick={() => setViewDocumentUrl(proof.file_url)}
+                            style={{ padding: 0, fontWeight: 600 }}
+                          >
+                            View Document
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  }))}
+                />
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
-    </div>
       <UploadProofModal
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
@@ -624,7 +625,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
         notify={notify}
         onUploaded={load}
       />
-      
+
       <Modal
         open={!!viewDocumentUrl}
         onCancel={() => setViewDocumentUrl(null)}
@@ -637,10 +638,10 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
         {viewDocumentUrl && (
           viewDocumentUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', padding: 24 }}>
-              <img 
-                src={viewDocumentUrl} 
-                alt="Document" 
-                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }} 
+              <img
+                src={viewDocumentUrl}
+                alt="Document"
+                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
               />
             </div>
           ) : (
@@ -664,19 +665,18 @@ function MoneyBlock({
   label,
   value,
   tone,
-  emphasized,
-}: {
-  label: string;
-  value: string;
-  tone?: "success" | "danger" | "neutral";
-  emphasized?: boolean;
-}) {
+  emphasized }: {
+    label: string;
+    value: string;
+    tone?: "success" | "danger" | "neutral";
+    emphasized?: boolean;
+  }) {
   const color =
     tone === "success"
       ? p.successText
       : tone === "danger"
-      ? p.dangerText
-      : p.text;
+        ? p.dangerText
+        : p.text;
   return (
     <div
       style={{
@@ -685,7 +685,7 @@ function MoneyBlock({
         borderRight: `1px solid ${p.border}`,
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
+        justifyContent: "center"
       }}
     >
       <div
@@ -694,7 +694,7 @@ function MoneyBlock({
           fontWeight: 600,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         {label}
@@ -705,7 +705,7 @@ function MoneyBlock({
           fontSize: emphasized ? 18 : 15,
           fontWeight: emphasized ? 700 : 600,
           color,
-          fontVariantNumeric: "tabular-nums",
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         {value}
@@ -717,12 +717,11 @@ function MoneyBlock({
 function Card({
   title,
   icon: Icon,
-  children,
-}: {
-  title: string;
-  icon: any;
-  children: React.ReactNode;
-}) {
+  children }: {
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+  }) {
   return (
     <div
       style={{
@@ -730,7 +729,7 @@ function Card({
         border: `1px solid ${p.border}`,
         borderRadius: 16,
         boxShadow: "0 4px 20px -4px rgba(0,0,0,0.03)",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -740,7 +739,7 @@ function Card({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          background: "linear-gradient(180deg, rgba(248,250,252,0.5) 0%, rgba(255,255,255,0) 100%)",
+          background: "linear-gradient(180deg, rgba(248,250,252,0.5) 0%, rgba(255,255,255,0) 100%)"
         }}
       >
         <div style={{
@@ -749,7 +748,7 @@ function Card({
           borderRadius: 8,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}>
           <Icon size={16} color={p.textSubtle} />
         </div>
@@ -758,7 +757,7 @@ function Card({
             fontSize: 13,
             fontWeight: 600,
             color: p.text,
-            letterSpacing: "-0.01em",
+            letterSpacing: "-0.01em"
           }}
         >
           {title}
@@ -771,11 +770,10 @@ function Card({
 
 function Th({
   children,
-  align,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-}) {
+  align }: {
+    children: React.ReactNode;
+    align?: "left" | "right";
+  }) {
   return (
     <th
       style={{
@@ -786,7 +784,7 @@ function Th({
         fontWeight: 600,
         color: p.textSubtle,
         textTransform: "uppercase",
-        letterSpacing: "0.06em",
+        letterSpacing: "0.06em"
       }}
     >
       {children}
@@ -796,12 +794,11 @@ function Th({
 function Td({
   children,
   align,
-  bold,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-  bold?: boolean;
-}) {
+  bold }: {
+    children: React.ReactNode;
+    align?: "left" | "right";
+    bold?: boolean;
+  }) {
   return (
     <td
       style={{
@@ -811,7 +808,7 @@ function Td({
         fontSize: 13.5,
         color: bold ? p.text : p.textMuted,
         fontWeight: bold ? 600 : 500,
-        fontVariantNumeric: align === "right" ? "tabular-nums" : "normal",
+        fontVariantNumeric: align === "right" ? "tabular-nums" : "normal"
       }}
     >
       {children}
@@ -822,19 +819,18 @@ function Td({
 function DateRow({
   label,
   value,
-  danger,
-}: {
-  label: string;
-  value: string;
-  danger?: boolean;
-}) {
+  danger }: {
+    label: string;
+    value: string;
+    danger?: boolean;
+  }) {
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "space-between",
         padding: "6px 0",
-        fontSize: 13,
+        fontSize: 13
       }}
     >
       <span style={{ color: p.textSubtle }}>{label}</span>
@@ -854,14 +850,13 @@ function UploadProofModal({
   onClose,
   invoice,
   notify,
-  onUploaded,
-}: {
-  open: boolean;
-  onClose: () => void;
-  invoice: PortalInvoiceDetail;
-  notify: any;
-  onUploaded: () => void;
-}) {
+  onUploaded }: {
+    open: boolean;
+    onClose: () => void;
+    invoice: PortalInvoiceDetail;
+    notify: any;
+    onUploaded: () => void;
+  }) {
   const [form] = Form.useForm();
   const [file, setFile] = useState<{
     dataUrl: string;
@@ -888,7 +883,7 @@ function UploadProofModal({
       setFile({
         dataUrl: String(reader.result),
         name: f.name,
-        size: f.size,
+        size: f.size
       });
     };
     reader.readAsDataURL(f);
@@ -909,7 +904,7 @@ function UploadProofModal({
           ? dayjs(values.paymentDate).format("YYYY-MM-DD")
           : undefined,
         reference: values.reference || undefined,
-        note: values.note || undefined,
+        note: values.note || undefined
       });
       notify.success({ message: "Payment proof uploaded" });
       onUploaded();
@@ -933,15 +928,15 @@ function UploadProofModal({
         content: {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
-          padding: 0,
+          padding: 0
         },
-        body: { padding: 0 },
+        body: { padding: 0 }
       }}
     >
       <div
         style={{
           padding: "18px 22px 14px",
-          borderBottom: `1px solid ${p.border}`,
+          borderBottom: `1px solid ${p.border}`
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -955,7 +950,7 @@ function UploadProofModal({
               border: `1px solid ${p.accentBorder}`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "center"
             }}
           >
             <Upload size={16} />
@@ -968,14 +963,14 @@ function UploadProofModal({
               style={{
                 marginTop: 2,
                 fontSize: 12.5,
-                color: p.textSubtle,
+                color: p.textSubtle
               }}
             >
               For invoice{" "}
               <span
                 style={{
                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  fontWeight: 600,
+                  fontWeight: 600
                 }}
               >
                 {invoice.invoiceNumber}
@@ -994,7 +989,7 @@ function UploadProofModal({
                 fontSize: 13,
                 fontWeight: 600,
                 color: p.text,
-                marginBottom: 8,
+                marginBottom: 8
               }}
             >
               Proof file
@@ -1035,7 +1030,7 @@ function UploadProofModal({
                         color: p.text,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        whiteSpace: "nowrap"
                       }}
                     >
                       {file.name}
@@ -1136,7 +1131,7 @@ function UploadProofModal({
               gap: 8,
               marginTop: 18,
               paddingTop: 14,
-              borderTop: `1px solid ${p.border}`,
+              borderTop: `1px solid ${p.border}`
             }}
           >
             <Button onClick={onClose}>Cancel</Button>

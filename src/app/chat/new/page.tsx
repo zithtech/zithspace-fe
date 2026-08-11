@@ -1,13 +1,15 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect } from 'react';
-import { Typography, Input, Avatar, List, Spin, theme } from 'antd';
+import { Typography, Input, Avatar, List, theme } from 'antd';
 import { useRouter } from 'next/navigation';
 import { channelService } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
 import { MembersService } from '@/services/membersService';
 import { UserOutlined } from '@ant-design/icons';
+
 
 const { Title, Text } = Typography;
 
@@ -108,7 +110,7 @@ export default function NewChatPage() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
                 {loading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-                        <Spin />
+                        <LoadingSpinner fullScreen={false} />
                     </div>
                 ) : searchResults.length > 0 ? (
                     <List

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Button,
   Table,
@@ -464,12 +465,17 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {/* TABLE */}
-      <div className="lva-table-wrap">
+      <div className="lva-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           rowKey="id"
           size="small"
           className="lva-table"
-          loading={loading}
+          loading={false}
           columns={columns}
           dataSource={paged}
           pagination={false}

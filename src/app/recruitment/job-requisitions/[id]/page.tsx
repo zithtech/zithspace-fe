@@ -1,10 +1,11 @@
 "use client";
+import { Spin } from 'antd';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
   Tabs,
   Button,
-  Spin,
   message,
   Modal,
   Row,
@@ -13,16 +14,17 @@ import {
   Tag,
   Typography,
   Space,
-  Result,
+  Result
 } from "antd";
 import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled, FileOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, FileExcelOutlined, FileImageOutlined, PaperClipOutlined } from "@ant-design/icons";
 import { useRouter, useParams } from "next/navigation";
 import {
   RecruitmentService,
   JobRequisitionData,
-  RequisitionAttachment,
+  RequisitionAttachment
 } from "@/services/recruitment.service";
 import dayjs from "dayjs";
+
 
 const { Title, Text } = Typography;
 
@@ -88,14 +90,14 @@ export default function RequisitionDetailPage() {
           console.error(error);
           message.error("Failed to delete Job Requisition.");
         }
-      },
+      }
     });
   };
 
   if (loading)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
 
@@ -121,25 +123,24 @@ export default function RequisitionDetailPage() {
     Open: "green",
     "On Hold": "orange",
     Closed: "default",
-    Filled: "blue",
+    Filled: "blue"
   };
 
   const priorityColors: Record<string, string> = {
     Critical: "magenta",
     High: "red",
     Medium: "orange",
-    Low: "blue",
+    Low: "blue"
   };
 
   const InfoItem = ({
     label,
     value,
-    render,
-  }: {
-    label: string;
-    value?: any;
-    render?: React.ReactNode;
-  }) => (
+    render }: {
+      label: string;
+      value?: any;
+      render?: React.ReactNode;
+    }) => (
     <div style={{ marginBottom: "16px" }}>
       <Text
         type="secondary"
@@ -549,27 +550,27 @@ export default function RequisitionDetailPage() {
     {
       key: "2",
       label: "Candidates",
-      children: <div style={{ padding: 24, color: '#999' }}>Candidates list — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Candidates list — coming soon</div>
     },
     {
       key: "3",
       label: "Submissions",
-      children: <div style={{ padding: 24, color: '#999' }}>Submissions list — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Submissions list — coming soon</div>
     },
     {
       key: "4",
       label: "Interviews",
-      children: <div style={{ padding: 24, color: '#999' }}>Interviews list — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Interviews list — coming soon</div>
     },
     {
       key: "5",
       label: "Offers",
-      children: <div style={{ padding: 24, color: '#999' }}>Offers list — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Offers list — coming soon</div>
     },
     {
       key: "6",
       label: "Notes",
-      children: <div style={{ padding: 24, color: '#999' }}>Notes — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Notes — coming soon</div>
     },
     {
       key: "7",
@@ -593,13 +594,13 @@ export default function RequisitionDetailPage() {
                   xlsx: <FileExcelOutlined style={{ fontSize: 32, color: "#52c41a" }} />,
                   png: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
                   jpg: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
-                  jpeg: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
+                  jpeg: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />
                 };
                 const icon = iconMap[ext] || <FileOutlined style={{ fontSize: 32, color: "#8c8c8c" }} />;
                 const categoryLabels: Record<string, string> = {
                   job_description: "Job Description",
                   client_requirements: "Client Requirements",
-                  interview_guide: "Interview Guide",
+                  interview_guide: "Interview Guide"
                 };
                 const formatSize = (bytes?: number) => {
                   if (!bytes) return "";
@@ -673,12 +674,12 @@ export default function RequisitionDetailPage() {
             </Row>
           )}
         </Spin>
-      ),
+      )
     },
     {
       key: "8",
       label: "Metrics",
-      children: <div style={{ padding: 24, color: '#999' }}>Metrics — coming soon</div>,
+      children: <div style={{ padding: 24, color: '#999' }}>Metrics — coming soon</div>
     },
   ];
 
@@ -690,7 +691,7 @@ export default function RequisitionDetailPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "24px",
+          marginBottom: "24px"
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>

@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Empty, Spin, Row as AntRow, Col, Divider, Typography } from "antd";
+import { Empty, Row as AntRow, Col, Divider, Typography } from "antd";
 import {
   Server,
   Globe,
@@ -11,22 +12,23 @@ import {
   ShieldAlert,
   History,
   HardDrive,
-  ChevronRight,
+  ChevronRight
 } from "lucide-react";
 
 const { Title, Text } = Typography;
 
 import {
   portalEnvironmentsService,
-  PortalEnvListItem,
+  PortalEnvListItem
 } from "@/services/portalEnvironmentsService";
 import {
+
   p,
   TONE,
   KIND_META,
   STATUS_META,
   daysUntil,
-  fmtRelative,
+  fmtRelative
 } from "./_ui";
 
 /* --------------------------------------------------------------- */
@@ -65,7 +67,7 @@ export default function PortalEnvironmentsListPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
@@ -75,14 +77,14 @@ export default function PortalEnvironmentsListPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 8
                 }}
               >
                 <div
@@ -95,7 +97,7 @@ export default function PortalEnvironmentsListPage() {
                     justifyContent: "center",
                     background:
                       "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6",
+                    color: "#3b82f6"
                   }}
                 >
                   <Server size={18} color="#3b82f6" />
@@ -107,7 +109,7 @@ export default function PortalEnvironmentsListPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Environments
@@ -119,7 +121,7 @@ export default function PortalEnvironmentsListPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -129,7 +131,7 @@ export default function PortalEnvironmentsListPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   Production / staging URLs, current versions, SSL expiry, backups, and recent deployment history.
@@ -142,50 +144,50 @@ export default function PortalEnvironmentsListPage() {
 
       <div style={{ padding: "32px 40px 56px", maxWidth: 1180 }}>
 
-      {loading ? (
-        <div
-          style={{
-            padding: 80,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px solid ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Spin />
-        </div>
-      ) : items.length === 0 ? (
-        <div
-          style={{
-            padding: 64,
-            textAlign: "center",
-            background: p.surfaceElevated,
-            border: `1px dashed ${p.border}`,
-            borderRadius: 12,
-          }}
-        >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ color: p.textSubtle, fontSize: 13 }}>
-                No environments shared with you yet.
-              </span>
-            }
-          />
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {items.map((env) => (
-            <EnvCard key={env.id} env={env} />
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div
+            style={{
+              padding: 80,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px solid ${p.border}`,
+              borderRadius: 12
+            }}
+          >
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: 64,
+              textAlign: "center",
+              background: p.surfaceElevated,
+              border: `1px dashed ${p.border}`,
+              borderRadius: 12
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span style={{ color: p.textSubtle, fontSize: 13 }}>
+                  No environments shared with you yet.
+                </span>
+              }
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+              gap: 12
+            }}
+          >
+            {items.map((env) => (
+              <EnvCard key={env.id} env={env} />
+            ))}
+          </div>
+        )}
         <style jsx global>{`
           .portal-mom-header-container,
           [data-theme='dark'] .portal-mom-header-container,
@@ -277,16 +279,16 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
     sslDays == null
       ? TONE.neutral
       : sslDays < 0
-      ? TONE.danger
-      : sslDays <= 14
-      ? TONE.warning
-      : TONE.success;
+        ? TONE.danger
+        : sslDays <= 14
+          ? TONE.warning
+          : TONE.success;
   const sslLabel =
     sslDays == null
       ? "SSL —"
       : sslDays < 0
-      ? `SSL expired ${Math.abs(sslDays)}d ago`
-      : `SSL ${sslDays}d left`;
+        ? `SSL expired ${Math.abs(sslDays)}d ago`
+        : `SSL ${sslDays}d left`;
 
   return (
     <Link
@@ -302,7 +304,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
         display: "flex",
         flexDirection: "column",
         textDecoration: "none",
-        color: "inherit",
+        color: "inherit"
       }}
     >
       <div
@@ -313,7 +315,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 12,
+          gap: 12
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -328,7 +330,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
               borderRadius: 999,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              display: "inline-block",
+              display: "inline-block"
             }}
           >
             {kindMeta.label}
@@ -339,7 +341,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
               fontSize: 15.5,
               fontWeight: 600,
               color: p.text,
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.01em"
             }}
           >
             {env.name}
@@ -363,7 +365,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
             fontSize: 11.5,
             fontWeight: 500,
             whiteSpace: "nowrap",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <StIcon size={11} />
@@ -377,7 +379,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
           display: "flex",
           flexDirection: "column",
           gap: 12,
-          flex: 1,
+          flex: 1
         }}
       >
         {env.url && (
@@ -397,7 +399,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
               maxWidth: "100%",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
             title={env.url}
           >
@@ -412,7 +414,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: 10,
-            fontSize: 12,
+            fontSize: 12
           }}
         >
           <Metric
@@ -422,7 +424,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
                 <span
                   style={{
                     fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      "ui-monospace, SFMono-Regular, Menlo, monospace"
                   }}
                 >
                   {env.currentVersion}
@@ -462,7 +464,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
               color: sslTone.text,
               borderRadius: 999,
               fontSize: 11,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             {sslDays != null && sslDays < 0 ? (
@@ -482,7 +484,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
               border: `1px solid ${p.border}`,
               color: p.textSubtle,
               borderRadius: 999,
-              fontSize: 11,
+              fontSize: 11
             }}
           >
             <History size={10} />
@@ -499,7 +501,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
                 border: `1px solid ${p.border}`,
                 color: p.textSubtle,
                 borderRadius: 999,
-                fontSize: 11,
+                fontSize: 11
               }}
             >
               <HardDrive size={10} />
@@ -518,7 +520,7 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
           color: p.textMuted,
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "space-between"
         }}
       >
         Open deploy history
@@ -530,11 +532,10 @@ function EnvCard({ env }: { env: PortalEnvListItem }) {
 
 function Metric({
   label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+  value }: {
+    label: string;
+    value: React.ReactNode;
+  }) {
   return (
     <div>
       <div
@@ -543,7 +544,7 @@ function Metric({
           fontWeight: 600,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          letterSpacing: "0.06em"
         }}
       >
         {label}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -411,9 +412,11 @@ export default function DocumentRepositoryPage() {
       <div style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <LetterStatsCards statCells={statCells} />
         {/* Documents List Table */}
-        {loading ? (
+        {loading && documents.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            Loading document repository...
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner message='Loading document repository...' size="medium" fullScreen={false} />
+            </div>
           </div>
         ) : documents.length === 0 ? (
           <div
@@ -450,7 +453,12 @@ export default function DocumentRepositoryPage() {
             </Link>
           </div>
         ) : view === 'list' ? (
-          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {loading && (
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <LoadingSpinner size="medium" fullScreen={false} />
+              </div>
+            )}
             <Table
               rowKey="id"
               size="small"

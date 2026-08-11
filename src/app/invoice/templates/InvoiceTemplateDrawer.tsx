@@ -1,3 +1,4 @@
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useEffect } from 'react';
 import {
   Drawer,
@@ -7,13 +8,12 @@ import {
   Select,
   Switch,
   Popconfirm,
-  Spin,
-  App,
+  App
 } from 'antd';
 import {
   useCreateInvoiceTemplate,
   useUpdateInvoiceTemplate,
-  useInvoiceTemplate,
+  useInvoiceTemplate
 } from '@/hooks/useInvoiceTemplates';
 import {
   FileText,
@@ -23,10 +23,11 @@ import {
   Layout,
   Settings as SettingsIcon,
   GripVertical,
-  X,
+  X
 } from 'lucide-react';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
+
 
 
 
@@ -124,7 +125,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
     if (visible && isEditing && fullTemplate) {
       form.setFieldsValue({
         ...fullTemplate,
-        fields: fullTemplate.fields || [],
+        fields: fullTemplate.fields || []
       });
     } else if (visible && !isEditing) {
       form.resetFields();
@@ -136,7 +137,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
           { fieldKey: 'description', fieldLabel: 'Description', fieldType: 'text', fieldOrder: 2, isRequired: false, isSystem: true },
           { fieldKey: 'qty', fieldLabel: 'Quantity', fieldType: 'number', fieldOrder: 3, isRequired: true, isSystem: true },
           { fieldKey: 'price', fieldLabel: 'Price', fieldType: 'currency', fieldOrder: 4, isRequired: true, isSystem: true },
-        ],
+        ]
       });
     }
   }, [visible, isEditing, fullTemplate, form]);
@@ -146,8 +147,8 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
       ...values,
       fields: values.fields.map((f: any, index: number) => ({
         ...f,
-        fieldOrder: index + 1,
-      })),
+        fieldOrder: index + 1
+      }))
     };
 
     if (isEditing && templateId) {
@@ -187,7 +188,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
         style={{
           background: "rgba(59,130,246,0.10)",
           color: "#3b82f6",
-          border: "1px solid rgba(59,130,246,0.22)",
+          border: "1px solid rgba(59,130,246,0.22)"
         }}
       >
         {num ? num : <Icon size={13} strokeWidth={2.25} />}
@@ -226,14 +227,14 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
           body: { padding: 0, background: 'var(--customers-page-bg)' },
           footer: { padding: 0, border: 'none' },
           wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
+          mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' }
         }}
         footer={
           <div
             className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
             style={{
               background: 'var(--bg-secondary)',
-              borderColor: 'var(--border-color)',
+              borderColor: 'var(--border-color)'
             }}
           >
             <Button
@@ -252,7 +253,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                 height: 36,
                 padding: '0 18px',
                 fontWeight: 600,
-                background: '#2563eb',
+                background: '#2563eb'
               }}
             >
               {isEditing ? 'Update template' : 'Save template'}
@@ -266,7 +267,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
           style={{
             background:
               'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-            borderColor: 'var(--border-color)',
+            borderColor: 'var(--border-color)'
           }}
         >
           <div className="flex items-start gap-3 min-w-0">
@@ -275,7 +276,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
               style={{
                 background: 'var(--bg-blue-50)',
                 color: 'var(--text-blue-700)',
-                border: '1px solid var(--border-blue-200)',
+                border: '1px solid var(--border-blue-200)'
               }}
             >
               <Layout size={18} strokeWidth={2.25} />
@@ -310,7 +311,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
 
         {isFetching ? (
           <div className="flex items-center justify-center py-20">
-            <Spin tip="Loading template details..." />
+            <LoadingSpinner message="Loading template details..." fullScreen={false} />
           </div>
         ) : (
           <Form
@@ -330,7 +331,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                 className="customer-drawer-card rounded-none overflow-hidden"
                 style={{
                   background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <SectionHeader
@@ -350,7 +351,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                       style={{
                         borderRadius: 8,
                         height: 38,
-                        borderColor: 'var(--border-color)',
+                        borderColor: 'var(--border-color)'
                       }}
                     />
                   </Form.Item>
@@ -382,7 +383,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                       style={{
                         borderRadius: 8,
                         borderColor: 'var(--border-color)',
-                        resize: 'none',
+                        resize: 'none'
                       }}
                     />
                   </Form.Item>
@@ -394,7 +395,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                 className="customer-drawer-card rounded-none overflow-hidden"
                 style={{
                   background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <SectionHeader
@@ -455,7 +456,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                 className="customer-drawer-card rounded-none overflow-hidden invoice-structure-section"
                 style={{
                   background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <div className="flex items-center justify-between">
@@ -484,13 +485,13 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                 background: isSystem
                                   ? 'var(--bg-slate-50)'
                                   : 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
+                                border: '1px solid var(--border-color)'
                               }}
                             >
                               <div className="px-3 pt-3 pb-3 grid items-end gap-2.5"
                                 style={{
                                   gridTemplateColumns:
-                                    '20px 1.2fr 1fr 1.1fr 78px 32px',
+                                    '20px 1.2fr 1fr 1.1fr 78px 32px'
                                 }}
                               >
                                 <div
@@ -520,7 +521,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                     style={{
                                       borderRadius: 6,
                                       height: 32,
-                                      borderColor: 'var(--border-color)',
+                                      borderColor: 'var(--border-color)'
                                     }}
                                   />
                                 </Form.Item>
@@ -549,7 +550,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                       borderColor: 'var(--border-color)',
                                       fontFamily:
                                         'ui-monospace, SFMono-Regular, Menlo, monospace',
-                                      fontSize: 12,
+                                      fontSize: 12
                                     }}
                                   />
                                 </Form.Item>
@@ -605,7 +606,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                       style={{
                                         color: 'var(--text-secondary)',
                                         background: 'var(--bg-secondary)',
-                                        border: '1px solid var(--border-color)',
+                                        border: '1px solid var(--border-color)'
                                       }}
                                     >
                                       Sys
@@ -654,7 +655,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                         className="rounded-lg p-3"
                                         style={{
                                           background: 'var(--bg-slate-50)',
-                                          border: '1px dashed var(--border-color)',
+                                          border: '1px dashed var(--border-color)'
                                         }}
                                       >
                                         <div
@@ -677,7 +678,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                                       background: 'var(--bg-secondary)',
                                                       color: 'var(--text-secondary)',
                                                       border:
-                                                        '1px solid var(--border-color)',
+                                                        '1px solid var(--border-color)'
                                                     }}
                                                   >
                                                     {index + 1}
@@ -695,7 +696,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                                       style={{
                                                         borderRadius: 6,
                                                         borderColor:
-                                                          'var(--border-color)',
+                                                          'var(--border-color)'
                                                       }}
                                                     />
                                                   </Form.Item>
@@ -717,7 +718,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                                                 style={{
                                                   width: 'fit-content',
                                                   borderColor: 'var(--border-color)',
-                                                  color: 'var(--text-blue-700)',
+                                                  color: 'var(--text-blue-700)'
                                                 }}
                                               >
                                                 Add option
@@ -743,7 +744,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                             fieldLabel: '',
                             fieldType: 'text',
                             isRequired: false,
-                            isSystem: false,
+                            isSystem: false
                           })
                         }
                         block
@@ -756,7 +757,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
                           borderColor: 'var(--border-color)',
                           color: 'var(--text-blue-700)',
                           fontWeight: 600,
-                          fontSize: 13,
+                          fontSize: 13
                         }}
                       >
                         Add custom field
@@ -795,8 +796,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
         .custom-select-template .ant-select-selection-item {
           color: var(--text-primary) !important;
         }
-      `,
-          }}
+      ` }}
         />
       </Drawer>
     </>

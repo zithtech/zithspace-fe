@@ -2,6 +2,7 @@
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -705,12 +706,17 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 </div>
 
                 {/* Table */}
-                <div className="dm-table-wrapper">
+                <div className="dm-table-wrapper" style={{ position: 'relative' }}>
+                  {dataLoading && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <LoadingSpinner size="medium" fullScreen={false} />
+                    </div>
+                  )}
                   <Table
                     columns={columns}
                     dataSource={filteredItems}
                     rowKey="id"
-                    loading={dataLoading}
+                    loading={false}
                     pagination={false}
                     size="middle"
                     className="premium-table workstation-grid"

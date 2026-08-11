@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -17,8 +18,7 @@ import {
   Row,
   Col,
   Select,
-  Spin,
-  message as messageStatic,
+  message as messageStatic
 } from "antd";
 import {
   ArrowLeft,
@@ -62,7 +62,7 @@ import {
   Building2,
   Linkedin,
   MapPin,
-  Users,
+  Users
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -75,6 +75,7 @@ import { apiClient } from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
+
 dayjs.extend(relativeTime);
 
 const { Title, Text, Paragraph } = Typography;
@@ -86,14 +87,14 @@ const PLATFORM_COLORS: Record<string, { bg: string; color: string; border: strin
   Fiverr: { bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.22)" },
   Zukvo: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
   Zithtech: { bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.22)" },
-  Website: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" },
+  Website: { bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.22)" }
 };
 
 const getPlatformChip = (platform?: string) =>
   PLATFORM_COLORS[platform || ""] || {
     bg: "rgba(99, 102, 241, 0.08)",
     color: "#4f46e5",
-    border: "rgba(99, 102, 241, 0.22)",
+    border: "rgba(99, 102, 241, 0.22)"
   };
 
 const getInitials = (name?: string) =>
@@ -209,15 +210,15 @@ export default function LeadProfilePage() {
       if (messageStatic && messageStatic.loading) {
         messageStatic.loading({ content: mode === 'inline' ? 'Opening...' : 'Downloading...', key: loadingKey });
       }
-      
+
       const response = await apiClient.get(`/api/leads/attachments/download`, {
         params: { url, filename: fileName || 'attachment', mode },
         responseType: 'blob'
       });
-      
+
       const blob = new Blob([response.data], { type: response.headers['content-type']?.toString() });
       const blobUrl = URL.createObjectURL(blob);
-      
+
       if (mode === 'inline') {
         window.open(blobUrl, '_blank');
         if (messageStatic) messageStatic.destroy(loadingKey);
@@ -474,12 +475,12 @@ export default function LeadProfilePage() {
                         style={{
                           color: s.color || "#3b82f6",
                           backgroundColor: `${s.color || "#3b82f6"}12`,
-                          border: `1px solid ${s.color || "#3b82f6"}25`,
+                          border: `1px solid ${s.color || "#3b82f6"}25`
                         }}
                       >
                         {s.name}
                       </span>
-                    ),
+                    )
                   }))}
                 />
               ) : lead.status ? (
@@ -489,7 +490,7 @@ export default function LeadProfilePage() {
                   style={{
                     color: statusColor,
                     backgroundColor: `${statusColor}12`,
-                    border: `1px solid ${statusColor}25`,
+                    border: `1px solid ${statusColor}25`
                   }}
                   onClick={() => setStatusEditing(true)}
                   title="Click to change status"
@@ -546,7 +547,7 @@ export default function LeadProfilePage() {
                       title: lead.title,
                       summary: lead.summary,
                       budget: lead.budget,
-                      experience_level: lead.experience_level,
+                      experience_level: lead.experience_level
                     });
                     setIsModalOpen(true);
                     setCurrentStep(0);
@@ -589,7 +590,7 @@ export default function LeadProfilePage() {
           >
             {timelineLoading ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <Spin size="large" />
+                <LoadingSpinner size="large" fullScreen={false} />
               </div>
             ) : timelineData.length === 0 ? (
               <Empty description="No activity recorded yet" />
@@ -598,13 +599,13 @@ export default function LeadProfilePage() {
                 mode="left"
                 items={timelineData.map((item: any) => {
                   const actionMeta: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-                    CREATED_LEAD:    { label: 'Lead Created',      color: '#3b82f6', icon: <Layers size={13} /> },
-                    UPDATED_LEAD:    { label: 'Lead Updated',      color: '#10b981', icon: <FileEdit size={13} /> },
-                    CREATED_BIDIQ:   { label: 'BidIQ Analyzed',   color: '#3b82f6', icon: <Zap size={13} /> },
-                    CREATED_PROPOSAL:{ label: 'Proposal Created',  color: '#10b981', icon: <FileText size={13} /> },
-                    CLIENT_CREATED:  { label: 'Client Created',    color: '#3b82f6', icon: <UserPlus size={13} /> },
-                    PROJECT_CREATED: { label: 'Project Created',   color: '#10b981', icon: <FolderPlus size={13} /> },
-                    MAIL_SENT:       { label: 'Email Sent',        color: '#3b82f6', icon: <Send size={13} /> },
+                    CREATED_LEAD: { label: 'Lead Created', color: '#3b82f6', icon: <Layers size={13} /> },
+                    UPDATED_LEAD: { label: 'Lead Updated', color: '#10b981', icon: <FileEdit size={13} /> },
+                    CREATED_BIDIQ: { label: 'BidIQ Analyzed', color: '#3b82f6', icon: <Zap size={13} /> },
+                    CREATED_PROPOSAL: { label: 'Proposal Created', color: '#10b981', icon: <FileText size={13} /> },
+                    CLIENT_CREATED: { label: 'Client Created', color: '#3b82f6', icon: <UserPlus size={13} /> },
+                    PROJECT_CREATED: { label: 'Project Created', color: '#10b981', icon: <FolderPlus size={13} /> },
+                    MAIL_SENT: { label: 'Email Sent', color: '#3b82f6', icon: <Send size={13} /> }
                   };
                   const meta = actionMeta[item.action] || { label: item.action, color: '#94a3b8', icon: <Activity size={13} /> };
                   const user = item.performedByUser;
@@ -648,7 +649,7 @@ export default function LeadProfilePage() {
                           </div>
                         )}
                       </div>
-                    ),
+                    )
                   };
                 })}
               />
@@ -864,530 +865,530 @@ export default function LeadProfilePage() {
             ) : (
               /* ==================== PLATFORM detail body ==================== */
               <>
-            {/* Hero section */}
-            <section className="lv-hero">
-              <div className="lv-hero-top">
-                <div className="lv-hero-platform" style={{ background: platformChip.bg, color: platformChip.color, borderColor: platformChip.border }}>
-                  <Globe size={11} />
-                  {lead.platform || "Upwork"}
-                </div>
-                <span className="lv-hero-divider" />
-                <div className="lv-hero-meta">
-                  <Clock size={12} />
-                  Posted {lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently"}
-                </div>
-                {lead.experience_level && (
-                  <>
+                {/* Hero section */}
+                <section className="lv-hero">
+                  <div className="lv-hero-top">
+                    <div className="lv-hero-platform" style={{ background: platformChip.bg, color: platformChip.color, borderColor: platformChip.border }}>
+                      <Globe size={11} />
+                      {lead.platform || "Upwork"}
+                    </div>
                     <span className="lv-hero-divider" />
                     <div className="lv-hero-meta">
-                      <Star size={12} />
-                      {lead.experience_level}
+                      <Clock size={12} />
+                      Posted {lead.posted_on ? dayjs(lead.posted_on).fromNow() : "recently"}
                     </div>
-                  </>
-                )}
-                {lead.duration && (
-                  <>
-                    <span className="lv-hero-divider" />
-                    <div className="lv-hero-meta">
-                      <Calendar size={12} />
-                      {lead.duration}
-                    </div>
-                  </>
-                )}
-                {aiScoreLevel && (
-                  <>
-                    <span className="lv-hero-divider" />
-                    <div
-                      className="lv-hero-score"
-                      style={{
-                        background: aiScoreLevel.bg,
-                        color: aiScoreLevel.color,
-                        borderColor: `${aiScoreLevel.color}33`,
-                      }}
-                    >
-                      {aiScoreLevel.icon}
-                      <span>{aiScoreLevel.label}</span>
-                      <span className="lv-hero-score-val">{lead.ai_score}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <h1 className="lv-hero-title">{lead.title}</h1>
-
-              {lead.summary && (
-                <p className="lv-hero-sub">
-                  {(lead.summary || "").split("\n")[0].slice(0, 220)}
-                  {(lead.summary || "").length > 220 ? "…" : ""}
-                </p>
-              )}
-
-              <div className="lv-kpi-grid">
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
-                  <div className="lv-kpi-icon">
-                    <DollarSign size={14} />
-                  </div>
-                  <div className="lv-kpi-body">
-                    <span className="lv-kpi-label">Budget</span>
-                    <span className="lv-kpi-value">{lead.budget || "—"}</span>
-                  </div>
-                </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
-                  <div className="lv-kpi-icon">
-                    <Target size={14} />
-                  </div>
-                  <div className="lv-kpi-body">
-                    <span className="lv-kpi-label">Win probability</span>
-                    <span className="lv-kpi-value">{winProb}%</span>
-                  </div>
-                </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
-                  <div className="lv-kpi-icon">
-                    <Sparkles size={14} />
-                  </div>
-                  <div className="lv-kpi-body">
-                    <span className="lv-kpi-label">Skill match</span>
-                    <span className="lv-kpi-value">{matchPercentage}%</span>
-                  </div>
-                </div>
-                <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
-                  <div className="lv-kpi-icon">
-                    <Briefcase size={14} />
-                  </div>
-                  <div className="lv-kpi-body">
-                    <span className="lv-kpi-label">Job type</span>
-                    <span className="lv-kpi-value">{lead.job_type || "Hourly"}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 2-column grid */}
-            <div className="lv-grid">
-              {/* ==================== LEFT — Work ==================== */}
-              <main className="lv-main">
-                {/* ------- Job description ------- */}
-                <section className="lv-section">
-                  <header className="lv-section-head">
-                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
-                      <FileText size={14} />
-                    </div>
-                    <h3 className="lv-section-title">Job description</h3>
-                  </header>
-                  <div className="lv-section-body">
-                    <div className={`lv-prose ${!isExpanded ? "is-clamped" : ""}`}>
-                      {lead.summary || "No summary provided for this opportunity."}
-                    </div>
-                    {(lead.summary || "").length > 280 && (
-                      <button
-                        type="button"
-                        className="lv-link-btn"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                      >
-                        <ChevronDown
-                          size={13}
-                          style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform .15s ease" }}
-                        />
-                        {isExpanded ? "Show less" : "Read full description"}
-                      </button>
+                    {lead.experience_level && (
+                      <>
+                        <span className="lv-hero-divider" />
+                        <div className="lv-hero-meta">
+                          <Star size={12} />
+                          {lead.experience_level}
+                        </div>
+                      </>
+                    )}
+                    {lead.duration && (
+                      <>
+                        <span className="lv-hero-divider" />
+                        <div className="lv-hero-meta">
+                          <Calendar size={12} />
+                          {lead.duration}
+                        </div>
+                      </>
+                    )}
+                    {aiScoreLevel && (
+                      <>
+                        <span className="lv-hero-divider" />
+                        <div
+                          className="lv-hero-score"
+                          style={{
+                            background: aiScoreLevel.bg,
+                            color: aiScoreLevel.color,
+                            borderColor: `${aiScoreLevel.color}33`
+                          }}
+                        >
+                          {aiScoreLevel.icon}
+                          <span>{aiScoreLevel.label}</span>
+                          <span className="lv-hero-score-val">{lead.ai_score}</span>
+                        </div>
+                      </>
                     )}
                   </div>
-                </section>
 
-                {/* ------- Intelligence summary ------- */}
-                {lead.ai_summary && (
-                  <section className="lv-section" style={{
-                    background: "rgba(59, 130, 246, 0.02)",
-                    border: "1px solid rgba(59, 130, 246, 0.1)"
-                  }}>
-                    <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
+                  <h1 className="lv-hero-title">{lead.title}</h1>
+
+                  {lead.summary && (
+                    <p className="lv-hero-sub">
+                      {(lead.summary || "").split("\n")[0].slice(0, 220)}
+                      {(lead.summary || "").length > 220 ? "…" : ""}
+                    </p>
+                  )}
+
+                  <div className="lv-kpi-grid">
+                    <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
+                      <div className="lv-kpi-icon">
+                        <DollarSign size={14} />
+                      </div>
+                      <div className="lv-kpi-body">
+                        <span className="lv-kpi-label">Budget</span>
+                        <span className="lv-kpi-value">{lead.budget || "—"}</span>
+                      </div>
+                    </div>
+                    <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
+                      <div className="lv-kpi-icon">
+                        <Target size={14} />
+                      </div>
+                      <div className="lv-kpi-body">
+                        <span className="lv-kpi-label">Win probability</span>
+                        <span className="lv-kpi-value">{winProb}%</span>
+                      </div>
+                    </div>
+                    <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#3b82f6" }}>
+                      <div className="lv-kpi-icon">
                         <Sparkles size={14} />
                       </div>
-                      <h3 className="lv-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        Intelligence Summary
-                        <span style={{
-                          padding: "1px 6px", borderRadius: 999, background: "rgba(59, 130, 246, 0.1)",
-                          color: "#3b82f6", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
-                          textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.15)",
-                          marginLeft: 4
-                        }}>AI Distilled</span>
-                      </h3>
-                    </header>
-                    <div className="lv-section-body">
-                      <div className="lv-prose" style={{ color: "var(--text-slate-800)" }}>
-                        {lead.ai_summary}
+                      <div className="lv-kpi-body">
+                        <span className="lv-kpi-label">Skill match</span>
+                        <span className="lv-kpi-value">{matchPercentage}%</span>
                       </div>
                     </div>
-                  </section>
-                )}
+                    <div className="lv-kpi" style={{ ["--lv-kpi-accent" as any]: "#10b981" }}>
+                      <div className="lv-kpi-icon">
+                        <Briefcase size={14} />
+                      </div>
+                      <div className="lv-kpi-body">
+                        <span className="lv-kpi-label">Job type</span>
+                        <span className="lv-kpi-value">{lead.job_type || "Hourly"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
-                {/* ------- Form Details (only for website leads with form_data) ------- */}
-                {lead.lead_source_kind === 'website' && lead.form_data && Object.keys(lead.form_data).length > 0 && (
-                  <section className="lv-section">
-                    <header 
-                      className="lv-section-head" 
-                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                      onClick={() => setFormDetailsExpanded(!formDetailsExpanded)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#4f46e5" }}>
-                          <LayoutIcon size={14} />
+                {/* 2-column grid */}
+                <div className="lv-grid">
+                  {/* ==================== LEFT — Work ==================== */}
+                  <main className="lv-main">
+                    {/* ------- Job description ------- */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
+                          <FileText size={14} />
                         </div>
-                        <h3 className="lv-section-title">Form Details</h3>
-                      </div>
-                      <div style={{ color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}>
-                        {formDetailsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                      </div>
-                    </header>
-                    {formDetailsExpanded && (
+                        <h3 className="lv-section-title">Job description</h3>
+                      </header>
                       <div className="lv-section-body">
-                        <div className="lv-form-details-grid">
-                          {Object.entries(lead.form_data).map(([key, val]) => {
-                            // Format key to a human readable label, e.g. "useCase" -> "Use Case", "full_name" -> "Full Name"
-                            const label = key
-                              .replace(/([A-Z])/g, ' $1') // insert a space before all caps
-                              .replace(/[_-]/g, ' ')      // replace underscores/dashes with space
-                              .trim()
-                              .split(' ')
-                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                              .join(' ');
-
-                            let displayValue = '';
-                            if (val === null || val === undefined) {
-                              displayValue = '—';
-                            } else if (typeof val === 'object') {
-                              displayValue = JSON.stringify(val);
-                            } else {
-                              displayValue = String(val);
-                            }
-
-                            return (
-                              <div key={key} className="lv-form-details-item">
-                                <span className="lv-form-details-label">{label}</span>
-                                <span className="lv-form-details-value">{displayValue}</span>
-                              </div>
-                            );
-                          })}
+                        <div className={`lv-prose ${!isExpanded ? "is-clamped" : ""}`}>
+                          {lead.summary || "No summary provided for this opportunity."}
                         </div>
-                      </div>
-                    )}
-                  </section>
-                )}
-
-                {/* ------- Skills + Timeline row (60 / 40) ------- */}
-                <div className="lv-row-60-40">
-                  <section className="lv-section">
-                    <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
-                        <Layers size={14} />
-                      </div>
-                      <h3 className="lv-section-title">Required skills</h3>
-                      {skillsList.length > 0 && (
-                        <span className="lv-section-count">{skillsList.length}</span>
-                      )}
-                    </header>
-                    <div className="lv-section-body">
-                      {skillsList.length > 0 ? (
-                        <>
-                          <div className="lv-skills">
-                            {skillsList.slice(0, isSkillsExpanded ? undefined : 10).map((s) => (
-                              <span key={s} className="lv-skill-tag">
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                          {skillsList.length > 10 && (
-                            <button
-                              type="button"
-                              className="lv-link-btn"
-                              onClick={() => setIsSkillsExpanded(!isSkillsExpanded)}
-                            >
-                              {isSkillsExpanded ? "Collapse" : `+${skillsList.length - 10} more`}
-                            </button>
-                          )}
-
-                          {lead.skill_analysis?.missingSkills && lead.skill_analysis.missingSkills.length > 0 && (
-                            <div className="lv-skill-gaps">
-                              <span className="lv-skill-gaps-label">Gaps detected</span>
-                              <div className="lv-skill-gaps-list">
-                                {lead.skill_analysis.missingSkills.map((s: string) => (
-                                  <span key={s} className="lv-skill-gap">{s}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <Text className="lv-muted">No skills listed yet.</Text>
-                      )}
-                    </div>
-                  </section>
-
-                  <section className="lv-section">
-                    <header className="lv-section-head">
-                      <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
-                        <Calendar size={14} />
-                      </div>
-                      <h3 className="lv-section-title">Project timeline</h3>
-                    </header>
-                    <div className="lv-section-body">
-                      <div className="lv-timeline-grid">
-                        <div className="lv-timeline-item">
-                          <span className="lv-meta-label">Posted on</span>
-                          <span className="lv-meta-value">
-                            {lead.posted_on ? dayjs(lead.posted_on).format("MMM D, YYYY") : "—"}
-                          </span>
-                        </div>
-                        <div className="lv-timeline-item">
-                          <span className="lv-meta-label">Duration</span>
-                          <span className="lv-meta-value">{lead.duration || "Flexible"}</span>
-                        </div>
-                        <div className="lv-timeline-item">
-                          <span className="lv-meta-label">Start date</span>
-                          <span className="lv-meta-value">
-                            {lead.timeline_start ? dayjs(lead.timeline_start).format("MMM D, YYYY") : "Pending"}
-                          </span>
-                        </div>
-                        <div className="lv-timeline-item">
-                          <span className="lv-meta-label">End date</span>
-                          <span className="lv-meta-value">
-                            {lead.timeline_end ? dayjs(lead.timeline_end).format("MMM D, YYYY") : "Pending"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-
-                {/* ------- Mailing History ------- */}
-                <section className="lv-section">
-                  <header className="lv-section-head">
-                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#ec4899" }}>
-                      <Mail size={14} />
-                    </div>
-                    <h3 className="lv-section-title">Mailing History</h3>
-                    {mails.length > 0 && <span className="lv-section-count">{mails.length}</span>}
-                  </header>
-                  <div className="lv-section-body">
-                    {mailsLoading ? (
-                      <Skeleton active paragraph={{ rows: 2 }} />
-                    ) : mails.length > 0 ? (
-                      <div className="lv-mailing-history">
-                        {mails.map((mail) => (
-                          <div key={mail.id} className="lv-mail-item">
-                            <div className="lv-mail-item-head">
-                              <span className="lv-mail-subject">{mail.subject}</span>
-                              <span className="lv-mail-date">{dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A")}</span>
-                            </div>
-                            <div className="lv-mail-recipient">To: {mail.recipient_email}</div>
-                            <div className="lv-mail-excerpt">
-                              {mail.body.replace(/<[^>]*>?/gm, '').slice(0, 120)}...
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="lv-empty-state">
-                        <Mail size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
-                        <Text className="lv-muted">No emails sent yet.</Text>
-                      </div>
-                    )}
-                  </div>
-                </section>
-                {/* ------- Internal notes ------- */}
-                <section className="lv-section">
-                  <header className="lv-section-head">
-                    <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}>
-                      <Edit2 size={13} />
-                    </div>
-                    <h3 className="lv-section-title">Internal notes</h3>
-                  </header>
-                  <div className="lv-section-body">
-                    <div className="lv-notes">
-                      {lead.internal_notes ? (
-                        <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{lead.internal_notes}</Paragraph>
-                      ) : (
-                        <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              </main>
-
-              {/* ==================== RIGHT rail — Meta ==================== */}
-              <aside className="lv-side">
-                {/* Client */}
-                <section className="lv-side-card">
-                  <header className="lv-side-head">About the client</header>
-                  <div className="lv-client-id">
-                    <div className="lv-avatar">{getInitials(lead.client_name)}</div>
-                    <div className="lv-client-id-text">
-                      <div className="lv-client-name">{lead.client_name || "Unknown client"}</div>
-                      <div className="lv-client-meta">
-                        <Globe size={11} />
-                        <span>{lead.client_location || "Global"}</span>
-                        {lead.client_rating && (
-                          <>
-                            <span className="lv-dot" />
-                            <Star size={11} fill="#fbbf24" color="#fbbf24" />
-                            <span>{lead.client_rating}</span>
-                          </>
+                        {(lead.summary || "").length > 280 && (
+                          <button
+                            type="button"
+                            className="lv-link-btn"
+                            onClick={() => setIsExpanded(!isExpanded)}
+                          >
+                            <ChevronDown
+                              size={13}
+                              style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)", transition: "transform .15s ease" }}
+                            />
+                            {isExpanded ? "Show less" : "Read full description"}
+                          </button>
                         )}
                       </div>
-                    </div>
-                  </div>
-                  <div className="lv-client-contact">
-                    <div className="lv-contact-row">
-                      <Mail size={13} />
-                      <span title={lead.client_mail || ""}>{lead.client_mail || "—"}</span>
-                    </div>
-                    <div className="lv-contact-row">
-                      <Phone size={13} />
-                      <span>{lead.client_phone || "—"}</span>
-                    </div>
-                  </div>
-                  <div className="lv-verify-row">
-                    <div className={`lv-verify ${lead.client_payment_verified ? "ok" : "off"}`}>
-                      {lead.client_payment_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-                      <span>Payment</span>
-                    </div>
-                    <div className={`lv-verify ${lead.client_phone_verified ? "ok" : "off"}`}>
-                      {lead.client_phone_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-                      <span>Phone</span>
-                    </div>
-                  </div>
-                </section>
+                    </section>
 
-                {/* Key facts */}
-                {renderKeyFacts()}
-
-                {/* Win probability */}
-                <section className="lv-side-card">
-                  <header className="lv-side-head">
-                    <Sparkles size={12} /> Win probability
-                  </header>
-                  <div className="lv-donut-wrap">
-                    <div className="lv-donut">
-                      <svg viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="42" fill="transparent" stroke="var(--border-slate-100)" strokeWidth="8" />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="42"
-                          fill="transparent"
-                          stroke="#3b82f6"
-                          strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray={`${(winProb / 100) * 264} 264`}
-                          transform="rotate(-90 50 50)"
-                        />
-                      </svg>
-                      <div className="lv-donut-text">
-                        <span className="lv-donut-val">{winProb}<span className="lv-donut-pct">%</span></span>
-                        <span className="lv-donut-cap">Predicted</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="lv-insight-row">
-                    <span className="lv-meta-label">Competition</span>
-                    <span className="lv-pill lv-pill-warn">
-                      <Activity size={10} /> Medium
-                    </span>
-                  </div>
-                  <div className="lv-insight-row lv-insight-progress">
-                    <div className="lv-progress-meta">
-                      <span className="lv-meta-label">Skill match</span>
-                      <span className="lv-progress-val">{matchPercentage}%</span>
-                    </div>
-                    <div className="lv-progress-track">
-                      <div
-                        className="lv-progress-fill"
-                        style={{ width: `${matchPercentage}%`, background: "linear-gradient(90deg, #3b82f6, #3b82f6)" }}
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                {/* Financial */}
-                <section className="lv-side-card">
-                  <header className="lv-side-head">Financial breakdown</header>
-                  <div className="lv-fin-grid">
-                    <div className="lv-fin-item">
-                      <span className="lv-meta-label">Budget</span>
-                      <span className="lv-fin-value">{lead.budget || "—"}</span>
-                    </div>
-                    <div className="lv-fin-item">
-                      <span className="lv-meta-label">Total client spend</span>
-                      <span className="lv-fin-value">{lead.client_spend || "—"}</span>
-                    </div>
-                    <div className="lv-fin-item">
-                      <span className="lv-meta-label">Rate</span>
-                      <span className="lv-fin-value">
-                        {lead.hourly_rate || lead.hour_based_amount
-                          ? `$${lead.hourly_rate || lead.hour_based_amount}`
-                          : "Fixed"}
-                      </span>
-                    </div>
-                    <div className="lv-fin-item">
-                      <span className="lv-meta-label">Job type</span>
-                      <span className="lv-fin-value">{lead.job_type || "Hourly"}</span>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Documents */}
-                <section className="lv-side-card">
-                  <header className="lv-side-head">Documents</header>
-                  <div className="lv-docs">
-                    {lead.documents && lead.documents.length > 0 ? (
-                      lead.documents.map((doc: any, i: number) => {
-                        const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
-                        return (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <button
-                              type="button"
-                              onClick={() => handleDownload(d.url, d.name, 'inline')}
-                              className="lv-doc-row"
-                              style={{ 
-                                flex: 1, 
-                                minWidth: 0, 
-                                marginBottom: 0, 
-                                textAlign: 'left',
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <FileText size={13} />
-                              <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
-                              <ExternalLink size={11} className="lv-doc-ext" />
-                            </button>
-                            <Button 
-                              type="text" 
-                              size="small" 
-                              icon={<Download size={14} />} 
-                              onClick={() => handleDownload(d.url, d.name, 'attachment')}
-                              style={{ 
-                                color: '#3b82f6', 
-                                background: 'rgba(99, 102, 241, 0.05)',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            />
+                    {/* ------- Intelligence summary ------- */}
+                    {lead.ai_summary && (
+                      <section className="lv-section" style={{
+                        background: "rgba(59, 130, 246, 0.02)",
+                        border: "1px solid rgba(59, 130, 246, 0.1)"
+                      }}>
+                        <header className="lv-section-head">
+                          <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
+                            <Sparkles size={14} />
                           </div>
-                        );
-                      })
-                    ) : (
-                      <Text className="lv-muted">No documents attached.</Text>
+                          <h3 className="lv-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            Intelligence Summary
+                            <span style={{
+                              padding: "1px 6px", borderRadius: 999, background: "rgba(59, 130, 246, 0.1)",
+                              color: "#3b82f6", fontSize: 9, fontWeight: 800, letterSpacing: "0.05em",
+                              textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.15)",
+                              marginLeft: 4
+                            }}>AI Distilled</span>
+                          </h3>
+                        </header>
+                        <div className="lv-section-body">
+                          <div className="lv-prose" style={{ color: "var(--text-slate-800)" }}>
+                            {lead.ai_summary}
+                          </div>
+                        </div>
+                      </section>
                     )}
-                  </div>
-                </section>
-              </aside>
-            </div>
+
+                    {/* ------- Form Details (only for website leads with form_data) ------- */}
+                    {lead.lead_source_kind === 'website' && lead.form_data && Object.keys(lead.form_data).length > 0 && (
+                      <section className="lv-section">
+                        <header
+                          className="lv-section-head"
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                          onClick={() => setFormDetailsExpanded(!formDetailsExpanded)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#4f46e5" }}>
+                              <LayoutIcon size={14} />
+                            </div>
+                            <h3 className="lv-section-title">Form Details</h3>
+                          </div>
+                          <div style={{ color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center' }}>
+                            {formDetailsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </div>
+                        </header>
+                        {formDetailsExpanded && (
+                          <div className="lv-section-body">
+                            <div className="lv-form-details-grid">
+                              {Object.entries(lead.form_data).map(([key, val]) => {
+                                // Format key to a human readable label, e.g. "useCase" -> "Use Case", "full_name" -> "Full Name"
+                                const label = key
+                                  .replace(/([A-Z])/g, ' $1') // insert a space before all caps
+                                  .replace(/[_-]/g, ' ')      // replace underscores/dashes with space
+                                  .trim()
+                                  .split(' ')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                  .join(' ');
+
+                                let displayValue = '';
+                                if (val === null || val === undefined) {
+                                  displayValue = '—';
+                                } else if (typeof val === 'object') {
+                                  displayValue = JSON.stringify(val);
+                                } else {
+                                  displayValue = String(val);
+                                }
+
+                                return (
+                                  <div key={key} className="lv-form-details-item">
+                                    <span className="lv-form-details-label">{label}</span>
+                                    <span className="lv-form-details-value">{displayValue}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </section>
+                    )}
+
+                    {/* ------- Skills + Timeline row (60 / 40) ------- */}
+                    <div className="lv-row-60-40">
+                      <section className="lv-section">
+                        <header className="lv-section-head">
+                          <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
+                            <Layers size={14} />
+                          </div>
+                          <h3 className="lv-section-title">Required skills</h3>
+                          {skillsList.length > 0 && (
+                            <span className="lv-section-count">{skillsList.length}</span>
+                          )}
+                        </header>
+                        <div className="lv-section-body">
+                          {skillsList.length > 0 ? (
+                            <>
+                              <div className="lv-skills">
+                                {skillsList.slice(0, isSkillsExpanded ? undefined : 10).map((s) => (
+                                  <span key={s} className="lv-skill-tag">
+                                    {s}
+                                  </span>
+                                ))}
+                              </div>
+                              {skillsList.length > 10 && (
+                                <button
+                                  type="button"
+                                  className="lv-link-btn"
+                                  onClick={() => setIsSkillsExpanded(!isSkillsExpanded)}
+                                >
+                                  {isSkillsExpanded ? "Collapse" : `+${skillsList.length - 10} more`}
+                                </button>
+                              )}
+
+                              {lead.skill_analysis?.missingSkills && lead.skill_analysis.missingSkills.length > 0 && (
+                                <div className="lv-skill-gaps">
+                                  <span className="lv-skill-gaps-label">Gaps detected</span>
+                                  <div className="lv-skill-gaps-list">
+                                    {lead.skill_analysis.missingSkills.map((s: string) => (
+                                      <span key={s} className="lv-skill-gap">{s}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <Text className="lv-muted">No skills listed yet.</Text>
+                          )}
+                        </div>
+                      </section>
+
+                      <section className="lv-section">
+                        <header className="lv-section-head">
+                          <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#3b82f6" }}>
+                            <Calendar size={14} />
+                          </div>
+                          <h3 className="lv-section-title">Project timeline</h3>
+                        </header>
+                        <div className="lv-section-body">
+                          <div className="lv-timeline-grid">
+                            <div className="lv-timeline-item">
+                              <span className="lv-meta-label">Posted on</span>
+                              <span className="lv-meta-value">
+                                {lead.posted_on ? dayjs(lead.posted_on).format("MMM D, YYYY") : "—"}
+                              </span>
+                            </div>
+                            <div className="lv-timeline-item">
+                              <span className="lv-meta-label">Duration</span>
+                              <span className="lv-meta-value">{lead.duration || "Flexible"}</span>
+                            </div>
+                            <div className="lv-timeline-item">
+                              <span className="lv-meta-label">Start date</span>
+                              <span className="lv-meta-value">
+                                {lead.timeline_start ? dayjs(lead.timeline_start).format("MMM D, YYYY") : "Pending"}
+                              </span>
+                            </div>
+                            <div className="lv-timeline-item">
+                              <span className="lv-meta-label">End date</span>
+                              <span className="lv-meta-value">
+                                {lead.timeline_end ? dayjs(lead.timeline_end).format("MMM D, YYYY") : "Pending"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+
+                    {/* ------- Mailing History ------- */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#ec4899" }}>
+                          <Mail size={14} />
+                        </div>
+                        <h3 className="lv-section-title">Mailing History</h3>
+                        {mails.length > 0 && <span className="lv-section-count">{mails.length}</span>}
+                      </header>
+                      <div className="lv-section-body">
+                        {mailsLoading ? (
+                          <Skeleton active paragraph={{ rows: 2 }} />
+                        ) : mails.length > 0 ? (
+                          <div className="lv-mailing-history">
+                            {mails.map((mail) => (
+                              <div key={mail.id} className="lv-mail-item">
+                                <div className="lv-mail-item-head">
+                                  <span className="lv-mail-subject">{mail.subject}</span>
+                                  <span className="lv-mail-date">{dayjs(mail.sent_at).format("MMM D, YYYY · h:mm A")}</span>
+                                </div>
+                                <div className="lv-mail-recipient">To: {mail.recipient_email}</div>
+                                <div className="lv-mail-excerpt">
+                                  {mail.body.replace(/<[^>]*>?/gm, '').slice(0, 120)}...
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="lv-empty-state">
+                            <Mail size={24} style={{ color: '#cbd5e1', marginBottom: 8 }} />
+                            <Text className="lv-muted">No emails sent yet.</Text>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                    {/* ------- Internal notes ------- */}
+                    <section className="lv-section">
+                      <header className="lv-section-head">
+                        <div className="lv-section-icon" style={{ ["--lv-section-accent" as any]: "#64748b" }}>
+                          <Edit2 size={13} />
+                        </div>
+                        <h3 className="lv-section-title">Internal notes</h3>
+                      </header>
+                      <div className="lv-section-body">
+                        <div className="lv-notes">
+                          {lead.internal_notes ? (
+                            <Paragraph style={{ margin: 0, color: "var(--text-slate-700)" }}>{lead.internal_notes}</Paragraph>
+                          ) : (
+                            <Text className="lv-muted">No notes recorded. Add context for your team.</Text>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+                  </main>
+
+                  {/* ==================== RIGHT rail — Meta ==================== */}
+                  <aside className="lv-side">
+                    {/* Client */}
+                    <section className="lv-side-card">
+                      <header className="lv-side-head">About the client</header>
+                      <div className="lv-client-id">
+                        <div className="lv-avatar">{getInitials(lead.client_name)}</div>
+                        <div className="lv-client-id-text">
+                          <div className="lv-client-name">{lead.client_name || "Unknown client"}</div>
+                          <div className="lv-client-meta">
+                            <Globe size={11} />
+                            <span>{lead.client_location || "Global"}</span>
+                            {lead.client_rating && (
+                              <>
+                                <span className="lv-dot" />
+                                <Star size={11} fill="#fbbf24" color="#fbbf24" />
+                                <span>{lead.client_rating}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="lv-client-contact">
+                        <div className="lv-contact-row">
+                          <Mail size={13} />
+                          <span title={lead.client_mail || ""}>{lead.client_mail || "—"}</span>
+                        </div>
+                        <div className="lv-contact-row">
+                          <Phone size={13} />
+                          <span>{lead.client_phone || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="lv-verify-row">
+                        <div className={`lv-verify ${lead.client_payment_verified ? "ok" : "off"}`}>
+                          {lead.client_payment_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                          <span>Payment</span>
+                        </div>
+                        <div className={`lv-verify ${lead.client_phone_verified ? "ok" : "off"}`}>
+                          {lead.client_phone_verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                          <span>Phone</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Key facts */}
+                    {renderKeyFacts()}
+
+                    {/* Win probability */}
+                    <section className="lv-side-card">
+                      <header className="lv-side-head">
+                        <Sparkles size={12} /> Win probability
+                      </header>
+                      <div className="lv-donut-wrap">
+                        <div className="lv-donut">
+                          <svg viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="transparent" stroke="var(--border-slate-100)" strokeWidth="8" />
+                            <circle
+                              cx="50"
+                              cy="50"
+                              r="42"
+                              fill="transparent"
+                              stroke="#3b82f6"
+                              strokeWidth="8"
+                              strokeLinecap="round"
+                              strokeDasharray={`${(winProb / 100) * 264} 264`}
+                              transform="rotate(-90 50 50)"
+                            />
+                          </svg>
+                          <div className="lv-donut-text">
+                            <span className="lv-donut-val">{winProb}<span className="lv-donut-pct">%</span></span>
+                            <span className="lv-donut-cap">Predicted</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="lv-insight-row">
+                        <span className="lv-meta-label">Competition</span>
+                        <span className="lv-pill lv-pill-warn">
+                          <Activity size={10} /> Medium
+                        </span>
+                      </div>
+                      <div className="lv-insight-row lv-insight-progress">
+                        <div className="lv-progress-meta">
+                          <span className="lv-meta-label">Skill match</span>
+                          <span className="lv-progress-val">{matchPercentage}%</span>
+                        </div>
+                        <div className="lv-progress-track">
+                          <div
+                            className="lv-progress-fill"
+                            style={{ width: `${matchPercentage}%`, background: "linear-gradient(90deg, #3b82f6, #3b82f6)" }}
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Financial */}
+                    <section className="lv-side-card">
+                      <header className="lv-side-head">Financial breakdown</header>
+                      <div className="lv-fin-grid">
+                        <div className="lv-fin-item">
+                          <span className="lv-meta-label">Budget</span>
+                          <span className="lv-fin-value">{lead.budget || "—"}</span>
+                        </div>
+                        <div className="lv-fin-item">
+                          <span className="lv-meta-label">Total client spend</span>
+                          <span className="lv-fin-value">{lead.client_spend || "—"}</span>
+                        </div>
+                        <div className="lv-fin-item">
+                          <span className="lv-meta-label">Rate</span>
+                          <span className="lv-fin-value">
+                            {lead.hourly_rate || lead.hour_based_amount
+                              ? `$${lead.hourly_rate || lead.hour_based_amount}`
+                              : "Fixed"}
+                          </span>
+                        </div>
+                        <div className="lv-fin-item">
+                          <span className="lv-meta-label">Job type</span>
+                          <span className="lv-fin-value">{lead.job_type || "Hourly"}</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Documents */}
+                    <section className="lv-side-card">
+                      <header className="lv-side-head">Documents</header>
+                      <div className="lv-docs">
+                        {lead.documents && lead.documents.length > 0 ? (
+                          lead.documents.map((doc: any, i: number) => {
+                            const d = typeof doc === "string" ? { name: doc, url: doc } : doc;
+                            return (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownload(d.url, d.name, 'inline')}
+                                  className="lv-doc-row"
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    marginBottom: 0,
+                                    textAlign: 'left',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <FileText size={13} />
+                                  <span className="lv-doc-name" title={d.name}>{d.name || "Attachment"}</span>
+                                  <ExternalLink size={11} className="lv-doc-ext" />
+                                </button>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<Download size={14} />}
+                                  onClick={() => handleDownload(d.url, d.name, 'attachment')}
+                                  style={{
+                                    color: '#3b82f6',
+                                    background: 'rgba(99, 102, 241, 0.05)',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                />
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <Text className="lv-muted">No documents attached.</Text>
+                        )}
+                      </div>
+                    </section>
+                  </aside>
+                </div>
               </>
             )}
           </div>
@@ -2990,6 +2991,5 @@ const leadViewStyles = (
         -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset !important;
         transition: background-color 5000s ease-in-out 0s;
       }
-    `,
-  }} />
+    ` }} />
 );

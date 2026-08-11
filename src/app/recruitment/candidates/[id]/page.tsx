@@ -1,15 +1,17 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Tabs, Descriptions, Tag, Row, Col, Timeline, Spin, Button, Space, message, Divider, Drawer } from "antd";
+import { Card, Typography, Tabs, Descriptions, Tag, Row, Col, Timeline, Button, Space, message, Divider, Drawer } from "antd";
 import { ArrowLeftOutlined, FileOutlined, EditOutlined, SendOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useParams, useRouter } from "next/navigation";
 import candidateService from "@/services/candidateService";
 import dayjs from "dayjs";
 import moment from "moment-timezone";
+
 
 const { Title, Text } = Typography;
 
@@ -47,7 +49,7 @@ export default function CandidateProfile() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-            <Spin size="large" />
+            <LoadingSpinner size="large" fullScreen={false} />
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -103,59 +105,59 @@ export default function CandidateProfile() {
     (candidate.certificationsUrls && candidate.certificationsUrls.length > 0)
   );
 
-const handleDownloadAllDocuments = async () => {
-  const allDocs = [
-    { url: candidate.resumeUrl, name: "Resume" },
-    { url: candidate.passportUrl, name: "Passport" },
-    { url: candidate.drivingLicenseUrl, name: "DrivingLicense" },
-    { url: candidate.visaDocumentUrl, name: "VisaDocument" },
-    { url: candidate.identityProofUrl, name: "IdentityProof" },
-    ...(candidate.certificationsUrls || []).map((url: string, i: number) => ({
-      url,
-      name: `Certification_${i + 1}`,
-    })),
-  ].filter((doc) => Boolean(doc.url));
+  const handleDownloadAllDocuments = async () => {
+    const allDocs = [
+      { url: candidate.resumeUrl, name: "Resume" },
+      { url: candidate.passportUrl, name: "Passport" },
+      { url: candidate.drivingLicenseUrl, name: "DrivingLicense" },
+      { url: candidate.visaDocumentUrl, name: "VisaDocument" },
+      { url: candidate.identityProofUrl, name: "IdentityProof" },
+      ...(candidate.certificationsUrls || []).map((url: string, i: number) => ({
+        url,
+        name: `Certification_${i + 1}`
+      })),
+    ].filter((doc) => Boolean(doc.url));
 
-  for (let i = 0; i < allDocs.length; i++) {
-    const { url, name } = allDocs[i];
+    for (let i = 0; i < allDocs.length; i++) {
+      const { url, name } = allDocs[i];
 
-    await new Promise<void>((resolve) => {
-      setTimeout(async () => {
-        try {
-          const response = await fetch(url, { mode: "cors" }); // ✅ CORS mode
-          if (!response.ok) throw new Error("Fetch failed");
+      await new Promise<void>((resolve) => {
+        setTimeout(async () => {
+          try {
+            const response = await fetch(url, { mode: "cors" }); // ✅ CORS mode
+            if (!response.ok) throw new Error("Fetch failed");
 
-          const blob = await response.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-          const ext = url.split(".").pop()?.split("?")[0] || "pdf";
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const ext = url.split(".").pop()?.split("?")[0] || "pdf";
 
-          const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = `${name}.${ext}`;  // ✅ No new tab, direct download
-          a.style.display = "none";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = `${name}.${ext}`;  // ✅ No new tab, direct download
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
 
-          setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-        } catch (error) {
-          // ✅ Fallback: force download via URL with download attribute
-          console.warn(`Blob download failed for ${name}, using fallback`);
-          const a = document.createElement("a");
-          a.href = `${url}`;
-          a.download = name;              // ✅ Still tries to download, not open tab
-          a.target = "_blank";            // ✅ Open in new tab so it doesn't navigate away from the app
-          a.style.display = "none";
-          a.rel = "noopener noreferrer";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
-        resolve();
-      }, i * 1000);
-    });
-  }
-};
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+          } catch (error) {
+            // ✅ Fallback: force download via URL with download attribute
+            console.warn(`Blob download failed for ${name}, using fallback`);
+            const a = document.createElement("a");
+            a.href = `${url}`;
+            a.download = name;              // ✅ Still tries to download, not open tab
+            a.target = "_blank";            // ✅ Open in new tab so it doesn't navigate away from the app
+            a.style.display = "none";
+            a.rel = "noopener noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+          resolve();
+        }, i * 1000);
+      });
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -167,8 +169,8 @@ const handleDownloadAllDocuments = async () => {
             </Button>
           </div>
 
-          <div  style={{ marginBottom: 24, flexShrink: 0 }}>
-         
+          <div style={{ marginBottom: 24, flexShrink: 0 }}>
+
             <Row justify="space-between" align="middle">
               <Col>
                 <Title level={3} style={{ margin: 0 }}>{candidate.fullName}</Title>
@@ -179,9 +181,9 @@ const handleDownloadAllDocuments = async () => {
                 </Space>
               </Col>
               <Col>
-                <Space wrap style={{gap:12}}>
-                  <Button 
-                    icon={<EditOutlined />} 
+                <Space wrap style={{ gap: 12 }}>
+                  <Button
+                    icon={<EditOutlined />}
                     onClick={() => router.push(`/recruitment/candidates-edit/${candidate.id}`)}
                   >
                     Edit
@@ -192,11 +194,11 @@ const handleDownloadAllDocuments = async () => {
                 </Space>
               </Col>
             </Row>
-        
+
           </div>
 
-          <Card 
-            bordered={false} 
+          <Card
+            bordered={false}
             style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
             bodyStyle={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}
           >
@@ -253,11 +255,11 @@ const OverviewTab = ({ candidate }: { candidate: any }) => (
       <Descriptions.Item label="Validity Date">{candidate.visaValidityDate ? dayjs(candidate.visaValidityDate).format("MMMM D, YYYY") : "N/A"}</Descriptions.Item>
       <Descriptions.Item label="Willing to Transfer">{candidate.willingToTransferVisa ? "Yes" : "No"}</Descriptions.Item>
     </Descriptions>
-    
+
     {candidate.professionalSummary && (
-       <Card type="inner" title="Professional Summary">
-         <Text>{candidate.professionalSummary}</Text>
-       </Card>
+      <Card type="inner" title="Professional Summary">
+        <Text>{candidate.professionalSummary}</Text>
+      </Card>
     )}
 
     {candidate.internalNotes && (
@@ -271,11 +273,11 @@ const OverviewTab = ({ candidate }: { candidate: any }) => (
 const ExperienceTab = ({ experiences }: { experiences: any[] }) => {
   if (!experiences || experiences.length === 0) return <Text type="secondary">No work experience added.</Text>;
   return (
-    
+
     <Timeline mode="left" style={{ maxWidth: 400 }}>
       {experiences.map((exp: any) => (
         <Timeline.Item key={exp.id} label={`${dayjs(exp.startDate).format("MMM YYYY")} - ${exp.endDate ? dayjs(exp.endDate).format("MMM YYYY") : "Present"}`}>
-          <Card style={{width:800}} title={`${exp.jobTitle} at ${exp.companyName}`}>
+          <Card style={{ width: 800 }} title={`${exp.jobTitle} at ${exp.companyName}`}>
             <Descriptions column={2} size="small">
               <Descriptions.Item label="Location">{exp.location || "N/A"}</Descriptions.Item>
               <Descriptions.Item label="Type">{exp.employmentType || "N/A"}</Descriptions.Item>
@@ -319,15 +321,15 @@ const SkillsTab = ({ skills, primarySkills, secondarySkills }: { skills: any[], 
       </Card>
     )}
     {skills?.length > 0 && (
-       <Card type="inner" title="Skill Matrix">
-          {skills.map((skill: any) => (
-             <Descriptions key={skill.id} bordered size="small" column={3} style={{ marginBottom: 16 }}>
-                <Descriptions.Item label="Skill Name">{Array.isArray(skill.skillName) ? skill.skillName.join(", ") : skill.skillName}</Descriptions.Item>
-                <Descriptions.Item label="Experience">{skill.yearsOfExperience} Years</Descriptions.Item>
-                <Descriptions.Item label="Last Used">{skill.lastUsedYear ? dayjs(skill.lastUsedYear).format("YYYY") : "N/A"}</Descriptions.Item>
-             </Descriptions>
-          ))}
-       </Card>
+      <Card type="inner" title="Skill Matrix">
+        {skills.map((skill: any) => (
+          <Descriptions key={skill.id} bordered size="small" column={3} style={{ marginBottom: 16 }}>
+            <Descriptions.Item label="Skill Name">{Array.isArray(skill.skillName) ? skill.skillName.join(", ") : skill.skillName}</Descriptions.Item>
+            <Descriptions.Item label="Experience">{skill.yearsOfExperience} Years</Descriptions.Item>
+            <Descriptions.Item label="Last Used">{skill.lastUsedYear ? dayjs(skill.lastUsedYear).format("YYYY") : "N/A"}</Descriptions.Item>
+          </Descriptions>
+        ))}
+      </Card>
     )}
   </Space>
 );
@@ -339,10 +341,10 @@ const EducationTab = ({ educations }: { educations: any[] }) => {
       {educations.map((edu: any) => (
         <Card key={edu.id} size="small" title={`${edu.degreeName} - ${edu.university}`}>
           <Descriptions column={2} size="small">
-             <Descriptions.Item label="Specialization">{edu.specialization || "N/A"}</Descriptions.Item>
-             <Descriptions.Item label="Location">{edu.location || "N/A"}</Descriptions.Item>
-             <Descriptions.Item label="Start Date">{edu.startDate ? dayjs(edu.startDate).format("MMM YYYY") : "N/A"}</Descriptions.Item>
-             <Descriptions.Item label="End Date">{edu.endDate ? dayjs(edu.endDate).format("MMM YYYY") : "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Specialization">{edu.specialization || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Location">{edu.location || "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="Start Date">{edu.startDate ? dayjs(edu.startDate).format("MMM YYYY") : "N/A"}</Descriptions.Item>
+            <Descriptions.Item label="End Date">{edu.endDate ? dayjs(edu.endDate).format("MMM YYYY") : "N/A"}</Descriptions.Item>
           </Descriptions>
         </Card>
       ))}
@@ -359,38 +361,38 @@ const DocumentationTab = ({ candidate }: { candidate: any }) => {
     setViewDrawerVisible(true);
   };
 
- const handleDownload = async (url: string, label: string = "document") => {
-  try {
-    const response = await fetch(url, { mode: "cors" });
-    if (!response.ok) throw new Error("Network response failed");
+  const handleDownload = async (url: string, label: string = "document") => {
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      if (!response.ok) throw new Error("Network response failed");
 
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const ext = url.split(".").pop()?.split("?")[0] || "pdf";
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const ext = url.split(".").pop()?.split("?")[0] || "pdf";
 
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = `${label}.${ext}`;   // ✅ Clean filename, no new tab
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${label}.${ext}`;   // ✅ Clean filename, no new tab
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-  } catch (error) {
-    console.warn(`Blob download failed for ${label}, using fallback`, error);
-    // Fallback: force open via URL if fetch fails
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.download = label;
-    a.style.display = "none";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-};
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      console.warn(`Blob download failed for ${label}, using fallback`, error);
+      // Fallback: force open via URL if fetch fails
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.download = label;
+      a.style.display = "none";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
 
   const documents = [
     { label: "Resume", url: candidate.resumeUrl },
@@ -421,18 +423,18 @@ const DocumentationTab = ({ candidate }: { candidate: any }) => {
         ))}
         {candidate.certificationsUrls?.map((url: string, idx: number) => (
           <Col span={8} key={`cert-${idx}`}>
-             <Card size="small">
-                <Space>
-                  <FileOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
-                  <Space direction="vertical" size={0}>
-                    <Text strong>Certification {idx + 1}</Text>
-                    <Space split={<Divider type="vertical" />}>
-                      <a onClick={(e) => { e.preventDefault(); handleView(url); }}>View</a>
-                      <a onClick={(e) => { e.preventDefault(); handleDownload(url); }}>Download</a>
-                    </Space>
+            <Card size="small">
+              <Space>
+                <FileOutlined style={{ fontSize: '24px', color: '#52c41a' }} />
+                <Space direction="vertical" size={0}>
+                  <Text strong>Certification {idx + 1}</Text>
+                  <Space split={<Divider type="vertical" />}>
+                    <a onClick={(e) => { e.preventDefault(); handleView(url); }}>View</a>
+                    <a onClick={(e) => { e.preventDefault(); handleDownload(url); }}>Download</a>
                   </Space>
                 </Space>
-              </Card>
+              </Space>
+            </Card>
           </Col>
         ))}
       </Row>
@@ -461,8 +463,8 @@ const DocumentationTab = ({ candidate }: { candidate: any }) => {
 };
 
 const TimelineTab = ({ candidate }: { candidate: any }) => (
-  <div style={{  justifyContent: "center", marginTop: "24px" }}>
-    <Timeline mode="left" style={{ marginRight:900 }}>
+  <div style={{ justifyContent: "center", marginTop: "24px" }}>
+    <Timeline mode="left" style={{ marginRight: 900 }}>
       <Timeline.Item color="green" label={dayjs(candidate.createdAt).format("MMM D, YYYY HH:mm")} style={{ paddingBottom: "150px" }}>
         Candidate profile created
       </Timeline.Item>
@@ -494,11 +496,11 @@ const InterviewAvailabilityTab = ({ interviewSlots }: { interviewSlots: any[] })
           const slotTz = slot.timezone || "UTC";
           const tzAbbr = moment().tz(slotTz).format("z");
           const dateStr = slot.interviewDate ? dayjs(slot.interviewDate).format("YYYY-MM-DD") : "";
-          
+
           // Parse original times using moment-timezone
           const startMoment = slot.interviewDate && slot.startTime ? moment.tz(`${dateStr} ${slot.startTime}`, "YYYY-MM-DD HH:mm", slotTz) : null;
           const endMoment = slot.interviewDate && slot.endTime ? moment.tz(`${dateStr} ${slot.endTime}`, "YYYY-MM-DD HH:mm", slotTz) : null;
-          
+
           const hasValidTime = startMoment && startMoment.isValid() && endMoment && endMoment.isValid();
 
           return (

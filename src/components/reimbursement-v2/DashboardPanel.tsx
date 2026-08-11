@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Tag, DatePicker, message, Row, Col, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -87,12 +88,26 @@ export default function DashboardPanel() {
       <Row gutter={16} className="rvp-dashboard-cards">
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" loading={loading} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <div style={{ position: 'relative' }}>
+              {loading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner size="medium" fullScreen={false} />
+                </div>
+              )}
+              <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" loading={false} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            </div>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by employee" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" loading={loading} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <div style={{ position: 'relative' }}>
+              {loading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner size="medium" fullScreen={false} />
+                </div>
+              )}
+              <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" loading={false} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            </div>
           </Card>
         </Col>
       </Row>

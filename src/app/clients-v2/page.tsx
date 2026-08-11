@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import {
   Table,
@@ -1029,7 +1030,12 @@ export default function ClientsV2ListPage() {
 
                   {/* Premium table card or Grid */}
                   {viewMode === 'list' ? (
-                    <div className="cm-table-card">
+                    <div className="cm-table-card" style={{ position: 'relative' }}>
+                      {loading && (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <LoadingSpinner size="medium" fullScreen={false} />
+                        </div>
+                      )}
                       <Table
                         columns={columns}
                         dataSource={data}
@@ -1037,7 +1043,7 @@ export default function ClientsV2ListPage() {
                         size="small"
                         scroll={{ x: 1100 }}
                         pagination={false}
-                        loading={loading}
+                        loading={false}
                         onChange={handleTableChange}
                         onRow={(record) => ({
                           onClick: () => router.push(`/clients-v2/${record.id}`),

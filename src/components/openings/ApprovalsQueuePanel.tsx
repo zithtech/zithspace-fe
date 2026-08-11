@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from 'next/navigation';
 import { App, Button, Empty, Input, Modal, Segmented, Skeleton, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -196,7 +197,12 @@ export default function ApprovalsQueuePanel() {
       {loading && rows.length === 0 ? (
         <Skeleton active paragraph={{ rows: 5 }} />
       ) : (
-        <div className="omp-table-wrap">
+        <div className="omp-table-wrap" style={{ position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
           <Table<PendingApprovalItem>
             rowKey={(r) => r.approval.id}
             size="small"

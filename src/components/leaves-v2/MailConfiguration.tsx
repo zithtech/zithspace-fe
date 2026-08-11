@@ -1,11 +1,13 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, Radio, Switch, Select, Button, message, Spin, Form, Input } from 'antd';
+import { Card, Radio, Switch, Select, Button, message, Form, Input } from 'antd';
 import { MailOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons';
 import LeaveV2Service, { LeaveMailConfig } from '@/services/leaveV2Service';
 import { userService, User } from '@/services/userService';
 import { apiClient } from '@/lib/axios';
+
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 
@@ -34,8 +36,7 @@ export default function MailConfiguration() {
         customToEmails: settings.customToEmails || [],
         officeCcEnabled: settings.officeCcEnabled ?? true,
         additionalCcEmails: settings.additionalCcEmails || [],
-        customCcEmails: settings.customCcEmails || [],
-      });
+        customCcEmails: settings.customCcEmails || [] });
     } catch (err: any) {
       messageApi.error(err?.response?.data?.error || 'Failed to load mail configuration');
     } finally {
@@ -67,7 +68,7 @@ export default function MailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>;
+    return <div style={{ padding: 24, textAlign: 'center' }}><LoadingSpinner fullScreen={false} /></div>;
   }
 
   return (
@@ -80,8 +81,7 @@ export default function MailConfiguration() {
         initialValues={{
           replyToMode: 'logged_in_user',
           reportsToEnabled: true,
-          officeCcEnabled: true,
-        }}
+          officeCcEnabled: true }}
       >
         <div className="lvc-cards">
           {/* REPLY-TO SECTION */}

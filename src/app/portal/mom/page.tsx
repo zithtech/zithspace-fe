@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Input, Empty, Spin, Pagination, Select, DatePicker, Button } from "antd";
+import { Input, Empty, Pagination, Select, DatePicker, Button } from "antd";
 import MomDetailDrawer from "@/app/portal/_components/MomDetailDrawer";
 import dayjs from "dayjs";
 import {
@@ -23,15 +24,16 @@ import {
   ClipboardList,
   AlertCircle,
   CalendarDays,
-  FolderOpen,
+  FolderOpen
 } from "lucide-react";
 import {
   portalMomService,
   PortalMomListItem,
   PortalMomListAttachment,
-  PortalMomMeta,
+  PortalMomMeta
 } from "@/services/portalMomService";
 import { usePortalSocket } from "@/providers/PortalSocketProvider";
+
 
 /* ─────────────────────────────────────────────────────────
  * Design tokens — premium dense
@@ -50,7 +52,7 @@ const T = {
   accentBg: "#eef2ff",
   accentBorder: "#c7d2fe",
   numFont:
-    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
 };
 
 const { RangePicker } = DatePicker;
@@ -70,7 +72,7 @@ function fmtDateTime(iso: string | null) {
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit"
     });
   } catch {
     return iso;
@@ -82,7 +84,7 @@ function fmtTimeOnly(iso: string | null) {
   try {
     return new Date(iso).toLocaleTimeString(undefined, {
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit"
     });
   } catch {
     return "—";
@@ -95,7 +97,7 @@ function fmtDateShort(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
-      year: "numeric",
+      year: "numeric"
     });
   } catch {
     return iso;
@@ -126,7 +128,7 @@ export default function PortalMomPage() {
         page,
         limit,
         projectId,
-        search: search || undefined,
+        search: search || undefined
       });
       setItems(res.data);
       setMeta(res.meta);
@@ -198,7 +200,7 @@ export default function PortalMomPage() {
       thisMonth,
       openActions,
       recordings,
-      decisions,
+      decisions
     };
   }, [filteredItems, meta]);
 
@@ -208,7 +210,7 @@ export default function PortalMomPage() {
         background: T.pageBg,
         height: "100vh",
         overflowY: "auto",
-        overflowX: "hidden",
+        overflowX: "hidden"
       }}
     >
       <div
@@ -218,7 +220,7 @@ export default function PortalMomPage() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: GAP,
+          gap: GAP
         }}
       >
         <div
@@ -230,7 +232,7 @@ export default function PortalMomPage() {
             background: T.pageBg,
             display: "flex",
             flexDirection: "column",
-            gap: GAP,
+            gap: GAP
           }}
         >
           {/* Hero banner with KPI tiles */}
@@ -261,10 +263,10 @@ export default function PortalMomPage() {
               textAlign: "center",
               background: T.cardBg,
               border: `1px solid ${T.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : filteredItems.length === 0 ? (
           <div
@@ -273,7 +275,7 @@ export default function PortalMomPage() {
               textAlign: "center",
               background: T.cardBg,
               border: `1px dashed ${T.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
             <Empty
@@ -570,7 +572,7 @@ const Hero: React.FC<{
       justifyContent: "space-between",
       gap: 20,
       position: "relative",
-      overflow: "hidden",
+      overflow: "hidden"
     }}
   >
     <div
@@ -580,7 +582,7 @@ const Hero: React.FC<{
         top: 0,
         bottom: 0,
         width: 3,
-        background: "linear-gradient(180deg, #4338ca 0%, #7c3aed 100%)",
+        background: "linear-gradient(180deg, #4338ca 0%, #7c3aed 100%)"
       }}
     />
     <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center", gap: 14 }}>
@@ -595,7 +597,7 @@ const Hero: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <ClipboardList size={19} strokeWidth={2.2} />
@@ -607,7 +609,7 @@ const Hero: React.FC<{
             fontWeight: 700,
             color: T.text,
             letterSpacing: "-0.022em",
-            lineHeight: 1.2,
+            lineHeight: 1.2
           }}
         >
           Minutes of Meeting
@@ -617,7 +619,7 @@ const Hero: React.FC<{
             fontSize: 12,
             color: T.textSubtle,
             marginTop: 3,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           Every meeting summary, decision logged, and action item — shared back from your account team.
@@ -641,7 +643,7 @@ const Hero: React.FC<{
             borderRadius: 8,
             background: "#fafbfc",
             minWidth: 78,
-            textAlign: "center",
+            textAlign: "center"
           }}
         >
           <div
@@ -650,7 +652,7 @@ const Hero: React.FC<{
               fontWeight: 600,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: T.textSubtle,
+              color: T.textSubtle
             }}
           >
             {s.label}
@@ -663,7 +665,7 @@ const Hero: React.FC<{
               marginTop: 2,
               letterSpacing: "-0.02em",
               lineHeight: 1.1,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {s.value}
@@ -680,7 +682,7 @@ const Hero: React.FC<{
           background: T.cardBg,
           border: `1px solid ${T.border}`,
           color: T.textMuted,
-          borderRadius: 8,
+          borderRadius: 8
         }}
       />
     </div>
@@ -722,162 +724,161 @@ const FilterBar: React.FC<{
   dateRange,
   setDateRange,
   viewMode,
-  setViewMode,
-}) => (
-  <div
-    className="portal-mom-filterbar"
-    style={{
-      background: T.cardBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 12,
-      padding: "10px 12px",
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap",
-      alignItems: "center",
-    }}
-  >
-    {/* Project filter — prominent, leftmost */}
-    <Select
-      className={`portal-mom-project-select${projectId ? " is-active" : ""}`}
-      popupClassName="portal-mom-project-popup"
-      allowClear
-      placeholder={
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.textSubtle,
-            fontWeight: 500,
-          }}
-        >
-          <FolderOpen size={14} />
-          {projects.length === 0
-            ? "Loading projects…"
-            : `All projects${projects.length ? ` · ${projects.length}` : ""}`}
-        </span>
-      }
-      value={projectId}
-      onChange={setProjectId}
-      style={{ width: 260, height: 34 }}
-      options={projects.map((proj) => ({
-        value: proj.id,
-        label: proj.name,
-        code: proj.code,
-      }))}
-      optionRender={(option) => (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <FolderOpen size={13} color={T.textSubtle} />
-          <span style={{ fontWeight: 600, color: T.text }}>
-            {String(option.label)}
-          </span>
-          {(option.data as any)?.code && (
-            <span
-              style={{
-                marginLeft: "auto",
-                fontFamily: T.numFont,
-                fontSize: 11,
-                color: T.textFaint,
-              }}
-            >
-              {(option.data as any).code}
-            </span>
-          )}
-        </div>
-      )}
-      labelRender={(label) => (
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: T.accent,
-            fontWeight: 600,
-          }}
-        >
-          <FolderOpen size={14} />
-          {String(label.label ?? "")}
-        </span>
-      )}
-    />
-    <Input
-      allowClear
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      prefix={<Search size={14} color={T.textSubtle} />}
-      placeholder="Search meetings, MOM #, attendees…"
-      className="portal-mom-search"
-      style={{
-        flex: 1,
-        minWidth: 240,
-        height: 34,
-        borderRadius: 8,
-      }}
-    />
-    <RangePicker
-      value={dateRange}
-      onChange={setDateRange}
-      className="portal-mom-date-picker"
-      style={{
-        height: 34,
-        borderRadius: 8,
-        borderColor: T.border,
-      }}
-      placeholder={["Start", "End"]}
-    />
+  setViewMode }) => (
     <div
-      className="portal-mom-view-toggle"
+      className="portal-mom-filterbar"
       style={{
-        display: "inline-flex",
-        background: T.borderSoft,
-        padding: 3,
-        borderRadius: 8,
+        background: T.cardBg,
         border: `1px solid ${T.border}`,
-        height: 34,
-        boxSizing: "border-box",
-        alignItems: "center",
+        borderRadius: 12,
+        padding: "10px 12px",
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        alignItems: "center"
       }}
     >
-      {[
-        { mode: "list" as const, icon: <List size={13} />, label: "List" },
-        { mode: "card" as const, icon: <LayoutGrid size={13} />, label: "Cards" },
-      ].map(({ mode, icon, label }) => {
-        const active = viewMode === mode;
-        return (
-          <button
-            key={mode}
-            onClick={() => setViewMode(mode)}
+      {/* Project filter — prominent, leftmost */}
+      <Select
+        className={`portal-mom-project-select${projectId ? " is-active" : ""}`}
+        popupClassName="portal-mom-project-popup"
+        allowClear
+        placeholder={
+          <span
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 5,
-              padding: "0 10px",
-              height: 26,
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 5,
-              border: active ? `1px solid ${T.border}` : "1px solid transparent",
-              cursor: "pointer",
-              background: active ? T.cardBg : "transparent",
-              color: active ? T.text : T.textSubtle,
-              transition: "background 120ms ease, color 120ms ease",
+              gap: 6,
+              color: T.textSubtle,
+              fontWeight: 500
             }}
           >
-            {icon}
-            {label}
-          </button>
-        );
-      })}
+            <FolderOpen size={14} />
+            {projects.length === 0
+              ? "Loading projects…"
+              : `All projects${projects.length ? ` · ${projects.length}` : ""}`}
+          </span>
+        }
+        value={projectId}
+        onChange={setProjectId}
+        style={{ width: 260, height: 34 }}
+        options={projects.map((proj) => ({
+          value: proj.id,
+          label: proj.name,
+          code: proj.code
+        }))}
+        optionRender={(option) => (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}
+          >
+            <FolderOpen size={13} color={T.textSubtle} />
+            <span style={{ fontWeight: 600, color: T.text }}>
+              {String(option.label)}
+            </span>
+            {(option.data as any)?.code && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontFamily: T.numFont,
+                  fontSize: 11,
+                  color: T.textFaint
+                }}
+              >
+                {(option.data as any).code}
+              </span>
+            )}
+          </div>
+        )}
+        labelRender={(label) => (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: T.accent,
+              fontWeight: 600
+            }}
+          >
+            <FolderOpen size={14} />
+            {String(label.label ?? "")}
+          </span>
+        )}
+      />
+      <Input
+        allowClear
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        prefix={<Search size={14} color={T.textSubtle} />}
+        placeholder="Search meetings, MOM #, attendees…"
+        className="portal-mom-search"
+        style={{
+          flex: 1,
+          minWidth: 240,
+          height: 34,
+          borderRadius: 8
+        }}
+      />
+      <RangePicker
+        value={dateRange}
+        onChange={setDateRange}
+        className="portal-mom-date-picker"
+        style={{
+          height: 34,
+          borderRadius: 8,
+          borderColor: T.border
+        }}
+        placeholder={["Start", "End"]}
+      />
+      <div
+        className="portal-mom-view-toggle"
+        style={{
+          display: "inline-flex",
+          background: T.borderSoft,
+          padding: 3,
+          borderRadius: 8,
+          border: `1px solid ${T.border}`,
+          height: 34,
+          boxSizing: "border-box",
+          alignItems: "center"
+        }}
+      >
+        {[
+          { mode: "list" as const, icon: <List size={13} />, label: "List" },
+          { mode: "card" as const, icon: <LayoutGrid size={13} />, label: "Cards" },
+        ].map(({ mode, icon, label }) => {
+          const active = viewMode === mode;
+          return (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "0 10px",
+                height: 26,
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 5,
+                border: active ? `1px solid ${T.border}` : "1px solid transparent",
+                cursor: "pointer",
+                background: active ? T.cardBg : "transparent",
+                color: active ? T.text : T.textSubtle,
+                transition: "background 120ms ease, color 120ms ease"
+              }}
+            >
+              {icon}
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
 
 /* ─────────────────────────────────────────────────────────
  * List view (table)
@@ -891,7 +892,7 @@ const ListView: React.FC<{
       background: T.cardBg,
       border: `1px solid ${T.border}`,
       borderRadius: 12,
-      overflow: "hidden",
+      overflow: "hidden"
     }}
   >
     <div style={{ overflowX: "auto" }}>
@@ -920,7 +921,7 @@ const ListView: React.FC<{
                     fontWeight: 600,
                     color: T.text,
                     transition: "color 120ms ease",
-                    letterSpacing: "-0.005em",
+                    letterSpacing: "-0.005em"
                   }}
                 >
                   {m.title}
@@ -935,7 +936,7 @@ const ListView: React.FC<{
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontWeight: 500,
+                      fontWeight: 500
                     }}
                     title={m.summaryPreview}
                   >
@@ -952,7 +953,7 @@ const ListView: React.FC<{
                     fontVariantNumeric: "tabular-nums",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 6
                   }}
                 >
                   <CalendarDays size={12} color={T.accent} />
@@ -964,7 +965,7 @@ const ListView: React.FC<{
                     color: T.textSubtle,
                     marginTop: 2,
                     fontFamily: T.numFont,
-                    paddingLeft: 18,
+                    paddingLeft: 18
                   }}
                 >
                   {fmtTimeOnly(m.meetingDate)}
@@ -986,7 +987,7 @@ const ListView: React.FC<{
                       border: `1px solid ${T.border}`,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      whiteSpace: "nowrap"
                     }}
                     title={m.projectName}
                   >
@@ -1002,7 +1003,7 @@ const ListView: React.FC<{
                     display: "flex",
                     gap: 5,
                     flexWrap: "wrap",
-                    alignItems: "center",
+                    alignItems: "center"
                   }}
                 >
                   <MiniChip
@@ -1039,7 +1040,7 @@ const ListView: React.FC<{
                         color: "#1d4ed8",
                         borderRadius: 999,
                         fontSize: 10.5,
-                        fontWeight: 600,
+                        fontWeight: 600
                       }}
                     >
                       <Video size={10} />
@@ -1058,7 +1059,7 @@ const ListView: React.FC<{
                         color: T.textMuted,
                         borderRadius: 999,
                         fontSize: 10.5,
-                        fontWeight: 600,
+                        fontWeight: 600
                       }}
                     >
                       <Paperclip size={10} />
@@ -1089,7 +1090,7 @@ const GridView: React.FC<{
     style={{
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-      gap: GAP,
+      gap: GAP
     }}
   >
     {items.map((m) => (
@@ -1127,7 +1128,7 @@ const MeetingGridCard: React.FC<{
         cursor: "pointer",
         transform: hover ? "translateY(-1px)" : "translateY(0)",
         transition: "border-color 150ms ease, transform 150ms ease",
-        minHeight: 200,
+        minHeight: 200
       }}
     >
       <div
@@ -1135,7 +1136,7 @@ const MeetingGridCard: React.FC<{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 8,
+          gap: 8
         }}
       >
         <MomNumberPill momNumber={mom.momNumber} />
@@ -1152,7 +1153,7 @@ const MeetingGridCard: React.FC<{
               border: `1px solid ${T.border}`,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
             title={mom.projectName}
           >
@@ -1173,7 +1174,7 @@ const MeetingGridCard: React.FC<{
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           {mom.title}
@@ -1186,7 +1187,7 @@ const MeetingGridCard: React.FC<{
             display: "flex",
             alignItems: "center",
             gap: 5,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <CalendarDays size={11} color={T.accent} />
@@ -1218,7 +1219,7 @@ const MeetingGridCard: React.FC<{
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           {mom.summaryPreview}
@@ -1233,7 +1234,7 @@ const MeetingGridCard: React.FC<{
           flexWrap: "wrap",
           alignItems: "center",
           borderTop: `1px solid ${T.borderSoft}`,
-          paddingTop: 10,
+          paddingTop: 10
         }}
       >
         <MiniChip
@@ -1270,7 +1271,7 @@ const MeetingGridCard: React.FC<{
               color: "#1d4ed8",
               borderRadius: 999,
               fontSize: 10.5,
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             <Video size={10} />
@@ -1303,7 +1304,7 @@ const PaginationBar: React.FC<{
       justifyContent: "space-between",
       alignItems: "center",
       flexWrap: "wrap",
-      gap: 12,
+      gap: 12
     }}
   >
     <div
@@ -1313,7 +1314,7 @@ const PaginationBar: React.FC<{
         fontWeight: 500,
         display: "inline-flex",
         alignItems: "center",
-        gap: 6,
+        gap: 6
       }}
     >
       {openActions > 0 ? (
@@ -1331,7 +1332,7 @@ const PaginationBar: React.FC<{
               width: 6,
               height: 6,
               borderRadius: "50%",
-              backgroundColor: "#10b981",
+              backgroundColor: "#10b981"
             }}
           />
           <span style={{ color: "#047857", fontWeight: 600 }}>
@@ -1354,7 +1355,7 @@ const PaginationBar: React.FC<{
             fontSize: 12,
             color: T.textSubtle,
             marginRight: 8,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           <strong style={{ fontWeight: 600, color: T.text }}>
@@ -1384,7 +1385,7 @@ const MomNumberPill: React.FC<{ momNumber: string }> = ({ momNumber }) => (
       borderRadius: 5,
       color: T.accent,
       letterSpacing: "0.02em",
-      whiteSpace: "nowrap",
+      whiteSpace: "nowrap"
     }}
   >
     {momNumber}
@@ -1395,19 +1396,18 @@ function MiniChip({
   icon: Icon,
   value,
   label,
-  tone,
-}: {
-  icon: any;
-  value: number;
-  label: string;
-  tone: "neutral" | "purple" | "warning" | "success";
-}) {
+  tone }: {
+    icon: any;
+    value: number;
+    label: string;
+    tone: "neutral" | "purple" | "warning" | "success";
+  }) {
   if (value === 0) return null;
   const map = {
     neutral: { bg: "#f1f5f9", border: "#e2e8f0", text: "#334155" },
     purple: { bg: "#f5f3ff", border: "#ddd6fe", text: "#6d28d9" },
     warning: { bg: "#fffbeb", border: "#fde68a", text: "#92400e" },
-    success: { bg: "#ecfdf5", border: "#a7f3d0", text: "#047857" },
+    success: { bg: "#ecfdf5", border: "#a7f3d0", text: "#047857" }
   }[tone];
   return (
     <span
@@ -1423,7 +1423,7 @@ function MiniChip({
         fontSize: 10.5,
         fontWeight: 600,
         whiteSpace: "nowrap",
-        fontVariantNumeric: "tabular-nums",
+        fontVariantNumeric: "tabular-nums"
       }}
     >
       <Icon size={10} />
@@ -1453,10 +1453,9 @@ function resolveAttachmentUrl(a: PortalMomListAttachment): string | null {
 }
 
 function AttachmentChip({
-  attachment,
-}: {
-  attachment: PortalMomListAttachment;
-}) {
+  attachment }: {
+    attachment: PortalMomListAttachment;
+  }) {
   const url = resolveAttachmentUrl(attachment);
   const isFile = attachment.kind === "file";
   const label = isFile
@@ -1487,7 +1486,7 @@ function AttachmentChip({
         textDecoration: "none",
         fontSize: 11,
         fontWeight: 500,
-        transition: "background 150ms ease, color 150ms ease, border-color 150ms ease",
+        transition: "background 150ms ease, color 150ms ease, border-color 150ms ease"
       }}
     >
       {isFile ? <FileText size={11} /> : <Link2 size={11} />}
@@ -1496,7 +1495,7 @@ function AttachmentChip({
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          minWidth: 0,
+          minWidth: 0
         }}
       >
         {label}

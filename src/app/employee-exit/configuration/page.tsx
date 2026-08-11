@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from 'react';
-import { Typography, Tabs, Spin, Card, Input, Button, Dropdown } from 'antd';
+import { Typography, Tabs, Card, Input, Button, Dropdown } from 'antd';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -21,6 +22,7 @@ import ReasonForExitPage from '@/components/employee-exit/configuration/ReasonFo
 import ChecklistConfigPage from '@/components/employee-exit/configuration/ChecklistConfigPage';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position } from '@/services/positionService';
+
 
 const { Title, Text } = Typography;
 
@@ -72,7 +74,7 @@ export default function EmployeeExitConfigurationPage() {
   if (authLoading || !canReadExitConfig) {
     return (
       <div style={{ padding: 100, textAlign: 'center' }}>
-        <Spin size="large" tip="Loading..." />
+        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
       </div>
     );
   }

@@ -1,9 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Spin,
   Pagination,
   Modal,
   Form,
@@ -14,7 +14,7 @@ import {
   Row,
   Col,
   Divider,
-  Typography,
+  Typography
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
@@ -38,13 +38,13 @@ import {
   Activity,
   ArrowUpRight,
   DollarSign,
-  AlertTriangle,
+  AlertTriangle
 } from "lucide-react";
 import {
   portalCrService,
   PortalCrListItem,
   PortalCrMeta,
-  CrPriority,
+  CrPriority
 } from "@/services/portalCrService";
 import {
   p,
@@ -52,9 +52,10 @@ import {
   STATUS_META,
   PRIORITY_META,
   fmtCurrency,
-  fmtRelative,
+  fmtRelative
 } from "./_crUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+
 
 dayjs.extend(quarterOfYear);
 
@@ -93,7 +94,7 @@ function fmtDateShort(iso: string | null | undefined): string {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return String(iso);
@@ -143,14 +144,14 @@ export default function PortalCrListPage() {
     try {
       const stored = localStorage.getItem(VIEW_STORAGE_KEY);
       if (stored === "card" || stored === "list") setView(stored);
-    } catch {}
+    } catch { }
   }, []);
 
   const setViewPersist = (v: ViewMode) => {
     setView(v);
     try {
       localStorage.setItem(VIEW_STORAGE_KEY, v);
-    } catch {}
+    } catch { }
   };
 
   const fromIso = datePicked?.[0]
@@ -169,7 +170,7 @@ export default function PortalCrListPage() {
         search: search || undefined,
         projectId,
         from: fromIso,
-        to: toIso,
+        to: toIso
       });
       setItems(res.data);
       setMeta(res.meta);
@@ -225,7 +226,7 @@ export default function PortalCrListPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
@@ -235,7 +236,7 @@ export default function PortalCrListPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -250,7 +251,7 @@ export default function PortalCrListPage() {
                     background:
                       "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
                     color: INDIGO,
-                    border: `1px solid ${INDIGO_BORDER}`,
+                    border: `1px solid ${INDIGO_BORDER}`
                   }}
                 >
                   <GitPullRequest size={17} color={INDIGO} />
@@ -262,7 +263,7 @@ export default function PortalCrListPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Change requests
@@ -274,7 +275,7 @@ export default function PortalCrListPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -284,7 +285,7 @@ export default function PortalCrListPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   Request a scope change, see our impact and cost estimate, and approve or reject before work starts.
@@ -309,7 +310,7 @@ export default function PortalCrListPage() {
                 fontSize: 12.5,
                 fontWeight: 600,
                 cursor: "pointer",
-                transition: "background 140ms ease",
+                transition: "background 140ms ease"
               }}
             >
               <Plus size={14} />
@@ -328,7 +329,7 @@ export default function PortalCrListPage() {
             gap: 12,
             flexWrap: "wrap",
             alignItems: "center",
-            marginBottom: 10,
+            marginBottom: 10
           }}
         >
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -360,7 +361,7 @@ export default function PortalCrListPage() {
                     fontWeight: 600,
                     letterSpacing: "0.01em",
                     cursor: "pointer",
-                    transition: "all 120ms ease",
+                    transition: "all 120ms ease"
                   }}
                 >
                   {tab.label}
@@ -375,7 +376,7 @@ export default function PortalCrListPage() {
                           ? "rgba(255,255,255,0.18)"
                           : p.neutralBg,
                         color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
+                        fontVariantNumeric: "tabular-nums"
                       }}
                     >
                       {count}
@@ -455,7 +456,7 @@ export default function PortalCrListPage() {
                   featured.length === 1
                     ? "1fr"
                     : "repeat(auto-fit, minmax(440px, 1fr))",
-                gap: 12,
+                gap: 12
               }}
             >
               {featured.map((cr) => (
@@ -481,10 +482,10 @@ export default function PortalCrListPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px solid ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <EmptyState
@@ -492,8 +493,8 @@ export default function PortalCrListPage() {
               search
                 ? `No change requests match "${search}"`
                 : status !== "ALL"
-                ? "Nothing in this status"
-                : "No change requests yet"
+                  ? "Nothing in this status"
+                  : "No change requests yet"
             }
             body={
               search
@@ -508,7 +509,7 @@ export default function PortalCrListPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
-              gap: 12,
+              gap: 12
             }}
           >
             {restItems.map((cr) => (
@@ -524,7 +525,7 @@ export default function PortalCrListPage() {
             style={{
               marginTop: 18,
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "flex-end"
             }}
           >
             <Pagination
@@ -782,11 +783,10 @@ export default function PortalCrListPage() {
 
 function ViewToggle({
   view,
-  onChange,
-}: {
-  view: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
+  onChange }: {
+    view: ViewMode;
+    onChange: (v: ViewMode) => void;
+  }) {
   return (
     <div className="premium-view-toggle" role="group" aria-label="View mode">
       <button
@@ -814,19 +814,18 @@ function ViewToggle({
 function SectionLabel({
   icon: Icon,
   label,
-  count,
-}: {
-  icon: any;
-  label: string;
-  count?: number;
-}) {
+  count }: {
+    icon: any;
+    label: string;
+    count?: number;
+  }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: 8,
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <Icon size={13} color={INDIGO} />
@@ -836,7 +835,7 @@ function SectionLabel({
           fontWeight: 700,
           color: p.textMuted,
           textTransform: "uppercase",
-          letterSpacing: "0.09em",
+          letterSpacing: "0.09em"
         }}
       >
         {label}
@@ -850,7 +849,7 @@ function SectionLabel({
             padding: "0 6px",
             background: p.neutralBg,
             borderRadius: 999,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           {count}
@@ -861,7 +860,7 @@ function SectionLabel({
           flex: 1,
           height: 1,
           background: p.neutralBorder,
-          marginLeft: 2,
+          marginLeft: 2
         }}
       />
     </div>
@@ -877,18 +876,17 @@ function FilterBar({
   datePicked,
   onDateChange,
   priority,
-  onPriorityChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string; code: string | null }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
-  priority: string | undefined;
-  onPriorityChange: (v: string | undefined) => void;
-}) {
+  onPriorityChange }: {
+    search: string;
+    onSearchChange: (v: string) => void;
+    projects: { id: string; name: string; code: string | null }[];
+    projectId: string | undefined;
+    onProjectChange: (v: string | undefined) => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
+    priority: string | undefined;
+    onPriorityChange: (v: string | undefined) => void;
+  }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const today = dayjs();
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
@@ -900,7 +898,7 @@ function FilterBar({
       value: [
         today.subtract(1, "month").startOf("month"),
         today.subtract(1, "month").endOf("month"),
-      ],
+      ]
     },
     { label: "This quarter", value: [today.startOf("quarter"), today.endOf("quarter")] },
     { label: "Next 30 days", value: [today, today.add(30, "day")] },
@@ -913,7 +911,7 @@ function FilterBar({
         gap: 8,
         alignItems: "stretch",
         flexWrap: "wrap",
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <div
@@ -934,7 +932,7 @@ function FilterBar({
           boxShadow: searchFocused
             ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
             : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
+          transition: "border-color 140ms ease, box-shadow 140ms ease"
         }}
       >
         <Search
@@ -957,7 +955,7 @@ function FilterBar({
             background: "transparent",
             color: p.text,
             fontSize: 13,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         />
         {search && (
@@ -977,7 +975,7 @@ function FilterBar({
               border: "none",
               borderRadius: 999,
               color: p.textSubtle,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <X size={11} />
@@ -999,7 +997,7 @@ function FilterBar({
             color: p.textFaint,
             fontSize: 10,
             fontWeight: 600,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
           }}
         >
           /
@@ -1016,7 +1014,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Folder size={13} color={p.textFaint} />
@@ -1033,7 +1031,7 @@ function FilterBar({
         style={{ width: 220, height: 34 }}
         options={projects.map((proj) => ({
           value: proj.id,
-          label: proj.code ? `${proj.name} · ${proj.code}` : proj.name,
+          label: proj.code ? `${proj.name} · ${proj.code}` : proj.name
         }))}
         notFoundContent={
           <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
@@ -1051,7 +1049,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <AlertTriangle size={13} color={p.textFaint} />
@@ -1092,27 +1090,25 @@ function ActiveFilterChips({
   statusFilter,
   onClearStatus,
   priorityFilter,
-  onClearPriority,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onClearDateRange: () => void;
-  statusFilter: string | undefined;
-  onClearStatus: () => void;
-  priorityFilter: string | undefined;
-  onClearPriority: () => void;
-}) {
+  onClearPriority }: {
+    search: string;
+    onClearSearch: () => void;
+    projectName: string | undefined;
+    onClearProject: () => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onClearDateRange: () => void;
+    statusFilter: string | undefined;
+    onClearStatus: () => void;
+    priorityFilter: string | undefined;
+    onClearPriority: () => void;
+  }) {
   const hasDates = !!(datePicked && (datePicked[0] || datePicked[1]));
   const any = !!search || !!projectName || hasDates || !!statusFilter || !!priorityFilter;
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${
-        datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (
@@ -1122,7 +1118,7 @@ function ActiveFilterChips({
         gap: 6,
         alignItems: "center",
         flexWrap: "wrap",
-        marginBottom: 14,
+        marginBottom: 14
       }}
     >
       <span
@@ -1135,7 +1131,7 @@ function ActiveFilterChips({
           color: p.textSubtle,
           textTransform: "uppercase",
           letterSpacing: "0.07em",
-          marginRight: 2,
+          marginRight: 2
         }}
       >
         <SlidersHorizontal size={11} />
@@ -1194,7 +1190,7 @@ function ActiveFilterChips({
           color: INDIGO_TEXT,
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         Clear all
@@ -1206,12 +1202,11 @@ function ActiveFilterChips({
 function FilterChip({
   icon: Icon,
   label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
+  onClear }: {
+    icon: any;
+    label: string;
+    onClear: () => void;
+  }) {
   return (
     <span
       className="premium-filter-chip"
@@ -1226,7 +1221,7 @@ function FilterChip({
         borderRadius: 999,
         fontSize: 11.5,
         fontWeight: 600,
-        lineHeight: 1.2,
+        lineHeight: 1.2
       }}
     >
       <Icon size={10} />
@@ -1235,7 +1230,7 @@ function FilterChip({
           maxWidth: 180,
           overflow: "hidden",
           textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          whiteSpace: "nowrap"
         }}
       >
         {label}
@@ -1255,7 +1250,7 @@ function FilterChip({
           border: "none",
           borderRadius: 999,
           color: INDIGO_TEXT,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         <X size={10} />
@@ -1268,13 +1263,12 @@ function EmptyState({
   title,
   body,
   ctaLabel,
-  onCta,
-}: {
-  title: string;
-  body: string;
-  ctaLabel?: string;
-  onCta?: () => void;
-}) {
+  onCta }: {
+    title: string;
+    body: string;
+    ctaLabel?: string;
+    onCta?: () => void;
+  }) {
   return (
     <div
       style={{
@@ -1282,7 +1276,7 @@ function EmptyState({
         textAlign: "center",
         background: SURFACE_TINTED,
         border: `1px dashed ${p.neutralBorder}`,
-        borderRadius: 12,
+        borderRadius: 12
       }}
     >
       <div
@@ -1295,7 +1289,7 @@ function EmptyState({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 12,
+          marginBottom: 12
         }}
       >
         <Target size={18} color={p.textFaint} />
@@ -1321,7 +1315,7 @@ function EmptyState({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <Plus size={14} />
@@ -1352,7 +1346,7 @@ function StatusPill({ status, compact }: { status: string; compact?: boolean }) 
         borderRadius: 999,
         fontSize: compact ? 10.5 : 11,
         fontWeight: 600,
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       <Icon size={10} />
@@ -1363,11 +1357,10 @@ function StatusPill({ status, compact }: { status: string; compact?: boolean }) 
 
 function PriorityChip({
   priority,
-  compact,
-}: {
-  priority: string;
-  compact?: boolean;
-}) {
+  compact }: {
+    priority: string;
+    compact?: boolean;
+  }) {
   const pri = PRIORITY_META[priority] || PRIORITY_META.medium;
   const tone = TONE[pri.tone];
   return (
@@ -1381,7 +1374,7 @@ function PriorityChip({
         borderRadius: 999,
         fontSize: compact ? 10.5 : 11,
         fontWeight: 600,
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       {pri.label}
@@ -1407,7 +1400,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
         textDecoration: "none",
         color: "inherit",
         overflow: "hidden",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <div
@@ -1417,7 +1410,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.warning}, #f97316)`,
+          background: `linear-gradient(180deg, ${p.warning}, #f97316)`
         }}
       />
       <div
@@ -1425,7 +1418,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1434,7 +1427,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              marginBottom: 6,
+              marginBottom: 6
             }}
           >
             <span
@@ -1450,7 +1443,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
                 fontSize: 10.5,
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.07em",
+                letterSpacing: "0.07em"
               }}
             >
               <DollarSign size={10} />
@@ -1465,7 +1458,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
                 border: `1px solid ${p.border}`,
                 borderRadius: 6,
                 color: p.textMuted,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               {cr.crNumber}
@@ -1482,7 +1475,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {cr.subject}
@@ -1493,7 +1486,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
                 marginTop: 4,
                 fontSize: 11.5,
                 color: p.textSubtle,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               {cr.projectName}
@@ -1513,7 +1506,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
             fontSize: 11.5,
             fontWeight: 600,
             flexShrink: 0,
-            transition: "background 140ms ease, gap 140ms ease",
+            transition: "background 140ms ease, gap 140ms ease"
           }}
         >
           Review & decide
@@ -1530,7 +1523,7 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
           background: p.surface,
           border: `1px solid ${p.border}`,
           borderRadius: 8,
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
         <FeaturedStat
@@ -1545,24 +1538,24 @@ function FeaturedCrCard({ cr }: { cr: PortalCrListItem }) {
             days != null && days >= 0
               ? "Target in"
               : days != null && days < 0
-              ? "Past target"
-              : "Target"
+                ? "Past target"
+                : "Target"
           }
           value={
             days == null
               ? fmtDateShort(cr.targetDeliveryDate)
               : days > 0
-              ? `${days}d`
-              : days === 0
-              ? "today"
-              : `${-days}d`
+                ? `${days}d`
+                : days === 0
+                  ? "today"
+                  : `${-days}d`
           }
           tone={
             days != null && days < 0
               ? p.dangerText
               : days != null && days <= 3
-              ? p.warningText
-              : p.text
+                ? p.warningText
+                : p.text
           }
           divider
         />
@@ -1590,20 +1583,19 @@ function FeaturedStat({
   label,
   value,
   tone,
-  divider,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone: string;
-  divider?: boolean;
-}) {
+  divider }: {
+    icon: any;
+    label: string;
+    value: string;
+    tone: string;
+    divider?: boolean;
+  }) {
   return (
     <div
       style={{
         padding: "9px 12px",
         borderLeft: divider ? `1px solid ${p.border}` : "none",
-        minWidth: 0,
+        minWidth: 0
       }}
     >
       <div
@@ -1615,7 +1607,7 @@ function FeaturedStat({
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <Icon size={10} />
@@ -1631,7 +1623,7 @@ function FeaturedStat({
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "ellipsis",
+          textOverflow: "ellipsis"
         }}
       >
         {value}
@@ -1657,7 +1649,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
         borderRadius: 10,
         textDecoration: "none",
         color: "inherit",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <div
@@ -1665,7 +1657,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
           display: "flex",
           justifyContent: "space-between",
           gap: 8,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1674,7 +1666,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <span
@@ -1686,7 +1678,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
                 border: `1px solid ${p.border}`,
                 borderRadius: 5,
                 color: p.textMuted,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               {cr.crNumber}
@@ -1704,7 +1696,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
                   color: p.warningText,
                   borderRadius: 999,
                   fontSize: 10.5,
-                  fontWeight: 600,
+                  fontWeight: 600
                 }}
               >
                 <DollarSign size={9} />
@@ -1723,7 +1715,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {cr.subject}
@@ -1735,7 +1727,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
             flexDirection: "column",
             alignItems: "flex-end",
             gap: 6,
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <StatusPill status={cr.status} compact />
@@ -1755,7 +1747,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
             display: "flex",
             gap: 8,
             alignItems: "center",
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           {cr.projectName && (
@@ -1764,7 +1756,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 4,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
               <Folder size={10} color={p.textFaint} />
@@ -1779,7 +1771,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 <Receipt size={10} color={p.textFaint} />
@@ -1799,7 +1791,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
           color: p.textSubtle,
           flexWrap: "wrap",
           paddingTop: 8,
-          borderTop: `1px dashed ${p.neutralBorder}`,
+          borderTop: `1px dashed ${p.neutralBorder}`
         }}
       >
         <span
@@ -1809,7 +1801,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
             alignItems: "center",
             fontWeight: 600,
             color: p.text,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           <DollarSign size={11} color={INDIGO} />
@@ -1821,7 +1813,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
               display: "inline-flex",
               gap: 4,
               alignItems: "center",
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Calendar size={10} />
@@ -1833,7 +1825,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
             display: "inline-flex",
             gap: 4,
             alignItems: "center",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <MessageCircle size={10} />
@@ -1844,7 +1836,7 @@ function CrCardCompact({ cr }: { cr: PortalCrListItem }) {
             display: "inline-flex",
             gap: 4,
             alignItems: "center",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <Clock size={10} />
@@ -1862,7 +1854,7 @@ function CrList({ items }: { items: PortalCrListItem[] }) {
         background: p.surface,
         border: `1px solid ${p.border}`,
         borderRadius: 10,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -1878,7 +1870,7 @@ function CrList({ items }: { items: PortalCrListItem[] }) {
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <div>CR #</div>
@@ -1912,7 +1904,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
         alignItems: "center",
         borderBottom: isLast ? "none" : `1px solid ${p.border}`,
         textDecoration: "none",
-        color: "inherit",
+        color: "inherit"
       }}
     >
       <div>
@@ -1925,7 +1917,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
             border: `1px solid ${p.border}`,
             borderRadius: 5,
             color: p.textMuted,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {cr.crNumber}
@@ -1937,7 +1929,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
             display: "flex",
             alignItems: "center",
             gap: 6,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span
@@ -1949,7 +1941,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              maxWidth: "100%",
+              maxWidth: "100%"
             }}
           >
             {cr.subject}
@@ -1965,7 +1957,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
                 color: p.warningText,
                 borderRadius: 999,
                 textTransform: "uppercase",
-                letterSpacing: "0.05em",
+                letterSpacing: "0.05em"
               }}
             >
               Decide
@@ -1981,7 +1973,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
               display: "flex",
               gap: 6,
               alignItems: "center",
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             {cr.projectName && (
@@ -2001,7 +1993,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
                   style={{
                     display: "inline-flex",
                     gap: 3,
-                    alignItems: "center",
+                    alignItems: "center"
                   }}
                 >
                   <Receipt size={10} />
@@ -2031,7 +2023,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
           fontSize: 12.5,
           color: p.text,
           fontWeight: 600,
-          fontVariantNumeric: "tabular-nums",
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         {estimateText(cr)}
@@ -2043,7 +2035,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
           display: "inline-flex",
           alignItems: "center",
           gap: 4,
-          fontWeight: 500,
+          fontWeight: 500
         }}
       >
         <Calendar size={11} color={p.textFaint} />
@@ -2053,7 +2045,7 @@ function CrRow({ cr, isLast }: { cr: PortalCrListItem; isLast: boolean }) {
         style={{
           fontSize: 11,
           color: p.textSubtle,
-          fontWeight: 500,
+          fontWeight: 500
         }}
       >
         {fmtRelative(cr.lastActivityAt)}
@@ -2073,13 +2065,12 @@ function RaiseCrModal({
   open,
   onClose,
   onCreated,
-  notify,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onCreated: () => void;
-  notify: any;
-}) {
+  notify }: {
+    open: boolean;
+    onClose: () => void;
+    onCreated: () => void;
+    notify: any;
+  }) {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [files, setFiles] = useState<
@@ -2127,8 +2118,8 @@ function RaiseCrModal({
         projectId: values.projectId || undefined,
         attachments: files.map((f) => ({
           dataUrl: f.dataUrl,
-          fileName: f.name,
-        })),
+          fileName: f.name
+        }))
       });
       notify.success({ message: "Change request submitted" });
       onCreated();
@@ -2152,9 +2143,9 @@ function RaiseCrModal({
         content: {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
-          padding: 0,
+          padding: 0
         },
-        body: { padding: 0 },
+        body: { padding: 0 }
       }}
     >
       <div
@@ -2163,7 +2154,7 @@ function RaiseCrModal({
           borderBottom: `1px solid ${p.border}`,
           display: "flex",
           gap: 14,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div
@@ -2176,7 +2167,7 @@ function RaiseCrModal({
             border: `1px solid ${INDIGO_BORDER}`,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
           <GitPullRequest size={18} />
@@ -2189,7 +2180,7 @@ function RaiseCrModal({
             style={{
               marginTop: 3,
               fontSize: 12.5,
-              color: p.textSubtle,
+              color: p.textSubtle
             }}
           >
             Tell us what you&apos;d like to change. We&apos;ll come back with
@@ -2239,7 +2230,7 @@ function RaiseCrModal({
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: 10,
+              gap: 10
             }}
           >
             <Form.Item
@@ -2265,7 +2256,7 @@ function RaiseCrModal({
                 placeholder="—"
                 options={projects.map((pr) => ({
                   value: pr.id,
-                  label: pr.code ? `${pr.name} · ${pr.code}` : pr.name,
+                  label: pr.code ? `${pr.name} · ${pr.code}` : pr.name
                 }))}
               />
             </Form.Item>
@@ -2276,7 +2267,7 @@ function RaiseCrModal({
               style={{
                 fontSize: 12.5,
                 color: p.textMuted,
-                marginBottom: 10,
+                marginBottom: 10
               }}
             >
               Attachments
@@ -2301,7 +2292,7 @@ function RaiseCrModal({
               gap: 8,
               marginTop: 18,
               paddingTop: 14,
-              borderTop: `1px solid ${p.border}`,
+              borderTop: `1px solid ${p.border}`
             }}
           >
             <button
@@ -2315,7 +2306,7 @@ function RaiseCrModal({
                 fontSize: 13,
                 fontWeight: 500,
                 color: p.textMuted,
-                cursor: "pointer",
+                cursor: "pointer"
               }}
             >
               Cancel
@@ -2335,7 +2326,7 @@ function RaiseCrModal({
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: submitting ? "not-allowed" : "pointer",
-                opacity: submitting ? 0.6 : 1,
+                opacity: submitting ? 0.6 : 1
               }}
             >
               <Send size={13} />

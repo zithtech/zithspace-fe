@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState } from "react";
-import { Modal, Tabs, Button, Spin, App } from "antd";
+import { Modal, Tabs, Button, App } from "antd";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -9,12 +10,13 @@ import {
   RocketOutlined,
   TrophyOutlined,
   ArrowRightOutlined,
-  ArrowLeftOutlined,
+  ArrowLeftOutlined
 } from "@ant-design/icons";
 import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprintCompletion";
 import { SummaryTab } from "./tabs/SummaryTab";
 import { PendingTicketsTab } from "./tabs/PendingTicketsTab";
 import { CompletedTicketsTab } from "./tabs/CompletedTicketsTab";
+
 
 interface SprintCompletionModalProps {
   sprintId: string | null;
@@ -27,8 +29,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   sprintId,
   open,
   onClose,
-  onSuccess,
-}) => {
+  onSuccess }) => {
   const { modal, message } = App.useApp();
   const [activeTab, setActiveTab] = useState<string>("summary");
 
@@ -79,7 +80,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
         } catch (error: any) {
           message.error(error.message || "Failed to complete sprint");
         }
-      },
+      }
     });
   };
 
@@ -88,8 +89,8 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   const headerTone = !summary
     ? ""
     : pendingCount === 0
-    ? "sc-header-success"
-    : "sc-header";
+      ? "sc-header-success"
+      : "sc-header";
 
   const TAB_ORDER = ["summary", "pending", "completed"];
   const activeIdx = TAB_ORDER.indexOf(activeTab);
@@ -108,7 +109,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
       styles={{
         header: { display: 'none' },
         body: { padding: 0 },
-        footer: { padding: 0, margin: 0, border: 'none' },
+        footer: { padding: 0, margin: 0, border: 'none' }
       }}
       footer={
         summary ? (
@@ -199,9 +200,8 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
               <span className="sc-meta-divider" />
               <span className="sc-meta-text-muted">{summary.sprint.name}</span>
               <span
-                className={`sc-status-tag ${
-                  summary.sprint.status === 'active' ? 'sc-status-tag-active' : 'sc-status-tag-default'
-                }`}
+                className={`sc-status-tag ${summary.sprint.status === 'active' ? 'sc-status-tag-active' : 'sc-status-tag-default'
+                  }`}
               >
                 {summary.sprint.status}
               </span>
@@ -218,10 +218,10 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             justifyContent: 'center',
             alignItems: 'center',
             height: 'calc(90vh - 150px)',
-            background: 'var(--sc-canvas)',
+            background: 'var(--sc-canvas)'
           }}
         >
-          <Spin size="large" tip="Loading sprint data" />
+          <LoadingSpinner message="Loading sprint data" size="large" fullScreen={false} />
         </div>
       ) : (
         <Tabs
@@ -236,7 +236,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                   Summary
                 </span>
               ),
-              children: <SummaryTab summary={summary} />,
+              children: <SummaryTab summary={summary} />
             },
             {
               key: 'pending',
@@ -256,7 +256,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                       height: 18,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     {pendingCount}
@@ -269,7 +269,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                   summary={summary}
                   onActionComplete={() => refetch()}
                 />
-              ),
+              )
             },
             {
               key: 'completed',
@@ -289,14 +289,14 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                       height: 18,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     {completedCount}
                   </span>
                 </span>
               ),
-              children: <CompletedTicketsTab tickets={summary.tickets.completed} />,
+              children: <CompletedTicketsTab tickets={summary.tickets.completed} />
             },
           ]}
         />

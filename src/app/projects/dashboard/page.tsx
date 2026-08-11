@@ -1,12 +1,14 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Spin } from 'antd';
+
 import TicketDashboard from '@/components/projects/TicketDashboard';
+
 
 export default function ProjectsDashboardPage() {
   const { isLoading: authLoading } = useAuth();
@@ -33,7 +35,7 @@ export default function ProjectsDashboardPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating ticket dashboard..." />
+          <LoadingSpinner message="Orchestrating ticket dashboard..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );

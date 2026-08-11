@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { Card, Form, Input, Button, Typography, Alert, Spin, Progress } from 'antd';
+import { Card, Form, Input, Button, Typography, Alert, Progress } from 'antd';
 import { LockOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -9,20 +10,21 @@ import { useSearchParams } from 'next/navigation';
 import Logo from '@/assets/logo/Zukvologo.png';
 import { AuthService } from '@/services/authService';
 
+
 const { Title, Text } = Typography;
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  
+
   const [validating, setValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  
+
   const [password, setPassword] = useState('');
-  
+
   // Calculate password strength
   const calculateStrength = (pass: string) => {
     let score = 0;
@@ -35,7 +37,7 @@ function ResetPasswordForm() {
   };
 
   const strength = calculateStrength(password);
-  
+
   let strengthColor = '#ff4d4f'; // red
   if (strength >= 60) strengthColor = '#faad14'; // orange
   if (strength >= 80) strengthColor = '#52c41a'; // green
@@ -52,7 +54,7 @@ function ResetPasswordForm() {
         setValidating(false);
         return;
       }
-      
+
       try {
         await AuthService.validateResetToken(token);
         setTokenValid(true);
@@ -69,13 +71,13 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (values: any) => {
     if (!token) return;
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       await AuthService.resetPassword(token, values.password);
-      
+
       setSuccess(true);
     } catch (error: any) {
       setError(error.message || 'Failed to reset password');
@@ -87,7 +89,7 @@ function ResetPasswordForm() {
   if (validating) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
         <div style={{ marginTop: 16 }}>
           <Text type="secondary">Verifying reset link...</Text>
         </div>
@@ -155,9 +157,9 @@ function ResetPasswordForm() {
           label="New Password"
           rules={[
             { required: true, message: 'Please enter a new password' },
-            { 
-              pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/, 
-              message: 'Password must be at least 8 characters long and contain numbers and special characters.' 
+            {
+              pattern: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8 }$/,
+              message: 'Password must be at least 8 characters long and contain numbers and special characters.'
             }
           ]}
         >
@@ -171,11 +173,11 @@ function ResetPasswordForm() {
 
         {password && (
           <div style={{ marginBottom: 24, marginTop: -12 }}>
-            <Progress 
-              percent={strength} 
-              strokeColor={strengthColor} 
-              showInfo={false} 
-              size="small" 
+            <Progress
+              percent={strength}
+              strokeColor={strengthColor}
+              showInfo={false}
+              size="small"
             />
             <Text type="secondary" style={{ fontSize: 12, color: strengthColor }}>
               Strength: {strengthLabel}
@@ -195,7 +197,7 @@ function ResetPasswordForm() {
                   return Promise.resolve();
                 }
                 return Promise.reject(new Error('The two passwords do not match!'));
-              },
+              }
             }),
           ]}
         >
@@ -219,7 +221,7 @@ function ResetPasswordForm() {
               fontWeight: 500,
               background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 8
             }}
           >
             {loading ? 'Resetting...' : 'Reset Password'}
@@ -239,7 +241,7 @@ export default function ResetPasswordPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
+        padding: 20
       }}
     >
       <Card
@@ -248,12 +250,12 @@ export default function ResetPasswordPage() {
           maxWidth: 400,
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
           borderRadius: 12,
-          border: 'none',
+          border: 'none'
         }}
         styles={{
           body: {
-            padding: 32,
-          },
+            padding: 32
+          }
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -264,7 +266,7 @@ export default function ResetPasswordPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 20px',
+              margin: '0 auto 20px'
             }}
           >
             <Image
@@ -275,13 +277,13 @@ export default function ResetPasswordPage() {
               style={{ objectFit: 'contain' }}
             />
           </div>
-          
+
           <Title level={2} style={{ margin: 0, color: '#262626' }}>
             Create New Password
           </Title>
         </div>
 
-        <Suspense fallback={<Spin size="large" style={{ display: 'block', margin: '0 auto' }} />}>
+        <Suspense fallback={<LoadingSpinner size="large" fullScreen={false} />}>
           <ResetPasswordForm />
         </Suspense>
 

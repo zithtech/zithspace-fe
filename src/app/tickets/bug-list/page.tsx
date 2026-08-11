@@ -1,9 +1,11 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
+
+
 
 /**
  * The Bug List moved to QA Space. This route stays behind so existing links and
@@ -24,10 +26,9 @@ export default function BugListRedirect() {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: "var(--bg-pure-white)",
-        }}
+          background: "var(--bg-pure-white)" }}
       >
-        <Spin size="large" tip="Taking you to QA Space…" />
+        <LoadingSpinner message="Taking you to QA Space…" size="large" fullScreen={false} />
       </div>
     </MainLayout>
   );

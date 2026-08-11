@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Typography,
@@ -791,7 +792,12 @@ export default function InvoiceTemplatePage() {
                 )}
               </div>
             ) : (
-              <div className="pp-table-wrap">
+              <div className="pp-table-wrap" style={{ position: 'relative' }}>
+                {isFetching && !isLoading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   rowKey="id"
                   size="small"

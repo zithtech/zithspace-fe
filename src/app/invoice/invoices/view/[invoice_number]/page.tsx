@@ -1,13 +1,10 @@
-
-
-
-
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Button, Typography, Table, Divider, Space, Tag, Spin, Alert } from "antd";
+import { Card, Button, Typography, Table, Divider, Space, Tag, Alert } from "antd";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
@@ -148,7 +145,7 @@ export default function ViewInvoicePage() {
 
   // Loading state
   if (authLoading || isLoading || settingsLoading) {
-    return <Card><Spin tip="Loading invoice..." /></Card>;
+    return <Card><LoadingSpinner message="Loading invoice..." fullScreen={false} /></Card>;
   }
 
   if (!canReadInvoice) return null;
@@ -441,23 +438,23 @@ export default function ViewInvoicePage() {
         }}
       >
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        {invoice.paymentProofs && invoice.paymentProofs.length > 0 && invoice.status !== 'PAID' && (
-          <Alert
-            message="Unverified Payment Proofs"
-            description="The client has uploaded one or more payment proofs for this invoice."
-            type="warning"
-            showIcon
-            action={
-              <Space>
-                <Button size="small" type="primary" onClick={() => window.open(invoice.paymentProofs![0].file, "_blank")}>
-                  View Proof
-                </Button>
-              </Space>
-            }
-            style={{ marginBottom: 24, borderRadius: 8, border: "1px solid #ffe58f" }}
-          />
-        )}
-        <InvoiceDocument
+          {invoice.paymentProofs && invoice.paymentProofs.length > 0 && invoice.status !== 'PAID' && (
+            <Alert
+              message="Unverified Payment Proofs"
+              description="The client has uploaded one or more payment proofs for this invoice."
+              type="warning"
+              showIcon
+              action={
+                <Space>
+                  <Button size="small" type="primary" onClick={() => window.open(invoice.paymentProofs![0].file, "_blank")}>
+                    View Proof
+                  </Button>
+                </Space>
+              }
+              style={{ marginBottom: 24, borderRadius: 8, border: "1px solid #ffe58f" }}
+            />
+          )}
+          <InvoiceDocument
             invoice={invoice}
             settings={settings}
             customer={customer}

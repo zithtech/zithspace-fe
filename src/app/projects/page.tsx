@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +13,6 @@ import {
   Col,
   Button,
   Statistic,
-  Spin,
   Tag,
   Divider,
   Progress,
@@ -37,6 +37,7 @@ import { useRouter } from "next/navigation";
 import { useTicketDashboardStats } from "@/hooks/useTickets";
 import dayjs from "dayjs";
 
+
 const { Title, Paragraph, Text } = Typography;
 
 export default function ProjectsPage() {
@@ -58,7 +59,7 @@ export default function ProjectsPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating your workspace" />
+          <LoadingSpinner message="Orchestrating your workspace" size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -89,21 +90,21 @@ export default function ProjectsPage() {
       description: "Comprehensive analytics and project visualizer",
       icon: <DashboardOutlined />,
       path: "/projects/dashboard",
-      color: "#1677ff",
+      color: "#1677ff"
     },
     {
       title: "View Tickets",
       description: "Manage all tickets with advanced grid filters",
       icon: <UnorderedListOutlined />,
       path: "/tickets/select",
-      color: "#faad14",
+      color: "#faad14"
     },
     {
       title: "Create Ticket",
       description: "New ticket with detailed workflow setup",
       icon: <PlusCircleOutlined />,
       path: "/tickets/create",
-      color: "#52c41a",
+      color: "#52c41a"
     },
   ];
 
@@ -291,7 +292,7 @@ export default function ProjectsPage() {
                             status="active"
                             strokeColor={{
                               '0%': '#108ee9',
-                              '100%': '#87d068',
+                              '100%': '#87d068'
                             }}
                             showInfo={false}
                           />

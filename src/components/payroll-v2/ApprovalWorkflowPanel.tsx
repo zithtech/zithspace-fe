@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Input, Switch, Select, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -222,8 +223,13 @@ export default function ApprovalWorkflowPanel() {
         </div>
       </div>
 
-      <div className="pvw-table-wrap">
-        <Table rowKey="id" size="small" className="pvw-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />
+      <div className="pvw-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
+        <Table rowKey="id" size="small" className="pvw-table" loading={false} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />
       </div>
 
       {total > 0 && (

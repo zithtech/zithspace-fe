@@ -1,10 +1,12 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, message, Spin } from "antd";
+import { Input, message } from "antd";
 import { ThunderboltOutlined, SendOutlined, CloseOutlined } from "@ant-design/icons";
 import { BlockNoteEditor } from "@blocknote/core";
 import { documentHubService as DocumentHubService } from "@/services/documentHub";
+
 
 const PURPLE = "#722ed1";
 const PURPLE_DEEP = "#391085";
@@ -42,8 +44,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
   editor,
   containerRef,
   onChange,
-  onRewrite,
-}) => {
+  onRewrite }) => {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -76,8 +77,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
         left: rect.left,
         bottom: rect.bottom,
         right: rect.right,
-        width: rect.width,
-      };
+        width: rect.width };
     };
 
     const update = () => {
@@ -138,8 +138,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
     try {
       const { rewrittenHtml } = await (onRewrite ?? DocumentHubService.rewriteAiSelection)({
         text,
-        instruction: trimmed,
-      });
+        instruction: trimmed });
 
       if (!rewrittenHtml) {
         messageApi.error("Zai returned an empty response.");
@@ -155,8 +154,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
       // BlockNote replaces whole blocks. For a partial selection within a single
       // block this still swaps that block out, which is acceptable.
       const { blocks: selectedBlocks } = editor.getSelection() ?? {
-        blocks: [] as any[],
-      };
+        blocks: [] as any[] };
       const targetBlocks = selectedBlocks.length
         ? selectedBlocks
         : [editor.getTextCursorPosition().block];
@@ -271,8 +269,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
             cursor: "pointer",
             boxShadow:
               "0 4px 12px rgba(114, 46, 209, 0.32), inset 0 1px 0 rgba(255,255,255,0.2)",
-            animation: "zai-sel-fade-in 0.15s ease-out",
-          }}
+            animation: "zai-sel-fade-in 0.15s ease-out" }}
         >
           <ThunderboltOutlined style={{ fontSize: 12 }} />
           Ask Zai
@@ -296,8 +293,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
             boxShadow:
               "0 20px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08)",
             overflow: "hidden",
-            animation: "zai-sel-fade-in 0.18s ease-out",
-          }}
+            animation: "zai-sel-fade-in 0.18s ease-out" }}
         >
           {/* Header */}
           <div
@@ -307,8 +303,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
               justifyContent: "space-between",
               padding: "10px 14px",
               background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
-              color: "#fff",
-            }}
+              color: "#fff" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ThunderboltOutlined />
@@ -322,8 +317,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                 color: "rgba(255,255,255,0.85)",
                 cursor: "pointer",
                 fontSize: 13,
-                padding: 4,
-              }}
+                padding: 4 }}
             >
               <CloseOutlined />
             </button>
@@ -338,8 +332,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
                 color: "var(--text-slate-400)",
-                marginBottom: 6,
-              }}
+                marginBottom: 6 }}
             >
               Quick actions
             </div>
@@ -348,8 +341,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                 display: "flex",
                 flexWrap: "wrap",
                 gap: 6,
-                marginBottom: 12,
-              }}
+                marginBottom: 12 }}
             >
               {SUGGESTIONS.map((s) => (
                 <button
@@ -365,8 +357,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                     color: "var(--text-slate-700)",
                     cursor: busy ? "not-allowed" : "pointer",
                     opacity: busy ? 0.6 : 1,
-                    transition: "all 0.15s",
-                  }}
+                    transition: "all 0.15s" }}
                   onMouseEnter={(e) => {
                     if (busy) return;
                     e.currentTarget.style.background = "var(--bg-slate-50)";
@@ -391,8 +382,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
                 color: "var(--text-slate-400)",
-                marginBottom: 6,
-              }}
+                marginBottom: 6 }}
             >
               Or describe your own
             </div>
@@ -405,7 +395,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
               onPressEnter={() => applyRewrite(instruction)}
               suffix={
                 busy ? (
-                  <Spin size="small" />
+                  <LoadingSpinner size="small" fullScreen={false} />
                 ) : (
                   <button
                     onMouseDown={(e) => e.preventDefault()}
@@ -424,8 +414,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: instruction.trim() ? "pointer" : "not-allowed",
-                      fontSize: 12,
-                    }}
+                      fontSize: 12 }}
                   >
                     <SendOutlined />
                   </button>
@@ -442,10 +431,9 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                   alignItems: "center",
                   gap: 8,
                   fontSize: 12,
-                  color: "var(--text-slate-600)",
-                }}
+                  color: "var(--text-slate-600)" }}
               >
-                <Spin size="small" />
+                <LoadingSpinner size="small" fullScreen={false} />
                 <span>Zai is rewriting your selection…</span>
               </div>
             )}

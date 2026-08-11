@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -6,13 +7,12 @@ import {
   Tabs,
   Button,
   Space,
-  Spin,
   message,
   Input,
   Select,
   Switch,
   notification,
-  Tooltip,
+  Tooltip
 } from "antd";
 import {
   ArrowLeft,
@@ -57,7 +57,7 @@ import {
   GitPullRequest,
   CheckSquare,
   Server,
-  Receipt,
+  Receipt
 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -93,6 +93,7 @@ import { approvalsService } from "@/services/approvalsService";
 import { milestoneService } from "@/services/milestoneService";
 import { releaseService } from "@/services/releaseService";
 import { currencyOptions } from "@/utils/currencyOptions";
+
 
 const { Text } = Typography;
 
@@ -391,8 +392,7 @@ const SectionCard: React.FC<SectionCardProps> = ({
   accent,
   editOn,
   onToggleEdit,
-  children,
-}) => (
+  children }) => (
   <div className="cd-section">
     <div className="cd-section-header">
       <div className="cd-section-titlewrap">
@@ -427,8 +427,7 @@ const SectionCard: React.FC<SectionCardProps> = ({
 const Field: React.FC<{ label: string; children: React.ReactNode; icon?: React.ComponentType<any> }> = ({
   label,
   children,
-  icon: Icon,
-}) => (
+  icon: Icon }) => (
   <div className="cd-field">
     <div className="cd-field-label">
       {Icon && <Icon size={11} />}
@@ -480,7 +479,7 @@ export default function ClientV2DetailsPage() {
     basic: false,
     operational: false,
     finance: false,
-    banking: false,
+    banking: false
   });
 
   const handleEditModeChange = (section: keyof typeof editModes, checked: boolean) => {
@@ -602,7 +601,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: validationError,
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -642,7 +641,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: validationError,
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -656,7 +655,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: "Year must be a valid 4-digit number.",
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -668,7 +667,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: `Year must be between 1800 and ${currentYear}.`,
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -682,7 +681,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: "Enter a valid DUNS number (must be exactly 9 digits).",
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -698,7 +697,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: "Enter a valid IFSC or SWIFT code.",
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -712,7 +711,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: "Enter a valid account number (6 to 20 digits).",
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -727,7 +726,7 @@ export default function ClientV2DetailsPage() {
             notify.error({
               message: "Validation Error",
               description: "Enter a valid website URL.",
-              placement: "top",
+              placement: "top"
             });
             setActiveField(null);
             return;
@@ -742,7 +741,7 @@ export default function ClientV2DetailsPage() {
         notify.success({
           message: "Updated successfully",
           description: `${field} has been updated.`,
-          placement: "top",
+          placement: "top"
         });
       }
     } catch (err: any) {
@@ -751,7 +750,7 @@ export default function ClientV2DetailsPage() {
       notify.error({
         message: "Update failed",
         description: serverError,
-        placement: "top",
+        placement: "top"
       });
       fetchClientDetails();
     } finally {
@@ -774,7 +773,7 @@ export default function ClientV2DetailsPage() {
         <MainLayout>
           <div className="cd-loading">
             <div className="cd-loading-card">
-              <Spin size="large" />
+              <LoadingSpinner size="large" fullScreen={false} />
               <Text className="cd-loading-text">Loading client profile…</Text>
             </div>
             <style jsx global>{`
@@ -830,7 +829,7 @@ export default function ClientV2DetailsPage() {
   const riskMap = {
     High: { color: "#ef4444", bg: "rgba(239,68,68,0.14)" },
     Medium: { color: "#f59e0b", bg: "rgba(245,158,11,0.16)" },
-    Low: { color: "#10b981", bg: "rgba(16,185,129,0.14)" },
+    Low: { color: "#10b981", bg: "rgba(16,185,129,0.14)" }
   } as const;
   const riskCfg = riskMap[riskLevel] || riskMap.Low;
 
@@ -838,7 +837,7 @@ export default function ClientV2DetailsPage() {
     ? new Date(client.createdAt).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     })
     : null;
 
@@ -1377,7 +1376,7 @@ export default function ClientV2DetailsPage() {
                         </SectionCard>
                       </div>
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "2",
@@ -1396,7 +1395,7 @@ export default function ClientV2DetailsPage() {
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 /* {
                   key: "3",
@@ -1415,8 +1414,7 @@ export default function ClientV2DetailsPage() {
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
-                }, */
+                  ) }, */
                 {
                   key: "4",
                   label: (
@@ -1430,7 +1428,7 @@ export default function ClientV2DetailsPage() {
                     <div className="cd-tab-pane">
                       <ProjectsTab clientId={params.id as string} onRefresh={fetchClientDetails} />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "invoices",
@@ -1445,7 +1443,7 @@ export default function ClientV2DetailsPage() {
                     <div className="cd-tab-pane">
                       <InvoicesTab clientId={params.id as string} onRefresh={fetchClientDetails} />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "5",
@@ -1464,7 +1462,7 @@ export default function ClientV2DetailsPage() {
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "6",
@@ -1484,7 +1482,7 @@ export default function ClientV2DetailsPage() {
                         onCountChange={setPortalCount}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "7",
@@ -1502,14 +1500,14 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         contacts={client.contacts || []}
                         onRefresh={fetchClientDetails}
                         onCountChange={setMeetingsCount}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "8",
@@ -1527,12 +1525,12 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "9",
@@ -1550,12 +1548,12 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "10",
@@ -1573,13 +1571,13 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                         onCountChange={setEnvsCount}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "11",
@@ -1597,13 +1595,13 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                         onCountChange={setTeamCount}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "12",
@@ -1621,13 +1619,13 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                         onCountChange={setTicketsCount}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "13",
@@ -1645,12 +1643,12 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "14",
@@ -1668,12 +1666,12 @@ export default function ClientV2DetailsPage() {
                         projects={(client.projects || []).map((p: any) => ({
                           id: p.id || p.projectId,
                           name: p.name || p.projectName,
-                          code: p.code || null,
+                          code: p.code || null
                         }))}
                         onRefresh={fetchClientDetails}
                       />
                     </div>
-                  ),
+                  )
                 },
                 {
                   key: "settings",
@@ -1687,7 +1685,7 @@ export default function ClientV2DetailsPage() {
                     <div className="cd-tab-pane">
                       <PortalModulesTab clientId={params.id as string} />
                     </div>
-                  ),
+                  )
                 },
               ]}
             />

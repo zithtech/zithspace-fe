@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from 'react';
-import { List, Card, Button, Form, Input, DatePicker, Modal, message, Spin, Empty, Checkbox, Avatar, Space, Tag } from 'antd';
+import { List, Card, Button, Form, Input, DatePicker, Modal, message, Empty, Checkbox, Avatar, Space, Tag } from 'antd';
 import { PlusOutlined, UserOutlined, CalendarOutlined } from '@ant-design/icons';
 import { dealService, DealTask } from '@/services/dealService';
 import dayjs from 'dayjs';
@@ -72,10 +73,10 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
   return (
     <div style={{ padding: '24px 0' }}>
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           shape="round"
-          icon={<PlusOutlined />} 
+          icon={<PlusOutlined />}
           onClick={() => setIsModalVisible(true)}
           style={{ background: 'linear-gradient(90deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
         >
@@ -85,13 +86,13 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" style={glassStyle}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><LoadingSpinner fullScreen={false} /></div>
         ) : tasks.length > 0 ? (
           <List
             dataSource={tasks}
             renderItem={(item) => (
               <List.Item
-                style={{ 
+                style={{
                   padding: '20px',
                   borderBottom: '1px solid rgba(0,0,0,0.03)',
                   transition: 'background-color 0.3s',
@@ -100,14 +101,14 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
                 className="task-item-hover"
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-                  <Checkbox 
-                    checked={item.status === 'Completed'} 
+                  <Checkbox
+                    checked={item.status === 'Completed'}
                     onChange={() => handleToggleTask(item.id, item.status)}
                     style={{ marginTop: '4px', marginRight: '20px', transform: 'scale(1.2)' }}
                   />
                   <div style={{ flex: 1 }}>
-                    <div style={{ 
-                      fontWeight: 'bold', 
+                    <div style={{
+                      fontWeight: 'bold',
                       fontSize: '16px',
                       textDecoration: item.status === 'Completed' ? 'line-through' : 'none',
                       color: item.status === 'Completed' ? '#8c8c8c' : 'inherit'
@@ -115,9 +116,9 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
                       {item.title}
                     </div>
                     {item.description && (
-                      <div style={{ 
-                        color: '#595959', 
-                        marginTop: '8px', 
+                      <div style={{
+                        color: '#595959',
+                        marginTop: '8px',
                         fontSize: '14px',
                         opacity: item.status === 'Completed' ? 0.6 : 1
                       }}>
@@ -126,8 +127,8 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
                     )}
                     <Space style={{ marginTop: '12px' }} size="middle">
                       {item.dueDate && (
-                        <Tag 
-                          icon={<CalendarOutlined />} 
+                        <Tag
+                          icon={<CalendarOutlined />}
                           color={dayjs(item.dueDate).isBefore(dayjs(), 'day') && item.status !== 'Completed' ? 'error' : 'default'}
                           style={{ borderRadius: '10px', padding: '2px 10px', border: 'none' }}
                         >

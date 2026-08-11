@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Table, Select, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -231,13 +232,18 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
       {/* ── Body ── */}
       <div className="omx-body">
         {view === "list" ? (
-          <div className="omx-table-wrap">
+          <div className="omx-table-wrap" style={{ position: 'relative' }}>
+            {loading && (
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <LoadingSpinner size="medium" fullScreen={false} />
+              </div>
+            )}
             <Table
               className="omx-table"
               rowKey={rowKey}
               columns={columns}
               dataSource={paged}
-              loading={loading}
+              loading={false}
               size="small"
               pagination={false}
               scroll={{ x: "max-content" }}

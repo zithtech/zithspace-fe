@@ -1,12 +1,14 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Spin } from 'antd';
+
 import SprintPlan from '@/components/projects/SprintPlan';
+
 
 export default function ProjectsSprintPlanPage() {
   const { isLoading: authLoading } = useAuth();
@@ -31,7 +33,7 @@ export default function ProjectsSprintPlanPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating plans repository..." />
+          <LoadingSpinner message="Orchestrating plans repository..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );

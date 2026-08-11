@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Drawer, Form, Input, InputNumber, DatePicker, Tooltip, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -111,8 +112,13 @@ export default function AdvancesPanel() {
         { label: 'Reconciled', value: stats.reconciled, icon: <CheckCircleOutlined />, color: PALETTE.green, tint: TINT.green },
       ]} />
 
-      <div className="rvp-table-wrap">
-        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
+      <div className="rvp-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
+        <Table rowKey="id" size="middle" loading={false} columns={columns} dataSource={filtered}
           pagination={tablePaginationConfig} />
       </div>
 

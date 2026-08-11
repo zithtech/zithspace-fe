@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,10 +13,8 @@ import {
   Tabs,
   Tag,
   Divider,
-  Spin,
   message,
-  Image,
-} from 'antd';
+  Image } from 'antd';
 import {
   ArrowLeft,
   User,
@@ -34,14 +33,14 @@ import {
   Zap,
   Edit2,
   Lock,
-  Users,
-} from 'lucide-react';
+  Users } from 'lucide-react';
 import dayjs from "dayjs";
 
 // Layout & Components
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryView from "../EmployeeHistoryViews";
+
 
 const { Title, Text } = Typography;
 
@@ -50,14 +49,12 @@ const PALETTE = {
   blue: '#3B82F6',
   green: '#10B981',
   red: '#EF4444',
-  grey: '#94A3B8',
-} as const;
+  grey: '#94A3B8' } as const;
 const TINT = {
   blue: 'rgba(59,130,246,0.10)',
   green: 'rgba(16,185,129,0.10)',
   red: 'rgba(239,68,68,0.10)',
-  grey: 'rgba(148,163,184,0.12)',
-} as const;
+  grey: 'rgba(148,163,184,0.12)' } as const;
 
 /* ---------------- SHARED COMPONENTS ---------------- */
 
@@ -73,8 +70,7 @@ const SectionTitle = ({ icon, color, tint, text }: any) => (
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        flexShrink: 0,
-      }}
+        flexShrink: 0 }}
     >
       {React.cloneElement(icon as React.ReactElement, { size: 15 })}
     </span>
@@ -84,8 +80,7 @@ const SectionTitle = ({ icon, color, tint, text }: any) => (
         fontWeight: 700,
         color: "var(--text-slate-900, #0f172a)",
         textTransform: "uppercase",
-        letterSpacing: "0.04em",
-      }}
+        letterSpacing: "0.04em" }}
     >
       {text}
     </span>
@@ -101,8 +96,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
       padding: "8px 10px",
       background: "var(--bg-secondary, #ffffff)",
       borderRadius: "8px",
-      border: "1px solid var(--border-slate-200, #e2e8f0)",
-    }}
+      border: "1px solid var(--border-slate-200, #e2e8f0)" }}
   >
     {icon && (
       <div
@@ -116,8 +110,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
           height: "28px",
           background: tint,
           borderRadius: "6px",
-          flexShrink: 0,
-        }}
+          flexShrink: 0 }}
       >
         {React.cloneElement(icon as React.ReactElement, { size: 15 })}
       </div>
@@ -130,8 +123,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
           color: "var(--text-slate-400, #94a3b8)",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
-          marginBottom: "1px",
-        }}
+          marginBottom: "1px" }}
       >
         {label}
       </div>
@@ -139,8 +131,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
         style={{
           fontSize: "12.5px",
           color: "var(--text-slate-900, #0f172a)",
-          fontWeight: 500,
-        }}
+          fontWeight: 500 }}
       >
         {value || "-"}
       </div>
@@ -150,8 +141,7 @@ const RowItem = ({ label, value, icon, color = PALETTE.blue, tint = TINT.blue }:
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 10,
-  border: "1px solid var(--border-slate-200, #e2e8f0)",
-};
+  border: "1px solid var(--border-slate-200, #e2e8f0)" };
 const cardBody = { body: { padding: 14 } };
 
 /* ---------------- TABS COMPONENTS ---------------- */
@@ -367,8 +357,7 @@ export default function OnboardedViewPage() {
           workEmail: personal.workEmail || employeeData.workEmail || "",
           address: personal.address || {},
           pan: personal.pan || "",
-          aadhaar: personal.aadhaar || "",
-        },
+          aadhaar: personal.aadhaar || "" },
         employment: {
           department: employment.department || "",
           team: employment.team || "",
@@ -380,8 +369,7 @@ export default function OnboardedViewPage() {
           workType: employment.workType || "",
           reportingManager: employment.reportingManager || "",
           designation: employment.designation || employment.position?.title || "",
-          projects: employment.projects || [],
-        },
+          projects: employment.projects || [] },
         bankAndPayroll: {
           bankName: bank.bankName || "",
           accountNumber: bank.accountNumber || "",
@@ -389,15 +377,13 @@ export default function OnboardedViewPage() {
           pfNumber: bank.pfNumber || "",
           esiNumber: bank.esiNumber || "",
           uanNumber: bank.uanNumber || "",
-          accountHolderName: bank.accountHolderName || "",
-        },
+          accountHolderName: bank.accountHolderName || "" },
         history: employeeData.history || employeeData.previousCompanyDetails || [],
         assets: employeeData.assets || [],
         // Relationship / Emergency details
         relationship: employeeData.relationship || personal.relationship || "",
         relationName: employeeData.relationName || personal.relationName || "",
-        relationMobile: employeeData.relationMobile || personal.relationMobile || "",
-      };
+        relationMobile: employeeData.relationMobile || personal.relationMobile || "" };
 
       setData(mappedData);
     } catch (error) {
@@ -416,7 +402,7 @@ export default function OnboardedViewPage() {
     return (
       <OnboardingGuard itemKey="employees">
         <div style={{ height: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Spin size="large" tip="Loading Employee Information..." />
+          <LoadingSpinner message="Loading Employee Information..." size="large" fullScreen={false} />
         </div>
       </OnboardingGuard>
     );
@@ -440,8 +426,7 @@ export default function OnboardedViewPage() {
               gap: 12,
               paddingBottom: 14,
               marginBottom: 14,
-              borderBottom: "1px solid var(--border-slate-200, #e2e8f0)",
-            }}
+              borderBottom: "1px solid var(--border-slate-200, #e2e8f0)" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
               <Button
@@ -463,8 +448,7 @@ export default function OnboardedViewPage() {
                   fontSize: 14,
                   fontWeight: 800,
                   flexShrink: 0,
-                  letterSpacing: "0.02em",
-                }}
+                  letterSpacing: "0.02em" }}
               >
                 {initials}
               </div>
@@ -483,8 +467,7 @@ export default function OnboardedViewPage() {
                       letterSpacing: "0.04em",
                       border: "none",
                       background: TINT.green,
-                      color: PALETTE.green,
-                    }}
+                      color: PALETTE.green }}
                   >
                     ACTIVE
                   </Tag>
@@ -513,28 +496,23 @@ export default function OnboardedViewPage() {
               {
                 key: '1',
                 label: <Space size={6}><User size={15} /><span>Personal Details</span></Space>,
-                children: <PersonalDetailsTab data={data} />,
-              },
+                children: <PersonalDetailsTab data={data} /> },
               {
                 key: '2',
                 label: <Space size={6}><Briefcase size={15} /><span>Employment Details</span></Space>,
-                children: <EmploymentTab data={data} />,
-              },
+                children: <EmploymentTab data={data} /> },
               {
                 key: '3',
                 label: <Space size={6}><CreditCard size={15} /><span>Bank and Payroll</span></Space>,
-                children: <BankPayrollTab data={data} />,
-              },
+                children: <BankPayrollTab data={data} /> },
               {
                 key: '4',
                 label: <Space size={6}><History size={15} /><span>History</span></Space>,
-                children: <div style={{ marginTop: 12 }}><EmployeeHistoryView data={data.history || data.previousCompanyDetails || []} /></div>,
-              },
+                children: <div style={{ marginTop: 12 }}><EmployeeHistoryView data={data.history || data.previousCompanyDetails || []} /></div> },
               {
                 key: '5',
                 label: <Space size={6}><Laptop size={15} /><span>Assets</span></Space>,
-                children: <AssetsTab data={data} />,
-              },
+                children: <AssetsTab data={data} /> },
             ]}
           />
         </div>

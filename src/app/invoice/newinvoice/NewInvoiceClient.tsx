@@ -1,6 +1,5 @@
-
-
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -23,15 +22,13 @@ import {
   Modal,
   App,
   Divider,
-  Spin,
   Drawer
 } from "antd";
 import {
   SnippetsOutlined,
   DeleteOutlined,
   EyeOutlined,
-  EyeInvisibleOutlined,
-} from "@ant-design/icons";
+  EyeInvisibleOutlined } from "@ant-design/icons";
 import { RefreshCw, FileText, ChevronRight, ChevronLeft, User, Receipt, Building2, UserSquare2, ScrollText, Calculator, StickyNote, Briefcase } from "lucide-react";
 import { currencyOptions } from "@/utils/currencyOptions";
 import {
@@ -39,8 +36,7 @@ import {
   useCreateInvoice,
   useUpdateInvoice,
   useNextInvoiceNumber,
-  useInvoice,
-} from "@/hooks/useInvoices";
+  useInvoice } from "@/hooks/useInvoices";
 import { useInvoiceTemplates } from "@/hooks/useInvoiceTemplates";
 import { useMemo } from "react";
 
@@ -63,6 +59,7 @@ import { SettingsProfile } from "@/services/invoiceSettingsService";
 import DynamicLineItems, { Column } from "./DynamicLineItems";
 import InvoicePreview from "./InvoicePreview";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+
 
 interface CustomerDraft {
   id: string;
@@ -218,8 +215,7 @@ export default function InvoiceNewinvoicePage() {
   useEffect(() => {
     if (!editInvoiceId && nextInvoice?.invoiceNumber) {
       form.setFieldsValue({
-        invoiceNumber: nextInvoice.invoiceNumber,
-      });
+        invoiceNumber: nextInvoice.invoiceNumber });
     }
   }, [nextInvoice, editInvoiceId, form]);
 
@@ -232,8 +228,7 @@ export default function InvoiceNewinvoicePage() {
 
     if (defaultProfile && !form.getFieldValue("settingsProfileId")) {
       form.setFieldsValue({
-        settingsProfileId: defaultProfile.id,
-      });
+        settingsProfileId: defaultProfile.id });
 
       // ✅ ADD THIS LINE
       setTimeout(() => refetchNextNumber(), 100);
@@ -265,8 +260,7 @@ export default function InvoiceNewinvoicePage() {
           extraFields: Object.fromEntries(
             Object.entries(i.extraFields || {}).filter(([key]) => key !== 'projectName')
           ),
-          projectName: i.projectName || i.extraFields?.projectName || null,
-        }))
+          projectName: i.projectName || i.extraFields?.projectName || null }))
         : [{ itemName: "", description: "", quantity: 1, rate: 0, taxRate: 0 }];
 
       console.log('Mapped items:', mappedItems);
@@ -288,8 +282,7 @@ export default function InvoiceNewinvoicePage() {
         lineItems: mappedItems,
         columnOrder: invoiceDetail.metadata?.columnOrder || null,
         columnLabels: invoiceDetail.metadata?.columnLabels || null,
-        projectId: invoiceDetail.projectId || null,
-      };
+        projectId: invoiceDetail.projectId || null };
 
       console.log('HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
 
@@ -331,8 +324,7 @@ export default function InvoiceNewinvoicePage() {
           invoice_type: "standard",
           currency: "USD",
           tax_inclusive: false,
-          discount: 0,
-        });
+          discount: 0 });
         setIsTaxInclusive(false);
         setDiscountValue(0);
       }
@@ -395,8 +387,7 @@ export default function InvoiceNewinvoicePage() {
     country: values.country ?? undefined,
     taxId: values.taxId ?? undefined,
     gstin: values.gstin ?? undefined,
-    pan: values.pan ?? undefined,
-  });
+    pan: values.pan ?? undefined });
 
   const currency = Form.useWatch("currency", form);
   const currencySymbol =
@@ -488,9 +479,7 @@ export default function InvoiceNewinvoicePage() {
         country: updatedCustomer.country ?? undefined,
         taxId: updatedCustomer.taxId ?? undefined,
         gstin: updatedCustomer.gstin ?? undefined,
-        pan: updatedCustomer.pan ?? undefined,
-      },
-    });
+        pan: updatedCustomer.pan ?? undefined } });
 
     messageApi.success("Applied to invoice snapshot");
   };
@@ -505,14 +494,12 @@ export default function InvoiceNewinvoicePage() {
       country: draft.country ?? undefined,
       taxId: draft.taxId ?? undefined,
       gstin: draft.gstin ?? undefined,
-      pan: draft.pan ?? undefined,
-    };
+      pan: draft.pan ?? undefined };
 
     try {
       const savedCustomer = await updateCustomerMutation.mutateAsync({
         id: draft.id,
-        data: payload,
-      });
+        data: payload });
 
       form.setFieldsValue({
         customer_snapshot: {
@@ -525,9 +512,7 @@ export default function InvoiceNewinvoicePage() {
           country: savedCustomer.country,
           taxId: savedCustomer.taxId,
           gstin: savedCustomer.gstin,
-          pan: savedCustomer.pan,
-        },
-      });
+          pan: savedCustomer.pan } });
 
       messageApi.success("Customer record and invoice updated");
     } catch {
@@ -552,8 +537,7 @@ export default function InvoiceNewinvoicePage() {
           country: c.country,
           taxId: c.taxId,
           gstin: c.gstin,
-          pan: c.pan,
-        };
+          pan: c.pan };
       }
     }
 
@@ -605,8 +589,7 @@ export default function InvoiceNewinvoicePage() {
           extraFields: { ...(item.extraFields || {}), ...additionalExtraFields },
           rowNumber: index + 1
         };
-      }),
-    };
+      }) };
 
     console.log('🚀 SUBMITTING INVOICE PAYLOAD:', JSON.stringify(payload, null, 2));
 
@@ -616,8 +599,7 @@ export default function InvoiceNewinvoicePage() {
 
         await updateInvoiceMutation.mutateAsync({
           id: idToUpdate!,
-          data: payload,
-        });
+          data: payload });
         messageApi.success(
           submitStatus === "DRAFT"
             ? "Draft updated"
@@ -749,8 +731,7 @@ export default function InvoiceNewinvoicePage() {
         style={{
           margin: "0 -24px",
           background: "var(--customers-page-bg)",
-          minHeight: "calc(100vh - 64px)",
-        }}
+          minHeight: "calc(100vh - 64px)" }}
       >
         {/* TOP BAR — refined breadcrumb + actions */}
         <div
@@ -758,8 +739,7 @@ export default function InvoiceNewinvoicePage() {
           style={{
             background:
               "color-mix(in oklab, var(--customers-page-bg) 85%, transparent)",
-            borderColor: "var(--border-color)",
-          }}
+            borderColor: "var(--border-color)" }}
         >
           <div className="px-8 py-2 lg:py-0 min-h-[48px] lg:h-12 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-4">
             <div className="flex items-center gap-3 min-w-0">
@@ -797,8 +777,7 @@ export default function InvoiceNewinvoicePage() {
                     style={{
                       background: "var(--bg-blue-50)",
                       color: "var(--text-blue-700)",
-                      border: "1px solid var(--border-blue-200)",
-                    }}
+                      border: "1px solid var(--border-blue-200)" }}
                   >
                     {watchedInvoiceNumber}
                   </span>
@@ -808,8 +787,7 @@ export default function InvoiceNewinvoicePage() {
                   style={{
                     background: "var(--bg-slate-50)",
                     color: "var(--text-secondary)",
-                    border: "1px solid var(--border-color)",
-                  }}
+                    border: "1px solid var(--border-color)" }}
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full mr-1.5"
@@ -825,16 +803,14 @@ export default function InvoiceNewinvoicePage() {
                 className="template-pill flex items-center pl-2.5 pr-2 h-9 rounded-lg mr-1 transition-colors cursor-pointer w-full sm:w-auto"
                 style={{
                   background: "var(--bg-slate-50)",
-                  border: "1px solid var(--border-color)",
-                }}
+                  border: "1px solid var(--border-color)" }}
               >
                 <div
                   className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                   style={{
                     background: "var(--bg-blue-50)",
                     color: "var(--text-blue-700)",
-                    border: "1px solid var(--border-blue-200)",
-                  }}
+                    border: "1px solid var(--border-blue-200)" }}
                 >
                   <FileText size={12} strokeWidth={2.25} />
                 </div>
@@ -863,8 +839,7 @@ export default function InvoiceNewinvoicePage() {
                         size={13}
                         style={{
                           color: "var(--text-secondary)",
-                          transform: "rotate(90deg)",
-                        }}
+                          transform: "rotate(90deg)" }}
                       />
                     }
                   >
@@ -916,8 +891,7 @@ export default function InvoiceNewinvoicePage() {
                     borderRadius: 8,
                     height: 36,
                     fontWeight: 600,
-                    background: "#2563eb",
-                  }}
+                    background: "#2563eb" }}
                 >
                   <span>Submit for approval</span>
                 </Button>
@@ -931,8 +905,7 @@ export default function InvoiceNewinvoicePage() {
                   style={{
                     borderRadius: 8,
                     height: 36,
-                    color: "var(--text-secondary)",
-                  }}
+                    color: "var(--text-secondary)" }}
                 >
                   Cancel
                 </Button>
@@ -957,14 +930,12 @@ export default function InvoiceNewinvoicePage() {
                 description: "",
                 quantity: 1,
                 rate: 0,
-                taxRate: 0,
-              },
+                taxRate: 0 },
             ],
             invoice_type: "standard",
             currency: "USD",
             tax_inclusive: false,
-            discount: 0,
-          }}
+            discount: 0 }}
         >
           <Form.Item name="customer_snapshot" hidden />
           <Form.Item name="status" hidden />
@@ -991,8 +962,7 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           background: "var(--bg-blue-50)",
                           color: "var(--text-blue-700)",
-                          border: "1px solid var(--border-blue-200)",
-                        }}
+                          border: "1px solid var(--border-blue-200)" }}
                       >
                         <Building2 size={14} strokeWidth={2.25} />
                       </span>
@@ -1024,16 +994,14 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           marginTop: 6,
                           background: "var(--bg-slate-50)",
-                          border: "1px solid var(--border-color)",
-                        }}
+                          border: "1px solid var(--border-color)" }}
                       >
                         {selectedProfile.general?.companyLogo ? (
                           <div
                             className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden"
                             style={{
                               background: "var(--bg-slate-50)",
-                              border: "1px solid var(--border-color)",
-                            }}
+                              border: "1px solid var(--border-color)" }}
                           >
                             <img
                               src={selectedProfile.general.companyLogo}
@@ -1047,8 +1015,7 @@ export default function InvoiceNewinvoicePage() {
                             style={{
                               background: "var(--bg-blue-50)",
                               color: "var(--text-blue-700)",
-                              border: "1px solid var(--border-blue-200)",
-                            }}
+                              border: "1px solid var(--border-blue-200)" }}
                           >
                             {(
                               selectedProfile.general?.companyName ||
@@ -1088,8 +1055,7 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           background: "rgba(16, 185, 129, 0.1)",
                           color: "#059669",
-                          border: "1px solid rgba(16, 185, 129, 0.25)",
-                        }}
+                          border: "1px solid rgba(16, 185, 129, 0.25)" }}
                       >
                         <UserSquare2 size={14} strokeWidth={2.25} />
                       </span>
@@ -1126,9 +1092,7 @@ export default function InvoiceNewinvoicePage() {
                                   country: c.country,
                                   taxId: c.taxId,
                                   gstin: c.gstin,
-                                  pan: c.pan,
-                                },
-                              });
+                                  pan: c.pan } });
                             }
                           }}
                         />
@@ -1147,16 +1111,14 @@ export default function InvoiceNewinvoicePage() {
                           style={{
                             marginTop: 6,
                             background: "var(--bg-slate-50)",
-                            border: "1px solid var(--border-color)",
-                          }}
+                            border: "1px solid var(--border-color)" }}
                         >
                           <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0"
                             style={{
                               background: "var(--bg-blue-50)",
                               color: "var(--text-blue-700)",
-                              border: "1px solid var(--border-blue-200)",
-                            }}
+                              border: "1px solid var(--border-blue-200)" }}
                           >
                             {(selectedCustomer.companyName || "U").charAt(0)}
                           </div>
@@ -1206,8 +1168,7 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           background: "rgba(99, 102, 241, 0.1)",
                           color: "#4f46e5",
-                          border: "1px solid rgba(99, 102, 241, 0.25)",
-                        }}
+                          border: "1px solid rgba(99, 102, 241, 0.25)" }}
                       >
                         <Briefcase size={14} strokeWidth={2.25} />
                       </span>
@@ -1253,8 +1214,7 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           background: "rgba(168, 85, 247, 0.1)",
                           color: "#9333ea",
-                          border: "1px solid rgba(168, 85, 247, 0.25)",
-                        }}
+                          border: "1px solid rgba(168, 85, 247, 0.25)" }}
                       >
                         <ScrollText size={14} strokeWidth={2.25} />
                       </span>
@@ -1285,8 +1245,7 @@ export default function InvoiceNewinvoicePage() {
                           style={{
                             background: "var(--bg-slate-50)",
                             color: "var(--text-primary)",
-                            borderColor: "var(--border-color)",
-                          }}
+                            borderColor: "var(--border-color)" }}
                         />
                       </Form.Item>
                       <Form.Item
@@ -1361,8 +1320,7 @@ export default function InvoiceNewinvoicePage() {
                               return Promise.reject(
                                 new Error("Due date must be after the invoice date")
                               );
-                            },
-                          }),
+                            } }),
                         ]}
                         style={{ marginBottom: 0 }}
                       >
@@ -1417,8 +1375,7 @@ export default function InvoiceNewinvoicePage() {
                   className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-color)",
-                  }}
+                    border: "1px solid var(--border-color)" }}
                 >
                   {isFormReady ? (
                     <DynamicLineItems
@@ -1435,7 +1392,7 @@ export default function InvoiceNewinvoicePage() {
                     />
                   ) : (
                     <div className="flex justify-center p-12">
-                      <Spin size="large" />
+                      <LoadingSpinner size="large" fullScreen={false} />
                     </div>
                   )}
                 </div>
@@ -1445,8 +1402,7 @@ export default function InvoiceNewinvoicePage() {
                   className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-color)",
-                  }}
+                    border: "1px solid var(--border-color)" }}
                 >
                   <div
                     className="px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b"
@@ -1458,8 +1414,7 @@ export default function InvoiceNewinvoicePage() {
                         style={{
                           background: "rgba(245, 158, 11, 0.1)",
                           color: "#d97706",
-                          border: "1px solid rgba(245, 158, 11, 0.25)",
-                        }}
+                          border: "1px solid rgba(245, 158, 11, 0.25)" }}
                       >
                         <Calculator size={12} strokeWidth={2.25} />
                       </span>
@@ -1567,8 +1522,7 @@ export default function InvoiceNewinvoicePage() {
                       style={{
                         background:
                           "linear-gradient(135deg, var(--bg-blue-50) 0%, var(--bg-slate-50) 100%)",
-                        border: "1px solid var(--border-blue-200)",
-                      }}
+                        border: "1px solid var(--border-blue-200)" }}
                     >
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
@@ -1588,8 +1542,7 @@ export default function InvoiceNewinvoicePage() {
                           style={{
                             background: "var(--bg-secondary)",
                             color: "var(--text-secondary)",
-                            border: "1px solid var(--border-color)",
-                          }}
+                            border: "1px solid var(--border-color)" }}
                         >
                           {currency || "USD"}
                         </span>
@@ -1601,8 +1554,7 @@ export default function InvoiceNewinvoicePage() {
                         {currencySymbol}
                         {finalTotal.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                          maximumFractionDigits: 2 })}
                       </div>
                       <div
                         className="text-[12px] mt-2.5 flex items-center gap-1.5"
@@ -1640,8 +1592,7 @@ export default function InvoiceNewinvoicePage() {
                   className="overflow-hidden"
                   style={{
                     background: "var(--bg-secondary)",
-                    border: "1px solid var(--border-color)",
-                  }}
+                    border: "1px solid var(--border-color)" }}
                 >
                   <div
                     className="px-4 sm:px-6 py-2 flex flex-wrap items-center gap-2 sm:gap-2.5 border-b"
@@ -1652,8 +1603,7 @@ export default function InvoiceNewinvoicePage() {
                       style={{
                         background: "rgba(244, 114, 182, 0.1)",
                         color: "#db2777",
-                        border: "1px solid rgba(244, 114, 182, 0.25)",
-                      }}
+                        border: "1px solid rgba(244, 114, 182, 0.25)" }}
                     >
                       <StickyNote size={12} strokeWidth={2.25} />
                     </span>
@@ -1729,8 +1679,7 @@ export default function InvoiceNewinvoicePage() {
               address: values.address ?? null,
               city: values.city ?? null,
               country: values.country ?? null,
-              taxId: values.taxId ?? null,
-            });
+              taxId: values.taxId ?? null });
 
             setShowApplyModal(true);
             setEditingCustomer(null);
@@ -1748,15 +1697,13 @@ export default function InvoiceNewinvoicePage() {
           width={480}
           styles={{
             mask: { backdropFilter: "blur(4px)", background: "rgba(15, 23, 42, 0.4)" },
-            content: { padding: 0, borderRadius: 20, overflow: "hidden" },
-          }}
+            content: { padding: 0, borderRadius: 20, overflow: "hidden" } }}
         >
           <div
             className="p-6 border-b"
             style={{
               background: "var(--bg-slate-50)",
-              borderColor: "var(--border-color)",
-            }}
+              borderColor: "var(--border-color)" }}
           >
             <div className="flex items-center gap-3">
               <div
@@ -1764,8 +1711,7 @@ export default function InvoiceNewinvoicePage() {
                 style={{
                   background: "var(--bg-blue-50)",
                   color: "var(--text-blue-700)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
+                  border: "1px solid var(--border-blue-200)" }}
               >
                 <RefreshCw size={20} />
               </div>
@@ -1798,16 +1744,14 @@ export default function InvoiceNewinvoicePage() {
                 className="group cursor-pointer p-4 rounded-xl transition-all duration-200 hover:border-blue-200"
                 style={{
                   background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                }}
+                  border: "1px solid var(--border-color)" }}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className="p-2 rounded-lg"
                     style={{
                       background: "var(--bg-slate-50)",
-                      color: "var(--text-secondary)",
-                    }}
+                      color: "var(--text-secondary)" }}
                   >
                     <FileText size={18} />
                   </div>
@@ -1844,8 +1788,7 @@ export default function InvoiceNewinvoicePage() {
                 className="group cursor-pointer p-4 rounded-xl transition-all duration-200"
                 style={{
                   background: "var(--bg-blue-50)",
-                  border: "1px solid var(--border-blue-200)",
-                }}
+                  border: "1px solid var(--border-blue-200)" }}
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -2024,8 +1967,7 @@ export default function InvoiceNewinvoicePage() {
               totalTax,
               totalBeforeDiscount,
               finalTotal,
-              discountAmount,
-            }}
+              discountAmount }}
             currencySymbol={currencySymbol}
             activeColumns={activeColumns}
           />

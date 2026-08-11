@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Spin, Pagination, Select, DatePicker, Row as AntRow, Col, Divider, Typography } from "antd";
+import { Pagination, Select, DatePicker, Row as AntRow, Col, Divider, Typography } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import quarterOfYear from "dayjs/plugin/quarterOfYear";
 dayjs.extend(quarterOfYear);
@@ -29,14 +30,15 @@ import {
   X,
   Folder,
   CalendarRange,
-  SlidersHorizontal,
+  SlidersHorizontal
 } from "lucide-react";
 
 const { RangePicker } = DatePicker;
 import {
+
   portalSprintService,
   PortalSprintListItem,
-  PortalSprintMeta,
+  PortalSprintMeta
 } from "@/services/portalSprintService";
 
 const { Title, Text } = Typography;
@@ -75,7 +77,7 @@ const p = {
   warningText: "#92400e",
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const STATUS_META: Record<
@@ -93,7 +95,7 @@ const STATUS_META: Record<
   paused: { label: "Paused", tone: "warning", icon: Pause },
   completed: { label: "Completed", tone: "success", icon: CheckCircle2 },
   done: { label: "Completed", tone: "success", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", tone: "neutral", icon: AlertTriangle },
+  cancelled: { label: "Cancelled", tone: "neutral", icon: AlertTriangle }
 };
 
 const TONE = {
@@ -102,7 +104,7 @@ const TONE = {
   success: { bg: p.successBg, border: p.successBorder, text: p.successText },
   warning: { bg: p.warningBg, border: p.warningBorder, text: p.warningText },
   danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
+  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText }
 };
 
 const FILTER_TABS: { key: string; label: string }[] = [
@@ -124,7 +126,7 @@ function fmtDateShort(iso: string | null) {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -157,7 +159,7 @@ function sprintTiming(s: PortalSprintListItem):
       return {
         label: ago === 0 ? "Shipped today" : `Shipped ${ago}d ago`,
         tone: "success",
-        icon: CheckCircle2,
+        icon: CheckCircle2
       };
     }
   }
@@ -168,7 +170,7 @@ function sprintTiming(s: PortalSprintListItem):
       return {
         label: `${-days}d overdue`,
         tone: "danger",
-        icon: AlertTriangle,
+        icon: AlertTriangle
       };
     }
     if (days === 0) return { label: "Ends today", tone: "warning", icon: Clock };
@@ -190,7 +192,7 @@ function StatusPill({ status, compact }: { status: string; compact?: boolean }) 
     STATUS_META[status.toLowerCase()] || {
       label: status,
       tone: "neutral" as const,
-      icon: Layers,
+      icon: Layers
     };
   const tone = TONE[meta.tone];
   const Icon = meta.icon;
@@ -208,7 +210,7 @@ function StatusPill({ status, compact }: { status: string; compact?: boolean }) 
         fontSize: compact ? 10.5 : 11,
         fontWeight: 600,
         letterSpacing: "0.01em",
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       <Icon size={10} />
@@ -221,13 +223,12 @@ function TimingChip({
   tone,
   icon: Icon,
   label,
-  compact,
-}: {
-  tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent";
-  icon: any;
-  label: string;
-  compact?: boolean;
-}) {
+  compact }: {
+    tone: "indigo" | "warning" | "danger" | "neutral" | "success" | "accent";
+    icon: any;
+    label: string;
+    compact?: boolean;
+  }) {
   const t = TONE[tone];
   return (
     <span
@@ -243,7 +244,7 @@ function TimingChip({
         fontSize: 10.5,
         fontWeight: 600,
         fontVariantNumeric: "tabular-nums",
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       <Icon size={9} />
@@ -256,13 +257,12 @@ function SegmentedProgress({
   ticketCount,
   doneCount,
   blockedCount,
-  height = 5,
-}: {
-  ticketCount: number;
-  doneCount: number;
-  blockedCount: number;
-  height?: number;
-}) {
+  height = 5 }: {
+    ticketCount: number;
+    doneCount: number;
+    blockedCount: number;
+    height?: number;
+  }) {
   const total = Math.max(ticketCount, 1);
   const donePct = Math.min(100, (doneCount / total) * 100);
   const blockedPct = Math.min(100 - donePct, (blockedCount / total) * 100);
@@ -275,7 +275,7 @@ function SegmentedProgress({
         background: p.neutralBg,
         borderRadius: 999,
         overflow: "hidden",
-        display: "flex",
+        display: "flex"
       }}
     >
       {donePct > 0 && (
@@ -283,7 +283,7 @@ function SegmentedProgress({
           style={{
             width: `${donePct}%`,
             background: p.success,
-            transition: "width 200ms ease",
+            transition: "width 200ms ease"
           }}
         />
       )}
@@ -292,7 +292,7 @@ function SegmentedProgress({
           style={{
             width: `${blockedPct}%`,
             background: p.danger,
-            transition: "width 200ms ease",
+            transition: "width 200ms ease"
           }}
         />
       )}
@@ -302,7 +302,7 @@ function SegmentedProgress({
             width: `${openPct}%`,
             background: p.indigo,
             opacity: 0.22,
-            transition: "width 200ms ease",
+            transition: "width 200ms ease"
           }}
         />
       )}
@@ -354,7 +354,7 @@ export default function PortalSprintsPage() {
         projectId,
         search: search || undefined,
         from: fromIso,
-        to: toIso,
+        to: toIso
       });
       setItems(res.data);
       setMeta(res.meta);
@@ -418,7 +418,7 @@ export default function PortalSprintsPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
@@ -428,14 +428,14 @@ export default function PortalSprintsPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 8
                 }}
               >
                 <div
@@ -449,7 +449,7 @@ export default function PortalSprintsPage() {
                     background:
                       "linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(67, 56, 202, 0.08))",
                     color: p.indigo,
-                    border: `1px solid ${p.indigoBorder}`,
+                    border: `1px solid ${p.indigoBorder}`
                   }}
                 >
                   <Activity size={18} color={p.indigo} />
@@ -461,7 +461,7 @@ export default function PortalSprintsPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Sprints
@@ -473,7 +473,7 @@ export default function PortalSprintsPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -483,7 +483,7 @@ export default function PortalSprintsPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   Track sprint goals, planned vs delivered work, blockers, and what shipped each cycle.
@@ -501,7 +501,7 @@ export default function PortalSprintsPage() {
                   padding: "5px 11px",
                   background: p.surfaceTinted,
                   border: `1px solid ${p.neutralBorder}`,
-                  borderRadius: 999,
+                  borderRadius: 999
                 }}
               >
                 <TrendingUp size={12} color={p.indigo} />
@@ -509,7 +509,7 @@ export default function PortalSprintsPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: p.textSubtle,
+                    color: p.textSubtle
                   }}
                 >
                   Velocity
@@ -519,7 +519,7 @@ export default function PortalSprintsPage() {
                     fontSize: 12,
                     fontWeight: 700,
                     color: p.text,
-                    fontVariantNumeric: "tabular-nums",
+                    fontVariantNumeric: "tabular-nums"
                   }}
                 >
                   {totalCompletedPts}/{totalCommittedPts}
@@ -529,7 +529,7 @@ export default function PortalSprintsPage() {
                     fontSize: 11,
                     fontWeight: 700,
                     color: velocityPct >= 80 ? p.successText : velocityPct >= 50 ? p.indigoText : p.warningText,
-                    fontVariantNumeric: "tabular-nums",
+                    fontVariantNumeric: "tabular-nums"
                   }}
                 >
                   {velocityPct}%
@@ -550,7 +550,7 @@ export default function PortalSprintsPage() {
             gap: 12,
             flexWrap: "wrap",
             alignItems: "center",
-            marginBottom: 10,
+            marginBottom: 10
           }}
         >
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -584,7 +584,7 @@ export default function PortalSprintsPage() {
                     fontWeight: 600,
                     letterSpacing: "0.01em",
                     cursor: "pointer",
-                    transition: "all 120ms ease",
+                    transition: "all 120ms ease"
                   }}
                 >
                   {tab.label}
@@ -599,7 +599,7 @@ export default function PortalSprintsPage() {
                           ? "rgba(255,255,255,0.18)"
                           : p.neutralBg,
                         color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
+                        fontVariantNumeric: "tabular-nums"
                       }}
                     >
                       {count}
@@ -669,7 +669,7 @@ export default function PortalSprintsPage() {
                   currentSprints.length === 1
                     ? "1fr"
                     : "repeat(auto-fit, minmax(440px, 1fr))",
-                gap: 12,
+                gap: 12
               }}
             >
               {currentSprints.map((s) => (
@@ -692,10 +692,10 @@ export default function PortalSprintsPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px solid ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <div
@@ -704,7 +704,7 @@ export default function PortalSprintsPage() {
               textAlign: "center",
               background: p.surfaceTinted,
               border: `1px dashed ${p.neutralBorder}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
             <div
@@ -717,7 +717,7 @@ export default function PortalSprintsPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 12,
+                marginBottom: 12
               }}
             >
               <Target size={18} color={p.textFaint} />
@@ -740,7 +740,7 @@ export default function PortalSprintsPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 10,
+              gap: 10
             }}
           >
             {restItems.map((s) => (
@@ -757,7 +757,7 @@ export default function PortalSprintsPage() {
             style={{
               marginTop: 16,
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "flex-end"
             }}
           >
             <Pagination
@@ -996,11 +996,10 @@ export default function PortalSprintsPage() {
 
 function ViewToggle({
   view,
-  onChange,
-}: {
-  view: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
+  onChange }: {
+    view: ViewMode;
+    onChange: (v: ViewMode) => void;
+  }) {
   return (
     <div className="premium-view-toggle" role="group" aria-label="View mode">
       <button
@@ -1046,7 +1045,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
         borderRadius: 10,
         textDecoration: "none",
         color: "inherit",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <div
@@ -1054,7 +1053,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 8,
+          gap: 8
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1067,7 +1066,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
               letterSpacing: "0.07em",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {sprint.project.name}
@@ -1079,7 +1078,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
               display: "flex",
               alignItems: "baseline",
               gap: 7,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <span
@@ -1088,7 +1087,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
                 fontSize: 13.5,
                 fontWeight: 700,
                 color: p.text,
-                letterSpacing: "-0.01em",
+                letterSpacing: "-0.01em"
               }}
             >
               {sprint.version}
@@ -1115,7 +1114,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
             display: "-webkit-box",
             WebkitLineClamp: 1,
             WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           <Flag
@@ -1134,7 +1133,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginBottom: 4,
+            marginBottom: 4
           }}
         >
           <span
@@ -1142,7 +1141,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
               fontSize: 10.5,
               color: p.textSubtle,
               fontWeight: 600,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {sprint.doneCount}/{sprint.ticketCount} tickets
@@ -1152,7 +1151,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
               fontSize: 11,
               color: p.text,
               fontWeight: 700,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {sprint.completionPercent}%
@@ -1173,7 +1172,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
           gap: 8,
           fontSize: 10.5,
           color: p.textSubtle,
-          flexWrap: "wrap",
+          flexWrap: "wrap"
         }}
       >
         <span
@@ -1182,7 +1181,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
             gap: 3,
             alignItems: "center",
             fontWeight: 600,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           <Sparkles size={10} color={p.indigo} />
@@ -1195,7 +1194,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
               gap: 3,
               alignItems: "center",
               color: p.dangerText,
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             <AlertTriangle size={10} />
@@ -1207,7 +1206,7 @@ function SprintCardCompact({ sprint }: { sprint: PortalSprintListItem }) {
             display: "inline-flex",
             gap: 3,
             alignItems: "center",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <Calendar size={10} />
@@ -1225,7 +1224,7 @@ function SprintList({ items }: { items: PortalSprintListItem[] }) {
         background: p.surface,
         border: `1px solid ${p.border}`,
         borderRadius: 10,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       {/* Header row */}
@@ -1242,7 +1241,7 @@ function SprintList({ items }: { items: PortalSprintListItem[] }) {
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <div>Sprint</div>
@@ -1262,11 +1261,10 @@ function SprintList({ items }: { items: PortalSprintListItem[] }) {
 
 function SprintRow({
   sprint,
-  isLast,
-}: {
-  sprint: PortalSprintListItem;
-  isLast: boolean;
-}) {
+  isLast }: {
+    sprint: PortalSprintListItem;
+    isLast: boolean;
+  }) {
   const timing = sprintTiming(sprint);
   return (
     <Link
@@ -1281,7 +1279,7 @@ function SprintRow({
         alignItems: "center",
         borderBottom: isLast ? "none" : `1px solid ${p.border}`,
         textDecoration: "none",
-        color: "inherit",
+        color: "inherit"
       }}
     >
       {/* Sprint */}
@@ -1295,7 +1293,7 @@ function SprintRow({
             letterSpacing: "0.06em",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {sprint.project.name}
@@ -1311,7 +1309,7 @@ function SprintRow({
             marginTop: 1,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {sprint.version}
@@ -1327,7 +1325,7 @@ function SprintRow({
           display: "-webkit-box",
           WebkitLineClamp: 2,
           WebkitBoxOrient: "vertical",
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
         {sprint.goal || "—"}
@@ -1353,7 +1351,7 @@ function SprintRow({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
-            marginBottom: 4,
+            marginBottom: 4
           }}
         >
           <span
@@ -1361,7 +1359,7 @@ function SprintRow({
               fontSize: 10.5,
               color: p.textSubtle,
               fontWeight: 600,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {sprint.doneCount}/{sprint.ticketCount}
@@ -1371,7 +1369,7 @@ function SprintRow({
               fontSize: 11,
               color: p.text,
               fontWeight: 700,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {sprint.completionPercent}%
@@ -1392,7 +1390,7 @@ function SprintRow({
               fontWeight: 600,
               display: "inline-flex",
               alignItems: "center",
-              gap: 3,
+              gap: 3
             }}
           >
             <AlertTriangle size={10} />
@@ -1408,7 +1406,7 @@ function SprintRow({
           fontSize: 12,
           fontWeight: 600,
           color: p.text,
-          fontVariantNumeric: "tabular-nums",
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         <span>{sprint.completedPoints}</span>
@@ -1426,7 +1424,7 @@ function SprintRow({
           display: "inline-flex",
           alignItems: "center",
           gap: 4,
-          fontWeight: 500,
+          fontWeight: 500
         }}
       >
         <Calendar size={11} color={p.textFaint} />
@@ -1447,19 +1445,18 @@ function SprintRow({
 function SectionLabel({
   icon: Icon,
   label,
-  count,
-}: {
-  icon: any;
-  label: string;
-  count?: number;
-}) {
+  count }: {
+    icon: any;
+    label: string;
+    count?: number;
+  }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: 8,
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <Icon size={13} color={p.indigo} />
@@ -1469,7 +1466,7 @@ function SectionLabel({
           fontWeight: 700,
           color: p.textMuted,
           textTransform: "uppercase",
-          letterSpacing: "0.09em",
+          letterSpacing: "0.09em"
         }}
       >
         {label}
@@ -1483,7 +1480,7 @@ function SectionLabel({
             padding: "0 6px",
             background: p.neutralBg,
             borderRadius: 999,
-            fontVariantNumeric: "tabular-nums",
+            fontVariantNumeric: "tabular-nums"
           }}
         >
           {count}
@@ -1494,7 +1491,7 @@ function SectionLabel({
           flex: 1,
           height: 1,
           background: p.neutralBorder,
-          marginLeft: 2,
+          marginLeft: 2
         }}
       />
     </div>
@@ -1527,7 +1524,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
         textDecoration: "none",
         color: "inherit",
         overflow: "hidden",
-        transition: "border-color 140ms ease",
+        transition: "border-color 140ms ease"
       }}
     >
       <div
@@ -1537,7 +1534,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.accent}, ${p.accentText})`,
+          background: `linear-gradient(180deg, ${p.accent}, ${p.accentText})`
         }}
       />
 
@@ -1547,7 +1544,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -1560,7 +1557,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               letterSpacing: "0.08em",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {sprint.project.name}
@@ -1572,7 +1569,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               display: "flex",
               alignItems: "baseline",
               gap: 9,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <span
@@ -1581,7 +1578,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
                 fontSize: 18,
                 fontWeight: 700,
                 color: p.text,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.02em"
               }}
             >
               {sprint.version}
@@ -1608,7 +1605,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             fontSize: 11.5,
             fontWeight: 600,
             flexShrink: 0,
-            transition: "background 140ms ease, gap 140ms ease",
+            transition: "background 140ms ease, gap 140ms ease"
           }}
         >
           Open
@@ -1626,7 +1623,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           <Flag
@@ -1647,7 +1644,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
             alignItems: "baseline",
             marginBottom: 6,
             gap: 10,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <div
@@ -1655,7 +1652,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               display: "inline-flex",
               gap: 10,
               alignItems: "center",
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <Legend dot={p.success} label={`${sprint.doneCount} done`} />
@@ -1679,7 +1676,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
               fontWeight: 700,
               color: p.text,
               fontVariantNumeric: "tabular-nums",
-              letterSpacing: "-0.01em",
+              letterSpacing: "-0.01em"
             }}
           >
             {sprint.completionPercent}%
@@ -1702,7 +1699,7 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
           background: p.surface,
           border: `1px solid ${p.border}`,
           borderRadius: 8,
-          overflow: "hidden",
+          overflow: "hidden"
         }}
       >
         <CurrentStat
@@ -1760,12 +1757,11 @@ function CurrentSprintCard({ sprint }: { sprint: PortalSprintListItem }) {
 function Legend({
   dot,
   dotOpacity = 1,
-  label,
-}: {
-  dot: string;
-  dotOpacity?: number;
-  label: string;
-}) {
+  label }: {
+    dot: string;
+    dotOpacity?: number;
+    label: string;
+  }) {
   return (
     <span
       style={{
@@ -1775,7 +1771,7 @@ function Legend({
         fontSize: 11,
         fontWeight: 600,
         color: p.textMuted,
-        fontVariantNumeric: "tabular-nums",
+        fontVariantNumeric: "tabular-nums"
       }}
     >
       <span
@@ -1785,7 +1781,7 @@ function Legend({
           borderRadius: 2,
           background: dot,
           opacity: dotOpacity,
-          display: "inline-block",
+          display: "inline-block"
         }}
       />
       {label}
@@ -1800,16 +1796,15 @@ function FilterBar({
   projectId,
   onProjectChange,
   dateRange,
-  onDateRangeChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string; code: string | null }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  dateRange: [Dayjs | null, Dayjs | null] | null;
-  onDateRangeChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
-}) {
+  onDateRangeChange }: {
+    search: string;
+    onSearchChange: (v: string) => void;
+    projects: { id: string; name: string; code: string | null }[];
+    projectId: string | undefined;
+    onProjectChange: (v: string | undefined) => void;
+    dateRange: [Dayjs | null, Dayjs | null] | null;
+    onDateRangeChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
+  }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const projectsValue = projectId;
   const today = dayjs();
@@ -1822,7 +1817,7 @@ function FilterBar({
       value: [
         today.subtract(1, "month").startOf("month"),
         today.subtract(1, "month").endOf("month"),
-      ],
+      ]
     },
     { label: "This quarter", value: [today.startOf("quarter"), today.endOf("quarter")] },
     { label: "Next 30 days", value: [today, today.add(30, "day")] },
@@ -1835,7 +1830,7 @@ function FilterBar({
         gap: 8,
         alignItems: "stretch",
         flexWrap: "wrap",
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       {/* Premium search input */}
@@ -1857,7 +1852,7 @@ function FilterBar({
           boxShadow: searchFocused
             ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
             : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
+          transition: "border-color 140ms ease, box-shadow 140ms ease"
         }}
       >
         <Search
@@ -1880,7 +1875,7 @@ function FilterBar({
             background: "transparent",
             color: p.text,
             fontSize: 13,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         />
         {search && (
@@ -1900,7 +1895,7 @@ function FilterBar({
               border: "none",
               borderRadius: 999,
               color: p.textSubtle,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <X size={11} />
@@ -1922,7 +1917,7 @@ function FilterBar({
             color: p.textFaint,
             fontSize: 10,
             fontWeight: 600,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace"
           }}
         >
           /
@@ -1940,7 +1935,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Folder size={13} color={p.textFaint} />
@@ -1957,7 +1952,7 @@ function FilterBar({
         style={{ width: 220, height: 34 }}
         options={projects.map((proj) => ({
           value: proj.id,
-          label: proj.code ? `${proj.name} · ${proj.code}` : proj.name,
+          label: proj.code ? `${proj.name} · ${proj.code}` : proj.name
         }))}
         notFoundContent={
           <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
@@ -1991,17 +1986,16 @@ function ActiveFilterChips({
   dateRange,
   onClearDateRange,
   statusFilter,
-  onClearStatus,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  dateRange: [Dayjs | null, Dayjs | null] | null;
-  onClearDateRange: () => void;
-  statusFilter: string | undefined;
-  onClearStatus: () => void;
-}) {
+  onClearStatus }: {
+    search: string;
+    onClearSearch: () => void;
+    projectName: string | undefined;
+    onClearProject: () => void;
+    dateRange: [Dayjs | null, Dayjs | null] | null;
+    onClearDateRange: () => void;
+    statusFilter: string | undefined;
+    onClearStatus: () => void;
+  }) {
   const hasDates = !!(dateRange && (dateRange[0] || dateRange[1]));
   const any = !!search || !!projectName || hasDates || !!statusFilter;
   if (!any) return null;
@@ -2018,7 +2012,7 @@ function ActiveFilterChips({
         gap: 6,
         alignItems: "center",
         flexWrap: "wrap",
-        marginBottom: 14,
+        marginBottom: 14
       }}
     >
       <span
@@ -2031,7 +2025,7 @@ function ActiveFilterChips({
           color: p.textSubtle,
           textTransform: "uppercase",
           letterSpacing: "0.07em",
-          marginRight: 2,
+          marginRight: 2
         }}
       >
         <SlidersHorizontal size={11} />
@@ -2082,7 +2076,7 @@ function ActiveFilterChips({
           color: p.indigoText,
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         Clear all
@@ -2094,12 +2088,11 @@ function ActiveFilterChips({
 function FilterChip({
   icon: Icon,
   label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
+  onClear }: {
+    icon: any;
+    label: string;
+    onClear: () => void;
+  }) {
   return (
     <span
       className="premium-filter-chip"
@@ -2114,7 +2107,7 @@ function FilterChip({
         borderRadius: 999,
         fontSize: 11.5,
         fontWeight: 600,
-        lineHeight: 1.2,
+        lineHeight: 1.2
       }}
     >
       <Icon size={10} />
@@ -2136,7 +2129,7 @@ function FilterChip({
           border: "none",
           borderRadius: 999,
           color: p.indigoText,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         <X size={10} />
@@ -2150,20 +2143,19 @@ function CurrentStat({
   label,
   value,
   tone,
-  divider,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone: string;
-  divider?: boolean;
-}) {
+  divider }: {
+    icon: any;
+    label: string;
+    value: string;
+    tone: string;
+    divider?: boolean;
+  }) {
   return (
     <div
       style={{
         padding: "9px 12px",
         borderLeft: divider ? `1px solid ${p.border}` : "none",
-        minWidth: 0,
+        minWidth: 0
       }}
     >
       <div
@@ -2175,7 +2167,7 @@ function CurrentStat({
           fontWeight: 700,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         <Icon size={10} />
@@ -2191,7 +2183,7 @@ function CurrentStat({
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "ellipsis",
+          textOverflow: "ellipsis"
         }}
       >
         {value}

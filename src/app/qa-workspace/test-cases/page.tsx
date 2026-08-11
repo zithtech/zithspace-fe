@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Modal, List, Typography, Input, Select, Form, Drawer, Tooltip } from "antd";
 import { BugOutlined, PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, ClockCircleOutlined, CloseOutlined } from "@ant-design/icons";
@@ -963,14 +964,19 @@ export default function TestCasesPage() {
 
             {/* Table or Grid */}
             {viewMode === 'list' ? (
-              <div className="sc-tablewrap">
+              <div className="sc-tablewrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   className="ts-table sc-table"
                   dataSource={pagedCases}
                   columns={columns}
                   rowKey="id"
                   pagination={false}
-                  loading={loading}
+                  loading={false}
                   onRow={(record) => ({
                     onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
                   })}

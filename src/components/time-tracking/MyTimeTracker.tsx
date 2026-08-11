@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined, FileTextOutlined, ReloadOutlined } from "@ant-design/icons";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
@@ -404,7 +405,7 @@ export function MyTimeTracker({
               </div>
             </div>
           </div>
-          
+
           <div className="mtt-team-filters">
             {canCreateTimeTracking && runningCount > 0 && (
               <ConfirmDialog
@@ -447,12 +448,17 @@ export function MyTimeTracker({
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'auto', position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
           <Table
             columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
             dataSource={paginatedEntries}
             rowKey="id"
-            loading={loading}
+            loading={false}
             pagination={false}
             rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
             scroll={{ x: 800 }}

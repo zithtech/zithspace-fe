@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useState, useEffect } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   App,
   Skeleton,
@@ -1269,14 +1270,19 @@ const ProjectsManageContent: React.FC = () => {
                     )
                   ) : (
                     /* ===== TABLE VIEW ===== */
-                    <div className="pm-table-wrap">
+                    <div className="pm-table-wrap" style={{ position: 'relative' }}>
+                      {loading && (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <LoadingSpinner size="medium" fullScreen={false} />
+                        </div>
+                      )}
                       <Table
                         size="small"
                         className="premium-table"
                         columns={columns}
                         dataSource={projects}
                         rowKey="id"
-                        loading={loading}
+                        loading={false}
                         pagination={false}
                         scroll={{ x: 1200 }}
                         onChange={handleTableChange}

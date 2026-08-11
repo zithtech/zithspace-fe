@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, notification } from "antd";
+import { notification } from "antd";
 import {
   ArrowLeft,
   Send,
@@ -18,12 +19,12 @@ import {
   MessageCircle,
   Calendar,
   Info,
-  Shield,
+  Shield
 } from "lucide-react";
 import {
   portalTicketService,
   PortalTicketDetail,
-  PortalTicketMessage,
+  PortalTicketMessage
 } from "@/services/portalTicketService";
 import {
   p,
@@ -33,9 +34,10 @@ import {
   STATUS_META,
   fmtDate,
   fmtDateTime,
-  fmtRelative,
+  fmtRelative
 } from "../_ticketUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+
 
 const INDIGO = "#4f46e5";
 const INDIGO_BG = "#eef2ff";
@@ -95,10 +97,10 @@ export default function PortalTicketDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -126,7 +128,7 @@ export default function PortalTicketDetailPage() {
       style={{
         height: "100vh",
         overflowY: "auto",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff"
       }}
     >
       {contextHolder}
@@ -221,11 +223,10 @@ export default function PortalTicketDetailPage() {
 
 function StickyHeader({
   ticket,
-  onBack,
-}: {
-  ticket: PortalTicketDetail;
-  onBack: () => void;
-}) {
+  onBack }: {
+    ticket: PortalTicketDetail;
+    onBack: () => void;
+  }) {
   const st = STATUS_META[ticket.status] || STATUS_META.new;
   const StIcon = st.icon;
   const tone = TONE[st.tone];
@@ -238,7 +239,7 @@ function StickyHeader({
         zIndex: 100,
         backgroundColor: "#ffffff",
         borderBottom: `1px solid ${p.border}`,
-        padding: "12px 40px",
+        padding: "12px 40px"
       }}
     >
       <div
@@ -246,7 +247,7 @@ function StickyHeader({
           display: "flex",
           alignItems: "center",
           gap: 14,
-          maxWidth: 1200,
+          maxWidth: 1200
         }}
       >
         <button
@@ -266,7 +267,7 @@ function StickyHeader({
             fontWeight: 600,
             cursor: "pointer",
             borderRadius: 7,
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <ArrowLeft size={14} />
@@ -277,7 +278,7 @@ function StickyHeader({
             width: 1,
             height: 18,
             background: p.border,
-            flexShrink: 0,
+            flexShrink: 0
           }}
         />
         <div
@@ -286,7 +287,7 @@ function StickyHeader({
             alignItems: "center",
             gap: 8,
             minWidth: 0,
-            flex: 1,
+            flex: 1
           }}
         >
           <span
@@ -299,7 +300,7 @@ function StickyHeader({
               borderRadius: 5,
               color: p.textMuted,
               fontWeight: 600,
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             {ticket.ticketNumber}
@@ -312,7 +313,7 @@ function StickyHeader({
               letterSpacing: "-0.005em",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {ticket.subject}
@@ -329,7 +330,7 @@ function StickyHeader({
               borderRadius: 999,
               fontSize: 11,
               fontWeight: 600,
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <StIcon size={10} />
@@ -356,7 +357,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
         border: `1px solid ${p.border}`,
         borderRadius: 14,
         marginBottom: 14,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -366,7 +367,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${INDIGO}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${INDIGO}, ${p.accent})`
         }}
       />
       <div
@@ -375,7 +376,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
           alignItems: "center",
           gap: 8,
           flexWrap: "wrap",
-          marginBottom: 10,
+          marginBottom: 10
         }}
       >
         <div
@@ -388,7 +389,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
             color: catTone.text,
             display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
           <CatIcon size={15} />
@@ -402,7 +403,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
             border: `1px solid ${p.border}`,
             borderRadius: 5,
             color: p.textMuted,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {ticket.ticketNumber}
@@ -415,7 +416,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
             color: catTone.text,
             borderRadius: 999,
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {cat.label}
@@ -428,7 +429,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
             color: priTone.text,
             borderRadius: 999,
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {pri.label} priority
@@ -441,7 +442,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
               gap: 4,
               fontSize: 11.5,
               color: p.textSubtle,
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             <Folder size={11} color={p.textFaint} />
@@ -456,7 +457,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
           fontWeight: 700,
           color: p.text,
           letterSpacing: "-0.015em",
-          lineHeight: 1.25,
+          lineHeight: 1.25
         }}
       >
         {ticket.subject}
@@ -468,7 +469,7 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
           gap: 14,
           flexWrap: "wrap",
           fontSize: 12,
-          color: p.textSubtle,
+          color: p.textSubtle
         }}
       >
         <MetaItem
@@ -501,18 +502,17 @@ function HeroBand({ ticket }: { ticket: PortalTicketDetail }) {
 function MetaItem({
   icon: Icon,
   label,
-  value,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-}) {
+  value }: {
+    icon: any;
+    label: string;
+    value: string;
+  }) {
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
+        gap: 5
       }}
     >
       <Icon size={11} color={p.textFaint} />
@@ -538,7 +538,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
         alignItems: "center",
         gap: 14,
         flexWrap: "wrap",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -548,7 +548,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.warning}, #f97316)`,
+          background: `linear-gradient(180deg, ${p.warning}, #f97316)`
         }}
       />
       <div
@@ -562,7 +562,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Clock size={17} />
@@ -573,7 +573,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
             fontSize: 13.5,
             fontWeight: 700,
             color: p.text,
-            letterSpacing: "-0.005em",
+            letterSpacing: "-0.005em"
           }}
         >
           Waiting on you
@@ -582,7 +582,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
           style={{
             fontSize: 12.5,
             color: p.textMuted,
-            marginTop: 2,
+            marginTop: 2
           }}
         >
           We need more info before we can move forward. Reply below to keep
@@ -604,7 +604,7 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
           fontSize: 12.5,
           fontWeight: 600,
           cursor: "pointer",
-          textDecoration: "none",
+          textDecoration: "none"
         }}
       >
         <Send size={13} />
@@ -616,11 +616,10 @@ function WaitingBanner({ ticketId }: { ticketId: string }) {
 
 function SlaBanner({
   ticket,
-  breached,
-}: {
-  ticket: PortalTicketDetail;
-  breached: boolean;
-}) {
+  breached }: {
+    ticket: PortalTicketDetail;
+    breached: boolean;
+  }) {
   const bg = breached ? p.dangerBg : "#ffffff";
   const border = breached ? p.dangerBorder : p.border;
   const accent = breached ? p.danger : INDIGO;
@@ -638,7 +637,7 @@ function SlaBanner({
         gap: 18,
         flexWrap: "wrap",
         alignItems: "center",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -648,7 +647,7 @@ function SlaBanner({
           top: 0,
           bottom: 0,
           width: 3,
-          background: accent,
+          background: accent
         }}
       />
       <div
@@ -661,7 +660,7 @@ function SlaBanner({
           color: breached ? p.dangerText : p.textMuted,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Shield size={12} />
@@ -691,20 +690,19 @@ function SlaItem({
   label,
   target,
   metAt,
-  breached,
-}: {
-  label: string;
-  target: string;
-  metAt: string | null;
-  breached: boolean;
-}) {
+  breached }: {
+    label: string;
+    target: string;
+    metAt: string | null;
+    breached: boolean;
+  }) {
   const met = !!metAt;
   const Icon = met ? CheckCircle2 : breached ? AlertTriangle : Clock;
   const tone = met
     ? { color: p.successText }
     : breached
-    ? { color: p.dangerText }
-    : { color: p.textMuted };
+      ? { color: p.dangerText }
+      : { color: p.textMuted };
   return (
     <div
       style={{
@@ -713,7 +711,7 @@ function SlaItem({
         gap: 7,
         fontSize: 12,
         color: tone.color,
-        fontWeight: 500,
+        fontWeight: 500
       }}
     >
       <Icon size={13} />
@@ -722,8 +720,8 @@ function SlaItem({
         {met
           ? `met ${fmtRelative(metAt)}`
           : breached
-          ? `breached · target was ${fmtDateTime(target)}`
-          : `target ${fmtDateTime(target)}`}
+            ? `breached · target was ${fmtDateTime(target)}`
+            : `target ${fmtDateTime(target)}`}
       </span>
     </div>
   );
@@ -735,13 +733,12 @@ function ConversationCard({
   ticket,
   canReply,
   notify,
-  onPosted,
-}: {
-  ticket: PortalTicketDetail;
-  canReply: boolean;
-  notify: any;
-  onPosted: () => void;
-}) {
+  onPosted }: {
+    ticket: PortalTicketDetail;
+    canReply: boolean;
+    notify: any;
+    onPosted: () => void;
+  }) {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<
     { dataUrl: string; name: string; size: number }[]
@@ -777,8 +774,8 @@ function ConversationCard({
         body: body.trim(),
         attachments: files.map((f) => ({
           dataUrl: f.dataUrl,
-          fileName: f.name,
-        })),
+          fileName: f.name
+        }))
       });
       setBody("");
       setFiles([]);
@@ -796,7 +793,7 @@ function ConversationCard({
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -806,7 +803,7 @@ function ConversationCard({
           borderBottom: `1px solid ${p.border}`,
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 8
         }}
       >
         <div
@@ -820,7 +817,7 @@ function ConversationCard({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <MessageCircle size={11} />
@@ -831,7 +828,7 @@ function ConversationCard({
             fontWeight: 700,
             color: p.textMuted,
             textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            letterSpacing: "0.08em"
           }}
         >
           Conversation
@@ -840,7 +837,7 @@ function ConversationCard({
           style={{
             fontSize: 11,
             color: p.textSubtle,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           · {messageCount} message{messageCount === 1 ? "" : "s"}
@@ -853,7 +850,7 @@ function ConversationCard({
               padding: "32px 0 20px",
               textAlign: "center",
               fontSize: 12.5,
-              color: p.textSubtle,
+              color: p.textSubtle
             }}
           >
             No messages yet. Start the conversation below.
@@ -869,7 +866,7 @@ function ConversationCard({
             padding: "14px 20px 20px",
             borderTop: `1px solid ${p.border}`,
             marginTop: 14,
-            background: SURFACE_TINTED,
+            background: SURFACE_TINTED
           }}
         >
           <div
@@ -880,7 +877,7 @@ function ConversationCard({
               boxShadow: composerFocused
                 ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
                 : "none",
-              transition: "border-color 140ms ease, box-shadow 140ms ease",
+              transition: "border-color 140ms ease, box-shadow 140ms ease"
             }}
           >
             <textarea
@@ -913,13 +910,13 @@ function ConversationCard({
                 fontSize: 13.5,
                 lineHeight: 1.55,
                 fontFamily: "inherit",
-                minHeight: 70,
+                minHeight: 70
               }}
             />
             <div
               style={{
                 padding: "8px 10px 10px",
-                borderTop: files.length > 0 ? `1px solid ${p.border}` : "none",
+                borderTop: files.length > 0 ? `1px solid ${p.border}` : "none"
               }}
             >
               {files.length > 0 && (
@@ -939,7 +936,7 @@ function ConversationCard({
                   justifyContent: "space-between",
                   alignItems: "center",
                   flexWrap: "wrap",
-                  gap: 8,
+                  gap: 8
                 }}
               >
                 {files.length === 0 ? (
@@ -971,7 +968,7 @@ function ConversationCard({
                     fontSize: 12.5,
                     fontWeight: 600,
                     cursor: sending || !body.trim() ? "not-allowed" : "pointer",
-                    opacity: sending || !body.trim() ? 0.55 : 1,
+                    opacity: sending || !body.trim() ? 0.55 : 1
                   }}
                 >
                   <Send size={13} />
@@ -997,7 +994,7 @@ function ConversationCard({
             alignItems: "center",
             gap: 6,
             justifyContent: "center",
-            width: "calc(100% - 36px)",
+            width: "calc(100% - 36px)"
           }}
         >
           <Info size={12} />
@@ -1014,7 +1011,7 @@ function Timeline({ messages }: { messages: PortalTicketMessage[] }) {
       style={{
         position: "relative",
         paddingLeft: 24,
-        paddingBottom: 6,
+        paddingBottom: 6
       }}
     >
       <div
@@ -1024,7 +1021,7 @@ function Timeline({ messages }: { messages: PortalTicketMessage[] }) {
           top: 6,
           bottom: 6,
           width: 1,
-          background: p.border,
+          background: p.border
         }}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1064,7 +1061,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
           alignItems: "center",
           justifyContent: "center",
           fontSize: 9,
-          fontWeight: 700,
+          fontWeight: 700
         }}
       >
         {initials(name)}
@@ -1076,7 +1073,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
             alignItems: "baseline",
             gap: 6,
             marginBottom: 5,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span style={{ fontSize: 12.5, fontWeight: 700, color: p.text }}>
@@ -1093,7 +1090,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
                 color: INDIGO_TEXT,
                 borderRadius: 999,
                 textTransform: "uppercase",
-                letterSpacing: "0.07em",
+                letterSpacing: "0.07em"
               }}
             >
               Team
@@ -1104,7 +1101,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
             style={{
               fontSize: 11,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
             title={fmtDateTime(m.createdAt)}
           >
@@ -1122,7 +1119,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
               fontSize: 13.5,
               lineHeight: 1.55,
               whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              wordBreak: "break-word"
             }}
           >
             {m.body}
@@ -1134,7 +1131,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
               marginTop: 6,
               display: "flex",
               gap: 6,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             {m.attachments.map((a) => (
@@ -1156,7 +1153,7 @@ function MessageNode({ m }: { m: PortalTicketMessage }) {
                   color: p.textMuted,
                   textDecoration: "none",
                   fontWeight: 500,
-                  transition: "border-color 140ms ease, color 140ms ease",
+                  transition: "border-color 140ms ease, color 140ms ease"
                 }}
               >
                 <FileText size={11} color={INDIGO} />
@@ -1176,12 +1173,12 @@ function SystemNode({ m }: { m: PortalTicketMessage }) {
     m.eventType === "status_change"
       ? `Status: ${prettify(m.eventFrom)} → ${prettify(m.eventTo)}`
       : m.eventType === "assignment"
-      ? "Assignment changed"
-      : m.eventType === "attachment_upload_failed"
-      ? `Attachment upload failed${m.body ? `: ${m.body}` : ""}`
-      : m.eventType === "sla_breach"
-      ? "SLA breached"
-      : m.body || "System event";
+        ? "Assignment changed"
+        : m.eventType === "attachment_upload_failed"
+          ? `Attachment upload failed${m.body ? `: ${m.body}` : ""}`
+          : m.eventType === "sla_breach"
+            ? "SLA breached"
+            : m.body || "System event";
 
   return (
     <div style={{ position: "relative" }}>
@@ -1197,7 +1194,7 @@ function SystemNode({ m }: { m: PortalTicketMessage }) {
           border: `1.5px solid ${p.textFaint}`,
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
         <span
@@ -1205,7 +1202,7 @@ function SystemNode({ m }: { m: PortalTicketMessage }) {
             width: 4,
             height: 4,
             borderRadius: 999,
-            background: p.textFaint,
+            background: p.textFaint
           }}
         />
       </div>
@@ -1214,7 +1211,7 @@ function SystemNode({ m }: { m: PortalTicketMessage }) {
           fontSize: 11.5,
           color: p.textSubtle,
           fontWeight: 500,
-          paddingTop: 2,
+          paddingTop: 2
         }}
       >
         <span style={{ color: p.textMuted, fontWeight: 600 }}>{desc}</span>
@@ -1231,13 +1228,12 @@ function EmptyState({
   title,
   body,
   ctaLabel,
-  onCta,
-}: {
-  title: string;
-  body: string;
-  ctaLabel?: string;
-  onCta?: () => void;
-}) {
+  onCta }: {
+    title: string;
+    body: string;
+    ctaLabel?: string;
+    onCta?: () => void;
+  }) {
   return (
     <div
       style={{
@@ -1247,7 +1243,7 @@ function EmptyState({
         border: `1px dashed ${p.neutralBorder}`,
         borderRadius: 12,
         maxWidth: 520,
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <div
@@ -1260,7 +1256,7 @@ function EmptyState({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         <LifeBuoy size={18} color={p.textFaint} />
@@ -1287,7 +1283,7 @@ function EmptyState({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <ArrowLeft size={13} />

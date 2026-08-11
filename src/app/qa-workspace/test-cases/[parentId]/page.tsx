@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrumb, Row, Col, Typography, Form, Tooltip } from "antd";
 import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined } from "@ant-design/icons";
@@ -1083,13 +1084,18 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             {/* Module Test Cases */}
-            <div className="sc-tablewrap">
+            <div className="sc-tablewrap" style={{ position: 'relative' }}>
+              {loading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner size="medium" fullScreen={false} />
+                </div>
+              )}
               <Table
                 className="ts-table sc-table"
                 dataSource={pagedCases}
                 columns={childColumns}
                 rowKey="id"
-                loading={loading}
+                loading={false}
                 pagination={false}
                 onRow={(record) => ({
                   onClick: () => { setViewCase(record); setViewOpen(true); },

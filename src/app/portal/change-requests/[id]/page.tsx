@@ -1,9 +1,10 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, notification, Input, Modal } from "antd";
+import { notification, Input, Modal } from "antd";
 import {
   ArrowLeft,
   GitPullRequest,
@@ -22,12 +23,12 @@ import {
   MessageCircle,
   Folder,
   Sparkles,
-  Info,
+  Info
 } from "lucide-react";
 import {
   portalCrService,
   PortalCrDetail,
-  PortalCrMessage,
+  PortalCrMessage
 } from "@/services/portalCrService";
 import {
   p,
@@ -37,9 +38,10 @@ import {
   fmtCurrency,
   fmtDate,
   fmtDateTime,
-  fmtRelative,
+  fmtRelative
 } from "../_crUi";
 import { AttachmentPicker } from "@/app/portal/_components/AttachmentPicker";
+
 
 const INDIGO = "#4f46e5";
 const INDIGO_BG = "#eef2ff";
@@ -111,10 +113,10 @@ export default function PortalCrDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -146,7 +148,7 @@ export default function PortalCrDetailPage() {
       style={{
         height: "100vh",
         overflowY: "auto",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff"
       }}
     >
       {contextHolder}
@@ -190,7 +192,7 @@ export default function PortalCrDetailPage() {
               : "minmax(0, 1fr)",
             gap: 16,
             alignItems: "flex-start",
-            marginTop: 16,
+            marginTop: 16
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -214,7 +216,7 @@ export default function PortalCrDetailPage() {
                 flexDirection: "column",
                 gap: 12,
                 position: "sticky",
-                top: 84,
+                top: 84
               }}
             >
               <LinksCard cr={cr} />
@@ -234,14 +236,14 @@ export default function PortalCrDetailPage() {
               message:
                 decisionOpen === "approved"
                   ? "Approved — thank you"
-                  : "Estimate rejected",
+                  : "Estimate rejected"
             });
             setDecisionOpen(null);
             load();
           } catch (err: any) {
             notify.error({
               message: "Decision failed",
-              description: err?.message,
+              description: err?.message
             });
           }
         }}
@@ -328,14 +330,13 @@ function StickyHeader({
   awaitingDecision,
   onBack,
   onApprove,
-  onReject,
-}: {
-  cr: PortalCrDetail;
-  awaitingDecision: boolean;
-  onBack: () => void;
-  onApprove: () => void;
-  onReject: () => void;
-}) {
+  onReject }: {
+    cr: PortalCrDetail;
+    awaitingDecision: boolean;
+    onBack: () => void;
+    onApprove: () => void;
+    onReject: () => void;
+  }) {
   const st = STATUS_META[cr.status] || STATUS_META.submitted;
   const StIcon = st.icon;
   const tone = TONE[st.tone];
@@ -347,7 +348,7 @@ function StickyHeader({
         zIndex: 100,
         backgroundColor: "#ffffff",
         borderBottom: `1px solid ${p.border}`,
-        padding: "12px 40px",
+        padding: "12px 40px"
       }}
     >
       <div
@@ -355,7 +356,7 @@ function StickyHeader({
           display: "flex",
           alignItems: "center",
           gap: 14,
-          maxWidth: 1200,
+          maxWidth: 1200
         }}
       >
         <button
@@ -375,7 +376,7 @@ function StickyHeader({
             fontWeight: 600,
             cursor: "pointer",
             borderRadius: 7,
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <ArrowLeft size={14} />
@@ -386,7 +387,7 @@ function StickyHeader({
             width: 1,
             height: 18,
             background: p.border,
-            flexShrink: 0,
+            flexShrink: 0
           }}
         />
         <div
@@ -395,7 +396,7 @@ function StickyHeader({
             alignItems: "center",
             gap: 8,
             minWidth: 0,
-            flex: 1,
+            flex: 1
           }}
         >
           <span
@@ -408,7 +409,7 @@ function StickyHeader({
               borderRadius: 5,
               color: p.textMuted,
               fontWeight: 600,
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             {cr.crNumber}
@@ -421,7 +422,7 @@ function StickyHeader({
               letterSpacing: "-0.005em",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             {cr.subject}
@@ -438,7 +439,7 @@ function StickyHeader({
               borderRadius: 999,
               fontSize: 11,
               fontWeight: 600,
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <StIcon size={10} />
@@ -462,7 +463,7 @@ function StickyHeader({
                 borderRadius: 7,
                 fontSize: 12.5,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: "pointer"
               }}
             >
               <XCircle size={13} />
@@ -483,7 +484,7 @@ function StickyHeader({
                 borderRadius: 7,
                 fontSize: 12.5,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: "pointer"
               }}
             >
               <CheckCircle2 size={13} />
@@ -509,7 +510,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
         border: `1px solid ${p.border}`,
         borderRadius: 14,
         marginBottom: 14,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -519,7 +520,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${INDIGO}, ${p.accent})`,
+          background: `linear-gradient(180deg, ${INDIGO}, ${p.accent})`
         }}
       />
       <div
@@ -528,7 +529,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
           alignItems: "center",
           gap: 8,
           flexWrap: "wrap",
-          marginBottom: 10,
+          marginBottom: 10
         }}
       >
         <div
@@ -541,7 +542,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
             color: INDIGO,
             display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "center"
           }}
         >
           <GitPullRequest size={15} />
@@ -555,7 +556,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
             border: `1px solid ${p.border}`,
             borderRadius: 5,
             color: p.textMuted,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {cr.crNumber}
@@ -568,7 +569,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
             color: priTone.text,
             borderRadius: 999,
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {pri.label} priority
@@ -581,7 +582,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
               gap: 4,
               fontSize: 11.5,
               color: p.textSubtle,
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             <Folder size={11} color={p.textFaint} />
@@ -598,7 +599,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
           fontWeight: 700,
           color: p.text,
           letterSpacing: "-0.015em",
-          lineHeight: 1.25,
+          lineHeight: 1.25
         }}
       >
         {cr.subject}
@@ -610,7 +611,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
           gap: 14,
           flexWrap: "wrap",
           fontSize: 12,
-          color: p.textSubtle,
+          color: p.textSubtle
         }}
       >
         <MetaItem
@@ -642,7 +643,7 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
             fontSize: 13.5,
             color: p.textMuted,
             lineHeight: 1.6,
-            whiteSpace: "pre-wrap",
+            whiteSpace: "pre-wrap"
           }}
         >
           {cr.description}
@@ -655,18 +656,17 @@ function HeroBand({ cr }: { cr: PortalCrDetail }) {
 function MetaItem({
   icon: Icon,
   label,
-  value,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-}) {
+  value }: {
+    icon: any;
+    label: string;
+    value: string;
+  }) {
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
+        gap: 5
       }}
     >
       <Icon size={11} color={p.textFaint} />
@@ -680,11 +680,10 @@ function MetaItem({
 
 function DecisionBanner({
   onApprove,
-  onReject,
-}: {
-  onApprove: () => void;
-  onReject: () => void;
-}) {
+  onReject }: {
+    onApprove: () => void;
+    onReject: () => void;
+  }) {
   return (
     <div
       style={{
@@ -699,7 +698,7 @@ function DecisionBanner({
         justifyContent: "space-between",
         gap: 14,
         flexWrap: "wrap",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -709,7 +708,7 @@ function DecisionBanner({
           top: 0,
           bottom: 0,
           width: 3,
-          background: `linear-gradient(180deg, ${p.warning}, #f97316)`,
+          background: `linear-gradient(180deg, ${p.warning}, #f97316)`
         }}
       />
       <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 240 }}>
@@ -724,7 +723,7 @@ function DecisionBanner({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <DollarSign size={17} />
@@ -735,7 +734,7 @@ function DecisionBanner({
               fontSize: 13.5,
               fontWeight: 700,
               color: p.text,
-              letterSpacing: "-0.005em",
+              letterSpacing: "-0.005em"
             }}
           >
             Estimate ready — your decision needed
@@ -744,7 +743,7 @@ function DecisionBanner({
             style={{
               fontSize: 12.5,
               color: p.textMuted,
-              marginTop: 2,
+              marginTop: 2
             }}
           >
             Review the estimate below, then approve to start work or reject with
@@ -767,7 +766,7 @@ function DecisionBanner({
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: "pointer"
           }}
         >
           <XCircle size={14} />
@@ -787,7 +786,7 @@ function DecisionBanner({
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: "pointer"
           }}
         >
           <CheckCircle2 size={14} />
@@ -801,12 +800,11 @@ function DecisionBanner({
 function DecisionRecorded({
   decision,
   at,
-  note,
-}: {
-  decision: "approved" | "rejected";
-  at: string | null;
-  note: string | null;
-}) {
+  note }: {
+    decision: "approved" | "rejected";
+    at: string | null;
+    note: string | null;
+  }) {
   const isApproved = decision === "approved";
   return (
     <div
@@ -822,7 +820,7 @@ function DecisionRecorded({
         gap: 10,
         color: isApproved ? p.successText : p.dangerText,
         fontSize: 13,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -832,7 +830,7 @@ function DecisionRecorded({
           top: 0,
           bottom: 0,
           width: 3,
-          background: isApproved ? p.success : p.danger,
+          background: isApproved ? p.success : p.danger
         }}
       />
       {isApproved ? (
@@ -851,7 +849,7 @@ function DecisionRecorded({
               fontStyle: "italic",
               fontSize: 12.5,
               fontWeight: 500,
-              opacity: 0.92,
+              opacity: 0.92
             }}
           >
             “{note}”
@@ -876,7 +874,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <CardHeader icon={Sparkles} title="Estimate" tone="indigo" />
@@ -886,7 +884,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
           display: "grid",
           gridTemplateColumns: "minmax(180px, 1.4fr) 1fr 1fr",
           gap: 18,
-          alignItems: "flex-end",
+          alignItems: "flex-end"
         }}
       >
         <div>
@@ -899,7 +897,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
               color: p.text,
               letterSpacing: "-0.025em",
               fontVariantNumeric: "tabular-nums",
-              lineHeight: 1.1,
+              lineHeight: 1.1
             }}
           >
             {cr.estimatedCost
@@ -914,7 +912,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
                 color: p.textSubtle,
                 textTransform: "uppercase",
                 letterSpacing: "0.07em",
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               {cr.estimatedCurrency}
@@ -930,7 +928,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
               fontWeight: 700,
               color: p.text,
               letterSpacing: "-0.01em",
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {hoursText}
@@ -943,8 +941,8 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
               days != null && days >= 0
                 ? "Target in"
                 : days != null && days < 0
-                ? "Past target"
-                : "Target delivery"
+                  ? "Past target"
+                  : "Target delivery"
             }
           />
           <div
@@ -956,20 +954,20 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
                 days != null && days < 0
                   ? p.dangerText
                   : days != null && days <= 3
-                  ? p.warningText
-                  : p.text,
+                    ? p.warningText
+                    : p.text,
               letterSpacing: "-0.01em",
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {cr.targetDeliveryDate
               ? days == null
                 ? fmtDate(cr.targetDeliveryDate)
                 : days > 0
-                ? `${days}d`
-                : days === 0
-                ? "today"
-                : `${-days}d`
+                  ? `${days}d`
+                  : days === 0
+                    ? "today"
+                    : `${-days}d`
               : "—"}
           </div>
           {cr.targetDeliveryDate && days != null && (
@@ -978,7 +976,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
                 marginTop: 3,
                 fontSize: 11,
                 color: p.textSubtle,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
               {fmtDate(cr.targetDeliveryDate)}
@@ -998,7 +996,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
               color: p.textSubtle,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              marginBottom: 8,
+              marginBottom: 8
             }}
           >
             <Info size={11} />
@@ -1013,7 +1011,7 @@ function EstimateCard({ cr }: { cr: PortalCrDetail }) {
               padding: "14px 16px",
               background: SURFACE_TINTED,
               border: `1px solid ${p.border}`,
-              borderRadius: 10,
+              borderRadius: 10
             }}
           >
             {cr.impactAnalysis}
@@ -1034,7 +1032,7 @@ function EstimatePendingCard() {
         borderRadius: 12,
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 14
       }}
     >
       <div
@@ -1048,7 +1046,7 @@ function EstimatePendingCard() {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Clock size={18} />
@@ -1058,7 +1056,7 @@ function EstimatePendingCard() {
           style={{
             fontSize: 13.5,
             fontWeight: 600,
-            color: p.text,
+            color: p.text
           }}
         >
           Estimate in progress
@@ -1068,7 +1066,7 @@ function EstimatePendingCard() {
             fontSize: 12.5,
             color: p.textSubtle,
             marginTop: 3,
-            lineHeight: 1.5,
+            lineHeight: 1.5
           }}
         >
           Our team is reviewing your request. The impact analysis, effort, and
@@ -1090,7 +1088,7 @@ function StatLabel({ icon: Icon, label }: { icon: any; label: string }) {
         fontWeight: 700,
         color: p.textSubtle,
         textTransform: "uppercase",
-        letterSpacing: "0.08em",
+        letterSpacing: "0.08em"
       }}
     >
       <Icon size={11} />
@@ -1105,13 +1103,12 @@ function ConversationCard({
   cr,
   canReply,
   notify,
-  onPosted,
-}: {
-  cr: PortalCrDetail;
-  canReply: boolean;
-  notify: any;
-  onPosted: () => void;
-}) {
+  onPosted }: {
+    cr: PortalCrDetail;
+    canReply: boolean;
+    notify: any;
+    onPosted: () => void;
+  }) {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<
     { dataUrl: string; name: string; size: number }[]
@@ -1147,8 +1144,8 @@ function ConversationCard({
         body: body.trim(),
         attachments: files.map((f) => ({
           dataUrl: f.dataUrl,
-          fileName: f.name,
-        })),
+          fileName: f.name
+        }))
       });
       setBody("");
       setFiles([]);
@@ -1166,7 +1163,7 @@ function ConversationCard({
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <CardHeader
@@ -1182,7 +1179,7 @@ function ConversationCard({
               padding: "32px 0 20px",
               textAlign: "center",
               fontSize: 12.5,
-              color: p.textSubtle,
+              color: p.textSubtle
             }}
           >
             No messages yet. Start the conversation below.
@@ -1197,7 +1194,7 @@ function ConversationCard({
             padding: "14px 20px 20px",
             borderTop: `1px solid ${p.border}`,
             marginTop: 14,
-            background: SURFACE_TINTED,
+            background: SURFACE_TINTED
           }}
         >
           <div
@@ -1208,7 +1205,7 @@ function ConversationCard({
               boxShadow: composerFocused
                 ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
                 : "none",
-              transition: "border-color 140ms ease, box-shadow 140ms ease",
+              transition: "border-color 140ms ease, box-shadow 140ms ease"
             }}
           >
             <textarea
@@ -1241,13 +1238,13 @@ function ConversationCard({
                 fontSize: 13.5,
                 lineHeight: 1.55,
                 fontFamily: "inherit",
-                minHeight: 70,
+                minHeight: 70
               }}
             />
             <div
               style={{
                 padding: "8px 10px 10px",
-                borderTop: files.length > 0 ? `1px solid ${p.border}` : "none",
+                borderTop: files.length > 0 ? `1px solid ${p.border}` : "none"
               }}
             >
               {files.length > 0 && (
@@ -1266,7 +1263,7 @@ function ConversationCard({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 8
                 }}
               >
                 {files.length === 0 ? (
@@ -1298,7 +1295,7 @@ function ConversationCard({
                     fontSize: 12.5,
                     fontWeight: 600,
                     cursor: sending || !body.trim() ? "not-allowed" : "pointer",
-                    opacity: sending || !body.trim() ? 0.55 : 1,
+                    opacity: sending || !body.trim() ? 0.55 : 1
                   }}
                 >
                   <Send size={13} />
@@ -1319,7 +1316,7 @@ function ConversationCard({
             borderRadius: 10,
             fontSize: 12.5,
             color: p.textSubtle,
-            textAlign: "center",
+            textAlign: "center"
           }}
         >
           This change request is{" "}
@@ -1336,7 +1333,7 @@ function Timeline({ messages }: { messages: PortalCrMessage[] }) {
       style={{
         position: "relative",
         paddingLeft: 24,
-        paddingBottom: 6,
+        paddingBottom: 6
       }}
     >
       {/* vertical rail */}
@@ -1347,7 +1344,7 @@ function Timeline({ messages }: { messages: PortalCrMessage[] }) {
           top: 6,
           bottom: 6,
           width: 1,
-          background: p.border,
+          background: p.border
         }}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1388,7 +1385,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
           justifyContent: "center",
           fontSize: 9,
           fontWeight: 700,
-          fontFamily: "ui-sans-serif, system-ui",
+          fontFamily: "ui-sans-serif, system-ui"
         }}
       >
         {initials(name)}
@@ -1399,7 +1396,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
             display: "flex",
             alignItems: "baseline",
             gap: 6,
-            marginBottom: 5,
+            marginBottom: 5
           }}
         >
           <span style={{ fontSize: 12.5, fontWeight: 700, color: p.text }}>
@@ -1416,7 +1413,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
                 color: INDIGO_TEXT,
                 borderRadius: 999,
                 textTransform: "uppercase",
-                letterSpacing: "0.07em",
+                letterSpacing: "0.07em"
               }}
             >
               Team
@@ -1427,7 +1424,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
             style={{
               fontSize: 11,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
             title={fmtDateTime(m.createdAt)}
           >
@@ -1445,7 +1442,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
               fontSize: 13.5,
               lineHeight: 1.55,
               whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              wordBreak: "break-word"
             }}
           >
             {m.body}
@@ -1457,7 +1454,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
               marginTop: 6,
               display: "flex",
               gap: 6,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             {m.attachments.map((a) => (
@@ -1479,7 +1476,7 @@ function MessageNode({ m }: { m: PortalCrMessage }) {
                   color: p.textMuted,
                   textDecoration: "none",
                   fontWeight: 500,
-                  transition: "border-color 140ms ease, color 140ms ease",
+                  transition: "border-color 140ms ease, color 140ms ease"
                 }}
               >
                 <FileText size={11} color={INDIGO} />
@@ -1499,20 +1496,20 @@ function SystemNode({ m }: { m: PortalCrMessage }) {
     m.eventType === "status_change"
       ? `Status: ${prettify(m.eventFrom)} → ${prettify(m.eventTo)}`
       : m.eventType === "estimate_published"
-      ? "Estimate published"
-      : m.eventType === "estimate_updated"
-      ? "Estimate updated"
-      : m.eventType === "client_decision"
-      ? m.body
-      : m.eventType === "invoice_linked"
-      ? `Invoice ${m.eventTo ? "linked" : "unlinked"}`
-      : m.eventType === "sprint_linked"
-      ? `Sprint ${m.eventTo ? "linked" : "unlinked"}`
-      : m.eventType === "assignment"
-      ? "Assignment changed"
-      : m.eventType === "created_from_mom"
-      ? m.body
-      : m.body || "System event";
+        ? "Estimate published"
+        : m.eventType === "estimate_updated"
+          ? "Estimate updated"
+          : m.eventType === "client_decision"
+            ? m.body
+            : m.eventType === "invoice_linked"
+              ? `Invoice ${m.eventTo ? "linked" : "unlinked"}`
+              : m.eventType === "sprint_linked"
+                ? `Sprint ${m.eventTo ? "linked" : "unlinked"}`
+                : m.eventType === "assignment"
+                  ? "Assignment changed"
+                  : m.eventType === "created_from_mom"
+                    ? m.body
+                    : m.body || "System event";
 
   return (
     <div style={{ position: "relative" }}>
@@ -1528,7 +1525,7 @@ function SystemNode({ m }: { m: PortalCrMessage }) {
           border: `1.5px solid ${p.textFaint}`,
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
         <span
@@ -1536,7 +1533,7 @@ function SystemNode({ m }: { m: PortalCrMessage }) {
             width: 4,
             height: 4,
             borderRadius: 999,
-            background: p.textFaint,
+            background: p.textFaint
           }}
         />
       </div>
@@ -1545,7 +1542,7 @@ function SystemNode({ m }: { m: PortalCrMessage }) {
           fontSize: 11.5,
           color: p.textSubtle,
           fontWeight: 500,
-          paddingTop: 2,
+          paddingTop: 2
         }}
       >
         <span style={{ color: p.textMuted, fontWeight: 600 }}>{desc}</span>
@@ -1562,17 +1559,16 @@ function CardHeader({
   icon: Icon,
   title,
   tone,
-  countLabel,
-}: {
-  icon: any;
-  title: string;
-  tone: "indigo" | "warning" | "neutral";
-  countLabel?: string;
-}) {
+  countLabel }: {
+    icon: any;
+    title: string;
+    tone: "indigo" | "warning" | "neutral";
+    countLabel?: string;
+  }) {
   const toneMap = {
     indigo: { bg: INDIGO_BG, border: INDIGO_BORDER, color: INDIGO_TEXT },
     warning: { bg: p.warningBg, border: p.warningBorder, color: p.warningText },
-    neutral: { bg: p.neutralBg, border: p.neutralBorder, color: p.neutralText },
+    neutral: { bg: p.neutralBg, border: p.neutralBorder, color: p.neutralText }
   };
   const t = toneMap[tone];
   return (
@@ -1583,7 +1579,7 @@ function CardHeader({
         borderBottom: `1px solid ${p.border}`,
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: 8
       }}
     >
       <div
@@ -1597,7 +1593,7 @@ function CardHeader({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Icon size={11} />
@@ -1608,7 +1604,7 @@ function CardHeader({
           fontWeight: 700,
           color: p.textMuted,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: "0.08em"
         }}
       >
         {title}
@@ -1618,7 +1614,7 @@ function CardHeader({
           style={{
             fontSize: 11,
             color: p.textSubtle,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           · {countLabel}
@@ -1635,7 +1631,7 @@ function LinksCard({ cr }: { cr: PortalCrDetail }) {
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <CardHeader icon={Receipt} title="Linked" tone="neutral" />
@@ -1668,14 +1664,13 @@ function LinkRow({
   label,
   value,
   href,
-  mono,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  href: string;
-  mono?: boolean;
-}) {
+  mono }: {
+    icon: any;
+    label: string;
+    value: string;
+    href: string;
+    mono?: boolean;
+  }) {
   return (
     <Link
       href={href}
@@ -1689,7 +1684,7 @@ function LinkRow({
         borderRadius: 7,
         textDecoration: "none",
         color: "inherit",
-        transition: "background 140ms ease",
+        transition: "background 140ms ease"
       }}
     >
       <span
@@ -1699,7 +1694,7 @@ function LinkRow({
           gap: 7,
           fontSize: 12,
           color: p.textSubtle,
-          fontWeight: 500,
+          fontWeight: 500
         }}
       >
         <Icon size={12} color={p.textFaint} />
@@ -1715,7 +1710,7 @@ function LinkRow({
           fontWeight: 600,
           fontFamily: mono
             ? "ui-monospace, SFMono-Regular, Menlo, monospace"
-            : "inherit",
+            : "inherit"
         }}
       >
         {value}
@@ -1731,13 +1726,12 @@ function EmptyState({
   title,
   body,
   ctaLabel,
-  onCta,
-}: {
-  title: string;
-  body: string;
-  ctaLabel?: string;
-  onCta?: () => void;
-}) {
+  onCta }: {
+    title: string;
+    body: string;
+    ctaLabel?: string;
+    onCta?: () => void;
+  }) {
   return (
     <div
       style={{
@@ -1747,7 +1741,7 @@ function EmptyState({
         border: `1px dashed ${p.neutralBorder}`,
         borderRadius: 12,
         maxWidth: 520,
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       <div
@@ -1760,7 +1754,7 @@ function EmptyState({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         <GitPullRequest size={18} color={p.textFaint} />
@@ -1787,7 +1781,7 @@ function EmptyState({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <ArrowLeft size={13} />
@@ -1804,12 +1798,11 @@ function EmptyState({
 function DecisionModal({
   decision,
   onCancel,
-  onConfirm,
-}: {
-  decision: "approved" | "rejected" | null;
-  onCancel: () => void;
-  onConfirm: (note?: string) => Promise<void>;
-}) {
+  onConfirm }: {
+    decision: "approved" | "rejected" | null;
+    onCancel: () => void;
+    onConfirm: (note?: string) => Promise<void>;
+  }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
@@ -1834,9 +1827,9 @@ function DecisionModal({
           border: `1px solid ${p.border}`,
           padding: 0,
           borderRadius: 14,
-          overflow: "hidden",
+          overflow: "hidden"
         },
-        body: { padding: 0 },
+        body: { padding: 0 }
       }}
     >
       <div
@@ -1845,7 +1838,7 @@ function DecisionModal({
           borderBottom: `1px solid ${p.border}`,
           display: "flex",
           gap: 12,
-          alignItems: "flex-start",
+          alignItems: "flex-start"
         }}
       >
         <div
@@ -1855,13 +1848,12 @@ function DecisionModal({
             borderRadius: 10,
             background: isApprove ? p.successBg : p.dangerBg,
             color: isApprove ? p.successText : p.dangerText,
-            border: `1px solid ${
-              isApprove ? p.successBorder : p.dangerBorder
-            }`,
+            border: `1px solid ${isApprove ? p.successBorder : p.dangerBorder
+              }`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           {isApprove ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
@@ -1872,7 +1864,7 @@ function DecisionModal({
               fontSize: 15.5,
               fontWeight: 700,
               color: p.text,
-              letterSpacing: "-0.005em",
+              letterSpacing: "-0.005em"
             }}
           >
             {isApprove ? "Approve estimate" : "Reject estimate"}
@@ -1882,7 +1874,7 @@ function DecisionModal({
               marginTop: 3,
               fontSize: 12.5,
               color: p.textSubtle,
-              lineHeight: 1.5,
+              lineHeight: 1.5
             }}
           >
             {isApprove
@@ -1909,7 +1901,7 @@ function DecisionModal({
             gap: 8,
             marginTop: 14,
             paddingTop: 14,
-            borderTop: `1px solid ${p.border}`,
+            borderTop: `1px solid ${p.border}`
           }}
         >
           <button
@@ -1923,7 +1915,7 @@ function DecisionModal({
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             Cancel
@@ -1955,7 +1947,7 @@ function DecisionModal({
                 submitting || (!isApprove && !note.trim()) ? 0.55 : 1,
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
+              gap: 6
             }}
           >
             {isApprove ? <CheckCircle2 size={13} /> : <XCircle size={13} />}

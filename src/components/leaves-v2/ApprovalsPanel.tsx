@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Avatar, message, Tooltip, DatePicker } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { Dayjs } from 'dayjs';
@@ -395,12 +396,17 @@ export default function ApprovalsPanel() {
         {hasFilters && <button type="button" className="lvap-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="lvap-table-wrap">
+      <div className="lvap-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           rowKey="id"
           size="small"
           className="lvap-table"
-          loading={loading}
+          loading={false}
           columns={columns}
           dataSource={paged}
           pagination={false}

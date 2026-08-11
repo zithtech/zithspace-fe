@@ -1,8 +1,9 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Spin, Tabs } from 'antd';
+import { Button, Table, Tag, Switch, InputNumber, message, Tooltip, Empty, Tabs } from 'antd';
 import { Menu } from 'lucide-react';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -18,8 +19,7 @@ import {
   ProfileOutlined,
   ArrowRightOutlined,
   InfoCircleOutlined,
-  CloseOutlined,
-} from '@ant-design/icons';
+  CloseOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, {
@@ -27,9 +27,9 @@ import LeaveV2Service, {
   AccrualSettings,
   LeavePolicyDetail,
   LeavePolicyListItem,
-  LeaveTypeV2,
-} from '@/services/leaveV2Service';
+  LeaveTypeV2 } from '@/services/leaveV2Service';
 import MailConfiguration from './MailConfiguration';
+
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -147,7 +147,7 @@ export default function ConfigurationPanel() {
 
   const expandedPolicy = (row: LeavePolicyListItem) => {
     const d = polDetail[row.id];
-    if (!d) return <div style={{ padding: 12 }}><Spin size="small" /> Loading…</div>;
+    if (!d) return <div style={{ padding: 12 }}><LoadingSpinner size="small" fullScreen={false} /> Loading…</div>;
     return (
       <div style={{ padding: '6px 12px', background: 'var(--bg-slate-50)' }}>
         <Table
@@ -288,12 +288,17 @@ export default function ConfigurationPanel() {
           <ProfileOutlined style={{ color: PALETTE.blue }} /> Policy Allocations
           {canReadLeavePolicy && <button type="button" className="lvc-link" onClick={() => router.push('/leaves-v2/policy')}>Manage <ArrowRightOutlined /></button>}
         </div>
-        <div className="lvc-table-wrap">
+        <div className="lvc-table-wrap" style={{ position: 'relative' }}>
+          {polLoading && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
           <Table
             rowKey="id"
             size="small"
             className="lvc-table"
-            loading={polLoading}
+            loading={false}
             columns={policyCols}
             dataSource={policies}
             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}

@@ -1,8 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, Empty, Tooltip } from "antd";
+import { Empty, Tooltip } from "antd";
 import {
   ArrowLeft,
   Server,
@@ -13,14 +14,15 @@ import {
   HardDrive,
   History,
   Activity,
-  Calendar,
+  Calendar
 } from "lucide-react";
 import {
   portalEnvironmentsService,
   PortalEnvDetail,
-  PortalEnvDeployment,
+  PortalEnvDeployment
 } from "@/services/portalEnvironmentsService";
 import {
+
   p,
   TONE,
   KIND_META,
@@ -30,7 +32,7 @@ import {
   fmtDateTime,
   fmtRelative,
   fmtDuration,
-  daysUntil,
+  daysUntil
 } from "../_ui";
 
 /* --------------------------------------------------------------- */
@@ -68,10 +70,10 @@ export default function PortalEnvDetailPage() {
           minHeight: "60vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
-        <Spin size="large" />
+        <LoadingSpinner size="large" fullScreen={false} />
       </div>
     );
   }
@@ -89,7 +91,7 @@ export default function PortalEnvDetailPage() {
               border: `1px solid ${p.text}`,
               borderRadius: 8,
               fontSize: 13,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             Back to environments
@@ -107,10 +109,10 @@ export default function PortalEnvDetailPage() {
     sslDays == null
       ? TONE.neutral
       : sslDays < 0
-      ? TONE.danger
-      : sslDays <= 14
-      ? TONE.warning
-      : TONE.success;
+        ? TONE.danger
+        : sslDays <= 14
+          ? TONE.warning
+          : TONE.success;
 
   return (
     <div style={{ padding: "32px 40px 56px", maxWidth: 1080 }}>
@@ -127,7 +129,7 @@ export default function PortalEnvDetailPage() {
           color: p.textMuted,
           fontSize: 13,
           cursor: "pointer",
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         <ArrowLeft size={14} />
@@ -141,7 +143,7 @@ export default function PortalEnvDetailPage() {
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
           borderRadius: 14,
-          marginBottom: 16,
+          marginBottom: 16
         }}
       >
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
@@ -156,7 +158,7 @@ export default function PortalEnvDetailPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <Server size={20} />
@@ -167,7 +169,7 @@ export default function PortalEnvDetailPage() {
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <span
@@ -180,7 +182,7 @@ export default function PortalEnvDetailPage() {
                   color: TONE[kindMeta.tone].text,
                   borderRadius: 999,
                   textTransform: "uppercase",
-                  letterSpacing: "0.06em",
+                  letterSpacing: "0.06em"
                 }}
               >
                 {kindMeta.label}
@@ -196,7 +198,7 @@ export default function PortalEnvDetailPage() {
                   color: TONE[st.tone].text,
                   borderRadius: 999,
                   fontSize: 11.5,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 <StIcon size={11} />
@@ -209,7 +211,7 @@ export default function PortalEnvDetailPage() {
                 fontSize: 22,
                 fontWeight: 600,
                 color: p.text,
-                letterSpacing: "-0.01em",
+                letterSpacing: "-0.01em"
               }}
             >
               {data.name}
@@ -231,7 +233,7 @@ export default function PortalEnvDetailPage() {
                   color: p.accentText,
                   textDecoration: "none",
                   fontSize: 12.5,
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
               >
                 <Globe size={12} />
@@ -246,7 +248,7 @@ export default function PortalEnvDetailPage() {
                 gap: 14,
                 flexWrap: "wrap",
                 fontSize: 12.5,
-                color: p.textSubtle,
+                color: p.textSubtle
               }}
             >
               {data.projectName && (
@@ -260,7 +262,7 @@ export default function PortalEnvDetailPage() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 4
                   }}
                 >
                   <Activity size={11} />
@@ -280,7 +282,7 @@ export default function PortalEnvDetailPage() {
             gap: 0,
             border: `1px solid ${p.border}`,
             borderRadius: 10,
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           <MoneyBlock
@@ -290,7 +292,7 @@ export default function PortalEnvDetailPage() {
                 <span
                   style={{
                     fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      "ui-monospace, SFMono-Regular, Menlo, monospace"
                   }}
                 >
                   {data.currentVersion}
@@ -317,7 +319,7 @@ export default function PortalEnvDetailPage() {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 5,
-                  color: sslTone.text,
+                  color: sslTone.text
                 }}
               >
                 {sslDays != null && sslDays < 0 ? (
@@ -328,8 +330,8 @@ export default function PortalEnvDetailPage() {
                 {sslDays == null
                   ? "—"
                   : sslDays < 0
-                  ? `Expired ${Math.abs(sslDays)}d ago`
-                  : `${sslDays}d`}
+                    ? `Expired ${Math.abs(sslDays)}d ago`
+                    : `${sslDays}d`}
               </span>
             }
           />
@@ -341,7 +343,7 @@ export default function PortalEnvDetailPage() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 5,
+                    gap: 5
                   }}
                 >
                   <HardDrive size={12} color={p.textSubtle} />
@@ -365,7 +367,7 @@ export default function PortalEnvDetailPage() {
               fontSize: 13,
               color: p.textMuted,
               lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
+              whiteSpace: "pre-wrap"
             }}
           >
             {data.notes}
@@ -400,18 +402,17 @@ export default function PortalEnvDetailPage() {
 function MoneyBlock({
   label,
   value,
-  emphasized,
-}: {
-  label: string;
-  value: React.ReactNode;
-  emphasized?: boolean;
-}) {
+  emphasized }: {
+    label: string;
+    value: React.ReactNode;
+    emphasized?: boolean;
+  }) {
   return (
     <div
       style={{
         padding: "12px 14px",
         background: emphasized ? p.surfaceMuted : p.surfaceElevated,
-        borderRight: `1px solid ${p.border}`,
+        borderRight: `1px solid ${p.border}`
       }}
     >
       <div
@@ -420,7 +421,7 @@ function MoneyBlock({
           fontWeight: 600,
           color: p.textSubtle,
           textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          letterSpacing: "0.06em"
         }}
       >
         {label}
@@ -431,7 +432,7 @@ function MoneyBlock({
           fontSize: 14,
           fontWeight: 600,
           color: p.text,
-          fontVariantNumeric: "tabular-nums",
+          fontVariantNumeric: "tabular-nums"
         }}
       >
         {value}
@@ -443,19 +444,18 @@ function MoneyBlock({
 function Card({
   title,
   icon: Icon,
-  children,
-}: {
-  title: string;
-  icon: any;
-  children: React.ReactNode;
-}) {
+  children }: {
+    title: string;
+    icon: any;
+    children: React.ReactNode;
+  }) {
   return (
     <div
       style={{
         background: p.surfaceElevated,
         border: `1px solid ${p.border}`,
         borderRadius: 12,
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -470,7 +470,7 @@ function Card({
           letterSpacing: "0.08em",
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 6
         }}
       >
         <Icon size={12} />
@@ -483,11 +483,10 @@ function Card({
 
 function DeployRow({
   d,
-  first,
-}: {
-  d: PortalEnvDeployment;
-  first: boolean;
-}) {
+  first }: {
+    d: PortalEnvDeployment;
+    first: boolean;
+  }) {
   const meta = DEPLOY_STATUS_META[d.status] || DEPLOY_STATUS_META.success;
   const Icon = meta.icon;
   return (
@@ -498,7 +497,7 @@ function DeployRow({
         display: "grid",
         gridTemplateColumns: "1fr 120px 110px",
         gap: 12,
-        alignItems: "center",
+        alignItems: "center"
       }}
     >
       <div style={{ minWidth: 0 }}>
@@ -507,7 +506,7 @@ function DeployRow({
             display: "flex",
             gap: 8,
             alignItems: "center",
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span
@@ -515,7 +514,7 @@ function DeployRow({
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               fontSize: 13,
               fontWeight: 600,
-              color: p.text,
+              color: p.text
             }}
           >
             {d.version}
@@ -534,7 +533,7 @@ function DeployRow({
                   border: `1px solid ${p.purpleBorder}`,
                   color: p.purpleText,
                   borderRadius: 999,
-                  textDecoration: "none",
+                  textDecoration: "none"
                 }}
               >
                 {d.releaseNoteVersion}
@@ -550,7 +549,7 @@ function DeployRow({
                 background: p.warningBg,
                 border: `1px solid ${p.warningBorder}`,
                 color: p.warningText,
-                borderRadius: 999,
+                borderRadius: 999
               }}
             >
               Rollback
@@ -564,7 +563,7 @@ function DeployRow({
             color: p.textSubtle,
             display: "flex",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
@@ -591,7 +590,7 @@ function DeployRow({
               fontSize: 12,
               color: p.textMuted,
               lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
+              whiteSpace: "pre-wrap"
             }}
           >
             {d.changelogExcerpt}
@@ -610,7 +609,7 @@ function DeployRow({
           borderRadius: 999,
           fontSize: 11,
           fontWeight: 500,
-          justifySelf: "start",
+          justifySelf: "start"
         }}
       >
         <Icon size={11} />
@@ -619,7 +618,7 @@ function DeployRow({
       <span
         style={{
           fontSize: 11.5,
-          color: p.textSubtle,
+          color: p.textSubtle
         }}
       >
         {fmtRelative(d.finishedAt)}

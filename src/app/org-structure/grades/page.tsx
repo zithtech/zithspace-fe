@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useMemo, useState, useEffect } from "react";
 import {
@@ -10,11 +11,9 @@ import {
   Col,
   Switch,
   Tooltip,
-  Spin,
   Drawer,
   App,
-  Popover,
-} from "antd";
+  Popover } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import {
   ShieldCheck,
@@ -27,8 +26,7 @@ import {
   Hash,
   Settings,
   Trash2,
-  MoreHorizontal,
-} from "lucide-react";
+  MoreHorizontal } from "lucide-react";
 import { useGrades, GradeViewData } from "@/hooks/useGrades";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -39,6 +37,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+
 
 
 
@@ -107,8 +106,7 @@ export default function GradesPage() {
     form.setFieldsValue({
       code: generateNextCode(),
       status: true,
-      levelOrder: dataSource.length + 1,
-    });
+      levelOrder: dataSource.length + 1 });
     setIsDrawerOpen(true);
   };
 
@@ -153,8 +151,7 @@ export default function GradesPage() {
         codes: formValues.codes,
         levelOrder: formValues.levelOrder ?? (editingKey ? (dataSource.find((g) => g.key === editingKey)?.levelOrder ?? 999) : (dataSource.length + 1)),
         description: formValues.description,
-        isActive: !!formValues.status,
-      };
+        isActive: !!formValues.status };
 
       setSubmitting(true);
       const success = editingKey
@@ -180,7 +177,7 @@ export default function GradesPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Grades..." />
+        <LoadingSpinner message="Loading Grades..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -200,8 +197,7 @@ export default function GradesPage() {
             <span className="orgx-row-name__code">{record.codes}</span>
           </div>
         </div>
-      ),
-    },
+      ) },
     /*
     {
       title: "Hierarchy Level",
@@ -214,8 +210,7 @@ export default function GradesPage() {
           <Hash size={11} />
           Level {level}
         </span>
-      ),
-    },
+      ) },
     */
     {
       title: "Description",
@@ -227,8 +222,7 @@ export default function GradesPage() {
         <Tooltip placement="topLeft" title={description}>
           <span className="orgx-row-desc">{description || "No description provided"}</span>
         </Tooltip>
-      ),
-    },
+      ) },
     {
       title: "Status",
       dataIndex: "status",
@@ -239,8 +233,7 @@ export default function GradesPage() {
           <span className="orgx-status-dot" />
           {status}
         </span>
-      ),
-    },
+      ) },
     {
       title: "",
       key: "actions",
@@ -268,8 +261,7 @@ export default function GradesPage() {
             </ConfirmDialog>
           )}
         </div>
-      ),
-    },
+      ) },
   ];
 
   const CARD_ACCENTS: [string, string][] = [
@@ -386,8 +378,7 @@ export default function GradesPage() {
               marginBottom: 8,
               position: 'sticky',
               top: 0,
-              zIndex: 100,
-            }}
+              zIndex: 100 }}
             extra={
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {canReadActivityLog && (
@@ -452,15 +443,13 @@ export default function GradesPage() {
               body: { padding: 0, background: 'var(--customers-page-bg)' },
               footer: { padding: 0, border: 'none' },
               wrapper: { boxShadow: '-12px 0 32px rgba(15, 23, 42, 0.08)' },
-              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' },
-            }}
+              mask: { background: 'rgba(15, 23, 42, 0.35)', backdropFilter: 'blur(2px)' } }}
             footer={
               <div
                 className="customer-drawer-footer px-6 py-3 flex items-center justify-end gap-2 border-t"
                 style={{
                   background: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-color)',
-                }}
+                  borderColor: 'var(--border-color)' }}
               >
                 <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
                   Fields marked required must be filled
@@ -485,8 +474,7 @@ export default function GradesPage() {
               className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
               style={{
                 background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-                borderColor: 'var(--border-color)',
-              }}
+                borderColor: 'var(--border-color)' }}
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
@@ -494,8 +482,7 @@ export default function GradesPage() {
                   style={{
                     background: 'rgba(59,130,246,0.10)',
                     color: '#3b82f6',
-                    border: '1px solid var(--border-blue-200)',
-                  }}
+                    border: '1px solid var(--border-blue-200)' }}
                 >
                   {editingKey ? <Edit size={18} /> : <ShieldCheck size={18} />}
                 </div>

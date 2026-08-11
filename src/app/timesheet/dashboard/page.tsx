@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React from "react";
 import TimesheetDashboard from "@/components/timesheet/TimesheetDashboard";
@@ -7,7 +8,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Spin } from "antd";
+
+
 
 export default function TimesheetDashboardPage() {
   const { isLoading: authLoading } = useAuth();
@@ -23,7 +25,7 @@ export default function TimesheetDashboardPage() {
   if (authLoading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large" tip="Loading..." />
+        <LoadingSpinner message="Loading..." size="large" fullScreen={false} />
       </div>
     );
   }

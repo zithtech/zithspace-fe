@@ -1,8 +1,10 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Spin } from "antd";
+import { Drawer } from "antd";
 import {
+
   X,
   Download,
   ExternalLink,
@@ -10,7 +12,7 @@ import {
   FileType2,
   Image as ImageIcon,
   Link2,
-  AlertTriangle,
+  AlertTriangle
 } from "lucide-react";
 
 /**
@@ -51,7 +53,7 @@ const p = {
   accentText: "#1d4ed8",
   warningBg: "#fffbeb",
   warningBorder: "#fde68a",
-  warningText: "#92400e",
+  warningText: "#92400e"
 };
 
 function isImage(mime?: string | null): boolean {
@@ -81,11 +83,10 @@ function hostnameOf(url: string | null | undefined): string {
 
 export default function AttachmentPreviewDrawer({
   attachment,
-  onClose,
-}: {
-  attachment: PreviewAttachment | null;
-  onClose: () => void;
-}) {
+  onClose }: {
+    attachment: PreviewAttachment | null;
+    onClose: () => void;
+  }) {
   const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
@@ -110,8 +111,8 @@ export default function AttachmentPreviewDrawer({
     ? isImage(attachment.mimeType)
       ? ImageIcon
       : isPdf(attachment.mimeType)
-      ? FileType2
-      : FileText
+        ? FileType2
+        : FileText
     : Link2;
 
   return (
@@ -125,7 +126,7 @@ export default function AttachmentPreviewDrawer({
         mask: { backgroundColor: "rgba(15,23,42,0.55)" },
         content: { background: p.surface },
         header: { display: "none" },
-        body: { padding: 0, background: p.surface, display: "flex", flexDirection: "column" },
+        body: { padding: 0, background: p.surface, display: "flex", flexDirection: "column" }
       }}
     >
       {/* Header */}
@@ -135,7 +136,7 @@ export default function AttachmentPreviewDrawer({
           borderBottom: `1px solid ${p.border}`,
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 12
         }}
       >
         <div
@@ -149,7 +150,7 @@ export default function AttachmentPreviewDrawer({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <HeaderIcon size={17} />
@@ -162,7 +163,7 @@ export default function AttachmentPreviewDrawer({
               color: p.text,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
             title={title || ""}
           >
@@ -175,7 +176,7 @@ export default function AttachmentPreviewDrawer({
               color: p.textSubtle,
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
             title={subtitle}
           >
@@ -199,7 +200,7 @@ export default function AttachmentPreviewDrawer({
                 color: p.textMuted,
                 textDecoration: "none",
                 fontSize: 12,
-                fontWeight: 500,
+                fontWeight: 500
               }}
             >
               <ExternalLink size={12} />
@@ -221,7 +222,7 @@ export default function AttachmentPreviewDrawer({
                 color: "#ffffff",
                 textDecoration: "none",
                 fontSize: 12,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               <Download size={12} />
@@ -241,7 +242,7 @@ export default function AttachmentPreviewDrawer({
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "center"
             }}
             aria-label="Close"
           >
@@ -259,7 +260,7 @@ export default function AttachmentPreviewDrawer({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          overflow: "auto",
+          overflow: "auto"
         }}
       >
         {!url ? (
@@ -274,7 +275,7 @@ export default function AttachmentPreviewDrawer({
               objectFit: "contain",
               border: `1px solid ${p.border}`,
               borderRadius: 8,
-              background: "#ffffff",
+              background: "#ffffff"
             }}
           />
         ) : isFile && !isPdf(attachment.mimeType) ? (
@@ -293,7 +294,7 @@ export default function AttachmentPreviewDrawer({
               background: "#ffffff",
               border: `1px solid ${p.border}`,
               borderRadius: 8,
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {iframeLoading && (
@@ -306,10 +307,10 @@ export default function AttachmentPreviewDrawer({
                   justifyContent: "center",
                   color: p.textSubtle,
                   fontSize: 12.5,
-                  gap: 8,
+                  gap: 8
                 }}
               >
-                <Spin size="small" /> Loading preview…
+                <LoadingSpinner size="small" fullScreen={false} /> Loading preview…
               </div>
             )}
             <iframe
@@ -319,7 +320,7 @@ export default function AttachmentPreviewDrawer({
                 width: "100%",
                 height: "100%",
                 border: 0,
-                display: "block",
+                display: "block"
               }}
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
               referrerPolicy="no-referrer"
@@ -340,7 +341,7 @@ export default function AttachmentPreviewDrawer({
             fontSize: 11.5,
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 6
           }}
         >
           <AlertTriangle size={11} />
@@ -361,7 +362,7 @@ function EmptyState({ title }: { title: string }) {
         padding: 40,
         fontSize: 13,
         color: p.textSubtle,
-        textAlign: "center",
+        textAlign: "center"
       }}
     >
       {title}
@@ -371,11 +372,10 @@ function EmptyState({ title }: { title: string }) {
 
 function NoPreviewCard({
   attachment,
-  note,
-}: {
-  attachment: PreviewAttachment;
-  note: string;
-}) {
+  note }: {
+    attachment: PreviewAttachment;
+    note: string;
+  }) {
   return (
     <div
       style={{
@@ -384,7 +384,7 @@ function NoPreviewCard({
         border: `1px solid ${p.border}`,
         borderRadius: 12,
         maxWidth: 460,
-        textAlign: "center",
+        textAlign: "center"
       }}
     >
       <div
@@ -398,7 +398,7 @@ function NoPreviewCard({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 14,
+          marginBottom: 14
         }}
       >
         <FileText size={22} />
@@ -410,7 +410,7 @@ function NoPreviewCard({
         style={{
           marginTop: 4,
           fontSize: 11.5,
-          color: p.textSubtle,
+          color: p.textSubtle
         }}
       >
         {attachment.mimeType || "Unknown type"} ·{" "}
@@ -421,7 +421,7 @@ function NoPreviewCard({
           marginTop: 14,
           fontSize: 12.5,
           color: p.textMuted,
-          lineHeight: 1.55,
+          lineHeight: 1.55
         }}
       >
         {note}

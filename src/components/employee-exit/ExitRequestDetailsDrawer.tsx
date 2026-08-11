@@ -1,11 +1,13 @@
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import React, { useEffect, useState } from 'react';
-import { Drawer, Spin, Tabs, Tag, Timeline, Typography, Alert } from 'antd';
+import { Drawer, Tabs, Tag, Timeline, Typography, Alert } from 'antd';
 import { api } from '@/lib/axios';
 import dayjs from 'dayjs';
 import { CheckCircle, Clock, User, Calendar, FileText, CreditCard, ShieldCheck, X } from 'lucide-react';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { DepartmentService } from '@/services/departmentService';
 import { PositionService } from '@/services/positionService';
+
 
 const { Text } = Typography;
 
@@ -20,8 +22,7 @@ const statusCfg: Record<string, { bg: string; color: string; border: string }> =
   PENDING:    { bg: 'rgba(245,158,11,0.1)',   color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' },
   REJECTED:   { bg: 'rgba(239,68,68,0.1)',    color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' },
   WITHDRAWN:  { bg: 'rgba(100,116,139,0.1)',  color: '#64748b', border: '1px solid rgba(100,116,139,0.3)' },
-  COMPLETED:  { bg: 'rgba(99,102,241,0.1)',   color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)' },
-};
+  COMPLETED:  { bg: 'rgba(99,102,241,0.1)',   color: '#6366f1', border: '1px solid rgba(99,102,241,0.3)' } };
 
 const renderStatus = (status: string) => {
   const s = (status || 'PENDING').toUpperCase();
@@ -96,7 +97,7 @@ export const ExitRequestDetailsDrawer: React.FC<ExitRequestDetailsDrawerProps> =
     if (loading) {
       return (
         <div style={{ padding: 60, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading details..." />
+          <LoadingSpinner message="Loading details..." size="large" fullScreen={false} />
         </div>
       );
     }
@@ -307,8 +308,7 @@ export const ExitRequestDetailsDrawer: React.FC<ExitRequestDetailsDrawerProps> =
         className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
         style={{
           background: 'color-mix(in oklab, var(--bg-secondary) 92%, transparent)',
-          borderColor: 'var(--border-color)',
-        }}
+          borderColor: 'var(--border-color)' }}
       >
         <div className="flex items-start gap-3 min-w-0">
           <div
@@ -316,8 +316,7 @@ export const ExitRequestDetailsDrawer: React.FC<ExitRequestDetailsDrawerProps> =
             style={{
               background: 'var(--bg-blue-50)',
               color: 'var(--text-blue-700)',
-              border: '1px solid var(--border-blue-200)',
-            }}
+              border: '1px solid var(--border-blue-200)' }}
           >
             <FileText size={18} />
           </div>

@@ -1,13 +1,14 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/axios";
 import {
+
   Panel,
   SectionTitle,
   SectionSkeleton,
-  SectionError,
-} from "./_shared";
+  SectionError } from "./_shared";
 
 type Severity = "low" | "medium" | "high" | "info" | "warn" | "critical";
 
@@ -104,7 +105,7 @@ export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: 
           >
             {generating ? (
               <>
-                <Spinner />
+                <LoadingSpinner fullScreen={false} />
                 Generating…
               </>
             ) : (
@@ -141,7 +142,7 @@ export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: 
                 disabled={generating}
                 className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
               >
-                {generating ? <Spinner small /> : <RefreshIcon />}
+                {generating ? <LoadingSpinner fullScreen={false} /> : <RefreshIcon />}
                 {generating ? "Regenerating…" : "Regenerate"}
               </button>
             </div>
@@ -235,8 +236,7 @@ export default function AiNarrativeSection({ sprintId, printMode }: { sprintId: 
 function WinsConcernsPanel({
   title,
   items,
-  tone,
-}: {
+  tone }: {
   title: string;
   items: string[];
   tone: "emerald" | "rose";
@@ -244,13 +244,10 @@ function WinsConcernsPanel({
   const toneStyles = {
     emerald: {
       label: "text-emerald-700 dark:text-emerald-300",
-      dot: "bg-emerald-500",
-    },
+      dot: "bg-emerald-500" },
     rose: {
       label: "text-rose-700 dark:text-rose-300",
-      dot: "bg-rose-500",
-    },
-  }[tone];
+      dot: "bg-rose-500" } }[tone];
 
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
@@ -278,8 +275,7 @@ function WinsConcernsPanel({
 }
 
 function PredictionCard({
-  prediction,
-}: {
+  prediction }: {
   prediction: AiNarrative["predictions"][number];
 }) {
   const styles =
@@ -310,8 +306,7 @@ function PredictionCard({
 }
 
 function DelayPatternRow({
-  pattern,
-}: {
+  pattern }: {
   pattern: AiNarrative["delayPatterns"][number];
 }) {
   const dotStyle =

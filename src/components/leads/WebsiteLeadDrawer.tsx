@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Button, Spin, Empty, Tooltip, message } from "antd";
+import { Drawer, Button, Empty, Tooltip, message } from "antd";
 import {
   X,
   Calendar,
@@ -22,11 +23,11 @@ import {
   Building2,
   Users,
   MessageSquare,
-  Tag,
-} from "lucide-react";
+  Tag } from "lucide-react";
 import dayjs from "dayjs";
 import { apiClient } from "@/lib/axios";
 import { Lead } from "@/services/leadService";
+
 
 interface Status {
   id: string;
@@ -48,8 +49,7 @@ const SOURCE_PALETTE: Record<string, { bg: string; color: string; border: string
   Zukvo:    { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Sparkles size={11} strokeWidth={2.2} /> },
   Zithtech: { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Layers size={11} strokeWidth={2.2} /> },
   Website:  { bg: "rgba(59, 130, 246, 0.1)", color: "#60a5fa", border: "rgba(59, 130, 246, 0.3)", icon: <Globe size={11} strokeWidth={2.2} /> },
-  Upwork:   { bg: "rgba(16, 185, 129, 0.1)",   color: "#34d399", border: "rgba(16, 185, 129, 0.3)",   icon: <Globe size={11} strokeWidth={2.2} /> },
-};
+  Upwork:   { bg: "rgba(16, 185, 129, 0.1)",   color: "#34d399", border: "rgba(16, 185, 129, 0.3)",   icon: <Globe size={11} strokeWidth={2.2} /> } };
 
 const getInitials = (name?: string) => {
   if (!name) return "—";
@@ -66,8 +66,7 @@ const ACTION_META: Record<string, { label: string; icon: React.ReactNode }> = {
   CREATED_PROPOSAL: { label: "Proposal created",  icon: <FileText size={13} /> },
   CLIENT_CREATED:   { label: "Client created",    icon: <UserPlus size={13} /> },
   PROJECT_CREATED:  { label: "Project created",   icon: <FolderPlus size={13} /> },
-  MAIL_SENT:        { label: "Email sent",        icon: <Send size={13} /> },
-};
+  MAIL_SENT:        { label: "Email sent",        icon: <Send size={13} /> } };
 
 const relativeShort = (ts: string) => {
   const d = dayjs(ts);
@@ -109,8 +108,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
   lead,
   open,
   onClose,
-  configStatuses,
-}) => {
+  configStatuses }) => {
   const [tab, setTab] = useState<Tab>("details");
   const [timeline, setTimeline] = useState<any[]>([]);
   const [tlLoading, setTlLoading] = useState(false);
@@ -178,8 +176,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
       className="wld-drawer"
       styles={{
         body: { padding: 0, background: "var(--bg-secondary)" },
-        header: { display: "none" },
-      }}
+        header: { display: "none" } }}
     >
       {/* Header */}
       <div className="wld-header">
@@ -251,8 +248,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
             style={{
               color: statusColor,
               background: `${statusColor}1a`,
-              border: `1px solid ${statusColor}33`,
-            }}
+              border: `1px solid ${statusColor}33` }}
           >
             <span className="wld-stat-dot" style={{ background: statusColor }} />
             {lead.status || "—"}
@@ -394,7 +390,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
 
         {tab === "timeline" && (
           tlLoading ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
+            <div style={{ padding: "40px 0", textAlign: "center" }}><LoadingSpinner fullScreen={false} /></div>
           ) : timeline.length === 0 ? (
             <Empty description={<span style={{ color: "var(--text-slate-500)" }}>No activity yet</span>} />
           ) : (
@@ -428,7 +424,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         )}
         {tab === "emails" && (
           mailsLoading ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
+            <div style={{ padding: "40px 0", textAlign: "center" }}><LoadingSpinner fullScreen={false} /></div>
           ) : mails.length === 0 ? (
             <div className="wld-mails-empty">
               <Send size={22} strokeWidth={1.4} />

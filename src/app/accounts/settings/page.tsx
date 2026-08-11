@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -643,13 +644,18 @@ export default function AccountsSettingsPage() {
                 </div>
               )
             ) : (
-              <div className="pp-table-wrap">
+              <div className="pp-table-wrap" style={{ position: 'relative' }}>
+                {loading && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <LoadingSpinner size="medium" fullScreen={false} />
+                  </div>
+                )}
                 <Table
                   size="small"
                   columns={columns}
                   dataSource={pagedCategories}
                   rowKey="id"
-                  loading={loading}
+                  loading={false}
                   className="pp-table"
                   pagination={false}
                   scroll={{ x: 'max-content' }}

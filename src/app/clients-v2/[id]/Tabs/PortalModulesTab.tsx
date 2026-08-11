@@ -1,7 +1,8 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Switch, message, Spin } from "antd";
+import { Switch, message } from "antd";
 import {
   Receipt,
   ClipboardList,
@@ -17,12 +18,13 @@ import {
   Settings2,
   Eye,
   EyeOff,
-  LucideIcon,
+  LucideIcon
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import {
+
   ClientV2Service,
-  PortalModuleSetting,
+  PortalModuleSetting
 } from "@/services/clientV2Service";
 
 type Mode = "light" | "dark";
@@ -36,13 +38,13 @@ const META: Record<string, { icon: LucideIcon; desc: string }> = {
   milestones: { icon: Flag, desc: "Follow delivery milestones." },
   "change-requests": {
     icon: GitPullRequest,
-    desc: "Raise and review scope change requests.",
+    desc: "Raise and review scope change requests."
   },
   approvals: { icon: CheckSquare, desc: "Review and approve pending items." },
   tickets: { icon: LifeBuoy, desc: "Raise and follow support tickets." },
   releases: { icon: Rocket, desc: "See release notes and deployments." },
   environments: { icon: Server, desc: "View environments and deployment status." },
-  team: { icon: Users, desc: "See the assigned delivery team." },
+  team: { icon: Users, desc: "See the assigned delivery team." }
 };
 
 const palette = (mode: Mode) => {
@@ -56,7 +58,7 @@ const palette = (mode: Mode) => {
     accentBg: dark ? "rgba(59,130,246,0.12)" : "#eff6ff",
     accentText: dark ? "#93c5fd" : "#1d4ed8",
     iconBg: dark ? "#1B2740" : "#f1f5f9",
-    iconColor: dark ? "#CBD5E1" : "#475569",
+    iconColor: dark ? "#CBD5E1" : "#475569"
   };
 };
 
@@ -91,7 +93,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
     setSavingKey(key);
     try {
       const data = await ClientV2Service.updatePortalModules(clientId, {
-        [key]: next,
+        [key]: next
       });
       setModules(data);
     } catch (err: any) {
@@ -107,7 +109,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <Spin />
+        <LoadingSpinner fullScreen={false} />
       </div>
     );
   }
@@ -126,7 +128,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <Settings2 size={19} />
@@ -156,7 +158,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
           border: `1px solid ${c.border}`,
           borderRadius: 8,
           padding: "5px 10px",
-          marginBottom: 16,
+          marginBottom: 16
         }}
       >
         <Eye size={13} />
@@ -169,7 +171,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
           border: `1px solid ${c.border}`,
           borderRadius: 12,
           overflow: "hidden",
-          background: c.surface,
+          background: c.surface
         }}
       >
         {modules.map((m, i) => {
@@ -184,7 +186,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
                 gap: 14,
                 padding: "14px 16px",
                 borderTop: i === 0 ? "none" : `1px solid ${c.border}`,
-                opacity: m.enabled ? 1 : 0.72,
+                opacity: m.enabled ? 1 : 0.72
               }}
             >
               <div
@@ -197,7 +199,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 <Icon size={17} />
@@ -210,7 +212,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
                     color: c.text,
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 8
                   }}
                 >
                   {m.label}
@@ -222,7 +224,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
                         gap: 4,
                         fontSize: 11,
                         fontWeight: 600,
-                        color: c.textMuted,
+                        color: c.textMuted
                       }}
                     >
                       <EyeOff size={11} /> Hidden

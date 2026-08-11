@@ -1316,14 +1316,19 @@ export default function RolesPage() {
 
           {/* Roles panel */}
           {view === "list" ? (
-            <div className="rp-panel">
+            <div className="rp-panel" style={{ position: 'relative' }}>
               {/* Table */}
+              {loading && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <LoadingSpinner size="medium" fullScreen={false} />
+                </div>
+              )}
               <Table
                 className="premium-table rp-table"
                 columns={columns}
                 dataSource={filteredRoles}
                 rowKey="id"
-                loading={loading}
+                loading={false}
                 pagination={false}
                 scroll={{ x: 1000 }}
               />

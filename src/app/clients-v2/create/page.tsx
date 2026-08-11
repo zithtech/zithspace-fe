@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import {
@@ -9,9 +10,8 @@ import {
   Button,
   Typography,
   message,
-  Spin,
   Progress,
-  Tooltip,
+  Tooltip
 } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import {
@@ -31,12 +31,13 @@ import {
   CreditCard,
   Mail,
   AlertTriangle,
-  ChevronRight,
+  ChevronRight
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -70,7 +71,7 @@ const SECTIONS: SectionDef[] = [
       "country",
       "website",
     ],
-    required: ["companyName", "clientType"],
+    required: ["companyName", "clientType"]
   },
   {
     key: "compliance",
@@ -86,7 +87,7 @@ const SECTIONS: SectionDef[] = [
       "contractValue",
       "paymentTerms",
       "creditLimit",
-    ],
+    ]
   },
   {
     key: "operations",
@@ -99,7 +100,7 @@ const SECTIONS: SectionDef[] = [
       "clientSegment",
       "billingAddress",
       "billingContactEmail",
-    ],
+    ]
   },
   {
     key: "banking",
@@ -112,7 +113,7 @@ const SECTIONS: SectionDef[] = [
       "ifscSwift",
       "currencyOfPayment",
       "preferredPaymentMode",
-    ],
+    ]
   },
 ];
 
@@ -276,7 +277,7 @@ function CreateClientV2Content() {
         filled,
         total: s.fields.length,
         requiredFilled,
-        complete: filled === s.fields.length && requiredFilled,
+        complete: filled === s.fields.length && requiredFilled
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,7 +307,7 @@ function CreateClientV2Content() {
       {loading && (
         <div className="cm-overlay">
           <div className="cm-overlay-card">
-            <Spin indicator={<LoadingOutlined style={{ fontSize: 36, color: "#8b5cf6" }} spin />} />
+            <LoadingSpinner size="medium" fullScreen={false} />
             <Text className="cm-overlay-text">
               {isEditMode ? "Updating client…" : "Creating client…"}
             </Text>
@@ -617,7 +618,7 @@ function CreateClientV2Content() {
                             }
                           }
                           return Promise.resolve();
-                        },
+                        }
                       }),
                     ]}
                   >
@@ -672,7 +673,7 @@ function CreateClientV2Content() {
                             }
                           }
                           return Promise.resolve();
-                        },
+                        }
                       }),
                     ]}
                   >
@@ -1478,7 +1479,7 @@ const SectionHeader: React.FC<{
       style={{
         background: `${accent}14`,
         color: accent,
-        boxShadow: `inset 0 0 0 1px ${accent}30`,
+        boxShadow: `inset 0 0 0 1px ${accent}30`
       }}
     >
       <Icon size={18} />
@@ -1496,7 +1497,7 @@ export default function CreateClientV2Page() {
     <Suspense
       fallback={
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-          <Spin indicator={<LoadingOutlined style={{ fontSize: 36, color: "#8b5cf6" }} spin />} />
+          <LoadingSpinner size="medium" fullScreen={false} />
         </div>
       }
     >

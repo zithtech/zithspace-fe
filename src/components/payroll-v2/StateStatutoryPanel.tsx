@@ -2,6 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Drawer, Switch, Select, InputNumber, message, Tooltip, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -300,10 +301,15 @@ export default function StateStatutoryPanel() {
         <span className="pvss-count">{total} shown</span>
       </div>
 
-      <div className="pvss-table-wrap">
+      <div className="pvss-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         {view === 'pt'
-          ? <Table rowKey="id" size="small" className="pvss-table" loading={loading} columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
-          : <Table rowKey="id" size="small" className="pvss-table" loading={loading} columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />}
+          ? <Table rowKey="id" size="small" className="pvss-table" loading={false} columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
+          : <Table rowKey="id" size="small" className="pvss-table" loading={false} columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />}
       </div>
 
       {total > 0 && (

@@ -1,7 +1,8 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from 'react';
-import { List, Card, Button, Form, Input, Select, Modal, message, Spin, Empty, Avatar, Tag } from 'antd';
+import { List, Card, Button, Form, Input, Select, Modal, message, Empty, Avatar, Tag } from 'antd';
 import { MailOutlined, UserOutlined } from '@ant-design/icons';
 import { dealService, DealCommunication } from '@/services/dealService';
 import dayjs from 'dayjs';
@@ -52,9 +53,9 @@ const CommunicationTab: React.FC<CommunicationTabProps> = ({ dealId }) => {
   return (
     <div style={{ padding: '24px 0' }}>
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-        <Button 
-          type="primary" 
-          icon={<MailOutlined />} 
+        <Button
+          type="primary"
+          icon={<MailOutlined />}
           onClick={() => setIsModalVisible(true)}
         >
           Log Email Manually
@@ -63,7 +64,7 @@ const CommunicationTab: React.FC<CommunicationTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" className="shadow-sm">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><LoadingSpinner fullScreen={false} /></div>
         ) : communications.length > 0 ? (
           <List
             itemLayout="horizontal"

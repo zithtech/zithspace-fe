@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { Button, Table, Tag, Tooltip, message, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -229,12 +230,17 @@ export default function GovernmentHolidaysPanel() {
         )}
       </div>
 
-      <div className="lvgh-table-wrap">
+      <div className="lvgh-table-wrap" style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <LoadingSpinner size="medium" fullScreen={false} />
+          </div>
+        )}
         <Table
           rowKey="id"
           size="small"
           className="lvgh-table"
-          loading={loading}
+          loading={false}
           columns={columns}
           dataSource={paginatedData}
           pagination={false}

@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -23,40 +24,41 @@ import {
   Clock,
   ListChecks,
   Building2,
-  Users,
+  Users
 } from "lucide-react";
-import { Spin } from "antd";
+
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
 
 import {
   portalInvoiceService,
   PortalInvoiceListItem,
-  PortalInvoiceListMeta,
+  PortalInvoiceListMeta
 } from "@/services/portalInvoiceService";
 import {
   portalSprintService,
-  PortalSprintListItem,
+  PortalSprintListItem
 } from "@/services/portalSprintService";
 import {
   portalDocumentService,
-  PortalDocument,
+  PortalDocument
 } from "@/services/portalDocumentService";
 import { portalCrService, PortalCrListItem } from "@/services/portalCrService";
 import {
   portalApprovalsService,
-  PortalApprovalListItem,
+  PortalApprovalListItem
 } from "@/services/portalApprovalsService";
 import {
   portalTicketService,
-  PortalTicketListItem,
+  PortalTicketListItem
 } from "@/services/portalTicketService";
 import {
   portalReleaseService,
-  PortalRelease,
+  PortalRelease
 } from "@/services/portalReleaseService";
 import {
+
   portalMilestoneService,
-  PortalMilestone,
+  PortalMilestone
 } from "@/services/portalMilestoneService";
 
 /* ─────────────────────────────────────────────────────────
@@ -73,7 +75,7 @@ const T = {
   textSubtle: "#64748b",
   textFaint: "#94a3b8",
   numFont:
-    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+    'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace'
 };
 
 const GAP = 12;
@@ -92,7 +94,7 @@ const formatLongDate = (d: Date) =>
     weekday: "long",
     month: "long",
     day: "numeric",
-    year: "numeric",
+    year: "numeric"
   });
 
 const fmtCurrency = (n: number, currency: string | null) => {
@@ -107,7 +109,7 @@ const fmtCurrency = (n: number, currency: string | null) => {
             ? "₹"
             : "";
   return `${sym}${Number(n).toLocaleString(undefined, {
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 0
   })}`;
 };
 
@@ -129,7 +131,7 @@ const Card: React.FC<{
       overflow: "hidden",
       display: "flex",
       flexDirection: "column",
-      ...style,
+      ...style
     }}
   >
     {children}
@@ -150,7 +152,7 @@ const CardHeader: React.FC<{
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      background: "#fcfcfd",
+      background: "#fcfcfd"
     }}
   >
     <div
@@ -161,7 +163,7 @@ const CardHeader: React.FC<{
         fontWeight: 600,
         color: T.text,
         fontSize: 12.5,
-        letterSpacing: "-0.005em",
+        letterSpacing: "-0.005em"
       }}
     >
       <span style={{ color: accent, display: "inline-flex" }}>{icon}</span>
@@ -182,7 +184,7 @@ const CardHeader: React.FC<{
             gap: 2,
             padding: "2px 5px",
             borderRadius: 5,
-            transition: "background 120ms ease, color 120ms ease",
+            transition: "background 120ms ease, color 120ms ease"
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = T.borderSoft;
@@ -213,7 +215,7 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "center"
     }}
   >
     <div
@@ -227,7 +229,7 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: T.textFaint,
+        color: T.textFaint
       }}
     >
       <Sparkles size={13} />
@@ -238,7 +240,7 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
 
 const LoadingState: React.FC = () => (
   <div style={{ padding: "22px 16px", textAlign: "center", flex: 1 }}>
-    <Spin size="small" />
+    <LoadingSpinner size="small" fullScreen={false} />
   </div>
 );
 
@@ -257,7 +259,7 @@ const RowItem: React.FC<{
       borderBottom: `1px solid ${T.borderSoft}`,
       textDecoration: "none",
       color: "inherit",
-      transition: "background 120ms ease",
+      transition: "background 120ms ease"
     }}
     onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -268,7 +270,7 @@ const RowItem: React.FC<{
         flex: 1,
         minWidth: 0,
         alignItems: "center",
-        gap: 10,
+        gap: 10
       }}
     >
       {children}
@@ -290,7 +292,7 @@ const StatusPill: React.FC<{
     success: { bg: "#ecfdf5", fg: "#047857", border: "#a7f3d0" },
     warn: { bg: "#fffbeb", fg: "#b45309", border: "#fde68a" },
     danger: { bg: "#fef2f2", fg: "#b91c1c", border: "#fecaca" },
-    info: { bg: "#eef2ff", fg: "#4338ca", border: "#c7d2fe" },
+    info: { bg: "#eef2ff", fg: "#4338ca", border: "#c7d2fe" }
   }[tone];
   return (
     <span
@@ -304,7 +306,7 @@ const StatusPill: React.FC<{
         borderRadius: 999,
         textTransform: "capitalize",
         letterSpacing: "0.01em",
-        whiteSpace: "nowrap",
+        whiteSpace: "nowrap"
       }}
     >
       {label.replaceAll("_", " ").toLowerCase()}
@@ -359,7 +361,7 @@ const StatTile: React.FC<{
       textDecoration: "none",
       transition: "border-color 150ms ease, transform 150ms ease",
       position: "relative",
-      minHeight: 122,
+      minHeight: 122
     }}
     onMouseEnter={(e) => {
       e.currentTarget.style.borderColor = T.borderHover;
@@ -381,7 +383,7 @@ const StatTile: React.FC<{
           border: `1px solid ${accentBorder}`,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
         {icon}
@@ -395,7 +397,7 @@ const StatTile: React.FC<{
           color: T.textSubtle,
           fontWeight: 600,
           letterSpacing: "0.08em",
-          textTransform: "uppercase",
+          textTransform: "uppercase"
         }}
       >
         {label}
@@ -411,7 +413,7 @@ const StatTile: React.FC<{
           fontVariantNumeric: "tabular-nums",
           minHeight: 24,
           display: "flex",
-          alignItems: "center",
+          alignItems: "center"
         }}
       >
         {loading ? (
@@ -429,14 +431,14 @@ const StatTile: React.FC<{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 6,
+          gap: 6
         }}
       >
         <span
           style={{
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {context}
@@ -494,7 +496,7 @@ const MODULE_META: Record<
   approvals: { label: "Approvals", accent: "#b45309", accentBg: "#fffbeb", accentBorder: "#fde68a", Icon: CheckSquare },
   "change-requests": { label: "Change request", accent: "#7c2d12", accentBg: "#fff7ed", accentBorder: "#fed7aa", Icon: GitPullRequest },
   invoices: { label: "Invoices", accent: "#4338ca", accentBg: "#eef2ff", accentBorder: "#c7d2fe", Icon: Receipt },
-  sprints: { label: "Sprints", accent: "#0d9488", accentBg: "#ccfbf1", accentBorder: "#99f6e4", Icon: CalendarCheck },
+  sprints: { label: "Sprints", accent: "#0d9488", accentBg: "#ccfbf1", accentBorder: "#99f6e4", Icon: CalendarCheck }
 };
 
 function relativeTimeShort(iso: string | null | undefined): string {
@@ -528,7 +530,7 @@ function fmtAbsDateTime(iso: string | null | undefined): string {
     day: "numeric",
     year: "numeric",
     hour: "numeric",
-    minute: "2-digit",
+    minute: "2-digit"
   });
 }
 
@@ -555,35 +557,35 @@ function useDashboardData() {
           setInvoices(r.data);
           setInvoiceMeta(r.meta);
         })
-        .catch(() => {}),
+        .catch(() => { }),
       portalSprintService
         .list({ limit: 6 })
         .then((r) => setSprints(r.data))
-        .catch(() => {}),
+        .catch(() => { }),
       portalMilestoneService
         .list()
         .then((r) => setMilestones(r))
-        .catch(() => {}),
+        .catch(() => { }),
       portalApprovalsService
         .list({ status: "open", limit: 6 })
         .then((r) => setApprovals(r.data))
-        .catch(() => {}),
+        .catch(() => { }),
       portalTicketService
         .list({ limit: 50 })
         .then((r) => setTickets(r.data))
-        .catch(() => {}),
+        .catch(() => { }),
       portalCrService
         .list({ limit: 6 })
         .then((r) => setCrs(r.data))
-        .catch(() => {}),
+        .catch(() => { }),
       portalDocumentService
         .list({})
         .then((r) => setDocuments(r.data as PortalDocument[]))
-        .catch(() => {}),
+        .catch(() => { }),
       portalReleaseService
         .list({ limit: 6 })
         .then((r) => setReleases(r.data))
-        .catch(() => {}),
+        .catch(() => { }),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -597,7 +599,7 @@ function useDashboardData() {
     crs,
     documents,
     releases,
-    loading,
+    loading
   };
 }
 
@@ -628,7 +630,7 @@ const Hero: React.FC<{
         justifyContent: "space-between",
         gap: 20,
         position: "relative",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -638,7 +640,7 @@ const Hero: React.FC<{
           top: 0,
           bottom: 0,
           width: 3,
-          background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)",
+          background: "linear-gradient(180deg, #4338ca 0%, #0d9488 100%)"
         }}
       />
       <div style={{ minWidth: 0, flex: 1 }}>
@@ -648,7 +650,7 @@ const Hero: React.FC<{
             fontWeight: 700,
             color: T.text,
             letterSpacing: "-0.022em",
-            lineHeight: 1.2,
+            lineHeight: 1.2
           }}
         >
           {greeting},{" "}
@@ -667,7 +669,7 @@ const Hero: React.FC<{
             fontWeight: 500,
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: 6
           }}
         >
           <CalendarDays size={12} />
@@ -689,7 +691,7 @@ const Hero: React.FC<{
               borderRadius: 8,
               background: "#fafbfc",
               minWidth: 70,
-              textAlign: "center",
+              textAlign: "center"
             }}
           >
             <div
@@ -698,7 +700,7 @@ const Hero: React.FC<{
                 fontWeight: 600,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
-                color: T.textSubtle,
+                color: T.textSubtle
               }}
             >
               {s.label}
@@ -711,7 +713,7 @@ const Hero: React.FC<{
                 marginTop: 2,
                 letterSpacing: "-0.02em",
                 lineHeight: 1.1,
-                fontVariantNumeric: "tabular-nums",
+                fontVariantNumeric: "tabular-nums"
               }}
             >
               {s.value}
@@ -768,7 +770,7 @@ const ActiveSprintCard: React.FC<{
                 fontWeight: 700,
                 color: T.text,
                 letterSpacing: "-0.02em",
-                lineHeight: 1.25,
+                lineHeight: 1.25
               }}
             >
               {sprint.version}
@@ -781,7 +783,7 @@ const ActiveSprintCard: React.FC<{
                 fontWeight: 500,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap"
               }}
             >
               {sprint.project?.name || "Project sprint"}
@@ -795,7 +797,7 @@ const ActiveSprintCard: React.FC<{
               color: T.text,
               fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.025em",
-              lineHeight: 1,
+              lineHeight: 1
             }}
           >
             {pct}
@@ -810,7 +812,7 @@ const ActiveSprintCard: React.FC<{
               borderRadius: 999,
               background: "#f1f5f9",
               border: `1px solid ${T.borderSoft}`,
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             <div
@@ -819,7 +821,7 @@ const ActiveSprintCard: React.FC<{
                 width: `${Math.min(100, Math.max(0, pct))}%`,
                 background:
                   "linear-gradient(90deg, #0d9488 0%, #14b8a6 60%, #2dd4bf 100%)",
-                transition: "width 600ms ease",
+                transition: "width 600ms ease"
               }}
             />
           </div>
@@ -830,7 +832,7 @@ const ActiveSprintCard: React.FC<{
             marginTop: 12,
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 8,
+            gap: 8
           }}
         >
           {[
@@ -840,7 +842,7 @@ const ActiveSprintCard: React.FC<{
             {
               label: "Days left",
               value: daysLeft != null ? Math.max(0, daysLeft) : "—",
-              tone: daysLeft != null && daysLeft < 3 ? "#b45309" : T.text,
+              tone: daysLeft != null && daysLeft < 3 ? "#b45309" : T.text
             },
           ].map((s) => (
             <div
@@ -849,7 +851,7 @@ const ActiveSprintCard: React.FC<{
                 padding: "8px 10px",
                 background: "#fafbfc",
                 border: `1px solid ${T.borderSoft}`,
-                borderRadius: 8,
+                borderRadius: 8
               }}
             >
               <div
@@ -858,7 +860,7 @@ const ActiveSprintCard: React.FC<{
                   color: T.textSubtle,
                   fontWeight: 600,
                   letterSpacing: "0.07em",
-                  textTransform: "uppercase",
+                  textTransform: "uppercase"
                 }}
               >
                 {s.label}
@@ -870,7 +872,7 @@ const ActiveSprintCard: React.FC<{
                   color: s.tone,
                   marginTop: 2,
                   letterSpacing: "-0.015em",
-                  fontVariantNumeric: "tabular-nums",
+                  fontVariantNumeric: "tabular-nums"
                 }}
               >
                 {s.value}
@@ -880,7 +882,7 @@ const ActiveSprintCard: React.FC<{
                       fontSize: 11,
                       fontWeight: 500,
                       color: T.textFaint,
-                      marginLeft: 3,
+                      marginLeft: 3
                     }}
                   >
                     /{s.total}
@@ -935,7 +937,7 @@ const MilestonesPanel: React.FC<{
               gap: 8,
               fontSize: 11.5,
               color: T.textMuted,
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             <span
@@ -943,7 +945,7 @@ const MilestonesPanel: React.FC<{
                 fontVariantNumeric: "tabular-nums",
                 color: T.text,
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 700
               }}
             >
               {overallPct}%
@@ -960,7 +962,7 @@ const MilestonesPanel: React.FC<{
         style={{
           padding: "10px 14px",
           borderBottom: `1px solid ${T.borderSoft}`,
-          background: "#fcfcfd",
+          background: "#fcfcfd"
         }}
       >
         <div
@@ -969,7 +971,7 @@ const MilestonesPanel: React.FC<{
             borderRadius: 999,
             background: "#f1f5f9",
             border: `1px solid ${T.borderSoft}`,
-            overflow: "hidden",
+            overflow: "hidden"
           }}
         >
           <div
@@ -978,7 +980,7 @@ const MilestonesPanel: React.FC<{
               width: `${Math.min(100, Math.max(0, overallPct))}%`,
               background:
                 "linear-gradient(90deg, #6d28d9 0%, #7c3aed 60%, #a78bfa 100%)",
-              transition: "width 600ms ease",
+              transition: "width 600ms ease"
             }}
           />
         </div>
@@ -992,7 +994,7 @@ const MilestonesPanel: React.FC<{
             color: T.textSubtle,
             fontWeight: 600,
             letterSpacing: "0.04em",
-            textTransform: "uppercase",
+            textTransform: "uppercase"
           }}
         >
           <span>Overall delivery</span>
@@ -1030,7 +1032,7 @@ const MilestonesPanel: React.FC<{
                   borderBottom: `1px solid ${T.borderSoft}`,
                   textDecoration: "none",
                   color: "inherit",
-                  transition: "background 120ms ease",
+                  transition: "background 120ms ease"
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -1040,7 +1042,7 @@ const MilestonesPanel: React.FC<{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    gap: 10,
+                    gap: 10
                   }}
                 >
                   <div
@@ -1049,7 +1051,7 @@ const MilestonesPanel: React.FC<{
                       alignItems: "center",
                       gap: 8,
                       minWidth: 0,
-                      flex: 1,
+                      flex: 1
                     }}
                   >
                     <span style={{ flexShrink: 0 }}>{statusIcon}</span>
@@ -1061,7 +1063,7 @@ const MilestonesPanel: React.FC<{
                           color: T.text,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          whiteSpace: "nowrap"
                         }}
                       >
                         {m.name}
@@ -1074,7 +1076,7 @@ const MilestonesPanel: React.FC<{
                           fontWeight: 500,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          whiteSpace: "nowrap"
                         }}
                       >
                         {m.projectName || "—"}
@@ -1093,7 +1095,7 @@ const MilestonesPanel: React.FC<{
                       fontVariantNumeric: "tabular-nums",
                       letterSpacing: "-0.01em",
                       minWidth: 36,
-                      textAlign: "right",
+                      textAlign: "right"
                     }}
                   >
                     {pct}%
@@ -1105,7 +1107,7 @@ const MilestonesPanel: React.FC<{
                     height: 5,
                     borderRadius: 999,
                     background: "#f1f5f9",
-                    overflow: "hidden",
+                    overflow: "hidden"
                   }}
                 >
                   <div
@@ -1118,7 +1120,7 @@ const MilestonesPanel: React.FC<{
                           : m.status === "on_hold"
                             ? "#f59e0b"
                             : "linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)",
-                      transition: "width 600ms ease",
+                      transition: "width 600ms ease"
                     }}
                   />
                 </div>
@@ -1156,7 +1158,7 @@ const InvoicesWidget: React.FC<{
                   fontWeight: 600,
                   color: T.text,
                   fontFamily: T.numFont,
-                  letterSpacing: "-0.01em",
+                  letterSpacing: "-0.01em"
                 }}
               >
                 {inv.invoiceNumber}
@@ -1171,7 +1173,7 @@ const InvoicesWidget: React.FC<{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "flex-end",
-                gap: 3,
+                gap: 3
               }}
             >
               <div
@@ -1179,7 +1181,7 @@ const InvoicesWidget: React.FC<{
                   fontSize: 12.5,
                   fontWeight: 700,
                   color: T.text,
-                  fontVariantNumeric: "tabular-nums",
+                  fontVariantNumeric: "tabular-nums"
                 }}
               >
                 {fmtCurrency(Number(inv.grandTotal || inv.subtotal || 0), inv.currency)}
@@ -1223,7 +1225,7 @@ const DocumentsWidget: React.FC<{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                flexShrink: 0,
+                flexShrink: 0
               }}
             >
               <FileText size={11} />
@@ -1236,7 +1238,7 @@ const DocumentsWidget: React.FC<{
                   color: T.text,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  whiteSpace: "nowrap"
                 }}
               >
                 {doc.title || doc.fileName}
@@ -1281,7 +1283,7 @@ const RecentActivities: React.FC<{
         accent: meta.accent,
         accentBg: meta.accentBg,
         accentBorder: meta.accentBorder,
-        Icon: meta.Icon,
+        Icon: meta.Icon
       };
     };
 
@@ -1298,7 +1300,7 @@ const RecentActivities: React.FC<{
         target: d.fileName,
         source: d.uploadedByPortal ? "team" : "zukvo",
         actorName: d.uploadedByName,
-        occurredAt,
+        occurredAt
       });
     }
 
@@ -1311,7 +1313,7 @@ const RecentActivities: React.FC<{
         target:
           (t as any).title || (t as any).subject || (t as any).code || null,
         source: "team",
-        occurredAt: t.createdAt,
+        occurredAt: t.createdAt
       });
     }
 
@@ -1332,7 +1334,7 @@ const RecentActivities: React.FC<{
         action,
         target: m.name,
         source: "zukvo",
-        occurredAt,
+        occurredAt
       });
     }
 
@@ -1345,7 +1347,7 @@ const RecentActivities: React.FC<{
         action: r.version ? `Release ${r.version} published` : "Release published",
         target: r.title,
         source: "zukvo",
-        occurredAt,
+        occurredAt
       });
     }
 
@@ -1357,7 +1359,7 @@ const RecentActivities: React.FC<{
         action: "Approval requested",
         target: (a as any).title || (a as any).subject || null,
         source: "zukvo",
-        occurredAt: a.createdAt,
+        occurredAt: a.createdAt
       });
     }
 
@@ -1370,7 +1372,7 @@ const RecentActivities: React.FC<{
         action: "Change request submitted",
         target: (c as any).title || (c as any).subject || null,
         source: "team",
-        occurredAt: c.createdAt,
+        occurredAt: c.createdAt
       });
     }
 
@@ -1389,7 +1391,7 @@ const RecentActivities: React.FC<{
             : "Invoice due",
         target: (i as any).invoiceNumber || null,
         source: "zukvo",
-        occurredAt,
+        occurredAt
       });
     }
 
@@ -1409,7 +1411,7 @@ const RecentActivities: React.FC<{
         action,
         target: (s as any).version || (s as any).name || null,
         source: "zukvo",
-        occurredAt,
+        occurredAt
       });
     }
 
@@ -1432,7 +1434,7 @@ const RecentActivities: React.FC<{
         style={{
           maxHeight: "calc(100vh - 220px)",
           overflowY: "auto",
-          marginTop: 4,
+          marginTop: 4
         }}
       >
         {loading ? (
@@ -1464,7 +1466,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
         color: "inherit",
         borderBottom: `1px solid ${T.borderSoft}`,
         padding: "10px 4px",
-        transition: "background 120ms ease",
+        transition: "background 120ms ease"
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLAnchorElement).style.background = "#fafbfc";
@@ -1485,7 +1487,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
           color: item.accent,
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "center"
         }}
       >
         <Icon size={14} strokeWidth={2.2} />
@@ -1504,7 +1506,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
-            wordBreak: "break-word",
+            wordBreak: "break-word"
           }}
         >
           {item.action}
@@ -1529,7 +1531,7 @@ const ActivityRow: React.FC<{ item: ActivityItem }> = ({ item }) => {
             fontSize: 11,
             color: T.textSubtle,
             fontVariantNumeric: "tabular-nums",
-            lineHeight: 1.4,
+            lineHeight: 1.4
           }}
         >
           <span style={{ color: item.accent, fontWeight: 600 }}>
@@ -1564,8 +1566,7 @@ export default function PortalDashboardPage() {
     crs,
     documents,
     releases,
-    loading,
-  } = useDashboardData();
+    loading } = useDashboardData();
 
   const activeSprint = useMemo(
     () =>
@@ -1617,7 +1618,7 @@ export default function PortalDashboardPage() {
         background: T.pageBg,
         height: "100vh",
         overflowY: "auto",
-        overflowX: "hidden",
+        overflowX: "hidden"
       }}
     >
       <div
@@ -1627,7 +1628,7 @@ export default function PortalDashboardPage() {
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          gap: GAP,
+          gap: GAP
         }}
       >
         {/* Hero with inline summary chips */}
@@ -1638,7 +1639,7 @@ export default function PortalDashboardPage() {
             invoicesOpen: openInvoiceCount,
             sprintsActive: sprints.filter((s) => s.status?.toLowerCase() === "active").length,
             milestonesActive: activeMilestoneCount,
-            ticketsOpen: openTicketCount,
+            ticketsOpen: openTicketCount
           }}
         />
 
@@ -1647,7 +1648,7 @@ export default function PortalDashboardPage() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: GAP,
+            gap: GAP
           }}
         >
           <StatTile
@@ -1681,7 +1682,7 @@ export default function PortalDashboardPage() {
                     fontSize: 10.5,
                     fontWeight: 600,
                     color: "#0d9488",
-                    fontVariantNumeric: "tabular-nums",
+                    fontVariantNumeric: "tabular-nums"
                   }}
                 >
                   {activeSprint.doneCount}/{activeSprint.ticketCount}
@@ -1710,7 +1711,7 @@ export default function PortalDashboardPage() {
                     fontSize: 10.5,
                     fontWeight: 600,
                     color: "#7c3aed",
-                    fontVariantNumeric: "tabular-nums",
+                    fontVariantNumeric: "tabular-nums"
                   }}
                 >
                   {milestoneAggregate.completed}/{milestoneAggregate.total}
@@ -1739,7 +1740,7 @@ export default function PortalDashboardPage() {
             display: "grid",
             gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
             gap: GAP,
-            alignItems: "start",
+            alignItems: "start"
           }}
         >
           {/* Left column */}
@@ -1748,7 +1749,7 @@ export default function PortalDashboardPage() {
               display: "flex",
               flexDirection: "column",
               gap: GAP,
-              minWidth: 0,
+              minWidth: 0
             }}
           >
             <ActiveSprintCard sprint={activeSprint} loading={loading} />
@@ -1759,7 +1760,7 @@ export default function PortalDashboardPage() {
                 display: "grid",
                 gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
                 gap: GAP,
-                alignItems: "stretch",
+                alignItems: "stretch"
               }}
             >
               <DocumentsWidget data={documents} loading={loading} />
@@ -1777,7 +1778,7 @@ export default function PortalDashboardPage() {
               approvals,
               crs,
               invoices,
-              sprints,
+              sprints
             }}
             loading={loading}
           />

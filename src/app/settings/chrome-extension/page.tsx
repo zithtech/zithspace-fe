@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,16 +15,16 @@ import {
   Button,
   Tooltip,
   Alert,
-  Spin,
   Popconfirm,
   message,
-  theme,
+  theme
 } from 'antd';
 import {
+
   KeyOutlined,
   CopyOutlined,
   ReloadOutlined,
-  ApiOutlined,
+  ApiOutlined
 } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
@@ -101,7 +102,7 @@ export default function ChromeExtensionPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)',
+            boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)'
           }}>
             <ApiOutlined style={{ fontSize: 20 }} />
           </div>
@@ -129,7 +130,7 @@ export default function ChromeExtensionPage() {
 
           {installKeyLoading ? (
             <div style={{ padding: '24px 0', textAlign: 'center' }}>
-              <Spin />
+              <LoadingSpinner fullScreen={false} />
             </div>
           ) : installKey ? (
             <>

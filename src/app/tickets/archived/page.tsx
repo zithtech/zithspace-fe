@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -13,8 +14,7 @@ import {
   Button,
   Input,
   App,
-  Popconfirm,
-  Spin,
+  Popconfirm
 } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -27,7 +27,7 @@ import {
   ReloadOutlined,
   HistoryOutlined,
   UndoOutlined,
-  CloseOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useUserProjects } from '@/hooks/useGlobalData';
@@ -36,6 +36,7 @@ import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
 import { Avatar, Tooltip, Typography, Select } from 'antd';
 import TicketLifecycleShell, { ProjectFilterOption } from '@/components/projects/TicketLifecycleShell';
+
 
 const { Text } = Typography;
 
@@ -70,7 +71,7 @@ export default function TicketsArchivedPage() {
     projectId: selectedProject || undefined,
     search: searchText,
     page,
-    limit: pageSize,
+    limit: pageSize
   });
 
   const [dashboardStats, setDashboardStats] = useState<any>(null);
@@ -125,7 +126,7 @@ export default function TicketsArchivedPage() {
           label: p.label,
           code: p.code,
           count: archivedCount,
-          color: PROJECT_PALETTE[i % PROJECT_PALETTE.length],
+          color: PROJECT_PALETTE[i % PROJECT_PALETTE.length]
         };
       })
       .sort((a, b) => b.count - a.count);
@@ -193,7 +194,7 @@ export default function TicketsArchivedPage() {
             <Text className="ar2-ticket-title">{record.title}</Text>
           </div>
         </div>
-      ),
+      )
     },
     {
       title: 'Project',
@@ -209,7 +210,7 @@ export default function TicketsArchivedPage() {
             </Text>
           </div>
         );
-      },
+      }
     },
     {
       title: 'Status',
@@ -220,7 +221,7 @@ export default function TicketsArchivedPage() {
         <Tag className={`ar2-status-tag ${status === 'completed' ? 'green' : 'slate'}`}>
           {status?.replace('_', ' ')}
         </Tag>
-      ),
+      )
     },
     {
       title: 'Assignee',
@@ -241,7 +242,7 @@ export default function TicketsArchivedPage() {
             <Text className={`ar2-actor-name ${isUnassigned ? 'muted' : ''}`}>{name}</Text>
           </div>
         );
-      },
+      }
     },
     {
       title: 'Archived',
@@ -256,7 +257,7 @@ export default function TicketsArchivedPage() {
             <Text className="ar2-date-secondary">{dayjs(date).fromNow()}</Text>
           </div>
         </div>
-      ),
+      )
     },
     {
       title: 'Actions',
@@ -319,7 +320,7 @@ export default function TicketsArchivedPage() {
             </ConfirmDialog>
           )}
         </div>
-      ),
+      )
     },
   ];
 
@@ -334,10 +335,10 @@ export default function TicketsArchivedPage() {
             minHeight: 'calc(100vh - 64px)',
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'center',
+            alignItems: 'center'
           }}
         >
-          <Spin size="large" tip="Loading archived repository..." />
+          <LoadingSpinner message="Loading archived repository..." size="large" fullScreen={false} />
         </div>
       </MainLayout>
     );
@@ -428,77 +429,84 @@ export default function TicketsArchivedPage() {
             )}
           </div>
         }
-      footerSlot={
-        totalArchived > 0 ? (
-          <>
-            <div className="pp-footer-info">
-              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
-              {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
-            </div>
-            <div className="pp-pager">
-              <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
-              {Array.from({ length: pageCount }, (_, i) => i + 1)
-                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
-                .map((p) => (
-                  <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
-                ))}
-              <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
-              <Select
-                className="pp-pagesize"
-                value={pageSize}
-                onChange={(v) => { setPageSize(v); setPage(1); }}
-                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                popupMatchSelectWidth={120}
-              />
-            </div>
-          </>
-        ) : undefined
-      }
-    >
-        <Table
-          columns={columns}
-          dataSource={tickets}
-          rowKey="id"
-          loading={isLoading}
-          size="small"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
-          className="ar2-table"
-
-          locale={{
-            emptyText: isLoading ? null : (
-              <div className="ar2-empty">
-                <div className="ar2-empty-icon">
-                  <FolderOpenOutlined />
-                </div>
-                <Text className="ar2-empty-title">
-                  {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
-                </Text>
-                <Text className="ar2-empty-sub">
-                  {isFiltered
-                    ? 'Try adjusting your filters or search query.'
-                    : 'Tickets are automatically archived when sprints are completed.'}
-                </Text>
-                {isFiltered && (
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setSearchText('');
-                      setSelectedProject(null);
-                    }}
-                    style={{ marginTop: 12 }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
+        footerSlot={
+          totalArchived > 0 ? (
+            <>
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
+                {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
               </div>
-            ),
-          }}
-          pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
-        />
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </>
+          ) : undefined
+        }
+      >
+        <div style={{ position: 'relative' }}>
+          {(isLoading || isFetching || isRefreshing || statsLoading) && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <LoadingSpinner size="medium" fullScreen={false} />
+            </div>
+          )}
+          <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            loading={false}
+            size="small"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys
+            }}
+            className="ar2-table"
+
+            locale={{
+              emptyText: isLoading ? null : (
+                <div className="ar2-empty">
+                  <div className="ar2-empty-icon">
+                    <FolderOpenOutlined />
+                  </div>
+                  <Text className="ar2-empty-title">
+                    {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
+                  </Text>
+                  <Text className="ar2-empty-sub">
+                    {isFiltered
+                      ? 'Try adjusting your filters or search query.'
+                      : 'Tickets are automatically archived when sprints are completed.'}
+                  </Text>
+                  {isFiltered && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setSearchText('');
+                        setSelectedProject(null);
+                      }}
+                      style={{ marginTop: 12 }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              )
+            }}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
+          />
+        </div>
 
         <style jsx global>{`
           /* ── Table sized + framed ─────────────────────────── */

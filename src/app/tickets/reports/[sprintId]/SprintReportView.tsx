@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  CartesianGrid,
+  CartesianGrid
 } from "recharts";
 import TimelineSection from "./TimelineSection";
 import ScopeChangeSection from "./ScopeChangeSection";
@@ -26,6 +27,7 @@ import AiNarrativeSection from "./AiNarrativeSection";
 import { SnapshotContext } from "./_shared";
 import { SprintReportsService } from "@/services/sprintReportsService";
 import { downloadReportPdf, downloadReportDocx } from "./reportExport";
+
 
 type DistRow = { label: string; count: number; points?: number };
 
@@ -107,26 +109,26 @@ const HEALTH_BAND_STYLES: Record<
     text: "text-emerald-700 dark:text-emerald-300",
     bg: "bg-emerald-50 dark:bg-emerald-500/10",
     border: "border-emerald-200 dark:border-emerald-500/30",
-    dot: "bg-emerald-500",
+    dot: "bg-emerald-500"
   },
   "Moderate Risk": {
     text: "text-amber-700 dark:text-amber-300",
     bg: "bg-amber-50 dark:bg-amber-500/10",
     border: "border-amber-200 dark:border-amber-500/30",
-    dot: "bg-amber-500",
+    dot: "bg-amber-500"
   },
   "High Risk": {
     text: "text-orange-700 dark:text-orange-300",
     bg: "bg-orange-50 dark:bg-orange-500/10",
     border: "border-orange-200 dark:border-orange-500/30",
-    dot: "bg-orange-500",
+    dot: "bg-orange-500"
   },
   "Critical Sprint": {
     text: "text-rose-700 dark:text-rose-300",
     bg: "bg-rose-50 dark:bg-rose-500/10",
     border: "border-rose-200 dark:border-rose-500/30",
-    dot: "bg-rose-500",
-  },
+    dot: "bg-rose-500"
+  }
 };
 
 function fmtDate(d: string | null): string {
@@ -135,7 +137,7 @@ function fmtDate(d: string | null): string {
     return new Date(d).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return "—";
@@ -240,13 +242,12 @@ function SectionTabs({
   sections,
   activeId,
   offset,
-  scrollRoot,
-}: {
-  sections: { id: string; label: string }[];
-  activeId: string;
-  offset: number;
-  scrollRoot: HTMLElement | null;
-}) {
+  scrollRoot }: {
+    sections: { id: string; label: string }[];
+    activeId: string;
+    offset: number;
+    scrollRoot: HTMLElement | null;
+  }) {
   const navRef = useRef<HTMLElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const animRef = useRef<number | null>(null);
@@ -351,12 +352,11 @@ function SectionTabs({
 function SectionAnchor({
   id,
   offset,
-  children,
-}: {
-  id: string;
-  offset: number;
-  children: React.ReactNode;
-}) {
+  children }: {
+    id: string;
+    offset: number;
+    children: React.ReactNode;
+  }) {
   return (
     <div id={id} style={{ scrollMarginTop: offset + 12 }}>
       {children}
@@ -405,14 +405,13 @@ function SprintReportContent({
   snapshot,
   loading,
   error,
-  sprintId,
-}: {
-  data: SprintReport | null;
-  snapshot: Record<string, any> | null;
-  loading: boolean;
-  error: string | null;
-  sprintId: string;
-}) {
+  sprintId }: {
+    data: SprintReport | null;
+    snapshot: Record<string, any> | null;
+    loading: boolean;
+    error: string | null;
+    sprintId: string;
+  }) {
   // Measure the sticky chrome (header + tabs) so scroll-spy + anchor offsets stay
   // accurate even as the header height changes (long goal text, wrapping chips).
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -543,7 +542,7 @@ function SprintReportContent({
               left: -10000,
               width: EXPORT_WIDTH,
               pointerEvents: "none",
-              zIndex: -1,
+              zIndex: -1
             }}
           >
             <div ref={exportRef} className="bg-zinc-50 dark:bg-[#0B0F1A]">
@@ -584,11 +583,10 @@ function waitForExportReady(el: HTMLElement, timeoutMs = 9000): Promise<void> {
 
 function SprintReportExport({
   data,
-  sprintId,
-}: {
-  data: SprintReport;
-  sprintId: string;
-}) {
+  sprintId }: {
+    data: SprintReport;
+    sprintId: string;
+  }) {
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
       <div className="px-8 pt-8 pb-4">
@@ -613,7 +611,7 @@ function SprintReportExport({
         <HotspotsSection sprintId={sprintId} />
         <QualitySection sprintId={sprintId} />
         <ConclusionSection overview={data.overview} />
-        
+
         <div className="pt-8 pb-4 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
           Generated from <span className="text-[#3b82f6]">Zukvo</span>
         </div>
@@ -653,13 +651,12 @@ function Header({
   overview,
   printMode = false,
   onExport,
-  exporting = null,
-}: {
-  overview: SprintReport["overview"];
-  printMode?: boolean;
-  onExport?: (format: "pdf" | "docx") => void;
-  exporting?: "pdf" | "docx" | null;
-}) {
+  exporting = null }: {
+    overview: SprintReport["overview"];
+    printMode?: boolean;
+    onExport?: (format: "pdf" | "docx") => void;
+    exporting?: "pdf" | "docx" | null;
+  }) {
   const router = useRouter();
 
   // Planned dates fall back to the legacy combined fields for older snapshots.
@@ -763,11 +760,10 @@ function Header({
 
 function ExportMenu({
   onExport,
-  exporting,
-}: {
-  onExport: (format: "pdf" | "docx") => void;
-  exporting: "pdf" | "docx" | null;
-}) {
+  exporting }: {
+    onExport: (format: "pdf" | "docx") => void;
+    exporting: "pdf" | "docx" | null;
+  }) {
   const busy = exporting != null;
   return (
     <div className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-800 overflow-hidden">
@@ -795,13 +791,12 @@ function ExportButton({
   label,
   busy,
   disabled,
-  onClick,
-}: {
-  label: string;
-  busy: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
+  onClick }: {
+    label: string;
+    busy: boolean;
+    disabled: boolean;
+    onClick: () => void;
+  }) {
   return (
     <button
       type="button"
@@ -809,7 +804,7 @@ function ExportButton({
       disabled={disabled}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      {busy ? <SpinnerIcon /> : <DownloadIcon />}
+      {busy ? <LoadingSpinner fullScreen={false} /> : <DownloadIcon />}
       {label}
     </button>
   );
@@ -836,11 +831,10 @@ function SpinnerIcon() {
 
 function HealthCard({
   score,
-  band,
-}: {
-  score: number;
-  band: SprintReport["overview"]["healthBand"];
-}) {
+  band }: {
+    score: number;
+    band: SprintReport["overview"]["healthBand"];
+  }) {
   const styles = HEALTH_BAND_STYLES[band];
   const meterColor =
     band === "Healthy"
@@ -918,12 +912,11 @@ function StatusPill({ status }: { status: string }) {
 function HeaderChip({
   icon,
   label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label?: string;
-  children: React.ReactNode;
-}) {
+  children }: {
+    icon: React.ReactNode;
+    label?: string;
+    children: React.ReactNode;
+  }) {
   return (
     <div className="flex w-fit items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 text-xs text-zinc-700 dark:text-zinc-300">
       <span className="text-zinc-400 dark:text-zinc-500 flex-shrink-0">{icon}</span>
@@ -1023,32 +1016,32 @@ function KpiStrip({ overview }: { overview: SprintReport["overview"] }) {
     {
       label: "Completion",
       value: fmtPct(overview.completionPct),
-      sub: `${overview.totalTickets} tickets`,
+      sub: `${overview.totalTickets} tickets`
     },
     {
       label: "Story Points",
       value: `${fmtNum(overview.completedStoryPoints)} / ${fmtNum(overview.plannedStoryPoints)}`,
-      sub: fmtPct(overview.pointCompletionPct),
+      sub: fmtPct(overview.pointCompletionPct)
     },
     {
       label: "Spillover",
       value: fmtPct(overview.spilloverPct),
-      sub: `${notDone} not done`,
+      sub: `${notDone} not done`
     },
     {
       label: "Added After Start",
       value: fmtPct(overview.addedAfterStartPct),
-      sub: `${overview.addedAfterStart} tickets`,
+      sub: `${overview.addedAfterStart} tickets`
     },
     {
       label: "Bug Ratio",
       value: fmtPct(overview.bugRatioPct),
-      sub: `${overview.bugCount} bugs · ${overview.featureCount} features`,
+      sub: `${overview.bugCount} bugs · ${overview.featureCount} features`
     },
     {
       label: "Blocked",
       value: fmtNum(overview.blockedTickets),
-      sub: `${overview.qaTickets} in QA/review`,
+      sub: `${overview.qaTickets} in QA/review`
     },
   ];
 
@@ -1064,12 +1057,11 @@ function KpiStrip({ overview }: { overview: SprintReport["overview"] }) {
 function KpiCell({
   item,
   idx,
-  total,
-}: {
-  item: { label: string; value: string; sub?: string };
-  idx: number;
-  total: number;
-}) {
+  total }: {
+    item: { label: string; value: string; sub?: string };
+    idx: number;
+    total: number;
+  }) {
   const cols = { base: 2, sm: 3, lg: 6 };
   const isLastInRow = (per: number) => (idx + 1) % per === 0;
   const isLastRow = (per: number) => idx >= total - (total % per === 0 ? per : total % per);
@@ -1125,12 +1117,11 @@ function SectionTitle({ title, hint }: { title: string; hint?: string }) {
 function Panel({
   title,
   children,
-  hint,
-}: {
-  title: string;
-  children: React.ReactNode;
-  hint?: string;
-}) {
+  hint }: {
+    title: string;
+    children: React.ReactNode;
+    hint?: string;
+  }) {
   return (
     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 break-inside-avoid">
       <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-5 py-3">
@@ -1195,7 +1186,7 @@ function mergeAssignees(
       bugsFixed: 0,
       criticalHandled: 0,
       avgCompletionDays: null,
-      completionRate: a.total > 0 ? Math.round((a.completed / a.total) * 100) : 0,
+      completionRate: a.total > 0 ? Math.round((a.completed / a.total) * 100) : 0
     });
   }
 
@@ -1221,7 +1212,7 @@ function mergeAssignees(
         criticalHandled: c.criticalHandled,
         avgCompletionDays: c.avgCompletionDays,
         completionRate:
-          c.totalAssigned > 0 ? Math.round((c.ticketsCompleted / c.totalAssigned) * 100) : 0,
+          c.totalAssigned > 0 ? Math.round((c.ticketsCompleted / c.totalAssigned) * 100) : 0
       });
     }
   }
@@ -1260,12 +1251,11 @@ function sortUsers(rows: MergedUser[], key: SortKey): MergedUser[] {
 function DistributionSection({
   dist,
   contribution,
-  printMode = false,
-}: {
-  dist: SprintReport["ticketDistribution"];
-  contribution: ContributorRow[];
-  printMode?: boolean;
-}) {
+  printMode = false }: {
+    dist: SprintReport["ticketDistribution"];
+    contribution: ContributorRow[];
+    printMode?: boolean;
+  }) {
   const [sortKey, setSortKey] = useState<SortKey>("tickets_desc");
 
   const merged = useMemo(
@@ -1377,12 +1367,11 @@ function DistributionSection({
 function GroupBySelect({
   value,
   onChange,
-  printMode = false,
-}: {
-  value: SortKey;
-  onChange: (v: SortKey) => void;
-  printMode?: boolean;
-}) {
+  printMode = false }: {
+    value: SortKey;
+    onChange: (v: SortKey) => void;
+    printMode?: boolean;
+  }) {
   const selectedLabel =
     SORT_OPTIONS.find((o) => o.value === value)?.label ?? String(value);
 
@@ -1437,26 +1426,26 @@ const ACCENT_TONES: Record<
     eyebrow: "text-indigo-600 dark:text-indigo-400",
     iconBg: "bg-indigo-50 dark:bg-indigo-500/15",
     iconFg: "text-indigo-600 dark:text-indigo-400",
-    bar: "bg-indigo-500",
+    bar: "bg-indigo-500"
   },
   emerald: {
     eyebrow: "text-emerald-600 dark:text-emerald-400",
     iconBg: "bg-emerald-50 dark:bg-emerald-500/15",
     iconFg: "text-emerald-600 dark:text-emerald-400",
-    bar: "bg-emerald-500",
+    bar: "bg-emerald-500"
   },
   rose: {
     eyebrow: "text-rose-600 dark:text-rose-400",
     iconBg: "bg-rose-50 dark:bg-rose-500/15",
     iconFg: "text-rose-600 dark:text-rose-400",
-    bar: "bg-rose-500",
+    bar: "bg-rose-500"
   },
   amber: {
     eyebrow: "text-amber-600 dark:text-amber-400",
     iconBg: "bg-amber-50 dark:bg-amber-500/15",
     iconFg: "text-amber-600 dark:text-amber-400",
-    bar: "bg-amber-500",
-  },
+    bar: "bg-amber-500"
+  }
 };
 
 function TopPerformerCard({
@@ -1469,19 +1458,18 @@ function TopPerformerCard({
   primarySuffix,
   secondary,
   emptyMetric,
-  showBar = false,
-}: {
-  eyebrow: string;
-  subEyebrow?: string;
-  user: MergedUser | undefined;
-  accent: AccentTone;
-  icon: React.ReactNode;
-  primary: (u: MergedUser) => string;
-  primarySuffix: string | null;
-  secondary: (u: MergedUser) => string;
-  emptyMetric: keyof MergedUser;
-  showBar?: boolean;
-}) {
+  showBar = false }: {
+    eyebrow: string;
+    subEyebrow?: string;
+    user: MergedUser | undefined;
+    accent: AccentTone;
+    icon: React.ReactNode;
+    primary: (u: MergedUser) => string;
+    primarySuffix: string | null;
+    secondary: (u: MergedUser) => string;
+    emptyMetric: keyof MergedUser;
+    showBar?: boolean;
+  }) {
   const tone = ACCENT_TONES[accent];
   const hasData = user && (user[emptyMetric] as number) > 0;
 
@@ -1542,11 +1530,10 @@ function TopPerformerCard({
 
 function AssigneeFullTable({
   rows,
-  sortKey,
-}: {
-  rows: MergedUser[];
-  sortKey: SortKey;
-}) {
+  sortKey }: {
+    rows: MergedUser[];
+    sortKey: SortKey;
+  }) {
   if (rows.length === 0) {
     return (
       <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
@@ -1716,7 +1703,7 @@ function useChartColors() {
     tooltipBorder: isDark ? "#27272a" : "#e4e4e7",
     tooltipText: isDark ? "#e4e4e7" : "#27272a",
     cursorFill: isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.10)",
-    pieStroke: isDark ? "#18181b" : "#ffffff",
+    pieStroke: isDark ? "#18181b" : "#ffffff"
   };
 }
 
@@ -1751,7 +1738,7 @@ function DonutChart({ rows }: { rows: DistRow[] }) {
                 borderRadius: 8,
                 fontSize: 12,
                 color: colors.tooltipText,
-                boxShadow: "none",
+                boxShadow: "none"
               }}
               itemStyle={{ color: colors.tooltipText }}
               labelStyle={{ color: colors.tooltipText }}
@@ -2041,7 +2028,7 @@ function ContributorBarChart({ rows }: { rows: ContributorRow[] }) {
               borderRadius: 8,
               fontSize: 12,
               color: colors.tooltipText,
-              boxShadow: "none",
+              boxShadow: "none"
             }}
             itemStyle={{ color: colors.tooltipText }}
             labelStyle={{ color: colors.tooltipText }}
@@ -2172,12 +2159,11 @@ function exportFilename(data: SprintReport, format: "pdf" | "docx"): string {
 export function SprintReportExportRunner({
   sprintId,
   format,
-  onDone,
-}: {
-  sprintId: string;
-  format: "pdf" | "docx";
-  onDone: (ok: boolean) => void;
-}) {
+  onDone }: {
+    sprintId: string;
+    format: "pdf" | "docx";
+    onDone: (ok: boolean) => void;
+  }) {
   const [payload, setPayload] = useState<{
     data: SprintReport;
     snapshot: Record<string, any> | null;
@@ -2238,7 +2224,7 @@ export function SprintReportExportRunner({
           left: -10000,
           width: EXPORT_WIDTH,
           pointerEvents: "none",
-          zIndex: -1,
+          zIndex: -1
         }}
       >
         <div ref={ref} className="bg-zinc-50 dark:bg-[#0B0F1A]">
@@ -2353,13 +2339,12 @@ function ConclusionList({
   title,
   tone,
   items,
-  empty,
-}: {
-  title: string;
-  tone: "emerald" | "rose";
-  items: string[];
-  empty: string;
-}) {
+  empty }: {
+    title: string;
+    tone: "emerald" | "rose";
+    items: string[];
+    empty: string;
+  }) {
   const dot = tone === "emerald" ? "bg-emerald-500" : "bg-rose-500";
   const head =
     tone === "emerald"

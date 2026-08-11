@@ -1,14 +1,14 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Empty,
-  Spin,
   Select,
   Row as AntRow,
   Col,
   Divider,
-  Typography,
+  Typography
 } from "antd";
 import {
   Users,
@@ -23,11 +23,12 @@ import {
   UserCheck,
   Activity,
   Hash,
-  Wifi,
+  Wifi
 } from "lucide-react";
 import {
+
   portalTeamService,
-  PortalTeamMember,
+  PortalTeamMember
 } from "@/services/portalTeamService";
 
 const { Title, Text } = Typography;
@@ -67,7 +68,7 @@ const p = {
   pinkText: "#be185d",
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
-  neutralText: "#475569",
+  neutralText: "#475569"
 };
 
 const TONE = {
@@ -77,7 +78,7 @@ const TONE = {
   danger: { bg: p.dangerBg, border: p.dangerBorder, text: p.dangerText },
   purple: { bg: p.purpleBg, border: p.purpleBorder, text: p.purpleText },
   pink: { bg: p.pinkBg, border: p.pinkBorder, text: p.pinkText },
-  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText },
+  neutral: { bg: p.neutralBg, border: p.neutralBorder, text: p.neutralText }
 };
 
 const DISCIPLINE_META: Record<
@@ -92,7 +93,7 @@ const DISCIPLINE_META: Record<
   devops: { label: "DevOps", tone: "accent" },
   data: { label: "Data", tone: "purple" },
   support: { label: "Support", tone: "accent" },
-  other: { label: "Other", tone: "neutral" },
+  other: { label: "Other", tone: "neutral" }
 };
 
 const AVAILABILITY_META: Record<
@@ -102,7 +103,7 @@ const AVAILABILITY_META: Record<
   available: { label: "Available", dot: "#10b981", text: p.successText },
   limited: { label: "Limited capacity", dot: "#f59e0b", text: p.warningText },
   away: { label: "Away", dot: "#94a3b8", text: p.textSubtle },
-  unavailable: { label: "Unavailable", dot: "#ef4444", text: p.dangerText },
+  unavailable: { label: "Unavailable", dot: "#ef4444", text: p.dangerText }
 };
 
 function initials(name: string): string {
@@ -182,7 +183,7 @@ export default function PortalTeamPage() {
     ].filter((k) => present.has(k));
     return [{ key: "ALL", label: "All" }, ...ordered.map((k) => ({
       key: k,
-      label: DISCIPLINE_META[k]?.label || k,
+      label: DISCIPLINE_META[k]?.label || k
     }))];
   }, [items]);
 
@@ -194,9 +195,8 @@ export default function PortalTeamPage() {
       if (projectId && m.projectId !== projectId) return false;
       if (availability && m.availabilityStatus !== availability) return false;
       if (q) {
-        const haystack = `${m.displayName} ${m.roleLabel} ${
-          m.contactEmail || ""
-        } ${m.bio || ""}`.toLowerCase();
+        const haystack = `${m.displayName} ${m.roleLabel} ${m.contactEmail || ""
+          } ${m.bio || ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -214,7 +214,7 @@ export default function PortalTeamPage() {
       total,
       primaries,
       available,
-      disciplines: disciplines.size,
+      disciplines: disciplines.size
     };
   }, [items]);
 
@@ -239,7 +239,7 @@ export default function PortalTeamPage() {
       style={{
         height: "100vh",
         overflowY: "auto",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff"
       }}
     >
       {/* Sticky Header */}
@@ -253,7 +253,7 @@ export default function PortalTeamPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
@@ -263,7 +263,7 @@ export default function PortalTeamPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div
@@ -279,7 +279,7 @@ export default function PortalTeamPage() {
                     justifyContent: "center",
                     background:
                       "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6",
+                    color: "#3b82f6"
                   }}
                 >
                   <Users size={18} color="#3b82f6" />
@@ -291,7 +291,7 @@ export default function PortalTeamPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Your team
@@ -303,7 +303,7 @@ export default function PortalTeamPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -313,7 +313,7 @@ export default function PortalTeamPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   The people working on your account — who to contact for what,
@@ -335,7 +335,7 @@ export default function PortalTeamPage() {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: 10,
-            marginBottom: 14,
+            marginBottom: 14
           }}
         >
           <StatCard
@@ -371,7 +371,7 @@ export default function PortalTeamPage() {
               display: "flex",
               gap: 6,
               flexWrap: "wrap",
-              marginBottom: 10,
+              marginBottom: 10
             }}
           >
             {disciplineTabs.map((tab) => {
@@ -394,7 +394,7 @@ export default function PortalTeamPage() {
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
-                    transition: "all 120ms ease",
+                    transition: "all 120ms ease"
                   }}
                 >
                   {tab.label}
@@ -409,7 +409,7 @@ export default function PortalTeamPage() {
                           ? "rgba(255,255,255,0.18)"
                           : p.neutralBg,
                         color: active ? "#ffffff" : p.textSubtle,
-                        fontVariantNumeric: "tabular-nums",
+                        fontVariantNumeric: "tabular-nums"
                       }}
                     >
                       {count}
@@ -456,10 +456,10 @@ export default function PortalTeamPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px solid ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <div
@@ -468,7 +468,7 @@ export default function PortalTeamPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px dashed ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
             <Empty
@@ -490,7 +490,7 @@ export default function PortalTeamPage() {
               border: `1px dashed ${p.border}`,
               borderRadius: 12,
               color: p.textSubtle,
-              fontSize: 13,
+              fontSize: 13
             }}
           >
             No team members match the current filters.
@@ -567,8 +567,7 @@ export default function PortalTeamPage() {
               padding: 16px 16px 40px !important;
             }
           }
-        `,
-          }}
+        ` }}
         />
       </div>
     </div>
@@ -581,13 +580,12 @@ function StatCard({
   icon: Icon,
   label,
   value,
-  tone = "neutral",
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  tone?: keyof typeof TONE;
-}) {
+  tone = "neutral" }: {
+    icon: any;
+    label: string;
+    value: string;
+    tone?: keyof typeof TONE;
+  }) {
   const t = TONE[tone];
   return (
     <div
@@ -599,7 +597,7 @@ function StatCard({
         display: "flex",
         alignItems: "center",
         gap: 10,
-        height: 56,
+        height: 56
       }}
     >
       <div
@@ -613,7 +611,7 @@ function StatCard({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Icon size={15} />
@@ -626,7 +624,7 @@ function StatCard({
             fontWeight: 600,
             textTransform: "uppercase",
             letterSpacing: "0.06em",
-            lineHeight: 1.2,
+            lineHeight: 1.2
           }}
         >
           {label}
@@ -640,7 +638,7 @@ function StatCard({
             lineHeight: 1.25,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {value}
@@ -659,16 +657,15 @@ function FilterBar({
   projectId,
   onProjectChange,
   availability,
-  onAvailabilityChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  availability: string | undefined;
-  onAvailabilityChange: (v: string | undefined) => void;
-}) {
+  onAvailabilityChange }: {
+    search: string;
+    onSearchChange: (v: string) => void;
+    projects: { id: string; name: string }[];
+    projectId: string | undefined;
+    onProjectChange: (v: string | undefined) => void;
+    availability: string | undefined;
+    onAvailabilityChange: (v: string | undefined) => void;
+  }) {
   const [searchFocused, setSearchFocused] = useState(false);
 
   return (
@@ -678,7 +675,7 @@ function FilterBar({
         gap: 8,
         alignItems: "stretch",
         flexWrap: "wrap",
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <div
@@ -697,7 +694,7 @@ function FilterBar({
           boxShadow: searchFocused
             ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
             : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
+          transition: "border-color 140ms ease, box-shadow 140ms ease"
         }}
       >
         <Search
@@ -720,7 +717,7 @@ function FilterBar({
             background: "transparent",
             color: p.text,
             fontSize: 13,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         />
         {search && (
@@ -740,7 +737,7 @@ function FilterBar({
               border: "none",
               borderRadius: 999,
               color: p.textSubtle,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <X size={11} />
@@ -758,7 +755,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Folder size={13} color={p.textFaint} />
@@ -774,7 +771,7 @@ function FilterBar({
         style={{ width: 220, height: 34 }}
         options={projects.map((proj) => ({
           value: proj.id,
-          label: proj.name,
+          label: proj.name
         }))}
         notFoundContent={
           <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
@@ -792,7 +789,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Activity size={13} color={p.textFaint} />
@@ -805,7 +802,7 @@ function FilterBar({
         style={{ width: 200, height: 34 }}
         options={Object.entries(AVAILABILITY_META).map(([key, meta]) => ({
           value: key,
-          label: meta.label,
+          label: meta.label
         }))}
       />
     </div>
@@ -822,17 +819,16 @@ function ActiveFilterChips({
   availabilityLabel,
   onClearAvailability,
   disciplineLabel,
-  onClearDiscipline,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  availabilityLabel: string | undefined;
-  onClearAvailability: () => void;
-  disciplineLabel: string | undefined;
-  onClearDiscipline: () => void;
-}) {
+  onClearDiscipline }: {
+    search: string;
+    onClearSearch: () => void;
+    projectName: string | undefined;
+    onClearProject: () => void;
+    availabilityLabel: string | undefined;
+    onClearAvailability: () => void;
+    disciplineLabel: string | undefined;
+    onClearDiscipline: () => void;
+  }) {
   const any =
     !!search || !!projectName || !!availabilityLabel || !!disciplineLabel;
   if (!any) return null;
@@ -844,7 +840,7 @@ function ActiveFilterChips({
         gap: 6,
         alignItems: "center",
         flexWrap: "wrap",
-        marginBottom: 14,
+        marginBottom: 14
       }}
     >
       <span
@@ -857,7 +853,7 @@ function ActiveFilterChips({
           color: p.textSubtle,
           textTransform: "uppercase",
           letterSpacing: "0.07em",
-          marginRight: 2,
+          marginRight: 2
         }}
       >
         <SlidersHorizontal size={11} />
@@ -907,7 +903,7 @@ function ActiveFilterChips({
           color: p.indigoText,
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         Clear all
@@ -919,12 +915,11 @@ function ActiveFilterChips({
 function FilterChip({
   icon: Icon,
   label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
+  onClear }: {
+    icon: any;
+    label: string;
+    onClear: () => void;
+  }) {
   return (
     <span
       style={{
@@ -937,7 +932,7 @@ function FilterChip({
         color: p.indigoText,
         borderRadius: 999,
         fontSize: 11.5,
-        fontWeight: 600,
+        fontWeight: 600
       }}
     >
       <Icon size={11} />
@@ -958,7 +953,7 @@ function FilterChip({
           border: "none",
           borderRadius: 999,
           color: p.indigoText,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         <X size={9} />
@@ -974,14 +969,13 @@ function Section({
   title,
   subtitle,
   count,
-  children,
-}: {
-  icon?: any;
-  title: string;
-  subtitle?: string;
-  count?: number;
-  children: React.ReactNode;
-}) {
+  children }: {
+    icon?: any;
+    title: string;
+    subtitle?: string;
+    count?: number;
+    children: React.ReactNode;
+  }) {
   return (
     <div>
       <div
@@ -990,7 +984,7 @@ function Section({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          flexWrap: "wrap",
+          flexWrap: "wrap"
         }}
       >
         {Icon && <Icon size={14} color={p.textSubtle} />}
@@ -1000,7 +994,7 @@ function Section({
             fontSize: 13.5,
             fontWeight: 600,
             color: p.text,
-            letterSpacing: "-0.005em",
+            letterSpacing: "-0.005em"
           }}
         >
           {title}
@@ -1014,7 +1008,7 @@ function Section({
               borderRadius: 999,
               background: p.neutralBg,
               color: p.textSubtle,
-              fontVariantNumeric: "tabular-nums",
+              fontVariantNumeric: "tabular-nums"
             }}
           >
             {count}
@@ -1035,7 +1029,7 @@ function Grid({ children }: { children: React.ReactNode }) {
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-        gap: 12,
+        gap: 12
       }}
     >
       {children}
@@ -1045,11 +1039,10 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 function TeamCard({
   m,
-  primary,
-}: {
-  m: PortalTeamMember;
-  primary?: boolean;
-}) {
+  primary }: {
+    m: PortalTeamMember;
+    primary?: boolean;
+  }) {
   const [hover, setHover] = useState(false);
   const disc = m.discipline ? DISCIPLINE_META[m.discipline] : null;
   const avail =
@@ -1061,15 +1054,14 @@ function TeamCard({
       onMouseLeave={() => setHover(false)}
       style={{
         background: p.surfaceElevated,
-        border: `1px solid ${
-          primary ? p.warningBorder : hover ? p.borderStrong : p.border
-        }`,
+        border: `1px solid ${primary ? p.warningBorder : hover ? p.borderStrong : p.border
+          }`,
         borderRadius: 14,
         padding: 18,
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        transition: "border-color 120ms ease",
+        transition: "border-color 120ms ease"
       }}
     >
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -1080,7 +1072,7 @@ function TeamCard({
               display: "flex",
               gap: 6,
               alignItems: "center",
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <div
@@ -1089,7 +1081,7 @@ function TeamCard({
                 fontWeight: 600,
                 color: p.text,
                 lineHeight: 1.25,
-                letterSpacing: "-0.005em",
+                letterSpacing: "-0.005em"
               }}
             >
               {m.displayName}
@@ -1106,7 +1098,7 @@ function TeamCard({
                   color: p.warningText,
                   borderRadius: 999,
                   fontSize: 10.5,
-                  fontWeight: 600,
+                  fontWeight: 600
                 }}
               >
                 <Crown size={10} />
@@ -1119,7 +1111,7 @@ function TeamCard({
               marginTop: 3,
               fontSize: 12.5,
               color: p.textMuted,
-              lineHeight: 1.4,
+              lineHeight: 1.4
             }}
           >
             {m.roleLabel}
@@ -1136,7 +1128,7 @@ function TeamCard({
                   fontSize: 10.5,
                   fontWeight: 500,
                   textTransform: "uppercase",
-                  letterSpacing: "0.04em",
+                  letterSpacing: "0.04em"
                 }}
               >
                 {disc.label}
@@ -1152,7 +1144,7 @@ function TeamCard({
           flexDirection: "column",
           gap: 5,
           fontSize: 12.5,
-          color: p.textMuted,
+          color: p.textMuted
         }}
       >
         {m.contactEmail && (
@@ -1166,7 +1158,7 @@ function TeamCard({
               textDecoration: "none",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap"
             }}
           >
             <Mail size={11} color={p.textSubtle} />
@@ -1181,7 +1173,7 @@ function TeamCard({
               alignItems: "center",
               gap: 6,
               color: p.accentText,
-              textDecoration: "none",
+              textDecoration: "none"
             }}
           >
             <Phone size={11} color={p.textSubtle} />
@@ -1205,7 +1197,7 @@ function TeamCard({
             padding: "10px 12px",
             background: p.surfaceMuted,
             border: `1px solid ${p.border}`,
-            borderRadius: 8,
+            borderRadius: 8
           }}
         >
           {m.bio}
@@ -1219,7 +1211,7 @@ function TeamCard({
           borderTop: `1px solid ${p.border}`,
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 6
         }}
       >
         <span
@@ -1228,14 +1220,14 @@ function TeamCard({
             height: 8,
             borderRadius: 999,
             background: avail.dot,
-            display: "inline-block",
+            display: "inline-block"
           }}
         />
         <span
           style={{
             fontSize: 11.5,
             color: avail.text,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           {avail.label}
@@ -1263,7 +1255,7 @@ function Avatar({ m }: { m: PortalTeamMember }) {
           borderRadius: size / 4,
           objectFit: "cover",
           border: `1px solid ${p.border}`,
-          flexShrink: 0,
+          flexShrink: 0
         }}
       />
     );
@@ -1282,7 +1274,7 @@ function Avatar({ m }: { m: PortalTeamMember }) {
         justifyContent: "center",
         fontSize: 15,
         fontWeight: 600,
-        flexShrink: 0,
+        flexShrink: 0
       }}
     >
       {initials(m.displayName)}

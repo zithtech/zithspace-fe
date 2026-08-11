@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -16,8 +17,7 @@ import {
   message,
   notification,
   Divider,
-  Breadcrumb,
-  Spin,
+  Breadcrumb
 } from "antd";
 import {
   PlusOutlined,
@@ -27,11 +27,12 @@ import {
   SaveOutlined,
   EditOutlined,
   EyeOutlined,
-  InfoCircleOutlined,
+  InfoCircleOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { VendorService } from "@/services/vendor.service";
 import AttachmentSection, { AttachmentItem } from "../../recruitment/job-requisitions/components/AttachmentSection";
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -59,14 +60,14 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
     setFetching(true);
     try {
       const vendor = await VendorService.getVendorById(vendorId);
-      
+
       if (vendor.documents && Array.isArray(vendor.documents)) {
         vendor.documents = vendor.documents.map((doc: any) => ({
           id: doc.id,
           fileName: doc.documentType ? `${doc.documentType} Document` : "Document",
           fileUrl: doc.documentUrl,
           category: doc.documentType || "Other",
-          isNew: false,
+          isNew: false
         }));
       }
 
@@ -92,7 +93,7 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
           documentType: doc.category || "Other",
           fileName: doc.fileName || "document.pdf",
           base64: doc.isNew ? doc.fileUrl : undefined,
-          documentUrl: !doc.isNew ? doc.fileUrl : undefined,
+          documentUrl: !doc.isNew ? doc.fileUrl : undefined
         }));
       }
 
@@ -116,7 +117,7 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
   if (fetching) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: "#f5f5f5" }}>
-        <Spin size="large" tip="Loading vendor details..." />
+        <LoadingSpinner message="Loading vendor details..." size="large" fullScreen={false} />
       </div>
     );
   }
@@ -132,8 +133,8 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <Space size="middle">
-            <Button 
-              icon={<ArrowLeftOutlined />} 
+            <Button
+              icon={<ArrowLeftOutlined />}
               onClick={() => router.push("/vendor")}
               style={{ borderRadius: "8px" }}
             />
@@ -146,13 +147,13 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
               </Text>
             </div>
           </Space>
-          
+
           {!isView && (
             <Space>
               <Button onClick={() => form.resetFields()}>Reset</Button>
-              <Button 
-                type="primary" 
-                icon={<SaveOutlined />} 
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
                 loading={loading}
                 onClick={() => form.submit()}
               >
@@ -241,50 +242,50 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
                 </Form.Item>
               </Col>
             </Row>
-            </Card>
+          </Card>
 
-            {/* Section 2: Contact Persons */}
-            <Card title={<Space><PlusOutlined />Contact Person Details</Space>} style={{ marginBottom: 24, borderRadius: '8px' }}>
-              <Form.List name="contactPersons">
-                {(fields, { add, remove }) => (
-                  <>
-                    {fields.map(({ key, name, ...restField }) => (
-                      <div key={key} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: fields.length > 1 ? '1px dashed #f0f0f0' : 'none' }}>
-                        <Row gutter={16}>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'personName']} label="Contact Name" rules={[{ required: true, message: 'Required' }]}>
-                              <Input placeholder="Contact name" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'designation']} label="Designation">
-                              <Input placeholder="e.g. Manager" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'email']} label="Email">
-                              <Input placeholder="Email address" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                        <Row gutter={16}>
-                          <Col span={8}>
-                            <Form.Item {...restField} name={[name, 'phone']} label="Phone Number">
-                              <Input placeholder="Phone number" />
-                            </Form.Item>
-                          </Col>
-                          <Col span={13}>
-                            <Form.Item {...restField} name={[name, 'linkedInUrl']} label="LinkedIn Profile">
-                              <Input placeholder="https://..." />
-                            </Form.Item>
-                          </Col>
-                        </Row>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </Form.List>
-            </Card>
+          {/* Section 2: Contact Persons */}
+          <Card title={<Space><PlusOutlined />Contact Person Details</Space>} style={{ marginBottom: 24, borderRadius: '8px' }}>
+            <Form.List name="contactPersons">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <div key={key} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: fields.length > 1 ? '1px dashed #f0f0f0' : 'none' }}>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'personName']} label="Contact Name" rules={[{ required: true, message: 'Required' }]}>
+                            <Input placeholder="Contact name" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'designation']} label="Designation">
+                            <Input placeholder="e.g. Manager" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'email']} label="Email">
+                            <Input placeholder="Email address" />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Form.Item {...restField} name={[name, 'phone']} label="Phone Number">
+                            <Input placeholder="Phone number" />
+                          </Form.Item>
+                        </Col>
+                        <Col span={13}>
+                          <Form.Item {...restField} name={[name, 'linkedInUrl']} label="LinkedIn Profile">
+                            <Input placeholder="https://..." />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
+                  ))}
+                </>
+              )}
+            </Form.List>
+          </Card>
 
           {/* Section 3: Business Details */}
           <Card title="Business Details" style={{ marginBottom: 24, borderRadius: '8px' }}>
@@ -409,9 +410,9 @@ export default function VendorForm({ id, mode }: VendorFormProps) {
             <div style={{ textAlign: "right", marginTop: 24, paddingBottom: 48 }}>
               <Space size="large">
                 <Button size="large" onClick={() => router.push("/vendor")}>Cancel</Button>
-                <Button 
-                  type="primary" 
-                  size="large" 
+                <Button
+                  type="primary"
+                  size="large"
                   loading={loading}
                   onClick={() => form.submit()}
                   style={{ minWidth: 150 }}

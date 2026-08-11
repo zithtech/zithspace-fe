@@ -1,4 +1,5 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -15,32 +16,31 @@ import {
   message,
   Space,
   Typography,
-  Spin,
-  Divider,
+  Divider
 } from "antd";
 import {
   ArrowLeftOutlined,
   PlusOutlined,
-  MinusCircleOutlined,
+  MinusCircleOutlined
 } from "@ant-design/icons";
 import { useRouter, useParams } from "next/navigation";
 import {
   RecruitmentService,
   JobRequisitionData,
-  SelectOption,
+  SelectOption
 } from "@/services/recruitment.service";
 import AttachmentSection, { AttachmentItem } from "./AttachmentSection";
 import dayjs from "dayjs";
+
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title } = Typography;
 
 export default function RequisitionForm({
-  isEdit = false,
-}: {
-  isEdit?: boolean;
-}) {
+  isEdit = false }: {
+    isEdit?: boolean;
+  }) {
   const [form] = Form.useForm();
   const router = useRouter();
   const params = useParams();
@@ -195,7 +195,7 @@ export default function RequisitionForm({
           Array.isArray(data.screeningQuestions) &&
             data.screeningQuestions.length > 0
             ? data.screeningQuestions
-            : undefined,
+            : undefined
       };
 
       form.setFieldsValue(formattedData);
@@ -206,7 +206,7 @@ export default function RequisitionForm({
         // Mark all loaded attachments as NOT new (they're already on R2)
         const mapped: AttachmentItem[] = (attachmentsData || []).map((a: any) => ({
           ...a,
-          isNew: false,
+          isNew: false
         }));
         setAttachments(mapped);
       } catch (error) {
@@ -245,7 +245,7 @@ export default function RequisitionForm({
           values.implementationContactId,
           values.clientContactId,
           values.vendorContactId,
-        ].filter(Boolean),
+        ].filter(Boolean)
       };
 
       let requisitionId = params.id as string;
@@ -310,7 +310,7 @@ export default function RequisitionForm({
   if (fetching)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <Spin size="large" tip="Loading requisition details..." />
+        <LoadingSpinner message="Loading requisition details..." size="large" fullScreen={false} />
       </div>
     );
 
@@ -321,7 +321,7 @@ export default function RequisitionForm({
           display: "flex",
           alignItems: "center",
           gap: "16px",
-          marginBottom: "24px",
+          marginBottom: "24px"
         }}
       >
         <Button
@@ -348,7 +348,7 @@ export default function RequisitionForm({
           securityClearance: false,
           relocationAllowed: false,
           exclusiveCandidate: false,
-          blindCvRequired: false,
+          blindCvRequired: false
         }}
       >
         {/* ─── Basic Job Information ─── */}
@@ -393,7 +393,7 @@ export default function RequisitionForm({
                   loading={loadingDropdowns}
                   options={clients.map((c) => ({
                     value: c.value,
-                    label: c.label,
+                    label: c.label
                   }))}
                 />
               </Form.Item>
@@ -773,7 +773,7 @@ export default function RequisitionForm({
                   loading={loadingDropdowns}
                   options={members.map((m) => ({
                     value: m.value,
-                    label: m.label,
+                    label: m.label
                   }))}
                 />
               </Form.Item>
@@ -788,7 +788,7 @@ export default function RequisitionForm({
                   loading={loadingDropdowns}
                   options={members.map((m) => ({
                     value: m.value,
-                    label: m.label,
+                    label: m.label
                   }))}
                 />
               </Form.Item>
@@ -803,7 +803,7 @@ export default function RequisitionForm({
                   loading={loadingDropdowns}
                   options={members.map((m) => ({
                     value: m.value,
-                    label: m.label,
+                    label: m.label
                   }))}
                 />
               </Form.Item>

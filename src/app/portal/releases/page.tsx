@@ -1,9 +1,9 @@
 "use client";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Empty,
-  Spin,
   Pagination,
   Select,
   DatePicker,
@@ -11,7 +11,7 @@ import {
   Col,
   Divider,
   Typography,
-  Drawer,
+  Drawer
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import {
@@ -28,13 +28,14 @@ import {
   Layers,
   CalendarClock,
   Hash,
-  ArrowLeft,
+  ArrowLeft
 } from "lucide-react";
 import {
+
   portalReleaseService,
   PortalRelease,
   PortalReleaseMeta,
-  PortalReleaseStats,
+  PortalReleaseStats
 } from "@/services/portalReleaseService";
 
 const { Title, Text } = Typography;
@@ -69,7 +70,7 @@ const p = {
   neutralBg: "#f1f5f9",
   neutralBorder: "#e2e8f0",
   neutralText: "#475569",
-  overlay: "rgba(15,23,42,0.45)",
+  overlay: "rgba(15,23,42,0.45)"
 };
 
 function fmtDate(iso: string | null) {
@@ -78,7 +79,7 @@ function fmtDate(iso: string | null) {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
-      day: "numeric",
+      day: "numeric"
     });
   } catch {
     return iso;
@@ -124,7 +125,7 @@ export default function PortalReleasesPage() {
         projectId,
         search: search || undefined,
         from: fromIso,
-        to: toIso,
+        to: toIso
       });
       setItems(res.data);
       setMeta(res.meta);
@@ -167,7 +168,7 @@ export default function PortalReleasesPage() {
     distinctProjects: 0,
     withMilestone: 0,
     latestVersion: null,
-    latestDate: null,
+    latestDate: null
   };
 
   return (
@@ -183,7 +184,7 @@ export default function PortalReleasesPage() {
           padding: "20px 40px 20px 40px",
           marginBottom: 0,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.05)"
         }}
       >
         <AntRow justify="space-between" align="middle" gutter={[16, 16]}>
@@ -193,14 +194,14 @@ export default function PortalReleasesPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                flexWrap: "wrap",
+                flexWrap: "wrap"
               }}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
+                  gap: 8
                 }}
               >
                 <div
@@ -213,7 +214,7 @@ export default function PortalReleasesPage() {
                     justifyContent: "center",
                     background:
                       "linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08))",
-                    color: "#3b82f6",
+                    color: "#3b82f6"
                   }}
                 >
                   <Rocket size={18} color="#3b82f6" />
@@ -225,7 +226,7 @@ export default function PortalReleasesPage() {
                     margin: 0,
                     fontWeight: 800,
                     color: "var(--text-slate-900)",
-                    letterSpacing: "-0.01em",
+                    letterSpacing: "-0.01em"
                   }}
                 >
                   Releases
@@ -237,7 +238,7 @@ export default function PortalReleasesPage() {
                 style={{
                   height: 20,
                   borderColor: "rgba(0, 0, 0, 0.08)",
-                  margin: "0 12px",
+                  margin: "0 12px"
                 }}
               />
 
@@ -247,7 +248,7 @@ export default function PortalReleasesPage() {
                   style={{
                     fontSize: 12,
                     color: "var(--text-slate-600)",
-                    fontWeight: 600,
+                    fontWeight: 600
                   }}
                 >
                   What we've shipped — each release links back to the milestone
@@ -266,7 +267,7 @@ export default function PortalReleasesPage() {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             gap: 10,
-            marginBottom: 14,
+            marginBottom: 14
           }}
         >
           <StatCard
@@ -333,10 +334,10 @@ export default function PortalReleasesPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px solid ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : items.length === 0 ? (
           <div
@@ -345,7 +346,7 @@ export default function PortalReleasesPage() {
               textAlign: "center",
               background: p.surfaceElevated,
               border: `1px dashed ${p.border}`,
-              borderRadius: 12,
+              borderRadius: 12
             }}
           >
             <Empty
@@ -376,7 +377,7 @@ export default function PortalReleasesPage() {
             style={{
               marginTop: 18,
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "flex-end"
             }}
           >
             <Pagination
@@ -402,8 +403,7 @@ export default function PortalReleasesPage() {
           }
           .portal-releases-header-title { color: #0f172a !important; }
           .portal-releases-header-desc { color: #475569 !important; }
-        `,
-          }}
+        ` }}
         />
       </div>
 
@@ -425,8 +425,8 @@ const TONES = {
   neutral: {
     bg: p.neutralBg,
     border: p.neutralBorder,
-    text: p.neutralText,
-  },
+    text: p.neutralText
+  }
 } as const;
 
 function StatCard({
@@ -434,14 +434,13 @@ function StatCard({
   label,
   value,
   sub,
-  tone = "neutral",
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: keyof typeof TONES;
-}) {
+  tone = "neutral" }: {
+    icon: any;
+    label: string;
+    value: string;
+    sub?: string;
+    tone?: keyof typeof TONES;
+  }) {
   const t = TONES[tone];
   return (
     <div
@@ -453,7 +452,7 @@ function StatCard({
         display: "flex",
         alignItems: "center",
         gap: 10,
-        height: 56,
+        height: 56
       }}
     >
       <div
@@ -467,7 +466,7 @@ function StatCard({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Icon size={15} />
@@ -480,7 +479,7 @@ function StatCard({
             fontWeight: 600,
             textTransform: "uppercase",
             letterSpacing: "0.06em",
-            lineHeight: 1.2,
+            lineHeight: 1.2
           }}
         >
           {label}
@@ -494,7 +493,7 @@ function StatCard({
             lineHeight: 1.25,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {value}
@@ -504,7 +503,7 @@ function StatCard({
                 marginLeft: 6,
                 fontSize: 11,
                 fontWeight: 500,
-                color: p.textFaint,
+                color: p.textFaint
               }}
             >
               {sub}
@@ -525,16 +524,15 @@ function FilterBar({
   projectId,
   onProjectChange,
   datePicked,
-  onDateChange,
-}: {
-  search: string;
-  onSearchChange: (v: string) => void;
-  projects: { id: string; name: string }[];
-  projectId: string | undefined;
-  onProjectChange: (v: string | undefined) => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
-}) {
+  onDateChange }: {
+    search: string;
+    onSearchChange: (v: string) => void;
+    projects: { id: string; name: string }[];
+    projectId: string | undefined;
+    onProjectChange: (v: string | undefined) => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onDateChange: (r: [Dayjs | null, Dayjs | null] | null) => void;
+  }) {
   const [searchFocused, setSearchFocused] = useState(false);
   const today = dayjs();
   const rangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
@@ -542,18 +540,18 @@ function FilterBar({
     { label: "Last 30 days", value: [today.subtract(29, "day"), today] },
     {
       label: "This month",
-      value: [today.startOf("month"), today.endOf("month")],
+      value: [today.startOf("month"), today.endOf("month")]
     },
     {
       label: "Last month",
       value: [
         today.subtract(1, "month").startOf("month"),
         today.subtract(1, "month").endOf("month"),
-      ],
+      ]
     },
     {
       label: "This quarter",
-      value: [today.startOf("quarter" as any), today.endOf("quarter" as any)],
+      value: [today.startOf("quarter" as any), today.endOf("quarter" as any)]
     },
   ];
 
@@ -564,7 +562,7 @@ function FilterBar({
         gap: 8,
         alignItems: "stretch",
         flexWrap: "wrap",
-        marginBottom: 10,
+        marginBottom: 10
       }}
     >
       <div
@@ -583,7 +581,7 @@ function FilterBar({
           boxShadow: searchFocused
             ? "0 0 0 3px rgba(99, 102, 241, 0.12)"
             : "none",
-          transition: "border-color 140ms ease, box-shadow 140ms ease",
+          transition: "border-color 140ms ease, box-shadow 140ms ease"
         }}
       >
         <Search
@@ -606,7 +604,7 @@ function FilterBar({
             background: "transparent",
             color: p.text,
             fontSize: 13,
-            fontWeight: 500,
+            fontWeight: 500
           }}
         />
         {search && (
@@ -626,7 +624,7 @@ function FilterBar({
               border: "none",
               borderRadius: 999,
               color: p.textSubtle,
-              cursor: "pointer",
+              cursor: "pointer"
             }}
           >
             <X size={11} />
@@ -644,7 +642,7 @@ function FilterBar({
               alignItems: "center",
               gap: 6,
               color: p.textSubtle,
-              fontWeight: 500,
+              fontWeight: 500
             }}
           >
             <Folder size={13} color={p.textFaint} />
@@ -660,7 +658,7 @@ function FilterBar({
         style={{ width: 220, height: 34 }}
         options={projects.map((proj) => ({
           value: proj.id,
-          label: proj.name,
+          label: proj.name
         }))}
         notFoundContent={
           <div style={{ padding: 8, fontSize: 12, color: p.textSubtle }}>
@@ -692,23 +690,21 @@ function ActiveFilterChips({
   projectName,
   onClearProject,
   datePicked,
-  onClearDateRange,
-}: {
-  search: string;
-  onClearSearch: () => void;
-  projectName: string | undefined;
-  onClearProject: () => void;
-  datePicked: [Dayjs | null, Dayjs | null] | null;
-  onClearDateRange: () => void;
-}) {
+  onClearDateRange }: {
+    search: string;
+    onClearSearch: () => void;
+    projectName: string | undefined;
+    onClearProject: () => void;
+    datePicked: [Dayjs | null, Dayjs | null] | null;
+    onClearDateRange: () => void;
+  }) {
   const hasDates = !!(datePicked && (datePicked[0] || datePicked[1]));
   const any = !!search || !!projectName || hasDates;
   if (!any) return null;
 
   const dateLabel = hasDates
-    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${
-        datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
-      }`
+    ? `${datePicked?.[0] ? datePicked[0].format("MMM D") : "Any"} → ${datePicked?.[1] ? datePicked[1].format("MMM D, YYYY") : "Any"
+    }`
     : "";
 
   return (
@@ -718,7 +714,7 @@ function ActiveFilterChips({
         gap: 6,
         alignItems: "center",
         flexWrap: "wrap",
-        marginBottom: 14,
+        marginBottom: 14
       }}
     >
       <span
@@ -728,7 +724,7 @@ function ActiveFilterChips({
           color: p.textSubtle,
           textTransform: "uppercase",
           letterSpacing: "0.07em",
-          marginRight: 2,
+          marginRight: 2
         }}
       >
         Active
@@ -769,7 +765,7 @@ function ActiveFilterChips({
           color: p.indigoText,
           fontSize: 11.5,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         Clear all
@@ -781,12 +777,11 @@ function ActiveFilterChips({
 function FilterChip({
   icon: Icon,
   label,
-  onClear,
-}: {
-  icon: any;
-  label: string;
-  onClear: () => void;
-}) {
+  onClear }: {
+    icon: any;
+    label: string;
+    onClear: () => void;
+  }) {
   return (
     <span
       style={{
@@ -799,7 +794,7 @@ function FilterChip({
         color: p.indigoText,
         borderRadius: 999,
         fontSize: 11.5,
-        fontWeight: 600,
+        fontWeight: 600
       }}
     >
       <Icon size={11} />
@@ -820,7 +815,7 @@ function FilterChip({
           border: "none",
           borderRadius: 999,
           color: p.indigoText,
-          cursor: "pointer",
+          cursor: "pointer"
         }}
       >
         <X size={9} />
@@ -833,11 +828,10 @@ function FilterChip({
 
 function ReleaseCard({
   release,
-  onOpen,
-}: {
-  release: PortalRelease;
-  onOpen: () => void;
-}) {
+  onOpen }: {
+    release: PortalRelease;
+    onOpen: () => void;
+  }) {
   const preview = stripHtml(release.description).slice(0, 220);
 
   return (
@@ -856,7 +850,7 @@ function ReleaseCard({
         cursor: "pointer",
         font: "inherit",
         color: "inherit",
-        transition: "border-color 120ms ease",
+        transition: "border-color 120ms ease"
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLButtonElement).style.borderColor = p.accentBorder;
@@ -876,7 +870,7 @@ function ReleaseCard({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <Rocket size={17} />
@@ -888,7 +882,7 @@ function ReleaseCard({
             display: "flex",
             alignItems: "center",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "wrap"
           }}
         >
           <span
@@ -899,7 +893,7 @@ function ReleaseCard({
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              maxWidth: 480,
+              maxWidth: 480
             }}
           >
             {release.title}
@@ -916,7 +910,7 @@ function ReleaseCard({
                 color: p.purpleText,
                 borderRadius: 999,
                 fontSize: 10.5,
-                fontWeight: 600,
+                fontWeight: 600
               }}
             >
               <Tag size={10} />
@@ -930,7 +924,7 @@ function ReleaseCard({
                 alignItems: "center",
                 gap: 4,
                 fontSize: 11,
-                color: p.textSubtle,
+                color: p.textSubtle
               }}
             >
               <Flag size={11} />
@@ -944,7 +938,7 @@ function ReleaseCard({
                 alignItems: "center",
                 gap: 4,
                 fontSize: 11,
-                color: p.textSubtle,
+                color: p.textSubtle
               }}
             >
               <FolderKanban size={11} />
@@ -960,7 +954,7 @@ function ReleaseCard({
             color: p.textSubtle,
             display: "inline-flex",
             alignItems: "center",
-            gap: 4,
+            gap: 4
           }}
         >
           <Calendar size={11} />
@@ -977,7 +971,7 @@ function ReleaseCard({
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              overflow: "hidden",
+              overflow: "hidden"
             }}
           >
             {preview}
@@ -990,7 +984,7 @@ function ReleaseCard({
           color: p.textFaint,
           display: "inline-flex",
           alignItems: "center",
-          paddingTop: 4,
+          paddingTop: 4
         }}
       >
         <ChevronRight size={16} />
@@ -1003,11 +997,10 @@ function ReleaseCard({
 
 function ReleaseDetailDrawer({
   id,
-  onClose,
-}: {
-  id: string | null;
-  onClose: () => void;
-}) {
+  onClose }: {
+    id: string | null;
+    onClose: () => void;
+  }) {
   const [data, setData] = useState<PortalRelease | null>(null);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -1053,8 +1046,8 @@ function ReleaseDetailDrawer({
           padding: 0,
           background: p.surfaceElevated,
           display: "flex",
-          flexDirection: "column",
-        },
+          flexDirection: "column"
+        }
       }}
     >
       {/* Top bar */}
@@ -1065,7 +1058,7 @@ function ReleaseDetailDrawer({
           display: "flex",
           alignItems: "center",
           gap: 10,
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <button
@@ -1082,7 +1075,7 @@ function ReleaseDetailDrawer({
             fontSize: 12.5,
             color: p.textMuted,
             cursor: "pointer",
-            fontWeight: 500,
+            fontWeight: 500
           }}
         >
           <ArrowLeft size={14} />
@@ -1094,7 +1087,7 @@ function ReleaseDetailDrawer({
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "22px 24px 28px",
+          padding: "22px 24px 28px"
         }}
       >
         {loading ? (
@@ -1103,10 +1096,10 @@ function ReleaseDetailDrawer({
               minHeight: 200,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "center"
             }}
           >
-            <Spin />
+            <LoadingSpinner fullScreen={false} />
           </div>
         ) : notFound || !data ? (
           <div
@@ -1114,7 +1107,7 @@ function ReleaseDetailDrawer({
               minHeight: 200,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "center"
             }}
           >
             <Empty
@@ -1149,7 +1142,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
           <Rocket size={20} />
@@ -1160,7 +1153,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
               display: "flex",
               alignItems: "center",
               gap: 10,
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <h1
@@ -1169,7 +1162,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
                 fontSize: 20,
                 fontWeight: 800,
                 color: p.text,
-                letterSpacing: "-0.015em",
+                letterSpacing: "-0.015em"
               }}
             >
               {data.title}
@@ -1186,7 +1179,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
                   color: p.purpleText,
                   borderRadius: 999,
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 600
                 }}
               >
                 <Tag size={11} />
@@ -1202,14 +1195,14 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
               gap: 14,
               flexWrap: "wrap",
               fontSize: 12.5,
-              color: p.textSubtle,
+              color: p.textSubtle
             }}
           >
             <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
+                gap: 5
               }}
             >
               <Calendar size={12} />
@@ -1220,7 +1213,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 5
                 }}
               >
                 <Flag size={12} />
@@ -1232,7 +1225,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 5
                 }}
               >
                 <FolderKanban size={12} />
@@ -1250,7 +1243,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
           padding: "18px 20px",
           background: p.surfaceElevated,
           border: `1px solid ${p.border}`,
-          borderRadius: 12,
+          borderRadius: 12
         }}
       >
         {data.description ? (
@@ -1259,7 +1252,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
             style={{
               fontSize: 13.5,
               color: p.textMuted,
-              lineHeight: 1.65,
+              lineHeight: 1.65
             }}
             dangerouslySetInnerHTML={{ __html: data.description }}
           />
@@ -1297,8 +1290,7 @@ function ReleaseDetailBody({ data }: { data: PortalRelease }) {
           border-left: 3px solid #bfdbfe; background: #f8fafc;
           color: #475569; border-radius: 4px;
         }
-      `,
-        }}
+      ` }}
       />
     </>
   );

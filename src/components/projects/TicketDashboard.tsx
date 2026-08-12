@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React from 'react';
 import {
@@ -12,7 +14,6 @@ import {
   Tag,
   Space,
   Avatar,
-  Spin,
   Alert,
   Tooltip,
   Divider,
@@ -45,9 +46,7 @@ export default function TicketDashboard() {
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="Calculating metrics">
-          <div style={{ height: 200 }} />
-        </Spin>
+        <ZukvoLoader size="lg" message="Calculating metrics" />
       </div>
     );
   }

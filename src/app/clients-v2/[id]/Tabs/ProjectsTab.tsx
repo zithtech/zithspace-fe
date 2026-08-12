@@ -61,6 +61,7 @@ import {
 import { MembersService } from "@/services/membersService";
 import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const currencyOptions = [
   { value: "USD", label: "US Dollar", symbol: "$", minor: "Cent" },
@@ -545,7 +546,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       {modalContextHolder}
 
       <div className="cd-tab-sticky-head">
-      <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
+        <div className="projects-header-wrap" style={{ margin: "0 -32px" }}>
           <TimeTrackingHeader
             icon={<Layers size={20} color="#3b82f6" />}
             title="Projects"
@@ -597,7 +598,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             }
           />
         </div>
-  
+
         <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <Input
             placeholder="Search by name or project code..."
@@ -607,7 +608,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             style={{ width: "320px" }}
             allowClear
           />
-  
+
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div className="ptab-segmented">
               <button
@@ -629,26 +630,44 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </div>
           </div>
         </div>
-  
+
         <div className="ptab-divider" />
       </div>
 
-      {viewMode === "list" ? (
-        <div className="pp-table-wrap">
-          <Table
-            dataSource={filteredProjects}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-            className="pp-table"
-            scroll={{ x: "max-content" }}
-            onRow={(record) => ({
-              onClick: () => router.push(`/projects/${record.id}/overview`),
-              style: { cursor: "pointer" },
-            })}
-            locale={{
-              emptyText: (
+      <ZukvoLoadingOverlay loading={loading} message="">
+        {viewMode === "list" ? (
+          <div className="pp-table-wrap">
+            <Table
+              dataSource={filteredProjects}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+              className="pp-table"
+              scroll={{ x: "max-content" }}
+              onRow={(record) => ({
+                onClick: () => router.push(`/projects/${record.id}/overview`),
+                style: { cursor: "pointer" },
+              })}
+              locale={{
+                emptyText: (
+                  <div className="ptab-empty">
+                    <div className="ptab-empty-icon">
+                      <Layers size={26} />
+                    </div>
+                    <div className="ptab-empty-title">No projects yet</div>
+                    <div className="ptab-empty-desc">
+                      Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                    </div>
+                  </div>
+                ),
+              }}
+            />
+
+          </div>
+        ) : (
+          <div className="pp-grid">
+            {filteredProjects.length === 0 ? (
+              <div className="ptab-empty-wrapper">
                 <div className="ptab-empty">
                   <div className="ptab-empty-icon">
                     <Layers size={26} />
@@ -658,554 +677,538 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                     Initiate the first project under this client to start tracking budget, timelines, and ownership.
                   </div>
                 </div>
-              ),
-            }}
-          />
-        </div>
-      ) : (
-        <div className="pp-grid">
-          {filteredProjects.length === 0 ? (
-            <div className="ptab-empty-wrapper">
-              <div className="ptab-empty">
-                <div className="ptab-empty-icon">
-                  <Layers size={26} />
-                </div>
-                <div className="ptab-empty-title">No projects yet</div>
-                <div className="ptab-empty-desc">
-                  Initiate the first project under this client to start tracking budget, timelines, and ownership.
-                </div>
               </div>
-            </div>
-          ) : (
-            filteredProjects.map((project) => {
-              const name = project.name;
-              const initials = (name?.[0] || "").toUpperCase();
+            ) : (
+              filteredProjects.map((project) => {
+                const name = project.name;
+                const initials = (name?.[0] || "").toUpperCase();
 
-              const sKey = project.status || "Draft";
-              const statusConfig: any = {
-                Active: { color: "success", icon: <Activity size={10} /> },
-                Draft: { color: "processing", icon: <FileText size={10} /> },
-                "On Hold": { color: "warning", icon: <Clock size={10} /> },
-                Completed: { color: "default", icon: <CheckCircle2 size={10} /> },
-                Closed: { color: "error", icon: <AlertCircle size={10} /> },
-              };
-              const statusItem = statusConfig[sKey] || { color: "default", icon: null };
+                const sKey = project.status || "Draft";
+                const statusConfig: any = {
+                  Active: { color: "success", icon: <Activity size={10} /> },
+                  Draft: { color: "processing", icon: <FileText size={10} /> },
+                  "On Hold": { color: "warning", icon: <Clock size={10} /> },
+                  Completed: { color: "default", icon: <CheckCircle2 size={10} /> },
+                  Closed: { color: "error", icon: <AlertCircle size={10} /> },
+                };
+                const statusItem = statusConfig[sKey] || { color: "default", icon: null };
 
-              const created = project.createdAt ? dayjs(project.createdAt) : null;
-              const updated = project.updatedAt ? dayjs(project.updatedAt) : null;
+                const created = project.createdAt ? dayjs(project.createdAt) : null;
+                const updated = project.updatedAt ? dayjs(project.updatedAt) : null;
 
-              const symbol = currencyOptions.find((c) => c.value === project.currency)?.symbol || "$";
-              const budget = Number(project.budget || 0);
-              const invoiced = Number(project.invoicedAmount || 0);
-              const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
+                const symbol = currencyOptions.find((c) => c.value === project.currency)?.symbol || "$";
+                const budget = Number(project.budget || 0);
+                const invoiced = Number(project.invoicedAmount || 0);
+                const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
 
-              return (
-                <div key={project.id} className="pc-card" onClick={() => router.push(`/projects/${project.id}/overview`)}>
-                  <div className="pc-top">
-                    <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
-                      {initials}
-                    </div>
-                    <div className="pc-identity-body">
-                      <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <span>{name}</span>
-                        <Tag
-                          color={statusItem.color}
-                          icon={statusItem.icon}
-                          style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
-                        >
-                          {sKey.toUpperCase()}
-                        </Tag>
+                return (
+                  <div key={project.id} className="pc-card" onClick={() => router.push(`/projects/${project.id}/overview`)}>
+                    <div className="pc-top">
+                      <div className="pc-avatar" style={{ background: "#3b82f6", color: "#fff", borderRadius: "50%" }}>
+                        {initials}
                       </div>
-                      <div className="pc-client-line">
-                        <span className="pc-client-key">Code:</span>
-                        <span className="pc-client-val">{project.code}</span>
+                      <div className="pc-identity-body">
+                        <div className="pc-title" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span>{name}</span>
+                          <Tag
+                            color={statusItem.color}
+                            icon={statusItem.icon}
+                            style={{ borderRadius: 6, fontWeight: 600, border: 0, fontSize: "10px", padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}
+                          >
+                            {sKey.toUpperCase()}
+                          </Tag>
+                        </div>
+                        <div className="pc-client-line">
+                          <span className="pc-client-key">Code:</span>
+                          <span className="pc-client-val">{project.code}</span>
+                        </div>
                       </div>
-                    </div>
-                    <Dropdown
-                      menu={projectActionMenu(project)}
-                      overlayClassName="pp-action-pop"
-                      trigger={["click"]}
-                      placement="bottomRight"
-                    >
-                      <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal size={14} />
-                      </button>
-                    </Dropdown>
-                  </div>
-
-                  <div className="pc-foot">
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created by</span>
-                        <Avatar size={16} src={project.createdBy?.avatarUrl || project.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
-                          {(project.createdBy?.name?.[0] || "—").toUpperCase()}
-                        </Avatar>
-                        <span className="pc-foot-val">{project.createdBy?.name || "—"}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Created</span>
-                        <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <span className="pc-foot-key">Updated</span>
-                        <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
-                      </span>
+                      <Dropdown
+                        menu={projectActionMenu(project)}
+                        overlayClassName="pp-action-pop"
+                        trigger={["click"]}
+                        placement="bottomRight"
+                      >
+                        <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                          <MoreHorizontal size={14} />
+                        </button>
+                      </Dropdown>
                     </div>
 
-                    <div className="pc-foot-row">
-                      <span className="pc-foot-item">
-                        <Briefcase size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{project.billingType}</span>
-                      </span>
-                      <span className="pc-foot-div" />
-                      <span className="pc-foot-item">
-                        <User size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                        <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
-                          {project.projectManager?.name || (project.projectManager?.first_name ? `${project.projectManager.first_name} ${project.projectManager.last_name}` : "Unassigned")}
+                    <div className="pc-foot">
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created by</span>
+                          <Avatar size={16} src={project.createdBy?.avatarUrl || project.createdBy?.avatar} style={{ background: "var(--bg-blue-50)", color: "#3b82f6", fontSize: 8, fontWeight: 700 }}>
+                            {(project.createdBy?.name?.[0] || "—").toUpperCase()}
+                          </Avatar>
+                          <span className="pc-foot-val">{project.createdBy?.name || "—"}</span>
                         </span>
-                      </span>
-                      {project.startDate && (
-                        <>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
-                            <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
-                              {dayjs(project.startDate).format("MMM DD, YYYY")}
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Created</span>
+                          <span className="pc-foot-val">{created ? created.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                        </span>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <span className="pc-foot-key">Updated</span>
+                          <span className="pc-foot-val">{updated ? updated.format("MMM D, YYYY · h:mm A") : "—"}</span>
+                        </span>
+                      </div>
+
+                      <div className="pc-foot-row">
+                        <span className="pc-foot-item">
+                          <Briefcase size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                          <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)" }}>{project.billingType}</span>
+                        </span>
+                        <span className="pc-foot-div" />
+                        <span className="pc-foot-item">
+                          <User size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                          <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                            {project.projectManager?.name || (project.projectManager?.first_name ? `${project.projectManager.first_name} ${project.projectManager.last_name}` : "Unassigned")}
+                          </span>
+                        </span>
+                        {project.startDate && (
+                          <>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <Calendar size={12} style={{ color: "var(--text-slate-400)", flexShrink: 0 }} />
+                              <span style={{ fontSize: "11.5px", color: "var(--text-slate-700)", fontWeight: 500 }}>
+                                {dayjs(project.startDate).format("MMM DD, YYYY")}
+                              </span>
                             </span>
-                          </span>
-                        </>
-                      )}
-                      {budget > 0 && (
-                        <>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item" style={{ gap: "6px" }}>
-                            <span style={{ color: "var(--text-slate-500)", fontWeight: 500, fontSize: "11px" }}>Budget: {symbol}{budget.toLocaleString()}</span>
-                            <div style={{ width: "36px", display: "inline-flex", alignItems: "center" }}>
-                              <Progress
-                                percent={percentage}
-                                size="small"
-                                showInfo={false}
-                                strokeColor="var(--premium-blue)"
-                                trailColor="var(--border-slate-100)"
-                                strokeWidth={3}
-                                style={{ margin: 0 }}
-                              />
-                            </div>
-                            <span style={{ color: "var(--text-slate-600)", fontWeight: 600, fontSize: "10.5px" }}>{Math.round(percentage)}% used</span>
-                          </span>
-                        </>
-                      )}
+                          </>
+                        )}
+                        {budget > 0 && (
+                          <>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item" style={{ gap: "6px" }}>
+                              <span style={{ color: "var(--text-slate-500)", fontWeight: 500, fontSize: "11px" }}>Budget: {symbol}{budget.toLocaleString()}</span>
+                              <div style={{ width: "36px", display: "inline-flex", alignItems: "center" }}>
+                                <Progress
+                                  percent={percentage}
+                                  size="small"
+                                  showInfo={false}
+                                  strokeColor="var(--premium-blue)"
+                                  trailColor="var(--border-slate-100)"
+                                  strokeWidth={3}
+                                  style={{ margin: 0 }}
+                                />
+                              </div>
+                              <span style={{ color: "var(--text-slate-600)", fontWeight: 600, fontSize: "10.5px" }}>{Math.round(percentage)}% used</span>
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                );
+              })
+            )}
+          </div>
+        )}
+      </ZukvoLoadingOverlay>
 
       {/* Create Drawer */}
       <>
-      <style>{drawerFormStyles}</style>
-      <Drawer
-        {...commonDrawerProps}
-        open={isModalVisible}
-        onClose={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-          resetChecks();
-        }}
-        destroyOnClose
-      >
-        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
-          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-                style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
-              >
-                <Layers size={16} />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Initiate New Project</h2>
-                <div style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginTop: 6,
-                  padding: "6px 12px",
-                  background: `rgba(59,130,246,0.08)`,
-                  border: `1px solid rgba(59,130,246,0.22)`,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  color: "#3b82f6",
-                  lineHeight: 1.5,
-                }}>
-                  Define scope, leadership, and budget for this engagement
+        <style>{drawerFormStyles}</style>
+        <Drawer
+          {...commonDrawerProps}
+          open={isModalVisible}
+          onClose={() => {
+            setIsModalVisible(false);
+            form.resetFields();
+            resetChecks();
+          }}
+          destroyOnClose
+        >
+          <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+            <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
+                >
+                  <Layers size={16} />
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Initiate New Project</h2>
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 6,
+                    padding: "6px 12px",
+                    background: `rgba(59,130,246,0.08)`,
+                    border: `1px solid rgba(59,130,246,0.22)`,
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: "#3b82f6",
+                    lineHeight: 1.5,
+                  }}>
+                    Define scope, leadership, and budget for this engagement
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setIsModalVisible(false);
+                  form.resetFields();
+                  resetChecks();
+                }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+              </button>
             </div>
-            <button
-              onClick={() => {
+
+            <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+              <Form
+                form={form}
+                layout="horizontal"
+                labelCol={{ span: 7 }}
+                wrapperCol={{ span: 17 }}
+                labelAlign="left"
+                onFinish={handleCreateProject}
+                requiredMark={false}
+              >
+                <SectionCard
+                  title="Identity"
+                  subtitle="Provide the project name and code."
+                  icon={<Hash size={14} />}
+                  step="STEP 1"
+                >
+                  <Form.Item
+                    label="Project name"
+                    name="name"
+                    rules={[{ required: true, message: "Required" }]}
+                    hasFeedback={false}
+                    extra={
+                      nameCheck.status === "available" ? (
+                        <span className="pmodal-check-hint ok">Name is available</span>
+                      ) : nameCheck.status === "checking" ? (
+                        <span className="pmodal-check-hint muted">Checking availability…</span>
+                      ) : null
+                    }
+                  >
+                    <Input
+                      placeholder="e.g. Q3 Infrastructure Modernization"
+                      onChange={onNameChange}
+                      suffix={renderCheckSuffix(nameCheck)}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    label="Project code"
+                    name="code"
+                    rules={[{ required: true, message: "Required" }]}
+                    hasFeedback={false}
+                    extra={
+                      codeCheck.status === "available" ? (
+                        <span className="pmodal-check-hint ok">Code is available</span>
+                      ) : codeCheck.status === "checking" ? (
+                        <span className="pmodal-check-hint muted">Checking…</span>
+                      ) : null
+                    }
+                  >
+                    <Input
+                      placeholder="PRJ-2024-001"
+                      onChange={onCodeChange}
+                      suffix={renderCheckSuffix(codeCheck)}
+                    />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Leadership & Status"
+                  subtitle="Assign a manager and set the initial status."
+                  icon={<User size={14} />}
+                  step="STEP 2"
+                >
+                  <Form.Item
+                    label="Project manager"
+                    name="projectManagerId"
+                    rules={[{ required: true, message: "Assignment required" }]}
+                  >
+                    <SearchableDropdown
+                      placeholder="Assign a manager"
+                      searchPlaceholder="Search managers..."
+                      options={employees.map((emp: any) => ({
+                        value: emp.value,
+                        label: emp.label,
+                        avatarUrl: emp.avatarUrl,
+                      }))}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    label="Initial status"
+                    name="status"
+                    initialValue="Draft"
+                    rules={[{ required: true }]}
+                  >
+                    <SearchableDropdown
+                      placeholder="Select status"
+                      options={[
+                        { value: "Draft", label: "Drafting phase" },
+                        { value: "Active", label: "Operational / Active" },
+                        { value: "On Hold", label: "Delayed / On hold" },
+                        { value: "Completed", label: "Project completed" },
+                        { value: "Closed", label: "System closed" },
+                      ]}
+                    />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Billing & Budget"
+                  subtitle="Set up the billing model and allocated budget."
+                  icon={<Wallet size={14} />}
+                  step="STEP 3"
+                >
+                  <Form.Item
+                    label="Billing model"
+                    name="billingType"
+                    rules={[{ required: true }]}
+                  >
+                    <SearchableDropdown
+                      placeholder="Select model"
+                      options={[
+                        { value: "Hourly", label: "Hourly rate" },
+                        { value: "Monthly", label: "Monthly subscription" },
+                        { value: "Daily", label: "Daily allowance" },
+                        { value: "Fixed", label: "Fixed project cost" },
+                        { value: "Non-Billable", label: "Internal / Non-billable" },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item label="Allocated budget" name="budget">
+                    <InputNumber
+                      type="number"
+                      addonBefore={currencySelector}
+                      style={{ width: "100%" }}
+                      placeholder="0.00"
+                      formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                      parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                    />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Timeline"
+                  subtitle="Specify the start and estimated completion dates."
+                  icon={<Calendar size={14} />}
+                  step="STEP 4"
+                >
+                  <Form.Item
+                    label="Start date"
+                    name="startDate"
+                    rules={[{ required: true, message: "Required" }]}
+                  >
+                    <DatePicker style={{ width: "100%" }} placeholder="Commencement" />
+                  </Form.Item>
+                  <Form.Item label="End date" name="endDate">
+                    <DatePicker style={{ width: "100%" }} placeholder="Estimated completion" />
+                  </Form.Item>
+                </SectionCard>
+              </Form>
+            </div>
+
+            <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+              <Button onClick={() => {
                 setIsModalVisible(false);
                 form.resetFields();
                 resetChecks();
-              }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
+              }} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                onClick={() => form.submit()}
+                icon={<Plus size={14} />}
+                className="font-medium shadow-sm hover:opacity-90"
+              >
+                Initialize Project
+              </Button>
+            </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
-            <Form 
-              form={form} 
-              layout="horizontal"
-              labelCol={{ span: 7 }}
-              wrapperCol={{ span: 17 }}
-              labelAlign="left"
-              onFinish={handleCreateProject}
-              requiredMark={false}
-            >
-              <SectionCard
-                title="Identity"
-                subtitle="Provide the project name and code."
-                icon={<Hash size={14} />}
-                step="STEP 1"
-              >
-                <Form.Item
-                  label="Project name"
-                  name="name"
-                  rules={[{ required: true, message: "Required" }]}
-                  hasFeedback={false}
-                  extra={
-                    nameCheck.status === "available" ? (
-                      <span className="pmodal-check-hint ok">Name is available</span>
-                    ) : nameCheck.status === "checking" ? (
-                      <span className="pmodal-check-hint muted">Checking availability…</span>
-                    ) : null
-                  }
-                >
-                  <Input
-                    placeholder="e.g. Q3 Infrastructure Modernization"
-                    onChange={onNameChange}
-                    suffix={renderCheckSuffix(nameCheck)}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label="Project code"
-                  name="code"
-                  rules={[{ required: true, message: "Required" }]}
-                  hasFeedback={false}
-                  extra={
-                    codeCheck.status === "available" ? (
-                      <span className="pmodal-check-hint ok">Code is available</span>
-                    ) : codeCheck.status === "checking" ? (
-                      <span className="pmodal-check-hint muted">Checking…</span>
-                    ) : null
-                  }
-                >
-                  <Input
-                    placeholder="PRJ-2024-001"
-                    onChange={onCodeChange}
-                    suffix={renderCheckSuffix(codeCheck)}
-                  />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Leadership & Status"
-                subtitle="Assign a manager and set the initial status."
-                icon={<User size={14} />}
-                step="STEP 2"
-              >
-                <Form.Item
-                  label="Project manager"
-                  name="projectManagerId"
-                  rules={[{ required: true, message: "Assignment required" }]}
-                >
-                  <SearchableDropdown
-                    placeholder="Assign a manager"
-                    searchPlaceholder="Search managers..."
-                    options={employees.map((emp: any) => ({
-                      value: emp.value,
-                      label: emp.label,
-                      avatarUrl: emp.avatarUrl,
-                    }))}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label="Initial status"
-                  name="status"
-                  initialValue="Draft"
-                  rules={[{ required: true }]}
-                >
-                  <SearchableDropdown
-                    placeholder="Select status"
-                    options={[
-                      { value: "Draft", label: "Drafting phase" },
-                      { value: "Active", label: "Operational / Active" },
-                      { value: "On Hold", label: "Delayed / On hold" },
-                      { value: "Completed", label: "Project completed" },
-                      { value: "Closed", label: "System closed" },
-                    ]}
-                  />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Billing & Budget"
-                subtitle="Set up the billing model and allocated budget."
-                icon={<Wallet size={14} />}
-                step="STEP 3"
-              >
-                <Form.Item
-                  label="Billing model"
-                  name="billingType"
-                  rules={[{ required: true }]}
-                >
-                  <SearchableDropdown
-                    placeholder="Select model"
-                    options={[
-                      { value: "Hourly", label: "Hourly rate" },
-                      { value: "Monthly", label: "Monthly subscription" },
-                      { value: "Daily", label: "Daily allowance" },
-                      { value: "Fixed", label: "Fixed project cost" },
-                      { value: "Non-Billable", label: "Internal / Non-billable" },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="Allocated budget" name="budget">
-                  <InputNumber
-                    type="number"
-                    addonBefore={currencySelector}
-                    style={{ width: "100%" }}
-                    placeholder="0.00"
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
-                  />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Timeline"
-                subtitle="Specify the start and estimated completion dates."
-                icon={<Calendar size={14} />}
-                step="STEP 4"
-              >
-                <Form.Item
-                  label="Start date"
-                  name="startDate"
-                  rules={[{ required: true, message: "Required" }]}
-                >
-                  <DatePicker style={{ width: "100%" }} placeholder="Commencement" />
-                </Form.Item>
-                <Form.Item label="End date" name="endDate">
-                  <DatePicker style={{ width: "100%" }} placeholder="Estimated completion" />
-                </Form.Item>
-              </SectionCard>
-            </Form>
-          </div>
-
-          <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
-            <Button onClick={() => {
-              setIsModalVisible(false);
-              form.resetFields();
-              resetChecks();
-            }} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              onClick={() => form.submit()}
-              icon={<Plus size={14} />}
-              className="font-medium shadow-sm hover:opacity-90"
-            >
-              Initialize Project
-            </Button>
-          </div>
-        </div>
-      </Drawer>
+        </Drawer>
       </>
 
       {/* Edit Drawer */}
       <>
-      <Drawer
-        {...commonDrawerProps}
-        open={isEditModalVisible}
-        onClose={() => {
-          setIsEditModalVisible(false);
-          editForm.resetFields();
-          setEditingProject(null);
-        }}
-        destroyOnClose
-      >
-        <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
-          <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-                style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
-              >
-                <Edit2 size={16} />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Update Project Configuration</h2>
-                <div style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  marginTop: 6,
-                  padding: "6px 12px",
-                  background: `rgba(59,130,246,0.08)`,
-                  border: `1px solid rgba(59,130,246,0.22)`,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  color: "#3b82f6",
-                  lineHeight: 1.5,
-                }}>
-                  Modify configuration and settings for this project
+        <Drawer
+          {...commonDrawerProps}
+          open={isEditModalVisible}
+          onClose={() => {
+            setIsEditModalVisible(false);
+            editForm.resetFields();
+            setEditingProject(null);
+          }}
+          destroyOnClose
+        >
+          <div className="flex flex-col h-full bg-[var(--customers-page-bg,#0B0F1A)]">
+            <div className="customer-drawer-header shrink-0 flex items-center justify-between px-6 py-4 border-b border-dashed border-[var(--border-color)]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "rgba(59, 130, 246, 0.12)", border: `1px solid rgba(59, 130, 246, 0.22)`, color: "#3b82f6" }}
+                >
+                  <Edit2 size={16} />
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight m-0">Update Project Configuration</h2>
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginTop: 6,
+                    padding: "6px 12px",
+                    background: `rgba(59,130,246,0.08)`,
+                    border: `1px solid rgba(59,130,246,0.22)`,
+                    borderRadius: 8,
+                    fontSize: 12,
+                    color: "#3b82f6",
+                    lineHeight: 1.5,
+                  }}>
+                    Modify configuration and settings for this project
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  setIsEditModalVisible(false);
+                  editForm.resetFields();
+                  setEditingProject(null);
+                }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setIsEditModalVisible(false);
-                editForm.resetFields();
-                setEditingProject(null);
-              }}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
+
+            <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
+              <Form
+                form={editForm}
+                layout="horizontal"
+                labelCol={{ span: 7 }}
+                wrapperCol={{ span: 17 }}
+                labelAlign="left"
+                onFinish={handleEditProject}
+              >
+                <SectionCard
+                  title="Identity"
+                  subtitle="Modify the project name and code."
+                  icon={<Hash size={14} />}
+                  step="STEP 1"
+                >
+                  <Form.Item label="Project Name" name="name" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Project Code" name="code">
+                    <Input disabled />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Leadership & Status"
+                  subtitle="Assign a manager and set the current status."
+                  icon={<User size={14} />}
+                  step="STEP 2"
+                >
+                  <Form.Item label="Project Manager" name="projectManagerId" rules={[{ required: true }]}>
+                    <SearchableDropdown
+                      placeholder="Assign a manager"
+                      searchPlaceholder="Search managers..."
+                      options={employees.map((emp: any) => ({
+                        value: emp.value,
+                        label: emp.label,
+                        avatarUrl: emp.avatarUrl,
+                      }))}
+                    />
+                  </Form.Item>
+                  <Form.Item label="Project Status" name="status" rules={[{ required: true }]}>
+                    <SearchableDropdown
+                      placeholder="Select status"
+                      options={[
+                        { value: "Draft", label: "Draft" },
+                        { value: "Active", label: "Active" },
+                        { value: "On Hold", label: "On Hold" },
+                        { value: "Completed", label: "Completed" },
+                        { value: "Closed", label: "Closed" },
+                      ]}
+                    />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Billing & Budget"
+                  subtitle="Adjust the billing model and total budget."
+                  icon={<Wallet size={14} />}
+                  step="STEP 3"
+                >
+                  <Form.Item label="Billing Type" name="billingType" rules={[{ required: true }]}>
+                    <SearchableDropdown
+                      placeholder="Select model"
+                      options={[
+                        { value: "Hourly", label: "Hourly" },
+                        { value: "Monthly", label: "Monthly" },
+                        { value: "Daily", label: "Daily" },
+                        { value: "Fixed", label: "Fixed" },
+                        { value: "Non-Billable", label: "Non-Billable" },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item label="Total Budget" name="budget">
+                    <InputNumber
+                      addonBefore={currencySelector}
+                      style={{ width: "100%", display: "flex", alignItems: "center" }}
+                      formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                      parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                    />
+                  </Form.Item>
+                </SectionCard>
+
+                <SectionCard
+                  title="Timeline"
+                  subtitle="Adjust the start and end dates."
+                  icon={<Calendar size={14} />}
+                  step="STEP 4"
+                >
+                  <Form.Item label="Start Date" name="startDate" rules={[{ required: true }]}>
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+                  <Form.Item label="End Date" name="endDate">
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+                </SectionCard>
+              </Form>
+            </div>
+
+            <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+              <Button
+                onClick={() => {
+                  setIsEditModalVisible(false);
+                  editForm.resetFields();
+                  setEditingProject(null);
+                }}
+                className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                onClick={() => editForm.submit()}
+                icon={<CheckCircle2 size={14} />}
+                className="font-medium shadow-sm hover:opacity-90"
+              >
+                Save Configuration
+              </Button>
+            </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
-            <Form 
-              form={editForm} 
-              layout="horizontal"
-              labelCol={{ span: 7 }}
-              wrapperCol={{ span: 17 }}
-              labelAlign="left"
-              onFinish={handleEditProject}
-            >
-              <SectionCard
-                title="Identity"
-                subtitle="Modify the project name and code."
-                icon={<Hash size={14} />}
-                step="STEP 1"
-              >
-                <Form.Item label="Project Name" name="name" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item label="Project Code" name="code">
-                  <Input disabled />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Leadership & Status"
-                subtitle="Assign a manager and set the current status."
-                icon={<User size={14} />}
-                step="STEP 2"
-              >
-                <Form.Item label="Project Manager" name="projectManagerId" rules={[{ required: true }]}>
-                  <SearchableDropdown
-                    placeholder="Assign a manager"
-                    searchPlaceholder="Search managers..."
-                    options={employees.map((emp: any) => ({
-                      value: emp.value,
-                      label: emp.label,
-                      avatarUrl: emp.avatarUrl,
-                    }))}
-                  />
-                </Form.Item>
-                <Form.Item label="Project Status" name="status" rules={[{ required: true }]}>
-                  <SearchableDropdown
-                    placeholder="Select status"
-                    options={[
-                      { value: "Draft", label: "Draft" },
-                      { value: "Active", label: "Active" },
-                      { value: "On Hold", label: "On Hold" },
-                      { value: "Completed", label: "Completed" },
-                      { value: "Closed", label: "Closed" },
-                    ]}
-                  />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Billing & Budget"
-                subtitle="Adjust the billing model and total budget."
-                icon={<Wallet size={14} />}
-                step="STEP 3"
-              >
-                <Form.Item label="Billing Type" name="billingType" rules={[{ required: true }]}>
-                  <SearchableDropdown
-                    placeholder="Select model"
-                    options={[
-                      { value: "Hourly", label: "Hourly" },
-                      { value: "Monthly", label: "Monthly" },
-                      { value: "Daily", label: "Daily" },
-                      { value: "Fixed", label: "Fixed" },
-                      { value: "Non-Billable", label: "Non-Billable" },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="Total Budget" name="budget">
-                  <InputNumber
-                    addonBefore={currencySelector}
-                    style={{ width: "100%", display: "flex", alignItems: "center" }}
-                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
-                  />
-                </Form.Item>
-              </SectionCard>
-
-              <SectionCard
-                title="Timeline"
-                subtitle="Adjust the start and end dates."
-                icon={<Calendar size={14} />}
-                step="STEP 4"
-              >
-                <Form.Item label="Start Date" name="startDate" rules={[{ required: true }]}>
-                  <DatePicker style={{ width: "100%" }} />
-                </Form.Item>
-                <Form.Item label="End Date" name="endDate">
-                  <DatePicker style={{ width: "100%" }} />
-                </Form.Item>
-              </SectionCard>
-            </Form>
-          </div>
-
-          <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
-            <Button
-              onClick={() => {
-                setIsEditModalVisible(false);
-                editForm.resetFields();
-                setEditingProject(null);
-              }}
-              className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitting}
-              onClick={() => editForm.submit()}
-              icon={<CheckCircle2 size={14} />}
-              className="font-medium shadow-sm hover:opacity-90"
-            >
-              Save Configuration
-            </Button>
-          </div>
-        </div>
-      </Drawer>
+        </Drawer>
       </>
 
       <ImportProjectsModal
@@ -1697,8 +1700,7 @@ function ImportProjectsModal({
     try {
       const res = await ClientV2Service.importProjects(clientId, selected);
       messageApi.success(
-        `Linked ${res.linked} project${res.linked === 1 ? "" : "s"}${
-          res.skipped > 0 ? ` · ${res.skipped} already linked, skipped` : ""
+        `Linked ${res.linked} project${res.linked === 1 ? "" : "s"}${res.skipped > 0 ? ` · ${res.skipped} already linked, skipped` : ""
         }`
       );
       onImported();

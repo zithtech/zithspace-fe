@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Switch, message, Spin } from "antd";
+import { Switch, message } from "antd";
 import {
   Receipt,
   ClipboardList,
@@ -107,7 +109,7 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <Spin />
+        <ZukvoLoader size="md" />
       </div>
     );
   }

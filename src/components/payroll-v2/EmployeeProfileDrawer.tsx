@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Select, Drawer, Avatar, message, Spin, Space } from 'antd';
+import { Button, Input, Select, Drawer, Avatar, message, Space } from 'antd';
 import { CloseOutlined, IdcardOutlined, BankOutlined, SafetyCertificateOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import PayrollV2Service, { MemberOption, TaxRegime, UpsertProfileInput } from '@/services/payrollV2Service';
 
@@ -101,7 +103,7 @@ export default function EmployeeProfileDrawer({
         </div>
 
         <div className="epd-body">
-          {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><Spin /></div> : (
+          {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div> : (
             <>
               <SectionCard icon={<SafetyCertificateOutlined />} tint={TINT.violet} color={PALETTE.violet} title="Statutory IDs" subtitle="Identity & compliance numbers">
                 <Field label="PAN" hint="10-character income-tax PAN"><Input value={form.pan ?? ''} maxLength={10} onChange={(e) => set('pan', e.target.value.toUpperCase())} placeholder="ABCDE1234F" style={{ fontFamily: 'monospace' }} /></Field>

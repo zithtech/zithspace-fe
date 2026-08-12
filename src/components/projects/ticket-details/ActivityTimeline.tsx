@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useMemo } from 'react';
-import { Typography, Tag, Empty, Spin, Avatar, Tooltip } from 'antd';
+import { Typography, Tag, Empty, Avatar, Tooltip } from 'antd';
 import {
     ClockCircleOutlined,
     EditOutlined,
@@ -81,9 +82,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
     if (isLoading) {
         return (
             <div style={{ padding: 40, textAlign: 'center' }}>
-                <Spin tip="Loading history">
-                    <div style={{ height: 40 }} />
-                </Spin>
+                <ZukvoLoader size="md" message="Loading history" />
             </div>
         );
     }

@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import "../projects.css";
 
@@ -8,7 +10,6 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
 import ProjectTrashManagementPage from "@/components/projects/trash/ProjectTrashManagementPage";
 
 export default function ProjectTrashPage() {
@@ -37,7 +38,7 @@ export default function ProjectTrashPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Loading project trash..." />
+          <ZukvoLoader size="lg" message="Loading project trash..." />
         </div>
       </MainLayout>
     );

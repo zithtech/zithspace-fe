@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,7 +11,6 @@ import {
   Button,
   Form,
   Avatar,
-  Spin,
   Tooltip,
   Modal,
   Slider,
@@ -322,7 +323,7 @@ export default function ProfilePage() {
             justifyContent: "center",
           }}
         >
-          <Spin size="large" tip="Loading your profile..." />
+          <ZukvoLoader size="lg" message="Loading your profile..." />
         </div>
       </MainLayout>
     );

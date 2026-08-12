@@ -38,6 +38,7 @@ import { useTenant } from "@/context/TenantContext";
 import { usePermission } from "@/hooks/usePermission";
 import { api } from "@/lib/axios";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Option } = Select;
 
@@ -347,28 +348,29 @@ export default function AllocationsTab({
         </div>
 
         <div className="pp-table-wrap">
-        <Table
-          dataSource={allocations}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-          className="pp-table"
-          scroll={{ x: "max-content" }}
-          locale={{
-            emptyText: (
-              <div className="ptab-empty">
-                <div className="ptab-empty-icon">
-                  <Briefcase size={26} />
-                </div>
-                <div className="ptab-empty-title">No allocations yet</div>
-                <div className="ptab-empty-desc">
-                  Assign team members, set billing roles and budgets to start tracking work for this client.
-                </div>
-              </div>
-            ),
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                            dataSource={allocations}
+                            columns={columns}
+                            rowKey="id"
+                            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+                            className="pp-table"
+                            scroll={{ x: "max-content" }}
+                            locale={{
+                              emptyText: (
+                                <div className="ptab-empty">
+                                  <div className="ptab-empty-icon">
+                                    <Briefcase size={26} />
+                                  </div>
+                                  <div className="ptab-empty-title">No allocations yet</div>
+                                  <div className="ptab-empty-desc">
+                                    Assign team members, set billing roles and budgets to start tracking work for this client.
+                                  </div>
+                                </div>
+                              ),
+                            }}
+                          />
+                  </ZukvoLoadingOverlay>
         </div>
       </Card>
 

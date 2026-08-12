@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -6,7 +8,6 @@ import {
   Table,
   Input,
   Button,
-  Spin,
   message,
   Tooltip,
 } from "antd";
@@ -434,7 +435,7 @@ export default function ClientImportModal({
               }}
             >
               <div className="text-center">
-                <Spin size="default" />
+                <ZukvoLoader size="md" />
                 <div
                   className="mt-3 text-[12px] font-medium"
                   style={{ color: "var(--text-secondary)" }}

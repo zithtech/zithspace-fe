@@ -32,6 +32,7 @@ import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/c
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function CandidatesPage() {
   const { message } = App.useApp();
@@ -163,7 +164,7 @@ export default function CandidatesPage() {
         let statusColor = '#64748b';
         let bgColor = 'rgba(100,116,139,0.10)';
         let ringColor = 'rgba(100,116,139,0.25)';
-        
+
         if (status === 'Applied') { statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)'; }
         if (status === 'Screening') { statusColor = '#6366f1'; bgColor = 'rgba(99,102,241,0.10)'; ringColor = 'rgba(99,102,241,0.25)'; }
         if (status === 'Shortlisted') { statusColor = '#8b5cf6'; bgColor = 'rgba(139,92,246,0.10)'; ringColor = 'rgba(139,92,246,0.25)'; }
@@ -329,7 +330,7 @@ export default function CandidatesPage() {
             ]}
           />
         </div>
-        
+
         <div className="w-56">
           <SearchableDropdown
             value={roleFilter}
@@ -341,7 +342,7 @@ export default function CandidatesPage() {
             ]}
           />
         </div>
-        
+
         <div className="w-48">
           <SearchableDropdown
             value={expFilter}
@@ -358,109 +359,111 @@ export default function CandidatesPage() {
       </div>
 
       <div className="pl-body">
-        {viewMode === "table" ? (
-          <div className="pp-table-wrap">
-            <Table
-              size="small"
-              columns={columns}
-              dataSource={filteredCandidates.map(c => ({ ...c, key: c.id }))}
-              loading={loading}
-              pagination={false}
-              className="pp-table"
-              scroll={{ x: 800 }}
-              onRow={(record) => ({
-                onClick: (e) => {
-                  const t = e.target as HTMLElement;
-                  if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
-                  router.push(`/pipeline/candidates/${record.id}`);
-                },
-                className: 'pp-row',
-                style: { cursor: 'pointer' }
-              })}
-            />
-          </div>
-        ) : (
-          <div className="pp-grid">
-            {loading ? (
-              <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
-            ) : filteredCandidates.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
-            ) : (
-              filteredCandidates.map((c) => {
-                const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                let statusColor = '#94a3b8'; // default
-                if (c.status === 'Applied') statusColor = '#3b82f6';
-                if (c.status === 'Screening') statusColor = '#6366f1';
-                if (c.status === 'Shortlisted') statusColor = '#8b5cf6';
-                if (c.status === 'Interview') statusColor = '#f59e0b';
-                if (c.status === 'Offer') statusColor = '#10b981';
-                if (c.status === 'Hired') statusColor = '#059669';
-                if (c.status === 'Rejected') statusColor = '#ef4444';
-                if (c.status === 'Withdrawn') statusColor = '#64748b';
-                if (c.status === 'On Hold') statusColor = '#f97316';
+        <ZukvoLoadingOverlay loading={loading} message="">
+          {viewMode === "table" ? (
+            <div className="pp-table-wrap">
+              <Table
+                size="small"
+                columns={columns}
+                dataSource={filteredCandidates.map(c => ({ ...c, key: c.id }))}
+                pagination={false}
+                className="pp-table"
+                scroll={{ x: 800 }}
+                onRow={(record) => ({
+                  onClick: (e) => {
+                    const t = e.target as HTMLElement;
+                    if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
+                    router.push(`/pipeline/candidates/${record.id}`);
+                  },
+                  className: 'pp-row',
+                  style: { cursor: 'pointer' }
+                })}
+              />
 
-                return (
-                  <div key={c.id} className="pc-card">
-                    <div className="pc-top">
-                      <div
-                        className="pc-avatar"
-                        style={{
-                          background: `linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)`,
-                        }}
-                      >
-                        {initials}
-                      </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title" style={{ fontSize: '13px' }}>
-                          {c.name}
-                        </div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Role:</span>
-                          <span className="pc-client-val">{c.role}</span>
-                        </div>
-                      </div>
-                      <Dropdown menu={{ items: getMenuItems(c) }} overlayClassName="pp-action-pop" trigger={["click"]} placement="bottomRight">
-                        <button type="button" className="pc-actions" onClick={e => e.stopPropagation()}>
-                          <MoreVertical size={16} />
-                        </button>
-                      </Dropdown>
-                    </div>
+            </div>
+          ) : (
+            <div className="pp-grid">
+              {loading ? (
+                <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
+              ) : filteredCandidates.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
+              ) : (
+                filteredCandidates.map((c) => {
+                  const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                  let statusColor = '#94a3b8'; // default
+                  if (c.status === 'Applied') statusColor = '#3b82f6';
+                  if (c.status === 'Screening') statusColor = '#6366f1';
+                  if (c.status === 'Shortlisted') statusColor = '#8b5cf6';
+                  if (c.status === 'Interview') statusColor = '#f59e0b';
+                  if (c.status === 'Offer') statusColor = '#10b981';
+                  if (c.status === 'Hired') statusColor = '#059669';
+                  if (c.status === 'Rejected') statusColor = '#ef4444';
+                  if (c.status === 'Withdrawn') statusColor = '#64748b';
+                  if (c.status === 'On Hold') statusColor = '#f97316';
 
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Exp:</span>
-                          <span className="pc-foot-val">{c.total_experience ?? 0} Yrs</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Email:</span>
-                          <span className="pc-foot-val" style={{ fontWeight: 500 }}>
-                            {c.email}
-                          </span>
-                        </span>
+                  return (
+                    <div key={c.id} className="pc-card">
+                      <div className="pc-top">
+                        <div
+                          className="pc-avatar"
+                          style={{
+                            background: `linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)`,
+                          }}
+                        >
+                          {initials}
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title" style={{ fontSize: '13px' }}>
+                            {c.name}
+                          </div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Role:</span>
+                            <span className="pc-client-val">{c.role}</span>
+                          </div>
+                        </div>
+                        <Dropdown menu={{ items: getMenuItems(c) }} overlayClassName="pp-action-pop" trigger={["click"]} placement="bottomRight">
+                          <button type="button" className="pc-actions" onClick={e => e.stopPropagation()}>
+                            <MoreVertical size={16} />
+                          </button>
+                        </Dropdown>
                       </div>
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Status:</span>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              color: statusColor,
-                            }}
-                          >
-                            {c.status.toUpperCase()}
+
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Exp:</span>
+                            <span className="pc-foot-val">{c.total_experience ?? 0} Yrs</span>
                           </span>
-                        </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Email:</span>
+                            <span className="pc-foot-val" style={{ fontWeight: 500 }}>
+                              {c.email}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Status:</span>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                color: statusColor,
+                              }}
+                            >
+                              {c.status.toUpperCase()}
+                            </span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  );
+                })
+              )}
+            </div>
+          )}
+        </ZukvoLoadingOverlay>
       </div>
 
       <div className="pl-footer pl-footer--sticky">
@@ -635,7 +638,7 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           } catch (attachErr: any) {
             setError(
               attachErr?.response?.data?.error ||
-                'Candidate saved, but could not be added to the opening'
+              'Candidate saved, but could not be added to the opening'
             );
             return;
           }
@@ -758,11 +761,10 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                           const f = e.dataTransfer.files?.[0];
                           if (f) processFile(f);
                         }}
-                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-                          isDragging
+                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${isDragging
                             ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10'
                             : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }`}
+                          }`}
                       >
                         <span
                           className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -904,9 +906,8 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                             <div
                               className="absolute inset-0 rounded-full"
                               style={{
-                                background: `conic-gradient(${
-                                  match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
-                                } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
+                                background: `conic-gradient(${match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
+                                  } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
                               }}
                             />
                             <div
@@ -1006,10 +1007,10 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                     )}
                   </SectionCard>
                 )}
-                
-                <SectionCard 
-                  title={editCandidate ? "Edit Details" : "Verify Details"} 
-                  step={editCandidate ? undefined : "STEP 3"} 
+
+                <SectionCard
+                  title={editCandidate ? "Edit Details" : "Verify Details"}
+                  step={editCandidate ? undefined : "STEP 3"}
                   icon={<Edit2 size={14} />}
                 >
                   <div className="grid grid-cols-2 gap-4">

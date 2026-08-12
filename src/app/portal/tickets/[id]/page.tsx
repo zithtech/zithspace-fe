@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, notification } from "antd";
+import {  notification } from "antd";
 import {
   ArrowLeft,
   Send,
@@ -98,7 +100,7 @@ export default function PortalTicketDetailPage() {
           justifyContent: "center",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

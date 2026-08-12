@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -23,7 +25,6 @@ import {
   InputNumber,
   Switch,
   Popconfirm,
-  Spin,
   Upload,
   Row,
   Col,
@@ -895,9 +896,7 @@ export default function SettingsPage() {
           textAlign: 'center'
         }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" message="Loading" />
           </div>
         </div>
       </MainLayout>

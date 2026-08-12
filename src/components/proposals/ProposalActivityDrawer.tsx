@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Avatar, Spin, Empty, Tooltip, Skeleton, Typography } from "antd";
+import { Drawer, Avatar, Empty, Tooltip, Skeleton, Typography } from "antd";
 import {
   ClockCircleOutlined,
   PlusCircleOutlined,
@@ -155,9 +157,7 @@ const ProposalActivityDrawer: React.FC<Props> = ({ open, onClose, proposal }) =>
         {/* Body */}
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <Spin tip="Loading history">
-              <div style={{ height: 40 }} />
-            </Spin>
+            <ZukvoLoader size="md" message="Loading history" />
           </div>
         ) : rows.length === 0 ? (
           <div style={{ padding: 32 }}>

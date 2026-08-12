@@ -81,6 +81,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ColumnsType } from "antd/es/table";
 import { ProjectFormDrawer } from "@/components/projects/ProjectFormDrawer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const Sparkline: React.FC<{ data: number[]; color: string; height?: number }> = ({ data, color, height = 22 }) => {
   const min = Math.min(...data);
@@ -1270,22 +1271,23 @@ const ProjectsManageContent: React.FC = () => {
                   ) : (
                     /* ===== TABLE VIEW ===== */
                     <div className="pm-table-wrap">
-                      <Table
-                        size="small"
-                        className="premium-table"
-                        columns={columns}
-                        dataSource={projects}
-                        rowKey="id"
-                        loading={loading}
-                        pagination={false}
-                        scroll={{ x: 1200 }}
-                        onChange={handleTableChange}
-                        onRow={(record) => ({
-                          onClick: () => {
-                            router.push(`/projects/${record.id}/overview`);
-                          },
-                        })}
-                      />
+                      <ZukvoLoadingOverlay loading={loading} message="">
+                        <Table
+                          size="small"
+                          className="premium-table"
+                          columns={columns}
+                          dataSource={projects}
+                          rowKey="id"
+                          pagination={false}
+                          scroll={{ x: 1200 }}
+                          onChange={handleTableChange}
+                          onRow={(record) => ({
+                            onClick: () => {
+                              router.push(`/projects/${record.id}/overview`);
+                            },
+                          })}
+                        />
+                      </ZukvoLoadingOverlay>
                     </div>
                   )}
                   <ProjectFormDrawer

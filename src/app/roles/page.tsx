@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -22,7 +21,6 @@ import {
   Divider,
   Tooltip,
   Badge,
-  Spin,
   Row,
   Col,
   Select,
@@ -68,6 +66,8 @@ import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -1077,7 +1077,7 @@ export default function RolesPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!user || isLoading || !canReadRole) {
-    if (isLoading) return <LoadingSpinner message="Loading roles..." />;
+    if (isLoading) return <ZukvoLoader message="Loading roles..." />;
     return null;
   }
 
@@ -1330,133 +1330,135 @@ export default function RolesPage() {
 
 
           {/* Roles panel */}
-          {view === "list" ? (
-            <div className="rp-panel">
-              {/* Table */}
-              <Table
-                className="premium-table rp-table"
-                columns={columns}
-                dataSource={filteredRoles}
-                rowKey="id"
-                loading={loading}
-                pagination={false}
-                scroll={{ x: 1000 }}
-              />
-            </div>
-          ) : (
-            <div className="rp-grid">
-              {loading ? (
-                <div className="rp-grid-loading">Loading…</div>
-              ) : filteredRoles.length === 0 ? (
-                <div className="rp-grid-loading">No roles match your filters.</div>
-              ) : (
-                filteredRoles.map((record) => {
-                  const permCount = record._count?.rolePermissions ?? 0;
-                  const memberCount = record._count?.userRoles ?? 0;
-                  return (
-                    <div key={record.id} className="rp-card">
-                      <div className="rp-card-top">
-                        <div
-                          className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
-                        >
-                          {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
-                        </div>
-                        <div className="rp-card-identity">
-                          <div className="rp-card-title-row">
-                            <span className="rp-card-title">{record.name}</span>
-                            {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+          <ZukvoLoadingOverlay loading={loading} message="">
+            {view === "list" ? (
+              <div className="rp-panel">
+                {/* Table */}
+                <Table
+                  className="premium-table rp-table"
+                  columns={columns}
+                  dataSource={filteredRoles}
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 1000 }}
+                />
+
+              </div>
+            ) : (
+              <div className="rp-grid">
+                {loading ? (
+                  <div className="rp-grid-loading">Loading…</div>
+                ) : filteredRoles.length === 0 ? (
+                  <div className="rp-grid-loading">No roles match your filters.</div>
+                ) : (
+                  filteredRoles.map((record) => {
+                    const permCount = record._count?.rolePermissions ?? 0;
+                    const memberCount = record._count?.userRoles ?? 0;
+                    return (
+                      <div key={record.id} className="rp-card">
+                        <div className="rp-card-top">
+                          <div
+                            className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
+                          >
+                            {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
                           </div>
-                          <div className="rp-row-name__slug">{record.slug}</div>
-                        </div>
-                        <span
-                          className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
-                        >
-                          <span className="rp-status-dot" />
-                          {record.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-
-                      <div className="rp-card-desc">
-                        {record.description || "No description provided."}
-                      </div>
-
-                      <div className="rp-card-foot">
-                        <div className="rp-card-foot-row">
-                          <span className="rp-card-foot-item">
-                            <span className="rp-card-foot-key">Permissions</span>
-                            <span
-                              className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
-                            >
-                              <KeyOutlined />
-                              {permCount}
-                            </span>
-                          </span>
-                          <span className="rp-card-foot-div" />
-                          <span className="rp-card-foot-item">
-                            <span className="rp-card-foot-key">Members</span>
-                            <span
-                              className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
-                            >
-                              <UserOutlined />
-                              {memberCount}
-                            </span>
+                          <div className="rp-card-identity">
+                            <div className="rp-card-title-row">
+                              <span className="rp-card-title">{record.name}</span>
+                              {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+                            </div>
+                            <div className="rp-row-name__slug">{record.slug}</div>
+                          </div>
+                          <span
+                            className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
+                          >
+                            <span className="rp-status-dot" />
+                            {record.isActive ? "Active" : "Inactive"}
                           </span>
                         </div>
-                        <div className="rp-card-foot-row rp-card-actions">
-                          {canAssignRole && (
-                            <Tooltip title="Manage members">
-                              <Button
-                                type="text"
-                                icon={<TeamOutlined />}
-                                size="small"
-                                onClick={() => openMembersDrawer(record)}
-                              />
-                            </Tooltip>
-                          )}
-                          {canUpdateRole && (
-                            <Tooltip title="Edit name / description">
-                              <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                size="small"
-                                onClick={() => openEditModal(record)}
-                                disabled={record.isSystem}
-                              />
-                            </Tooltip>
-                          )}
-                          {canUpdateRole && (
-                            <Tooltip title="Edit permissions">
-                              <Button
-                                type="text"
-                                icon={<SettingOutlined />}
-                                size="small"
-                                onClick={() => openPermissionsDrawer(record)}
-                              />
-                            </Tooltip>
-                          )}
-                          {canDeleteRole && !record.isSystem && (
-                            <ConfirmDialog
-                              tone="danger"
-                              title="Delete this role?"
-                              description="All members assigned this role will lose its permissions immediately."
-                              confirmText="Delete"
-                              cancelText="Cancel"
-                              placement="left"
-                              onConfirm={() => handleDeleteRole(record.id)}
-                            >
-                              <Tooltip title="Delete role">
-                                <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+
+                        <div className="rp-card-desc">
+                          {record.description || "No description provided."}
+                        </div>
+
+                        <div className="rp-card-foot">
+                          <div className="rp-card-foot-row">
+                            <span className="rp-card-foot-item">
+                              <span className="rp-card-foot-key">Permissions</span>
+                              <span
+                                className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
+                              >
+                                <KeyOutlined />
+                                {permCount}
+                              </span>
+                            </span>
+                            <span className="rp-card-foot-div" />
+                            <span className="rp-card-foot-item">
+                              <span className="rp-card-foot-key">Members</span>
+                              <span
+                                className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
+                              >
+                                <UserOutlined />
+                                {memberCount}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="rp-card-foot-row rp-card-actions">
+                            {canAssignRole && (
+                              <Tooltip title="Manage members">
+                                <Button
+                                  type="text"
+                                  icon={<TeamOutlined />}
+                                  size="small"
+                                  onClick={() => openMembersDrawer(record)}
+                                />
                               </Tooltip>
-                            </ConfirmDialog>
-                          )}
+                            )}
+                            {canUpdateRole && (
+                              <Tooltip title="Edit name / description">
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  size="small"
+                                  onClick={() => openEditModal(record)}
+                                  disabled={record.isSystem}
+                                />
+                              </Tooltip>
+                            )}
+                            {canUpdateRole && (
+                              <Tooltip title="Edit permissions">
+                                <Button
+                                  type="text"
+                                  icon={<SettingOutlined />}
+                                  size="small"
+                                  onClick={() => openPermissionsDrawer(record)}
+                                />
+                              </Tooltip>
+                            )}
+                            {canDeleteRole && !record.isSystem && (
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete this role?"
+                                description="All members assigned this role will lose its permissions immediately."
+                                confirmText="Delete"
+                                cancelText="Cancel"
+                                placement="left"
+                                onConfirm={() => handleDeleteRole(record.id)}
+                              >
+                                <Tooltip title="Delete role">
+                                  <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+                                </Tooltip>
+                              </ConfirmDialog>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </ZukvoLoadingOverlay>
 
           <div className="rp-footer rp-footer--sticky">
             <div className="rp-footer-info">
@@ -1649,9 +1651,7 @@ export default function RolesPage() {
 
           {drawerLoadingPerms ? (
             <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <Spin tip="Loading permissions">
-                <div style={{ height: 40 }} />
-              </Spin>
+              <ZukvoLoader size="md" message="Loading permissions" />
             </div>
           ) : (
             (() => {
@@ -1863,10 +1863,10 @@ export default function RolesPage() {
                         const perms = filteredByResource[resource];
                         const allPermsForRes = resource === 'letter'
                           ? [
-                              ...(allPermissions['letter'] || []),
-                              ...(allPermissions['letter_template'] || []),
-                              ...(allPermissions['letter.format'] || [])
-                            ]
+                            ...(allPermissions['letter'] || []),
+                            ...(allPermissions['letter_template'] || []),
+                            ...(allPermissions['letter.format'] || [])
+                          ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const selectedCount = allPermsForRes.filter((p) =>
@@ -2142,9 +2142,7 @@ export default function RolesPage() {
 
           {membersDrawerLoading ? (
             <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <Spin tip="Loading members">
-                <div style={{ height: 40 }} />
-              </Spin>
+              <ZukvoLoader size="md" message="Loading members" />
             </div>
           ) : (
             (() => {

@@ -35,8 +35,7 @@ const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
-
-
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // kind → { label, sign } (sign drives the live preview; server is authoritative)
 const KINDS: { value: AdjustmentKind; label: string; sign: 1 | -1 }[] = [
@@ -321,7 +320,9 @@ export default function LeaveAdjustmentPanel() {
       </div>
 
       <div className="lvadj-table-wrap">
-        <Table rowKey="id" size="small" className="lvadj-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

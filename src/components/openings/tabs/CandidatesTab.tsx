@@ -38,6 +38,7 @@ import {
   TINT,
   fmtDate,
 } from '../ui';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // Phase 5 — the candidate pipeline for one opening.
 //
@@ -411,33 +412,34 @@ export default function CandidatesTab({
       </div>
 
       <div className="omp-table-wrap">
-        <Table<OpeningApplication>
-          rowKey="id"
-          size="small"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          scroll={{ x: 1100 }}
-          pagination={false}
-          onRow={(record) => ({ onClick: () => setOpenApplicationId(record.id) })}
-          locale={{
-            emptyText: (
-              <div className="omp-empty">
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <>
-                      <div className="omp-empty-title">No candidates yet</div>
-                      <div className="omp-empty-sub">
-                        Add an existing candidate to start the pipeline.
-                      </div>
-                    </>
-                  }
-                />
-              </div>
-            ),
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table<OpeningApplication>
+            rowKey="id"
+            size="small"
+            columns={columns}
+            dataSource={rows}
+            scroll={{ x: 1100 }}
+            pagination={false}
+            onRow={(record) => ({ onClick: () => setOpenApplicationId(record.id) })}
+            locale={{
+              emptyText: (
+                <div className="omp-empty">
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <>
+                        <div className="omp-empty-title">No candidates yet</div>
+                        <div className="omp-empty-sub">
+                          Add an existing candidate to start the pipeline.
+                        </div>
+                      </>
+                    }
+                  />
+                </div>
+              ),
+            }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       <ApplicationDrawer

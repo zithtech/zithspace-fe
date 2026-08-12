@@ -1,11 +1,12 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import { Spin } from 'antd';
 import TicketDashboard from '@/components/projects/TicketDashboard';
 
 export default function ProjectsDashboardPage() {
@@ -33,7 +34,7 @@ export default function ProjectsDashboardPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating ticket dashboard..." />
+          <ZukvoLoader size="lg" message="Orchestrating ticket dashboard..." />
         </div>
       </MainLayout>
     );

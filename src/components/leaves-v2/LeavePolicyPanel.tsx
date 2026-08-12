@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -51,6 +53,7 @@ import LeaveV2Service, {
   TERM_MONTHS,
 } from '@/services/leaveV2Service';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = {
@@ -205,7 +208,7 @@ export default function LeavePolicyPanel() {
 
   // Load all leave types once (active ones drive the dropdown; all resolve names).
   useEffect(() => {
-    LeaveV2Service.listLeaveTypes(true).then(setLeaveTypes).catch(() => {});
+    LeaveV2Service.listLeaveTypes(true).then(setLeaveTypes).catch(() => { });
   }, []);
 
   const onExpandRow = async (expanded: boolean, record: LeavePolicyListItem) => {
@@ -501,7 +504,7 @@ export default function LeavePolicyPanel() {
   const expandedRowRender = (record: LeavePolicyListItem) => {
     const d = expandedCache[record.id];
     if (expandLoading[record.id] || !d) {
-      return <div style={{ padding: '14px 16px', color: 'var(--text-slate-400)', fontSize: 12.5 }}><Spin size="small" /> &nbsp;Loading details…</div>;
+      return <div style={{ padding: '14px 16px', color: 'var(--text-slate-400)', fontSize: 12.5 }}><ZukvoLoader size="sm" /> &nbsp;Loading details…</div>;
     }
     const childCols: ColumnsType<typeof d.lines[number]> = [
       {
@@ -543,9 +546,9 @@ export default function LeavePolicyPanel() {
       {/* 1) HEADER */}
       <div className="lvp-header">
         <div className="lvp-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -612,22 +615,23 @@ export default function LeavePolicyPanel() {
 
       {/* 4) TABLE */}
       <div className="lvp-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="lvp-table"
-          loading={loading}
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          onRow={() => ({ className: 'lvp-row' })}
-          expandable={{
-            expandedRowRender,
-            onExpand: onExpandRow,
-            rowExpandable: (r) => r.lineCount > 0,
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="lvp-table"
+            columns={columns}
+            dataSource={pagedRows}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={() => ({ className: 'lvp-row' })}
+            expandable={{
+              expandedRowRender,
+              onExpand: onExpandRow,
+              rowExpandable: (r) => r.lineCount > 0,
+            }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

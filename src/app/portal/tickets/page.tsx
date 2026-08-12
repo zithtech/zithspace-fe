@@ -1,10 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Input,
-  Spin,
   Pagination,
   Select,
   DatePicker,
@@ -476,7 +477,7 @@ export default function PortalTicketsPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

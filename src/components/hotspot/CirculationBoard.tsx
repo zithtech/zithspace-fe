@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { App, Button, Input, Pagination, Spin } from 'antd';
+import { App, Button, Input, Pagination } from 'antd';
 import { ChevronDown, Megaphone, Plus, Search, X } from 'lucide-react';
 import { OpeningStyles, PALETTE, PanelHeader, TINT } from '@/components/openings/ui';
 import { usePermission } from '@/hooks/usePermission';
@@ -343,7 +345,7 @@ export default function CirculationBoard() {
         <div className="hsc-feed">
           {loading ? (
             <div className="omp-empty">
-              <Spin />
+              <ZukvoLoader size="md" />
             </div>
           ) : posts.length === 0 ? (
             <div className="omp-empty">

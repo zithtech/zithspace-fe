@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, Radio, Switch, Select, Button, message, Spin, Form, Input } from 'antd';
+import { Card, Radio, Switch, Select, Button, message, Form, Input } from 'antd';
 import { MailOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons';
 import LeaveV2Service, { LeaveMailConfig } from '@/services/leaveV2Service';
 import { userService, User } from '@/services/userService';
@@ -67,7 +69,7 @@ export default function MailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>;
+    return <div style={{ padding: 24, textAlign: 'center' }}><ZukvoLoader size="md" /></div>;
   }
 
   return (

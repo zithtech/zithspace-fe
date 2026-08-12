@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -13,7 +15,6 @@ import {
   Dropdown,
   Modal,
   Table,
-  Spin,
   Tooltip,
   Form,
   App,
@@ -516,7 +517,7 @@ export default function InvoiceproCustomerPage() {
     },
   ];
 
-  if (authLoading) return <MainLayout><Spin /></MainLayout>;
+  if (authLoading) return <MainLayout><ZukvoLoader size="md" /></MainLayout>;
   if (!canReadInvoiceCustomer) return null;
 
   return (

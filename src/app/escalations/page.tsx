@@ -65,6 +65,7 @@ import { useActivitySource } from '@/hooks/useActivitySource';
 import { History, Menu } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -941,29 +942,30 @@ export default function EscalationListPage() {
           <div className="es-body">
             {view === 'list' ? (
               <div className="es-table-wrap">
-                <Table
-                  columns={columns}
-                  dataSource={pagedEscalations}
-                  loading={loading}
-                  rowKey="id"
-                  size="small"
-                  className="es-table"
-                  scroll={{ x: 1000 }}
-                  rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
-                  pagination={false}
-                  locale={{ emptyText: emptyState }}
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger')) return;
-                      setSelectedEscalation(record);
-                      setTempStatus(record.statusId || record.status);
-                      setIsEditing(false);
-                      setDrawerVisible(true);
-                    },
-                    className: 'es-row',
-                  })}
-                />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                              <Table
+                                                columns={columns}
+                                                dataSource={pagedEscalations}
+                                                rowKey="id"
+                                                size="small"
+                                                className="es-table"
+                                                scroll={{ x: 1000 }}
+                                                rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
+                                                pagination={false}
+                                                locale={{ emptyText: emptyState }}
+                                                onRow={(record) => ({
+                                                  onClick: (e) => {
+                                                    const t = e.target as HTMLElement;
+                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger')) return;
+                                                    setSelectedEscalation(record);
+                                                    setTempStatus(record.statusId || record.status);
+                                                    setIsEditing(false);
+                                                    setDrawerVisible(true);
+                                                  },
+                                                  className: 'es-row',
+                                                })}
+                                              />
+                              </ZukvoLoadingOverlay>
               </div>
             ) : (
               <div className="es-grid">

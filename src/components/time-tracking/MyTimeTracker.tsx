@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined, FileTextOutlined, ReloadOutlined } from "@ant-design/icons";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
@@ -16,6 +17,7 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import { parseDecimal } from "@/services/ticketService";
 import { useAttendanceGuard } from "@/hooks/useAttendanceGuard";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -448,161 +450,162 @@ export function MyTimeTracker({
         </div>
 
         <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
-          <Table
-            columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
-            dataSource={paginatedEntries}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
-            scroll={{ x: 800 }}
-            locale={{
-              emptyText: loading ? <></> : (
-                <div className="mtt-tracker-card__empty">
-                  <div className="mtt-tracker-card__empty-icon">
-                    <ClockCircleOutlined />
-                  </div>
-                  <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
-                  <div className="mtt-tracker-card__empty-sub">
-                    {canCreateTimeTracking ? (
-                      <>Start a timer or click <strong>Add Time</strong> to log a manual entry.</>
-                    ) : (
-                      "You do not have permission to log or start timers."
-                    )}
-                  </div>
-                </div>
-              )
-            }}
-            expandable={{
-              expandedRowRender: (record) => {
-                const sessions = processLogsToSessions(record.logs, record.startTime, record.endTime);
-                const isLive = record.status === 'RUNNING';
-
-                return (
-                  <div className="py-2 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
-                    <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
-                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
-                    </div>
-
-                    <div style={{ position: 'relative', paddingLeft: 24 }}>
-                      {/* Vertical Line */}
-                      <div style={{
-                        position: 'absolute',
-                        left: 5,
-                        top: 6,
-                        bottom: 6,
-                        width: 1.5,
-                        background: 'linear-gradient(to bottom, #1677ff, var(--border-slate-100))',
-                        borderRadius: 1
-                      }} />
-
-                      {sessions.map((session, idx) => {
-                        const sessionIsLive = !session.end && isLive;
-                        return (
-                          <div key={`${session.id}-${idx}`} style={{ position: 'relative', marginBottom: 16 }}>
-                            {/* Timeline Node */}
-                            <div style={{
-                              position: 'absolute',
-                              left: -24,
-                              top: 4,
-                              width: 12,
-                              height: 12,
-                              borderRadius: '50%',
-                              background: sessionIsLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#1677ff',
-                              border: '3px solid var(--bg-pure-white)',
-                              boxShadow: '0 0 0 1px var(--border-slate-200)',
-                              zIndex: 2
-                            }} />
-
-                            <div style={{
-                              padding: '12px 16px',
-                              background: 'var(--bg-secondary)',
-                              borderRadius: 0,
-                              border: '1px solid var(--border-slate-200)',
-                              transition: 'all 0.2s ease'
-                            }}>
-                              <Row gutter={[12, 12]} align="middle">
-                                <Col xs={24} sm={16} md={18}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
-                                      {dayjs(session.start).format("h:mm:ss A")} - {session.end ? dayjs(session.end).format("h:mm:ss A") : "Running"}
-                                    </Text>
-                                    <Tag color={sessionIsLive ? 'processing' : session.endAction === 'PAUSED' ? 'warning' : 'default'} style={{ borderRadius: 4, fontSize: 9, height: 16, lineHeight: '14px', padding: '0 4px', margin: 0 }}>
-                                      {sessionIsLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : 'STOPPED'}
-                                    </Tag>
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                              columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
+                              dataSource={paginatedEntries}
+                              rowKey="id"
+                              pagination={false}
+                              rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
+                              scroll={{ x: 800 }}
+                              locale={{
+                                emptyText: loading ? <></> : (
+                                  <div className="mtt-tracker-card__empty">
+                                    <div className="mtt-tracker-card__empty-icon">
+                                      <ClockCircleOutlined />
+                                    </div>
+                                    <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
+                                    <div className="mtt-tracker-card__empty-sub">
+                                      {canCreateTimeTracking ? (
+                                        <>Start a timer or click <strong>Add Time</strong> to log a manual entry.</>
+                                      ) : (
+                                        "You do not have permission to log or start timers."
+                                      )}
+                                    </div>
                                   </div>
+                                )
+                              }}
+                              expandable={{
+                                expandedRowRender: (record) => {
+                                  const sessions = processLogsToSessions(record.logs, record.startTime, record.endTime);
+                                  const isLive = record.status === 'RUNNING';
 
-                                  <div style={{ marginBottom: 0 }}>
-                                    {record.ticket?.title ? (
-                                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <div
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (record.ticketId) openTicketDrawer(record.ticketId);
-                                          }}
-                                          style={{ display: 'flex', gap: 6, cursor: 'pointer' }}
-                                        >
-                                          <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
-                                        </div>
-                                        {(() => {
-                                          const parsedHours = parseDecimal(record.ticket.estimateHours);
-                                          if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
-                                          const mins = Math.round(parsedHours * 60);
-                                          const h = Math.floor(mins / 60);
-                                          const m = mins % 60;
-                                          return (
-                                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
-                                              EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
-                                            </Tag>
-                                          );
-                                        })()}
+                                  return (
+                                    <div className="py-2 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
+                                      <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
+                                        <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
                                       </div>
-                                    ) : (
-                                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>
-                                    )}
-                                  </div>
-                                </Col>
 
-                                <Col xs={24} sm={8} md={6} className="text-left sm:text-right">
-                                  <div style={{
-                                    display: 'inline-block',
-                                    padding: '4px 12px',
-                                    background: sessionIsLive ? '#f0fdf4' : '#fff',
-                                    borderRadius: 8,
-                                    color: sessionIsLive ? '#16a34a' : '#475569',
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                    fontFamily: 'monospace',
-                                    border: '1px solid ' + (sessionIsLive ? '#bcf0da' : '#e2e8f0')
-                                  }}>
-                                    {(() => {
-                                      const start = new Date(session.start).getTime();
-                                      const end = session.end ? new Date(session.end).getTime() : new Date().getTime();
-                                      const diff = Math.floor((end - start) / 1000);
-                                      const h = Math.floor(diff / 3600);
-                                      const m = Math.floor((diff % 3600) / 60);
-                                      const s = diff % 60;
-                                      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                                    })()}
-                                  </div>
-                                </Col>
-                              </Row>
-                            </div>
-                          </div>
-                        );
-                      })}
+                                      <div style={{ position: 'relative', paddingLeft: 24 }}>
+                                        {/* Vertical Line */}
+                                        <div style={{
+                                          position: 'absolute',
+                                          left: 5,
+                                          top: 6,
+                                          bottom: 6,
+                                          width: 1.5,
+                                          background: 'linear-gradient(to bottom, #1677ff, var(--border-slate-100))',
+                                          borderRadius: 1
+                                        }} />
 
-                      {sessions.length === 0 && (
-                        <div style={{ color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No activity recorded for this period.</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-            }}
+                                        {sessions.map((session, idx) => {
+                                          const sessionIsLive = !session.end && isLive;
+                                          return (
+                                            <div key={`${session.id}-${idx}`} style={{ position: 'relative', marginBottom: 16 }}>
+                                              {/* Timeline Node */}
+                                              <div style={{
+                                                position: 'absolute',
+                                                left: -24,
+                                                top: 4,
+                                                width: 12,
+                                                height: 12,
+                                                borderRadius: '50%',
+                                                background: sessionIsLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#1677ff',
+                                                border: '3px solid var(--bg-pure-white)',
+                                                boxShadow: '0 0 0 1px var(--border-slate-200)',
+                                                zIndex: 2
+                                              }} />
 
-          />
+                                              <div style={{
+                                                padding: '12px 16px',
+                                                background: 'var(--bg-secondary)',
+                                                borderRadius: 0,
+                                                border: '1px solid var(--border-slate-200)',
+                                                transition: 'all 0.2s ease'
+                                              }}>
+                                                <Row gutter={[12, 12]} align="middle">
+                                                  <Col xs={24} sm={16} md={18}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                                                      <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
+                                                        {dayjs(session.start).format("h:mm:ss A")} - {session.end ? dayjs(session.end).format("h:mm:ss A") : "Running"}
+                                                      </Text>
+                                                      <Tag color={sessionIsLive ? 'processing' : session.endAction === 'PAUSED' ? 'warning' : 'default'} style={{ borderRadius: 4, fontSize: 9, height: 16, lineHeight: '14px', padding: '0 4px', margin: 0 }}>
+                                                        {sessionIsLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : 'STOPPED'}
+                                                      </Tag>
+                                                    </div>
+
+                                                    <div style={{ marginBottom: 0 }}>
+                                                      {record.ticket?.title ? (
+                                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                          <div
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              if (record.ticketId) openTicketDrawer(record.ticketId);
+                                                            }}
+                                                            style={{ display: 'flex', gap: 6, cursor: 'pointer' }}
+                                                          >
+                                                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
+                                                          </div>
+                                                          {(() => {
+                                                            const parsedHours = parseDecimal(record.ticket.estimateHours);
+                                                            if (parsedHours === undefined || parsedHours === null || isNaN(parsedHours)) return null;
+                                                            const mins = Math.round(parsedHours * 60);
+                                                            const h = Math.floor(mins / 60);
+                                                            const m = mins % 60;
+                                                            return (
+                                                              <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                                                EST: {h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`}
+                                                              </Tag>
+                                                            );
+                                                          })()}
+                                                        </div>
+                                                      ) : (
+                                                        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>
+                                                      )}
+                                                    </div>
+                                                  </Col>
+
+                                                  <Col xs={24} sm={8} md={6} className="text-left sm:text-right">
+                                                    <div style={{
+                                                      display: 'inline-block',
+                                                      padding: '4px 12px',
+                                                      background: sessionIsLive ? '#f0fdf4' : '#fff',
+                                                      borderRadius: 8,
+                                                      color: sessionIsLive ? '#16a34a' : '#475569',
+                                                      fontWeight: 700,
+                                                      fontSize: 13,
+                                                      fontFamily: 'monospace',
+                                                      border: '1px solid ' + (sessionIsLive ? '#bcf0da' : '#e2e8f0')
+                                                    }}>
+                                                      {(() => {
+                                                        const start = new Date(session.start).getTime();
+                                                        const end = session.end ? new Date(session.end).getTime() : new Date().getTime();
+                                                        const diff = Math.floor((end - start) / 1000);
+                                                        const h = Math.floor(diff / 3600);
+                                                        const m = Math.floor((diff % 3600) / 60);
+                                                        const s = diff % 60;
+                                                        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                                                      })()}
+                                                    </div>
+                                                  </Col>
+                                                </Row>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+
+                                        {sessions.length === 0 && (
+                                          <div style={{ color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No activity recorded for this period.</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              }}
+
+                            />
+                  </ZukvoLoadingOverlay>
         </div>
       </Card>
       {total > 0 && (

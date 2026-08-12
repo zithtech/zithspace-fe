@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function DocumentsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
@@ -224,23 +225,24 @@ export default function DocumentsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg-primary)' }}>
           <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
             <div style={{ border: '1px solid var(--border-slate-200)', borderRadius: 0 }}>
-              <Table 
-                className="pp-table"
-                columns={columns} 
-                dataSource={requests} 
-                rowKey="id"
-                loading={loading}
-                pagination={{ pageSize: 20, position: ['bottomRight'] }}
-                locale={{
-                  emptyText: (
-                    <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
-                      <FolderOpen size={48} color="var(--border-slate-200)" style={{ marginBottom: 16 }} />
-                      <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-slate-600)' }}>No Documents Found</div>
-                      <div style={{ fontSize: 13, marginTop: 6 }}>Documents will appear here once an exit process starts.</div>
-                    </div>
-                  )
-                }}
-              />
+              <ZukvoLoadingOverlay loading={loading} message="">
+                          <Table 
+                                          className="pp-table"
+                                          columns={columns} 
+                                          dataSource={requests} 
+                                          rowKey="id"
+                                          pagination={{ pageSize: 20, position: ['bottomRight'] }}
+                                          locale={{
+                                            emptyText: (
+                                              <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
+                                                <FolderOpen size={48} color="var(--border-slate-200)" style={{ marginBottom: 16 }} />
+                                                <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-slate-600)' }}>No Documents Found</div>
+                                                <div style={{ fontSize: 13, marginTop: 6 }}>Documents will appear here once an exit process starts.</div>
+                                              </div>
+                                            )
+                                          }}
+                                        />
+                          </ZukvoLoadingOverlay>
             </div>
           </div>
         </div>

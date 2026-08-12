@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import LoadingSpinner from './LoadingSpinner';
+import ZukvoLoader from './ZukvoLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -37,13 +37,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    return <LoadingSpinner message="Checking authentication..." />;
+    return <ZukvoLoader message="Checking authentication..." />;
   }
 
   // If auth is required but user is not authenticated, don't render children
   // (redirect will happen in useEffect)
   if (requireAuth && !isAuthenticated) {
-    return <LoadingSpinner message="Redirecting to login..." />;
+    return <ZukvoLoader message="Redirecting to login..." />;
   }
 
   // Render children if authentication check passes

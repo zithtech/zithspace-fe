@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -6,7 +8,7 @@ import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 
-import { Row, Col, Typography, Button, Space, Form, Input, Select, Card, DatePicker, Switch, TimePicker, Upload, Checkbox, message, Spin, Empty } from "antd";
+import { Row, Col, Typography, Button, Space, Form, Input, Select, Card, DatePicker, Switch, TimePicker, Upload, Checkbox, message, Empty } from "antd";
 import { SaveOutlined, SendOutlined, ReloadOutlined, PlusOutlined, MinusCircleOutlined, UploadOutlined, FileOutlined, DeleteOutlined,ArrowLeftOutlined } from "@ant-design/icons";
 
 import { useParams, useRouter } from "next/navigation";
@@ -352,7 +354,7 @@ const defaultTimezone =
           <div style={{ padding: "24px", flex: 1, overflowY: "auto" }}>
             {isFetching ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <Spin size="large" />
+                <ZukvoLoader size="lg" />
               </div>
             ) : (
               <Form form={form} layout="vertical">

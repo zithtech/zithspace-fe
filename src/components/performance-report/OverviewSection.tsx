@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, message } from 'antd';
+import {  message } from 'antd';
 import { Ticket, Timer, NotebookPen, CalendarCheck, Plane } from 'lucide-react';
 import { Dayjs } from 'dayjs';
 import PerformanceReportService, { ReportTicket } from '@/services/performanceReportService';
@@ -210,7 +212,7 @@ export default function OverviewSection({
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Building overview…" />
+        <ZukvoLoader size="md" message="Building overview…" />
       </div>
     );
   }

@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch, Select, Button, message, Spin, Form, Input } from 'antd';
+import { Radio, Switch, Select, Button, message, Form, Input } from 'antd';
 import { MailOutlined, SaveOutlined } from '@ant-design/icons';
 import ReimbursementV2Service, { ReimbMailConfig } from '@/services/reimbursementV2Service';
 import { userService, User } from '@/services/userService';
@@ -66,7 +68,7 @@ export default function ReimbursementMailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>;
+    return <div style={{ padding: 24, textAlign: 'center' }}><ZukvoLoader size="md" /></div>;
   }
 
   return (

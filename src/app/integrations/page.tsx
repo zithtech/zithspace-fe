@@ -16,7 +16,6 @@ import {
 import { Blocks, Search, Users, CheckCircle2, Link2, Plug, ChevronDown } from "lucide-react";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { useAuth } from "@/context/AuthContext";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 // StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
@@ -56,6 +55,7 @@ const PROVIDERS: ProviderConfig[] = [
 
 import { usePermission } from "@/hooks/usePermission";
 import { AlertCircle } from "lucide-react";
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 export default function IntegrationPage() {
   useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationPage" });
@@ -194,7 +194,7 @@ export default function IntegrationPage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <LoadingSpinner size="large" message="Loading permissions..." />
+          <ZukvoLoader size="lg" message="Loading permissions..." />
         </div>
       </MainLayout>
     );

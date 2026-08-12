@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -7,7 +9,6 @@ import {
   Button,
   Space,
   Typography,
-  Spin,
   Tag,
   message,
   theme,
@@ -354,7 +355,7 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
   if (loading) {
     return (
       <div style={{ padding: 80, textAlign: 'center' }}>
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

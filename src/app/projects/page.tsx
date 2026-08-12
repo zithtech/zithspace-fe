@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +14,6 @@ import {
   Col,
   Button,
   Statistic,
-  Spin,
   Tag,
   Divider,
   Progress,
@@ -58,7 +59,7 @@ export default function ProjectsPage() {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating your workspace" />
+          <ZukvoLoader size="lg" message="Orchestrating your workspace" />
         </div>
       </MainLayout>
     );

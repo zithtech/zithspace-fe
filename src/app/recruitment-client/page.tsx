@@ -30,6 +30,7 @@ import { useTenant } from "@/context/TenantContext";
 import MainLayout from "@/components/layout/MainLayout";
 import { RecruitmentClientService, RecruitmentClient } from "@/services/recruitmentClient.service";
 import ClientDrawer from "./components/ClientDrawer";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -319,18 +320,20 @@ export default function RecruitmentClientListPage() {
               </div>
             </Space>
 
-            <Table
-              columns={columns}
-              dataSource={data}
-              rowKey="id"
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], ...pagination,
-                showSizeChanger: true,
-                showTotal: (totalItem) => `Total ${totalItem} clients`,
-              }}
-              loading={loading}
-              onChange={handleTableChange}
-              size="middle"
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                columns={columns}
+                dataSource={data}
+                rowKey="id"
+                pagination={{
+                  pageSizeOptions: [10, 20, 25, 50, 100], ...pagination,
+                  showSizeChanger: true,
+                  showTotal: (totalItem) => `Total ${totalItem} clients`,
+                }}
+                onChange={handleTableChange}
+                size="middle"
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </div>
 

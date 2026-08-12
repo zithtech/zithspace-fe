@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, Empty, notification, Modal, Input } from "antd";
+import {  Empty, notification, Modal, Input } from "antd";
 import {
   ArrowLeft,
   CheckSquare,
@@ -73,7 +75,7 @@ export default function PortalApprovalDetailPage() {
           justifyContent: "center",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

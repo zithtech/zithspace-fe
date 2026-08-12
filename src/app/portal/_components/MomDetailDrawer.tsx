@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Spin, Empty } from "antd";
+import { Drawer, Empty } from "antd";
 import {
   X,
   Calendar,
@@ -245,7 +247,7 @@ export default function MomDetailDrawer({
             justifyContent: "center",
           }}
         >
-          <Spin size="large" />
+          <ZukvoLoader size="lg" />
         </div>
       ) : !mom ? (
         <div style={{ padding: 64, textAlign: "center" }}>

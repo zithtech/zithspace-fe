@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -13,7 +15,6 @@ import {
   Col,
   Checkbox,
   Divider,
-  Spin,
   Result,
   message,
   Typography,
@@ -657,7 +658,7 @@ export default function PublicOnboardPage() {
   if (loading) {
     return (
       <div style={{ ...pageWrap, justifyContent: "center" }}>
-        <Spin size="large" tip="Loading your onboarding form..." />
+        <ZukvoLoader size="lg" message="Loading your onboarding form..." />
       </div>
     );
   }

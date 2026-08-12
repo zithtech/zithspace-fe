@@ -26,6 +26,7 @@ import {
   Wallet,
   X,
   Timer,
+  Flame,
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
@@ -99,7 +100,8 @@ export default function TopNav({
     canDeleteBookmark,
     canReadTimeTracking,
     canCreateTimeTracking,
-    canReadActivityLogAll
+    canReadActivityLogAll,
+    canReadHotspot
   } = usePermission();
   const { token } = theme.useToken();
   const { theme: appTheme } = useTheme();
@@ -675,6 +677,27 @@ export default function TopNav({
             <ThemeToggle />
             {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
 
+            {canReadHotspot && (
+              <Tooltip
+                title={
+                  <div className="navbar-tooltip">
+                    <span className="navbar-tooltip-title">Hotspot</span>
+                    <span className="navbar-tooltip-sub">Openings, circulation & blogs</span>
+                  </div>
+                }
+                placement="bottom"
+                classNames={{ root: "navbar-icon-tooltip" }}
+                mouseEnterDelay={0.1}
+                zIndex={1100}
+              >
+                <Button
+                  type="text"
+                  className={`nav-action-btn${isRouteActive('/hotspot') ? ' nav-action-btn-active' : ''}`}
+                  icon={<Flame size={17} strokeWidth={isRouteActive('/hotspot') ? 2 : 1.75} />}
+                  onClick={() => router.push('/hotspot')}
+                />
+              </Tooltip>
+            )}
 
             {canReadMail && (
               <Tooltip
@@ -865,6 +888,17 @@ export default function TopNav({
               overlayClassName="nv-action-pop"
               menu={{
                 items: [
+                  ...(canReadHotspot ? [{
+                    key: 'hotspot',
+                    label: actionMenuLabel(
+                      'Hotspot',
+                      'Openings, circulation & blogs',
+                      <Flame size={16} strokeWidth={1.75} />,
+                      '#F97316',
+                      'rgba(249, 115, 22, 0.12)'
+                    ),
+                    onClick: () => router.push('/hotspot')
+                  }] : []),
                   ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
                     key: 'timer',
                     label: actionMenuLabel(

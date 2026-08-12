@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Input, message, Spin } from 'antd';
+import { Button, Input, message } from 'antd';
 import {
   Sparkles,
   Wand2,
@@ -307,7 +309,7 @@ export const FloatingAIToolbar: React.FC = () => {
         </div>
       ) : loading ? (
         <div className="pb-ai-toolbar__loading">
-          <Spin size="small" />
+          <ZukvoLoader size="sm" />
           <span>Zai is thinking…</span>
         </div>
       ) : showCustom ? (

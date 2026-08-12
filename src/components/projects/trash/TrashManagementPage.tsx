@@ -53,6 +53,7 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -678,73 +679,74 @@ export default function TrashManagementPage() {
           styles={{ body: { padding: 0 } }}
           className="tr-table-card"
         >
-          <Table
-            rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-            onRow={(record) => ({
-              onClick: (e) => {
-                const target = e.target as HTMLElement;
-                if (
-                  target.closest(".ant-checkbox-wrapper") ||
-                  target.closest(".tr-action-cell") ||
-                  target.closest(".ant-popconfirm") ||
-                  target.closest("button")
-                ) {
-                  return;
-                }
-                if (record.id) {
-                  openTicketDrawer(record.id);
-                }
-              },
-              style: { cursor: "pointer" }
-            })}
-            columns={columns.map(col => ({
-              ...col,
-              render: (text: any, record: any, index: number) => {
-                if (isLoading || isRefreshing) {
-                  return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
-                }
-                return col.render ? (col.render as any)(text, record, index) : text;
-              }
-            }))}
-            dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : (trashData?.tickets || [])}
-            rowKey={(record: any) => record.id || Math.random()}
-            loading={false}
-            className="tr-table"
-            locale={{
-              emptyText: isLoading ? null : (
-                <div className="tr-empty">
-                  <div className="tr-empty-icon">
-                    <InboxOutlined />
-                  </div>
-                  <Text className="tr-empty-title">
-                    {isFiltered ? "No matching tickets" : "Trash is empty"}
-                  </Text>
-                  <Text className="tr-empty-sub">
-                    {isFiltered
-                      ? "Try adjusting your filters or search query."
-                      : "Deleted tickets appear here for 7 days before permanent purge."}
-                  </Text>
-                  {isFiltered && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setSearchQuery("");
-                        setProjectFilter(undefined);
-                        setStatusFilter(undefined);
-                        setDeletedByFilter(undefined);
-                        setDateRange(null);
-                      }}
-                      className="tr-empty-action"
-                    >
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              ),
-            }}
-            pagination={false}
-            scroll={{ x: 1100 }}
-          />
+          <ZukvoLoadingOverlay loading={false} message="">
+                  <Table
+                              rowSelection={(isLoading || isRefreshing) ? undefined : { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+                              onRow={(record) => ({
+                                onClick: (e) => {
+                                  const target = e.target as HTMLElement;
+                                  if (
+                                    target.closest(".ant-checkbox-wrapper") ||
+                                    target.closest(".tr-action-cell") ||
+                                    target.closest(".ant-popconfirm") ||
+                                    target.closest("button")
+                                  ) {
+                                    return;
+                                  }
+                                  if (record.id) {
+                                    openTicketDrawer(record.id);
+                                  }
+                                },
+                                style: { cursor: "pointer" }
+                              })}
+                              columns={columns.map(col => ({
+                                ...col,
+                                render: (text: any, record: any, index: number) => {
+                                  if (isLoading || isRefreshing) {
+                                    return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
+                                  }
+                                  return col.render ? (col.render as any)(text, record, index) : text;
+                                }
+                              }))}
+                              dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : (trashData?.tickets || [])}
+                              rowKey={(record: any) => record.id || Math.random()}
+                              className="tr-table"
+                              locale={{
+                                emptyText: isLoading ? null : (
+                                  <div className="tr-empty">
+                                    <div className="tr-empty-icon">
+                                      <InboxOutlined />
+                                    </div>
+                                    <Text className="tr-empty-title">
+                                      {isFiltered ? "No matching tickets" : "Trash is empty"}
+                                    </Text>
+                                    <Text className="tr-empty-sub">
+                                      {isFiltered
+                                        ? "Try adjusting your filters or search query."
+                                        : "Deleted tickets appear here for 7 days before permanent purge."}
+                                    </Text>
+                                    {isFiltered && (
+                                      <Button
+                                        size="small"
+                                        onClick={() => {
+                                          setSearchQuery("");
+                                          setProjectFilter(undefined);
+                                          setStatusFilter(undefined);
+                                          setDeletedByFilter(undefined);
+                                          setDateRange(null);
+                                        }}
+                                        className="tr-empty-action"
+                                      >
+                                        Clear filters
+                                      </Button>
+                                    )}
+                                  </div>
+                                ),
+                              }}
+                              pagination={false}
+                              scroll={{ x: 1100 }}
+                            />
+                  </ZukvoLoadingOverlay>
         </Card>
 
         {/* ── Sticky pagination footer ── */}

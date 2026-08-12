@@ -6,6 +6,7 @@ import { FileText, Receipt, RefreshCw, Search, LayoutGrid, List } from "lucide-r
 import { api } from "@/lib/axios";
 import dayjs from "dayjs";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 interface InvoicesTabProps {
   clientId: string;
@@ -262,28 +263,29 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
 
       {viewMode === "list" ? (
         <div className="pp-table-wrap">
-          <Table
-            dataSource={filteredInvoices}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-            className="pp-table"
-            scroll={{ x: "max-content" }}
-            locale={{
-              emptyText: (
-                <div className="ptab-empty">
-                  <div className="ptab-empty-icon">
-                    <Receipt size={26} />
-                  </div>
-                  <div className="ptab-empty-title">No Invoices Found</div>
-                  <div className="ptab-empty-desc">
-                    There are no portal-visible invoices for this client yet.
-                  </div>
-                </div>
-              ),
-            }}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                              dataSource={filteredInvoices}
+                              columns={columns}
+                              rowKey="id"
+                              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+                              className="pp-table"
+                              scroll={{ x: "max-content" }}
+                              locale={{
+                                emptyText: (
+                                  <div className="ptab-empty">
+                                    <div className="ptab-empty-icon">
+                                      <Receipt size={26} />
+                                    </div>
+                                    <div className="ptab-empty-title">No Invoices Found</div>
+                                    <div className="ptab-empty-desc">
+                                      There are no portal-visible invoices for this client yet.
+                                    </div>
+                                  </div>
+                                ),
+                              }}
+                            />
+                  </ZukvoLoadingOverlay>
         </div>
       ) : (
         <div className="pp-grid">

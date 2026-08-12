@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from 'react';
-import { List, Card, Button, Form, Input, DatePicker, Modal, message, Spin, Empty, Checkbox, Avatar, Space, Tag } from 'antd';
+import { List, Card, Button, Form, Input, DatePicker, Modal, message, Empty, Checkbox, Avatar, Space, Tag } from 'antd';
 import { PlusOutlined, UserOutlined, CalendarOutlined } from '@ant-design/icons';
 import { dealService, DealTask } from '@/services/dealService';
 import dayjs from 'dayjs';
@@ -85,7 +87,7 @@ const TasksTab: React.FC<TasksTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" style={glassStyle}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" /></div>
         ) : tasks.length > 0 ? (
           <List
             dataSource={tasks}

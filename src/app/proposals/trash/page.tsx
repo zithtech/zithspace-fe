@@ -65,6 +65,7 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import dayjs from 'dayjs';
 import { formatDistanceToNow } from 'date-fns';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -931,8 +932,8 @@ export default function ProposalsTrashPage() {
           <main className="pp-main">
             {/* Search / status / view toggle bar */}
             <div className="pp-topbar">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="pp-mobile-toggle"
                 onClick={() => setIsMobileSidebarOpen(true)}
               >
@@ -988,131 +989,133 @@ export default function ProposalsTrashPage() {
 
             {/* Table / grid */}
             <div className="pp-body">
-              {view === 'list' ? (
-                <div className="pp-table-wrap">
-                  <Table
-                    columns={columns}
-                    dataSource={pagedProposals}
-                    loading={loading}
-                    rowKey="id"
-                    size="small"
-                    className="pp-table"
-                    scroll={{ x: 1282 }}
-                    rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
-                    pagination={false}
-                    locale={{ emptyText: emptyState }}
-                    onRow={(record) => ({
-                      onClick: (e) => {
-                        const t = e.target as HTMLElement;
-                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-star, .pp-maillink')) return;
-                        openProposal(record);
-                      },
-                      className: 'pp-row',
-                    })}
-                  />
-                </div>
-              ) : (
-                <div className="pp-grid">
-                  {loading ? (
-                    <div className="pp-grid-loading">Loading…</div>
-                  ) : filteredProposals.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                  ) : (
-                    filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((p) => {
-                      const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;
-                      const meta = STATUS_META[sKey] || STATUS_META.draft;
-                      const accent = accentFor(p.id || p.client_name || p.title || '');
-                      const title = resolveTitle(p);
-                      const created = p.created_at ? dayjs(p.created_at) : null;
-                      const updated = p.updated_at ? dayjs(p.updated_at) : null;
-                      const isSent = !!p.last_mail_at || !!p.is_mail_sent || sKey === 'sent';
-                      return (
-                        <div key={p.id} className="pc-card" onClick={() => openProposal(p)}>
-                          <div className="pc-top">
-                            <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-                              {initialsOf(p.client_name || title)}
+              <ZukvoLoadingOverlay loading={loading} message="">
+                {view === 'list' ? (
+                  <div className="pp-table-wrap">
+                    <Table
+                      columns={columns}
+                      dataSource={pagedProposals}
+                      rowKey="id"
+                      size="small"
+                      className="pp-table"
+                      scroll={{ x: 1282 }}
+                      rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
+                      pagination={false}
+                      locale={{ emptyText: emptyState }}
+                      onRow={(record) => ({
+                        onClick: (e) => {
+                          const t = e.target as HTMLElement;
+                          if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-star, .pp-maillink')) return;
+                          openProposal(record);
+                        },
+                        className: 'pp-row',
+                      })}
+                    />
+
+                  </div>
+                ) : (
+                  <div className="pp-grid">
+                    {loading ? (
+                      <div className="pp-grid-loading">Loading…</div>
+                    ) : filteredProposals.length === 0 ? (
+                      <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                    ) : (
+                      filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((p) => {
+                        const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;
+                        const meta = STATUS_META[sKey] || STATUS_META.draft;
+                        const accent = accentFor(p.id || p.client_name || p.title || '');
+                        const title = resolveTitle(p);
+                        const created = p.created_at ? dayjs(p.created_at) : null;
+                        const updated = p.updated_at ? dayjs(p.updated_at) : null;
+                        const isSent = !!p.last_mail_at || !!p.is_mail_sent || sKey === 'sent';
+                        return (
+                          <div key={p.id} className="pc-card" onClick={() => openProposal(p)}>
+                            <div className="pc-top">
+                              <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                                {initialsOf(p.client_name || title)}
+                              </div>
+                              <div className="pc-identity-body">
+                                <div className="pc-title">{title}</div>
+                                <div className="pc-client-line">
+                                  <span className="pc-client-key">Client:</span>
+                                  <span className="pc-client-val">{p.client_name || 'No client'}</span>
+                                </div>
+                              </div>
+                              <Dropdown
+                                menu={actionMenu(p)}
+                                overlayClassName="pp-action-pop"
+                                trigger={['click']}
+                                placement="bottomRight"
+                              >
+                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                  <EllipsisOutlined />
+                                </button>
+                              </Dropdown>
                             </div>
-                            <div className="pc-identity-body">
-                              <div className="pc-title">{title}</div>
-                              <div className="pc-client-line">
-                                <span className="pc-client-key">Client:</span>
-                                <span className="pc-client-val">{p.client_name || 'No client'}</span>
+
+                            <div className="pc-foot">
+                              <div className="pc-foot-row">
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Created by</span>
+                                  <Avatar size={16} src={p.createdBy?.avatarUrl || p.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                                    {initialsOf(p.createdBy?.name || '—')}
+                                  </Avatar>
+                                  <span className="pc-foot-val">{p.createdBy?.name || '—'}</span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Created</span>
+                                  <span className="pc-foot-val">{created ? created.format('MMM D, YYYY · h:mm A') : '—'}</span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Updated</span>
+                                  <span className="pc-foot-val">{updated ? updated.format('MMM D, YYYY · h:mm A') : '—'}</span>
+                                </span>
+                              </div>
+                              <div className="pc-foot-row">
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Status:</span>
+                                  <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
+                                    {meta.icon}{meta.label}
+                                  </span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Mail:</span>
+                                  <span className="pc-mail-val" style={{ color: isSent ? '#10b981' : '#94a3b8' }}>
+                                    {isSent ? <CheckCircleOutlined /> : <Mail size={12} />}
+                                    {isSent ? 'Sent' : 'Not sent'}
+                                  </span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <button
+                                  type="button"
+                                  className="pc-foot-item pc-view-btn"
+                                  onClick={(e) => { e.stopPropagation(); setPreviewProposal(p); }}
+                                >
+                                  <EyeOutlined />
+                                  View Proposal
+                                </button>
+                                <span className="pc-foot-div" />
+                                <button
+                                  type="button"
+                                  className="pc-foot-item pc-timeline-btn"
+                                  onClick={(e) => { e.stopPropagation(); setActivityProposal(p); }}
+                                >
+                                  <HistoryOutlined />
+                                  <span className="pc-foot-key">Timeline</span>
+                                  <span className="pc-timeline-view">View</span>
+                                </button>
                               </div>
                             </div>
-                            <Dropdown
-                              menu={actionMenu(p)}
-                              overlayClassName="pp-action-pop"
-                              trigger={['click']}
-                              placement="bottomRight"
-                            >
-                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                                <EllipsisOutlined />
-                              </button>
-                            </Dropdown>
                           </div>
-
-                          <div className="pc-foot">
-                            <div className="pc-foot-row">
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Created by</span>
-                                <Avatar size={16} src={p.createdBy?.avatarUrl || p.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
-                                  {initialsOf(p.createdBy?.name || '—')}
-                                </Avatar>
-                                <span className="pc-foot-val">{p.createdBy?.name || '—'}</span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Created</span>
-                                <span className="pc-foot-val">{created ? created.format('MMM D, YYYY · h:mm A') : '—'}</span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Updated</span>
-                                <span className="pc-foot-val">{updated ? updated.format('MMM D, YYYY · h:mm A') : '—'}</span>
-                              </span>
-                            </div>
-                            <div className="pc-foot-row">
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Status:</span>
-                                <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
-                                  {meta.icon}{meta.label}
-                                </span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Mail:</span>
-                                <span className="pc-mail-val" style={{ color: isSent ? '#10b981' : '#94a3b8' }}>
-                                  {isSent ? <CheckCircleOutlined /> : <Mail size={12} />}
-                                  {isSent ? 'Sent' : 'Not sent'}
-                                </span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <button
-                                type="button"
-                                className="pc-foot-item pc-view-btn"
-                                onClick={(e) => { e.stopPropagation(); setPreviewProposal(p); }}
-                              >
-                                <EyeOutlined />
-                                View Proposal
-                              </button>
-                              <span className="pc-foot-div" />
-                              <button
-                                type="button"
-                                className="pc-foot-item pc-timeline-btn"
-                                onClick={(e) => { e.stopPropagation(); setActivityProposal(p); }}
-                              >
-                                <HistoryOutlined />
-                                <span className="pc-foot-key">Timeline</span>
-                                <span className="pc-timeline-view">View</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </ZukvoLoadingOverlay>
             </div>
 
             {total > 0 && (
@@ -1298,7 +1301,7 @@ export default function ProposalsTrashPage() {
           /* ---------------- Main ---------------- */
           .pp-main { flex: 1; min-width: 0; padding: 8px 18px 0; display: flex; flex-direction: column; }
           .pp-body { flex: 1 0 auto; }
-          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+          .pp-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; position: sticky; top: 0; z-index: 50; background: var(--bg-pure-white, #fff); padding: 8px 0; margin-top: -8px; }
           .pp-search-wrap {
             position: relative; flex: 1; max-width: 520px; display: flex; align-items: center;
             height: 32px; border-radius: 8px; background: var(--bg-pure-white);

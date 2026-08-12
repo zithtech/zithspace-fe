@@ -7990,6 +7990,242 @@ select:-webkit-autofill:focus {
   max-width: 560px;
 }
 
+/* Names the source Zai is drafting from — sits on the hero's dark panel, so it
+   carries its own light-on-dark colours rather than the page tokens. */
+.zai-hero__source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(147, 197, 253, 0.32);
+  max-width: 560px;
+}
+
+.zai-hero__source strong {
+  font-weight: 700;
+  color: #e0f2fe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── "Create with Zai using PRD" — composer popover ──────────────────────────
+   The PRD is already the brief, so this is deliberately small: name the source,
+   take optional steering text, generate. No prompt templates, no modal. */
+.zprd-pop .ant-popover-inner {
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid var(--border-slate-200);
+  box-shadow: 0 18px 44px rgba(8, 12, 24, 0.16);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .zprd-pop .ant-popover-inner {
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+
+.zprd {
+  width: 330px;
+  padding: 13px 14px 12px;
+  background: var(--bg-pure-white);
+}
+
+.zprd__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid var(--border-slate-100);
+}
+
+.zprd__orb {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+}
+
+.zprd__headtext { min-width: 0; }
+
+.zprd__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-slate-900);
+  letter-spacing: -0.01em;
+}
+
+/* The document name is the promise this popover makes — truncate, never wrap. */
+.zprd__doc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  min-width: 0;
+}
+
+.zprd__doc span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .zprd__doc { color: #93c5fd; }
+
+.zprd__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-slate-700);
+}
+
+.zprd__opt {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--text-slate-500);
+  background: var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+}
+
+.zprd__ta.ant-input {
+  font-size: 12.5px;
+  border-radius: 9px;
+  resize: none;
+}
+
+.zprd__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.zprd__hint {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-slate-400);
+}
+
+/* ── Disabled-state tooltip: says what to do, not just what is wrong ─────────
+   The app themes the tooltip surface light in light mode (ThemeConfigProvider →
+   Tooltip.colorBgSpotlight), and antd's runtime CSS is injected after this file,
+   so a hard-coded dark panel here loses and its pale text disappears onto white.
+   Everything below therefore rides on theme tokens, which flip with the surface. */
+.zprd-tip.ant-tooltip { max-width: 306px; }
+
+.zprd-tip.ant-tooltip .ant-tooltip-inner {
+  max-width: 306px;
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1px solid var(--border-slate-200);
+  box-shadow: 0 16px 38px rgba(8, 12, 24, 0.14);
+}
+
+[data-theme='dark'] .zprd-tip.ant-tooltip .ant-tooltip-inner {
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
+}
+
+.zprd-tip__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-slate-900);
+}
+
+.zprd-tip__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+[data-theme='dark'] .zprd-tip__icon {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.zprd-tip__body {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-slate-500);
+}
+
+/* The fix is a path through the form, so it reads as one — chips, not prose. */
+.zprd-tip__path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 9px;
+}
+
+.zprd-tip__step {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: var(--text-slate-700);
+  background: var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+}
+
+.zprd-tip__step--goal {
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+[data-theme='dark'] .zprd-tip__step--goal { color: #93c5fd; }
+
+.zprd-tip__sep {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-slate-400);
+}
+
+.zprd-tip__note {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-slate-100);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-slate-400);
+}
+
+.zprd-tip__note svg { flex-shrink: 0; margin-top: 1px; }
+
 .zai-close {
   background: rgba(255, 255, 255, 0.06);
   color: #e2e8f0;
@@ -26657,10 +26893,58 @@ select:-webkit-autofill:focus {
   margin-bottom: 1em;
 }
 
+/* Header / Footer zone — strip tiptap's default paragraph spacing */
+.preview-header-zone p,
+.preview-header-zone div,
+.preview-header-zone span {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Constrain logo image — matches the PDF header template exactly */
+.preview-header-zone img {
+  max-height: 55px !important;
+  max-width: 120px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: inline-block !important;
+}
+
+.preview-header-zone table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+.preview-header-zone td,
+.preview-header-zone th {
+  border: none !important;
+  padding: 0 4px !important;
+  vertical-align: middle !important;
+}
+
+/* Reduce hr spacing inside the A4 preview — browser default is 0.5em top+bottom */
+.preview-paper-content hr {
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
+  border: none !important;
+  border-top: 1px solid #cbd5e1 !important;
+}
+
+/* First element inside the body content zone should not push down */
+.letter-tiptap-content>.ProseMirror>*:first-child {
+  margin-top: 0 !important;
+}
+
 .preview-paper-content h1 {
   font-size: 1.8em !important;
   font-weight: 700 !important;
-  margin-top: 1.2em !important;
+  margin-top: 0.4em !important;
   margin-bottom: 0.5em !important;
   color: #0f172a !important;
 }
@@ -26786,6 +27070,215 @@ select:-webkit-autofill:focus {
   display: block;
   margin-left: auto;
   margin-right: 0;
+}
+
+/* AI Assist Text Area / Enhance Modal UI */
+.omai {
+  position: relative;
+}
+
+.omai-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  margin-top: -38px;
+  position: relative;
+  z-index: 2;
+}
+
+.omai-bar .ant-btn {
+  height: 26px;
+  font-size: 11.5px;
+  border-radius: 6px;
+}
+
+.omai-enhance.ant-btn {
+  color: var(--premium-blue, #1677ff);
+  border-color: rgba(22, 119, 255, 0.3);
+}
+
+.omai-enhance.ant-btn:hover {
+  border-color: var(--premium-blue, #1677ff);
+}
+
+.omai-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.omai-picker-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: linear-gradient(145deg, var(--bg-slate-50, #f8fafc) 0%, #f1f5f9 100%);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-slate-100);
+}
+
+.omai-picker-hint {
+  font-size: 12.5px;
+  color: var(--text-slate-600);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.omai-picker-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.omai-cached {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid rgba(100, 116, 139, 0.1);
+}
+
+.omai-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 420px;
+}
+
+.omai-add .ant-input {
+  font-size: 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.omai-add .ant-input:focus,
+.omai-add .ant-input:hover {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.omai-add .ant-btn {
+  border-radius: 8px;
+}
+
+.omai-chip.is-custom {
+  border-style: dashed;
+}
+
+.omai-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-slate-100);
+}
+
+.omai-group-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-slate-500);
+  background: var(--bg-slate-50);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.omai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.omai-modal {
+  max-width: calc(100vw - 32px);
+}
+
+.omai-modal .ant-modal-content {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.omai-modal .ant-modal-header {
+  padding: 20px 24px;
+  margin: -20px -24px 20px;
+  background: linear-gradient(to right, var(--bg-slate-50, #f8fafc), var(--bg-pure-white, #ffffff));
+  border-bottom: 1px solid var(--border-slate-100);
+}
+
+.omai-chip {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-slate-200);
+  border-radius: 10px;
+  background: var(--bg-pure-white);
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-slate-700);
+  max-width: 100%;
+  line-height: 1.45;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.omai-chip .ant-checkbox-wrapper {
+  display: none;
+}
+
+/* Full-width sentences read better one per line than as ragged chips. */
+.omai-group[data-key="points"] .omai-chips {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.omai-group[data-key="points"] .omai-chip {
+  width: 100%;
+}
+
+.omai-chip:hover {
+  background: var(--bg-pure-white);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.omai-chip.is-on {
+  border-color: #1677ff;
+  background: rgba(22, 119, 255, 0.05);
+  color: var(--text-slate-900);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+}
+
+.omai-chip.is-on:hover {
+  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.omai-picker-foot {
+  font-size: 12px;
+  color: var(--text-slate-500);
+  border-top: 1px solid var(--border-slate-100);
+  padding-top: 16px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 :root {
@@ -26933,4 +27426,45 @@ select:-webkit-autofill:focus {
 
 [data-theme="dark"] :not(.force-light-theme)>.letter-tiptap-content .ProseMirror table tbody tr:nth-child(even) {
   background-color: #162032 !important;
+}
+
+/* Fix for Ant Design Table with y: 100% in flex container */
+.flex-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-table .ant-spin-nested-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-table .ant-spin-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-table .ant-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-table .ant-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.flex-table .ant-table-body {
+  flex: 1;
+  overflow-y: auto !important;
 }

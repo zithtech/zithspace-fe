@@ -63,7 +63,43 @@ export const Permissions = {
   BUG_TRASH_DELETE:  'bug.trash.delete',
   BUG_ARCHIVE_READ:    'bug.archive.read',
   BUG_ARCHIVE_RESTORE: 'bug.archive.restore',
+  BUG_ARCHIVE_DELETE:  'bug.archive.delete',
   BUG_MANAGE: 'bug.manage',
+
+  // QA Space
+  QA_SCOPE_CREATE: 'qa.scope.create',
+  QA_SCOPE_READ:   'qa.scope.read',
+  QA_SCOPE_UPDATE: 'qa.scope.update',
+  QA_SCOPE_DELETE: 'qa.scope.delete',
+  QA_SCOPE_APPROVE: 'qa.scope.approve',
+  QA_CASE_CREATE:  'qa.case.create',
+  QA_CASE_READ:    'qa.case.read',
+  QA_CASE_UPDATE:  'qa.case.update',
+  QA_CASE_DELETE:  'qa.case.delete',
+  QA_SUITE_CREATE: 'qa.suite.create',
+  QA_SUITE_READ:   'qa.suite.read',
+  QA_SUITE_UPDATE: 'qa.suite.update',
+  QA_SUITE_DELETE: 'qa.suite.delete',
+  QA_RUN_CREATE:   'qa.run.create',
+  QA_RUN_READ:     'qa.run.read',
+  QA_RUN_UPDATE:   'qa.run.update',
+  QA_RUN_DELETE:   'qa.run.delete',
+  // QA Submissions — reporting completed testing, then QA Sign-off and PM Approval.
+  // Submit / sign-off / approve are separate from update on purpose: they are
+  // the three distinct authorities in the workflow, not editing operations.
+  QA_SUBMISSION_CREATE:   'qa.submission.create',
+  QA_SUBMISSION_READ:     'qa.submission.read',
+  QA_SUBMISSION_UPDATE:   'qa.submission.update',
+  QA_SUBMISSION_DELETE:   'qa.submission.delete',
+  QA_SUBMISSION_SUBMIT:   'qa.submission.submit',
+  QA_SUBMISSION_SIGNOFF:  'qa.submission.signoff',
+  QA_APPROVAL_READ:       'qa.approval.read',
+  QA_APPROVAL_APPROVE:    'qa.approval.approve',
+  QA_APPROVAL_SEND_BACK:  'qa.approval.send_back',
+  // Cross-scope reporting exposes the whole QA estate, so it is granted
+  // separately from being able to read the runs you work on.
+  QA_ANALYTICS_READ:      'qa.analytics.read',
+  QA_MANAGE:       'qa.manage',
 
   // Attendance
   ATTENDANCE_CREATE: 'attendance.create',
@@ -373,7 +409,7 @@ export const Permissions = {
   PIPELINE_SETTING_READ:   'pipeline.setting.read',
   PIPELINE_SETTING_UPDATE: 'pipeline.setting.update',
 
-  // Recruitment / ATS
+  // Candidate Pipeline / ATS (keys keep the legacy `recruitment.` prefix)
   RECRUITMENT_CREATE: 'recruitment.create',
   RECRUITMENT_READ:   'recruitment.read',
   RECRUITMENT_UPDATE: 'recruitment.update',
@@ -404,6 +440,19 @@ export const Permissions = {
   OPENING_UPDATE: 'opening.update',
   OPENING_DELETE: 'opening.delete',
   OPENING_MANAGE: 'opening.manage', // external career portal settings, hiring workflows, and ATS config
+
+  // Hotspot
+  HOTSPOT_OPENING_READ: 'hotspot.opening.read',
+  HOTSPOT_OPENING_CREATE: 'hotspot.opening.create',
+  HOTSPOT_CIRCULATION_READ: 'hotspot.circulation.read',
+  HOTSPOT_CIRCULATION_CREATE: 'hotspot.circulation.create',
+  HOTSPOT_CIRCULATION_UPDATE: 'hotspot.circulation.update',
+  HOTSPOT_CIRCULATION_DELETE: 'hotspot.circulation.delete',
+  HOTSPOT_CIRCULATION_PIN: 'hotspot.circulation.pin',
+  HOTSPOT_BLOG_READ: 'hotspot.blog.read',
+  HOTSPOT_BLOG_CREATE: 'hotspot.blog.create',
+  HOTSPOT_BLOG_UPDATE: 'hotspot.blog.update',
+  HOTSPOT_BLOG_DELETE: 'hotspot.blog.delete',
 
   // User Profile
   PROFILE_CREATE: 'profile.create',
@@ -486,6 +535,10 @@ export const Permissions = {
   LETTER_READ:              'letter.read',
   LETTER_DELETE:            'letter.delete',
   LETTER_MANAGE:            'letter.manage',
+  LETTER_FORMAT_CREATE:     'letter.format.create',
+  LETTER_FORMAT_READ:       'letter.format.read',
+  LETTER_FORMAT_UPDATE:     'letter.format.update',
+  LETTER_FORMAT_DELETE:     'letter.format.delete',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];

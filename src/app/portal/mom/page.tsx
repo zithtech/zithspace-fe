@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Input, Empty, Spin, Pagination, Select, DatePicker, Button } from "antd";
+import { Input, Empty, Pagination, Select, DatePicker, Button } from "antd";
 import MomDetailDrawer from "@/app/portal/_components/MomDetailDrawer";
 import dayjs from "dayjs";
 import {
@@ -264,7 +266,7 @@ export default function PortalMomPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : filteredItems.length === 0 ? (
           <div

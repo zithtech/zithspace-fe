@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Spin, message } from 'antd';
+import {  message } from 'antd';
 import { Ticket, Timer, NotebookPen, CalendarCheck, Plane } from 'lucide-react';
 import { Dayjs } from 'dayjs';
 import PerformanceReportService, { ReportTicket } from '@/services/performanceReportService';
@@ -210,35 +212,91 @@ export default function OverviewSection({
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Building overview…" />
+        <ZukvoLoader size="md" message="Building overview…" />
       </div>
     );
   }
 
   const band = performanceBand(combined);
+  const enabled = weights.filter((w) => w.enabled);
+  const scoredCount = ORDER.filter((k) => weightOf(k)?.enabled && scores[k] !== null).length;
+
+  // Donut geometry — one ring, filled to the combined score.
+  const RING_R = 54;
+  const RING_C = 2 * Math.PI * RING_R;
+  const ringPct = Math.max(0, Math.min(100, combined ?? 0));
+
+  // Weight distribution across the enabled stages (stacked strip under the hero).
+  const weightTotal = enabled.reduce((a, w) => a + (Number(w.weight) || 0), 0);
 
   return (
     <div className="ov-wrap">
       {/* ── Combined headline ───────────────────────────────────────────────── */}
       <div className="ov-hero">
-        <div className="ov-hero-score">
-          <span className="ov-hero-num" style={{ color: pointsColor(combined) }}>
-            {combined ?? '—'}
-          </span>
-          <span className="ov-hero-max">/ 100</span>
+        <div className="ov-hero-glow" />
+
+        <div className="ov-ring">
+          <svg viewBox="0 0 128 128" role="img" aria-label={`Overall score ${combined ?? 'unavailable'}`}>
+            <circle className="ov-ring-track" cx="64" cy="64" r={RING_R} />
+            <circle
+              className="ov-ring-fill"
+              cx="64"
+              cy="64"
+              r={RING_R}
+              transform="rotate(-90 64 64)"
+              style={{
+                stroke: pointsColor(combined),
+                strokeDasharray: `${(ringPct / 100) * RING_C} ${RING_C}`,
+              }}
+            />
+          </svg>
+          <div className="ov-ring-center">
+            <span className="ov-ring-num" style={{ color: pointsColor(combined) }}>
+              {combined ?? '—'}
+            </span>
+            <span className="ov-ring-max">/ 100</span>
+          </div>
         </div>
+
         <div className="ov-hero-text">
-          <div className="ov-hero-band" style={{ color: band.color }}>{band.label}</div>
+          <span className="ov-hero-band" style={{ color: band.color, background: `${band.color}14` }}>
+            <span className="ov-hero-band-dot" style={{ background: band.color }} />
+            {band.label}
+          </span>
           <div className="ov-hero-label">Overall performance</div>
           <div className="ov-hero-sub">
-            Weighted average across the {weights.filter((w) => w.enabled).length} enabled stages,
-            using the weights set in Settings.
+            Weighted average across the {enabled.length} enabled stage
+            {enabled.length === 1 ? '' : 's'}, using the weights set in Settings.
           </div>
+
+          {weightTotal > 0 && (
+            <div className="ov-mix">
+              <div className="ov-mix-bar">
+                {ORDER.filter((k) => weightOf(k)?.enabled).map((k) => (
+                  <span
+                    key={k}
+                    className="ov-mix-seg"
+                    title={`${META[k].label} · ${Number(weightOf(k)!.weight)}%`}
+                    style={{
+                      width: `${((Number(weightOf(k)!.weight) || 0) / weightTotal) * 100}%`,
+                      background: META[k].color,
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="ov-mix-note">
+                {scoredCount} of {enabled.length} stages have data in this window
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── 5 stages ────────────────────────────────────────────────────────── */}
-      <div className="ov-section-label">Performance by stage</div>
+      <div className="ov-section-head">
+        <span className="ov-section-label">Performance by stage</span>
+        <span className="ov-section-rule" />
+      </div>
       <div className="ov-grid">
         {ORDER.map((key) => {
           const meta = META[key];
@@ -247,14 +305,20 @@ export default function OverviewSection({
           const b = performanceBand(s);
           const disabled = !w?.enabled;
           return (
-            <div key={key} className={`ov-card ${disabled ? 'is-off' : ''}`} style={{ ['--accent' as any]: meta.color }}>
+            <div
+              key={key}
+              className={`ov-card ${disabled ? 'is-off' : ''}`}
+              style={{ ['--accent' as any]: meta.color }}
+            >
               <div className="ov-card-top">
                 <span className="ov-card-ic">{meta.icon}</span>
                 <span className="ov-card-name">{meta.label}</span>
                 <span className="ov-card-weight">{w ? `${Number(w.weight)}%` : '—'}</span>
               </div>
               <div className="ov-card-score">
-                <span style={{ color: pointsColor(s) }}>{s ?? '—'}</span>
+                <span className="ov-card-score-num" style={{ color: pointsColor(s) }}>
+                  {s ?? '—'}
+                </span>
                 <span className="ov-card-score-max">/ 100</span>
                 <span className="ov-card-band" style={{ color: b.color, background: `${b.color}14` }}>
                   {disabled ? 'Excluded' : b.label}
@@ -273,42 +337,140 @@ export default function OverviewSection({
       </div>
 
       <style jsx global>{`
-        .ov-wrap { display: flex; flex-direction: column; gap: 16px; }
-        .ov-hero {
-          display: flex; align-items: center; gap: 22px;
-          padding: 22px 24px; border: 1px solid var(--border-slate-200); background: transparent;
-        }
-        .ov-hero-score { display: flex; align-items: baseline; gap: 6px; }
-        .ov-hero-num { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
-        .ov-hero-max { font-size: 16px; font-weight: 700; color: var(--text-slate-400); }
-        .ov-hero-band { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
-        .ov-hero-label { font-size: 13px; font-weight: 700; color: var(--text-slate-900); margin-top: 2px; }
-        .ov-hero-sub { font-size: 12.5px; color: var(--text-slate-500); margin-top: 3px; max-width: 520px; line-height: 1.5; }
+        .ov-wrap { display: flex; flex-direction: column; gap: 14px; }
 
+        /* ── Hero: score donut + verdict ─────────────────────────────────────── */
+        .ov-hero {
+          position: relative; overflow: hidden;
+          display: flex; align-items: center; gap: 26px;
+          padding: 20px 24px; border-radius: 18px;
+          border: 1px solid var(--border-slate-200);
+          background:
+            linear-gradient(120deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0) 46%),
+            var(--bg-pure-white);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.04);
+        }
+        .ov-hero-glow {
+          position: absolute; left: -40px; top: -90px; width: 300px; height: 220px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.14), transparent 70%);
+          pointer-events: none;
+        }
+
+        .ov-ring { position: relative; width: 122px; height: 122px; flex-shrink: 0; z-index: 1; }
+        .ov-ring svg { width: 100%; height: 100%; display: block; }
+        .ov-ring-track { fill: none; stroke: var(--bg-slate-100); stroke-width: 11; }
+        .ov-ring-fill {
+          fill: none; stroke-width: 11; stroke-linecap: round;
+          transition: stroke-dasharray .5s cubic-bezier(.4, 0, .2, 1), stroke .3s ease;
+        }
+        .ov-ring-center {
+          position: absolute; inset: 0;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+        }
+        .ov-ring-num {
+          font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.035em;
+          font-variant-numeric: tabular-nums;
+        }
+        .ov-ring-max { font-size: 11px; font-weight: 700; color: var(--text-slate-400); }
+
+        .ov-hero-text { position: relative; z-index: 1; min-width: 0; flex: 1; }
+        .ov-hero-band {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em;
+          padding: 3px 10px 3px 8px; border-radius: 999px;
+        }
+        .ov-hero-band-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .ov-hero-label {
+          font-size: 16px; font-weight: 800; color: var(--text-slate-900);
+          margin-top: 8px; letter-spacing: -0.02em;
+        }
+        .ov-hero-sub {
+          font-size: 12.5px; color: var(--text-slate-500); margin-top: 4px;
+          max-width: 520px; line-height: 1.5;
+        }
+
+        .ov-mix { margin-top: 14px; max-width: 460px; }
+        .ov-mix-bar {
+          display: flex; gap: 2px; height: 7px; border-radius: 999px; overflow: hidden;
+          background: var(--bg-slate-100);
+        }
+        .ov-mix-seg { display: block; height: 100%; opacity: 0.85; }
+        .ov-mix-note {
+          display: block; margin-top: 7px;
+          font-size: 11px; font-weight: 600; color: var(--text-slate-400);
+        }
+
+        /* ── Section heading ────────────────────────────────────────────────── */
+        .ov-section-head { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
         .ov-section-label {
-          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-          color: var(--text-slate-400); margin-top: 2px;
+          font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+          color: var(--text-slate-400); flex-shrink: 0;
         }
-        .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .ov-section-rule { flex: 1; height: 1px; background: var(--border-slate-100); }
+
+        /* ── Stage cards ────────────────────────────────────────────────────── */
+        .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
         .ov-card {
-          border: 1px solid var(--border-slate-200); background: transparent; padding: 14px 16px;
-          display: flex; flex-direction: column; gap: 10px;
+          position: relative; overflow: hidden;
+          border: 1px solid var(--border-slate-200); border-radius: 16px;
+          background: var(--bg-pure-white); padding: 14px 16px 15px;
+          display: flex; flex-direction: column; gap: 11px;
+          transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
         }
-        .ov-card.is-off { opacity: 0.55; }
+        .ov-card::before {
+          content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+          background: var(--accent); opacity: 0; transition: opacity .16s ease;
+        }
+        .ov-card:hover {
+          border-color: color-mix(in srgb, var(--accent) 34%, var(--border-slate-200));
+          box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
+          transform: translateY(-2px);
+        }
+        .ov-card:hover::before { opacity: 1; }
+        .ov-card.is-off {
+          opacity: 0.62; border-style: dashed; background: var(--bg-slate-50);
+        }
+        .ov-card.is-off:hover { transform: none; box-shadow: none; }
+
         .ov-card-top { display: flex; align-items: center; gap: 10px; }
         .ov-card-ic {
-          width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
-          color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, #fff);
+          width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
         }
-        .ov-card-name { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); flex: 1; }
-        .ov-card-weight { font-size: 11px; font-weight: 700; color: var(--text-slate-500); background: var(--bg-slate-100); padding: 2px 8px; }
+        .ov-card-name {
+          font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); flex: 1;
+          letter-spacing: -0.01em; min-width: 0;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .ov-card-weight {
+          font-size: 11px; font-weight: 700; color: var(--text-slate-500);
+          background: var(--bg-slate-100); padding: 2px 8px; border-radius: 999px;
+          font-variant-numeric: tabular-nums; flex-shrink: 0;
+        }
         .ov-card-score { display: flex; align-items: baseline; gap: 6px; }
-        .ov-card-score > span:first-child { font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+        .ov-card-score-num {
+          font-size: 28px; font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+          font-variant-numeric: tabular-nums;
+        }
         .ov-card-score-max { font-size: 12px; font-weight: 700; color: var(--text-slate-400); }
-        .ov-card-band { margin-left: auto; font-size: 11px; font-weight: 800; padding: 2px 9px; align-self: center; }
-        .ov-bar { height: 6px; background: var(--bg-slate-100); overflow: hidden; }
-        .ov-bar-fill { height: 100%; transition: width .25s ease; }
-        .ov-card-desc { font-size: 12px; color: var(--text-slate-500); line-height: 1.45; }
+        .ov-card-band {
+          margin-left: auto; align-self: center; border-radius: 999px;
+          font-size: 10.5px; font-weight: 800; padding: 3px 9px; white-space: nowrap;
+        }
+        .ov-bar { height: 6px; border-radius: 999px; background: var(--bg-slate-100); overflow: hidden; }
+        .ov-bar-fill { height: 100%; border-radius: 999px; transition: width .45s cubic-bezier(.4, 0, .2, 1); }
+        .ov-card-desc {
+          font-size: 12px; color: var(--text-slate-500); line-height: 1.45;
+          padding-top: 10px; border-top: 1px dashed var(--border-slate-200);
+        }
+
+        @media (max-width: 720px) {
+          .ov-hero { flex-direction: column; align-items: flex-start; gap: 16px; padding: 18px; }
+          .ov-ring { width: 104px; height: 104px; }
+          .ov-ring-num { font-size: 30px; }
+        }
       `}</style>
     </div>
   );

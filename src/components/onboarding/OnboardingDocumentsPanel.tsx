@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -12,7 +14,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Spin,
   Steps,
   Tag,
   Tooltip,
@@ -427,27 +428,47 @@ export default function OnboardingDocumentsPanel() {
     fetchDocuments();
   }, [fetchDocuments]);
 
-  // Load onboarded employees for the wizard
+  // Load onboarded employees and pending invites for the wizard
   useEffect(() => {
-    EmployeeOnboardingService.getAllEmployees()
-      .then((res: any) => {
-        const data = res?.data || res || [];
+    Promise.allSettled([
+      EmployeeOnboardingService.getAllEmployees(),
+      EmployeeOnboardingService.listInvites()
+    ])
+      .then(([empRes, invRes]) => {
+        let combined: any[] = [];
+        
+        if (empRes.status === 'fulfilled') {
+          const data = empRes.value?.data || empRes.value || [];
+          if (Array.isArray(data)) combined = [...combined, ...data];
+        }
+        
+        if (invRes.status === 'fulfilled') {
+          const data = invRes.value?.data || invRes.value || [];
+          if (Array.isArray(data)) combined = [...combined, ...data];
+        }
 
         // Map to what the UI expects (firstName, lastName, avatarUrl, positionTitle)
-        const mapped = Array.isArray(data) ? data.map((e: any) => {
-          return {
+        // Ensure we handle id vs employeeId to prevent duplicates
+        const uniqueEmployees = new Map();
+        
+        combined.forEach((e: any) => {
+          const id = e.id || e.employeeId;
+          if (!id || uniqueEmployees.has(id)) return;
+          
+          uniqueEmployees.set(id, {
             ...e,
+            id,
             firstName: e.firstName || e.first_name || '',
             lastName: e.lastName || e.last_name || '',
             avatarUrl: e.profile_pic || e.avatarUrl || null,
-            positionTitle: e.position?.title || e.positionTitle || e.jobTitle || '',
-          };
-        }) : [];
+            positionTitle: e.position?.title || e.positionTitle || e.jobTitle || 'Onboarding',
+          });
+        });
 
-        setEmployees(mapped);
+        setEmployees(Array.from(uniqueEmployees.values()));
       })
       .catch((err: any) => {
-        console.error("Failed to fetch employees:", err);
+        console.error("Failed to fetch employees for documents:", err);
       });
   }, []);
 
@@ -595,7 +616,7 @@ export default function OnboardingDocumentsPanel() {
         {loading ? (
           <div className="ob-doc-center">
             <Space direction="vertical" align="center">
-              <Spin size="large" />
+              <ZukvoLoader size="lg" />
               <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
             </Space>
           </div>

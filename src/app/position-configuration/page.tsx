@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -28,7 +30,6 @@ import {
   Avatar,
   Drawer,
   Collapse,
-  Spin,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -52,6 +53,7 @@ import { useGrades } from "@/hooks/useGrades";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { usePositions } from "@/hooks/usePositions";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -569,9 +571,7 @@ export default function positionConfiguration() {
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" />
           </div>
         </div>
       </MainLayout>
@@ -682,21 +682,22 @@ export default function positionConfiguration() {
         <Divider style={{ marginTop: 5 }} />
 
         {viewType === "table" ? (
-          <Table
-            columns={columns}
-            dataSource={uniqueDataSource.filter(
-              (item) =>
-                item.position?.toLowerCase().includes(searchText.toLowerCase()) ||
-                (Array.isArray(item.leaveType)
-                  ? item.leaveType.some((t: string) =>
-                    t.toLowerCase().includes(searchText.toLowerCase())
-                  )
-                  : item.leaveType?.toLowerCase().includes(searchText.toLowerCase()))
-            )}
-            size="small"
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
-            loading={loading}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              columns={columns}
+              dataSource={uniqueDataSource.filter(
+                (item) =>
+                  item.position?.toLowerCase().includes(searchText.toLowerCase()) ||
+                  (Array.isArray(item.leaveType)
+                    ? item.leaveType.some((t: string) =>
+                      t.toLowerCase().includes(searchText.toLowerCase())
+                    )
+                    : item.leaveType?.toLowerCase().includes(searchText.toLowerCase()))
+              )}
+              size="small"
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
+            />
+          </ZukvoLoadingOverlay>
         ) : (
           <List
             grid={{ gutter: 16, column: 3 }}

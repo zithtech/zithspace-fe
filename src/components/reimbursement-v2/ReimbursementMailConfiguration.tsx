@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch, Select, Button, message, Spin, Form, Input } from 'antd';
+import { Radio, Switch, Select, Button, message, Form, Input } from 'antd';
 import { MailOutlined, SaveOutlined } from '@ant-design/icons';
 import ReimbursementV2Service, { ReimbMailConfig } from '@/services/reimbursementV2Service';
 import { userService, User } from '@/services/userService';
@@ -9,6 +11,7 @@ import { userService, User } from '@/services/userService';
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 
 export default function ReimbursementMailConfiguration() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<ReimbMailConfig>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,7 +22,8 @@ export default function ReimbursementMailConfiguration() {
     try {
       // Fetch users for dropdowns
       const userData = await userService.getUsers();
-      setUsers(userData || []);
+      const userList = Array.isArray(userData) ? userData : (userData as any)?.data || [];
+      setUsers(userList);
 
       // Fetch settings
       const settings = await ReimbursementV2Service.getMailSettings();
@@ -34,11 +38,11 @@ export default function ReimbursementMailConfiguration() {
         customCcEmails: settings.customCcEmails || [],
       });
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to load mail configuration');
+      messageApi.error(err?.response?.data?.error || 'Failed to load mail configuration');
     } finally {
       setLoading(false);
     }
-  }, [form]);
+  }, [form, messageApi]);
 
   useEffect(() => {
     loadData();
@@ -48,15 +52,15 @@ export default function ReimbursementMailConfiguration() {
     setSaving(true);
     try {
       await ReimbursementV2Service.updateMailSettings(values);
-      message.success('Mail configuration saved successfully');
+      messageApi.success('Mail configuration saved successfully');
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to save mail configuration');
+      messageApi.error(err?.response?.data?.error || 'Failed to save mail configuration');
     } finally {
       setSaving(false);
     }
   };
 
-  const userOptions = users
+  const userOptions = (Array.isArray(users) ? users : [])
     .filter(u => u.workEmail || u.email)
     .map(u => {
       const emailToUse = u.workEmail || u.email;
@@ -64,11 +68,12 @@ export default function ReimbursementMailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>;
+    return <div style={{ padding: 24, textAlign: 'center' }}><ZukvoLoader size="md" /></div>;
   }
 
   return (
     <div className="mail-config">
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

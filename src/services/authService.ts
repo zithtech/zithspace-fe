@@ -257,4 +257,50 @@ export class AuthService {
   static clearAuth(): void {
     TokenManager.clearAccessToken();
   }
+
+  /**
+   * Request password reset
+   */
+  static async forgotPassword(email: string, tenantSubdomain?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // We use apiClient to bypass interceptors if needed, but api is fine since it's unauthenticated
+      const response = await apiClient.post('/api/auth/forgot-password', { email, tenantSubdomain });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || 'Failed to send password reset email');
+      }
+      throw new Error('Failed to send password reset email');
+    }
+  }
+
+  /**
+   * Validate password reset token
+   */
+  static async validateResetToken(token: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.get(`/api/auth/reset-password/validate?token=${token}`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || 'Invalid or expired token');
+      }
+      throw new Error('Invalid or expired token');
+    }
+  }
+
+  /**
+   * Reset password with token
+   */
+  static async resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.post('/api/auth/reset-password', { token, newPassword });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data) {
+        throw new Error(error.response.data.error || 'Failed to reset password');
+      }
+      throw new Error('Failed to reset password');
+    }
+  }
 }

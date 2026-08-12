@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, message, Spin } from "antd";
+import { Input, message } from "antd";
 import { ThunderboltOutlined, SendOutlined, CloseOutlined } from "@ant-design/icons";
 import { BlockNoteEditor } from "@blocknote/core";
 import { documentHubService as DocumentHubService } from "@/services/documentHub";
@@ -30,12 +32,19 @@ interface ZaiSelectionMenuProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   /** Called after a successful rewrite so the host can mark the doc dirty. */
   onChange?: () => void;
+  /**
+   * Override the rewrite call. Defaults to the Document Hub endpoint, which is
+   * gated on DOCUMENT_UPDATE — hosts outside the hub (e.g. QA test scopes) pass
+   * their own module's endpoint so their users aren't blocked by permissions.
+   */
+  onRewrite?: (input: { text: string; instruction: string }) => Promise<{ rewrittenHtml: string }>;
 }
 
 export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
   editor,
   containerRef,
   onChange,
+  onRewrite,
 }) => {
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
@@ -129,7 +138,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
 
     setBusy(true);
     try {
-      const { rewrittenHtml } = await DocumentHubService.rewriteAiSelection({
+      const { rewrittenHtml } = await (onRewrite ?? DocumentHubService.rewriteAiSelection)({
         text,
         instruction: trimmed,
       });
@@ -398,7 +407,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
               onPressEnter={() => applyRewrite(instruction)}
               suffix={
                 busy ? (
-                  <Spin size="small" />
+                  <ZukvoLoader size="sm" />
                 ) : (
                   <button
                     onMouseDown={(e) => e.preventDefault()}
@@ -438,7 +447,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
                   color: "var(--text-slate-600)",
                 }}
               >
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
                 <span>Zai is rewriting your selection…</span>
               </div>
             )}

@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Spin,
+  
   Pagination,
   Modal,
   Form,
@@ -484,7 +486,7 @@ export default function PortalCrListPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <EmptyState

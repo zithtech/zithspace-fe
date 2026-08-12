@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, Empty, Tooltip } from "antd";
+import {  Empty, Tooltip } from "antd";
 import {
   ArrowLeft,
   Server,
@@ -71,7 +73,7 @@ export default function PortalEnvDetailPage() {
           justifyContent: "center",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

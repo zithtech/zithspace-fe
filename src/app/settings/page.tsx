@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -23,7 +25,6 @@ import {
   InputNumber,
   Switch,
   Popconfirm,
-  Spin,
   Upload,
   Row,
   Col,
@@ -43,6 +44,9 @@ import {
   DeleteOutlined,
   CheckCircleFilled,
   EnvironmentOutlined,
+  BankOutlined,
+  PhoneOutlined,
+  NumberOutlined,
   BgColorsOutlined,
   LoadingOutlined,
   MailOutlined,
@@ -63,7 +67,12 @@ import {
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
-import { CompanyLocationService } from '@/services/companyLocationService';
+import {
+  CompanyDetailsService,
+  CompanyBranch,
+  CompanyDetails,
+  formatAddress,
+} from '@/services/companyDetailsService';
 import { MailService, MailProvider } from '@/services/mailService';
 import { dashboardService } from '@/services/dashboardService';
 import { TimeTrackingHeader } from '@/components/time-tracking/TimeTrackingHeader';
@@ -74,13 +83,61 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { drawerFormStyles as formStyles, SectionCard, SectionHeader } from "@/components/common/DrawerSection";
+import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import AiSettingsPanel from "@/components/settings/AiSettingsPanel";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const { Title, Text, Paragraph } = Typography;
 
+/**
+ * The detailed postal address, in the order it reads on an envelope. Shared by
+ * the registered-company form and the branch drawer so the two never drift.
+ */
+const COMPANY_ADDRESS_FIELDS: { name: string; label: string; placeholder: string }[] = [
+  { name: 'doorNumber', label: 'Door / Flat Number', placeholder: 'e.g. 101 or Suite 4' },
+  { name: 'floor', label: 'Floor', placeholder: 'e.g. 3rd Floor' },
+  { name: 'building', label: 'Building', placeholder: 'e.g. Prestige Tower' },
+  { name: 'area', label: 'Area', placeholder: 'e.g. Indiranagar' },
+  { name: 'street', label: 'Street', placeholder: 'e.g. 100 Feet Road' },
+  { name: 'city', label: 'City', placeholder: 'e.g. Bengaluru' },
+  { name: 'district', label: 'District', placeholder: 'e.g. Bengaluru Urban' },
+  { name: 'state', label: 'State', placeholder: 'e.g. Karnataka' },
+  { name: 'pincode', label: 'Pincode', placeholder: 'e.g. 560038' },
+  { name: 'country', label: 'Country', placeholder: 'e.g. India' },
+];
 
+/** One read-only label/value pair in the saved company-details view. */
+const DetailField = ({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value?: React.ReactNode;
+  icon?: React.ReactNode;
+}) => (
+  <div style={{ marginBottom: 18 }}>
+    <Text
+      style={{
+        display: 'block',
+        fontSize: 10.5,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        color: 'var(--text-slate-400)',
+        marginBottom: 4,
+      }}
+    >
+      {label}
+    </Text>
+    <Space size={6} align="center">
+      {icon}
+      <Text style={{ fontSize: 13.5, color: 'var(--text-primary)', fontWeight: 500 }}>
+        {value || <span style={{ color: 'var(--text-slate-300)' }}>—</span>}
+      </Text>
+    </Space>
+  </div>
+);
 
 interface ShiftFormData {
   name: string;
@@ -204,11 +261,19 @@ export default function SettingsPage() {
   const [logoVersions, setLogoVersions] = useState<string[]>([]);
   const [isSystemFormDirty, setIsSystemFormDirty] = useState(false);
 
-  // Company locations state
-  const [locations, setLocations] = useState<any[]>([]);
-  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<any | null>(null);
-  const [locationForm] = Form.useForm();
+  // Company details state — the registered company plus its branch locations
+  const [companyDetails, setCompanyDetails] = useState<CompanyDetails | null>(null);
+  const [companyForm] = Form.useForm();
+  const [companySaving, setCompanySaving] = useState(false);
+  // Saved details render read-only; the form only appears while editing (or
+  // before anything has ever been saved).
+  const [isCompanyEditing, setIsCompanyEditing] = useState(false);
+  const [branches, setBranches] = useState<CompanyBranch[]>([]);
+  const [isBranchDrawerVisible, setIsBranchDrawerVisible] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<CompanyBranch | null>(null);
+  const [branchForm] = Form.useForm();
+  // Drives the branch drawer's email field: reuse the company email or type one.
+  const branchUsesCompanyEmail = Form.useWatch('useCompanyEmail', branchForm);
   const [processingBG, setProcessingBG] = useState<string | null>(null);
 
   // Invoice Mail Settings State
@@ -381,14 +446,19 @@ export default function SettingsPage() {
     }
   };
 
-  const fetchLocations = async () => {
+  const fetchCompanyDetails = async () => {
     try {
       setLoading(true);
-      const data = await CompanyLocationService.getAll();
-      setLocations(data);
+      const { company, branches: branchList } = await CompanyDetailsService.getOverview();
+      setCompanyDetails(company);
+      setBranches(branchList);
+      companyForm.setFieldsValue(company || {});
+      // Nothing saved yet → open straight into the form; otherwise show the
+      // saved details and wait for the user to hit Edit.
+      setIsCompanyEditing(!company);
     } catch (error) {
-      console.error('Failed to fetch locations:', error);
-      messageApi.error('Failed to fetch locations');
+      console.error('Failed to fetch company details:', error);
+      messageApi.error('Failed to fetch company details');
     } finally {
       setLoading(false);
     }
@@ -403,8 +473,8 @@ export default function SettingsPage() {
     if (user && activeTab === 'system') {
       fetchTenantProfile();
     }
-    if (user && activeTab === 'location') {
-      fetchLocations();
+    if (user && activeTab === 'company') {
+      fetchCompanyDetails();
     }
     if (user && activeTab === 'mail') {
       fetchInvoiceMailSettings();
@@ -609,49 +679,88 @@ export default function SettingsPage() {
     setIsShiftModalVisible(true);
   };
 
-  const showAddLocationDrawer = () => {
-    setEditingLocation(null);
-    locationForm.resetFields();
-    setIsLocationDrawerVisible(true);
+  const startEditingCompany = () => {
+    companyForm.setFieldsValue(companyDetails || {});
+    setIsCompanyEditing(true);
   };
 
-  const showEditLocationDrawer = (location: any) => {
-    setEditingLocation(location);
-    locationForm.setFieldsValue(location);
-    setIsLocationDrawerVisible(true);
+  const cancelEditingCompany = () => {
+    // Drop unsaved edits by re-seeding from the last saved record.
+    companyForm.setFieldsValue(companyDetails || {});
+    setIsCompanyEditing(false);
   };
 
-  const handleLocationsSubmit = async (values: any) => {
+  const handleCompanyDetailsSubmit = async (values: any) => {
+    try {
+      setCompanySaving(true);
+      const saved = await CompanyDetailsService.saveCompany(values);
+      setCompanyDetails(saved);
+      companyForm.setFieldsValue(saved);
+      setIsCompanyEditing(false);
+      // Branches that reuse the company email show the new address immediately.
+      setBranches((prev) =>
+        prev.map((b) => (b.useCompanyEmail ? { ...b, effectiveEmail: saved.primaryEmail } : b)),
+      );
+      messageApi.success('Company details saved successfully!');
+    } catch (error: any) {
+      console.error('Failed to save company details', error);
+      messageApi.error(error?.message || 'Failed to save company details');
+    } finally {
+      setCompanySaving(false);
+    }
+  };
+
+  const showAddBranchDrawer = () => {
+    setEditingBranch(null);
+    branchForm.resetFields();
+    // Reusing the company email is the default for a new branch.
+    branchForm.setFieldsValue({ useCompanyEmail: true, country: companyDetails?.country });
+    setIsBranchDrawerVisible(true);
+  };
+
+  const showEditBranchDrawer = (branch: CompanyBranch) => {
+    setEditingBranch(branch);
+    branchForm.setFieldsValue(branch);
+    setIsBranchDrawerVisible(true);
+  };
+
+  const handleBranchSubmit = async (values: any) => {
     try {
       setFormLoading(true);
-      if (editingLocation) {
-        await CompanyLocationService.update(editingLocation.id, values);
-        messageApi.success('Location updated successfully!');
+      const payload = {
+        ...values,
+        useCompanyEmail: !!values.useCompanyEmail,
+        // A branch on the company email must not carry a stale one of its own.
+        branchEmail: values.useCompanyEmail ? null : values.branchEmail,
+      };
+      if (editingBranch) {
+        await CompanyDetailsService.updateBranch(editingBranch.id, payload);
+        messageApi.success('Branch updated successfully!');
       } else {
-        await CompanyLocationService.create(values);
-        messageApi.success('Location added successfully!');
+        await CompanyDetailsService.createBranch(payload);
+        messageApi.success('Branch added successfully!');
       }
-      setIsLocationDrawerVisible(false);
-      setEditingLocation(null);
-      locationForm.resetFields();
-      fetchLocations();
-    } catch (error) {
-      console.error('Failed to save location', error);
-      messageApi.error('Failed to save location');
+      setIsBranchDrawerVisible(false);
+      setEditingBranch(null);
+      branchForm.resetFields();
+      fetchCompanyDetails();
+    } catch (error: any) {
+      console.error('Failed to save branch', error);
+      messageApi.error(error?.message || 'Failed to save branch');
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleDeleteLocation = async (id: string) => {
+  const handleDeleteBranch = async (id: string) => {
     try {
       setFormLoading(true);
-      await CompanyLocationService.delete(id);
-      messageApi.success('Location removed successfully!');
-      fetchLocations();
+      await CompanyDetailsService.deleteBranch(id);
+      messageApi.success('Branch removed successfully!');
+      fetchCompanyDetails();
     } catch (error) {
-      console.error('Failed to delete location', error);
-      messageApi.error('Failed to delete location');
+      console.error('Failed to delete branch', error);
+      messageApi.error('Failed to delete branch');
     } finally {
       setFormLoading(false);
     }
@@ -787,9 +896,7 @@ export default function SettingsPage() {
           textAlign: 'center'
         }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" message="Loading" />
           </div>
         </div>
       </MainLayout>
@@ -1323,16 +1430,300 @@ export default function SettingsPage() {
       )
     },
     {
-      key: 'location',
+      key: 'company',
       label: (
         <Space size={8} style={{ padding: "4px 8px" }}>
-          <EnvironmentOutlined style={{ fontSize: 16 }} />
-          <span style={{ fontWeight: 600 }}>Company Location</span>
+          <BankOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>Company Details</span>
         </Space>
       ),
       children: (
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 4px 40px 4px" }}>
           <div style={{ padding: "8px 4px 24px 4px" }}>
+            {/* Banner */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20,
+              background: 'var(--bg-slate-50)',
+              padding: '10px 16px',
+              borderRadius: '0px',
+              border: `1px solid ${token.colorBorder}`
+            }}>
+              <Space align="center" size="middle">
+                <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: 'var(--bg-pure-white)' }}>
+                  <BankOutlined style={{ fontSize: 24 }} />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                    Company Details
+                  </Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 14 }}>
+                    Your registered entity, statutory identifiers and office addresses.
+                  </Text>
+                </div>
+              </Space>
+            </div>
+
+            {/* ── Registered company ─────────────────────────────────────── */}
+            <Card
+              variant="borderless"
+              className="transparent-card"
+              style={{ ...styles.sectionCard, width: "100%", borderRadius: 0, background: 'transparent', marginBottom: 24 }}
+              styles={{ body: { padding: 0, background: 'transparent' } }}
+            >
+              <div style={{
+                padding: "12px 20px",
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}>
+                <Space size={14} align="center">
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 6,
+                    background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+                    color: '#2563EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 0 1px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255,255,255,0.6)'
+                  }}>
+                    <BankOutlined style={{ fontSize: 18 }} />
+                  </div>
+                  <div>
+                    <Text strong style={{ fontSize: 15, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
+                      Registered Company
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {isCompanyEditing
+                        ? 'The legal entity used on invoices, letters and statutory documents'
+                        : 'Saved details — click Edit to make changes'}
+                    </Text>
+                  </div>
+                </Space>
+                {companyDetails && !isCompanyEditing && canUpdateSettings && (
+                  <Button
+                    icon={<EditOutlined />}
+                    onClick={startEditingCompany}
+                    style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+
+              <div style={{ padding: 20 }}>
+                {companyDetails && !isCompanyEditing ? (
+                  /* ── Saved details, read-only ──────────────────────────── */
+                  <>
+                    <Row gutter={[16, 0]}>
+                      <Col xs={24} md={12} lg={8}>
+                        <DetailField
+                          label="Registered Company Name"
+                          value={companyDetails.registeredName}
+                          icon={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                        />
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <DetailField
+                          label="GST Number"
+                          value={companyDetails.gstNumber}
+                          icon={<NumberOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                        />
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <DetailField
+                          label="Primary Company Email"
+                          value={companyDetails.primaryEmail}
+                          icon={<MailOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                        />
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <DetailField
+                          label="Primary Phone"
+                          value={companyDetails.primaryPhone}
+                          icon={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                        />
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <DetailField
+                          label="Website"
+                          icon={<LinkOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                          value={
+                            companyDetails.website ? (
+                              <a
+                                href={companyDetails.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: 'var(--text-blue-600)' }}
+                              >
+                                {companyDetails.website}
+                              </a>
+                            ) : null
+                          }
+                        />
+                      </Col>
+                    </Row>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      margin: '4px 0 16px',
+                      paddingBottom: 10,
+                      borderBottom: `1px dashed ${token.colorBorderSecondary}`,
+                    }}>
+                      <EnvironmentOutlined style={{ color: '#2563EB', fontSize: 15 }} />
+                      <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                        Registered Address
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        {formatAddress(companyDetails) || 'No address saved yet'}
+                      </Text>
+                    </div>
+
+                    <Row gutter={[16, 0]}>
+                      {COMPANY_ADDRESS_FIELDS.map((field) => (
+                        <Col xs={24} md={12} lg={8} key={field.name}>
+                          <DetailField
+                            label={field.label}
+                            value={(companyDetails as any)[field.name]}
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </>
+                ) : (
+                <Form
+                  form={companyForm}
+                  layout="vertical"
+                  onFinish={handleCompanyDetailsSubmit}
+                  disabled={!canUpdateSettings}
+                  requiredMark="optional"
+                >
+                  <Row gutter={[16, 0]}>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="registeredName"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Registered Company Name</Text>}
+                        rules={[{ required: true, whitespace: true, message: 'Registered name is required' }]}
+                      >
+                        <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="gstNumber"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>GST Number</Text>}
+                        normalize={(v) => (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}
+                        rules={[{
+                          pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                          message: 'Enter a valid 15-character GSTIN',
+                        }]}
+                      >
+                        <Input placeholder="e.g. 29ABCDE1234F1Z5" maxLength={15} prefix={<NumberOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="primaryEmail"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
+                        rules={[
+                          { required: true, message: 'Primary email is required' },
+                          { type: 'email', message: 'Enter a valid email address' },
+                        ]}
+                      >
+                        <Input placeholder="e.g. accounts@company.com" prefix={<MailOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="primaryPhone"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
+                        rules={[{ required: true, whitespace: true, message: 'Primary phone is required' }]}
+                        getValueFromEvent={(e) => e.target.value.replace(/[^0-9+\-()\s]/g, '')}
+                      >
+                        <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="website"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Website URL</Text>}
+                        // The server prefixes a missing scheme, so accept a bare
+                        // domain here and only reject obviously broken input.
+                        rules={[{
+                          pattern: /^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i,
+                          message: 'Enter a valid website URL',
+                        }]}
+                      >
+                        <Input placeholder="e.g. www.company.com" prefix={<LinkOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    margin: '4px 0 16px',
+                    paddingBottom: 10,
+                    borderBottom: `1px dashed ${token.colorBorderSecondary}`,
+                  }}>
+                    <EnvironmentOutlined style={{ color: '#2563EB', fontSize: 15 }} />
+                    <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                      Registered Address
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      The full postal address of your head office
+                    </Text>
+                  </div>
+
+                  <Row gutter={[16, 0]}>
+                    {COMPANY_ADDRESS_FIELDS.map((field) => (
+                      <Col xs={24} md={12} lg={8} key={field.name}>
+                        <Form.Item
+                          name={field.name}
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{field.label}</Text>}
+                        >
+                          <Input placeholder={field.placeholder} />
+                        </Form.Item>
+                      </Col>
+                    ))}
+                  </Row>
+
+                  {canUpdateSettings && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                      {companyDetails && (
+                        <Button
+                          onClick={cancelEditingCompany}
+                          style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 110 }}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={companySaving}
+                        style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 160 }}
+                      >
+                        {companyDetails ? 'Save Changes' : 'Save Company Details'}
+                      </Button>
+                    </div>
+                  )}
+                </Form>
+                )}
+              </div>
+            </Card>
+
+            {/* ── Branch locations ───────────────────────────────────────── */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -1349,10 +1740,10 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                    Company Locations
+                    Additional Branch Locations
                   </Title>
                   <Text style={{ color: "var(--text-slate-500)", fontSize: 14 }}>
-                    Manage your company office addresses and physical locations.
+                    Other offices. Each branch reuses the company email or carries its own.
                   </Text>
                 </div>
               </Space>
@@ -1360,7 +1751,7 @@ export default function SettingsPage() {
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
-                  onClick={showAddLocationDrawer}
+                  onClick={showAddBranchDrawer}
                   style={{
                     borderRadius: 10,
                     height: 42,
@@ -1368,14 +1759,14 @@ export default function SettingsPage() {
                     boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
                   }}
                 >
-                  Add Location
+                  Add Branch
                 </Button>
               )}
             </div>
 
             <Row gutter={[24, 24]}>
-              {locations.map((loc) => (
-                <Col xs={24} sm={12} lg={8} key={loc.id}>
+              {branches.map((branch) => (
+                <Col xs={24} sm={12} lg={8} key={branch.id}>
                   <div className="pc-card">
                     <div className="pc-top">
                       <div
@@ -1394,26 +1785,28 @@ export default function SettingsPage() {
                           flexShrink: 0
                         }}
                       >
-                        {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
+                        {branch.branchName ? branch.branchName.charAt(0).toUpperCase() : <EnvironmentOutlined />}
                       </div>
                       <div className="pc-identity-body">
-                        <div className="pc-title">{loc.city}, {loc.state}</div>
+                        <div className="pc-title">{branch.branchName}</div>
                         <div className="pc-client-line">
-                          <span className="pc-client-key">Country</span>
-                          <span className="pc-client-val">{loc.country}</span>
+                          <span className="pc-client-key">Location</span>
+                          <span className="pc-client-val">
+                            {[branch.city, branch.state, branch.country].filter(Boolean).join(', ') || '—'}
+                          </span>
                         </div>
                       </div>
                       <Space size={2}>
                         {canUpdateSettings && (
-                          <button className="pc-actions" onClick={(e) => { e.stopPropagation(); showEditLocationDrawer(loc); }}>
+                          <button className="pc-actions" onClick={(e) => { e.stopPropagation(); showEditBranchDrawer(branch); }}>
                             <EditOutlined style={{ fontSize: 13 }} />
                           </button>
                         )}
                         {canDeleteSettings && (
                           <ConfirmDialog
-                            title="Delete location?"
-                            description="Are you sure you want to delete this location?"
-                            onConfirm={() => handleDeleteLocation(loc.id)}
+                            title="Delete branch?"
+                            description="Are you sure you want to delete this branch location?"
+                            onConfirm={() => handleDeleteBranch(branch.id)}
                             confirmText="Delete"
                           >
                             <button className="pc-actions" onClick={(e) => e.stopPropagation()}>
@@ -1427,23 +1820,37 @@ export default function SettingsPage() {
                     <div className="pc-foot" style={{ height: 'auto', padding: '6px 0' }}>
                       <div className="pc-foot-row">
                         <div className="pc-foot-item">
-                          <EnvironmentOutlined style={{ color: "var(--text-slate-400)" }} /> {loc.flatNumber}, {loc.street}
+                          <MailOutlined style={{ color: "var(--text-slate-400)" }} /> {branch.effectiveEmail || '—'}
                         </div>
                       </div>
                       <div className="pc-foot-row">
                         <div className="pc-foot-item">
-                          <span className="pc-client-key">Pincode:</span> {loc.pincode}
+                          <Tag
+                            color={branch.useCompanyEmail ? 'green' : 'blue'}
+                            style={{ marginInlineEnd: 0, fontSize: 11 }}
+                          >
+                            {branch.useCompanyEmail ? 'Company email' : 'Branch email'}
+                          </Tag>
                         </div>
-                        <div style={{ width: 1, height: 10, background: 'var(--border-slate-200)' }} />
-                        <div className="pc-foot-item">
-                          <span className="pc-client-key">Area:</span> {loc.area}
+                        {branch.branchPhone && (
+                          <>
+                            <div style={{ width: 1, height: 10, background: 'var(--border-slate-200)' }} />
+                            <div className="pc-foot-item">
+                              <PhoneOutlined style={{ color: "var(--text-slate-400)" }} /> {branch.branchPhone}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="pc-foot-row">
+                        <div className="pc-foot-item" style={{ whiteSpace: 'normal' }}>
+                          <EnvironmentOutlined style={{ color: "var(--text-slate-400)" }} /> {formatAddress(branch) || '—'}
                         </div>
                       </div>
                     </div>
                   </div>
                 </Col>
               ))}
-              {locations.length === 0 && (
+              {branches.length === 0 && (
                 <Col span={24}>
                   <div style={{
                     textAlign: 'center',
@@ -1453,8 +1860,8 @@ export default function SettingsPage() {
                     border: '2px dashed var(--border-slate-200)'
                   }}>
                     <EnvironmentOutlined style={{ fontSize: 48, color: 'var(--text-slate-300)', marginBottom: 16 }} />
-                    <Title level={5} style={{ color: 'var(--text-slate-500)' }}>No locations added yet</Title>
-                    {canUpdateSettings && <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>}
+                    <Title level={5} style={{ color: 'var(--text-slate-500)' }}>No branch locations added yet</Title>
+                    {canUpdateSettings && <Button type="link" onClick={showAddBranchDrawer}>Add your first branch</Button>}
                   </div>
                 </Col>
               )}
@@ -1463,7 +1870,6 @@ export default function SettingsPage() {
         </div>
       )
     },
-
     {
       key: 'mail',
       label: (
@@ -1985,12 +2391,12 @@ export default function SettingsPage() {
           />
         </div>
 
-        {/* Add Location Drawer */}
+        {/* Add / Edit Branch Drawer */}
         <Drawer
           rootClassName="leave-drawer-root"
           title={null}
-          open={isLocationDrawerVisible}
-          onClose={() => setIsLocationDrawerVisible(false)}
+          open={isBranchDrawerVisible}
+          onClose={() => setIsBranchDrawerVisible(false)}
           width={720}
           closable={false}
           destroyOnClose
@@ -2012,16 +2418,17 @@ export default function SettingsPage() {
               <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)', fontWeight: 500, marginRight: 'auto' }}>
                 Fields marked required must be filled
               </span>
-              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 8, height: 36 }}>
+              <Button onClick={() => setIsBranchDrawerVisible(false)} style={{ borderRadius: 8, height: 36 }}>
                 Cancel
               </Button>
               <Button
                 type="primary"
-                onClick={() => locationForm.submit()}
-                icon={editingLocation ? <EditOutlined /> : <PlusOutlined />}
+                loading={formLoading}
+                onClick={() => branchForm.submit()}
+                icon={editingBranch ? <EditOutlined /> : <PlusOutlined />}
                 style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
               >
-                {editingLocation ? 'Update Location' : 'Save Location'}
+                {editingBranch ? 'Update Branch' : 'Save Branch'}
               </Button>
             </div>
           }
@@ -2044,26 +2451,26 @@ export default function SettingsPage() {
                   border: '1px solid var(--border-blue-200)',
                 }}
               >
-                {editingLocation ? <EditOutlined style={{ fontSize: 18 }} /> : <EnvironmentOutlined style={{ fontSize: 18 }} />}
+                {editingBranch ? <EditOutlined style={{ fontSize: 18 }} /> : <EnvironmentOutlined style={{ fontSize: 18 }} />}
               </div>
               <div className="min-w-0">
                 <div
                   className="text-[15px] font-semibold leading-tight"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  {editingLocation ? 'Edit Company Location' : 'Add Company Location'}
+                  {editingBranch ? 'Edit Branch Location' : 'Add Branch Location'}
                 </div>
                 <div
                   className="text-[12px] mt-0.5"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {editingLocation ? 'Update the company address details below' : 'Enter the company address details below'}
+                  {editingBranch ? 'Update this branch’s contact and address details' : 'Enter the branch contact and address details'}
                 </div>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setIsLocationDrawerVisible(false)}
+              onClick={() => setIsBranchDrawerVisible(false)}
               aria-label="Close"
               className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-slate-50)]"
               style={{ color: 'var(--text-secondary)' }}
@@ -2074,7 +2481,7 @@ export default function SettingsPage() {
 
           <div style={{ padding: 16, flex: 1, overflowY: 'auto', background: 'var(--customers-page-bg)' }}>
             <Form
-              form={locationForm}
+              form={branchForm}
               layout="horizontal"
               labelCol={{ span: 8 }}
               wrapperCol={{ span: 16 }}
@@ -2082,83 +2489,82 @@ export default function SettingsPage() {
               colon={false}
               requiredMark="optional"
               className="customer-drawer-form"
-              onFinish={handleLocationsSubmit}
+              initialValues={{ useCompanyEmail: true }}
+              onFinish={handleBranchSubmit}
             >
               <SectionCard
-                icon={<EnvironmentOutlined />}
-                title="Address Details"
-                subtitle="Provide the company's full location information"
+                icon={<BankOutlined />}
+                title="Branch Contact"
+                subtitle="Name this branch and choose how its email is routed"
                 step="STEP 1"
               >
                 <Form.Item
-                  name="flatNumber"
-                  label="Door / Flat Number"
+                  name="branchName"
+                  label="Branch Name"
                   rules={[{ required: true, whitespace: true, message: 'Required' }]}
                   style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
                 >
-                  <Input placeholder="e.g. 101 or Suite 4" />
+                  <Input placeholder="e.g. Chennai Office" />
                 </Form.Item>
 
                 <Form.Item
-                  name="street"
-                  label="Street"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
+                  name="useCompanyEmail"
+                  label="Email Address"
+                  valuePropName="checked"
                   style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
+                  extra={
+                    <span style={{ fontSize: 11.5, color: 'var(--text-slate-400)' }}>
+                      {branchUsesCompanyEmail
+                        ? `Reusing the company email${companyDetails?.primaryEmail ? ` (${companyDetails.primaryEmail})` : ''}`
+                        : 'This branch uses its own email address'}
+                    </span>
+                  }
                 >
-                  <Input placeholder="e.g. Main St" />
+                  <Switch checkedChildren="Same as company" unCheckedChildren="Different email" />
                 </Form.Item>
 
-                <Form.Item
-                  name="area"
-                  label="Area"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
-                  style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
-                >
-                  <Input placeholder="e.g. Downtown" />
-                </Form.Item>
+                {/* Only demanded when the branch opts out of the company email —
+                    mirrors the cd_branch_email_present CHECK on the table. */}
+                {!branchUsesCompanyEmail && (
+                  <Form.Item
+                    name="branchEmail"
+                    label="Branch Email"
+                    rules={[
+                      { required: true, message: 'Required' },
+                      { type: 'email', message: 'Enter a valid email address' },
+                    ]}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Input placeholder="e.g. chennai@company.com" />
+                  </Form.Item>
+                )}
 
                 <Form.Item
-                  name="city"
-                  label="City"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
+                  name="branchPhone"
+                  label="Branch Phone"
                   style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
+                  getValueFromEvent={(e) => e.target.value.replace(/[^0-9+\-()\s]/g, '')}
                 >
-                  <Input placeholder="e.g. San Francisco" />
+                  <Input placeholder="e.g. +91 44 1234 5678" />
                 </Form.Item>
+              </SectionCard>
 
-                <Form.Item
-                  name="state"
-                  label="State"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
-                  style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
-                >
-                  <Input placeholder="e.g. California" />
-                </Form.Item>
-
-                <Form.Item
-                  name="pincode"
-                  label="Pincode"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
-                  style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
-                >
-                  <Input placeholder="e.g. 94105" />
-                </Form.Item>
-
-                <Form.Item
-                  name="country"
-                  label="Country"
-                  rules={[{ required: true, whitespace: true, message: 'Required' }]}
-                  style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')}
-                >
-                  <Input placeholder="e.g. USA" />
-                </Form.Item>
+              <SectionCard
+                icon={<EnvironmentOutlined />}
+                title="Address Details"
+                subtitle="Provide the branch's full location information"
+                step="STEP 2"
+              >
+                {COMPANY_ADDRESS_FIELDS.map((field) => (
+                  <Form.Item
+                    key={field.name}
+                    name={field.name}
+                    label={field.label}
+                    style={{ marginBottom: 14 }}
+                  >
+                    <Input placeholder={field.placeholder} />
+                  </Form.Item>
+                ))}
               </SectionCard>
             </Form>
           </div>

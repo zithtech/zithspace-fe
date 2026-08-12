@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -11,8 +13,7 @@ import {
   DatePicker, 
   Select, 
   Button, 
-  Divider, 
-  Spin,
+  Divider,
   Tooltip
 } from "antd";
 import { 
@@ -118,7 +119,7 @@ export default function InvoiceproReportsPage() {
     </Card>
   );
 
-  if (authLoading) return <MainLayout><div className="flex justify-center items-center h-screen"><Spin size="large" /></div></MainLayout>;
+  if (authLoading) return <MainLayout><div className="flex justify-center items-center h-screen"><ZukvoLoader size="lg" /></div></MainLayout>;
   if (!canReadInvoiceReport) return null;
 
   return (

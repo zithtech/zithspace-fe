@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Spin, Empty, Alert, Tooltip, Button } from "antd";
+import {  Empty, Alert, Tooltip, Button } from "antd";
 import { ProjectService } from "@/services/projectService";
 import { CombinedSummaryCard } from "@/components/projects/overview/CombinedSummaryCard";
 import { ProjectInfoCard } from "@/components/projects/overview/ProjectInfoCard";
@@ -72,7 +74,7 @@ const ProjectOverviewPage = () => {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "calc(100vh - 64px)" }}>
-          <Spin size="large" tip="Loading project overview..." />
+          <ZukvoLoader size="lg" message="Loading project overview..." />
         </div>
       </MainLayout>
     );
@@ -323,7 +325,7 @@ const ProjectOverviewPage = () => {
                     borderRadius: 10,
                   }}
                 >
-                  <Spin tip="Loading timeline..." />
+                  <ZukvoLoader size="md" message="Loading timeline..." />
                 </div>
               ) : (
                 <TimelineTree tickets={timelineTickets ?? []} />

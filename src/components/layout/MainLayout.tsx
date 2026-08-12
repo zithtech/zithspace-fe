@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Layout, App as AntApp, theme } from "antd";
-import LoadingSpinner from "../common/LoadingSpinner";
+import ZukvoLoader from "../common/ZukvoLoader";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 import { NAVIGATION_CONFIG, ModuleType, STANDALONE_PAGES } from "./navigationConfig";
@@ -19,9 +19,10 @@ const { Content } = Layout;
 interface MainLayoutProps {
   children: React.ReactNode;
   noPadding?: boolean;
+  hideSideNav?: boolean;
 }
 
-export default function MainLayout({ children, noPadding }: MainLayoutProps) {
+export default function MainLayout({ children, noPadding, hideSideNav }: MainLayoutProps) {
   const { token } = theme.useToken();
   const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
   const { notification } = AntApp.useApp();
@@ -255,17 +256,19 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
     }
   }
 
+  // These three render before the app chrome exists, so they fill the whole
+  // viewport rather than the content area beneath the header.
   if (authLoading) {
-    return <LoadingSpinner message="Verifying session..." />;
+    return <ZukvoLoader size="lg" fullscreen="viewport" message="Verifying session…" />;
   }
 
   if (!user) {
     router.push("/login");
-    return <LoadingSpinner message="Redirecting to login..." />;
+    return <ZukvoLoader size="lg" fullscreen="viewport" message="Redirecting to login…" />;
   }
 
   if (!isAuthorized) {
-    return <LoadingSpinner message="Access restricted. Redirecting..." />;
+    return <ZukvoLoader size="lg" fullscreen="viewport" message="Access restricted. Redirecting…" />;
   }
 
   return (
@@ -279,11 +282,13 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
       />
 
       <Layout style={{ marginTop: 60, background: 'var(--bg-pure-white)' }}>
-        <SideNav
-          activeModule={activeModule}
-          collapsed={collapsed}
-          onCollapse={toggleCollapsed}
-        />
+        {!hideSideNav && (
+          <SideNav
+            activeModule={activeModule}
+            collapsed={collapsed}
+            onCollapse={toggleCollapsed}
+          />
+        )}
 
         <Content
           className="fade-in"
@@ -293,7 +298,7 @@ export default function MainLayout({ children, noPadding }: MainLayoutProps) {
             paddingRight: noPadding ? 0 : "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
-            marginLeft: collapsed ? 52 : 200,
+            marginLeft: hideSideNav ? 0 : collapsed ? 52 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 60px)",
             overflowY: "auto",

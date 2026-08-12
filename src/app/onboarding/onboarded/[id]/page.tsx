@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,7 +14,6 @@ import {
   Tabs,
   Tag,
   Divider,
-  Spin,
   message,
   Image,
 } from 'antd';
@@ -35,6 +36,7 @@ import {
   Edit2,
   Lock,
   Users,
+  FileText,
 } from 'lucide-react';
 import dayjs from "dayjs";
 
@@ -42,6 +44,8 @@ import dayjs from "dayjs";
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryView from "../EmployeeHistoryViews";
+import OrgHistoryTimeline from "@/components/new-profile/OrgHistoryTimeline";
+import DocumentsTab from '@/components/new-profile/documentsTab';
 
 const { Title, Text } = Typography;
 
@@ -309,6 +313,8 @@ const AssetsTab = ({ data }: any) => {
   );
 };
 
+import { PromotionModal } from "@/components/new-profile/PromotionModal";
+
 /* ---------------- MAIN PAGE COMPONENT ---------------- */
 
 export default function OnboardedViewPage() {
@@ -317,6 +323,7 @@ export default function OnboardedViewPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("1");
+  const [isPromotionModalOpen, setPromotionModalOpen] = useState(false);
 
   const getEditTabName = (key: string) => {
     switch (key) {
@@ -393,6 +400,7 @@ export default function OnboardedViewPage() {
         },
         history: employeeData.history || employeeData.previousCompanyDetails || [],
         assets: employeeData.assets || [],
+        documents: employeeData.documents || [],
         // Relationship / Emergency details
         relationship: employeeData.relationship || personal.relationship || "",
         relationName: employeeData.relationName || personal.relationName || "",
@@ -412,11 +420,51 @@ export default function OnboardedViewPage() {
     if (id) fetchDetails();
   }, [id, fetchDetails]);
 
+  // Extract all documents from history and other sections to show them in the Documents tab as well
+  const allDocuments = React.useMemo(() => {
+    const docs = [...(data?.documents || [])];
+
+    if (data?.history && Array.isArray(data.history)) {
+      data.history.forEach((exp: any) => {
+        const companyName = exp.companyName || 'Previous Company';
+
+        const addDoc = (docItem: any, docType: string) => {
+          if (docItem?.url) {
+            docs.push({
+              documentName: docItem.name || `${docType} - ${companyName}`,
+              documentType: docType,
+              documentUrl: docItem.url,
+              status: 'uploaded',
+              uploadedAt: exp.doj || new Date().toISOString(),
+            });
+          }
+        };
+
+        addDoc(exp.experienceLetter, 'Experience Letter');
+        addDoc(exp.offerLetter, 'Offer Letter');
+        addDoc(exp.serviceLetter, 'Service Letter');
+        addDoc(exp.relievingLetter, 'Relieving Letter');
+
+        if (Array.isArray(exp.form16)) {
+          exp.form16.forEach((f: any, idx: number) => addDoc(f, `Form 16 (${idx + 1}) - ${companyName}`));
+        }
+        if (Array.isArray(exp.payslips)) {
+          exp.payslips.forEach((p: any, idx: number) => addDoc(p, `Payslip (${idx + 1}) - ${companyName}`));
+        }
+      });
+    }
+
+    // Sort by uploadedAt descending if possible
+    docs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+    return docs;
+  }, [data]);
+
   if (loading) {
     return (
       <OnboardingGuard itemKey="employees">
         <div style={{ height: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Spin size="large" tip="Loading Employee Information..." />
+          <ZukvoLoader size="lg" message="Loading Employee Information..." />
         </div>
       </OnboardingGuard>
     );
@@ -496,14 +544,33 @@ export default function OnboardedViewPage() {
                 </div>
               </div>
             </div>
-            <Button
-              icon={<Edit2 size={14} />}
-              onClick={() => router.push(`/onboarding/create?id=${id}&tab=${getEditTabName(activeTab)}`)}
-              style={{ borderRadius: 8, height: 34, fontWeight: 600, fontSize: 13, flexShrink: 0 }}
-            >
-              Edit Profile
-            </Button>
+            <Space size={8}>
+              <Button
+                icon={<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
+                onClick={() => setPromotionModalOpen(true)}
+                type="primary"
+                style={{ borderRadius: 8, height: 34, fontWeight: 600, fontSize: 13, flexShrink: 0, backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
+              >
+                Promotion
+              </Button>
+              <Button
+                icon={<Edit2 size={14} />}
+                onClick={() => router.push(`/onboarding/create?id=${id}&tab=${getEditTabName(activeTab)}`)}
+                style={{ borderRadius: 8, height: 34, fontWeight: 600, fontSize: 13, flexShrink: 0 }}
+              >
+                Edit Profile
+              </Button>
+            </Space>
           </div>
+
+          <PromotionModal
+            visible={isPromotionModalOpen}
+            onCancel={() => setPromotionModalOpen(false)}
+            onSuccess={() => {
+              window.location.reload();
+            }}
+            employeeId={id as string}
+          />
 
           <Tabs
             activeKey={activeTab}
@@ -534,6 +601,16 @@ export default function OnboardedViewPage() {
                 key: '5',
                 label: <Space size={6}><Laptop size={15} /><span>Assets</span></Space>,
                 children: <AssetsTab data={data} />,
+              },
+              {
+                key: '6',
+                label: <Space size={6}><Clock size={15} /><span>Org History</span></Space>,
+                children: <OrgHistoryTimeline employeeId={id as string} />,
+              },
+              {
+                key: '7',
+                label: <Space size={6}><FileText size={15} /><span>Documents</span></Space>,
+                children: <DocumentsTab documents={allDocuments} />,
               },
             ]}
           />

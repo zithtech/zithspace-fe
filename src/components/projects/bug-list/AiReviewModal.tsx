@@ -837,6 +837,12 @@ function Field({
  */
 function plainTextToHtml(text: string): string {
   if (!text || !text.trim()) return "";
+  
+  // If it already contains HTML tags, return as is to avoid double-escaping.
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

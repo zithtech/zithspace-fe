@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {  Table, Button, Dropdown, Select, Modal , App } from 'antd';
+import { Table, Button, Dropdown, Select, Modal, App } from 'antd';
 import { Search, Plus, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle, Trash2, Edit2, Eye } from 'lucide-react';
 import { EmployeeExitService } from '@/services/employeeExitService';
 import dayjs from 'dayjs';
 import { CreateExitRequestDrawer } from '@/components/employee-exit/CreateExitRequestDrawer';
 import { ExitRequestDetailsDrawer } from '@/components/employee-exit/ExitRequestDetailsDrawer';
 import { useAuth } from '@/context/AuthContext';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function MyRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -132,9 +133,9 @@ export default function MyRequestsPage() {
       render: (_: any, record: any) => {
         const s = (record.status || 'PENDING').toUpperCase();
         const cfg: Record<string, { bg: string; color: string; border: string }> = {
-          APPROVED:  { bg: 'rgba(16,185,129,0.08)',  color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' },
-          PENDING:   { bg: 'rgba(245,158,11,0.08)',  color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' },
-          REJECTED:  { bg: 'rgba(239,68,68,0.08)',   color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' },
+          APPROVED: { bg: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' },
+          PENDING: { bg: 'rgba(245,158,11,0.08)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' },
+          REJECTED: { bg: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' },
           WITHDRAWN: { bg: 'rgba(100,116,139,0.08)', color: '#64748b', border: '1px solid rgba(100,116,139,0.25)' },
         };
         const { bg, color, border } = cfg[s] || cfg.PENDING;
@@ -155,8 +156,8 @@ export default function MyRequestsPage() {
         <Dropdown
           menu={{
             items: [
-              { key: 'view',   label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Eye size={13} /> View Details</span> },
-              { key: 'edit',   label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Edit2 size={13} /> Edit</span> },
+              { key: 'view', label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Eye size={13} /> View Details</span> },
+              { key: 'edit', label: <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Edit2 size={13} /> Edit</span> },
               { type: 'divider' as const },
               { key: 'delete', label: <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#ef4444' }}><Trash2 size={13} /> Delete</span>, danger: true },
             ],
@@ -198,7 +199,7 @@ export default function MyRequestsPage() {
 
   return (
     <>
-      
+
 
       {/* Header */}
       <div className="exit-page-header">
@@ -253,16 +254,17 @@ export default function MyRequestsPage() {
 
         {/* Table */}
         <div className="exit-table-wrap">
-          <Table
-            size="small"
-            columns={columns}
-            dataSource={pagedData}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            className="exit-table"
-            scroll={{ x: 700 }}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              size="small"
+              columns={columns}
+              dataSource={pagedData}
+              rowKey="id"
+              pagination={false}
+              className="exit-table"
+              scroll={{ x: 700 }}
+            />
+          </ZukvoLoadingOverlay>
         </div>
       </div>
 

@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, Radio, Switch, Select, Button, message, Spin, Form, Input } from 'antd';
+import { Card, Radio, Switch, Select, Button, message, Form, Input } from 'antd';
 import { MailOutlined, SaveOutlined, PlusOutlined } from '@ant-design/icons';
 import LeaveV2Service, { LeaveMailConfig } from '@/services/leaveV2Service';
 import { userService, User } from '@/services/userService';
@@ -10,6 +12,7 @@ import { apiClient } from '@/lib/axios';
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8', amber: '#F59E0B' } as const;
 
 export default function MailConfiguration() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm<LeaveMailConfig>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,7 +23,8 @@ export default function MailConfiguration() {
     try {
       // Fetch users for dropdowns
       const userData = await userService.getUsers();
-      setUsers(userData || []);
+      const userList = Array.isArray(userData) ? userData : (userData as any)?.data || [];
+      setUsers(userList);
 
       // Fetch settings
       const settings = await LeaveV2Service.getMailSettings();
@@ -35,11 +39,11 @@ export default function MailConfiguration() {
         customCcEmails: settings.customCcEmails || [],
       });
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to load mail configuration');
+      messageApi.error(err?.response?.data?.error || 'Failed to load mail configuration');
     } finally {
       setLoading(false);
     }
-  }, [form]);
+  }, [form, messageApi]);
 
   useEffect(() => {
     loadData();
@@ -49,15 +53,15 @@ export default function MailConfiguration() {
     setSaving(true);
     try {
       await LeaveV2Service.updateMailSettings(values);
-      message.success('Mail configuration saved successfully');
+      messageApi.success('Mail configuration saved successfully');
     } catch (err: any) {
-      message.error(err?.response?.data?.error || 'Failed to save mail configuration');
+      messageApi.error(err?.response?.data?.error || 'Failed to save mail configuration');
     } finally {
       setSaving(false);
     }
   };
 
-  const userOptions = users
+  const userOptions = (Array.isArray(users) ? users : [])
     .filter(u => u.workEmail || u.email)
     .map(u => {
       const emailToUse = u.workEmail || u.email;
@@ -65,11 +69,12 @@ export default function MailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><Spin /></div>;
+    return <div style={{ padding: 24, textAlign: 'center' }}><ZukvoLoader size="md" /></div>;
   }
 
   return (
     <div className="mail-config">
+      {contextHolder}
       <Form
         form={form}
         layout="vertical"

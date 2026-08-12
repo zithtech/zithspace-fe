@@ -61,6 +61,7 @@ import { useRouter } from 'next/navigation';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { EscalationSettingsService } from '@/services/escalationSettings';
 import { useActivitySource } from '@/hooks/useActivitySource';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -639,7 +640,7 @@ const SettingsDrawerBody: React.FC<SettingsDrawerBodyProps> = ({
 
 export default function EscalationSettingsPage() {
   console.log("Forcing HMR reload for EscalationSettingsPage");
-  useActivitySource({ section: "WORK", module: "Escalations", page: "EscalationSettings" });
+  useActivitySource({ section: "HR", module: "Escalations", page: "EscalationSettings" });
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const { canManageEscalations } = usePermission();
@@ -1243,24 +1244,25 @@ export default function EscalationSettingsPage() {
               </div>
             ) : view === 'list' ? (
               <div className="es-table-wrap">
-                <Table
-                  className="es-table"
-                  size="small"
-                  dataSource={filteredData as any}
-                  columns={activeSection.columns as any}
-                  rowKey="id"
-                  loading={loading}
-                  pagination={false}
-                  rowClassName={() => 'es-row'}
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('.ant-popconfirm, .ant-popover, button, input, .ant-select, .ant-dropdown-trigger')) return;
-                      handleOpenDrawer(record);
-                    },
-                    className: 'es-row',
-                  })}
-                />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                                  <Table
+                                                    className="es-table"
+                                                    size="small"
+                                                    dataSource={filteredData as any}
+                                                    columns={activeSection.columns as any}
+                                                    rowKey="id"
+                                                    pagination={false}
+                                                    rowClassName={() => 'es-row'}
+                                                    onRow={(record) => ({
+                                                      onClick: (e) => {
+                                                        const t = e.target as HTMLElement;
+                                                        if (t.closest('.ant-popconfirm, .ant-popover, button, input, .ant-select, .ant-dropdown-trigger')) return;
+                                                        handleOpenDrawer(record);
+                                                      },
+                                                      className: 'es-row',
+                                                    })}
+                                                  />
+                                  </ZukvoLoadingOverlay>
               </div>
             ) : (
               <div className="es-grid">

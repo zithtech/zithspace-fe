@@ -30,7 +30,7 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
             <div className="pl-side-head">
               <div className="pl-side-logo"><Users size={22} /></div>
               <div className="pl-side-head-text">
-                <div className="pl-side-title">Recruitment Pipeline</div>
+                <div className="pl-side-title">Candidate Pipeline</div>
                 <div className="pl-side-subtitle">Candidates · Offers</div>
               </div>
               <button className="pl-sidebar-close" onClick={() => setIsMobileOpen(false)}>
@@ -66,7 +66,7 @@ export default function PipelineLayout({ children }: { children: React.ReactNode
               <button className="pl-mobile-toggle" onClick={() => setIsMobileOpen(true)}>
                 <Menu size={20} />
               </button>
-              <div className="pl-mobile-title">Recruitment Pipeline</div>
+              <div className="pl-mobile-title">Candidate Pipeline</div>
             </div>
             <div className="pl-content">{children}</div>
           </main>

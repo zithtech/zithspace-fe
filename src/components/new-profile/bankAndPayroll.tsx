@@ -9,8 +9,6 @@ interface BankAndPayrollProps {
 }
 
 const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
-  const [showAccount, setShowAccount] = useState(false);
-
   const bank = profile?.bank || {};
 
   return (
@@ -70,26 +68,14 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
         </Col>
 
         <Col span={8}>
-          <div>
-            <label style={labelStyle}>Account Number</label>
-            <Input
-              value={bank.accountNumber || "—"}
-              readOnly
-              type={showAccount ? "text" : "password"}
-              style={inputStyle}
-              suffix={
-                showAccount ? (
-                  <EyeOutlined onClick={() => setShowAccount(false)} />
-                ) : (
-                  <EyeInvisibleOutlined onClick={() => setShowAccount(true)} />
-                )
-              }
-            />
-          </div>
+          <MaskedViewBox
+            label="Account Number"
+            value={bank.accountNumber || "—"}
+          />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="IFSC Code" value={bank.ifscCode || "—"} />
+          <MaskedViewBox label="IFSC Code" value={bank.ifscCode || "—"} />
         </Col>
 
         <Col span={8}>
@@ -123,15 +109,15 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
 
       <Row gutter={[24, 18]}>
         <Col span={8}>
-          <ViewBox label="UAN Number" value={bank.uanNumber || "—"} />
+          <MaskedViewBox label="UAN Number" value={bank.uanNumber || "—"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="PF Number" value={bank.pfNumber || "—"} />
+          <MaskedViewBox label="PF Number" value={bank.pfNumber || "—"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="ESI Number" value={bank.esiNumber || "—"} />
+          <MaskedViewBox label="ESI Number" value={bank.esiNumber || "—"} />
         </Col>
 
         <Col span={8}>
@@ -170,5 +156,18 @@ const ViewBox = ({ label, value }: { label: string; value: string }) => (
     <Input style={inputStyle} value={value} readOnly />
   </div>
 );
+
+const MaskedViewBox = ({ label, value }: { label: string; value: string }) => {
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <Input.Password
+        style={inputStyle}
+        value={value}
+        readOnly
+      />
+    </div>
+  );
+};
 
 export default bankAndPayroll;

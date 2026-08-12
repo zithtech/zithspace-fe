@@ -51,6 +51,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -613,36 +614,37 @@ export default function ProjectTrashManagementPage() {
 
               {viewMode === "table" ? (
                 <div className="pm2-table-shell" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}>
-                  <Table
-                    size="small"
-                    className="premium-table"
-                    rowSelection={(isLoading || isRefreshing) ? undefined : {
-                      selectedRowKeys,
-                      onChange: (keys) => setSelectedRowKeys(keys)
-                    }}
-                    dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : filteredProjects.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
-                    columns={columns.map(col => ({
-                      ...col,
-                      render: (text: any, record: any, index: number) => {
-                        if (isLoading || isRefreshing) {
-                          return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
-                        }
-                        return col.render ? (col.render as any)(text, record, index) : text;
-                      }
-                    }))}
-                    loading={false}
-                    rowKey={(record: any) => record.id || Math.random()}
-                    pagination={false}
-                    scroll={{ x: "max-content" }}
-                    locale={{
-                      emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description={<Text type="secondary">No projects found in trash</Text>}
-                        />
-                      ),
-                    }}
-                  />
+                  <ZukvoLoadingOverlay loading={false} message="">
+                                  <Table
+                                                      size="small"
+                                                      className="premium-table"
+                                                      rowSelection={(isLoading || isRefreshing) ? undefined : {
+                                                        selectedRowKeys,
+                                                        onChange: (keys) => setSelectedRowKeys(keys)
+                                                      }}
+                                                      dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : filteredProjects.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
+                                                      columns={columns.map(col => ({
+                                                        ...col,
+                                                        render: (text: any, record: any, index: number) => {
+                                                          if (isLoading || isRefreshing) {
+                                                            return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
+                                                          }
+                                                          return col.render ? (col.render as any)(text, record, index) : text;
+                                                        }
+                                                      }))}
+                                                      rowKey={(record: any) => record.id || Math.random()}
+                                                      pagination={false}
+                                                      scroll={{ x: "max-content" }}
+                                                      locale={{
+                                                        emptyText: (
+                                                          <Empty
+                                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                                            description={<Text type="secondary">No projects found in trash</Text>}
+                                                          />
+                                                        ),
+                                                      }}
+                                                    />
+                                  </ZukvoLoadingOverlay>
                 </div>
               ) : (
                 <div className="pm2-grid">

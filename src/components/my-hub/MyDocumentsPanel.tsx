@@ -4,6 +4,7 @@ import { Table, Typography, Button, Spin, Empty, Input } from "antd";
 import { DownloadOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import { EmployeeDocumentService } from "@/services/onboardingService";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -15,7 +16,7 @@ export default function MyDocumentsPanel() {
   const filteredDocuments = useMemo(() => {
     if (!search) return documents;
     const q = search.toLowerCase();
-    return documents.filter(d => 
+    return documents.filter(d =>
       (d.documentName || '').toLowerCase().includes(q) ||
       (d.documentType || '').toLowerCase().includes(q)
     );
@@ -151,23 +152,24 @@ export default function MyDocumentsPanel() {
           border-radius: 0px !important;
         }
       `}</style>
-      <Table
-        className="my-docs-table"
-        dataSource={filteredDocuments}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={false}
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No documents found."
-            />
-          ),
-        }}
-        style={{ border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}
-      />
+      <ZukvoLoadingOverlay loading={loading} message="">
+        <Table
+          className="my-docs-table"
+          dataSource={filteredDocuments}
+          columns={columns}
+          rowKey="id"
+          pagination={false}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No documents found."
+              />
+            ),
+          }}
+          style={{ border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}
+        />
+      </ZukvoLoadingOverlay>
     </div>
   );
 }

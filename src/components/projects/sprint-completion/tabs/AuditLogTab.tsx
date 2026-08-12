@@ -29,6 +29,7 @@ import { SprintCompletionLog } from "@/services/sprintCompletionService";
 import SprintCompletionService from "@/services/sprintCompletionService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -223,21 +224,22 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ sprintId }) => {
           image={Empty.PRESENTED_IMAGE_SIMPLE}
         />
       ) : (
-        <Table
-          columns={columns}
-          dataSource={data.logs}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
-            pageSize: 20,
-            total: data.pagination.total,
-            showSizeChanger: false,
-            showTotal: (total) => `Total ${total} actions`,
-            onChange: (newPage) => setPage(newPage),
-          }}
-          scroll={{ x: 1200 }}
-          size="small"
-        />
+        <ZukvoLoadingOverlay loading={isLoading} message="">
+                  <Table
+                            columns={columns}
+                            dataSource={data.logs}
+                            rowKey="id"
+                            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
+                              pageSize: 20,
+                              total: data.pagination.total,
+                              showSizeChanger: false,
+                              showTotal: (total) => `Total ${total} actions`,
+                              onChange: (newPage) => setPage(newPage),
+                            }}
+                            scroll={{ x: 1200 }}
+                            size="small"
+                          />
+                  </ZukvoLoadingOverlay>
       )}
     </div>
   );

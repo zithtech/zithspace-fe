@@ -22,6 +22,8 @@ import {
   Filter,
   Edit2,
   Trash2,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { LettersService, DocumentTemplate, GeneratedDocument, DocumentCategory } from '@/services/lettersService';
 import { PositionService, Position } from '@/services/positionService';
@@ -29,19 +31,29 @@ import { DepartmentService, Department } from '@/services/departmentService';
 import { PayrollV2Service, PayStructureListItem } from '@/services/payrollV2Service';
 import { SearchableDropdown, SearchableDropdownOption } from '@/components/common/SearchableDropdown';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { toast } from 'react-hot-toast';
-import { Table, Button, Tooltip, Select, Switch, Modal } from 'antd';
+import { Table, Button, Tooltip, Select, Switch, Modal, Drawer, Avatar, Dropdown } from 'antd';
 import LetterTiptapEditor from '@/components/letters/LetterTiptapEditor';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined } from '@ant-design/icons';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
-import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EllipsisOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 function LetterGenerationContent() {
   const { user } = useAuth();
+  const perms = usePermission() as unknown as Record<string, any>;
   const router = useRouter();
+
+  useEffect(() => {
+    if (perms.canGenerateLetter === false) {
+      router.push('/dashboard');
+    }
+  }, [perms.canGenerateLetter, router]);
+
   const searchParams = useSearchParams();
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [categories, setCategories] = useState<DocumentCategory[]>([]);
@@ -56,8 +68,10 @@ function LetterGenerationContent() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [documentNumber, setDocumentNumber] = useState<string>(`DOC-${Date.now().toString().slice(-6)}`);
+  const [documentName, setDocumentName] = useState<string>('');
   const [valuesMap, setValuesMap] = useState<Record<string, string>>({});
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [isPreviewDrawerOpen, setIsPreviewDrawerOpen] = useState(false);
 
   const [filterPortalNode, setFilterPortalNode] = useState<Element | null>(null);
 
@@ -210,6 +224,7 @@ function LetterGenerationContent() {
             const doc = await LettersService.getGeneratedLetterById(editId);
             setSelectedTemplateId(doc.templateId || '');
             setDocumentNumber(doc.documentNumber || '');
+            setDocumentName(doc.documentName || '');
           } catch (err: any) {
             toast.error('Failed to load document for editing');
           }
@@ -534,6 +549,7 @@ function LetterGenerationContent() {
         generated = await LettersService.updateGeneratedLetter(editId, {
           templateId: selectedTemplateId,
           documentNumber: documentNumber.trim(),
+          documentName: documentName.trim(),
           values: valuesMap,
           customContent: customTemplateContent,
         });
@@ -542,6 +558,7 @@ function LetterGenerationContent() {
         generated = await LettersService.generateLetter({
           templateId: selectedTemplateId,
           documentNumber: documentNumber.trim(),
+          documentName: documentName.trim(),
           values: valuesMap,
           customContent: customTemplateContent,
         });
@@ -615,7 +632,7 @@ function LetterGenerationContent() {
         </div>
       </div>
 
-      <div className="lv-content-body" style={{ padding: '24px 28px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div className="lv-content-body" style={{ padding: '14px 24px 32px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {/* Step 1 or Step 2/3 Conditional View */}
         {/* Step 1 or Step 2/3 Conditional View */}
         {selectedTemplate ? (
@@ -627,10 +644,10 @@ function LetterGenerationContent() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 background: 'var(--bg-pure-white)',
-                padding: '10px 24px',
+                padding: '4px 16px',
                 borderRadius: '12px',
                 border: '1px solid var(--border-slate-200)',
-                marginBottom: '24px',
+                marginBottom: '12px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 flexShrink: 0,
                 flexWrap: 'wrap',
@@ -644,7 +661,7 @@ function LetterGenerationContent() {
                     router.push('/letters-docs/generate');
                   }}
                   style={{
-                    padding: '8px 16px',
+                    padding: '4px 16px',
                     borderRadius: '8px',
                     background: 'var(--border-slate-100)',
                     border: '1px solid var(--border-slate-200)',
@@ -681,6 +698,14 @@ function LetterGenerationContent() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Button
+                  type="default"
+                  icon={<Eye size={16} />}
+                  onClick={() => setIsPreviewDrawerOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', borderRadius: '8px' }}
+                >
+                  Preview
+                </Button>
                 <SearchableDropdown
                   value={selectedTemplateId || ''}
                   onChange={(val) => {
@@ -701,7 +726,7 @@ function LetterGenerationContent() {
                   hideAvatar={true}
                   width={300}
                   style={{
-                    minHeight: '40px',
+                    minHeight: '34px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-slate-200)',
                     background: 'var(--bg-pure-white)'
@@ -711,15 +736,15 @@ function LetterGenerationContent() {
             </div>
 
             {/* Step 2 & 3: Split Grid for Form and Preview */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(360px, 1fr)', gap: '24px', flex: 1, minHeight: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2.5fr) minmax(300px, 1fr)', gap: '24px', flex: 1, minHeight: 0 }}>
               {/* Left: Live Preview Paper */}
               <div style={{ background: 'var(--bg-pure-white)', borderRadius: '12px', border: '1px solid var(--border-slate-200)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px 20px', background: 'var(--bg-slate-50)', borderBottom: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ padding: '8px 20px', background: 'var(--bg-slate-50)', borderBottom: '1px solid var(--border-slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Eye size={16} style={{ color: '#3b82f6' }} />
                     {isEditingContent ? 'Edit Template Content' : 'Live Document Preview'}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '20px' }}>
                     {previewLoading && <span style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>Updating preview...</span>}
                     {selectedTemplateId && (
                       <Switch
@@ -734,7 +759,7 @@ function LetterGenerationContent() {
 
                 <div
                   style={{
-                    padding: isEditingContent ? '0' : '36px 40px',
+                    padding: isEditingContent ? '0' : '16px 16px',
                     flex: 1,
                     overflowY: 'auto',
                     background: 'var(--bg-pure-white)',
@@ -748,48 +773,65 @@ function LetterGenerationContent() {
                       minHeight={600}
                     />
                   ) : previewHtml ? (() => {
-                      let parsedConfig = {} as any;
-                      let cleanHtml = previewHtml;
-                      const configRegex = /<script\s+id="zith-page-config"\s+type="application\/json">([\s\S]*?)<\/script>/i;
-                      const match = configRegex.exec(previewHtml);
-                      if (match && match[1]) {
-                        try { parsedConfig = JSON.parse(match[1]); } catch (e) { }
-                        cleanHtml = previewHtml.replace(configRegex, '');
-                      }
-                      const pages = cleanHtml.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map(p => p.trim()).filter(p => !!p);
-                      
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
-                          {pages.map((pageContent, index) => (
-                            <div key={index} className="preview-paper-content force-light-theme" style={{
-                              width: '210mm',
-                              minHeight: '297mm',
-                              background: '#ffffff',
-                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-                              paddingTop: parsedConfig.marginTop || '20mm',
-                              paddingRight: parsedConfig.marginRight || '20mm',
-                              paddingBottom: parsedConfig.marginBottom || '20mm',
-                              paddingLeft: parsedConfig.marginLeft || '20mm',
-                              position: 'relative',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              borderWidth: parsedConfig.borderWidth || '0px',
-                              borderStyle: parsedConfig.borderStyle || 'solid',
-                              borderColor: parsedConfig.borderColor || '#000000',
-                              margin: '0 auto',
-                            }}>
-                              {parsedConfig.headerHtml && (
-                                <div style={{ width: '100%', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.headerHtml }} />
-                              )}
-                              <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: pageContent }} />
-                              {parsedConfig.footerHtml && (
-                                <div style={{ width: '100%', marginTop: '20px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }} />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })() : (
+                    let parsedConfig = {} as any;
+                    let cleanHtml = previewHtml;
+                    const configRegex = /<script\s+id="zith-page-config"\s+type="application\/json">([\s\S]*?)<\/script>/i;
+                    const match = configRegex.exec(previewHtml);
+                    if (match && match[1]) {
+                      try { parsedConfig = JSON.parse(match[1]); } catch (e) { }
+                      cleanHtml = previewHtml.replace(configRegex, '');
+                    }
+                    const pages = cleanHtml.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map(p => p.trim()).filter(p => !!p);
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
+                        <style>{`
+                          @media (max-width: 1200px) {
+                            .preview-paper-content {
+                              zoom: 0.50 !important;
+                            }
+                          }
+                          @media (max-width: 1280px) {
+                            .preview-paper-content {
+                              zoom: 0.50 !important;
+                            }
+                          }
+                          @media (max-width: 1440px) {
+                            .preview-paper-content {
+                              zoom: 0.75 !important;
+                            }
+                          }
+                        `}</style>
+                        {pages.map((pageContent, index) => (
+                          <div key={index} className="preview-paper-content force-light-theme" style={{
+                            width: '210mm',
+                            minHeight: '297mm',
+                            background: '#ffffff',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                            paddingTop: parsedConfig.marginTop || '20mm',
+                            paddingRight: parsedConfig.marginRight || '20mm',
+                            paddingBottom: parsedConfig.marginBottom || '20mm',
+                            paddingLeft: parsedConfig.marginLeft || '20mm',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderWidth: parsedConfig.borderWidth || '0px',
+                            borderStyle: parsedConfig.borderStyle || 'solid',
+                            borderColor: parsedConfig.borderColor || '#000000',
+                            margin: '0 auto',
+                          }}>
+                            {parsedConfig.headerHtml && (
+                              <div className="preview-header-zone" style={{ width: '100%', marginBottom: '4px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.headerHtml }} />
+                            )}
+                            <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: pageContent }} />
+                            {parsedConfig.footerHtml && (
+                              <div className="preview-header-zone" style={{ width: '100%', marginTop: '4px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })() : (
                     <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
                       Select a template to generate live preview.
                     </div>
@@ -812,34 +854,45 @@ function LetterGenerationContent() {
                     <input
                       type="text"
                       value={documentNumber}
-                      onChange={(e) => {
-                        setDocumentNumber(e.target.value);
-                        if (showValidationErrors && e.target.value.trim()) {
-                          setShowValidationErrors(false);
-                        }
-                      }}
+                      disabled={true}
                       placeholder="e.g. OFF-2026-001"
                       style={{
                         width: '100%',
                         padding: '10px 14px',
                         borderRadius: '8px',
-                        border: showValidationErrors && !documentNumber.trim() ? '1px solid #ef4444' : '1px solid var(--border-slate-200)',
-                        background: showValidationErrors && !documentNumber.trim() ? 'var(--bg-red-50)' : 'var(--bg-pure-white)',
+                        border: '1px solid var(--border-slate-200)',
+                        background: 'var(--bg-slate-100)',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text-slate-900)',
+                        outline: 'none',
+                        cursor: 'not-allowed',
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '4px', display: 'block' }}>
+                      Unique reference number for tracking and auditing in repository.
+                    </span>
+
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-slate-700)', marginBottom: '6px', marginTop: '16px' }}>
+                      Document Name
+                    </label>
+                    <input
+                      type="text"
+                      value={documentName}
+                      onChange={(e) => setDocumentName(e.target.value)}
+                      placeholder="e.g. Offer Letter - John Doe"
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-slate-200)',
+                        background: 'var(--bg-pure-white)',
                         fontSize: '14px',
                         fontWeight: 600,
                         color: 'var(--text-slate-900)',
                         outline: 'none',
                       }}
                     />
-                    {showValidationErrors && !documentNumber.trim() ? (
-                      <span style={{ fontSize: '11px', color: 'var(--text-leave)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-                        Document Number is required.
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '4px', display: 'block' }}>
-                        Unique reference number for tracking and auditing in repository.
-                      </span>
-                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -995,7 +1048,7 @@ function LetterGenerationContent() {
           </div>
         ) : (
           /* Step 1: Template Selector */
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <LetterStatsCards statCells={statCells} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-slate-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1009,17 +1062,19 @@ function LetterGenerationContent() {
             </div>
 
             {loading ? (
-              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>Loading active templates...</div>
+              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
+                <ZukvoLoader message="Loading active templates..." size="md" />
+              </div>
             ) : templates.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
                 No active document templates available. Please create or activate a template in Template Management first.
               </div>
             ) : view === 'list' ? (
-              <div className="att-table-wrap" style={{ marginTop: '16px' }}>
+              <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <Table
                   rowKey="id"
                   size="small"
-                  className="att-table"
+                  className="att-table flex-table"
                   columns={[
                     {
                       title: 'TEMPLATE NAME',
@@ -1029,66 +1084,90 @@ function LetterGenerationContent() {
                         <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-slate-900)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <FileText size={16} style={{ color: '#3b82f6' }} />
                           {tpl.templateName}
+                          {tpl.tenantId === 'GLOBAL' && (
+                            <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', padding: '2px 4px', borderRadius: '4px', fontWeight: 600 }}>GLOBAL</span>
+                          )}
                         </div>
                       ),
                     },
                     {
                       title: 'CATEGORY',
-                      dataIndex: 'category',
+                      dataIndex: ['category', 'categoryName'],
                       key: 'category',
-                      render: (_: any, tpl: DocumentTemplate) => (
-                        tpl.category ? (
-                          <span style={{ background: 'var(--border-slate-100)', color: 'var(--text-slate-700)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>
-                            {tpl.category.categoryName}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--text-slate-400)', fontSize: '11px' }}>Uncategorized</span>
-                        )
-                      ),
+                      render: (text: string) => <span style={{ fontWeight: 500, color: 'var(--text-slate-700)' }}>{text || 'Uncategorized'}</span>,
                     },
                     {
                       title: 'VERSION',
                       dataIndex: 'currentVersion',
                       key: 'currentVersion',
-                      render: (ver: number) => <span style={{ color: '#3b82f6', fontWeight: 600, fontSize: '12px' }}>v{ver}</span>,
+                      render: (v: number) => <span style={{ color: '#3b82f6', fontWeight: 700 }}>v{v}</span>,
+                    },
+                    {
+                      title: 'CREATED BY',
+                      dataIndex: ['createdBy', 'name'],
+                      key: 'createdBy',
+                      render: (_: any, record: DocumentTemplate) => {
+                        const creator = record.createdBy;
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Avatar size={20} src={creator?.avatarUrl || creator?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 10, fontWeight: 700 }}>
+                              {initialsOf(creator?.name || '—')}
+                            </Avatar>
+                            <span style={{ fontSize: '13px', color: 'var(--text-slate-700)', fontWeight: 500 }}>
+                              {creator?.name || '—'}
+                            </span>
+                          </div>
+                        );
+                      }
+                    },
+                    {
+                      title: 'STATUS',
+                      dataIndex: 'status',
+                      key: 'status',
+                      render: (status: string) => (
+                        <span style={{ color: status === 'ACTIVE' ? 'var(--text-holiday)' : 'var(--text-slate-600)', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {status === 'ACTIVE' ? <CheckCircle2 size={12} /> : null}{status}
+                        </span>
+                      ),
+                    },
+                    {
+                      title: 'LAST UPDATED',
+                      dataIndex: 'updatedAt',
+                      key: 'updatedAt',
+                      render: (date: string) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-slate-600)' }}>
+                          <Clock size={13} style={{ color: 'var(--text-slate-400)' }} />
+                          <span>{new Date(date).toLocaleDateString()}</span>
+                        </div>
+                      ),
                     },
                     {
                       title: 'ACTIONS',
                       key: 'actions',
-                      align: 'right',
+                      align: 'center',
+                      width: 72,
+                      fixed: 'right',
                       render: (_: any, tpl: DocumentTemplate) => (
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <Tooltip title="Edit Template">
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<Edit2 size={16} />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/letters-docs/templates/builder?id=${tpl.id}`);
-                              }}
-                              style={{ color: 'var(--text-slate-500)' }}
-                            />
-                          </Tooltip>
-                          <Tooltip title="Delete Template">
-                            <Button
-                              type="text"
-                              size="small"
-                              danger
-                              icon={<Trash2 size={16} />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteTemplateId(tpl.id);
-                              }}
-                            />
-                          </Tooltip>
-                        </div>
+                        <Dropdown
+                          overlayClassName="pp-action-pop"
+                          trigger={['click']}
+                          placement="bottomRight"
+                          menu={{
+                            items: [
+                              { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit Template', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
+                              { type: 'divider' },
+                              { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+                            ]
+                          }}
+                        >
+                          <Button type="text" className="pp-icon-btn" icon={<EllipsisOutlined />} onClick={(e) => e.stopPropagation()} />
+                        </Dropdown>
                       ),
                     },
                   ]}
                   dataSource={paginatedTemplates}
                   pagination={false}
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 380px)' }}
+                  scroll={{ x: 'max-content', y: '100%' }}
                   onRow={(tpl) => ({
                     className: 'att-row',
                     onClick: () => {
@@ -1100,75 +1179,74 @@ function LetterGenerationContent() {
                 />
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', marginTop: '16px' }}>
-                {paginatedTemplates.map((tpl) => {
-                  const isSelected = tpl.id === selectedTemplateId;
-                  return (
-                    <div
-                      key={tpl.id}
-                      className="pc-card"
-                      onClick={() => {
-                        setSelectedTemplateId(tpl.id);
-                        router.push(`/letters-docs/generate?templateId=${tpl.id}`);
-                      }}
-                      style={{
-                        border: isSelected ? '2px solid #3b82f6' : '1px solid var(--border-slate-200)',
-                        boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div className="pc-top">
-                        <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
-                          {tpl.templateName.substring(0, 2).toUpperCase()}
+              <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '4px', marginRight: '-4px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px', paddingBottom: '16px', marginTop: '16px' }}>
+                  {paginatedTemplates.map((tpl) => {
+                    const isSelected = tpl.id === selectedTemplateId;
+                    return (
+                      <div
+                        key={tpl.id}
+                        className="pc-card"
+                        onClick={() => {
+                          setSelectedTemplateId(tpl.id);
+                          router.push(`/letters-docs/generate?templateId=${tpl.id}`);
+                        }}
+                        style={{
+                          border: isSelected ? '2px solid #3b82f6' : '1px solid var(--border-slate-200)',
+                          boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div className="pc-top">
+                          <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}>
+                            {tpl.templateName.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="pc-identity-body">
+                            <div className="pc-title">{tpl.templateName}</div>
+                            <div className="pc-client-line">
+                              <span className="pc-client-key">Category:</span>
+                              <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                            </div>
+                          </div>
+                          {isSelected && <CheckCircle2 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
+                          <Dropdown
+                            overlayClassName="pc-dropdown"
+                            menu={{
+                              items: [
+                                { key: 'edit', label: renderDropdownItem(<Edit2 size={16} />, 'Edit', 'Open in the builder', 'var(--border-slate-100)', 'var(--text-slate-600)'), onClick: (e) => { e.domEvent.stopPropagation(); router.push(`/letters-docs/templates/builder?id=${tpl.id}`); } },
+                                { type: 'divider' },
+                                { key: 'del', label: renderDropdownItem(<Trash2 size={16} />, 'Delete', 'Move to trash', 'var(--bg-red-50)', 'var(--text-leave)', true), onClick: (e) => { e.domEvent.stopPropagation(); setDeleteTemplateId(tpl.id); } },
+                              ]
+                            }}
+                            trigger={['click']}
+                            placement="bottomRight"
+                          >
+                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                              <EllipsisOutlined />
+                            </button>
+                          </Dropdown>
                         </div>
-                        <div className="pc-identity-body">
-                          <div className="pc-title">{tpl.templateName}</div>
-                          <div className="pc-client-line">
-                            <span className="pc-client-key">Category:</span>
-                            <span className="pc-client-val">{tpl.category?.categoryName || 'Uncategorized'}</span>
+                        <div className="pc-foot">
+                          <div className="pc-foot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Created by</span>
+                              <Avatar size={16} src={tpl.createdBy?.avatarUrl || tpl.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                                {initialsOf(tpl.createdBy?.name || '—')}
+                              </Avatar>
+                              <span className="pc-foot-val">{tpl.createdBy?.name || '—'}</span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <RefreshCw size={12} style={{ color: 'var(--text-slate-400)' }} />
+                              <span className="pc-foot-key">Version</span>
+                              <span className="pc-foot-val">v{tpl.currentVersion}</span>
+                            </span>
                           </div>
                         </div>
-                        {isSelected && <CheckCircle2 size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />}
                       </div>
-                      <div className="pc-foot">
-                        <div className="pc-foot-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span className="pc-foot-item">
-                            <RefreshCw size={12} style={{ color: 'var(--text-slate-400)' }} />
-                            <span className="pc-foot-key">Version</span>
-                            <span className="pc-foot-val">v{tpl.currentVersion}</span>
-                          </span>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <Tooltip title="Edit Template">
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<Edit2 size={14} />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/letters-docs/templates/builder?id=${tpl.id}`);
-                                }}
-                                style={{ color: 'var(--text-slate-500)', padding: '0 4px' }}
-                              />
-                            </Tooltip>
-                            <Tooltip title="Delete Template">
-                              <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<Trash2 size={14} />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteTemplateId(tpl.id);
-                                }}
-                                style={{ padding: '0 4px' }}
-                              />
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -1295,11 +1373,11 @@ function LetterGenerationContent() {
 
       <style jsx global>{`
         .pc-card {
-          border: 1px solid #cbd5e1; background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
           cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
           transition: box-shadow .15s ease, border-color .15s ease;
         }
-        .pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: var(--border-slate-200); }
+        .pc-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.06); border-color: var(--border-slate-300); }
         .pc-card.is-selected { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
 
         .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; flex: 1; }
@@ -1315,7 +1393,7 @@ function LetterGenerationContent() {
         }
         .pc-actions:hover { background: var(--border-slate-100); color: #0f172a; }
         .pc-title {
-          font-size: 14px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em; line-height: 1.3;
+          font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
         .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 12px; min-width: 0; }
@@ -1324,11 +1402,11 @@ function LetterGenerationContent() {
 
         .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
         .pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
-        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #334155; }
+        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-700); }
         .pc-foot-key { font-size: 11px; font-weight: 600; color: var(--text-slate-400); }
         .pc-foot-div { width: 1px; height: 12px; background: var(--border-slate-200); }
 
-        .pp-segmented { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
+        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); }
         .pp-segmented button {
           width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
@@ -1341,11 +1419,11 @@ function LetterGenerationContent() {
         .att-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
           font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.04em;
-          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
+          text-transform: uppercase; color: var(--text-slate-400) !important; padding: 6px 10px !important;
           white-space: nowrap !important; border-radius: 0 !important;
           border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
         }
-        .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 9px 12px !important; font-size: 12px !important; }
+        .att-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 4px 10px !important; font-size: 12px !important; }
         .att-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .att-table .ant-table-tbody > tr.att-row:hover > td { background: var(--bg-slate-50) !important; }
 
@@ -1409,7 +1487,7 @@ function LetterGenerationContent() {
         .preview-paper-content td,
         .preview-paper-content th {
           min-width: 1em;
-          border: 1px solid #cbd5e1;
+          border: 1px solid var(--border-slate-200);
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -1438,20 +1516,128 @@ function LetterGenerationContent() {
 
       <Modal
         open={!!deleteTemplateId}
-        title="Delete Document Template?"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '40px', height: '40px', background: 'var(--bg-red-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle color="#ef4444" size={22} />
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-slate-900)', fontSize: '18px', fontWeight: 600 }}>Delete Document Template</span>
+            </div>
+          </div>
+        }
         onOk={handleDeleteTemplate}
         onCancel={() => setDeleteTemplateId(null)}
         okText="Delete Template"
-        okButtonProps={{ danger: true }}
+        cancelText="Cancel"
+        okButtonProps={{
+          danger: true,
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', background: '#ef4444', borderColor: '#ef4444' }
+        }}
+        cancelButtonProps={{
+          style: { borderRadius: '6px', fontWeight: 600, padding: '0 20px', height: '38px', color: 'var(--text-slate-600)', borderColor: 'var(--border-slate-200)' }
+        }}
+        styles={{
+          content: { background: 'var(--bg-pure-white) !important', borderRadius: '12px', padding: '24px' },
+          header: { background: 'var(--bg-pure-white) !important', borderBottom: 'none', paddingBottom: '10px' },
+          footer: { background: 'var(--bg-pure-white) !important', borderTop: 'none', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' },
+          body: { paddingTop: '2px', paddingBottom: '2px' }
+        }}
         centered
       >
-        <p>Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.</p>
+        <p style={{ margin: 0, color: 'var(--text-slate-600)', fontSize: '14px', lineHeight: '1.6', marginLeft: '48px' }}>
+          Are you sure you want to delete this template? Any generated letters referencing this template will remain intact, but you will no longer be able to generate new documents from it.
+        </p>
       </Modal>
+
+      <Drawer
+        title="Document Preview"
+        placement="right"
+        width={900}
+        onClose={() => setIsPreviewDrawerOpen(false)}
+        open={isPreviewDrawerOpen}
+        bodyStyle={{ background: '#e2e8f0', padding: '32px 24px', overflowY: 'auto' }}
+      >
+        {previewHtml ? (() => {
+          let parsedConfig = {} as any;
+          let cleanHtml = previewHtml;
+          const configRegex = /<script\s+id="zith-page-config"\s+type="application\/json">([\s\S]*?)<\/script>/i;
+          const match = configRegex.exec(previewHtml);
+          if (match && match[1]) {
+            try { parsedConfig = JSON.parse(match[1]); } catch (e) { }
+            cleanHtml = previewHtml.replace(configRegex, '');
+          }
+          const pages = cleanHtml.split(/<div[^>]*class="[^"]*html2pdf__page-break[^"]*"[^>]*><\/div>/gi).map(p => p.trim()).filter(p => !!p);
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', alignItems: 'center' }}>
+              {pages.map((pageContent, index, arr) => (
+                <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div className="preview-paper-content force-light-theme" style={{
+                    width: '210mm',
+                    minHeight: '297mm',
+                    background: '#ffffff',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
+                    paddingTop: parsedConfig.marginTop || '20mm',
+                    paddingRight: parsedConfig.marginRight || '20mm',
+                    paddingBottom: parsedConfig.marginBottom || '20mm',
+                    paddingLeft: parsedConfig.marginLeft || '20mm',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderWidth: parsedConfig.borderWidth || '0px',
+                    borderStyle: parsedConfig.borderStyle || 'solid',
+                    borderColor: parsedConfig.borderColor || '#000000',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}>
+                    {parsedConfig.headerHtml && (
+                      <div className="preview-header-zone" style={{ width: '100%', marginBottom: '2px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.headerHtml }} />
+                    )}
+                    <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: pageContent }} />
+                    {parsedConfig.footerHtml && (
+                      <div className="preview-header-zone" style={{ width: '100%', marginTop: '2px' }} dangerouslySetInnerHTML={{ __html: parsedConfig.footerHtml.replace(/\[Page #\]/g, (index + 1).toString()) }} />
+                    )}
+                  </div>
+                  {arr.length > 1 && (
+                    <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      Page {index + 1} of {arr.length}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })() : (
+          <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-400)' }}>
+            Select a template and fill placeholders to see preview.
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
 
-export default function LetterGenerationPage() {
+const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : '';
+
+const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
+    <div style={{
+      width: '32px', height: '32px', borderRadius: '6px',
+      background: iconBg, color: iconColor,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+    }}>
+      {icon}
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: isDanger ? 'var(--text-leave)' : 'var(--text-slate-900)', lineHeight: '1.2' }}>{title}</span>
+      <span style={{ fontSize: '11px', color: 'var(--text-slate-600)', marginTop: '2px' }}>{subtitle}</span>
+    </div>
+  </div>
+);
+
+export default function DocumentGenerationPage() {
   return (
     <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-slate-600)' }}>Loading Letter Generator...</div>}>
       <LetterGenerationContent />

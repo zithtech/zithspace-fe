@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -8,7 +10,7 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
-import { message, Spin } from "antd";
+import { message } from "antd";
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -37,14 +39,18 @@ interface TiptapEditorProps {
   maxHeight?: number;
 }
 
-export default function TiptapEditor({
+export interface TiptapEditorRef {
+  insertContentAtCursor: (html: string) => void;
+}
+
+const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
   content = "",
   onChange,
   placeholder = "Start typing...",
   editable = true,
   minHeight = 200,
   maxHeight = 600,
-}: TiptapEditorProps) {
+}, ref) => {
   const [uploading, setUploading] = React.useState(false);
 
   const editor = useEditor({
@@ -91,6 +97,14 @@ export default function TiptapEditor({
       },
     },
   });
+
+  React.useImperativeHandle(ref, () => ({
+    insertContentAtCursor: (html: string) => {
+      if (editor) {
+        editor.chain().focus().insertContent(html).run();
+      }
+    }
+  }));
 
   // Update editor content when prop changes
   React.useEffect(() => {
@@ -197,7 +211,7 @@ export default function TiptapEditor({
   }, [editor]);
 
   if (!editor) {
-    return <Spin />;
+    return <ZukvoLoader size="md" />;
   }
 
   return (
@@ -423,7 +437,7 @@ export default function TiptapEditor({
             style={buttonStyle}
             title="Upload Image"
           >
-            {uploading ? <Spin size="small" /> : <PictureOutlined />}
+            {uploading ? <ZukvoLoader size="sm" /> : <PictureOutlined />}
           </button>
 
           <div
@@ -610,7 +624,9 @@ export default function TiptapEditor({
       `}</style>
     </div>
   );
-}
+});
+
+export default TiptapEditor;
 
 const buttonStyle: React.CSSProperties = {
   border: "none",

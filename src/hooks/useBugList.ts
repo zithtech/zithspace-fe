@@ -554,6 +554,19 @@ export const useReopenBug = () => {
   });
 };
 
+export const useMarkBugRecurring = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (bugId: string) => BugListService.markBugAsRecurring(bugId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Bug marked as recurring, new ticket created");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
 // ==================== Config: Severity options ====================
 export const severityKeys = {
   all: ["bug-list", "config", "severities"] as const,
@@ -655,6 +668,60 @@ export const useDeleteBugType = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: bugTypeKeys.all });
       message.success("Type deleted");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+// ==================== Config: Priority options ====================
+// Shared by the bug list and the QA workspace (test cases, runs).
+export const priorityKeys = {
+  all: ["bug-list", "config", "priorities"] as const,
+};
+
+export const useBugPriorityOptions = () =>
+  useQuery({
+    queryKey: priorityKeys.all,
+    queryFn: () => BugListService.listPriorityOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useCreateBugPriority = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (input: BugConfigCreateInput) =>
+      BugListService.createPriorityOption(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: priorityKeys.all });
+      message.success("Priority created");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useUpdateBugPriority = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: BugConfigUpdateInput }) =>
+      BugListService.updatePriorityOption(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: priorityKeys.all });
+      message.success("Priority updated");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useDeleteBugPriority = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.deletePriorityOption(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: priorityKeys.all });
+      message.success("Priority deleted");
     },
     onError: (err: Error) => message.error(err.message),
   });

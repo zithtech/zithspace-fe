@@ -20,6 +20,7 @@ import ReimbursementV2Service, {
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -160,18 +161,18 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
     // Validate limits on both Save Draft and Save & Submit
     try {
       await ReimbursementV2Service.validateClaim({
-          title: v.title, currency: v.currency, exchangeRate: v.exchangeRate ?? 1, advanceId: v.advanceId ?? null,
-          items: newItems.map((li) => ({
-            categoryId: li.categoryId, expenseDate: li.expenseDate,
-            amount: li.amount, distance: li.distance,
-            merchant: li.merchant, billNo: li.billNo, description: li.description,
-          })),
-        });
-      } catch (e: any) {
-        const msg = e?.response?.data?.error || e?.message || 'Failed to validate claim';
-        setLimitError(msg);
-        return;
-      }
+        title: v.title, currency: v.currency, exchangeRate: v.exchangeRate ?? 1, advanceId: v.advanceId ?? null,
+        items: newItems.map((li) => ({
+          categoryId: li.categoryId, expenseDate: li.expenseDate,
+          amount: li.amount, distance: li.distance,
+          merchant: li.merchant, billNo: li.billNo, description: li.description,
+        })),
+      });
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || e?.message || 'Failed to validate claim';
+      setLimitError(msg);
+      return;
+    }
 
     setBusy(true);
     try {
@@ -193,7 +194,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         }
       } catch (err: any) {
         if (submitAfter) {
-          await ReimbursementV2Service.deleteClaim(detail.id).catch(() => {});
+          await ReimbursementV2Service.deleteClaim(detail.id).catch(() => { });
         }
         throw err;
       }
@@ -312,13 +313,17 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   };
 
   const columns: ColumnsType<Claim> = [
-    { title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.title || '—'}</div></div>) },
+    {
+      title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.title || '—'}</div></div>)
+    },
     { title: 'Status', dataIndex: 'status', render: (v) => <StatusTag status={v} /> },
-    { title: 'Amount', dataIndex: 'totalAmount', align: 'right', render: (v, r) => (
-      <div><div style={{ fontWeight: 600 }}>{money(v, r.currency)}</div>
-      {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.baseAmount, r.baseCurrency)}</div>}</div>) },
+    {
+      title: 'Amount', dataIndex: 'totalAmount', align: 'right', render: (v, r) => (
+        <div><div style={{ fontWeight: 600 }}>{money(v, r.currency)}</div>
+          {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.baseAmount, r.baseCurrency)}</div>}</div>)
+    },
     { title: 'Created', dataIndex: 'createdAt', render: (v) => fmtDate(v) },
     {
       title: 'Actions', key: 'actions', width: 120, align: 'right',
@@ -377,8 +382,10 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       ]} />
 
       <div className="rvp-table-wrap">
-        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={tablePaginationConfig} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+                        pagination={tablePaginationConfig} />
+              </ZukvoLoadingOverlay>
       </div>
 
       <Drawer
@@ -480,138 +487,138 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         </div>
 
         <div className="px-6 py-6 space-y-5 pb-24">
-        {creating && (
-          <>
-            <Form form={headerForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
-              <SectionCard icon={<FileTextOutlined />}
-                title="Claim details" subtitle="What is this claim for? The total is calculated from the line items below." step="STEP 1">
-                <Form.Item name="title" label="Title" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
-                {advances.length > 0 && (
-                  <Form.Item name="advanceId" label="Settle against advance (optional)">
-                    <Select allowClear placeholder="Pick a paid advance"
-                      options={advances.map((a) => ({ value: a.id, label: `${a.advanceNo} · outstanding ${money(a.outstanding, a.currency)}` }))} />
-                  </Form.Item>
-                )}
-                <Checkbox
-                  checked={multiCurrency}
-                  onChange={(e) => {
-                    setMultiCurrency(e.target.checked);
-                    if (!e.target.checked) headerForm.setFieldsValue({ currency: 'INR', exchangeRate: 1 });
-                  }}
-                >
-                  Expenses are in a currency other than INR
-                </Checkbox>
-                {multiCurrency && (
-                  <div style={{ marginTop: 12 }}>
-                    <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
-                    <Form.Item name="exchangeRate" label={<span>Exchange rate → INR{' '}
-                      <Tooltip title="How many INR one unit of the chosen currency is worth. The claim is stored in INR for reporting."><span style={{ color: 'var(--text-slate-400)' }}>ⓘ</span></Tooltip>
-                    </span>}>
-                      <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" onKeyDown={preventInvalidNumberKeys as any} />
+          {creating && (
+            <>
+              <Form form={headerForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
+                <SectionCard icon={<FileTextOutlined />}
+                  title="Claim details" subtitle="What is this claim for? The total is calculated from the line items below." step="STEP 1">
+                  <Form.Item name="title" label="Title" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input placeholder="e.g. Client visit — Mumbai" /></Form.Item>
+                  {advances.length > 0 && (
+                    <Form.Item name="advanceId" label="Settle against advance (optional)">
+                      <Select allowClear placeholder="Pick a paid advance"
+                        options={advances.map((a) => ({ value: a.id, label: `${a.advanceNo} · outstanding ${money(a.outstanding, a.currency)}` }))} />
                     </Form.Item>
+                  )}
+                  <Checkbox
+                    checked={multiCurrency}
+                    onChange={(e) => {
+                      setMultiCurrency(e.target.checked);
+                      if (!e.target.checked) headerForm.setFieldsValue({ currency: 'INR', exchangeRate: 1 });
+                    }}
+                  >
+                    Expenses are in a currency other than INR
+                  </Checkbox>
+                  {multiCurrency && (
+                    <div style={{ marginTop: 12 }}>
+                      <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
+                      <Form.Item name="exchangeRate" label={<span>Exchange rate → INR{' '}
+                        <Tooltip title="How many INR one unit of the chosen currency is worth. The claim is stored in INR for reporting."><span style={{ color: 'var(--text-slate-400)' }}>ⓘ</span></Tooltip>
+                      </span>}>
+                        <InputNumber min={0} step={0.0001} style={{ width: '100%' }} placeholder="e.g. 83" onKeyDown={preventInvalidNumberKeys as any} />
+                      </Form.Item>
+                    </div>
+                  )}
+                </SectionCard>
+              </Form>
+
+              <SectionCard icon={<SolutionOutlined />}
+                title="Line items" subtitle="Add each expense — saved with the claim" step="STEP 2">
+                {newItems.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items added yet" />}
+                {newItems.map((li) => (
+                  <div key={li.key} className="rvp-line-item">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{li.categoryName} · {money(li.preview, headerCurrency)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
+                        {fmtDate(li.expenseDate)}{li.merchant ? ` · ${li.merchant}` : ''}{li.distance ? ` · ${li.distance} units` : ''}
+                      </div>
+                    </div>
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeLocalItem(li.key)} />
                   </div>
+                ))}
+                {newItems.length > 0 && (
+                  <div style={{ textAlign: 'right', fontWeight: 700, margin: '6px 2px 2px' }}>
+                    Total: {money(newItemsTotal, headerCurrency)}
+                  </div>
+                )}
+                <Divider style={{ margin: '12px 0' }} />
+                <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
+                  {renderItemFields()}
+                  <Button icon={<PlusOutlined />} onClick={addLocalItem} block>Add item</Button>
+                </Form>
+              </SectionCard>
+
+              <SectionCard icon={<PaperClipOutlined />}
+                title="Receipts" subtitle="Attach bills / invoices (optional)">
+                {newFiles.map((f, i) => (
+                  <div key={i} className="rvp-line-item">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PaperClipOutlined /> {f.name}</span>
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeNewFile(i)} />
+                  </div>
+                ))}
+                <Upload.Dragger multiple showUploadList={false}
+                  beforeUpload={(file) => { addNewFile(file as File); return false; }} style={{ marginTop: 8 }}>
+                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                  <p className="ant-upload-text">Click or drag files to attach receipts</p>
+                </Upload.Dragger>
+              </SectionCard>
+            </>
+          )}
+
+          {!creating && current && (
+            <>
+              <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>
+                <Descriptions.Item label="Status"><StatusTag status={current.status} /></Descriptions.Item>
+                <Descriptions.Item label="Total">{money(current.totalAmount, current.currency)}</Descriptions.Item>
+                {current.decisionNote && <Descriptions.Item label="Note" span={2}>{current.decisionNote}</Descriptions.Item>}
+                {current.paymentReference && <Descriptions.Item label="Payment ref" span={2}>{current.paymentReference}</Descriptions.Item>}
+              </Descriptions>
+
+              <SectionCard icon={<SolutionOutlined />}
+                title="Line items" subtitle={isDraft ? 'Add expenses to this claim' : 'Expenses on this claim'}>
+                {current.items.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items yet" />}
+                {current.items.map((it) => (
+                  <div key={it.id} className="rvp-line-item">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, current.currency)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
+                        {fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}{it.distance ? ` · ${it.distance} units` : ''}
+                      </div>
+                    </div>
+                    {isDraft && <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeItem(it.id)} />}
+                  </div>
+                ))}
+
+                {isDraft && (
+                  <>
+                    <Divider style={{ margin: '12px 0' }} />
+                    <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
+                      {renderItemFields()}
+                      <Button icon={<PlusOutlined />} loading={busy} onClick={addItem} block>Add item</Button>
+                    </Form>
+                  </>
                 )}
               </SectionCard>
-            </Form>
 
-            <SectionCard icon={<SolutionOutlined />}
-              title="Line items" subtitle="Add each expense — saved with the claim" step="STEP 2">
-              {newItems.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items added yet" />}
-              {newItems.map((li) => (
-                <div key={li.key} className="rvp-line-item">
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{li.categoryName} · {money(li.preview, headerCurrency)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
-                      {fmtDate(li.expenseDate)}{li.merchant ? ` · ${li.merchant}` : ''}{li.distance ? ` · ${li.distance} units` : ''}
-                    </div>
+              <SectionCard icon={<PaperClipOutlined />}
+                title="Receipts" subtitle="Attach bills / invoices">
+                {current.attachments.map((a) => (
+                  <div key={a.id} className="rvp-line-item">
+                    <a href={a.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <PaperClipOutlined /> {a.fileName}
+                    </a>
+                    {isDraft && <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeReceipt(a.id)} />}
                   </div>
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeLocalItem(li.key)} />
-                </div>
-              ))}
-              {newItems.length > 0 && (
-                <div style={{ textAlign: 'right', fontWeight: 700, margin: '6px 2px 2px' }}>
-                  Total: {money(newItemsTotal, headerCurrency)}
-                </div>
-              )}
-              <Divider style={{ margin: '12px 0' }} />
-              <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
-                {renderItemFields()}
-                <Button icon={<PlusOutlined />} onClick={addLocalItem} block>Add item</Button>
-              </Form>
-            </SectionCard>
-
-            <SectionCard icon={<PaperClipOutlined />}
-              title="Receipts" subtitle="Attach bills / invoices (optional)">
-              {newFiles.map((f, i) => (
-                <div key={i} className="rvp-line-item">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PaperClipOutlined /> {f.name}</span>
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeNewFile(i)} />
-                </div>
-              ))}
-              <Upload.Dragger multiple showUploadList={false}
-                beforeUpload={(file) => { addNewFile(file as File); return false; }} style={{ marginTop: 8 }}>
-                <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                <p className="ant-upload-text">Click or drag files to attach receipts</p>
-              </Upload.Dragger>
-            </SectionCard>
-          </>
-        )}
-
-        {!creating && current && (
-          <>
-            <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Status"><StatusTag status={current.status} /></Descriptions.Item>
-              <Descriptions.Item label="Total">{money(current.totalAmount, current.currency)}</Descriptions.Item>
-              {current.decisionNote && <Descriptions.Item label="Note" span={2}>{current.decisionNote}</Descriptions.Item>}
-              {current.paymentReference && <Descriptions.Item label="Payment ref" span={2}>{current.paymentReference}</Descriptions.Item>}
-            </Descriptions>
-
-            <SectionCard icon={<SolutionOutlined />}
-              title="Line items" subtitle={isDraft ? 'Add expenses to this claim' : 'Expenses on this claim'}>
-              {current.items.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items yet" />}
-              {current.items.map((it) => (
-                <div key={it.id} className="rvp-line-item">
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{it.categoryName || it.categoryCode} · {money(it.amount, current.currency)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>
-                      {fmtDate(it.expenseDate)}{it.merchant ? ` · ${it.merchant}` : ''}{it.distance ? ` · ${it.distance} units` : ''}
-                    </div>
-                  </div>
-                  {isDraft && <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeItem(it.id)} />}
-                </div>
-              ))}
-
-              {isDraft && (
-                <>
-                  <Divider style={{ margin: '12px 0' }} />
-                  <Form form={itemForm} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} requiredMark="optional" className="customer-drawer-form">
-                    {renderItemFields()}
-                    <Button icon={<PlusOutlined />} loading={busy} onClick={addItem} block>Add item</Button>
-                  </Form>
-                </>
-              )}
-            </SectionCard>
-
-            <SectionCard icon={<PaperClipOutlined />}
-              title="Receipts" subtitle="Attach bills / invoices">
-              {current.attachments.map((a) => (
-                <div key={a.id} className="rvp-line-item">
-                  <a href={a.fileUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <PaperClipOutlined /> {a.fileName}
-                  </a>
-                  {isDraft && <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeReceipt(a.id)} />}
-                </div>
-              ))}
-              {isDraft && (
-                <Upload.Dragger multiple showUploadList={false} disabled={busy}
-                  beforeUpload={(file) => { uploadReceipt(file as File); return false; }} style={{ marginTop: 8 }}>
-                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                  <p className="ant-upload-text">Click or drag files to upload receipts</p>
-                </Upload.Dragger>
-              )}
-            </SectionCard>
-          </>
-        )}
+                ))}
+                {isDraft && (
+                  <Upload.Dragger multiple showUploadList={false} disabled={busy}
+                    beforeUpload={(file) => { uploadReceipt(file as File); return false; }} style={{ marginTop: 8 }}>
+                    <p className="ant-upload-drag-icon"><InboxOutlined /></p>
+                    <p className="ant-upload-text">Click or drag files to upload receipts</p>
+                  </Upload.Dragger>
+                )}
+              </SectionCard>
+            </>
+          )}
         </div>
       </Drawer>
       <Modal
@@ -625,7 +632,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
         centered
         styles={{
           mask: { backdropFilter: 'blur(12px)', background: 'var(--modal-mask-bg, rgba(15, 23, 42, 0.65))' },
-          content: { 
+          content: {
             background: 'var(--bg-pure-white, #FFFFFF)',
             border: '1px solid var(--border-color, #e2e8f0)',
             borderRadius: 24,
@@ -639,9 +646,9 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ position: 'relative', marginBottom: 24 }}>
-            <div style={{ 
+            <div style={{
               position: 'absolute', inset: -14, background: 'rgba(239, 68, 68, 0.15)',
-              borderRadius: '50%', filter: 'blur(16px)', zIndex: 0 
+              borderRadius: '50%', filter: 'blur(16px)', zIndex: 0
             }} />
             <div style={{
               position: 'relative', zIndex: 1,
@@ -654,14 +661,14 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
               <CloseCircleOutlined style={{ fontSize: 32, color: '#ef4444' }} />
             </div>
           </div>
-          
-          <h3 style={{ 
-            fontSize: 22, fontWeight: 700, color: 'var(--text-slate-900, #0f172a)', 
+
+          <h3 style={{
+            fontSize: 22, fontWeight: 700, color: 'var(--text-slate-900, #0f172a)',
             marginBottom: 12, letterSpacing: '-0.02em', lineHeight: 1.2
           }}>
             Policy Limit Exceeded
           </h3>
-          
+
           <div style={{
             background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.03) 0%, rgba(239, 68, 68, 0.08) 100%)',
             border: '1px solid rgba(239, 68, 68, 0.15)',
@@ -678,12 +685,12 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
             {limitError}
           </div>
 
-          <Button 
-            type="primary" 
+          <Button
+            type="primary"
             onClick={() => setLimitError(null)}
             block
-            style={{ 
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+            style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               border: 'none',
               borderRadius: 14,
               fontWeight: 600,

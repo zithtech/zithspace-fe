@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -17,7 +19,6 @@ import {
   Row,
   Col,
   Select,
-  Spin,
   message as messageStatic,
 } from "antd";
 import {
@@ -215,7 +216,7 @@ export default function LeadProfilePage() {
         responseType: 'blob'
       });
       
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = new Blob([response.data], { type: response.headers['content-type']?.toString() });
       const blobUrl = URL.createObjectURL(blob);
       
       if (mode === 'inline') {
@@ -589,7 +590,7 @@ export default function LeadProfilePage() {
           >
             {timelineLoading ? (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <Spin size="large" />
+                <ZukvoLoader size="lg" />
               </div>
             ) : timelineData.length === 0 ? (
               <Empty description="No activity recorded yet" />

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -22,7 +21,6 @@ import {
   Divider,
   Tooltip,
   Badge,
-  Spin,
   Row,
   Col,
   Select,
@@ -68,6 +66,8 @@ import { History } from 'lucide-react';
 import TransactionHistoryDrawer from '@/components/common/TransactionHistoryDrawer';
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -79,13 +79,14 @@ const RESOURCE_LABELS: Record<string, string> = {
   user: "Users / Members",
   project: "Projects",
   ticket: "Tickets",
+  qa: "QA Space",
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
   invoice: "Invoices",
   account: "Accounts & Finance",
   client: "Clients / CRM",
-  settings: "General Settings",
+  settings: "System Settings",
   role: "Roles & RBAC",
   report: "Reports / Analytics",
   reimbursement: "Reimbursements",
@@ -103,11 +104,15 @@ const RESOURCE_LABELS: Record<string, string> = {
   vendor: "Vendors",
   escalation: "Escalations",
   pipeline: "Sales Pipeline",
-  recruitment: "Recruitment pipeline",
+  recruitment: "Candidate Pipeline",
   exit: "Employee Exit",
   performance: "Performance",
   opening: "Opening Management",
   profile: "User Profile",
+  hotspot: "Hotspot",
+  letter: "Doc Suite",
+  letter_template: "Doc Suite Templates",
+  'letter.format': "Doc Suite Formats",
   mail: "Mail Settings",
   calendar: "Calendar Settings",
   chat: "Internal Chat",
@@ -165,6 +170,75 @@ const LEAVE_PAGE_ORDER = [
   'Add Government Holidays',
   'Configuration',
   'Recycle Bin',
+];
+
+/**
+ * QA Space — map each permission to the page it gates, so the Roles UI lists the
+ * 5 QA Space pages by name. Bug List moved here from Tickets, so its permissions
+ * group under QA Space too; trash/archive perms have no page of their own.
+ */
+const QA_PAGE_BY_PERM: Record<string, string> = {
+  'qa.scope.create': 'Test Scope',
+  'qa.scope.read': 'Test Scope',
+  'qa.scope.update': 'Test Scope',
+  'qa.scope.delete': 'Test Scope',
+  'qa.scope.approve': 'Test Scope',
+  'qa.case.create': 'Test Cases',
+  'qa.case.read': 'Test Cases',
+  'qa.case.update': 'Test Cases',
+  'qa.case.delete': 'Test Cases',
+  'qa.suite.create': 'Test Suites',
+  'qa.suite.read': 'Test Suites',
+  'qa.suite.update': 'Test Suites',
+  'qa.suite.delete': 'Test Suites',
+  'qa.run.create': 'Test Runs',
+  'qa.run.read': 'Test Runs',
+  'qa.run.update': 'Test Runs',
+  'qa.run.delete': 'Test Runs',
+  'bug.create': 'Bug List',
+  'bug.read': 'Bug List',
+  'bug.update': 'Bug List',
+  'bug.delete': 'Bug List',
+  'bug.manage': 'Bug List',
+  'bug.archive.read': 'Bug Archive',
+  'bug.archive.restore': 'Bug Archive',
+  'bug.archive.delete': 'Bug Archive',
+  'bug.trash.read': 'Bug Recycle Bin',
+  'bug.trash.restore': 'Bug Recycle Bin',
+  'bug.trash.delete': 'Bug Recycle Bin',
+  'qa.submission.create': 'QA Submissions',
+  'qa.submission.read': 'QA Submissions',
+  'qa.submission.update': 'QA Submissions',
+  'qa.submission.delete': 'QA Submissions',
+  'qa.submission.submit': 'QA Submissions',
+  'qa.submission.signoff': 'QA Sign-off',
+  'qa.approval.read': 'PM Approval',
+  'qa.approval.approve': 'PM Approval',
+  'qa.approval.send_back': 'PM Approval',
+  'qa.analytics.read': 'Analytics',
+  'qa.manage': 'QA Settings',
+};
+
+const QA_PAGE_ORDER = [
+  'Test Scope',
+  'Test Cases',
+  'Test Suites',
+  'Test Runs',
+  'Bug List',
+  'Bug Archive',
+  'Bug Recycle Bin',
+  'QA Submissions',
+  'QA Sign-off',
+  'PM Approval',
+  'Analytics',
+  'QA Settings',
+];
+
+const DOC_SUITE_PAGE_ORDER = [
+  'Template Builder',
+  'Letter Composer',
+  'Generated Records',
+  'Custom Formats'
 ];
 
 /**
@@ -242,21 +316,24 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'home',
     label: 'Home',
     icon: <AppstoreOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log', 'hotspot'],
     accent: '#3b82f6',
   },
   {
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'timesheet', 'daily_update', 'document', 'squad', 'escalation', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment'],
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'escalation', 'letter',
+      'letter_template',
+      'letter.format'
+    ],
     accent: '#10b981',
   },
   {
@@ -385,15 +462,15 @@ const PERMISSION_MODULES = [
   {
     title: "Home",
     icon: <PlusOutlined />, // Placeholder or appropriate icon
-    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking"]
+    resources: ["dashboard", "integration", "mail", "calendar", "chat", "skills", "notification", "bookmark", "time_tracking", "hotspot"]
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "timesheet", "daily_update", "document", "squad", "escalation", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
   },
   {
     title: "HRMS",
-    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile"]
+    resources: ["user", "attendance", "leave", "shift", "onboarding", "exit", "org", "performance", "opening", "profile", "escalation"]
   },
   {
     title: "Finance",
@@ -738,12 +815,12 @@ export default function RolesPage() {
     try {
       const { grouped } = await RBACService.listPermissions();
 
-      // Merge 'bug' permissions into 'ticket'
-      if (grouped.bug && grouped.ticket) {
-        grouped.ticket = [...grouped.ticket, ...grouped.bug];
+      // Merge 'bug' permissions into 'qa'
+      if (grouped.bug && grouped.qa) {
+        grouped.qa = [...grouped.qa, ...grouped.bug];
         delete grouped.bug;
-      } else if (grouped.bug && !grouped.ticket) {
-        grouped.ticket = grouped.bug;
+      } else if (grouped.bug && !grouped.qa) {
+        grouped.qa = grouped.bug;
         delete grouped.bug;
       }
 
@@ -1057,7 +1134,7 @@ export default function RolesPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!user || isLoading || !canReadRole) {
-    if (isLoading) return <LoadingSpinner message="Loading roles..." />;
+    if (isLoading) return <ZukvoLoader message="Loading roles..." />;
     return null;
   }
 
@@ -1310,133 +1387,135 @@ export default function RolesPage() {
 
 
           {/* Roles panel */}
-          {view === "list" ? (
-            <div className="rp-panel">
-              {/* Table */}
-              <Table
-                className="premium-table rp-table"
-                columns={columns}
-                dataSource={filteredRoles}
-                rowKey="id"
-                loading={loading}
-                pagination={false}
-                scroll={{ x: 1000 }}
-              />
-            </div>
-          ) : (
-            <div className="rp-grid">
-              {loading ? (
-                <div className="rp-grid-loading">Loading…</div>
-              ) : filteredRoles.length === 0 ? (
-                <div className="rp-grid-loading">No roles match your filters.</div>
-              ) : (
-                filteredRoles.map((record) => {
-                  const permCount = record._count?.rolePermissions ?? 0;
-                  const memberCount = record._count?.userRoles ?? 0;
-                  return (
-                    <div key={record.id} className="rp-card">
-                      <div className="rp-card-top">
-                        <div
-                          className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
-                        >
-                          {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
-                        </div>
-                        <div className="rp-card-identity">
-                          <div className="rp-card-title-row">
-                            <span className="rp-card-title">{record.name}</span>
-                            {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+          <ZukvoLoadingOverlay loading={loading} message="">
+            {view === "list" ? (
+              <div className="rp-panel">
+                {/* Table */}
+                <Table
+                  className="premium-table rp-table"
+                  columns={columns}
+                  dataSource={filteredRoles}
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 1000 }}
+                />
+
+              </div>
+            ) : (
+              <div className="rp-grid">
+                {loading ? (
+                  <div className="rp-grid-loading">Loading…</div>
+                ) : filteredRoles.length === 0 ? (
+                  <div className="rp-grid-loading">No roles match your filters.</div>
+                ) : (
+                  filteredRoles.map((record) => {
+                    const permCount = record._count?.rolePermissions ?? 0;
+                    const memberCount = record._count?.userRoles ?? 0;
+                    return (
+                      <div key={record.id} className="rp-card">
+                        <div className="rp-card-top">
+                          <div
+                            className={`rp-row-name__avatar${record.isSystem ? " is-system" : " is-custom"}`}
+                          >
+                            {record.isSystem ? <LockOutlined /> : <CrownOutlined />}
                           </div>
-                          <div className="rp-row-name__slug">{record.slug}</div>
-                        </div>
-                        <span
-                          className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
-                        >
-                          <span className="rp-status-dot" />
-                          {record.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-
-                      <div className="rp-card-desc">
-                        {record.description || "No description provided."}
-                      </div>
-
-                      <div className="rp-card-foot">
-                        <div className="rp-card-foot-row">
-                          <span className="rp-card-foot-item">
-                            <span className="rp-card-foot-key">Permissions</span>
-                            <span
-                              className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
-                            >
-                              <KeyOutlined />
-                              {permCount}
-                            </span>
-                          </span>
-                          <span className="rp-card-foot-div" />
-                          <span className="rp-card-foot-item">
-                            <span className="rp-card-foot-key">Members</span>
-                            <span
-                              className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
-                            >
-                              <UserOutlined />
-                              {memberCount}
-                            </span>
+                          <div className="rp-card-identity">
+                            <div className="rp-card-title-row">
+                              <span className="rp-card-title">{record.name}</span>
+                              {record.isSystem && <span className="rp-system-tag">SYSTEM</span>}
+                            </div>
+                            <div className="rp-row-name__slug">{record.slug}</div>
+                          </div>
+                          <span
+                            className={`rp-status-pill ${record.isActive ? "is-active" : "is-inactive"}`}
+                          >
+                            <span className="rp-status-dot" />
+                            {record.isActive ? "Active" : "Inactive"}
                           </span>
                         </div>
-                        <div className="rp-card-foot-row rp-card-actions">
-                          {canAssignRole && (
-                            <Tooltip title="Manage members">
-                              <Button
-                                type="text"
-                                icon={<TeamOutlined />}
-                                size="small"
-                                onClick={() => openMembersDrawer(record)}
-                              />
-                            </Tooltip>
-                          )}
-                          {canUpdateRole && (
-                            <Tooltip title="Edit name / description">
-                              <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                size="small"
-                                onClick={() => openEditModal(record)}
-                                disabled={record.isSystem}
-                              />
-                            </Tooltip>
-                          )}
-                          {canUpdateRole && (
-                            <Tooltip title="Edit permissions">
-                              <Button
-                                type="text"
-                                icon={<SettingOutlined />}
-                                size="small"
-                                onClick={() => openPermissionsDrawer(record)}
-                              />
-                            </Tooltip>
-                          )}
-                          {canDeleteRole && !record.isSystem && (
-                            <ConfirmDialog
-                              tone="danger"
-                              title="Delete this role?"
-                              description="All members assigned this role will lose its permissions immediately."
-                              confirmText="Delete"
-                              cancelText="Cancel"
-                              placement="left"
-                              onConfirm={() => handleDeleteRole(record.id)}
-                            >
-                              <Tooltip title="Delete role">
-                                <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+
+                        <div className="rp-card-desc">
+                          {record.description || "No description provided."}
+                        </div>
+
+                        <div className="rp-card-foot">
+                          <div className="rp-card-foot-row">
+                            <span className="rp-card-foot-item">
+                              <span className="rp-card-foot-key">Permissions</span>
+                              <span
+                                className={`rp-pill is-perms${permCount === 0 ? " is-empty" : ""}`}
+                              >
+                                <KeyOutlined />
+                                {permCount}
+                              </span>
+                            </span>
+                            <span className="rp-card-foot-div" />
+                            <span className="rp-card-foot-item">
+                              <span className="rp-card-foot-key">Members</span>
+                              <span
+                                className={`rp-pill is-members${memberCount === 0 ? " is-empty" : ""}`}
+                              >
+                                <UserOutlined />
+                                {memberCount}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="rp-card-foot-row rp-card-actions">
+                            {canAssignRole && (
+                              <Tooltip title="Manage members">
+                                <Button
+                                  type="text"
+                                  icon={<TeamOutlined />}
+                                  size="small"
+                                  onClick={() => openMembersDrawer(record)}
+                                />
                               </Tooltip>
-                            </ConfirmDialog>
-                          )}
+                            )}
+                            {canUpdateRole && (
+                              <Tooltip title="Edit name / description">
+                                <Button
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  size="small"
+                                  onClick={() => openEditModal(record)}
+                                  disabled={record.isSystem}
+                                />
+                              </Tooltip>
+                            )}
+                            {canUpdateRole && (
+                              <Tooltip title="Edit permissions">
+                                <Button
+                                  type="text"
+                                  icon={<SettingOutlined />}
+                                  size="small"
+                                  onClick={() => openPermissionsDrawer(record)}
+                                />
+                              </Tooltip>
+                            )}
+                            {canDeleteRole && !record.isSystem && (
+                              <ConfirmDialog
+                                tone="danger"
+                                title="Delete this role?"
+                                description="All members assigned this role will lose its permissions immediately."
+                                confirmText="Delete"
+                                cancelText="Cancel"
+                                placement="left"
+                                onConfirm={() => handleDeleteRole(record.id)}
+                              >
+                                <Tooltip title="Delete role">
+                                  <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+                                </Tooltip>
+                              </ConfirmDialog>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </ZukvoLoadingOverlay>
 
           <div className="rp-footer rp-footer--sticky">
             <div className="rp-footer-info">
@@ -1629,9 +1708,7 @@ export default function RolesPage() {
 
           {drawerLoadingPerms ? (
             <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <Spin tip="Loading permissions">
-                <div style={{ height: 40 }} />
-              </Spin>
+              <ZukvoLoader size="md" message="Loading permissions" />
             </div>
           ) : (
             (() => {
@@ -1642,13 +1719,24 @@ export default function RolesPage() {
               // Filter perms by search across the current tab
               const filteredByResource: Record<string, RBACPermission[]> = {};
               tabResources.forEach((res) => {
-                const perms = allPermissions[res] || [];
+                if (res === 'letter_template' || res === 'letter.format') return;
+
+                let perms = allPermissions[res] || [];
+                if (res === 'letter') {
+                  if (allPermissions['letter_template']) {
+                    perms = [...perms, ...allPermissions['letter_template']];
+                  }
+                  if (allPermissions['letter.format']) {
+                    perms = [...perms, ...allPermissions['letter.format']];
+                  }
+                }
+
                 if (!searchQ) {
                   filteredByResource[res] = perms;
                   return;
                 }
                 const label = (RESOURCE_LABELS[res] || res).toLowerCase();
-                if (label.includes(searchQ)) {
+                if (label.includes(searchQ) || (res === 'letter' && ((RESOURCE_LABELS['letter_template'] || '').toLowerCase().includes(searchQ) || (RESOURCE_LABELS['letter.format'] || '').toLowerCase().includes(searchQ)))) {
                   filteredByResource[res] = perms;
                   return;
                 }
@@ -1759,10 +1847,10 @@ export default function RolesPage() {
                           const allExpanded = visibleResources.length > 0 && visibleResources.every((r) => expandedPermGroups.includes(r));
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-slate-700)', border: '1px solid var(--border-color, #e2e8f0)', padding: '4px 12px', borderRadius: 6, background: 'var(--bg-pure-white, #ffffff)' }}>
-                              <Switch 
-                                size="small" 
-                                checked={allExpanded} 
-                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])} 
+                              <Switch
+                                size="small"
+                                checked={allExpanded}
+                                onChange={(checked) => setExpandedPermGroups(checked ? visibleResources : [])}
                               />
                               <span style={{ cursor: 'pointer', fontWeight: 500 }} onClick={() => setExpandedPermGroups(allExpanded ? [] : visibleResources)}>
                                 Expand all
@@ -1830,7 +1918,13 @@ export default function RolesPage() {
                     ) : (
                       visibleResources.map((resource) => {
                         const perms = filteredByResource[resource];
-                        const allPermsForRes = allPermissions[resource];
+                        const allPermsForRes = resource === 'letter'
+                          ? [
+                            ...(allPermissions['letter'] || []),
+                            ...(allPermissions['letter_template'] || []),
+                            ...(allPermissions['letter.format'] || [])
+                          ]
+                          : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
                         const selectedCount = allPermsForRes.filter((p) =>
                           selectedPermIds.includes(p.id),
@@ -1863,6 +1957,29 @@ export default function RolesPage() {
                           // List the 7 My Hub pages by name (see MY_HUB_PAGE_BY_PERM).
                           perms.forEach((p) => {
                             const subKey = MY_HUB_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'qa') {
+                          // List the 5 QA Space pages by name, Bug List included
+                          // (see QA_PAGE_BY_PERM).
+                          perms.forEach((p) => {
+                            const subKey = QA_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
+                        } else if (resource === 'letter') {
+                          perms.forEach((p) => {
+                            let subKey = 'Other';
+                            if (p.name.startsWith('letter_template.')) {
+                              subKey = 'Template Builder';
+                            } else if (p.name.startsWith('letter.format.')) {
+                              subKey = 'Custom Formats';
+                            } else if (p.name === 'letter.generate' || p.name === 'letter.manage') {
+                              subKey = 'Letter Composer';
+                            } else if (p.name === 'letter.read' || p.name === 'letter.delete') {
+                              subKey = 'Generated Records';
+                            }
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
@@ -1914,9 +2031,9 @@ export default function RolesPage() {
                                     className="rp-acc-card__check"
                                   />
                                 </div>
-                                <span style={{ 
-                                  color: 'var(--text-slate-500)', 
-                                  fontSize: 10, 
+                                <span style={{
+                                  color: 'var(--text-slate-500)',
+                                  fontSize: 10,
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -1952,77 +2069,78 @@ export default function RolesPage() {
                               ),
                               children: (
                                 <div className="rp-acc-card__body" style={{ padding: 0 }}>
-                              {(resource === 'leave'
-                                ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                : resource === 'performance'
-                                  ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                  : resource === 'my_hub'
-                                    ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                    : Object.entries(subGroups)
-                              ).map(([subTitle, subPerms]) => (
-                                <div key={subTitle} className="rp-acc-subgroup">
-                                  <div className="rp-acc-subgroup__title">{subTitle}</div>
-                                  <Row gutter={[10, 10]}>
-                                    {subPerms.map((perm) => {
-                                      const isSelected = selectedPermIds.includes(perm.id);
-                                      return (
-                                        <Col key={perm.id} xs={24} sm={12} lg={8}>
-                                          <div
-                                            onClick={() => canModifyResource && togglePermission(perm.id)}
-                                            className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canModifyResource ? ' is-readonly' : ''}`}
-                                            style={{ opacity: !isFeatureEnabled ? 0.6 : 1 }}
-                                          >
-                                            <Checkbox
-                                              checked={isSelected}
-                                              disabled={!canModifyResource}
-                                              className="rp-acc-perm__check"
-                                            />
-                                            <div className="rp-acc-perm__text">
-                                              <div className="rp-acc-perm__title">
-                                                {(() => {
-                                                  const name = perm.name;
-                                                  const action = perm.action;
-                                                  if (name.startsWith('leave.')) {
-                                                    // Page is the sub-group title; show only the verb.
-                                                    const verb = action.split('.').pop() || action;
-                                                    return verb.charAt(0).toUpperCase() + verb.slice(1);
-                                                  }
-                                                  if (name.startsWith('bug.')) {
-                                                    if (action.includes('trash.')) {
-                                                      const subAction = action.split('.')[1];
-                                                      return `Bug ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                    }
-                                                    if (action.includes('archive.')) {
-                                                      const subAction = action.split('.')[1];
-                                                      return `Bug Archive ${subAction.charAt(0).toUpperCase() + subAction.slice(1)}`;
-                                                    }
-                                                    return `Bug ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-                                                  }
-                                                  if (name.startsWith('proposal.')) {
-                                                    return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-                                                  }
-                                                  if (action.includes('.')) {
-                                                    return action
-                                                      .split('.')
-                                                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                                                      .join(' ');
-                                                  }
-                                                  return action.charAt(0).toUpperCase() + action.slice(1);
-                                                })()}
-                                              </div>
-                                              {perm.description && (
-                                                <div className="rp-acc-perm__desc">
-                                                  {perm.description}
+                                  {(resource === 'leave'
+                                    ? ([...LEAVE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                    : resource === 'performance'
+                                      ? ([...PERFORMANCE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                      : resource === 'my_hub'
+                                        ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                        : resource === 'qa'
+                                          ? ([...QA_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                          : resource === 'letter'
+                                            ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                            : Object.entries(subGroups)
+                                  ).map(([subTitle, subPerms]) => (
+                                    <div key={subTitle} className="rp-acc-subgroup">
+                                      <div className="rp-acc-subgroup__title">{subTitle}</div>
+                                      <Row gutter={[10, 10]}>
+                                        {subPerms.map((perm) => {
+                                          const isSelected = selectedPermIds.includes(perm.id);
+                                          return (
+                                            <Col key={perm.id} xs={24} sm={12} lg={8}>
+                                              <div
+                                                onClick={() => canUpdateRole && togglePermission(perm.id)}
+                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
+                                              >
+                                                <Checkbox
+                                                  checked={isSelected}
+                                                  disabled={!canUpdateRole}
+                                                  className="rp-acc-perm__check"
+                                                />
+                                                <div className="rp-acc-perm__text">
+                                                  <div className="rp-acc-perm__title">
+                                                    {(() => {
+                                                      const name = perm.name;
+                                                      const action = perm.action;
+                                                      if (name.startsWith('leave.')) {
+                                                        // Page is the sub-group title; show only the verb.
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                      }
+                                                      if (name.startsWith('qa.') || name.startsWith('bug.')) {
+                                                        // QA Space page is the sub-group title; show only the verb.
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                      }
+                                                      if (name.startsWith('letter_template.') || name.startsWith('letter.')) {
+                                                        const verb = action.split('.').pop() || action;
+                                                        return verb.charAt(0).toUpperCase() + verb.slice(1);
+                                                      }
+                                                      if (name.startsWith('proposal.')) {
+                                                        return `Proposal ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+                                                      }
+                                                      if (action.includes('.')) {
+                                                        return action
+                                                          .split('.')
+                                                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                                          .join(' ');
+                                                      }
+                                                      return action.charAt(0).toUpperCase() + action.slice(1);
+                                                    })()}
+                                                  </div>
+                                                  {perm.description && (
+                                                    <div className="rp-acc-perm__desc">
+                                                      {perm.description}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </Col>
-                                      );
-                                    })}
-                                  </Row>
-                                </div>
-                              ))}
+                                              </div>
+                                            </Col>
+                                          );
+                                        })}
+                                      </Row>
+                                    </div>
+                                  ))}
                                 </div>
                               )
                             }]}
@@ -2091,9 +2209,7 @@ export default function RolesPage() {
 
           {membersDrawerLoading ? (
             <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <Spin tip="Loading members">
-                <div style={{ height: 40 }} />
-              </Spin>
+              <ZukvoLoader size="md" message="Loading members" />
             </div>
           ) : (
             (() => {

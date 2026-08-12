@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, InputNumber, Switch, Input, message, Spin } from 'antd';
+import { Button, InputNumber, Switch, Input, message } from 'antd';
 import { Landmark, Save, RotateCcw, ShieldCheck, PiggyBank, Percent, Building2, Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
@@ -160,7 +162,7 @@ export default function StatutoryPanel() {
       </div>
 
       {loading ? (
-        <div className="pvst-loading"><Spin /></div>
+        <div className="pvst-loading"><ZukvoLoader size="md" /></div>
       ) : view === 'pf' ? (
         <div className="pvst-sections">
           <SectionCard icon={<PiggyBank size={16} />} tint={TINT.blue} color={PALETTE.blue} title="Provident Fund (EPF)" subtitle="Employee & employer contribution and wage ceiling">

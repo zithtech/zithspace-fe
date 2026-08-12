@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,7 +16,6 @@ import {
   Button,
   Tooltip,
   Alert,
-  Spin,
   Popconfirm,
   message,
   theme,
@@ -39,7 +40,7 @@ export default function ChromeExtensionPage() {
   const [installKeyLoading, setInstallKeyLoading] = useState(true);
   const [generatingKey, setGeneratingKey] = useState(false);
 
-  // Route guard — mirrors the General Settings page.
+  // Route guard — mirrors the System Settings page.
   useEffect(() => {
     if (!authLoading && !canReadSettings) {
       router.push('/dashboard');
@@ -129,7 +130,7 @@ export default function ChromeExtensionPage() {
 
           {installKeyLoading ? (
             <div style={{ padding: '24px 0', textAlign: 'center' }}>
-              <Spin />
+              <ZukvoLoader size="md" />
             </div>
           ) : installKey ? (
             <>

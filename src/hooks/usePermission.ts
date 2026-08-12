@@ -65,6 +65,7 @@ export const usePermission = () => {
     canDeleteTicketPlan: hasPermission(Permissions.TICKET_PLAN_DELETE),
     canManageTickets: hasPermission(Permissions.TICKET_MANAGE),
 
+
     // ─── Attendance ─────────────────────────────────────────────────
     canCreateAttendance: hasPermission(Permissions.ATTENDANCE_CREATE),
     canReadAttendance:   hasPermission(Permissions.ATTENDANCE_READ),
@@ -430,6 +431,22 @@ export const usePermission = () => {
     canDeleteOpening: hasPermission(Permissions.OPENING_DELETE),
     canManageOpenings: hasPermission(Permissions.OPENING_MANAGE),
 
+    // ─── Hotspot ────────────────────────────────────────────────────
+    canReadHotspot:            hasAnyPermission(Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ),
+    canReadHotspotOpening:     hasPermission(Permissions.HOTSPOT_OPENING_READ),
+    canCreateHotspotOpening:   hasPermission(Permissions.HOTSPOT_OPENING_CREATE),
+    
+    canReadHotspotCirculation:   hasPermission(Permissions.HOTSPOT_CIRCULATION_READ),
+    canCreateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_CREATE),
+    canUpdateHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_UPDATE),
+    canDeleteHotspotCirculation: hasPermission(Permissions.HOTSPOT_CIRCULATION_DELETE),
+    canPinHotspotCirculation:    hasPermission(Permissions.HOTSPOT_CIRCULATION_PIN),
+    
+    canReadHotspotBlog:   hasPermission(Permissions.HOTSPOT_BLOG_READ),
+    canCreateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_CREATE),
+    canUpdateHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_UPDATE),
+    canDeleteHotspotBlog: hasPermission(Permissions.HOTSPOT_BLOG_DELETE),
+
     // ─── User Profile ───────────────────────────────────────────────
     canCreateProfile: hasPermission(Permissions.PROFILE_CREATE),
     canReadProfile:   hasPermission(Permissions.PROFILE_READ),
@@ -445,16 +462,53 @@ export const usePermission = () => {
     canManageSquads: hasPermission(Permissions.SQUAD_MANAGE),
 
     // ─── Bug List (QA workspace; converts to tickets) ────────────────
-    canCreateBug: hasPermission(Permissions.BUG_CREATE),
-    canReadBug:   hasPermission(Permissions.BUG_READ),
-    canUpdateBug: hasPermission(Permissions.BUG_UPDATE),
-    canDeleteBug: hasPermission(Permissions.BUG_DELETE),
-    canReadBugTrash:    hasPermission(Permissions.BUG_TRASH_READ),
-    canRestoreBugTrash: hasPermission(Permissions.BUG_TRASH_RESTORE),
-    canDeleteBugTrash:  hasPermission(Permissions.BUG_TRASH_DELETE),
-    canReadBugArchive:    hasPermission(Permissions.BUG_ARCHIVE_READ),
-    canRestoreBugArchive: hasPermission(Permissions.BUG_ARCHIVE_RESTORE),
+    canCreateBug: hasAnyPermission(Permissions.BUG_CREATE, Permissions.BUG_MANAGE),
+    canReadBug:   hasAnyPermission(Permissions.BUG_READ, Permissions.BUG_MANAGE),
+    canUpdateBug: hasAnyPermission(Permissions.BUG_UPDATE, Permissions.BUG_MANAGE),
+    canDeleteBug: hasAnyPermission(Permissions.BUG_DELETE, Permissions.BUG_MANAGE),
+    canReadBugTrash:    hasAnyPermission(Permissions.BUG_TRASH_READ, Permissions.BUG_MANAGE),
+    canRestoreBugTrash: hasAnyPermission(Permissions.BUG_TRASH_RESTORE, Permissions.BUG_MANAGE),
+    canDeleteBugTrash:  hasAnyPermission(Permissions.BUG_TRASH_DELETE, Permissions.BUG_MANAGE),
+    canReadBugArchive:    hasAnyPermission(Permissions.BUG_ARCHIVE_READ, Permissions.BUG_MANAGE),
+    canRestoreBugArchive: hasAnyPermission(Permissions.BUG_ARCHIVE_RESTORE, Permissions.BUG_MANAGE),
+    canDeleteBugArchive:  hasAnyPermission(Permissions.BUG_ARCHIVE_DELETE, Permissions.BUG_MANAGE),
     canManageBugs: hasPermission(Permissions.BUG_MANAGE),
+
+    // ─── QA Space ───────────────────────────────────────────────────
+    canCreateScope: hasPermission(Permissions.QA_SCOPE_CREATE),
+    canReadScope:   hasPermission(Permissions.QA_SCOPE_READ),
+    canUpdateScope: hasPermission(Permissions.QA_SCOPE_UPDATE),
+    canDeleteScope: hasPermission(Permissions.QA_SCOPE_DELETE),
+    canApproveScope: hasAnyPermission(Permissions.QA_SCOPE_APPROVE, Permissions.QA_MANAGE),
+    canCreateCase:  hasPermission(Permissions.QA_CASE_CREATE),
+    canReadCase:    hasPermission(Permissions.QA_CASE_READ),
+    canUpdateCase:  hasPermission(Permissions.QA_CASE_UPDATE),
+    canDeleteCase:  hasPermission(Permissions.QA_CASE_DELETE),
+    canCreateSuite: hasPermission(Permissions.QA_SUITE_CREATE),
+    canReadSuite:   hasPermission(Permissions.QA_SUITE_READ),
+    canUpdateSuite: hasPermission(Permissions.QA_SUITE_UPDATE),
+    canDeleteSuite: hasPermission(Permissions.QA_SUITE_DELETE),
+    canCreateRun:   hasPermission(Permissions.QA_RUN_CREATE),
+    canReadRun:     hasPermission(Permissions.QA_RUN_READ),
+    canUpdateRun:   hasPermission(Permissions.QA_RUN_UPDATE),
+    canDeleteRun:   hasPermission(Permissions.QA_RUN_DELETE),
+    // QA Submissions — qa.manage stands in for every submission action, the
+    // same way it does for the rest of QA Space.
+    canCreateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_CREATE, Permissions.QA_MANAGE),
+    canReadSubmission:   hasAnyPermission(Permissions.QA_SUBMISSION_READ, Permissions.QA_MANAGE),
+    canUpdateSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_UPDATE, Permissions.QA_MANAGE),
+    canDeleteSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_DELETE, Permissions.QA_MANAGE),
+    canSubmitSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SUBMIT, Permissions.QA_MANAGE),
+    canSignOffSubmission: hasAnyPermission(Permissions.QA_SUBMISSION_SIGNOFF, Permissions.QA_MANAGE),
+    canReadPmApproval:   hasAnyPermission(Permissions.QA_APPROVAL_READ, Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canApproveSubmission: hasAnyPermission(Permissions.QA_APPROVAL_APPROVE, Permissions.QA_MANAGE),
+    canSendBackSubmission: hasAnyPermission(
+      Permissions.QA_APPROVAL_SEND_BACK,
+      Permissions.QA_APPROVAL_APPROVE,
+      Permissions.QA_MANAGE,
+    ),
+    canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
+    canManageQa:    hasPermission(Permissions.QA_MANAGE),
 
     // ─── System / General ───────────────────────────────────────────
     canCreateMail:   hasPermission(Permissions.MAIL_CREATE),
@@ -512,6 +566,10 @@ export const usePermission = () => {
     canReadLetter:           hasPermission(Permissions.LETTER_READ),
     canDeleteLetter:         hasPermission(Permissions.LETTER_DELETE),
     canManageLetters:        hasPermission(Permissions.LETTER_MANAGE),
+    canCreateLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_CREATE),
+    canReadLetterFormat:     hasPermission(Permissions.LETTER_FORMAT_READ),
+    canUpdateLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_UPDATE),
+    canDeleteLetterFormat:   hasPermission(Permissions.LETTER_FORMAT_DELETE),
 
     // ─── Raw helpers ─────────────────────────────────────────────────
     /** Check a single permission string */

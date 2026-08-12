@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthService } from "@/services/authService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import { PositionService } from "@/services/positionService 3";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const NewProfilePage = () => {
   const defaultImage = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -43,7 +44,7 @@ const NewProfilePage = () => {
   const [image, setImage] = useState<string>(defaultImage);
   const [positions, setPositions] = useState<any>(null);
 
-  useEffect(() => {}, [user]);
+  useEffect(() => { }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -184,10 +185,11 @@ const NewProfilePage = () => {
       label: "Date of Joining",
       value: joiningDate
         ? new Date(joiningDate).toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          timeZone: "Asia/Kolkata",
+        })
         : "—",
     },
     {
@@ -207,7 +209,7 @@ const NewProfilePage = () => {
     return (
       <MainLayout>
         <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-slate-400)" }}>
-          Loading your profile…
+          <ZukvoLoader size="lg" message="Loading your profile..." />
         </div>
       </MainLayout>
     );
@@ -482,127 +484,127 @@ const NewProfilePage = () => {
               boxShadow: "0 1px 3px rgba(15,23,42,0.05)",
             }}
           >
-          <Tabs
-            activeKey={selectedTab}
-            onChange={(key) => setSelectedTab(key)}
-            className="themed-profile-tabs"
-            items={[
-              {
-                key: "personal",
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <User size={15} />
-                    Personal Details
-                  </span>
-                ),
-                children: (
-                  <div style={{ paddingTop: 4 }}>
-                    <PersonalDetails
-                      profile={profile}
-                      personal={personal}
-                      employment={employment}
-                      currentUser={currentUser}
-                    />
-                  </div>
-                ),
-              },
-              {
-                key: "employment",
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <Briefcase size={15} />
-                    Employment
-                  </span>
-                ),
-                children: (
-                  <div style={{ paddingTop: 4 }}>
-                    <EmploymentDetails
-                      employment={employment}
-                      currentUser={currentUser}
-                      positions={positions}
-                    />
-                  </div>
-                ),
-              },
-              {
-                key: "bank",
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <CreditCard size={15} />
-                    Bank & Payroll
-                  </span>
-                ),
-                children: (
-                  <div style={{ paddingTop: 4 }}>
-                    <BankAndPayroll profile={profile} employment={employment} />
-                  </div>
-                ),
-              },
-              {
-                key: "history",
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <History size={15} />
-                    History
-                  </span>
-                ),
-                children: (
-                  <div style={{ paddingTop: 4 }}>
-                    <EmployeeHistory profile={profile} />
-                  </div>
-                ),
-              },
-              {
-                key: "assets",
-                label: (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <Laptop size={15} />
-                    Assets
-                  </span>
-                ),
-                children: (
-                  <div style={{ paddingTop: 4 }}>
-                    <Assets assets={profile?.assets} />
-                  </div>
-                ),
-              },
-            ]}
-          />
+            <Tabs
+              activeKey={selectedTab}
+              onChange={(key) => setSelectedTab(key)}
+              className="themed-profile-tabs"
+              items={[
+                {
+                  key: "personal",
+                  label: (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <User size={15} />
+                      Personal Details
+                    </span>
+                  ),
+                  children: (
+                    <div style={{ paddingTop: 4 }}>
+                      <PersonalDetails
+                        profile={profile}
+                        personal={personal}
+                        employment={employment}
+                        currentUser={currentUser}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "employment",
+                  label: (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Briefcase size={15} />
+                      Employment
+                    </span>
+                  ),
+                  children: (
+                    <div style={{ paddingTop: 4 }}>
+                      <EmploymentDetails
+                        employment={employment}
+                        currentUser={currentUser}
+                        positions={positions}
+                      />
+                    </div>
+                  ),
+                },
+                {
+                  key: "bank",
+                  label: (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <CreditCard size={15} />
+                      Bank & Payroll
+                    </span>
+                  ),
+                  children: (
+                    <div style={{ paddingTop: 4 }}>
+                      <BankAndPayroll profile={profile} employment={employment} />
+                    </div>
+                  ),
+                },
+                {
+                  key: "history",
+                  label: (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <History size={15} />
+                      History
+                    </span>
+                  ),
+                  children: (
+                    <div style={{ paddingTop: 4 }}>
+                      <EmployeeHistory profile={profile} />
+                    </div>
+                  ),
+                },
+                {
+                  key: "assets",
+                  label: (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Laptop size={15} />
+                      Assets
+                    </span>
+                  ),
+                  children: (
+                    <div style={{ paddingTop: 4 }}>
+                      <Assets assets={profile?.assets} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         </main>
 

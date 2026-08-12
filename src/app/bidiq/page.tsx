@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { RangePicker } = DatePicker;
 
@@ -553,34 +554,35 @@ export default function BidIqPage() {
               <div className="biq-body">
                 {layout === "list" ? (
                   <div className="biq-table-card">
-                    <Table<Lead>
-                      rowKey="id"
-                      loading={loading}
-                      dataSource={paged}
-                      columns={hasPrime ? (columns as any) : (columns.filter(c => c.key !== 'ai_score') as any)}
-                      className="biq-table"
-                      rowClassName="biq-row"
-                      size="middle"
-                      scroll={{ x: "max-content" }}
-                      onRow={(record) => ({
-                        onClick: () => openBidiq(record.id),
-                        style: { cursor: "pointer" },
-                      })}
-                      pagination={false}
-                      locale={{
-                        emptyText: (
-                          <div className="biq-empty">
-                            <div className="biq-empty-icon">
-                              <Zap size={26} />
-                            </div>
-                            <div className="biq-empty-title">No BidIq analyses yet</div>
-                            <div className="biq-empty-text">
-                              Run BidIq on a lead and it will appear here.
-                            </div>
-                          </div>
-                        ),
-                      }}
-                    />
+                    <ZukvoLoadingOverlay loading={loading} message="">
+                                      <Table<Lead>
+                                                            rowKey="id"
+                                                            dataSource={paged}
+                                                            columns={columns as any}
+                                                            className="biq-table"
+                                                            rowClassName="biq-row"
+                                                            size="middle"
+                                                            scroll={{ x: "max-content" }}
+                                                            onRow={(record) => ({
+                                                              onClick: () => openBidiq(record.id),
+                                                              style: { cursor: "pointer" },
+                                                            })}
+                                                            pagination={false}
+                                                            locale={{
+                                                              emptyText: (
+                                                                <div className="biq-empty">
+                                                                  <div className="biq-empty-icon">
+                                                                    <Zap size={26} />
+                                                                  </div>
+                                                                  <div className="biq-empty-title">No BidIq analyses yet</div>
+                                                                  <div className="biq-empty-text">
+                                                                    Run BidIq on a lead and it will appear here.
+                                                                  </div>
+                                                                </div>
+                                                              ),
+                                                            }}
+                                                          />
+                                      </ZukvoLoadingOverlay>
                   </div>
                 ) : (
                   <div className="biq-grid-view">

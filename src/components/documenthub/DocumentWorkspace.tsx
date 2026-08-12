@@ -2219,6 +2219,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 entityType="document"
                 currentVisibility={docData?.visibility || 'private'}
                 currentShareToken={docData?.shareToken || null}
+                currentSharedWith={docData?.sharedWith || []}
             />
 
             {editor && (

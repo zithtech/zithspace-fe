@@ -1034,6 +1034,12 @@ function groupBugs(bugs: BugListItem[], key: GroupKey) {
  */
 function plainTextToHtml(text: string): string {
   if (!text || !text.trim()) return "";
+  
+  // If it already contains HTML tags, return as is to avoid double-escaping.
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+
   // Escape basic HTML special chars to avoid XSS / rendering glitches.
   const escaped = text
     .replace(/&/g, "&amp;")

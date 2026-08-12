@@ -1,10 +1,12 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Tabs, Descriptions, Tag, Row, Col, Timeline, Spin, Button, Space, message, Divider, Drawer } from "antd";
+import { Card, Typography, Tabs, Descriptions, Tag, Row, Col, Timeline, Button, Space, message, Divider, Drawer } from "antd";
 import { ArrowLeftOutlined, FileOutlined, EditOutlined, SendOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useParams, useRouter } from "next/navigation";
 import candidateService from "@/services/candidateService";
@@ -47,7 +49,7 @@ export default function CandidateProfile() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-            <Spin size="large" />
+            <ZukvoLoader size="lg" />
           </div>
         </MainLayout>
       </ProtectedRoute>

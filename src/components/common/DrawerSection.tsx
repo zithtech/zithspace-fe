@@ -2,16 +2,22 @@ import React from 'react';
 
 export const drawerFormStyles = `
   .customer-drawer-form .ant-form-item-label > label {
-    font-size: 11.5px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
-    color: var(--text-slate-400, #94a3b8) !important;
-    letter-spacing: .02em;
+    color: var(--text-slate-800, #1e293b) !important;
+    letter-spacing: .01em;
     height: auto !important;
     min-height: 18px !important;
     white-space: normal !important;
     line-height: 1.4 !important;
     align-items: flex-start !important;
     padding-top: 2px !important;
+  }
+  .customer-drawer-card {
+    background: transparent !important;
+  }
+  [data-theme='dark'] .customer-drawer-form .ant-form-item-label > label {
+    color: #e2e8f0 !important;
   }
   [data-theme='dark'] .customer-drawer-card {
     background: transparent !important;
@@ -35,7 +41,7 @@ export const drawerFormStyles = `
   [data-theme='dark'] .customer-drawer-form .ant-picker,
   [data-theme='dark'] .customer-drawer-form .ant-input-number {
     background: transparent !important;
-    border-color: #1f2937 !important;
+    border-color: #334155 !important;
     color: #f3f4f6 !important;
   }
   .customer-drawer-form .ant-input,
@@ -43,7 +49,21 @@ export const drawerFormStyles = `
   .customer-drawer-form .ant-picker,
   .customer-drawer-form .ant-input-number,
   .customer-drawer-form .ant-input-password {
-    border-radius: 6px !important;
+    border-radius: 8px !important;
+    background: var(--bg-pure-white, #ffffff) !important;
+    border: 1px solid var(--border-slate-300, #cbd5e1) !important;
+    color: var(--text-slate-900, #0f172a) !important;
+  }
+  .customer-drawer-form .ant-input:focus,
+  .customer-drawer-form .ant-input-focused,
+  .customer-drawer-form .ant-select-selector:focus,
+  .customer-drawer-form .ant-select-focused .ant-select-selector {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+  }
+  .customer-drawer-form .sd-trigger {
+    height: 40px !important;
+    padding: 6px 12px !important;
   }
 `;
 
@@ -122,7 +142,7 @@ export function SectionCard({
     <div
       className="customer-drawer-card rounded-none overflow-hidden"
       style={{
-        background: 'var(--bg-secondary)',
+        background: 'transparent',
         border: '1px solid var(--border-color)',
         marginBottom: 16,
       }}

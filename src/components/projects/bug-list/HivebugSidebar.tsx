@@ -106,7 +106,7 @@ export default function HivebugSidebar({
     [allProjects, selectedProjectId]
   );
 
-  const { canCreateBug, canUpdateBug, canDeleteBug, canManageBugs } = usePermission();
+  const { canCreateBug, canUpdateBug, canDeleteBug, canManageBugs, canReadBugTrash, canReadBugArchive, canRestoreBugArchive } = usePermission();
   const updateSheet = useUpdateBugSheet();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -187,12 +187,12 @@ export default function HivebugSidebar({
                   </div>
                   <div className="hb-brand-text">
                     <div className="hb-brand-name">Bug List</div>
-                    <div className="hb-brand-workspace">QA WORKSPACE</div>
+                    <div className="hb-brand-workspace">QA SPACE</div>
                   </div>
                 </>
               )}
             </div>
-            {!isCollapsed && onCreateBug && (
+            {!isCollapsed && onCreateBug && canCreateBug && (
               <button
                 className="hb-btn hb-btn-primary hb-sidebar-new-bug-btn"
                 onClick={onCreateBug}
@@ -250,32 +250,36 @@ export default function HivebugSidebar({
                     {stats.data?.mineTotal ?? 0}
                   </span>
                 </button>
-                <button
-                  className={`hb-row ${scope === "trash" ? "active" : ""}`}
-                  onClick={() => {
-                    onScopeChange("trash");
-                    onSelect(null, null);
-                  }}
-                >
-                  <Trash2 size={15} style={{ color: scope === "trash" ? "#ef4444" : "var(--hb-text-muted)" }} />
-                  <span className="hb-row-label">Trash</span>
-                  <span className="hb-row-count">
-                    {stats.data?.trashTotal ?? 0}
-                  </span>
-                </button>
-                <button
-                  className={`hb-row ${scope === "archived" ? "active" : ""}`}
-                  onClick={() => {
-                    onScopeChange("archived");
-                    onSelect(null, null);
-                  }}
-                >
+                {canReadBugTrash && (
+                  <button
+                    className={`hb-row ${scope === "trash" ? "active" : ""}`}
+                    onClick={() => {
+                      onScopeChange("trash");
+                      onSelect(null, null);
+                    }}
+                  >
+                    <Trash2 size={15} style={{ color: scope === "trash" ? "#ef4444" : "var(--hb-text-muted)" }} />
+                    <span className="hb-row-label">Trash</span>
+                    <span className="hb-row-count">
+                      {stats.data?.trashTotal ?? 0}
+                    </span>
+                  </button>
+                )}
+                {canReadBugArchive && (
+                  <button
+                    className={`hb-row ${scope === "archived" ? "active" : ""}`}
+                    onClick={() => {
+                      onScopeChange("archived");
+                      onSelect(null, null);
+                    }}
+                  >
                   <Archive size={15} style={{ color: scope === "archived" ? "#10B981" : "var(--hb-text-muted)" }} />
                   <span className="hb-row-label">Archived</span>
                   <span className="hb-row-count">
                     {stats.data?.archivedTotal ?? 0}
                   </span>
-                </button>
+                  </button>
+                )}
               </>
             )}
           </div>)}
@@ -286,9 +290,11 @@ export default function HivebugSidebar({
                 <Library size={11} className="hb-section-title-icon" />
                 <span>COLLECTIONS</span>
               </span>
-              <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
-                <Plus size={13} />
-              </button>
+              {canCreateBug && (
+                <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
+                  <Plus size={13} />
+                </button>
+              )}
             </div>
 
             <div className="hb-sidebar-search">
@@ -464,33 +470,35 @@ function FolderNode({
         <span className="hb-row-count">
           {Math.max(0, (folder._count?.bugs ?? 0) - trashCount)}
         </span>
-        <Dropdown
-          trigger={["click"]}
-          menu={{
-            items: [
-              { key: "add-sheet", label: "Add sheet", disabled: !canCreateBug },
-              { key: "edit", label: "Edit", disabled: !canUpdateBug },
-              { type: "divider" },
-              { key: "archive", label: "Move to Archive", disabled: !canUpdateBug },
-              { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
-            ],
-            onClick: ({ key, domEvent }) => {
-              domEvent.stopPropagation();
-              if (key === "add-sheet") onAddSheet();
-              if (key === "edit") onEdit();
-              if (key === "archive") archiveFolder.mutate(folder.id);
-              if (key === "delete") deleteFolder.mutate(folder.id);
-            },
-          }}
-        >
-          <button
-            className="hb-icon-btn hb-row-action"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Folder actions"
+        {(canCreateBug || canUpdateBug || canDeleteBug) && (
+          <Dropdown
+            trigger={["click"]}
+            menu={{
+              items: [
+                { key: "add-sheet", label: "Add sheet", disabled: !canCreateBug },
+                { key: "edit", label: "Edit", disabled: !canUpdateBug },
+                { type: "divider" },
+                { key: "archive", label: "Move to Archive", disabled: !canDeleteBug },
+                { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
+              ],
+              onClick: ({ key, domEvent }) => {
+                domEvent.stopPropagation();
+                if (key === "add-sheet") onAddSheet();
+                if (key === "edit") onEdit();
+                if (key === "archive") archiveFolder.mutate(folder.id);
+                if (key === "delete") deleteFolder.mutate(folder.id);
+              },
+            }}
           >
-            <MoreHorizontal size={13} />
-          </button>
-        </Dropdown>
+            <button
+              className="hb-icon-btn hb-row-action"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Folder actions"
+            >
+              <MoreHorizontal size={13} />
+            </button>
+          </Dropdown>
+        )}
       </div>
 
       {isOpen && (
@@ -541,7 +549,7 @@ function SheetNode({
 }) {
   const deleteSheet = useDeleteBugSheet();
   const updateSheetStatus = useUpdateBugSheetStatus();
-  const { canUpdateBug, canDeleteBug } = usePermission();
+  const { canUpdateBug, canDeleteBug, canRestoreBugArchive } = usePermission();
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: sheet.id,
@@ -576,65 +584,69 @@ function SheetNode({
       <span className="hb-row-count">
         {Math.max(0, (sheet._count?.bugs ?? 0) - trashCount)}
       </span>
-      <Dropdown
-        trigger={["click"]}
-        menu={{
-          items: [
-            ...(isArchived ? [{
-              key: "toggle-archived",
-              label: "Restore from archive",
-            }] : [
-              {
-                key: "toggle-current",
-                label: isCurrent ? "Unmark as current" : "Mark as current",
-              },
-              {
-                key: "toggle-completed",
-                label: isCompleted ? "Reopen sheet" : "Mark as completed",
-              },
-              ...(isCompleted ? [{
+      {(canUpdateBug || canDeleteBug) && (
+        <Dropdown
+          trigger={["click"]}
+          menu={{
+            items: [
+              ...(isArchived ? [{
                 key: "toggle-archived",
-                label: "Move to archive",
-              }] : []),
-            ]),
-            { type: "divider" },
-            { key: "edit", label: "Edit", disabled: isArchived || !canUpdateBug },
-            { type: "divider" },
-            { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
-          ],
-          onClick: ({ key, domEvent }) => {
-            domEvent.stopPropagation();
-            if (key === "toggle-current") {
-              updateSheetStatus.mutate({
-                id: sheet.id,
-                status: isCurrent ? "active" : "current",
-              });
-            }
-            if (key === "toggle-completed") {
-              updateSheetStatus.mutate({
-                id: sheet.id,
-                status: isCompleted ? "active" : "completed",
-              });
-            }
-            if (key === "toggle-archived") {
-              updateSheetStatus.mutate({
-                id: sheet.id,
-                status: isArchived ? "active" : "archived",
-              });
-            }
-            if (key === "edit") onEditSheet(sheet);
-            if (key === "delete") deleteSheet.mutate(sheet.id);
-          },
-        }}
-      >
-        <button
-          className="hb-icon-btn hb-row-action"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Sheet actions"
+                label: "Restore from archive",
+                disabled: !canRestoreBugArchive
+              }] : [
+                {
+                  key: "toggle-current",
+                  label: isCurrent ? "Unmark as current" : "Mark as current",
+                },
+                {
+                  key: "toggle-completed",
+                  label: isCompleted ? "Reopen sheet" : "Mark as completed",
+                },
+                ...(isCompleted ? [{
+                  key: "toggle-archived",
+                  label: "Move to archive",
+                  disabled: !canDeleteBug
+                }] : []),
+              ]),
+              { type: "divider" },
+              { key: "edit", label: "Edit", disabled: isArchived || !canUpdateBug },
+              { type: "divider" },
+              { key: "delete", label: "Move to Trash", danger: true, disabled: !canDeleteBug },
+            ],
+            onClick: ({ key, domEvent }) => {
+              domEvent.stopPropagation();
+              if (key === "toggle-current") {
+                updateSheetStatus.mutate({
+                  id: sheet.id,
+                  status: isCurrent ? "active" : "current",
+                });
+              }
+              if (key === "toggle-completed") {
+                updateSheetStatus.mutate({
+                  id: sheet.id,
+                  status: isCompleted ? "active" : "completed",
+                });
+              }
+              if (key === "toggle-archived") {
+                updateSheetStatus.mutate({
+                  id: sheet.id,
+                  status: isArchived ? "active" : "archived",
+                });
+              }
+              if (key === "edit") onEditSheet(sheet);
+              if (key === "delete") deleteSheet.mutate(sheet.id);
+            },
+          }}
         >
-          <MoreHorizontal size={12} />
-        </button>
-      </Dropdown>
+          <button
+            className="hb-icon-btn hb-row-action"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Sheet actions"
+          >
+            <MoreHorizontal size={12} />
+          </button>
+        </Dropdown>
+      )}
     </div>
   );
 }

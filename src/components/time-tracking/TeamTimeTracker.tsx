@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
   TeamOutlined,
@@ -22,6 +23,7 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTheme } from "@/context/ThemeContext";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
   const min = Math.min(...data);
@@ -1088,30 +1090,31 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         </div>
 
         <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
-          <Table
-            className="mtt-team-table"
-            columns={userColumns}
-            dataSource={pagedData}
-            loading={loading}
-            rowKey={(record) => record.id}
-            expandable={{ expandedRowRender }}
-            pagination={false}
-            size="small"
-            scroll={{ x: 900 }}
-            locale={{
-              emptyText: loading ? <></> : (
-                <div className="mtt-tracker-card__empty">
-                  <div className="mtt-tracker-card__empty-icon">
-                    <TeamOutlined />
-                  </div>
-                  <div className="mtt-tracker-card__empty-title">No team activity in this range</div>
-                  <div className="mtt-tracker-card__empty-sub">
-                    Try widening the date range or clearing filters to see more.
-                  </div>
-                </div>
-              )
-            }}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                              className="mtt-team-table"
+                              columns={userColumns}
+                              dataSource={pagedData}
+                              rowKey={(record) => record.id}
+                              expandable={{ expandedRowRender }}
+                              pagination={false}
+                              size="small"
+                              scroll={{ x: 900 }}
+                              locale={{
+                                emptyText: loading ? <></> : (
+                                  <div className="mtt-tracker-card__empty">
+                                    <div className="mtt-tracker-card__empty-icon">
+                                      <TeamOutlined />
+                                    </div>
+                                    <div className="mtt-tracker-card__empty-title">No team activity in this range</div>
+                                    <div className="mtt-tracker-card__empty-sub">
+                                      Try widening the date range or clearing filters to see more.
+                                    </div>
+                                  </div>
+                                )
+                              }}
+                            />
+                  </ZukvoLoadingOverlay>
         </div>
       </div>
 

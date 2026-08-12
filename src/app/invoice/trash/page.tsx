@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -10,7 +12,6 @@ import {
   Button,
   Input,
   Modal,
-  Spin,
   message,
   Progress,
   Select,
@@ -53,6 +54,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -597,7 +599,7 @@ export default function InvoiceTrashPage() {
     return (
       <MainLayout>
         <div className="flex justify-center items-center h-screen">
-          <Spin size="large" />
+          <ZukvoLoader size="lg" />
         </div>
       </MainLayout>
     );
@@ -912,7 +914,7 @@ export default function InvoiceTrashPage() {
                   border: "1px solid var(--border-color)",
                 }}
               >
-                <Spin />
+                <ZukvoLoader size="md" />
               </div>
             ) : filteredInvoices.length === 0 ? (
               <div
@@ -980,19 +982,20 @@ export default function InvoiceTrashPage() {
                   border: "1px solid var(--border-color)",
                 }}
               >
-                <Table
-                  loading={isFetching}
-                  size="middle"
-                  rowSelection={rowSelection}
-                  columns={columns}
-                  dataSource={filteredInvoices.map((inv) => ({
-                    ...inv,
-                    key: inv.id,
-                  }))}
-                  pagination={false}
-                  scroll={{ x: 1100 }}
-                  className="trash-table"
-                />
+                <ZukvoLoadingOverlay loading={isFetching} message="">
+                  <Table
+                    size="middle"
+                    rowSelection={rowSelection}
+                    columns={columns}
+                    dataSource={filteredInvoices.map((inv) => ({
+                      ...inv,
+                      key: inv.id,
+                    }))}
+                    pagination={false}
+                    scroll={{ x: 1100 }}
+                    className="trash-table"
+                  />
+                </ZukvoLoadingOverlay>
               </div>
             )}
           </div>

@@ -1,63 +1,34 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
-import BugListPage from "@/components/projects/bug-list/BugListPage";
 
-export default function BugListRoute() {
-  const { isLoading: authLoading } = useAuth();
-  const { canReadTicket } = usePermission();
+/**
+ * The Bug List moved to QA Space. This route stays behind so existing links and
+ * bookmarks land on the new page instead of a 404.
+ */
+export default function BugListRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !canReadTicket) {
-      router.push("/dashboard");
-    }
-  }, [authLoading, canReadTicket, router]);
-
-  if (authLoading) {
-    return (
-      <MainLayout noPadding>
-        <div
-          style={{
-            margin: 0,
-            padding: "24px 32px",
-            background: "var(--bg-pure-white)",
-            minHeight: "calc(100vh - 64px)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            overflow: "hidden",
-            width: "100%",
-            maxWidth: "100vw",
-          }}
-        >
-          <Spin size="large" tip="Loading bug list..." />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (!canReadTicket) return null;
+    router.replace("/qa-workspace/bug-list");
+  }, [router]);
 
   return (
     <MainLayout noPadding>
       <div
         style={{
-          margin: 0,
-          padding: 0,
+          minHeight: "calc(100vh - 64px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
           background: "var(--bg-pure-white)",
-          height: "100%",
-          overflow: "hidden",
-          width: "100%",
-          maxWidth: "100vw",
         }}
       >
-        <BugListPage />
+        <ZukvoLoader size="lg" message="Taking you to QA Space…" />
       </div>
     </MainLayout>
   );

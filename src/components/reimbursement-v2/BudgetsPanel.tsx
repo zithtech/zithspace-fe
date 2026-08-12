@@ -19,6 +19,7 @@ import { DepartmentService } from '@/services/departmentService';
 import { ProjectService } from '@/services/projectService';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, CurrencySelect, currencySymbol, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const SCOPES = [
   { value: 'org', label: 'Whole organization' },
@@ -203,8 +204,10 @@ export default function BudgetsPanel() {
       ]} />
 
       <div className="rvp-table-wrap">
-        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={tablePaginationConfig} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+                        pagination={tablePaginationConfig} />
+              </ZukvoLoadingOverlay>
       </div>
 
       <Drawer

@@ -2,20 +2,40 @@
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
+import { App } from 'antd';
 import Link from 'next/link';
 import '@/app/proposals/library.css';
-import { Plus, Search, Eye, FileText, X, Edit2, Trash2, LayoutGrid, List, MoreVertical } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Eye,
+  FileText,
+  X,
+  Edit2,
+  Trash2,
+  LayoutGrid,
+  List,
+  MoreVertical,
+  UploadCloud,
+  Check,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PositionService, Position } from '@/services/positionService';
-import { AutoComplete, Drawer, Table, Dropdown, Button } from 'antd';
+import OpeningV2Service, {
+  type OpeningListItem,
+  type SkillMatchResult,
+} from '@/services/openingV2Service';
+import { AutoComplete, Drawer, Table, Dropdown, Button, Progress } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { usePermission } from '@/hooks/usePermission';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function CandidatesPage() {
+  const { message } = App.useApp();
   const [candidates, setCandidates] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,6 +43,9 @@ export default function CandidatesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editCandidate, setEditCandidate] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [expFilter, setExpFilter] = useState<string>("all");
   const { canCreateRecruitment, canUpdateRecruitment, canDeleteRecruitment } = usePermission();
 
   const fetchCandidates = async () => {
@@ -78,8 +101,9 @@ export default function CandidatesPage() {
               try {
                 await pipelineClient.deleteCandidate(record.id);
                 fetchCandidates();
+                message.success('Candidate deleted successfully');
               } catch (err) {
-                alert('Failed to delete candidate');
+                message.error('Failed to delete candidate');
               }
             }}
           >
@@ -129,7 +153,7 @@ export default function CandidatesPage() {
       dataIndex: "total_experience",
       width: 120,
       render: (exp: number) => (
-        <span style={{ color: "var(--text-slate-500)", fontSize: 11.5 }}>{exp} Yrs</span>
+        <span style={{ color: "var(--text-slate-500)", fontSize: 11.5 }}>{exp ?? 0} Yrs</span>
       ),
     },
     {
@@ -140,19 +164,16 @@ export default function CandidatesPage() {
         let statusColor = '#64748b';
         let bgColor = 'rgba(100,116,139,0.10)';
         let ringColor = 'rgba(100,116,139,0.25)';
-        
-        if (status === 'Interviewing') {
-           statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)';
-        }
-        if (status === 'Offered') {
-           statusColor = '#10b981'; bgColor = 'rgba(16,185,129,0.10)'; ringColor = 'rgba(16,185,129,0.25)';
-        }
-        if (status === 'Onboarded') {
-           statusColor = '#059669'; bgColor = 'rgba(5,150,105,0.10)'; ringColor = 'rgba(5,150,105,0.25)';
-        }
-        if (status === 'Rejected') {
-           statusColor = '#ef4444'; bgColor = 'rgba(239,68,68,0.10)'; ringColor = 'rgba(239,68,68,0.25)';
-        }
+
+        if (status === 'Applied') { statusColor = '#3b82f6'; bgColor = 'rgba(59,130,246,0.10)'; ringColor = 'rgba(59,130,246,0.25)'; }
+        if (status === 'Screening') { statusColor = '#6366f1'; bgColor = 'rgba(99,102,241,0.10)'; ringColor = 'rgba(99,102,241,0.25)'; }
+        if (status === 'Shortlisted') { statusColor = '#8b5cf6'; bgColor = 'rgba(139,92,246,0.10)'; ringColor = 'rgba(139,92,246,0.25)'; }
+        if (status === 'Interview') { statusColor = '#f59e0b'; bgColor = 'rgba(245,158,11,0.10)'; ringColor = 'rgba(245,158,11,0.25)'; }
+        if (status === 'Offer') { statusColor = '#10b981'; bgColor = 'rgba(16,185,129,0.10)'; ringColor = 'rgba(16,185,129,0.25)'; }
+        if (status === 'Hired') { statusColor = '#059669'; bgColor = 'rgba(5,150,105,0.10)'; ringColor = 'rgba(5,150,105,0.25)'; }
+        if (status === 'Rejected') { statusColor = '#ef4444'; bgColor = 'rgba(239,68,68,0.10)'; ringColor = 'rgba(239,68,68,0.25)'; }
+        if (status === 'Withdrawn') { statusColor = '#64748b'; bgColor = 'rgba(100,116,139,0.10)'; ringColor = 'rgba(100,116,139,0.25)'; }
+        if (status === 'On Hold') { statusColor = '#f97316'; bgColor = 'rgba(249,115,22,0.10)'; ringColor = 'rgba(249,115,22,0.25)'; }
 
         return (
           <span
@@ -198,6 +219,27 @@ export default function CandidatesPage() {
         );
       }
     }
+  ];
+
+  const filteredCandidates = candidates.filter((c) => {
+    if (statusFilter !== 'all' && c.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (roleFilter !== 'all' && c.role?.toLowerCase() !== roleFilter.toLowerCase()) return false;
+    if (expFilter !== 'all') {
+      const exp = parseFloat(c.total_experience || '0');
+      if (expFilter === '0-2' && exp > 2) return false;
+      if (expFilter === '3-5' && (exp < 3 || exp > 5)) return false;
+      if (expFilter === '5+' && exp < 5) return false;
+    }
+    return true;
+  });
+
+  const roles = Array.from(new Set(candidates.map(c => c.role).filter(Boolean)));
+
+  const stats = [
+    { label: "Total Candidates", value: candidates.length, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
+    { label: "Interview", value: candidates.filter(c => c.status === 'Interview').length, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { label: "Hired", value: candidates.filter(c => c.status === 'Hired').length, color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { label: "Rejected", value: candidates.filter(c => c.status === 'Rejected').length, color: "#ef4444", bg: "rgba(239,68,68,0.1)" }
   ];
 
   return (
@@ -247,105 +289,181 @@ export default function CandidatesPage() {
 
       <div className="pl-divider" />
 
+      <div className="pp-stats py-4">
+        {stats.map((s) => (
+          <div key={s.label} className="pp-stat-card">
+            <div className="pp-stat-top">
+              <div className="pp-stat-left">
+                <span className="pp-stat-icon" style={{ background: s.bg, color: s.color }}>
+                  <LayoutGrid size={12} />
+                </span>
+                <span className="pp-stat-label">{s.label}</span>
+              </div>
+            </div>
+            <div className="pp-stat-bottom">
+              <div className="pp-stat-value-wrap">
+                <span className="pp-stat-value">{s.value}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filters</div>
+        <div className="w-48">
+          <SearchableDropdown
+            value={statusFilter}
+            onChange={(val) => setStatusFilter(val)}
+            placeholder="All Statuses"
+            options={[
+              { label: 'All Statuses', value: 'all' },
+              { label: 'Applied', value: 'applied' },
+              { label: 'Screening', value: 'screening' },
+              { label: 'Shortlisted', value: 'shortlisted' },
+              { label: 'Interview', value: 'interview' },
+              { label: 'Offer', value: 'offer' },
+              { label: 'Hired', value: 'hired' },
+              { label: 'Rejected', value: 'rejected' },
+              { label: 'Withdrawn', value: 'withdrawn' },
+              { label: 'On Hold', value: 'on hold' },
+            ]}
+          />
+        </div>
+
+        <div className="w-56">
+          <SearchableDropdown
+            value={roleFilter}
+            onChange={(val) => setRoleFilter(val)}
+            placeholder="All Roles"
+            options={[
+              { label: 'All Roles', value: 'all' },
+              ...roles.map(r => ({ label: r as string, value: r as string }))
+            ]}
+          />
+        </div>
+
+        <div className="w-48">
+          <SearchableDropdown
+            value={expFilter}
+            onChange={(val) => setExpFilter(val)}
+            placeholder="Any Experience"
+            options={[
+              { label: 'Any Experience', value: 'all' },
+              { label: '0 - 2 Years', value: '0-2' },
+              { label: '3 - 5 Years', value: '3-5' },
+              { label: '5+ Years', value: '5+' },
+            ]}
+          />
+        </div>
+      </div>
+
       <div className="pl-body">
-        {viewMode === "table" ? (
-          <div className="pp-table-wrap">
-            <Table
-              size="small"
-              columns={columns}
-              dataSource={candidates.map(c => ({ ...c, key: c.id }))}
-              loading={loading}
-              pagination={false}
-              className="pp-table"
-              scroll={{ x: 800 }}
-              onRow={(record) => ({
-                onClick: (e) => {
-                  const t = e.target as HTMLElement;
-                  if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
-                  router.push(`/pipeline/candidates/${record.id}`);
-                },
-                className: 'pp-row',
-                style: { cursor: 'pointer' }
-              })}
-            />
-          </div>
-        ) : (
-          <div className="pp-grid">
-            {loading ? (
-              <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
-            ) : candidates.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
-            ) : (
-              candidates.map((c) => {
-                const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                let statusColor = '#64748b'; // default slate
-                if (c.status === 'Interviewing') statusColor = '#3b82f6'; // blue
-                if (c.status === 'Offered') statusColor = '#10b981'; // green
-                if (c.status === 'Onboarded') statusColor = '#059669'; // dark green
-                if (c.status === 'Rejected') statusColor = '#ef4444'; // red
+        <ZukvoLoadingOverlay loading={loading} message="">
+          {viewMode === "table" ? (
+            <div className="pp-table-wrap">
+              <Table
+                size="small"
+                columns={columns}
+                dataSource={filteredCandidates.map(c => ({ ...c, key: c.id }))}
+                pagination={false}
+                className="pp-table"
+                scroll={{ x: 800 }}
+                onRow={(record) => ({
+                  onClick: (e) => {
+                    const t = e.target as HTMLElement;
+                    if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
+                    router.push(`/pipeline/candidates/${record.id}`);
+                  },
+                  className: 'pp-row',
+                  style: { cursor: 'pointer' }
+                })}
+              />
 
-                return (
-                  <div key={c.id} className="pc-card">
-                    <div className="pc-top">
-                      <div
-                        className="pc-avatar"
-                        style={{
-                          background: `linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)`,
-                        }}
-                      >
-                        {initials}
-                      </div>
-                      <div className="pc-identity-body">
-                        <div className="pc-title" style={{ fontSize: '13px' }}>
-                          {c.name}
-                        </div>
-                        <div className="pc-client-line">
-                          <span className="pc-client-key">Role:</span>
-                          <span className="pc-client-val">{c.role}</span>
-                        </div>
-                      </div>
-                      <Dropdown menu={{ items: getMenuItems(c) }} overlayClassName="pp-action-pop" trigger={["click"]} placement="bottomRight">
-                        <button type="button" className="pc-actions" onClick={e => e.stopPropagation()}>
-                          <MoreVertical size={16} />
-                        </button>
-                      </Dropdown>
-                    </div>
+            </div>
+          ) : (
+            <div className="pp-grid">
+              {loading ? (
+                <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
+              ) : filteredCandidates.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
+              ) : (
+                filteredCandidates.map((c) => {
+                  const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                  let statusColor = '#94a3b8'; // default
+                  if (c.status === 'Applied') statusColor = '#3b82f6';
+                  if (c.status === 'Screening') statusColor = '#6366f1';
+                  if (c.status === 'Shortlisted') statusColor = '#8b5cf6';
+                  if (c.status === 'Interview') statusColor = '#f59e0b';
+                  if (c.status === 'Offer') statusColor = '#10b981';
+                  if (c.status === 'Hired') statusColor = '#059669';
+                  if (c.status === 'Rejected') statusColor = '#ef4444';
+                  if (c.status === 'Withdrawn') statusColor = '#64748b';
+                  if (c.status === 'On Hold') statusColor = '#f97316';
 
-                    <div className="pc-foot">
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Exp:</span>
-                          <span className="pc-foot-val">{c.total_experience} Yrs</span>
-                        </span>
-                        <span className="pc-foot-div" />
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Email:</span>
-                          <span className="pc-foot-val" style={{ fontWeight: 500 }}>
-                            {c.email}
-                          </span>
-                        </span>
+                  return (
+                    <div key={c.id} className="pc-card">
+                      <div className="pc-top">
+                        <div
+                          className="pc-avatar"
+                          style={{
+                            background: `linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)`,
+                          }}
+                        >
+                          {initials}
+                        </div>
+                        <div className="pc-identity-body">
+                          <div className="pc-title" style={{ fontSize: '13px' }}>
+                            {c.name}
+                          </div>
+                          <div className="pc-client-line">
+                            <span className="pc-client-key">Role:</span>
+                            <span className="pc-client-val">{c.role}</span>
+                          </div>
+                        </div>
+                        <Dropdown menu={{ items: getMenuItems(c) }} overlayClassName="pp-action-pop" trigger={["click"]} placement="bottomRight">
+                          <button type="button" className="pc-actions" onClick={e => e.stopPropagation()}>
+                            <MoreVertical size={16} />
+                          </button>
+                        </Dropdown>
                       </div>
-                      <div className="pc-foot-row">
-                        <span className="pc-foot-item">
-                          <span className="pc-foot-key">Status:</span>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              color: statusColor,
-                            }}
-                          >
-                            {c.status.toUpperCase()}
+
+                      <div className="pc-foot">
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Exp:</span>
+                            <span className="pc-foot-val">{c.total_experience ?? 0} Yrs</span>
                           </span>
-                        </span>
+                          <span className="pc-foot-div" />
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Email:</span>
+                            <span className="pc-foot-val" style={{ fontWeight: 500 }}>
+                              {c.email}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="pc-foot-row">
+                          <span className="pc-foot-item">
+                            <span className="pc-foot-key">Status:</span>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                color: statusColor,
+                              }}
+                            >
+                              {c.status.toUpperCase()}
+                            </span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
+                  );
+                })
+              )}
+            </div>
+          )}
+        </ZukvoLoadingOverlay>
       </div>
 
       <div className="pl-footer pl-footer--sticky">
@@ -365,6 +483,7 @@ export default function CandidatesPage() {
 }
 
 function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boolean) => void, editCandidate?: any }) {
+  const { message } = App.useApp();
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [formData, setFormData] = useState({
@@ -380,48 +499,151 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
+  // Openings that can actually receive candidates. A draft or closed opening
+  // would be rejected by the backend, so it is never offered here.
+  const [openings, setOpenings] = useState<OpeningListItem[]>([]);
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   useEffect(() => {
     PositionService.getAll().then(setPositions).catch(console.error);
+    OpeningV2Service.list({
+      pageSize: 200,
+      status: ['approved', 'internal_posting', 'external_posting', 'in_progress'],
+    })
+      .then((res) => setOpenings(res.items))
+      // Attaching to an opening is optional, so a failure here must not block
+      // adding a candidate.
+      .catch(() => setOpenings([]));
   }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const f = e.target.files[0];
-      setFile(f);
-      setError('');
-      setIsParsing(true);
-      try {
-        const res = await pipelineClient.parseResume(f);
-        if (res.success && res.data.parsed) {
-          setFormData((prev) => ({
-            ...prev,
-            ...res.data.parsed,
-            current_ctc: res.data.parsed.current_ctc || '',
-            expected_ctc: res.data.parsed.expected_ctc || '',
-            resume_url: res.data.file_url || prev.resume_url,
-          }));
-        }
-      } catch (err: any) {
-        console.error('PARSE ERROR:', err);
-        setError(err.response?.data?.error || err.message || String(err) || 'Failed to parse resume');
-      } finally {
-        setIsParsing(false);
-      }
+  const selectedOpening = openings.find((o) => o.id === openingId) ?? null;
+  // Skills lifted off the resume, and how well they line up with the opening.
+  const [resumeSkills, setResumeSkills] = useState<string[]>(editCandidate?.skills || []);
+  // Two distinct phases: the upload has a real percentage, the AI extraction
+  // does not. Showing an invented percentage for the second would be a lie.
+  const [uploadPhase, setUploadPhase] = useState<
+    'idle' | 'uploading' | 'extracting' | 'done' | 'error'
+  >('idle');
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [match, setMatch] = useState<SkillMatchResult | null>(null);
+  const [matching, setMatching] = useState(false);
+
+  useEffect(() => {
+    if (!openingId || resumeSkills.length === 0) {
+      setMatch(null);
+      return;
     }
+    setMatching(true);
+    OpeningV2Service.skillMatch(openingId, resumeSkills)
+      .then(setMatch)
+      .catch((err) => {
+        console.error('Failed to score skills', err);
+        setMatch(null);
+      })
+      .finally(() => setMatching(false));
+  }, [openingId, resumeSkills]);
+
+  const MAX_RESUME_MB = 10;
+
+  const processFile = async (f: File) => {
+    // Reject early with a specific reason rather than letting the server 500.
+    const ext = f.name.toLowerCase().split('.').pop() ?? '';
+    if (!['pdf', 'doc', 'docx'].includes(ext)) {
+      setError('Upload a PDF or Word document');
+      setUploadPhase('error');
+      return;
+    }
+    if (f.size > MAX_RESUME_MB * 1024 * 1024) {
+      setError(`That file is ${(f.size / 1024 / 1024).toFixed(1)} MB — the limit is ${MAX_RESUME_MB} MB`);
+      setUploadPhase('error');
+      return;
+    }
+
+    setFile(f);
+    setError('');
+    setResumeSkills([]);
+    setUploadPercent(0);
+    setUploadPhase('uploading');
+    setIsParsing(true);
+
+    try {
+      const res = await pipelineClient.parseResume(f, (percent) => {
+        setUploadPercent(percent);
+        // Bytes are all sent; everything after this is server-side parsing.
+        if (percent >= 100) setUploadPhase('extracting');
+      });
+      if (res.success && res.data.parsed) {
+        const parsed = res.data.parsed;
+        setFormData((prev) => ({
+          ...prev,
+          ...parsed,
+          current_ctc: parsed.current_ctc || '',
+          expected_ctc: parsed.expected_ctc || '',
+          resume_url: res.data.file_url || prev.resume_url,
+        }));
+        setResumeSkills(Array.isArray(parsed.skills) ? parsed.skills : []);
+        setUploadPhase('done');
+      } else {
+        setUploadPhase('error');
+        setError('The resume was uploaded but nothing could be read from it');
+      }
+    } catch (err: any) {
+      console.error('PARSE ERROR:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to parse resume');
+      setUploadPhase('error');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    // Reset the input so re-picking the same file still fires onChange.
+    e.target.value = '';
+    if (f) await processFile(f);
+  };
+
+  const clearResume = () => {
+    setFile(null);
+    setResumeSkills([]);
+    setUploadPhase('idle');
+    setUploadPercent(0);
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
+      const payload = { ...formData, skills: resumeSkills };
       let res;
       if (editCandidate) {
-        res = await pipelineClient.updateCandidate(editCandidate.id, formData);
+        res = await pipelineClient.updateCandidate(editCandidate.id, payload);
       } else {
-        res = await pipelineClient.createCandidate(formData);
+        res = await pipelineClient.createCandidate(payload);
       }
       if (res.success) {
+        // Attaching is a second call: the pipeline owns the candidate record,
+        // the opening module owns the application. A failure here must not
+        // silently lose the candidate that was just saved.
+        const newId = res.data?.id ?? res.data?.candidate?.id;
+        if (openingId && newId && !editCandidate) {
+          try {
+            await OpeningV2Service.addApplication(openingId, {
+              pipelineCandidateId: newId,
+              source: 'manual_upload',
+              resumeUrl: formData.resume_url || null,
+            });
+          } catch (attachErr: any) {
+            setError(
+              attachErr?.response?.data?.error ||
+              'Candidate saved, but could not be added to the opening'
+            );
+            return;
+          }
+        }
+        message.success(editCandidate ? 'Candidate updated successfully' : 'Candidate created successfully');
         setSuccess(true);
         setTimeout(() => onClose(true), 1500);
       }
@@ -450,68 +672,371 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           {success && <div className="mb-4 p-3 bg-green-50 text-green-600 text-sm rounded-md border border-green-100">Candidate saved successfully!</div>}
 
           <form id="candidateForm" onSubmit={handleSubmit} className="flex flex-col">
-            <SectionCard 
-              title={editCandidate ? "Applied Role" : "Select Applied Role"} 
-              step={editCandidate ? undefined : "STEP 1"} 
+            <SectionCard
+              title={editCandidate ? "Applied Role" : "Opening or Role"}
+              step={editCandidate ? undefined : "STEP 1"}
               icon={<Search size={14} />}
+              subtitle={
+                editCandidate
+                  ? undefined
+                  : "Attach to a live opening, or pick the position if you are sourcing without one."
+              }
             >
+              {!editCandidate && (
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                    Opening <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <SearchableDropdown
+                    placeholder="Select an active opening…"
+                    value={openingId}
+                    itemNoun="openings"
+                    onChange={(val) => {
+                      setOpeningId(val ?? null);
+                      // The opening's job title IS the applied role — keep the two
+                      // from drifting apart rather than asking twice.
+                      const chosen = openings.find((o) => o.id === val);
+                      if (chosen) setFormData((prev) => ({ ...prev, role: chosen.jobTitle }));
+                    }}
+                    options={openings.map((o) => ({
+                      value: o.id,
+                      label: `${o.openingCode} — ${o.jobTitle}`,
+                      description:
+                        [o.departmentName, o.clientName].filter(Boolean).join(' · ') || undefined,
+                    }))}
+                    emptyComponent={
+                      <div className="p-4 text-xs text-slate-400">
+                        No openings are accepting candidates yet.
+                      </div>
+                    }
+                  />
+                  {openingId && (
+                    <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      This candidate will appear on{' '}
+                      <span className="font-semibold">{selectedOpening?.openingCode}</span> under
+                      its Candidates tab.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                Position{!openingId && <span className="text-red-500"> *</span>}
+              </label>
               <SearchableDropdown
                 placeholder="Select a role..."
                 value={formData.role || undefined}
+                // With an opening chosen the role comes from it; without one the
+                // position is what tells the pipeline which interview config applies.
+                disabled={!!openingId}
                 onChange={(val) => setFormData({ ...formData, role: val })}
                 options={positions.map((p) => ({ value: p.title, label: p.title }))}
               />
+              {!openingId && !editCandidate && (
+                <div className="mt-2 text-[11px] text-slate-400">
+                  No opening selected — pick the position this candidate is for.
+                </div>
+              )}
             </SectionCard>
 
             {(formData.role || editCandidate) && (
               <>
                 {!editCandidate && (
-                  <SectionCard 
-                    title="Upload Resume" 
-                    step="STEP 2" 
-                    icon={<FileText size={14} />} 
-                    subtitle="Uploading a resume will automatically fill in the details below using AI."
+                  <SectionCard
+                    title="Upload Resume"
+                    step="STEP 2"
+                    icon={<FileText size={14} />}
+                    subtitle="PDF or Word. The details below are filled in automatically."
                   >
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-blue-200 dark:border-slate-700 text-blue-700 dark:text-blue-400 rounded-md cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition shadow-sm text-sm font-medium">
-                        <FileText size={16} /> Choose PDF
-                        <input type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
+                    {uploadPhase === 'idle' || uploadPhase === 'error' ? (
+                      <label
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const f = e.dataTransfer.files?.[0];
+                          if (f) processFile(f);
+                        }}
+                        className={`flex flex-col items-center justify-center gap-2 w-full py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${isDragging
+                            ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-500/10'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          }`}
+                      >
+                        <span
+                          className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}
+                        >
+                          <UploadCloud size={18} />
+                        </span>
+                        <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                          {isDragging ? 'Drop the file here' : 'Drag a resume here, or click to browse'}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          PDF, DOC or DOCX · up to {MAX_RESUME_MB} MB
+                        </span>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={handleUpload}
+                        />
                       </label>
-                      {file && <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{file.name}</span>}
-                      {isParsing && <span className="text-sm text-blue-500 font-semibold animate-pulse">Parsing with AI...</span>}
-                    </div>
+                    ) : (
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={
+                              uploadPhase === 'done'
+                                ? { background: 'rgba(16,185,129,0.10)', color: '#10B981' }
+                                : { background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }
+                            }
+                          >
+                            {uploadPhase === 'done' ? <Check size={17} /> : <FileText size={17} />}
+                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {file?.name}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {file ? `${(file.size / 1024).toFixed(0)} KB` : ''}
+                              {uploadPhase === 'uploading' && ` · Uploading ${uploadPercent}%`}
+                              {uploadPhase === 'extracting' && ' · Extracting details with AI'}
+                              {uploadPhase === 'done' && ' · Details filled in below'}
+                            </div>
+                          </div>
+
+                          {/* Replacing is only safe once the current file is done. */}
+                          {uploadPhase === 'done' && (
+                            <button
+                              type="button"
+                              onClick={clearResume}
+                              className="text-slate-400 hover:text-slate-600 p-1"
+                              title="Remove and upload another"
+                            >
+                              <X size={15} />
+                            </button>
+                          )}
+                        </div>
+
+                        {uploadPhase === 'uploading' && (
+                          <Progress
+                            percent={uploadPercent}
+                            size="small"
+                            strokeColor="#3b82f6"
+                            className="mt-3 mb-0"
+                          />
+                        )}
+
+                        {uploadPhase === 'extracting' && (
+                          // Indeterminate on purpose: the server is parsing and
+                          // we have no honest percentage for it.
+                          <div className="mt-3">
+                            <div className="h-1.5 w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                              <div className="pipe-indeterminate h-full rounded-full" />
+                            </div>
+                            <div className="text-[11px] text-blue-500 font-medium mt-1.5">
+                              Reading the resume — this usually takes a few seconds
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {resumeSkills.length > 0 && (
+                      <div className="mt-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                          Skills found on the resume ({resumeSkills.length})
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resumeSkills.map((sk) => (
+                            <span
+                              key={sk}
+                              className="px-2 py-0.5 text-[11px] rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                            >
+                              {sk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <style jsx global>{`
+                      .pipe-indeterminate {
+                        width: 40%;
+                        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+                        animation: pipe-slide 1.1s ease-in-out infinite;
+                      }
+                      @keyframes pipe-slide {
+                        0% { margin-left: -40%; }
+                        100% { margin-left: 100%; }
+                      }
+                    `}</style>
                   </SectionCard>
                 )}
-                
-                <SectionCard 
-                  title={editCandidate ? "Edit Details" : "Verify Details"} 
-                  step={editCandidate ? undefined : "STEP 3"} 
+
+                {/* Skill match — only meaningful once we have both sides. */}
+                {!editCandidate && openingId && resumeSkills.length > 0 && (
+                  <SectionCard
+                    title="Skill Match"
+                    icon={<Search size={14} />}
+                    subtitle={`Against ${selectedOpening?.openingCode ?? 'the opening'}`}
+                  >
+                    {matching ? (
+                      <div className="text-sm text-blue-500 font-medium animate-pulse">
+                        Matching skills…
+                      </div>
+                    ) : !match ? (
+                      <div className="text-sm text-slate-400">Could not score this resume.</div>
+                    ) : match.score === null ? (
+                      <div className="text-sm text-slate-500">{match.reason}</div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center gap-4 mb-4">
+                          <div
+                            className="relative flex items-center justify-center flex-shrink-0"
+                            style={{ width: 72, height: 72 }}
+                          >
+                            {/* Ring: conic-gradient avoids pulling in a chart lib. */}
+                            <div
+                              className="absolute inset-0 rounded-full"
+                              style={{
+                                background: `conic-gradient(${match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#94A3B8'
+                                  } ${match.score * 3.6}deg, var(--bg-slate-50, #f1f5f9) 0deg)`,
+                              }}
+                            />
+                            <div
+                              className="absolute rounded-full bg-white dark:bg-[#0B0F1A]"
+                              style={{ inset: 6 }}
+                            />
+                            <span
+                              className="relative text-[18px] font-extrabold"
+                              style={{
+                                color:
+                                  match.score >= 70 ? '#10B981' : match.score >= 40 ? '#3B82F6' : '#64748B',
+                              }}
+                            >
+                              {match.score}%
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
+                              {match.matchedRequired.length}/
+                              {match.matchedRequired.length + match.missingRequired.length} required
+                              {match.matchedPreferred.length + match.missingPreferred.length > 0 && (
+                                <>
+                                  {' · '}
+                                  {match.matchedPreferred.length}/
+                                  {match.matchedPreferred.length + match.missingPreferred.length}{' '}
+                                  preferred
+                                </>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                              Overlap between the resume and the opening&apos;s skill list — a
+                              sorting aid, not a verdict on the candidate.
+                            </div>
+                          </div>
+                        </div>
+
+                        {match.matchedRequired.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Matched
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {[...match.matchedRequired, ...match.matchedPreferred].map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md"
+                                  style={{ background: 'rgba(16,185,129,0.10)', color: '#10B981' }}
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {match.missingRequired.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Missing (required)
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {match.missingRequired.map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md border border-dashed border-slate-300 dark:border-slate-600 text-slate-500"
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {match.additional.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              Also brings
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {match.additional.slice(0, 12).map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2 py-0.5 text-[11px] rounded-md text-slate-500 border border-slate-200 dark:border-slate-700"
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                              {match.additional.length > 12 && (
+                                <span className="px-2 py-0.5 text-[11px] text-slate-400">
+                                  +{match.additional.length - 12} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </SectionCard>
+                )}
+
+                <SectionCard
+                  title={editCandidate ? "Edit Details" : "Verify Details"}
+                  step={editCandidate ? undefined : "STEP 3"}
                   icon={<Edit2 size={14} />}
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
-                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value.replace(/[^a-zA-Z\s\.\-']/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Experience (Yrs)</label>
-                      <input required type="number" step="0.5" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) })} />
+                      <input required type="number" step="0.5" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.total_experience} onKeyPress={(e) => { if (!/[0-9\.]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, total_experience: parseFloat(e.target.value) || 0 })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email</label>
-                      <input required type="email" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                      <input required type="email" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Mobile</label>
-                      <input required type="text" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
+                      <input required type="text" minLength={7} maxLength={15} className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.mobile} onKeyPress={(e) => { if (!/[0-9\+\-\s]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, mobile: e.target.value.replace(/[^0-9\+\-\s]/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Current CTC</label>
-                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value })} />
+                      <input type="number" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.current_ctc} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, current_ctc: e.target.value.replace(/[^0-9]/g, '') })} />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Expected CTC</label>
-                      <input type="number" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value })} />
+                      <input type="number" min="0" className="w-full border border-slate-200 dark:border-slate-700 bg-transparent dark:text-slate-200 rounded-md px-3 py-2 text-sm focus:border-blue-500 outline-none" value={formData.expected_ctc} onKeyPress={(e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={(e) => setFormData({ ...formData, expected_ctc: e.target.value.replace(/[^0-9]/g, '') })} />
                     </div>
                   </div>
                 </SectionCard>
@@ -520,11 +1045,25 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
           </form>
         </div>
         <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F1A] flex justify-end gap-3">
-          <button type="button" onClick={() => onClose(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700">
+          <button
+            type="button"
+            onClick={() => onClose(false)}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent dark:border-slate-700"
+          >
             Cancel
           </button>
-          <button type="submit" form="candidateForm" disabled={isParsing} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50">
-            Save Candidate
+          <button
+            type="submit"
+            form="candidateForm"
+            disabled={isParsing}
+            title={isParsing ? 'Wait for the resume to finish processing' : undefined}
+            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isParsing
+              ? uploadPhase === 'uploading'
+                ? `Uploading ${uploadPercent}%…`
+                : 'Extracting…'
+              : 'Save Candidate'}
           </button>
         </div>
       </div>

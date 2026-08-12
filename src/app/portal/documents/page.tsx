@@ -1,10 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Input,
   Empty,
-  Spin,
   Tooltip,
   Modal,
   message,
@@ -212,7 +213,7 @@ export default function PortalDocumentsPage() {
           { responseType: "blob" }
         );
 
-        const blob = new Blob([response.data], { type: response.headers["content-type"] });
+        const blob = new Blob([response.data], { type: response.headers["content-type"]?.toString() });
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = blobUrl;
@@ -334,7 +335,7 @@ export default function PortalDocumentsPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : docs.length === 0 ? (
           <div

@@ -393,6 +393,7 @@ import { useApproverTypeMap } from "@/hooks/usereimbursementcreate";
 import { ReimbursementResponse } from "@/services/reimbursementcreateService";
 import dayjs from "dayjs";
 import { useState, useMemo } from "react";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function EmployeeTab() {
   const router = useRouter();
@@ -717,42 +718,43 @@ export default function EmployeeTab() {
         </Tag>
       </div>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={filteredData}
-        loading={loading || deleteMutation.isPending}
-        size="small"
-        bordered
-        expandable={{
-          expandedRowRender,
-          expandRowByClick: true,
-          expandedRowKeys: expandedRows,
-          onExpand: (expanded, record) => {
-            if (expanded) {
-              setExpandedRows([...expandedRows, record.id]);
-            } else {
-              setExpandedRows(expandedRows.filter(id => id !== record.id));
-            }
-          },
-          expandIcon: ({ expanded, onExpand, record }) => (
-            <Button
-              type="text"
-              size="small"
-              icon={expanded ? <DownOutlined /> : <RightOutlined />}
-              onClick={(e) => onExpand(record, e)}
-              className="mr-2"
-            />
-          ),
-          rowExpandable: () => true,
-        }}
-        pagination={{
-          pageSize: 10,
-          size: "small",
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} reimbursements`,
-        }}
-      />
+      <ZukvoLoadingOverlay loading={loading || deleteMutation.isPending} message="">
+          <Table
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={filteredData}
+                  size="small"
+                  bordered
+                  expandable={{
+                    expandedRowRender,
+                    expandRowByClick: true,
+                    expandedRowKeys: expandedRows,
+                    onExpand: (expanded, record) => {
+                      if (expanded) {
+                        setExpandedRows([...expandedRows, record.id]);
+                      } else {
+                        setExpandedRows(expandedRows.filter(id => id !== record.id));
+                      }
+                    },
+                    expandIcon: ({ expanded, onExpand, record }) => (
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={expanded ? <DownOutlined /> : <RightOutlined />}
+                        onClick={(e) => onExpand(record, e)}
+                        className="mr-2"
+                      />
+                    ),
+                    rowExpandable: () => true,
+                  }}
+                  pagination={{
+                    pageSize: 10,
+                    size: "small",
+                    showSizeChanger: true,
+                    showTotal: (total) => `Total ${total} reimbursements`,
+                  }}
+                />
+          </ZukvoLoadingOverlay>
 
       {/* Approver Modal - Manager page maari */}
       <Modal

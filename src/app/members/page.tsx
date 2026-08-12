@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Card,
   Table,
@@ -76,6 +75,8 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { drawerFormStyles as formStyles, SectionCard, SectionHeader, commonDrawerProps } from "@/components/common/DrawerSection";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -273,8 +274,8 @@ interface MemberDrawerContentProps {
   managers: Member[];
   shifts: Shift[];
   availableRoles: RBACRole[];
-  invites: any[];
-  onInviteSelect: (employeeId: string | null) => void;
+  employees: any[];
+  onEmployeeSelect: (employeeId: string | null) => void;
 }
 
 const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
@@ -289,8 +290,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
   managers,
   shifts,
   availableRoles,
-  invites,
-  onInviteSelect,
+  employees,
+  onEmployeeSelect,
 }) => {
   const watchedRole =
     Form.useWatch("role", form) || selectedMember?.role || "user";
@@ -433,7 +434,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           colon={false}
           requiredMark="optional"
         >
-          {/* ── Import from Invites (Add mode only) ── */}
+          {/* ── Import from Employee (Add mode only) ── */}
           {mode === 'add' && (
             <div
               style={{
@@ -447,38 +448,41 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <Sparkles size={14} color="#3b82f6" />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                  Import from Invites
+                  Import from Employee
                 </span>
               </div>
               <Select
                 showSearch
                 allowClear
                 style={{ width: '100%' }}
-                placeholder="Select an invited employee to auto-fill details…"
+                placeholder="Select an employee to auto-fill details…"
                 optionFilterProp="label"
-                options={invites.map((inv: any) => ({
-                  value: inv.employeeId,
-                  label: `${inv.firstName} ${inv.lastName} — ${inv.workEmail}`,
+                options={employees.map((emp: any) => ({
+                  value: emp.id,
+                  label: `${emp.firstName || ''} ${emp.lastName || ''} — ${emp.workEmail || emp.personalEmail || ''}`.trim(),
                 }))}
                 onChange={(employeeId: string | undefined) => {
                   if (!employeeId) {
                     form.resetFields(['name', 'workEmail', 'personalEmail']);
-                    onInviteSelect(null);
+                    onEmployeeSelect(null);
                     return;
                   }
-                  const inv = invites.find((i: any) => i.employeeId === employeeId);
-                  if (inv) {
+                  const emp = employees.find((e: any) => e.id === employeeId);
+                  if (emp) {
                     form.setFieldsValue({
-                      name: `${inv.firstName} ${inv.lastName}`.trim(),
-                      workEmail: inv.workEmail || '',
-                      personalEmail: inv.personalEmail || '',
+                      name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+                      workEmail: emp.workEmail || '',
+                      personalEmail: emp.personalEmail || '',
+                      phone: emp.mobile || '',
+                      ...(emp.positionId ? { positionType: 'grade', position: emp.positionId } : {}),
+                      ...(emp.reportsToId ? { reportsTo: emp.reportsToId } : {}),
                     });
-                    onInviteSelect(employeeId);
+                    onEmployeeSelect(employeeId);
                   }
                 }}
               />
               <div style={{ fontSize: 11, color: 'var(--text-slate-400)', marginTop: 8 }}>
-                Selecting an invite will auto-fill Name, Work Email and Personal Email.
+                Selecting an employee will auto-fill Name, Work Email and Personal Email.
               </div>
             </div>
           )}
@@ -515,8 +519,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input 
-                placeholder="jane@company.com" 
+              <Input
+                placeholder="jane@company.com"
                 onKeyPress={(e) => {
                   if (e.key === ' ') {
                     e.preventDefault();
@@ -534,8 +538,8 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
                 { pattern: /^[^\s]+$/, message: "Spaces are not allowed" }
               ]}
             >
-              <Input 
-                placeholder="jane@personal.com" 
+              <Input
+                placeholder="jane@personal.com"
                 onKeyPress={(e) => {
                   if (e.key === ' ') {
                     e.preventDefault();
@@ -860,98 +864,98 @@ const MemberPreviewDrawerContent: React.FC<MemberPreviewDrawerContentProps> = ({
         }}
       >
         <div className="flex items-start gap-3 min-w-0">
-        <Avatar
-          size={46}
-          shape="square"
-          src={member.avatarUrl}
-          style={{
-            background: gradientFor(member.id || member.name || "x"),
-            color: "#fff",
-            fontSize: 18,
-            fontWeight: 800,
-            borderRadius: 12,
-            flexShrink: 0,
-          }}
-        >
-          {initialsOf(member.name || "")}
-        </Avatar>
-        <div className="min-w-0">
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
-              {member.name}
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "2px 8px",
-                borderRadius: 999,
-                background: member.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
-                color: member.isActive ? "#10b981" : "#ef4444",
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.02em",
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: member.isActive ? "#10b981" : "#ef4444" }} />
-              {member.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
-          <div style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginTop: 2 }}>
-            {member.position?.title || "—"}
-          </div>
-          {/* Meta row: Created By · Updated By · Updated — single line */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginTop: 6,
-            flexWrap: "nowrap",
-            overflow: "hidden",
-            minWidth: 0,
-          }}>
-            {member.createdBy && (
-              <>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                  <UserOutlined style={{ fontSize: 10 }} />
-                  <span>Created by</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {member.createdBy}
-                  </span>
-                </span>
-                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
-              </>
-            )}
-            {member.updatedBy && (
-              <>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                  <EditOutlined style={{ fontSize: 10 }} />
-                  <span>Updated by</span>
-                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {member.updatedBy}
-                  </span>
-                </span>
-                <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
-              </>
-            )}
-            {member.updatedAt && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
-                <CalendarOutlined style={{ fontSize: 10 }} />
-                <span style={{ fontWeight: 600, color: "var(--text-slate-600)", whiteSpace: "nowrap" }}>
-                  {dayjs(member.updatedAt).format("DD MMM YYYY")}
-                </span>
+          <Avatar
+            size={46}
+            shape="square"
+            src={member.avatarUrl}
+            style={{
+              background: gradientFor(member.id || member.name || "x"),
+              color: "#fff",
+              fontSize: 18,
+              fontWeight: 800,
+              borderRadius: 12,
+              flexShrink: 0,
+            }}
+          >
+            {initialsOf(member.name || "")}
+          </Avatar>
+          <div className="min-w-0">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)", letterSpacing: "-0.01em" }}>
+                {member.name}
               </span>
-            )}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 8px",
+                  borderRadius: 999,
+                  background: member.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
+                  color: member.isActive ? "#10b981" : "#ef4444",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.02em",
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: member.isActive ? "#10b981" : "#ef4444" }} />
+                {member.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text-slate-500)", marginTop: 2 }}>
+              {member.position?.title || "—"}
+            </div>
+            {/* Meta row: Created By · Updated By · Updated — single line */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 6,
+              flexWrap: "nowrap",
+              overflow: "hidden",
+              minWidth: 0,
+            }}>
+              {member.createdBy && (
+                <>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                    <UserOutlined style={{ fontSize: 10 }} />
+                    <span>Created by</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {member.createdBy}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+                </>
+              )}
+              {member.updatedBy && (
+                <>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                    <EditOutlined style={{ fontSize: 10 }} />
+                    <span>Updated by</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-slate-600)", maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {member.updatedBy}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--border-slate-200)", flexShrink: 0 }}>·</span>
+                </>
+              )}
+              {member.updatedAt && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}>
+                  <CalendarOutlined style={{ fontSize: 10 }} />
+                  <span style={{ fontWeight: 600, color: "var(--text-slate-600)", whiteSpace: "nowrap" }}>
+                    {dayjs(member.updatedAt).format("DD MMM YYYY")}
+                  </span>
+                </span>
+              )}
+            </div>
+
           </div>
-
         </div>
-      </div>
 
-      {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {(canUpdateUser || canManageUsers) && (
             <button
               type="button"
@@ -1366,8 +1370,10 @@ export default function MembersPage() {
   const [managers, setManagers] = useState<Member[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RBACRole[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
-  const [selectedInviteEmployeeId, setSelectedInviteEmployeeId] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  // State for forms
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
   // Layout and Sidebar view states
   const [allMembers, setAllMembers] = useState<Member[]>([]);
@@ -1485,9 +1491,9 @@ export default function MembersPage() {
     }
   };
 
-  const fetchInvites = async () => {
+  const fetchEmployees = async () => {
     try {
-      const res = await EmployeeOnboardingService.listInvites();
+      const res = await EmployeeOnboardingService.getAllEmployees();
       let list: any[] = [];
       if (Array.isArray(res)) {
         list = res;
@@ -1496,10 +1502,9 @@ export default function MembersPage() {
       } else if (Array.isArray(res?.data?.data)) {
         list = res.data.data;
       }
-      // Only show non-revoked invites in the dropdown
-      setInvites(list.filter((i: any) => i.status !== 'revoked'));
+      setEmployees(list);
     } catch (error) {
-      console.error("Failed to fetch onboarding invites:", error);
+      console.error("Failed to fetch employees:", error);
     }
   };
 
@@ -1515,13 +1520,13 @@ export default function MembersPage() {
       fetchShifts();
       fetchRoles();
       fetchAllMembers();
-      fetchInvites();
+      fetchEmployees();
     }
   }, [user]);
 
   useEffect(() => {
     if (isModalVisible && modalType === "add") {
-      fetchInvites();
+      fetchEmployees();
     }
   }, [isModalVisible, modalType]);
 
@@ -1606,7 +1611,7 @@ export default function MembersPage() {
           isActive: values.isActive !== undefined ? values.isActive : true,
           sendEmailTo: values.sendEmailTo || "work",
           minWorkingHours: values.minWorkingHours !== undefined ? Number(values.minWorkingHours) : 6,
-          employeeId: selectedInviteEmployeeId || null,
+          employeeId: selectedEmployeeId || null,
         };
         await MembersService.createMember(createPayload);
         messageApi.success("Member created successfully");
@@ -1615,16 +1620,20 @@ export default function MembersPage() {
       setIsModalVisible(false);
       form.resetFields();
       setSelectedMember(null);
-      setSelectedInviteEmployeeId(null);
+      setSelectedEmployeeId(null);
       fetchMembers();
       fetchAllMembers();
       fetchPositions();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
-      if (error instanceof ApiError) {
+      const serverError = error?.response?.data?.message || error?.response?.data?.error || error?.message || "";
+
+      if (typeof serverError === "string" && serverError.toLowerCase().includes("phone")) {
+        messageApi.error("This phone number already exists. Please use a different phone number.");
+      } else if (error instanceof ApiError) {
         messageApi.error(error.message);
       } else {
-        messageApi.error("Operation failed");
+        messageApi.error(typeof serverError === "string" && serverError ? serverError : "Operation failed");
       }
     } finally {
       setFormLoading(false);
@@ -2152,7 +2161,7 @@ export default function MembersPage() {
   );
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading members..." />;
+    return <ZukvoLoader message="Loading members..." />;
   }
 
   if (!canReadUser) {
@@ -2160,7 +2169,7 @@ export default function MembersPage() {
   }
 
   if (!user || isLoading || !canReadUser) {
-    if (isLoading) return <LoadingSpinner message="Loading members..." />;
+    if (isLoading) return <ZukvoLoader message="Loading members..." />;
     return null;
   }
 
@@ -2343,194 +2352,196 @@ export default function MembersPage() {
 
           {/* Main Body */}
           <div className="pp-body">
-            {view === 'list' ? (
-              <div className="pp-table-wrap">
-                <Table
-                  className="pp-table"
-                  columns={columns}
-                  dataSource={members}
-                  rowKey="id"
-                  loading={loading}
-                  pagination={false}
-                  scroll={{ x: 1024 }}
-                  locale={{ emptyText: emptyState }}
-                  rowClassName="pp-row"
-                  onRow={(record) => ({
-                    onClick: () => showPreviewDrawer(record),
-                  })}
-                />
-              </div>
-            ) : (
-              <div className="pp-grid">
-                {loading && members.length === 0 ? (
-                  <div className="pp-grid-loading">Loading…</div>
-                ) : members.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                ) : (
-                  members.map((item) => {
-                    const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
-                    const rbacRole = (item as any).userRoles?.[0]?.role;
-                    const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);
-                    const roleMeta = ROLE_META[item.role] || {
-                      bg: "rgba(59,130,246,0.10)",
-                      color: "#3b82f6",
-                      dot: "#3b82f6",
-                    };
-                    const cardMenuItems: any[] = [];
-                    if (canUpdateUser || canManageUsers) {
-                      cardMenuItems.push({
-                        key: "edit",
-                        label: menuLabel("Edit member", "Update profile details", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
-                      });
-                    }
-                    if (canDeleteUser || canManageUsers) {
-                      cardMenuItems.push({ type: "divider" as const });
-                      cardMenuItems.push({
-                        key: "delete",
-                        danger: true,
-                        label: (
-                          <ConfirmDialog
-                            tone="danger"
-                            icon={<DeleteOutlined />}
-                            title="Delete Member?"
-                            description={`Are you sure you want to delete ${item.name}? This action will deactivate the member account and revoke their access.`}
-                            confirmText="Delete"
-                            cancelText="Cancel"
-                            placement="left"
-                            onConfirm={async () => {
-                              await handleDeleteMember(item.id);
-                            }}
-                          >
-                            <div onClick={(e) => e.stopPropagation()}>
-                              {menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)")}
-                            </div>
-                          </ConfirmDialog>
-                        ),
-                      });
-                    }
+            <ZukvoLoadingOverlay loading={loading} message="">
+              {view === 'list' ? (
+                <div className="pp-table-wrap">
+                  <Table
+                    className="pp-table"
+                    columns={columns}
+                    dataSource={members}
+                    rowKey="id"
+                    pagination={false}
+                    scroll={{ x: 1024 }}
+                    locale={{ emptyText: emptyState }}
+                    rowClassName="pp-row"
+                    onRow={(record) => ({
+                      onClick: () => showPreviewDrawer(record),
+                    })}
+                  />
 
-                    return (
-                      <div key={item.id} className="pc-card" onClick={() => showPreviewDrawer(item)}>
-                        <div className="pc-top">
-                          <Avatar
-                            size={30}
-                            shape="square"
-                            src={item.avatarUrl}
-                            style={{
-                              background: gradientFor(item.id || item.name || "x"),
-                              color: "#fff",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              borderRadius: 6,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {initialsOf(item.name || '')}
-                          </Avatar>
-                          <div className="pc-identity-body">
-                            <Tooltip title={item.name} placement="topLeft">
-                              <div className="pc-title">{item.name}</div>
-                            </Tooltip>
-                            <div className="pc-client-line">
-                              <span className="pc-client-key">Position:</span>
-                              <span className="pc-client-val">
-                                {item.position?.title || "—"}
-                              </span>
-                            </div>
-                          </div>
-                          {cardMenuItems.length > 0 && (
-                            <Dropdown
-                              menu={{
-                                items: cardMenuItems,
-                                onClick: ({ key, domEvent }: any) => {
-                                  domEvent.stopPropagation();
-                                  if (key === 'edit') showEditModal(item);
-                                },
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading && members.length === 0 ? (
+                    <div className="pp-grid-loading">Loading…</div>
+                  ) : members.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  ) : (
+                    members.map((item) => {
+                      const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
+                      const rbacRole = (item as any).userRoles?.[0]?.role;
+                      const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);
+                      const roleMeta = ROLE_META[item.role] || {
+                        bg: "rgba(59,130,246,0.10)",
+                        color: "#3b82f6",
+                        dot: "#3b82f6",
+                      };
+                      const cardMenuItems: any[] = [];
+                      if (canUpdateUser || canManageUsers) {
+                        cardMenuItems.push({
+                          key: "edit",
+                          label: menuLabel("Edit member", "Update profile details", <EditOutlined />, "#64748b", "rgba(100,116,139,0.12)"),
+                        });
+                      }
+                      if (canDeleteUser || canManageUsers) {
+                        cardMenuItems.push({ type: "divider" as const });
+                        cardMenuItems.push({
+                          key: "delete",
+                          danger: true,
+                          label: (
+                            <ConfirmDialog
+                              tone="danger"
+                              icon={<DeleteOutlined />}
+                              title="Delete Member?"
+                              description={`Are you sure you want to delete ${item.name}? This action will deactivate the member account and revoke their access.`}
+                              confirmText="Delete"
+                              cancelText="Cancel"
+                              placement="left"
+                              onConfirm={async () => {
+                                await handleDeleteMember(item.id);
                               }}
-                              trigger={['click']}
-                              placement="bottomRight"
-                              overlayClassName="mm-action-pop"
                             >
-                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                                <EllipsisOutlined />
-                              </button>
-                            </Dropdown>
-                          )}
-                        </div>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                {menuLabel("Delete member", "Move to trash", <DeleteOutlined />, "#ef4444", "rgba(239,68,68,0.12)")}
+                              </div>
+                            </ConfirmDialog>
+                          ),
+                        });
+                      }
 
-                        <div className="pc-foot">
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item" style={{ flex: '0 0 auto', maxWidth: '50%' }}>
-                              <span className="pc-foot-key">Reports:</span>
-                              {item.reportsTo && typeof item.reportsTo === 'object' ? (
-                                <>
-                                  <Avatar
-                                    size={16}
-                                    src={(item.reportsTo as any).avatarUrl}
-                                    style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}
-                                  >
-                                    {initialsOf((item.reportsTo as any).name || '')}
-                                  </Avatar>
-                                  <span className="pc-foot-val">{(item.reportsTo as any).name}</span>
-                                </>
-                              ) : <span className="pc-foot-val">—</span>}
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span className="pc-foot-key">Email:</span>
-                              <span className="pc-foot-val" title={item.workEmail || undefined} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {item.workEmail || "—"}
-                              </span>
-                              {item.workEmail && (
-                                <Tooltip title="Copy Email">
-                                  <CopyOutlined
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(item.workEmail);
-                                      messageApi.success("Email copied to clipboard");
-                                    }}
-                                    style={{ cursor: "pointer", fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}
-                                  />
-                                </Tooltip>
-                              )}
-                            </span>
+                      return (
+                        <div key={item.id} className="pc-card" onClick={() => showPreviewDrawer(item)}>
+                          <div className="pc-top">
+                            <Avatar
+                              size={30}
+                              shape="square"
+                              src={item.avatarUrl}
+                              style={{
+                                background: gradientFor(item.id || item.name || "x"),
+                                color: "#fff",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                borderRadius: 6,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {initialsOf(item.name || '')}
+                            </Avatar>
+                            <div className="pc-identity-body">
+                              <Tooltip title={item.name} placement="topLeft">
+                                <div className="pc-title">{item.name}</div>
+                              </Tooltip>
+                              <div className="pc-client-line">
+                                <span className="pc-client-key">Position:</span>
+                                <span className="pc-client-val">
+                                  {item.position?.title || "—"}
+                                </span>
+                              </div>
+                            </div>
+                            {cardMenuItems.length > 0 && (
+                              <Dropdown
+                                menu={{
+                                  items: cardMenuItems,
+                                  onClick: ({ key, domEvent }: any) => {
+                                    domEvent.stopPropagation();
+                                    if (key === 'edit') showEditModal(item);
+                                  },
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                                overlayClassName="mm-action-pop"
+                              >
+                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                  <EllipsisOutlined />
+                                </button>
+                              </Dropdown>
+                            )}
                           </div>
-                          <div className="pc-foot-row" style={{ flexWrap: "nowrap", overflow: "hidden" }}>
-                            <span className="pc-foot-item" style={{ flexShrink: 0 }}>
-                              <span className="pc-foot-key">Role:</span>
-                              <span style={{ fontSize: "10px", fontWeight: 700, color: roleMeta.color }}>
-                                {roleLabel.toUpperCase()}
+
+                          <div className="pc-foot">
+                            <div className="pc-foot-row">
+                              <span className="pc-foot-item" style={{ flex: '0 0 auto', maxWidth: '50%' }}>
+                                <span className="pc-foot-key">Reports:</span>
+                                {item.reportsTo && typeof item.reportsTo === 'object' ? (
+                                  <>
+                                    <Avatar
+                                      size={16}
+                                      src={(item.reportsTo as any).avatarUrl}
+                                      style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}
+                                    >
+                                      {initialsOf((item.reportsTo as any).name || '')}
+                                    </Avatar>
+                                    <span className="pc-foot-val">{(item.reportsTo as any).name}</span>
+                                  </>
+                                ) : <span className="pc-foot-val">—</span>}
                               </span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flexShrink: 0 }}>
-                              <span className="pc-foot-key">Status:</span>
-                              <span style={{ fontSize: "10px", fontWeight: 700, color: item.isActive ? "#10b981" : "#ef4444" }}>
-                                {item.isActive ? "ACTIVE" : "INACTIVE"}
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item" style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="pc-foot-key">Email:</span>
+                                <span className="pc-foot-val" title={item.workEmail || undefined} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item.workEmail || "—"}
+                                </span>
+                                {item.workEmail && (
+                                  <Tooltip title="Copy Email">
+                                    <CopyOutlined
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(item.workEmail);
+                                        messageApi.success("Email copied to clipboard");
+                                      }}
+                                      style={{ cursor: "pointer", fontSize: 11, color: "var(--text-slate-400)", flexShrink: 0 }}
+                                    />
+                                  </Tooltip>
+                                )}
                               </span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
-                              <span className="pc-foot-key">Created:</span>
-                              <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {item.createdBy || "—"}
+                            </div>
+                            <div className="pc-foot-row" style={{ flexWrap: "nowrap", overflow: "hidden" }}>
+                              <span className="pc-foot-item" style={{ flexShrink: 0 }}>
+                                <span className="pc-foot-key">Role:</span>
+                                <span style={{ fontSize: "10px", fontWeight: 700, color: roleMeta.color }}>
+                                  {roleLabel.toUpperCase()}
+                                </span>
                               </span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
-                              <span className="pc-foot-key">Updated:</span>
-                              <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {item.updatedBy || "—"}
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item" style={{ flexShrink: 0 }}>
+                                <span className="pc-foot-key">Status:</span>
+                                <span style={{ fontSize: "10px", fontWeight: 700, color: item.isActive ? "#10b981" : "#ef4444" }}>
+                                  {item.isActive ? "ACTIVE" : "INACTIVE"}
+                                </span>
                               </span>
-                            </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
+                                <span className="pc-foot-key">Created:</span>
+                                <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {item.createdBy || "—"}
+                                </span>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item" style={{ flex: "0 1 auto", minWidth: 0, overflow: "hidden" }}>
+                                <span className="pc-foot-key">Updated:</span>
+                                <span className="pc-foot-val" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {item.updatedBy || "—"}
+                                </span>
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}
@@ -2626,7 +2637,7 @@ export default function MembersPage() {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedMember(null);
-            setSelectedInviteEmployeeId(null);
+            setSelectedEmployeeId(null);
           }}
           onSubmit={handleSubmit}
           positions={positions}
@@ -2634,8 +2645,8 @@ export default function MembersPage() {
           managers={managers}
           shifts={shifts}
           availableRoles={availableRoles}
-          invites={invites}
-          onInviteSelect={setSelectedInviteEmployeeId}
+          employees={employees}
+          onEmployeeSelect={setSelectedEmployeeId}
         />
       </Drawer>
 

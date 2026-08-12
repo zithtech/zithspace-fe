@@ -14,6 +14,8 @@ export interface BugAttachment {
   fileSize?: number;
   fileType: string;
   isNew?: boolean;
+  /** Already-hosted file to copy into the bug's own storage (e.g. run evidence). */
+  sourceUrl?: string;
 }
 
 export interface BugExternalLink {
@@ -71,6 +73,11 @@ export interface BugListItem {
   ticketId?: string | null;
   ticketNumber?: string | null;
   ticketStatus?: string | null;
+  isRecurring?: boolean;
+  ticketHistory?: { ticketId: string; ticketNumber: string; status: string; timestamp: string }[];
+  /** Set when the bug was raised from a QA test run. */
+  testCaseId?: string | null;
+  testCaseRef?: string | null;
   assigneeId?: string | null;
   assignee?: { id: string; name: string; workEmail: string; avatarUrl?: string } | null;
   createdById: string;
@@ -103,6 +110,9 @@ export interface CreateBugInput {
   attachments?: BugAttachment[];
   externalLinks?: BugExternalLink[];
   comments?: string;
+  /** Set when the bug was raised from a QA test run. */
+  testCaseId?: string | null;
+  testCaseRef?: string | null;
 }
 
 export interface UpdateBugInput {
@@ -613,6 +623,37 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/config/types/${id}`);
   }
 
+  // ==================== Config: priority (shared with QA Space) ==============
+  static async listPriorityOptions(): Promise<BugConfigOption[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+      `/api/bug-list/config/priorities`,
+    );
+    return res.data.data;
+  }
+
+  static async createPriorityOption(input: BugConfigCreateInput): Promise<BugConfigOption> {
+    const res = await apiClient.post<{ success: boolean; data: BugConfigOption }>(
+      `/api/bug-list/config/priorities`,
+      input,
+    );
+    return res.data.data;
+  }
+
+  static async updatePriorityOption(
+    id: string,
+    input: BugConfigUpdateInput,
+  ): Promise<BugConfigOption> {
+    const res = await apiClient.put<{ success: boolean; data: BugConfigOption }>(
+      `/api/bug-list/config/priorities/${id}`,
+      input,
+    );
+    return res.data.data;
+  }
+
+  static async deletePriorityOption(id: string): Promise<void> {
+    await apiClient.delete(`/api/bug-list/config/priorities/${id}`);
+  }
+
   // ==================== QA verification ====================
   static async verify(bugId: string): Promise<BugListItem> {
     const res = await apiClient.post<{ success: boolean; data: BugListItem }>(
@@ -624,6 +665,13 @@ class BugListService {
   static async reopen(bugId: string): Promise<BugListItem> {
     const res = await apiClient.post<{ success: boolean; data: BugListItem }>(
       `/api/bug-list/bugs/${bugId}/reopen`
+    );
+    return res.data.data;
+  }
+
+  static async markBugAsRecurring(bugId: string): Promise<BugListItem> {
+    const res = await apiClient.put<{ success: boolean; data: BugListItem }>(
+      `/api/bug-list/bugs/${bugId}/recurring`
     );
     return res.data.data;
   }

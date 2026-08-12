@@ -21,6 +21,7 @@ import { usePermission } from '@/hooks/usePermission';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import LeaveV2Service, { LeaveRequest } from '@/services/leaveV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
@@ -59,7 +60,7 @@ export default function ApprovalsPanel() {
     try {
       setRows(await LeaveV2Service.getApprovals());
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||'Failed to load approvals');
+      message.error(err?.response?.data?.error || err?.message || 'Failed to load approvals');
     } finally {
       setLoading(false);
     }
@@ -85,13 +86,13 @@ export default function ApprovalsPanel() {
 
   const userOptions = useMemo(() => {
     const seen = new Map<string, { label: string, avatarUrl: string | null }>();
-    rows.forEach((r) => { 
+    rows.forEach((r) => {
       if (r.userId && !seen.has(r.userId)) {
-        seen.set(r.userId, { 
-          label: r.userName || r.userEmail || r.userId, 
-          avatarUrl: r.userAvatarUrl || null 
-        }); 
-      } 
+        seen.set(r.userId, {
+          label: r.userName || r.userEmail || r.userId,
+          avatarUrl: r.userAvatarUrl || null
+        });
+      }
     });
     return Array.from(seen, ([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl })).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
@@ -131,7 +132,7 @@ export default function ApprovalsPanel() {
       message.success(action === 'approve' ? 'Request approved' : 'Request rejected');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||`Failed to ${action}`);
+      message.error(err?.response?.data?.error || err?.message || `Failed to ${action}`);
     } finally {
       setBusyId(null);
     }
@@ -144,7 +145,7 @@ export default function ApprovalsPanel() {
       message.success(approve ? 'Withdrawal confirmed' : 'Withdrawal declined');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||`Failed to ${approve ? 'confirm' : 'decline'} withdrawal`);
+      message.error(err?.response?.data?.error || err?.message || `Failed to ${approve ? 'confirm' : 'decline'} withdrawal`);
     } finally {
       setBusyId(null);
     }
@@ -314,9 +315,9 @@ export default function ApprovalsPanel() {
     <div className="lvap">
       <div className="lvap-header">
         <div className="lvap-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -396,17 +397,19 @@ export default function ApprovalsPanel() {
       </div>
 
       <div className="lvap-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="lvap-table"
-          loading={loading}
-          columns={columns}
-          dataSource={paged}
-          pagination={false}
-          expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-          onRow={() => ({ className: 'lvap-row' })}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="lvap-table"
+            columns={columns}
+            dataSource={paged}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 460px)' }}
+            expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
+            onRow={() => ({ className: 'lvap-row' })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (
@@ -451,8 +454,11 @@ export default function ApprovalsPanel() {
         .lvap-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvap-filter-range { height: 34px; border-radius: 8px; }
         .lvap-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow-x: auto; }
+        .lvap-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
         .lvap-table, .lvap-table.ant-table-wrapper, .lvap-table .ant-table, .lvap-table .ant-table-container, .lvap-table .ant-table-content, .lvap-table .ant-table-header, .lvap-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
+        .lvap-table .ant-table-body { min-height: 200px; scrollbar-width: none; -ms-overflow-style: none; }
+        .lvap-table .ant-table-body::-webkit-scrollbar, .lvap-table .ant-table-content::-webkit-scrollbar, .lvap-table .ant-table-container::-webkit-scrollbar { display: none; }
+        .lvap-table .ant-table-content, .lvap-table .ant-table-container { scrollbar-width: none; -ms-overflow-style: none; }
         .lvap-table .ant-table-thead > tr > th,
         .lvap-table .ant-table-thead > tr > td {
           background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;

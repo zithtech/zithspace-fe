@@ -15,6 +15,7 @@ import ReimbursementV2Service, {
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, StatusTag, tablePaginationConfig } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 type Pending = { kind: 'claim' | 'advance'; action: 'approve' | 'reject' | 'send-back'; id: string; label: string } | null;
 
@@ -126,8 +127,10 @@ export default function ApprovalsPanel() {
             key: 'claims', label: `Claims (${claims.length})`,
             children: (
               <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
-                  locale={{ emptyText: <Empty description="No pending claims" /> }} pagination={tablePaginationConfig} />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                    <Table rowKey="id" size="middle" columns={claimCols} dataSource={claims}
+                                      locale={{ emptyText: <Empty description="No pending claims" /> }} pagination={tablePaginationConfig} />
+                    </ZukvoLoadingOverlay>
               </div>
             ),
           },
@@ -135,8 +138,10 @@ export default function ApprovalsPanel() {
             key: 'advances', label: `Advances (${advances.length})`,
             children: (
               <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
-                  locale={{ emptyText: <Empty description="No pending advances" /> }} pagination={tablePaginationConfig} />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                    <Table rowKey="id" size="middle" columns={advanceCols} dataSource={advances}
+                                      locale={{ emptyText: <Empty description="No pending advances" /> }} pagination={tablePaginationConfig} />
+                    </ZukvoLoadingOverlay>
               </div>
             ),
           },

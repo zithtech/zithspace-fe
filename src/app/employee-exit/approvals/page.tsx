@@ -4,6 +4,7 @@ import {  Button, Table, Dropdown, Select , App } from 'antd';
 import { Search, MoreVertical, ArrowUpRight, CheckCircle, Clock, XCircle } from 'lucide-react';
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ApprovalsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
@@ -185,7 +186,9 @@ export default function ApprovalsPage() {
         </div>
 
         <div className="exit-table-wrap">
-          <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" loading={loading} pagination={false} scroll={{ x: 900 }} />
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" pagination={false} scroll={{ x: 900 }} />
+                  </ZukvoLoadingOverlay>
         </div>
       </div>
 

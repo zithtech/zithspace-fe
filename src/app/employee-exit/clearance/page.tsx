@@ -16,6 +16,7 @@ import {
 import dayjs from 'dayjs';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
 import { DepartmentService } from '@/services/departmentService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ClearancePage() {
   const router = useRouter();
@@ -294,7 +295,9 @@ export default function ClearancePage() {
             </div>
 
             <div className="exit-table-wrap">
-              <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" loading={loading} pagination={false} scroll={{ x: 900 }} />
+              <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table size="small" className="exit-table" columns={columns} dataSource={pagedData} rowKey="id" pagination={false} scroll={{ x: 900 }} />
+                  </ZukvoLoadingOverlay>
             </div>
           </div>
 

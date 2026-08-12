@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Spin, message, Modal } from "antd";
+import { Button, message, Modal } from "antd";
 import { Menu } from "lucide-react";
 import {
   UserOutlined,
@@ -152,9 +154,7 @@ const OnboardingContent = () => {
   if (authLoading || dataLoading) {
     return (
       <div style={{ padding: 100, textAlign: "center" }}>
-        <Spin size="large" tip="Loading">
-          <div style={{ padding: 20 }} />
-        </Spin>
+        <ZukvoLoader size="lg" message="Loading" />
       </div>
     );
   }
@@ -755,7 +755,7 @@ const Onboarding = () => (
     <Suspense
       fallback={
         <div style={{ padding: 100, textAlign: "center" }}>
-          <Spin size="large" />
+          <ZukvoLoader size="lg" />
         </div>
       }
     >

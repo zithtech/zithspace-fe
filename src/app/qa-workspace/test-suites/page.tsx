@@ -6,13 +6,14 @@ import { Button, Table, Tag, message, Input, Select, Tooltip } from "antd";
 import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { Layers, Trash2, Pencil, Folder } from "lucide-react";
+import { Layers, Trash2, Pencil, Folder, Menu } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type TabKey = "suites";
 
@@ -69,6 +70,7 @@ export default function TestSuitesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("suites");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [suites, setSuites] = useState<any[]>([]);
   const [parents, setParents] = useState<any[]>([]);
@@ -80,10 +82,13 @@ export default function TestSuitesPage() {
   const [coverageFilter, setCoverageFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, scenarioFilter, moduleFilter, coverageFilter]);
+  }, [debouncedSearch, scenarioFilter, moduleFilter, coverageFilter]);
 
   const { canReadSuite, canCreateSuite, canUpdateSuite, canDeleteSuite } = usePermission();
 
@@ -91,11 +96,22 @@ export default function TestSuitesPage() {
     try {
       setLoading(true);
       const [suitesRes, parentsRes, modRes] = await Promise.all([
-        axios.get("/api/v2/qa/suites/all"),
+        apiClient.get("/api/v2/qa/suites/all", {
+          params: {
+            page,
+            pageSize,
+            search: debouncedSearch || undefined,
+            parent_test_case_id: scenarioFilter || undefined,
+            module_id: moduleFilter || undefined,
+            coverageFilter: coverageFilter || undefined
+          }
+        }),
         axios.get("/api/v2/qa/parents"),
         axios.get("/api/v2/qa/modules")
       ]);
-      setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
+      const body = (suitesRes as any).data;
+      setSuites(body?.data || []);
+      setTotalItems(body?.pagination?.total || 0);
       setParents(Array.isArray(parentsRes) ? parentsRes : (parentsRes?.data?.data || parentsRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
     } catch (error) {
@@ -109,7 +125,7 @@ export default function TestSuitesPage() {
     if (canReadSuite) {
       fetchData();
     }
-  }, [canReadSuite]);
+  }, [canReadSuite, page, pageSize, debouncedSearch, scenarioFilter, moduleFilter, coverageFilter]);
 
   /**
    * Creating and editing a suite is a full page, the same shape as Create Test
@@ -132,34 +148,22 @@ export default function TestSuitesPage() {
 
   if (!canReadSuite) return null;
 
-  const filteredSuites = suites.filter(s => {
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      const hay = [s.suite_name, s.description, s.module_name, s.parent_title]
-        .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (scenarioFilter && (s.parent_title || '') !== scenarioFilter) return false;
-    if (moduleFilter && (s.module_name || 'Unassigned') !== moduleFilter) return false;
-    const cases = parseInt(s.case_count || '0', 10);
-    if (coverageFilter === 'linked' && cases === 0) return false;
-    if (coverageFilter === 'empty' && cases > 0) return false;
-    return true;
-  });
+  const filteredSuites = suites; // Data is already filtered by backend
 
   const totalLinkedCases = suites.reduce((acc, curr) => acc + (parseInt(curr.case_count || '0', 10)), 0);
   const uniqueScenarios = new Set(suites.map(s => s.parent_test_case_id).filter(Boolean)).size;
   const emptySuites = suites.filter(s => parseInt(s.case_count || '0', 10) === 0).length;
   const avgCasesPerSuite = suites.length ? (totalLinkedCases / suites.length).toFixed(1) : '0';
 
-  // Filter options, derived from the suites that are actually present
-  const uniqueSorted = (values: any[]) =>
-    Array.from(new Set(values.filter(Boolean)))
-      .sort((a, b) => String(a).localeCompare(String(b)))
-      .map(v => ({ value: String(v), label: String(v) }));
-
-  const scenarioFilterOptions = uniqueSorted(suites.map(s => s.parent_title));
-  const moduleFilterOptions = uniqueSorted(suites.map(s => s.module_name || 'Unassigned'));
+  const scenarioFilterOptions = [
+    { value: 'Unassigned', label: 'Unassigned' },
+    ...parents.map(p => ({ value: p.id, label: p.title }))
+  ];
+  
+  const moduleFilterOptions = [
+    { value: 'Unassigned', label: 'Unassigned' },
+    ...modules.map(m => ({ value: m.id, label: m.module_name }))
+  ];
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0);
@@ -171,12 +175,12 @@ export default function TestSuitesPage() {
     setCoverageFilter(undefined);
   };
 
-  // Client-side pagination, matching the app-wide sticky pager
-  const pageCount = Math.max(1, Math.ceil(filteredSuites.length / pageSize));
+  // Client-side pagination variables are now derived from totalItems for the footer
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageStart = filteredSuites.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredSuites.length);
-  const pagedSuites = filteredSuites.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageStart = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, totalItems);
+  const pagedSuites = suites;
 
 
   const scenarioTitleOf = (record: any) => {
@@ -473,6 +477,8 @@ export default function TestSuitesPage() {
         /* ── Table ──────────────────────────────────────────────────── */
         .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .sc-table .ant-table { background: transparent; }
+        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
         .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
         .sc-table .ant-table-tbody > tr { cursor: pointer; }
@@ -783,10 +789,70 @@ export default function TestSuitesPage() {
         .ts-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 14px 16px !important; }
         .ts-table, .ts-table .ant-table { background: transparent !important; }
         .ts-table .ant-table-tbody > tr:hover > td { background: rgba(59, 130, 246, 0.04) !important; }
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, other filters wrap */
+          .sc-filters { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
+
+          /* Table: horizontal scroll */
+          .sc-tablewrap { overflow-x: auto !important; }
+          .sc-table .ant-table { min-width: 640px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
         `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo"><SnippetsOutlined /></div>
@@ -821,7 +887,13 @@ export default function TestSuitesPage() {
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
             {/* Title and subtitle share one line, split by a divider */}
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <span className="sc-topbar__h1">All Test Suites</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">Organize child test cases from your business scenarios into executable suites</span>
@@ -958,7 +1030,7 @@ export default function TestSuitesPage() {
           {filteredSuites.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredSuites.length}</strong>
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
               </div>
               <div className="pp-pager">
                 <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
@@ -972,7 +1044,7 @@ export default function TestSuitesPage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

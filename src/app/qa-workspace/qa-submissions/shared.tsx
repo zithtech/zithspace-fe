@@ -388,10 +388,14 @@ export const QA_SUBMISSION_STYLES = `
 /* ── Table ────────────────────────────────────────────────────────── */
 .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
 .sc-table .ant-table { background: transparent; }
-.sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; color: var(--text-slate-500) !important; white-space: nowrap !important; border-bottom: 1px solid var(--border-slate-200) !important; }
-.sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; border-bottom: 1px solid var(--border-slate-100) !important; }
+.sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; color: var(--text-slate-500) !important; white-space: nowrap !important; border-bottom: 1px solid var(--border-slate-200) !important; }
+.sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; border-bottom: 1px solid var(--border-slate-100) !important; background: var(--bg-pure-white) !important; }
+.sc-table .ant-table-cell-fix-left, .sc-table .ant-table-cell-fix-right { background-color: var(--bg-pure-white, #ffffff) !important; }
 .sc-table .ant-table-tbody > tr { cursor: pointer; }
 .sc-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
+.sc-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left, .sc-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right { background-color: var(--bg-slate-50) !important; }
 .sc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
 .sc-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sc-name__badge { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 27px; height: 27px; border-radius: 7px; background: rgba(59,130,246,.1); color: #2563eb; font-size: 10px; font-weight: 700; letter-spacing: .02em; }

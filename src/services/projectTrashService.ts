@@ -18,8 +18,26 @@ class ProjectTrashService {
   /**
    * Get all projects in trash
    */
-  async getTrashProjects(): Promise<TrashProject[]> {
-    return await api.get<TrashProject[]>('/api/projects/trash');
+  async getTrashProjects(extraParams?: Record<string, any>): Promise<any> {
+    const params = new URLSearchParams();
+    
+    if (extraParams) {
+      Object.entries(extraParams).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+
+    const response = await api.request<any>({
+      method: 'GET',
+      url: `/api/projects/trash?${params.toString()}`
+    });
+    
+    if (response?.data?.pagination) {
+      return { data: response.data.data, pagination: response.data.pagination };
+    }
+    return response?.data?.data || response?.data || [];
   }
 
   /**

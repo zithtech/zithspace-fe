@@ -64,28 +64,27 @@ export default function GradesPage() {
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [view, setView] = useState<OrgView>("grid");
 
-  const { dataSource, loading, addGrade, updateGrade, deleteGrade } = useGrades();
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
-  const totalGrades = dataSource.length;
-  const activeGrades = dataSource.filter((g) => g.status === "Active").length;
+  const { allGrades, paginatedGrades, totalCount, loading, addGrade, updateGrade, deleteGrade } = useGrades({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: search
+  });
+
+  const totalGrades = allGrades.length;
+  const activeGrades = allGrades.filter((g) => g.status === "Active").length;
   const inactiveGrades = totalGrades - activeGrades;
-  const maxLevel = dataSource.reduce((m, g) => Math.max(m, g.levelOrder || 0), 0);
+  const maxLevel = allGrades.reduce((m, g) => Math.max(m, g.levelOrder || 0), 0);
 
-  const filteredData = useMemo(() => {
-    if (!search.trim()) return dataSource;
-    const q = search.toLowerCase();
-    return dataSource.filter((r) =>
-      [r.code, r.codes, r.name, String(r.levelOrder), r.description || "", r.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [search, dataSource]);
+  useEffect(() => {
+    setPagination(p => ({ ...p, current: 1 }));
+  }, [search]);
 
   const generateNextCode = () => {
     let maxNum = 0;
     let prefix = "G";
-    dataSource.forEach((g) => {
+    allGrades.forEach((g) => {
       const match = g.code.match(/^([^\d]*)(\d+)$/);
       if (match) {
         prefix = match[1] || "G";
@@ -107,7 +106,7 @@ export default function GradesPage() {
     form.setFieldsValue({
       code: generateNextCode(),
       status: true,
-      levelOrder: dataSource.length + 1,
+      levelOrder: allGrades.length + 1,
     });
     setIsDrawerOpen(true);
   };
@@ -129,7 +128,7 @@ export default function GradesPage() {
     try {
       const formValues = await form.validateFields();
 
-      const isDuplicateCode = dataSource.some(
+      const isDuplicateCode = allGrades.some(
         (g) =>
           g.code.toLowerCase() === formValues.code.toLowerCase() && g.key !== editingKey,
       );
@@ -138,7 +137,7 @@ export default function GradesPage() {
         return;
       }
 
-      const isDuplicateName = dataSource.some(
+      const isDuplicateName = allGrades.some(
         (g) =>
           g.name.toLowerCase() === formValues.name.trim().toLowerCase() && g.key !== editingKey,
       );
@@ -151,7 +150,7 @@ export default function GradesPage() {
         name: formValues.name,
         code: formValues.code,
         codes: formValues.codes,
-        levelOrder: formValues.levelOrder ?? (editingKey ? (dataSource.find((g) => g.key === editingKey)?.levelOrder ?? 999) : (dataSource.length + 1)),
+        levelOrder: formValues.levelOrder ?? (editingKey ? (allGrades.find((g) => g.key === editingKey)?.levelOrder ?? 999) : (allGrades.length + 1)),
         description: formValues.description,
         isActive: !!formValues.status,
       };
@@ -417,15 +416,21 @@ export default function GradesPage() {
           <OrgModuleScaffold<GradeViewData>
             search={search}
             onSearchChange={setSearch}
-            searchPlaceholder="Search by name, code, or slug…"
-            meta={<><strong>{filteredData.length}</strong> of {totalGrades} grades</>}
+            searchPlaceholder="Search by name, code, or slug..."
+            meta={<><strong>{paginatedGrades.length}</strong> of {totalCount} grades</>}
             view={view}
             onViewChange={setView}
             loading={loading}
             stats={stats}
             columns={columns}
-            data={filteredData}
+            data={paginatedGrades}
             rowKey="key"
+            serverPagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: totalCount,
+              onChange: (page, pageSize) => setPagination({ current: page, pageSize })
+            }}
             renderCard={renderGradeCard}
             emptyTitle="No grades found"
             emptySubtitle="Define your first grade level to build the hierarchy."

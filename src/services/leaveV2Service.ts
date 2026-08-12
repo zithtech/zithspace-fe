@@ -411,8 +411,13 @@ export const LeaveV2Service = {
     return unwrap<LeaveBalanceItem[]>(res.data) ?? [];
   },
 
-  async getMyRequests(): Promise<LeaveRequest[]> {
-    const res = await apiClient.get(`${BASE}/requests/mine`);
+  async getMyRequests(filters?: any): Promise<any> {
+    if (filters?.limit) {
+      const res = await apiClient.get(`${BASE}/requests/mine`, { params: filters });
+      // return the whole response object for paginated ones so caller can extract data + pagination
+      return res.data;
+    }
+    const res = await apiClient.get(`${BASE}/requests/mine`, { params: filters });
     return unwrap<LeaveRequest[]>(res.data) ?? [];
   },
 
@@ -511,8 +516,12 @@ export const LeaveV2Service = {
   },
 
   // ── Approvals (manager) ────────────────────────────────────────────────────
-  async getApprovals(): Promise<LeaveRequest[]> {
-    const res = await apiClient.get(`${BASE}/approvals`);
+  async getApprovals(filters?: any): Promise<any> {
+    if (filters?.limit) {
+      const res = await apiClient.get(`${BASE}/approvals`, { params: filters });
+      return res.data;
+    }
+    const res = await apiClient.get(`${BASE}/approvals`, { params: filters });
     return unwrap<LeaveRequest[]>(res.data) ?? [];
   },
 

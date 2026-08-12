@@ -619,11 +619,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   }, [projectId]);
 
-  // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
+  // Query Params for Active Sprint List (WITH PAGINATION)
   const activeSprintParams = {
     ...baseQueryParams,
     sprintId: 'active',
-    limit: 9999 // Fetch all tickets in active sprint (no pagination)
+    page: activePagination.current,
+    limit: activePagination.pageSize,
   };
 
   // Combine global and local backlog search
@@ -682,11 +683,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // User asked for specific split. We will use these two data sources.)
 
   const activeTickets = activeSprintData?.data || [];
-  const pagedActiveTickets = useMemo(() => {
-    const start = (activePagination.current - 1) * activePagination.pageSize;
-    const end = start + activePagination.pageSize;
-    return activeTickets.slice(start, end);
-  }, [activeTickets, activePagination]);
+  const totalActiveTickets = activeSprintData?.pagination?.total || 0;
 
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
@@ -4587,7 +4584,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 }}
                               >
                                 {activeSelectedRowKeys.length === 1 &&
-                                  pagedActiveTickets.find(t => t.id === activeSelectedRowKeys[0])?.assignee
+                                  activeTickets.find((t: any) => t.id === activeSelectedRowKeys[0])?.assignee
                                   ? 'Reassign' : 'Assignee'}
                               </Button>
                             </Dropdown>
@@ -4861,7 +4858,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                         <Table
                           rowSelection={activeRowSelection}
                           columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                          dataSource={pagedActiveTickets}
+                          dataSource={activeTickets}
                           loading={activeSprintFetching}
                           rowKey="id"
                           pagination={false}
@@ -4883,7 +4880,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       {renderCustomPagination(
                         activePagination.current,
                         activePagination.pageSize,
-                        activeTickets.length,
+                        totalActiveTickets,
                         activeSelectedRowKeys.length,
                         (page) => setActivePagination((prev) => ({ ...prev, current: page })),
                         (size) => setActivePagination((prev) => ({ ...prev, current: 1, pageSize: size }))

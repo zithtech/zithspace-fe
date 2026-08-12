@@ -284,9 +284,9 @@ export default function positionConfiguration() {
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
 
   const { leaveOrigins, loading, refetch } = useLeaveOrigins();
-  const { dataSource: grades, loading: gradesLoading } = useGrades();
-  const { departments, loading: departmentsLoading } = useDepartments();
-  const { subDepartments, loading: subDepartmentsLoading } = useSubDepartments();
+  const { allGrades: grades = [], loading: gradesLoading } = useGrades();
+  const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
+  const { allSubDepartments: subDepartments = [], loading: subDepartmentsLoading } = useSubDepartments();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   useEffect(() => {

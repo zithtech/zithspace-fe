@@ -72,17 +72,27 @@ export default function PositionsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
-  const { departments, loading: departmentsLoading } = useDepartments();
-  const { dataSource: grades, loading: gradesLoading } = useGrades();
-  const { subDepartments, loading: subDepartmentsLoading } = useSubDepartments();
+  const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
+  const { allGrades: grades = [], loading: gradesLoading } = useGrades();
+  const { allSubDepartments: subDepartments = [], loading: subDepartmentsLoading } = useSubDepartments();
   const {
-    dataSource: positions,
+    allPositions,
+    paginatedPositions,
+    totalCount,
     loading,
+    refresh,
     createPosition,
     updatePosition,
     deletePosition,
-  } = usePositions();
+  } = usePositions({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchText,
+    departmentId: departmentFilter,
+    subDepartmentId: subDepartmentFilter,
+  });
 
   useEffect(() => {
     if (!authLoading && !canReadOrgPosition) {
@@ -90,24 +100,9 @@ export default function PositionsPage() {
     }
   }, [authLoading, canReadOrgPosition, router]);
 
-  const validPositions = useMemo(() => Array.isArray(positions) ? positions : [], [positions]);
-
-  const filteredData = useMemo(() => {
-    return validPositions.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.title?.toLowerCase()?.includes(q) ||
-        item.code?.toLowerCase()?.includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesGrade = !gradeFilter || item.gradeId === gradeFilter;
-      const matchesDepartment = !departmentFilter || item.departmentId === departmentFilter;
-      const matchesSubDepartment =
-        !subDepartmentFilter || item.subDepartmentId === subDepartmentFilter;
-      return matchesSearch && matchesStatus && matchesGrade && matchesDepartment && matchesSubDepartment;
-    });
-  }, [validPositions, searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
+  useEffect(() => {
+    setPagination((p) => ({ ...p, current: 1 }));
+  }, [searchText, statusFilter, gradeFilter, departmentFilter, subDepartmentFilter]);
 
   if (authLoading) {
     return (
@@ -119,6 +114,7 @@ export default function PositionsPage() {
 
   if (!canReadOrgPosition) return null;
 
+  const validPositions = useMemo(() => Array.isArray(allPositions) ? allPositions : [], [allPositions]);
   const totalPositions = validPositions.length;
   const activePositions = validPositions.filter((p) => p.isActive).length;
   const uniqueDepts = new Set(validPositions.map((p) => p.departmentId).filter(Boolean)).size;
@@ -409,14 +405,22 @@ export default function PositionsPage() {
             <OrgModuleScaffold<PositionViewData>
               search={searchText}
               onSearchChange={setSearchText}
-              searchPlaceholder="Search by title or code…"
+              searchPlaceholder="Search by title or code..."
+              meta={<><strong>{paginatedPositions.length}</strong> of {totalCount} positions</>}
               view={view}
               onViewChange={setView}
+              onRefresh={refresh}
               loading={loading}
               stats={stats}
               columns={columns}
-              data={filteredData}
+              data={paginatedPositions}
               rowKey="id"
+              serverPagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: totalCount,
+                onChange: (page, pageSize) => setPagination({ current: page, pageSize })
+              }}
               renderCard={renderPositionCard}
               filters={
                 <>

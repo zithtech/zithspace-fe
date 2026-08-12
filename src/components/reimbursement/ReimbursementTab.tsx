@@ -14672,9 +14672,9 @@ export default function ReimbursementConfigurationPage() {
   const updateConfig = useUpdateReimbursementConfiguration();
   const deleteConfig = useDeleteReimbursementConfiguration();
 
-  const { dataSource: grades, loading: gradesLoading } = useGrades();
-  const { departments, loading: departmentsLoading } = useDepartments();
-  const { subDepartments, loading: subDepartmentsLoading } = useSubDepartments();
+  const { allGrades: grades = [], loading: gradesLoading } = useGrades();
+  const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
+  const { allSubDepartments: subDepartments = [], loading: subDepartmentsLoading } = useSubDepartments();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   useEffect(() => {

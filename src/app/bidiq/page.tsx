@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useLeads } from "@/hooks/useLeads";
-import type { Lead } from "@/services/leadService";
+import LeadService, { Lead } from "@/services/leadService";
 import {
   Zap,
   Search,
@@ -111,6 +111,9 @@ export default function BidIqPage() {
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [paginatedBids, setPaginatedBids] = useState<Lead[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [paginatedLoading, setPaginatedLoading] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Route guard — gated by the dedicated BidIq read permission.
@@ -159,53 +162,54 @@ export default function BidIqPage() {
       .sort((a, b) => b.count - a.count);
   }, [analyzed]);
 
-  const filtered = useMemo(() => {
-    let rows = [...analyzed];
+  // Fetch paginated Bidiq
+  const fetchPaginatedBids = useCallback(async () => {
+    setPaginatedLoading(true);
+    try {
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        platform: filterPlatform !== 'all' ? filterPlatform : undefined,
+        hasBidiq: true,
+      };
 
-    if (view === "hot") rows = rows.filter((l) => (l.ai_score || 0) >= 80);
-    else if (view === "warm")
-      rows = rows.filter((l) => (l.ai_score || 0) >= 50 && (l.ai_score || 0) < 80);
-    else if (view === "cold") rows = rows.filter((l) => (l.ai_score || 0) < 50);
-    else if (view === "with_proposal")
-      rows = rows.filter((l) => !!l.proposal_id || !!l.proposal_text);
+      if (view !== 'all') {
+        filters.bidiqView = view;
+      }
 
-    if (filterPlatform)
-      rows = rows.filter((l) => (l.platform || "Other") === filterPlatform);
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        filters.startDate = dateRange[0].toISOString();
+        filters.endDate = dateRange[1].toISOString();
+      }
 
-    if (dateRange && dateRange[0] && dateRange[1]) {
-      const start = dateRange[0].startOf("day");
-      const end = dateRange[1].endOf("day");
-      rows = rows.filter((l) => {
-        const analyzedAt = l.updated_at || l.created_at;
-        if (!analyzedAt) return false;
-        const d = dayjs(analyzedAt);
-        return !d.isBefore(start) && !d.isAfter(end);
-      });
+      const res = await LeadService.getAll(filters);
+      setPaginatedBids(res?.data || []);
+      setTotalCount(res?.pagination?.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch paginated Bidiq:', err);
+    } finally {
+      setPaginatedLoading(false);
     }
+  }, [tablePage, tablePageSize, searchText, filterPlatform, view, dateRange]);
 
-    const q = searchText.trim().toLowerCase();
-    if (q) {
-      rows = rows.filter((l) =>
-        [l.title, l.client_name, l.company, l.platform]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q))
-      );
-    }
-
-    return rows.sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
-  }, [analyzed, view, filterPlatform, dateRange, searchText]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / tablePageSize));
-
-  // Reset to first page whenever the active filter set shrinks the result below the current page.
   useEffect(() => {
-    if (tablePage > totalPages) setTablePage(1);
-  }, [totalPages, tablePage]);
+    fetchPaginatedBids();
+  }, [fetchPaginatedBids]);
 
-  const paged = useMemo(
-    () => filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize),
-    [filtered, tablePage, tablePageSize]
-  );
+  // Reset to first page on filter change
+  useEffect(() => {
+    setTablePage(1);
+  }, [searchText, view, filterPlatform, dateRange]);
+
+  useEffect(() => {
+    const totalPages = Math.ceil(totalCount / tablePageSize);
+    if (totalPages > 0 && tablePage > totalPages) {
+      setTablePage(totalPages);
+    } else if (totalPages === 0 && tablePage > 1) {
+      setTablePage(1);
+    }
+  }, [totalCount, tablePage, tablePageSize]);
 
   const openBidiq = (id: string) => router.push(`/leads/bidiq/${id}`);
 
@@ -549,8 +553,8 @@ export default function BidIqPage() {
                   <div className="biq-table-card">
                     <Table<Lead>
                       rowKey="id"
-                      loading={loading}
-                      dataSource={paged}
+                      loading={paginatedLoading}
+                      dataSource={paginatedBids}
                       columns={columns as any}
                       className="biq-table"
                       rowClassName="biq-row"
@@ -562,7 +566,7 @@ export default function BidIqPage() {
                       })}
                       pagination={false}
                       locale={{
-                        emptyText: (
+                        emptyText: paginatedBids.length === 0 ? (
                           <div className="biq-empty">
                             <div className="biq-empty-icon">
                               <Zap size={26} />
@@ -572,13 +576,13 @@ export default function BidIqPage() {
                               Run BidIq on a lead and it will appear here.
                             </div>
                           </div>
-                        ),
+                        ) : undefined,
                       }}
                     />
                   </div>
                 ) : (
                   <div className="biq-grid-view">
-                    {filtered.length === 0 ? (
+                    {totalCount === 0 ? (
                       <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                         description="No BidIq analyses yet."
@@ -586,7 +590,7 @@ export default function BidIqPage() {
                       />
                     ) : (
                       <div className="biq-grid">
-                        {paged.map((record) => {
+                        {paginatedBids.map((record) => {
                           const level = getScoreLevel(record.ai_score);
                           const pct = record.skill_analysis?.matchPercentage;
                           return (
@@ -660,15 +664,15 @@ export default function BidIqPage() {
                 )}
               </div>
 
-              {filtered.length > 0 && (
+              {totalCount > 0 && (
                 <div className="biq-bottom-bar">
                     <div className="biq-bottom-info">
                       Showing{" "}
                       <strong>
                         {(tablePage - 1) * tablePageSize + 1}–
-                        {Math.min(tablePage * tablePageSize, filtered.length)}
+                        {Math.min(tablePage * tablePageSize, totalCount)}
                       </strong>{" "}
-                      of <strong>{filtered.length}</strong>
+                      of <strong>{totalCount}</strong>
                     </div>
                     <div className="biq-pager">
                       <button
@@ -679,7 +683,7 @@ export default function BidIqPage() {
                       >
                         ‹
                       </button>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1)
                         .slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5)
                         .map((p) => (
                           <button
@@ -694,8 +698,8 @@ export default function BidIqPage() {
                       <button
                         type="button"
                         className="biq-pager-btn"
-                        disabled={tablePage >= totalPages}
-                        onClick={() => setTablePage((p) => Math.min(totalPages, p + 1))}
+                        disabled={tablePage >= Math.ceil(totalCount / tablePageSize)}
+                        onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}
                       >
                         ›
                       </button>

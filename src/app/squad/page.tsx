@@ -132,6 +132,8 @@ export default function SquadManagement() {
   const isDark = theme === "dark";
   const [loading, setLoading] = useState(false);
   const [squads, setSquads] = useState<Squad[]>([]);
+  const [paginatedSquads, setPaginatedSquads] = useState<Squad[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -156,7 +158,8 @@ export default function SquadManagement() {
     if (user && canReadSquad) {
       fetchSquads();
     }
-  }, [user, canReadSquad]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, canReadSquad, tablePage, tablePageSize, searchText, savedView, statusFilter]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -172,8 +175,25 @@ export default function SquadManagement() {
   const fetchSquads = async () => {
     try {
       setLoading(true);
-      const data = await SquadService.getSquads();
-      setSquads(Array.isArray(data) ? data : []);
+
+      // 1) Fetch large set for stats, dropdowns
+      const allRes = await SquadService.getSquads({ limit: 1000 });
+      const allData = allRes?.data || (Array.isArray(allRes) ? allRes : []);
+      setSquads(allData);
+
+      // 2) Fetch paginated list
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+      };
+      if (savedView === 'active') filters.status = 'active';
+      else if (savedView === 'archived') filters.isArchived = 'true';
+
+      const pRes = await SquadService.getSquads(filters);
+      setPaginatedSquads(pRes?.data || []);
+      setTotalCount(pRes?.pagination?.total || 0);
     } catch (error) {
       console.error(error);
       message.error('Failed to fetch squads');
@@ -226,35 +246,6 @@ export default function SquadManagement() {
     }
   };
 
-  // --- Filtering ---
-  const filteredSquads = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    return squads.filter((s) => {
-      // Saved View Filter
-      if (savedView === 'active' && (!s.squadStatus || s.isArchived)) return false;
-      if (savedView === 'inactive' && (s.squadStatus || s.isArchived)) return false;
-      if (savedView === 'archived' && !s.isArchived) return false;
-
-      // Status Filter
-      if (statusFilter === 'active' && (!s.squadStatus || s.isArchived)) return false;
-      if (statusFilter === 'inactive' && (s.squadStatus || s.isArchived)) return false;
-      if (statusFilter === 'archived' && !s.isArchived) return false;
-
-      // Search Text
-      const matchesSearch = !q ||
-        s.squadName.toLowerCase().includes(q) ||
-        s.squadCode.toLowerCase().includes(q);
-
-      // Selected Squad IDs
-      const matchesSquadIds = selectedSquadIds.length === 0 || selectedSquadIds.includes(s.id);
-
-      // Selected User IDs
-      const matchesUserIds = selectedUserIds.length === 0 || s.squadMembers?.some(m => selectedUserIds.includes(m.squadMemberId));
-
-      return matchesSearch && matchesSquadIds && matchesUserIds;
-    });
-  }, [squads, searchText, savedView, statusFilter, selectedSquadIds, selectedUserIds]);
-
   useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, selectedSquadIds, selectedUserIds]);
 
   const statsData = useMemo(() => {
@@ -287,18 +278,15 @@ export default function SquadManagement() {
     };
   }, [squads]);
 
-  // Build real sparkline trends from squad createdAt dates (6-month cumulative growth)
   const statCells = useMemo(() => {
     const now = new Date();
     const MONTHS = 6;
-    // Generate month boundaries (start of each month, oldest first)
     const bucketStarts: Date[] = [];
     for (let i = MONTHS - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       bucketStarts.push(d);
     }
 
-    // For each squad, determine which bucket it falls into (by createdAt)
     const totalByMonth = new Array(MONTHS).fill(0);
     const activeByMonth = new Array(MONTHS).fill(0);
     const leadersByMonth = new Array(MONTHS).fill(0);
@@ -311,11 +299,9 @@ export default function SquadManagement() {
       const subHeadCount = s.squadMembers?.filter(m => m.memberType === 'SUB_HEAD').length || 0;
       const isActive = s.squadStatus && !s.isArchived;
 
-      // Find which bucket this squad was created in (or before)
       for (let b = 0; b < MONTHS; b++) {
         const bucketEnd = b < MONTHS - 1 ? bucketStarts[b + 1] : new Date(now.getFullYear(), now.getMonth() + 1, 1);
         if (created < bucketEnd) {
-          // This squad exists from this bucket onward (cumulative)
           for (let j = b; j < MONTHS; j++) {
             totalByMonth[j] += 1;
             if (isActive) activeByMonth[j] += 1;
@@ -327,7 +313,6 @@ export default function SquadManagement() {
       }
     });
 
-    // Ensure at least the current value shows even if all squads predate the window
     if (totalByMonth[MONTHS - 1] === 0 && squads.length > 0) {
       totalByMonth[MONTHS - 1] = statsData.totalSquads;
       activeByMonth[MONTHS - 1] = statsData.activeSquads;
@@ -397,13 +382,6 @@ export default function SquadManagement() {
     }));
   }, [squads]);
 
-  const statusOptions = [
-    { value: 'all', label: 'All statuses' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'archived', label: 'Archived' },
-  ];
-
   const hasActiveFilters = searchText.trim().length > 0 || statusFilter !== 'all' || selectedSquadIds.length > 0 || selectedUserIds.length > 0;
 
   const clearFilters = () => {
@@ -446,7 +424,6 @@ export default function SquadManagement() {
       if (key === 'view') handleOpen(squad);
       else if (key === 'edit') handleManage(squad);
       else if (key === 'archive') handleArchive(squad);
-      // delete is handled by ConfirmDialog
     },
   });
 
@@ -570,11 +547,10 @@ export default function SquadManagement() {
     );
   }
 
-  const total = filteredSquads.length;
+  const total = totalCount;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedSquads = filteredSquads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
 
   const emptyState = (
     <div className="sq-empty">
@@ -592,7 +568,6 @@ export default function SquadManagement() {
   return (
     <MainLayout>
       <div className="sq-shell">
-        {/* ============================ SIDEBAR ============================ */}
         {mobileSidebarOpen && <div className="sq-mobile-overlay" onClick={() => setMobileSidebarOpen(false)} />}
         <aside className={`sq-sidebar ${mobileSidebarOpen ? 'is-open' : ''}`}>
           <div className="sq-sidebar-top">
@@ -627,7 +602,7 @@ export default function SquadManagement() {
                     key={v.key}
                     type="button"
                     className={`sq-view-item ${active ? 'is-active' : ''}`}
-                    onClick={() => setSavedView(v.key)}
+                    onClick={() => { setSavedView(v.key); setTablePage(1); }}
                   >
                     <span className="sq-view-icon" style={{ color: active ? v.color : 'var(--text-slate-400)' }}>{v.icon}</span>
                     <span className="sq-view-label">{v.label}</span>
@@ -670,7 +645,6 @@ export default function SquadManagement() {
           </div>
         </aside>
 
-        {/* ============================ MAIN ============================ */}
         <main className="sq-main">
           <div className="sq-topbar">
             <div className="sq-topbar-left" style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, maxWidth: 520 }}>
@@ -689,7 +663,6 @@ export default function SquadManagement() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-
               </div>
             </div>
 
@@ -712,7 +685,6 @@ export default function SquadManagement() {
 
           <div className="sq-divider" />
 
-          {/* Stat cards */}
           <div className="sq-stats">
             {statCells.map((s) => (
               <div key={s.key} className="sq-stat-card">
@@ -738,13 +710,12 @@ export default function SquadManagement() {
             ))}
           </div>
 
-          {/* Table / grid */}
           <div className="sq-body">
             {view === 'list' ? (
               <div className="sq-table-wrap">
                 <Table
                   columns={columns}
-                  dataSource={pagedSquads}
+                  dataSource={paginatedSquads}
                   loading={loading}
                   rowKey="id"
                   size="small"
@@ -766,11 +737,11 @@ export default function SquadManagement() {
             ) : (
               <div className="sq-grid">
                 {loading ? (
-                  <div className="sq-grid-loading">Loading…</div>
-                ) : filteredSquads.length === 0 ? (
+                  <div className="sq-grid-loading">Loading...</div>
+                ) : paginatedSquads.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                 ) : (
-                  filteredSquads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((s) => {
+                  paginatedSquads.map((s) => {
                     const isArchived = s.isArchived;
                     const meta = isArchived
                       ? { label: 'Archived', color: '#3b82f6', bg: 'rgba(59,130,246,0.10)' }

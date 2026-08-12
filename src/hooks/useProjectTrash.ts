@@ -10,10 +10,10 @@ export const projectTrashKeys = {
 /**
  * Hook to fetch trashed projects
  */
-export function useProjectTrash() {
+export function useProjectTrash(params?: { page?: number; limit?: number; search?: string }) {
   return useQuery({
-    queryKey: projectTrashKeys.list(),
-    queryFn: () => ProjectTrashService.getTrashProjects(),
+    queryKey: [...projectTrashKeys.list(), params],
+    queryFn: () => ProjectTrashService.getTrashProjects(params),
     staleTime: 30 * 1000,
   });
 }

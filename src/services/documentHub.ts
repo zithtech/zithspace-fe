@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/axios";
+import { apiClient, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export type DocumentNodeType = "section" | "folder" | "file";
 
@@ -168,10 +168,9 @@ class DocumentHubService {
     }
   }
 
-  static async getAllDocumentHubs(): Promise<DocumentHub[]> {
+  static async getAllDocumentHubs(filters?: any): Promise<PaginatedResponse<DocumentHub>> {
     try {
-      const response = await apiClient.get("/api/documenthub");
-      return response.data.data;
+      return await apiUtils.getPaginated<DocumentHub>("/api/documenthub", filters);
     } catch (error: any) {
       console.error("Error getting all document hubs:", error);
       throw error;

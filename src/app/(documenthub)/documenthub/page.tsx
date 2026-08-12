@@ -867,13 +867,31 @@ const DocumentHubPage = () => {
   const queryClient = useQueryClient();
 
   const {
-    data: documentHubs = [],
+    data: allHubsRes,
+  } = useQuery({
+    queryKey: ["documentHubs", "all"],
+    queryFn: () => DocumentHubService.getAllDocumentHubs({ limit: 1000 }),
+  });
+  const documentHubs = allHubsRes?.data || [];
+
+  const {
+    data: paginatedHubsRes,
     isLoading: hubsLoading,
     isFetching: hubsFetching,
     refetch,
   } = useQuery({
-    queryKey: ["documentHubs"],
-    queryFn: DocumentHubService.getAllDocumentHubs,
+    queryKey: ["documentHubs", "paginated", tablePage, tablePageSize, searchText, savedView, filterProjectId, filterTicketId, selectedUser, dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString()],
+    queryFn: () => DocumentHubService.getAllDocumentHubs({
+      page: tablePage,
+      limit: tablePageSize,
+      search: searchText || undefined,
+      view: savedView === 'all' ? undefined : savedView,
+      projectId: filterProjectId || undefined,
+      ticketId: filterTicketId || undefined,
+      userId: selectedUser || undefined,
+      startDate: dateRange?.[0] ? startOfDay(dateRange[0].toDate()).toISOString() : undefined,
+      endDate: dateRange?.[1] ? endOfDay(dateRange[1].toDate()).toISOString() : undefined,
+    }),
   });
 
   // Hydrate persisted UI prefs.
@@ -1148,45 +1166,8 @@ const DocumentHubPage = () => {
     setColWidths((prev) => ({ ...prev, [key]: next }));
   };
 
-  // Apply saved-view scope first, then fine-grained filters.
-  const scopedHubs = useMemo(() => {
-    return documentHubs.filter((hub) => {
-      switch (savedView) {
-        case 'mine': return hub.createdById === user?.id;
-        case 'shared': return hub.createdById !== user?.id;
-        case 'public': return hub.visibility === 'public';
-        case 'starred': return isHubStarred(hub);
-        case 'all':
-        default: return true;
-      }
-    });
-    // isHubStarred reads optimisticStarred — re-run when that changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentHubs, savedView, user?.id, optimisticStarred]);
-
-  const filteredHubs = useMemo(() => {
-    return scopedHubs.filter((hub) => {
-      const matchesSearch = hub.name.toLowerCase().includes(searchText.toLowerCase());
-      const matchesUser = selectedUser ? hub.createdById === selectedUser : true;
-      const matchesProject = filterProjectId
-        ? (hub.projectId === filterProjectId || hub.project?.id === filterProjectId)
-        : true;
-      const matchesTicket = filterTicketId
-        ? (hub.ticketId === filterTicketId || hub.ticket?.id === filterTicketId)
-        : true;
-      let matchesDate = true;
-      if (dateRange && dateRange[0] && dateRange[1]) {
-        const startDate = startOfDay(dateRange[0].toDate());
-        const endDate = endOfDay(dateRange[1].toDate());
-        const createdInRange = isWithinInterval(new Date(hub.createdAt), { start: startDate, end: endDate });
-        const updatedInRange = isWithinInterval(new Date(hub.updatedAt), { start: startDate, end: endDate });
-        matchesDate = createdInRange || updatedInRange;
-      }
-      return matchesSearch && matchesUser && matchesProject && matchesTicket && matchesDate;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedHubs, searchText, selectedUser, filterProjectId, filterTicketId, dateRange, optimisticStarred]);
-
+  // Backend now handles filtering and view scoping for the main table/grid.
+  const filteredHubs = paginatedHubsRes?.data || [];
   // Pinned (starred) and recently-opened, scoped to whatever is currently visible.
   const pinnedHubs = useMemo(
     () => documentHubs.filter((h) => isHubStarred(h)).slice(0, 8),
@@ -1770,13 +1751,9 @@ const DocumentHubPage = () => {
     );
   };
 
-  const renderTable = () => {
-    // Manual paging so the shared fixed footer (below the table) drives pagination.
-    const total = filteredHubs.length;
-    const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-    const curPage = Math.min(tablePage, pageCount);
-    const pageStart = (curPage - 1) * tablePageSize;
-    const pagedHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
+    const renderTable = () => {
+    // Paging is now handled server-side, filteredHubs is already sliced.
+    const pagedHubs = filteredHubs;
     return (
       <div
         className="dh-table-shell"
@@ -1957,11 +1934,8 @@ const DocumentHubPage = () => {
     if (!filteredHubs.length) return renderEmpty();
     const allSelected = filteredHubs.every((h) => selectedKeys.includes(h.id));
     const someSelected = filteredHubs.some((h) => selectedKeys.includes(h.id));
-    // Page the list — paging controls live in the fixed footer below.
-    const pageCount = Math.max(1, Math.ceil(filteredHubs.length / tablePageSize));
-    const curPage = Math.min(tablePage, pageCount);
-    const pageStart = (curPage - 1) * tablePageSize;
-    const pageHubs = filteredHubs.slice(pageStart, pageStart + tablePageSize);
+    // Paging is now handled server-side, filteredHubs is already sliced.
+    const pageHubs = filteredHubs;
 
     return (
       <div className="dh-rowcards-wrap" style={{ padding: '0px 0px', overflowY: 'auto' }}>
@@ -2586,9 +2560,8 @@ const DocumentHubPage = () => {
 
           {/* Fixed pagination footer (Cards & Table views) */}
           {!(hubsLoading && !documentHubs.length) && filteredHubs.length > 0 && (() => {
-            const total = filteredHubs.length;
-            const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-            const curPage = Math.min(tablePage, pageCount);
+            const total = paginatedHubsRes?.pagination?.total || 0;
+            const curPage = paginatedHubsRes?.pagination?.page || 1;
             const start = (curPage - 1) * tablePageSize + 1;
             const end = Math.min(curPage * tablePageSize, total);
             return (

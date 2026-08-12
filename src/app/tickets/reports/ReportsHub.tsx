@@ -131,6 +131,8 @@ export default function ReportsHub() {
   const [view, setView] = useState<"list" | "grid">("list");
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [tableReports, setTableReports] = useState<SprintReportListItem[]>([]);
+  const [totalTableReports, setTotalTableReports] = useState(0);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -170,6 +172,8 @@ export default function ReportsHub() {
   const fetchReports = async (pid: string) => {
     if (!pid) {
       setReports([]);
+      setTableReports([]);
+      setTotalTableReports(0);
       return;
     }
     setLoading(true);
@@ -177,6 +181,14 @@ export default function ReportsHub() {
     try {
       const rows = await SprintReportsService.list(pid);
       setReports(rows);
+      
+      const res = await SprintReportsService.list(pid, {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText || undefined
+      });
+      setTableReports(res?.data || []);
+      setTotalTableReports(res?.pagination?.total || 0);
     } catch (err: any) {
       setError(err?.message ?? "Failed to load sprint reports");
     } finally {
@@ -188,13 +200,32 @@ export default function ReportsHub() {
     let cancelled = false;
     if (!projectId) {
       setReports([]);
+      setTableReports([]);
+      setTotalTableReports(0);
       return;
     }
     setLoading(true);
     setError(null);
-    SprintReportsService.list(projectId)
-      .then((rows) => {
-        if (!cancelled) setReports(rows);
+    
+    Promise.all([
+      SprintReportsService.list(projectId),
+      SprintReportsService.list(projectId, {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText || undefined
+      })
+    ])
+      .then(([allRows, paginatedRes]) => {
+        if (!cancelled) {
+          setReports(allRows);
+          if (Array.isArray(paginatedRes)) {
+            setTableReports(paginatedRes);
+            setTotalTableReports(paginatedRes.length);
+          } else {
+            setTableReports(paginatedRes?.data || []);
+            setTotalTableReports(paginatedRes?.pagination?.total || 0);
+          }
+        }
       })
       .catch((err: any) => {
         if (!cancelled) setError(err?.message ?? "Failed to load sprint reports");
@@ -202,10 +233,11 @@ export default function ReportsHub() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+      
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, tablePage, tablePageSize, searchText]);
 
   useEffect(() => {
     setTablePage(1);
@@ -282,7 +314,8 @@ export default function ReportsHub() {
     setGenerating((g) => ({ ...g, [sprintId]: true }));
     try {
       const summary = await SprintReportsService.generate(sprintId);
-      setReports((prev) =>
+      
+      const updateFn = (prev: SprintReportListItem[]) => 
         prev.map((r) =>
           r.sprintId === sprintId
             ? {
@@ -297,8 +330,10 @@ export default function ReportsHub() {
               generatedById: summary.generatedById,
             }
             : r
-        )
-      );
+        );
+        
+      setReports(updateFn);
+      setTableReports(updateFn);
     } catch (err: any) {
       setError(err?.message ?? "Failed to generate report");
     } finally {
@@ -517,11 +552,10 @@ export default function ReportsHub() {
     },
   ];
 
-  const total = filteredReports.length;
+  const total = totalTableReports;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedReports = filteredReports.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
 
   const emptyState = (
     <div className="pp-empty">
@@ -682,7 +716,7 @@ export default function ReportsHub() {
             <div className="pp-table-wrap">
               <Table
                 columns={columns}
-                dataSource={pagedReports}
+                dataSource={tableReports}
                 loading={loading}
                 rowKey="sprintId"
                 size="small"
@@ -704,10 +738,10 @@ export default function ReportsHub() {
             <div className="pp-grid">
               {loading ? (
                 <div className="pp-grid-loading">Loading…</div>
-              ) : filteredReports.length === 0 ? (
+              ) : tableReports.length === 0 ? (
                 <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
               ) : (
-                pagedReports.map((r) => {
+                tableReports.map((r) => {
                   const accent = accentFor(r.sprintId);
                   const pct =
                     r.completionPct != null ? Math.round(r.completionPct) : 0;

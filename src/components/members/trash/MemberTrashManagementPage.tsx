@@ -136,8 +136,21 @@ export default function MemberTrashManagementPage() {
   const [managers, setManagers] = useState<Member[]>([]);
 
   // Fetch trash members
-  const { data: trashResponse, isLoading, refetch } = useMemberTrash({ limit: 1000 });
-  const trashedMembers = (trashResponse?.data || []) as unknown as TrashedMember[];
+  // Fetch all for stats
+  const { data: statsResponse } = useMemberTrash({ limit: 1000 });
+  const allTrashedMembers = (statsResponse?.data || []) as unknown as TrashedMember[];
+
+  // Fetch paginated members
+  const { data: trashResponse, isLoading, refetch } = useMemberTrash({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchQuery || undefined,
+    role: roleFilter || undefined,
+    position: positionFilter || undefined,
+    reportsTo: reportsToFilter || undefined
+  });
+  const paginatedMembers = (trashResponse?.data || []) as unknown as TrashedMember[];
+  const totalCount = trashResponse?.pagination?.total || 0;
 
   // Trash mutations
   const restoreMutation = useRestoreMember();
@@ -170,49 +183,29 @@ export default function MemberTrashManagementPage() {
     fetchManagers();
   }, []);
 
-  /* ── Filtered list ─────────────────────────────────────────────── */
-  const filteredMembers = useMemo(() => {
-    return trashedMembers.filter((m) => {
-      const matchesSearch =
-        !searchQuery ||
-        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (m.workEmail && m.workEmail.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (m.position?.title && m.position.title.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesRole = !roleFilter || m.role === roleFilter;
-      const matchesPosition = !positionFilter || m.position?.title === positionFilter;
-      const matchesReportsTo =
-        !reportsToFilter ||
-        m.reportsTo?.id === reportsToFilter ||
-        (typeof m.reportsTo === "string" && m.reportsTo === reportsToFilter);
-
-      return matchesSearch && matchesRole && matchesPosition && matchesReportsTo;
-    });
-  }, [trashedMembers, searchQuery, roleFilter, positionFilter, reportsToFilter]);
-
   const stats = useMemo(() => {
     return {
-      total: filteredMembers.length,
-      recent: filteredMembers.filter(
+      total: totalCount,
+      recent: allTrashedMembers.filter(
         (m) => dayjs().diff(dayjs(m.deletedAt || m.updatedAt), "day") <= 7
       ).length,
-      older: filteredMembers.filter(
+      older: allTrashedMembers.filter(
         (m) =>
           dayjs().diff(dayjs(m.deletedAt || m.updatedAt), "day") > 7 &&
           dayjs().diff(dayjs(m.deletedAt || m.updatedAt), "day") <= 30
       ).length,
-      purgeReady: filteredMembers.filter(
+      purgeReady: allTrashedMembers.filter(
         (m) => dayjs().diff(dayjs(m.deletedAt || m.updatedAt), "day") > 30
       ).length,
     };
-  }, [filteredMembers]);
+  }, [allTrashedMembers, totalCount]);
 
   const getTrashTrend = (condition?: (m: TrashedMember) => boolean) => {
-    if (trashedMembers.length === 0) return [0, 0, 0, 0, 0];
+    if (allTrashedMembers.length === 0) return [0, 0, 0, 0, 0];
     const months = Array.from({ length: 5 }, (_, i) => dayjs().subtract(4 - i, 'month'));
     return months.map((m) => {
       const endOfMonth = m.endOf('month');
-      return trashedMembers.filter((u) => {
+      return allTrashedMembers.filter((u) => {
         const deleted = dayjs(u.deletedAt || u.updatedAt);
         const matchesDate = deleted.isBefore(endOfMonth) || deleted.isSame(endOfMonth);
         const matchesCondition = condition ? condition(u) : true;
@@ -273,7 +266,7 @@ export default function MemberTrashManagementPage() {
         deltaLabel: 'members',
       },
     ];
-  }, [stats, trashedMembers]);
+  }, [stats, allTrashedMembers]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -530,7 +523,7 @@ export default function MemberTrashManagementPage() {
     },
   ];
 
-  const total = filteredMembers.length;
+  const total = totalCount;
   const pageStart = total === 0 ? 0 : (pagination.current - 1) * pagination.pageSize + 1;
   const pageEnd = Math.min(pagination.current * pagination.pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pagination.pageSize));
@@ -570,14 +563,14 @@ export default function MemberTrashManagementPage() {
             await emptyMutation.mutateAsync();
             setSelectedRowKeys([]);
           }}
-          disabled={filteredMembers.length === 0 || isLoading}
+          disabled={totalCount === 0 || isLoading}
         >
           <Button
             type="primary"
             icon={<DeleteOutlined />}
             className="pp-create-btn"
             block
-            disabled={filteredMembers.length === 0 || isLoading}
+            disabled={totalCount === 0 || isLoading}
             loading={emptyMutation.isPending}
           >
             Empty Trash
@@ -848,10 +841,7 @@ export default function MemberTrashManagementPage() {
                 dataSource={
                   isLoading || isRefreshing
                     ? Array(5).fill({})
-                    : filteredMembers.slice(
-                      (pagination.current - 1) * pagination.pageSize,
-                      pagination.current * pagination.pageSize
-                    )
+                    : paginatedMembers
                 }
                 rowKey="id"
                 loading={false}
@@ -868,10 +858,10 @@ export default function MemberTrashManagementPage() {
                     <Skeleton active avatar paragraph={{ rows: 2 }} />
                   </div>
                 ))
-              ) : filteredMembers.length === 0 ? (
+              ) : paginatedMembers.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
               ) : (
-                filteredMembers.map((item) => {
+                paginatedMembers.map((item) => {
                   const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
                   const rbacRole = (item as any).userRoles?.[0]?.role;
                   const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);

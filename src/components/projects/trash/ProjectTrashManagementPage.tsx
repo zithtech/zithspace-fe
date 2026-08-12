@@ -128,17 +128,30 @@ export default function ProjectTrashManagementPage() {
     }
   }, []);
 
-  const { data: trashProjects, isLoading, refetch } = useProjectTrash();
+  // Fetch all for stats and filters
+  const { data: allTrashRes } = useProjectTrash();
+  // Fetch paginated for the table
+  const { data: paginatedTrashRes, isLoading, refetch } = useProjectTrash({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchQuery || undefined
+  });
+
   const restoreProject = useRestoreProject();
   const permanentDelete = usePermanentDeleteProject();
   const emptyTrash = useEmptyTrash();
   const bulkRestore = useBulkRestoreProjects();
   const bulkDelete = useBulkPermanentDeleteProjects();
 
-  const uniqueProjects = Array.from(new Map(trashProjects?.map(p => [p.id, p.name])).entries());
-  const uniqueManagers = Array.from(new Map(trashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
+  const allTrashProjects = Array.isArray(allTrashRes) ? allTrashRes : (allTrashRes?.data || []);
+  const paginatedTrashProjects = Array.isArray(paginatedTrashRes) ? paginatedTrashRes : (paginatedTrashRes?.data || []);
+  const totalTrashItems = Array.isArray(paginatedTrashRes) ? paginatedTrashRes.length : (paginatedTrashRes?.pagination?.total || 0);
 
-  const filteredProjects = trashProjects?.filter((p) => {
+  const uniqueProjects = Array.from(new Map(allTrashProjects?.map(p => [p.id, p.name])).entries());
+  const uniqueManagers = Array.from(new Map(allTrashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
+
+  // We filter the ALL projects for the stats and sidebar filters
+  const filteredProjectsForStats = allTrashProjects?.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProject = !filters.projectId || p.id === filters.projectId;
     const matchesManager = !filters.projectManagerId || p.projectManager?.id === filters.projectManagerId;
@@ -155,10 +168,10 @@ export default function ProjectTrashManagementPage() {
   }) || [];
 
   const stats = {
-    total: filteredProjects.length,
-    recent: filteredProjects.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') <= 7).length,
-    older: filteredProjects.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 7 && dayjs().diff(dayjs(p.updatedAt), 'day') <= 30).length,
-    purgeReady: filteredProjects.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 30).length,
+    total: filteredProjectsForStats.length,
+    recent: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') <= 7).length,
+    older: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 7 && dayjs().diff(dayjs(p.updatedAt), 'day') <= 30).length,
+    purgeReady: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 30).length,
   };
 
   const columns = [
@@ -308,7 +321,7 @@ export default function ProjectTrashManagementPage() {
                 cancelText="Cancel"
                 placement="bottom"
                 icon={<AlertTriangle size={16} />}
-                disabled={filteredProjects.length === 0 || isLoading}
+                disabled={totalTrashItems === 0 || isLoading}
               >
                 <Button
                   danger
@@ -320,17 +333,17 @@ export default function ProjectTrashManagementPage() {
                     borderRadius: 6,
                     fontWeight: 600,
                     height: 36,
-                    backgroundColor: filteredProjects.length === 0 || isLoading
+                    backgroundColor: totalTrashItems === 0 || isLoading
                       ? (isDark ? '#1f1f1f' : '#f5f5f5')
                       : (isDark ? 'transparent' : '#fff2f0'),
-                    color: filteredProjects.length === 0 || isLoading
+                    color: totalTrashItems === 0 || isLoading
                       ? '#8c8c8c'
                       : '#ff4d4f',
-                    borderColor: filteredProjects.length === 0 || isLoading
+                    borderColor: totalTrashItems === 0 || isLoading
                       ? '#d9d9d9'
                       : (isDark ? '#ff4d4f' : 'transparent'),
                   }}
-                  disabled={filteredProjects.length === 0 || isLoading}
+                  disabled={totalTrashItems === 0 || isLoading}
                 >
                   Empty Trash
                 </Button>
@@ -442,7 +455,7 @@ export default function ProjectTrashManagementPage() {
               <div className="pm2-main-stats">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="pm2-pulse-dot" style={{ background: '#ff4d4f', boxShadow: 'none', animation: 'none' }} />
-                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{filteredProjects.length}</span> {filteredProjects.length === 1 ? "project in trash" : "projects in trash"}
+                  <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalTrashItems}</span> {totalTrashItems === 1 ? "project in trash" : "projects in trash"}
                 </span>
               </div>
               <div className="pm2-main-controls">
@@ -620,7 +633,7 @@ export default function ProjectTrashManagementPage() {
                       selectedRowKeys,
                       onChange: (keys) => setSelectedRowKeys(keys)
                     }}
-                    dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : filteredProjects.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
+                    dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : paginatedTrashProjects}
                     columns={columns.map(col => ({
                       ...col,
                       render: (text: any, record: any, index: number) => {
@@ -652,14 +665,14 @@ export default function ProjectTrashManagementPage() {
                         <Skeleton active paragraph={{ rows: 2 }} />
                       </div>
                     ))
-                    : filteredProjects.length === 0 ? (
+                    : paginatedTrashProjects.length === 0 ? (
                       <div style={{ gridColumn: '1 / -1', padding: '40px 0' }}>
                         <Empty
                           image={Empty.PRESENTED_IMAGE_SIMPLE}
                           description={<Text type="secondary">No projects found in trash</Text>}
                         />
                       </div>
-                    ) : filteredProjects.map((project: any) => {
+                    ) : paginatedTrashProjects.map((project: any) => {
                       const pm = project.projectManager;
                       const pmFullName = pm?.name ? pm.name : "Unassigned";
 
@@ -777,17 +790,17 @@ export default function ProjectTrashManagementPage() {
               )}
             </div>
 
-            {filteredProjects.length > 0 && (
+            {totalTrashItems > 0 && (
               <div className="pm2-pagination" style={{ marginTop: 'auto' }}>
                 <Typography.Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
-                    {(pagination.current - 1) * pagination.pageSize + 1}–{Math.min(pagination.current * pagination.pageSize, filteredProjects.length)}
-                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{filteredProjects.length}</span> project{filteredProjects.length !== 1 ? 's' : ''}
+                    {(pagination.current - 1) * pagination.pageSize + 1}–{Math.min(pagination.current * pagination.pageSize, totalTrashItems)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{totalTrashItems}</span> project{totalTrashItems !== 1 ? 's' : ''}
                 </Typography.Text>
                 <Pagination
                   current={pagination.current}
                   pageSize={pagination.pageSize}
-                  total={filteredProjects.length}
+                  total={totalTrashItems}
                   onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
                   showSizeChanger
                   pageSizeOptions={[10, 20, 25, 50, 100]}

@@ -1,6 +1,6 @@
 "use client";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
+import NoData from "@/components/common/NoData";
 
 import { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -917,63 +917,34 @@ export default function InvoiceTrashPage() {
                 <ZukvoLoader size="md" />
               </div>
             ) : filteredInvoices.length === 0 ? (
-              <div
-                className="flex flex-col items-center justify-center py-20 rounded-none"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1.5px dashed var(--border-color)",
-                }}
-              >
-                <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center mb-3.5"
-                  style={{
-                    background: "rgba(248,113,113,0.1)",
-                    color: "#f87171",
-                    border: "1px solid rgba(248,113,113,0.2)",
-                  }}
-                >
-                  <Trash2 size={20} strokeWidth={2} />
-                </div>
-                <Title
-                  level={5}
-                  style={{
-                    color: "var(--text-primary)",
-                    margin: 0,
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
-                  {searchText || filterCount > 0
-                    ? "No deleted invoices match"
-                    : "Trash is empty"}
-                </Title>
-                <Typography.Text
-                  style={{
-                    color: "var(--text-secondary)",
-                    fontSize: 12,
-                    marginTop: 4,
-                    marginBottom: 16,
-                  }}
-                >
-                  {searchText || filterCount > 0
-                    ? "Try adjusting your search or filters"
-                    : "Deleted invoices will appear here for 30 days"}
-                </Typography.Text>
-                {!searchText && filterCount === 0 && (
-                  <Button
-                    icon={<ChevronLeft size={13} />}
-                    onClick={() => router.push("/invoice/invoices")}
-                    style={{
-                      borderRadius: 6,
-                      height: 32,
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Back to invoices
-                  </Button>
-                )}
-              </div>
+              <NoData 
+                title={searchText || filterCount > 0 ? "No deleted invoices match" : "Trash is empty"}
+                description={
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <span style={{ color: 'var(--text-slate-500)', fontSize: 14 }}>
+                      {searchText || filterCount > 0
+                        ? "Try adjusting your search or filters"
+                        : "Deleted invoices will appear here for 30 days"}
+                    </span>
+                    {!searchText && filterCount === 0 && (
+                      <Button
+                        icon={<ChevronLeft size={13} />}
+                        onClick={() => router.push("/invoice/invoices")}
+                        style={{
+                          borderRadius: 8,
+                          height: 38,
+                          fontSize: 14,
+                          fontWeight: 600,
+                          padding: '0 20px',
+                        }}
+                      >
+                        Back to invoices
+                      </Button>
+                    )}
+                  </div>
+                }
+                accent="#f87171"
+              />
             ) : (
               <div
                 className="rounded-none overflow-hidden"

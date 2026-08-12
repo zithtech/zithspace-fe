@@ -1,6 +1,6 @@
 "use client";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-
+import NoData from "@/components/common/NoData";
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -1342,25 +1342,29 @@ export default function InvoiceInvoicesPage() {
                 </div>
               )
             ) : filteredInvoices.length === 0 ? (
-              <div className="pp-empty">
-                <div className="pp-empty-orb"><FileText size={26} /></div>
-                <div className="pp-empty-title">No invoices found</div>
-                <div className="pp-empty-sub">
-                  {searchText || customerFilter || dateRange
-                    ? "Try adjusting your search or filters."
-                    : "Get started by creating your first invoice."}
-                </div>
-                {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={() => router.push("/invoice/newinvoice")}
-                    className="pp-btn-primary"
-                    style={{ marginTop: 14 }}
-                  >
-                    New Invoice
-                  </Button>
-                )}
+              <div className="pp-empty-wrapper">
+                <NoData 
+                  title="No invoices found"
+                  description={
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ color: 'var(--text-slate-500)', fontSize: 14 }}>
+                        {searchText || customerFilter || dateRange
+                          ? "Try adjusting your search or filters."
+                          : "Get started by creating your first invoice."}
+                      </span>
+                      {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
+                        <Button
+                          type="primary"
+                          icon={<Plus size={14} />}
+                          onClick={() => router.push("/invoice/newinvoice")}
+                          style={{ borderRadius: 8, height: 38, fontWeight: 600, padding: '0 20px' }}
+                        >
+                          New Invoice
+                        </Button>
+                      )}
+                    </div>
+                  }
+                />
               </div>
             ) : viewMode === "card" ? (
               <div className="pp-grid">
@@ -2859,13 +2863,7 @@ export default function InvoiceInvoicesPage() {
         }
         .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
 
-        .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
-        .pp-empty-orb {
-          width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
-          background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
-        }
-        .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
-        .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+
         .pp-btn-primary {
           background: #3B82F6 !important; border: none !important;
           border-radius: 0 !important; font-weight: 600 !important;

@@ -1,6 +1,8 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 import React, { useState, useMemo, useEffect } from "react";
-import { Typography, Tag, Row, Col, Spin, Tooltip, Skeleton, Input, Space, Button } from "antd";
+import { Typography, Tag, Row, Col, Tooltip, Skeleton, Input, Space, Button } from "antd";
 import {
   Layout,
   Building2,
@@ -359,7 +361,7 @@ export default function OverviewPage() {
   if (authLoading) {
     return (
       <div className="org-ov-shell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Spin size="large" tip="Loading Organization View..." />
+        <ZukvoLoader size="lg" message="Loading Organization View..." />
       </div>
     );
   }

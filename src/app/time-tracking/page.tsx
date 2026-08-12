@@ -1,9 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
 
 export default function TimeTrackingRedirect() {
   const router = useRouter();
@@ -16,9 +17,7 @@ export default function TimeTrackingRedirect() {
     <MainLayout>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
         <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Redirecting">
-            <div style={{ padding: 20 }} />
-          </Spin>
+          <ZukvoLoader size="lg" message="Redirecting" />
         </div>
       </div>
     </MainLayout>

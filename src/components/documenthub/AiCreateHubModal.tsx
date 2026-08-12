@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Input, Button, Typography, message, Select, Spin, Radio } from "antd";
+import { Modal, Input, Button, Typography, message, Select, Radio } from "antd";
 import {
   ThunderboltOutlined,
   SendOutlined,
@@ -737,7 +739,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
               notFoundContent={
                 ticketsLoading ? (
                   <div style={{ textAlign: "center", padding: 8 }}>
-                    <Spin size="small" />
+                    <ZukvoLoader size="sm" />
                   </div>
                 ) : (
                   <span style={{ fontSize: 12, color: "var(--text-slate-400)" }}>
@@ -797,7 +799,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       fontSize: 12,
                     }}
                   >
-                    <Spin size="small" />
+                    <ZukvoLoader size="sm" />
                     <span>Loading ticket description…</span>
                   </div>
                 ) : ticketHasDescription ? (

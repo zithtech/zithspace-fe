@@ -53,6 +53,7 @@ import {
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 type Mode = "light" | "dark";
 
@@ -401,7 +402,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
 
       {/* Header */}
       <div className="cd-tab-sticky-head">
-      <div className="support-header-wrap" style={{ margin: "0 -32px" }}>
+        <div className="support-header-wrap" style={{ margin: "0 -32px" }}>
           <TimeTrackingHeader
             icon={<LifeBuoy size={20} color="#3b82f6" />}
             title="Support tickets"
@@ -433,7 +434,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
             }}
           />
         </div>
-  
+
         {/* Filters Row */}
         <div style={{ margin: "12px 0 8px 0", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", flex: 1, minWidth: 0 }}>
@@ -446,7 +447,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
               prefix={<Search size={15} style={{ color: "var(--text-slate-400)", marginRight: 8 }} />}
               style={{ width: "320px" }}
             />
-  
+
             <SearchableDropdown
               placeholder="Status"
               searchPlaceholder="Search statuses"
@@ -461,7 +462,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
               className="contacts-filter-select-sd"
             />
           </div>
-  
+
           {/* View toggle */}
           <div className="ptab-segmented">
             <button
@@ -482,7 +483,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
             </button>
           </div>
         </div>
-  
+
         <div className="ptab-divider" />
       </div>
 
@@ -504,16 +505,17 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
         <EmptyState c={c} onCreate={() => setCreateOpen(true)} />
       ) : viewMode === "list" ? (
         <div className="pp-table-wrap">
-          <Table
-            className="pp-table"
-            dataSource={items}
-            columns={columns}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-            scroll={{ x: "max-content" }}
-            onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              className="pp-table"
+              dataSource={items}
+              columns={columns}
+              rowKey="id"
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+              scroll={{ x: "max-content" }}
+              onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
+            />
+          </ZukvoLoadingOverlay>
         </div>
       ) : (
         <div className="pp-grid">
@@ -1356,126 +1358,126 @@ function CreateTicketModal({
               onClick={onClose}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-6 customer-drawer-form">
-      <Form
-        form={form}
-        layout="horizontal"
-        labelCol={{ span: 7 }}
-        wrapperCol={{ span: 17 }}
-        labelAlign="left"
-        onFinish={submit}
-        requiredMark={false}
-      >
-        <SectionCard
-          title="What's the issue"
-          subtitle="A short subject and a first message — the client will see both."
-          icon={<Hash size={14} />}
-          step="STEP 1"
-        >
-          <Form.Item
-            name="subject"
-            label="Subject"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 12 }}
-          >
-            <Input
-              placeholder="e.g. Login error after password reset"
-              maxLength={200}
-            />
-          </Form.Item>
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 7 }}
+              wrapperCol={{ span: 17 }}
+              labelAlign="left"
+              onFinish={submit}
+              requiredMark={false}
+            >
+              <SectionCard
+                title="What's the issue"
+                subtitle="A short subject and a first message — the client will see both."
+                icon={<Hash size={14} />}
+                step="STEP 1"
+              >
+                <Form.Item
+                  name="subject"
+                  label="Subject"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 12 }}
+                >
+                  <Input
+                    placeholder="e.g. Login error after password reset"
+                    maxLength={200}
+                  />
+                </Form.Item>
 
-          <Form.Item
-            name="body"
-            label="First message"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 16 }}
-          >
-            <Input.TextArea
-              rows={5}
-              placeholder="Steps, context, anything the client needs to know…"
-              maxLength={4000}
-              showCount
-              style={{ padding: "10px 12px" }}
-            />
-          </Form.Item>
-        </SectionCard>
+                <Form.Item
+                  name="body"
+                  label="First message"
+                  rules={[{ required: true, message: "Required" }]}
+                  style={{ marginBottom: 16 }}
+                >
+                  <Input.TextArea
+                    rows={5}
+                    placeholder="Steps, context, anything the client needs to know…"
+                    maxLength={4000}
+                    showCount
+                    style={{ padding: "10px 12px" }}
+                  />
+                </Form.Item>
+              </SectionCard>
 
-        <SectionCard
-          title="Routing"
-          subtitle="Category and priority shape the SLA. Project links the ticket to a project (optional)."
-          icon={<FolderKanban size={14} />}
-          step="STEP 2"
-        >
-          <Form.Item
-            name="category"
-            label="Category"
-            rules={[{ required: true }]}
-            style={{ marginBottom: 12 }}
-          >
-            <SearchableDropdown
-              options={(Object.keys(CATEGORY_META) as TicketCategory[]).map(
-                (k) => ({ value: k, label: CATEGORY_META[k].label }),
-              )}
-            />
-          </Form.Item>
-          <Form.Item
-            name="priority"
-            label="Priority"
-            rules={[{ required: true }]}
-            style={{ marginBottom: 12 }}
-          >
-            <SearchableDropdown
-              options={(Object.keys(PRIORITY_META) as TicketPriority[]).map(
-                (k) => ({ value: k, label: PRIORITY_META[k].label }),
-              )}
-            />
-          </Form.Item>
+              <SectionCard
+                title="Routing"
+                subtitle="Category and priority shape the SLA. Project links the ticket to a project (optional)."
+                icon={<FolderKanban size={14} />}
+                step="STEP 2"
+              >
+                <Form.Item
+                  name="category"
+                  label="Category"
+                  rules={[{ required: true }]}
+                  style={{ marginBottom: 12 }}
+                >
+                  <SearchableDropdown
+                    options={(Object.keys(CATEGORY_META) as TicketCategory[]).map(
+                      (k) => ({ value: k, label: CATEGORY_META[k].label }),
+                    )}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="priority"
+                  label="Priority"
+                  rules={[{ required: true }]}
+                  style={{ marginBottom: 12 }}
+                >
+                  <SearchableDropdown
+                    options={(Object.keys(PRIORITY_META) as TicketPriority[]).map(
+                      (k) => ({ value: k, label: PRIORITY_META[k].label }),
+                    )}
+                  />
+                </Form.Item>
 
-          <Form.Item
-            name="projectId"
-            label="Project"
-            style={{ marginBottom: 0 }}
-          >
-            <SearchableDropdown
-              placeholder={
-                projects.length
-                  ? "Pick a project this ticket relates to"
-                  : "No projects linked to this client yet"
-              }
-              searchPlaceholder="Search projects..."
-              disabled={projects.length === 0}
-              options={projects.map((p) => ({
-                value: p.id,
-                label: p.code ? `${p.name} · ${p.code}` : p.name,
-              }))}
-            />
-          </Form.Item>
-        </SectionCard>
-      </Form>
-    </div>
-    
-    <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
-      <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
-        Cancel
-      </Button>
-      <Button
-        type="primary"
-        htmlType="submit"
-        loading={submitting}
-        onClick={() => form.submit()}
-        icon={<Plus size={14} />}
-        className="font-medium shadow-sm hover:opacity-90"
-      >
-        Create ticket
-      </Button>
-    </div>
-  </div>
-</Drawer>
-</>
+                <Form.Item
+                  name="projectId"
+                  label="Project"
+                  style={{ marginBottom: 0 }}
+                >
+                  <SearchableDropdown
+                    placeholder={
+                      projects.length
+                        ? "Pick a project this ticket relates to"
+                        : "No projects linked to this client yet"
+                    }
+                    searchPlaceholder="Search projects..."
+                    disabled={projects.length === 0}
+                    options={projects.map((p) => ({
+                      value: p.id,
+                      label: p.code ? `${p.name} · ${p.code}` : p.name,
+                    }))}
+                  />
+                </Form.Item>
+              </SectionCard>
+            </Form>
+          </div>
+
+          <div className="customer-drawer-footer shrink-0 px-6 py-4 border-t border-[var(--border-color)] flex items-center justify-end gap-3 bg-[var(--customers-page-bg,#0B0F1A)]">
+            <Button onClick={onClose} className="border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-primary)] bg-transparent">
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              onClick={() => form.submit()}
+              icon={<Plus size={14} />}
+              className="font-medium shadow-sm hover:opacity-90"
+            >
+              Create ticket
+            </Button>
+          </div>
+        </div>
+      </Drawer>
+    </>
   );
 }
 

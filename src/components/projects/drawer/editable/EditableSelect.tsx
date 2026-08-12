@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect, useRef } from 'react';
-import { Select, Typography, Spin, Tag, Space, Avatar } from 'antd';
+import { Select, Typography, Tag, Space, Avatar } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -187,7 +188,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
             title={label || placeholder}
         >
             <div style={{ flex: 1 }}>{renderValue()}</div>
-            {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
+            {loading && <ZukvoLoader size="sm" />}
             {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`

@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -16,7 +18,6 @@ import {
   Select,
   DatePicker,
   Empty,
-  Spin,
   App,
   Segmented,
   Tag,
@@ -86,11 +87,7 @@ export default function ViewDailyUpdatesPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading">
-            <div style={{ padding: 100, textAlign: 'center' }}>
-              <div style={{ padding: 20 }} />
-            </div>
-          </Spin>
+          <ZukvoLoader size="lg" message="Loading" />
         </div>
       </MainLayout>
     );
@@ -1022,7 +1019,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
-                <Spin size="large" />
+                <ZukvoLoader size="lg" />
                 <div style={{ marginTop: 16, color: "var(--text-slate-400)", fontWeight: 500 }}>Fetching status updates...</div>
               </div>
             ) : updates.length === 0 ? (

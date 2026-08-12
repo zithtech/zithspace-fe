@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, Suspense } from 'react';
-import { Form, Input, Button, Typography, Alert, Spin } from 'antd';
+import { Form, Input, Button, Typography, Alert } from 'antd';
 import { UserOutlined, MailOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -168,7 +170,7 @@ function ForgotPasswordForm() {
 function ForgotPasswordSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <Spin size="large" />
+      <ZukvoLoader size="lg" />
     </div>
   );
 }

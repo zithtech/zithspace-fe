@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Row, Col, Card } from 'antd';
-import { 
+import {
   BarChart3,
   TrendingDown,
   Users,
@@ -10,6 +10,7 @@ import {
   Clock
 } from 'lucide-react';
 import { EmployeeExitService, EmployeeExitRequest } from '@/services/employeeExitService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ReportsPage() {
   const [requests, setRequests] = useState<EmployeeExitRequest[]>([]);
@@ -31,7 +32,7 @@ export default function ReportsPage() {
   }, []);
 
   const totalExits = requests.length;
-  const voluntaryExits = requests.filter(r => r.exitTypeId === 'VOLUNTARY').length; 
+  const voluntaryExits = requests.filter(r => r.exitTypeId === 'VOLUNTARY').length;
   const pendingApprovals = requests.filter(r => r.status === 'PENDING').length;
 
   const departmentData = requests.reduce((acc: any, curr) => {
@@ -46,15 +47,15 @@ export default function ReportsPage() {
   }));
 
   const columns = [
-    { 
-      title: 'DEPARTMENT', 
-      dataIndex: 'department', 
+    {
+      title: 'DEPARTMENT',
+      dataIndex: 'department',
       key: 'department',
       render: (text: string) => <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text}</span>
     },
-    { 
-      title: 'TOTAL EXITS', 
-      dataIndex: 'count', 
+    {
+      title: 'TOTAL EXITS',
+      dataIndex: 'count',
       key: 'count',
       render: (text: string) => <span style={{ color: 'var(--text-slate-400)' }}>{text}</span>
     }
@@ -64,15 +65,15 @@ export default function ReportsPage() {
     <>
       <div className="exit-page-header">
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-             <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 18 }}>Attrition & Exit Reports</span>
-          </div>
-          <Button icon={<Download size={14} />} style={{ background: 'transparent', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-400)' }}>
-            Export Report
-          </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 18 }}>Attrition & Exit Reports</span>
         </div>
+        <Button icon={<Download size={14} />} style={{ background: 'transparent', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-400)' }}>
+          Export Report
+        </Button>
+      </div>
       <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
-        
+
         {/* Stats Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
           <div className="exit-stat-card">
@@ -111,13 +112,14 @@ export default function ReportsPage() {
           <Col span={12}>
             <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 600 }}>Exits by Department</div>
-              <Table 
-                columns={columns} 
-                dataSource={depChartData} 
-                rowKey="department"
-                pagination={false}
-                loading={loading}
-              />
+              <ZukvoLoadingOverlay loading={loading} message="">
+                <Table
+                  columns={columns}
+                  dataSource={depChartData}
+                  rowKey="department"
+                  pagination={false}
+                />
+              </ZukvoLoadingOverlay>
             </div>
           </Col>
           <Col span={12}>

@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Form, Switch, Button, Row, Col, Typography, message, notification, theme, Spin, Divider, Menu, App } from "antd";
+import { Form, Switch, Button, Row, Col, Typography, message, notification, theme, Divider, Menu, App } from "antd";
 import { dashboardService } from "@/services/dashboardService";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -373,7 +375,7 @@ export default function DashboardSettingsPage() {
           <div style={{ flex: 1, padding: '32px' }}>
             {loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                <Spin size="large" />
+                <ZukvoLoader size="lg" />
               </div>
             ) : (
               <Form

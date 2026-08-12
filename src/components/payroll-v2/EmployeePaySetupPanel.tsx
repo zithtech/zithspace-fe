@@ -17,6 +17,7 @@ import AssignmentHistoryDrawer from './AssignmentHistoryDrawer';
 import PayrollV2Service, {
   MemberOption, EmployeeAssignmentListItem, PayStructureListItem, AssignmentComponent, StructureTotals, ComponentCategory, EmployeeProfile,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { slate: '#64748B', blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = { slate: 'rgba(100,116,139,0.12)', blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', amber: 'rgba(245,158,11,0.10)' } as const;
@@ -320,7 +321,9 @@ export default function EmployeePaySetupPanel() {
       </div>
 
       <div className="pvep-table-wrap">
-        <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

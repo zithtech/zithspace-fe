@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Empty, Spin, Row as AntRow, Col, Divider, Typography } from "antd";
+import { Empty, Row as AntRow, Col, Divider, Typography } from "antd";
 import {
   Server,
   Globe,
@@ -152,7 +154,7 @@ export default function PortalEnvironmentsListPage() {
             borderRadius: 12,
           }}
         >
-          <Spin />
+          <ZukvoLoader size="md" />
         </div>
       ) : items.length === 0 ? (
         <div

@@ -1,9 +1,11 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { apiClient } from '@/lib/axios';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Button, DatePicker, Dropdown, Drawer, Empty, Spin, Typography, message } from 'antd';
+import { Avatar, Button, DatePicker, Dropdown, Drawer, Empty, Typography, message } from 'antd';
 import {
   CalendarOutlined,
   DownloadOutlined,
@@ -543,7 +545,7 @@ export default function ReportsPanel() {
       <div className="prr-results">
         {loading ? (
           <div className="prr-center">
-            <Spin tip="Building report…" />
+            <ZukvoLoader size="md" message="Building report…" />
           </div>
         ) : !hasRun ? (
           <div className="prr-center">

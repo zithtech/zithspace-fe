@@ -1,11 +1,12 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
 import BucketManagementPage from "@/components/projects/buckets/BucketManagementPage";
 
 export default function BucketsPage() {
@@ -25,7 +26,7 @@ export default function BucketsPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading buckets..." />
+          <ZukvoLoader size="lg" message="Loading buckets..." />
         </div>
       </MainLayout>
     );

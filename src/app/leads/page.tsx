@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -96,7 +98,6 @@ import {
   DatePicker,
   Avatar,
   Empty,
-  Spin,
   Tabs,
   Dropdown,
   Modal,
@@ -4648,7 +4649,7 @@ export default function LeadsPage() {
         >
           {timelineLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <Spin size="large" />
+              <ZukvoLoader size="lg" />
             </div>
           ) : timelineData.length === 0 ? (
             <Empty description="No activity recorded yet" />

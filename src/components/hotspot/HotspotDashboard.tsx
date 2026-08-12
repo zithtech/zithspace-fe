@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { App, Input, Spin } from 'antd';
+import { App, Input } from 'antd';
 import { Flame, Search, X } from 'lucide-react';
 import OpeningV2Service, { OpeningListItem, WorkMode } from '@/services/openingV2Service';
 import { OpeningStyles, PALETTE, PanelHeader, WORK_MODE_LABELS } from '@/components/openings/ui';
@@ -236,7 +238,7 @@ export default function HotspotDashboard() {
 
       {loading ? (
         <div className="omp-empty">
-          <Spin />
+          <ZukvoLoader size="md" />
         </div>
       ) : visible.length === 0 ? (
         <div className="omp-empty">

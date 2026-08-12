@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Spin } from "antd";
+import { Drawer } from "antd";
 import {
   X,
   Download,
@@ -309,7 +311,7 @@ export default function AttachmentPreviewDrawer({
                   gap: 8,
                 }}
               >
-                <Spin size="small" /> Loading preview…
+                <ZukvoLoader size="sm" /> Loading preview…
               </div>
             )}
             <iframe

@@ -3,6 +3,7 @@
 import React from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { useTheme } from "@/context/ThemeContext";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -11,6 +12,7 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <ConfigProvider
+      spin={{ indicator: <ZukvoLoader size="md" /> }}
       theme={{
         algorithm:
           theme === "dark"

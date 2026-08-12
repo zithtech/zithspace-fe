@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import {
@@ -20,7 +22,6 @@ import {
     notification,
     Tooltip,
     Breadcrumb,
-    Spin,
     Timeline,
     Drawer,
     Collapse,
@@ -293,7 +294,7 @@ export default function ViewPartnerPage() {
         return (
             <MainLayout>
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-                    <Spin size="large" tip="Loading partner details..." />
+                    <ZukvoLoader size="lg" message="Loading partner details..." />
                 </div>
             </MainLayout>
         );

@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React from "react";
 import SubmittimesheetTab from "@/components/timesheet/SubmittimesheetTab";
@@ -7,7 +9,6 @@ import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Spin } from "antd";
 
 export default function SubmitTimesheetPage() {
   const { isLoading: authLoading } = useAuth();
@@ -23,7 +24,7 @@ export default function SubmitTimesheetPage() {
   if (authLoading) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <Spin size="large" tip="Loading..." />
+        <ZukvoLoader size="lg" message="Loading..." />
       </div>
     );
   }

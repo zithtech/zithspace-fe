@@ -34,6 +34,7 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined }
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
@@ -413,7 +414,7 @@ export default function DocumentRepositoryPage() {
         {/* Documents List Table */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            Loading document repository...
+            <ZukvoLoader message="Loading document repository..." size="md" />
           </div>
         ) : documents.length === 0 ? (
           <div

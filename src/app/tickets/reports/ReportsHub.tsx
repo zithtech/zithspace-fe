@@ -38,6 +38,7 @@ import {
   SprintReportsService,
   SprintReportListItem,
 } from "@/services/sprintReportsService";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 type ProjectOption = {
   value: string;
@@ -678,125 +679,127 @@ export default function ReportsHub() {
 
         {/* Body */}
         <div className="pp-body">
-          {view === "list" ? (
-            <div className="pp-table-wrap">
-              <Table
-                columns={columns}
-                dataSource={pagedReports}
-                loading={loading}
-                rowKey="sprintId"
-                size="small"
-                className="pp-table"
-                scroll={{ x: 'max-content' }}
-                pagination={false}
-                locale={{ emptyText: emptyState }}
-                onRow={(record) => ({
-                  onClick: (e) => {
-                    const t = e.target as HTMLElement;
-                    if (t.closest("button, .ant-dropdown-trigger")) return;
-                    openReport(record);
-                  },
-                  className: record.hasReport ? "pp-row" : "rh-row-locked",
-                })}
-              />
-            </div>
-          ) : (
-            <div className="pp-grid">
-              {loading ? (
-                <div className="pp-grid-loading">Loading…</div>
-              ) : filteredReports.length === 0 ? (
-                <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
-              ) : (
-                pagedReports.map((r) => {
-                  const accent = accentFor(r.sprintId);
-                  const pct =
-                    r.completionPct != null ? Math.round(r.completionPct) : 0;
-                  return (
-                    <div
-                      key={r.sprintId}
-                      className="pc-card"
-                      style={{ cursor: r.hasReport ? "pointer" : "default" }}
-                      onClick={() => openReport(r)}
-                    >
-                      <div className="pc-top">
-                        <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-                          {initialsOf(r.sprintName || "S")}
+          <ZukvoLoadingOverlay loading={loading} message="">
+            {view === "list" ? (
+              <div className="pp-table-wrap">
+                <Table
+                  columns={columns}
+                  dataSource={pagedReports}
+                  rowKey="sprintId"
+                  size="small"
+                  className="pp-table"
+                  scroll={{ x: 'max-content' }}
+                  pagination={false}
+                  locale={{ emptyText: emptyState }}
+                  onRow={(record) => ({
+                    onClick: (e) => {
+                      const t = e.target as HTMLElement;
+                      if (t.closest("button, .ant-dropdown-trigger")) return;
+                      openReport(record);
+                    },
+                    className: record.hasReport ? "pp-row" : "rh-row-locked",
+                  })}
+                />
+
+              </div>
+            ) : (
+              <div className="pp-grid">
+                {loading ? (
+                  <div className="pp-grid-loading">Loading…</div>
+                ) : filteredReports.length === 0 ? (
+                  <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
+                ) : (
+                  pagedReports.map((r) => {
+                    const accent = accentFor(r.sprintId);
+                    const pct =
+                      r.completionPct != null ? Math.round(r.completionPct) : 0;
+                    return (
+                      <div
+                        key={r.sprintId}
+                        className="pc-card"
+                        style={{ cursor: r.hasReport ? "pointer" : "default" }}
+                        onClick={() => openReport(r)}
+                      >
+                        <div className="pc-top">
+                          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                            {initialsOf(r.sprintName || "S")}
+                          </div>
+                          <div className="pc-identity-body">
+                            <div className="pc-title">{r.sprintName || "Untitled sprint"}</div>
+                            <div className="pc-client-line">
+                              <span className="pc-client-key">
+                                {r.hasReport && r.generatedAt ? "Generated:" : "Completed:"}
+                              </span>
+                              <span className="pc-client-val">
+                                {fmtDate(r.hasReport ? r.generatedAt : r.completedAt)}
+                              </span>
+                            </div>
+                          </div>
+                          {r.hasReport ? (
+                            <Dropdown menu={reportMenu(r)} trigger={["click"]} placement="bottomRight">
+                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
+                          ) : null}
                         </div>
-                        <div className="pc-identity-body">
-                          <div className="pc-title">{r.sprintName || "Untitled sprint"}</div>
-                          <div className="pc-client-line">
-                            <span className="pc-client-key">
-                              {r.hasReport && r.generatedAt ? "Generated:" : "Completed:"}
+
+                        <div className="pc-foot">
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Health</span>
+                              {r.hasReport ? healthPill(r.healthBand, r.healthScore) : <span className="pp-muted">—</span>}
                             </span>
-                            <span className="pc-client-val">
-                              {fmtDate(r.hasReport ? r.generatedAt : r.completedAt)}
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Tickets</span>
+                              <span className="pc-foot-val">{r.hasReport ? `${r.completedTickets ?? 0} / ${r.totalTickets ?? 0}` : "—"}</span>
                             </span>
                           </div>
-                        </div>
-                        {r.hasReport ? (
-                          <Dropdown menu={reportMenu(r)} trigger={["click"]} placement="bottomRight">
-                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                              <EllipsisOutlined />
-                            </button>
-                          </Dropdown>
-                        ) : null}
-                      </div>
-
-                      <div className="pc-foot">
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Health</span>
-                            {r.hasReport ? healthPill(r.healthBand, r.healthScore) : <span className="pp-muted">—</span>}
-                          </span>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Tickets</span>
-                            <span className="pc-foot-val">{r.hasReport ? `${r.completedTickets ?? 0} / ${r.totalTickets ?? 0}` : "—"}</span>
-                          </span>
-                        </div>
-                        <div className="pc-foot-row">
-                          {r.hasReport ? (
-                            <>
-                              <span className="pc-foot-item" style={{ flex: 1, minWidth: 0 }}>
-                                <span className="pc-foot-key">Completion</span>
-                                <span className="rh-bar-wrap" style={{ flex: 1 }}>
-                                  <span className="rh-bar-track">
-                                    <span className="rh-bar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+                          <div className="pc-foot-row">
+                            {r.hasReport ? (
+                              <>
+                                <span className="pc-foot-item" style={{ flex: 1, minWidth: 0 }}>
+                                  <span className="pc-foot-key">Completion</span>
+                                  <span className="rh-bar-wrap" style={{ flex: 1 }}>
+                                    <span className="rh-bar-track">
+                                      <span className="rh-bar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
+                                    </span>
+                                    <span className="rh-bar-pct">{pct}%</span>
                                   </span>
-                                  <span className="rh-bar-pct">{pct}%</span>
                                 </span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <button
-                                type="button"
-                                className="pc-foot-item pc-view-btn"
-                                onClick={(e) => { e.stopPropagation(); openReport(r); }}
+                                <span className="pc-foot-div" />
+                                <button
+                                  type="button"
+                                  className="pc-foot-item pc-view-btn"
+                                  onClick={(e) => { e.stopPropagation(); openReport(r); }}
+                                >
+                                  <EyeOutlined />
+                                  View report
+                                  <RightOutlined style={{ fontSize: 9 }} />
+                                </button>
+                              </>
+                            ) : (
+                              <Button
+                                type="primary"
+                                size="small"
+                                className="rh-gen-btn"
+                                loading={!!generating[r.sprintId]}
+                                icon={!generating[r.sprintId] ? <ThunderboltOutlined /> : undefined}
+                                onClick={(e) => { e.stopPropagation(); handleGenerate(r.sprintId); }}
                               >
-                                <EyeOutlined />
-                                View report
-                                <RightOutlined style={{ fontSize: 9 }} />
-                              </button>
-                            </>
-                          ) : (
-                            <Button
-                              type="primary"
-                              size="small"
-                              className="rh-gen-btn"
-                              loading={!!generating[r.sprintId]}
-                              icon={!generating[r.sprintId] ? <ThunderboltOutlined /> : undefined}
-                              onClick={(e) => { e.stopPropagation(); handleGenerate(r.sprintId); }}
-                            >
-                              Generate report
-                            </Button>
-                          )}
+                                Generate report
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </ZukvoLoadingOverlay>
         </div>
 
         {total > 0 && (

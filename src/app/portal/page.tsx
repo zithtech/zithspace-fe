@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -25,7 +27,6 @@ import {
   Building2,
   Users,
 } from "lucide-react";
-import { Spin } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
 
 import {
@@ -238,7 +239,7 @@ const EmptyState: React.FC<{ label: string }> = ({ label }) => (
 
 const LoadingState: React.FC = () => (
   <div style={{ padding: "22px 16px", textAlign: "center", flex: 1 }}>
-    <Spin size="small" />
+    <ZukvoLoader size="sm" />
   </div>
 );
 

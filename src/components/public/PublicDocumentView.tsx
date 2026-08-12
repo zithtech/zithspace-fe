@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from 'react';
-import { Spin, Empty, Button, message } from 'antd';
+import {  Empty, Button, message } from 'antd';
 import {
     UserOutlined,
     CalendarOutlined,
@@ -20,7 +22,7 @@ const BlockNoteRenderer = dynamic(
         ssr: false,
         loading: () => (
             <div className="flex items-center justify-center py-16">
-                <Spin />
+                <ZukvoLoader size="md" />
             </div>
         ),
     },
@@ -155,7 +157,7 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                 className="flex flex-col justify-center items-center min-h-screen gap-4"
                 style={{ background: '#f8fafc' }}
             >
-                <Spin size="large" />
+                <ZukvoLoader size="lg" />
                 <span style={{ color: '#94a3b8', fontSize: 13 }}>
                     Loading document…
                 </span>

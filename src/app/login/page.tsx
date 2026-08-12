@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -11,7 +13,6 @@ import {
   Button,
   Typography,
   Alert,
-  Spin,
   Checkbox,
   ConfigProvider,
   theme as antdTheme,
@@ -549,7 +550,7 @@ function LoginFormWithParams() {
   if (user) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
         <div style={{ marginTop: 16 }}>
           <Text type="secondary">Redirecting...</Text>
         </div>
@@ -720,7 +721,7 @@ function LoginFormWithParams() {
 function LoginFormSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <Spin size="large" />
+      <ZukvoLoader size="lg" />
       <div style={{ marginTop: 16 }}>
         <Text type="secondary">Loading login form...</Text>
       </div>

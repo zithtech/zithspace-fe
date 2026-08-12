@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -7,7 +9,6 @@ import {
   Form,
   Switch,
   notification,
-  Spin,
   Tooltip,
   Drawer,
   Popover,
@@ -152,7 +153,7 @@ export default function EmploymentTypesPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Employment Types..." />
+        <ZukvoLoader size="lg" message="Loading Employment Types..." />
       </div>
     );
   }

@@ -1,9 +1,11 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
-import { 
+import {
   Card,
   Typography,
   Button,
@@ -13,7 +15,6 @@ import {
   Tabs,
   Tag,
   Divider,
-  Spin,
   Table,
   Input,
   Select,
@@ -61,6 +62,7 @@ import { ExitTypeService, ExitType } from '@/services/exitTypeService';
 import { ReasonForExitService, ReasonForExit } from '@/services/reasonForExitService';
 import { PositionService, Position } from '@/services/positionService';
 import { DepartmentService } from '@/services/departmentService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -212,7 +214,7 @@ export default function ExitRequestViewPage() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <Spin size="large" tip="Loading Exit Details..." />
+            <ZukvoLoader size="lg" message="Loading Exit Details..." />
           </div>
         </MainLayout>
       </ProtectedRoute>
@@ -394,14 +396,15 @@ export default function ExitRequestViewPage() {
           Add Asset
         </Button>
       </div>
-      <Table
-        columns={assetColumns}
-        dataSource={assets}
-        rowKey="id"
-        loading={assetsLoading}
-        pagination={false}
-        className="modern-table"
-      />
+      <ZukvoLoadingOverlay loading={assetsLoading} message="">
+        <Table
+          columns={assetColumns}
+          dataSource={assets}
+          rowKey="id"
+          pagination={false}
+          className="modern-table"
+        />
+      </ZukvoLoadingOverlay>
     </div>
   );
 
@@ -409,7 +412,7 @@ export default function ExitRequestViewPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: '24px 32px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
-          
+
 
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Space size={16} align="center">

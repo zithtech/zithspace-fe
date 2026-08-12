@@ -33,6 +33,7 @@ import { ExitType, ExitTypeService, ExitTypePayload } from '@/services/exitTypeS
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -51,13 +52,13 @@ const getCreatorName = (record: any, members: any[] = []) => {
   if (typeof c === 'object' && c !== null) {
     return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
   }
-  
+
   const creatorId = record.createdById || record.created_by_id || c;
   if (typeof creatorId === 'string' && members.length > 0) {
     const member = members.find(m => m.value === creatorId);
     if (member) return member.label;
   }
-  
+
   return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
 };
 
@@ -68,7 +69,7 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingType, setEditingType] = useState<ExitType | null>(null);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { data: members = [] } = useMembers();
@@ -159,11 +160,11 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
       key: 'name',
       render: (text: string, record: ExitType) => (
         <Space size={12}>
-          <div style={{ 
-            width: 36, 
-            height: 36, 
-            borderRadius: 10, 
-            background: "var(--bg-blue-50)", 
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "var(--bg-blue-50)",
             color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
@@ -239,8 +240,8 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
     },
   ];
 
-  const filteredExitTypes = exitTypes.filter(type => 
-    (type.name || '').toLowerCase().includes(searchText.toLowerCase()) || 
+  const filteredExitTypes = exitTypes.filter(type =>
+    (type.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
     (type.code || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
@@ -341,15 +342,16 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
       ) : (
         <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
-            <Table
-              className="pp-table"
-              columns={columns}
-              dataSource={currentData}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1000 }}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                className="pp-table"
+                columns={columns}
+                dataSource={currentData}
+                rowKey="id"
+                pagination={false}
+                scroll={{ x: 1000 }}
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </div>
       )}
@@ -389,10 +391,10 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
             }}
           >
             <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
-            <Button 
-              type="primary" 
-              loading={loading} 
-              onClick={handleSave} 
+            <Button
+              type="primary"
+              loading={loading}
+              onClick={handleSave}
               style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
             >
               {editingType ? 'Update Type' : 'Save Type'}
@@ -401,7 +403,7 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
         }
       >
         <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
-        
+
         <div
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
@@ -457,7 +459,7 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
           className="customer-drawer-form"
         >
           <div className="px-6 py-6 space-y-5 pb-24">
-            
+
             <SectionCard title="Identity Details" icon={<Settings2 size={16} />}>
               <Form.Item
                 name="name"
@@ -465,8 +467,8 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 12 }}
               >
-                <Input 
-                  placeholder="e.g. Voluntary Resignation" 
+                <Input
+                  placeholder="e.g. Voluntary Resignation"
                   onChange={handleNameChange}
                   style={{ height: 38 }}
                 />
@@ -478,9 +480,9 @@ export default function ExitTypePage({ searchText = '', createTrigger = 0, layou
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <Input 
-                  placeholder="Auto-gen" 
-                  readOnly 
+                <Input
+                  placeholder="Auto-gen"
+                  readOnly
                   style={{ backgroundColor: 'var(--bg-secondary)', height: 38 }}
                 />
               </Form.Item>

@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Input, Empty, Spin, Pagination, DatePicker, Drawer, notification } from "antd";
+import { Input, Empty, Pagination, DatePicker, Drawer, notification } from "antd";
 import { PortalInvoiceDetailContent as PortalInvoiceDetailPage } from "./_InvoiceDetail";
 import {
   Receipt,
@@ -320,7 +322,7 @@ export default function PortalInvoicesPage() {
 
         {loading ? (
           <div style={{ padding: 60, textAlign: "center" }}>
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div style={{ padding: 56, textAlign: "center" }}>

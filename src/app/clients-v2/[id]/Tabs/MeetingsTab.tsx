@@ -69,6 +69,7 @@ import {
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import { commonDrawerProps, SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 type Mode = "light" | "dark";
 
@@ -689,16 +690,17 @@ export default function MeetingsTab({
 
         return (
           <div className="pp-table-wrap">
-            <Table
-              className="pp-table"
-              dataSource={filtered}
-              columns={columns}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-              scroll={{ x: "max-content" }}
-              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+                <Table
+                              className="pp-table"
+                              dataSource={filtered}
+                              columns={columns}
+                              rowKey="id"
+                              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
+                              scroll={{ x: "max-content" }}
+                              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
+                            />
+                </ZukvoLoadingOverlay>
           </div>
         );
       })()}

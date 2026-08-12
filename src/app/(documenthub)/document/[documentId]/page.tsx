@@ -4,7 +4,6 @@ import { use, useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { documentHubService } from '@/services/documentHub'
 import MainLayout from '@/components/layout/MainLayout'
-import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { useCreateBlockNote } from '@blocknote/react'
 import DocumentEditor from '@/components/common/DocumentEditor'
 import "@blocknote/core/fonts/inter.css";
@@ -13,6 +12,7 @@ import { FloatButton, Tooltip, message } from 'antd'
 import { FilePdfOutlined } from '@ant-design/icons'
 
 import { useAuth } from '@/context/AuthContext'
+import ZukvoLoader from '@/components/common/ZukvoLoader'
 
 function PreviewContent({ content, title, documentData }: { content: any, title: string, documentData?: any }) {
     const { user } = useAuth();
@@ -83,7 +83,7 @@ export default function DocumentPreviewPage({ params }: { params: Promise<{ docu
     if (isLoading) {
         return (
             <MainLayout>
-                <LoadingSpinner message="Loading document..." />
+                <ZukvoLoader message="Loading document..." />
             </MainLayout>
         )
     }

@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Spin, notification, Input, Modal } from "antd";
+import {  notification, Input, Modal } from "antd";
 import {
   ArrowLeft,
   GitPullRequest,
@@ -114,7 +116,7 @@ export default function PortalCrDetailPage() {
           justifyContent: "center",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

@@ -45,6 +45,7 @@ import { EmployeeOnboardingService } from '@/services/onboardingService';
 import { PipelineService } from '@/services/pipelineService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // ── Module palette: blue / green / red / grey / gold (status only) ───────────
 const PALETTE = {
@@ -584,18 +585,19 @@ function InvitesContent() {
 
       {/* ── TABLE ───────────────────────────────────────────────────────── */}
       <div className="onbi-table-wrap">
-        <Table
-          rowKey="inviteId"
-          size="small"
-          className="onbi-table"
-          loading={loading}
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          onRow={() => ({ className: 'onbi-row' })}
-          locale={{ emptyText: 'No invites yet — invite your first employee.' }}
-          scroll={{ x: 'max-content' }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="inviteId"
+            size="small"
+            className="onbi-table"
+            columns={columns}
+            dataSource={pagedRows}
+            pagination={false}
+            onRow={() => ({ className: 'onbi-row' })}
+            locale={{ emptyText: 'No invites yet — invite your first employee.' }}
+            scroll={{ x: 'max-content' }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* Sticky footer pager */}

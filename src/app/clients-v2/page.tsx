@@ -61,6 +61,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -1028,354 +1029,356 @@ export default function ClientsV2ListPage() {
                   </div>
 
                   {/* Premium table card or Grid */}
-                  {viewMode === 'list' ? (
-                    <div className="cm-table-card">
-                      <Table
-                        columns={columns}
-                        dataSource={data}
-                        rowKey="id"
-                        size="small"
-                        scroll={{ x: 1100 }}
-                        pagination={false}
-                        loading={loading}
-                        onChange={handleTableChange}
-                        onRow={(record) => ({
-                          onClick: () => router.push(`/clients-v2/${record.id}`),
-                          style: { cursor: "pointer" },
-                        })}
-                        locale={{
-                          emptyText: (
-                            <div className="cm-table-empty">
-                              <div className="cm-empty-icon">
-                                <Building2 size={28} />
+                  <ZukvoLoadingOverlay loading={loading} message="">
+                    {viewMode === 'list' ? (
+                      <div className="cm-table-card">
+                        <Table
+                          columns={columns}
+                          dataSource={data}
+                          rowKey="id"
+                          size="small"
+                          scroll={{ x: 1100 }}
+                          pagination={false}
+                          onChange={handleTableChange}
+                          onRow={(record) => ({
+                            onClick: () => router.push(`/clients-v2/${record.id}`),
+                            style: { cursor: "pointer" },
+                          })}
+                          locale={{
+                            emptyText: (
+                              <div className="cm-table-empty">
+                                <div className="cm-empty-icon">
+                                  <Building2 size={28} />
+                                </div>
+                                <div className="cm-empty-title">No clients yet</div>
+                                <div className="cm-empty-desc">
+                                  Add your first client to start tracking projects and contracts.
+                                </div>
+                                {canCreateClient && (
+                                  <Button
+                                    type="primary"
+                                    icon={<Plus size={14} />}
+                                    className="cm-primary-btn"
+                                    style={{ marginTop: 16 }}
+                                    onClick={() => router.push("/clients-v2/create")}
+                                  >
+                                    Create Client
+                                  </Button>
+                                )}
                               </div>
-                              <div className="cm-empty-title">No clients yet</div>
-                              <div className="cm-empty-desc">
-                                Add your first client to start tracking projects and contracts.
-                              </div>
-                              {canCreateClient && (
-                                <Button
-                                  type="primary"
-                                  icon={<Plus size={14} />}
-                                  className="cm-primary-btn"
-                                  style={{ marginTop: 16 }}
-                                  onClick={() => router.push("/clients-v2/create")}
-                                >
-                                  Create Client
-                                </Button>
-                              )}
+                            ),
+                          }}
+                          expandable={{
+                            expandedRowRender: (record) => expandedRowRender(record, false),
+                            onExpand: (expanded, record) => {
+                              if (expanded) fetchClientProjects(record.id);
+                            },
+                            expandIcon: ({ expanded, onExpand, record }) => (
+                              <button
+                                type="button"
+                                className={`cm-expand-btn ${expanded ? "open" : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onExpand(record, e as any);
+                                }}
+                              >
+                                <ChevronRight size={14} />
+                              </button>
+                            ),
+                          }}
+                          rowClassName={() => "cm-row"}
+                        />
+
+                      </div>
+                    ) : (
+                      <div className="bh2-grid">
+                        {data.length === 0 ? (
+                          <div className="bh2-empty" style={{ gridColumn: "1 / -1" }}>
+                            <div className="bh2-empty-icon">
+                              <Building2 size={28} style={{ color: "#3b82f6" }} />
                             </div>
-                          ),
-                        }}
-                        expandable={{
-                          expandedRowRender: (record) => expandedRowRender(record, false),
-                          onExpand: (expanded, record) => {
-                            if (expanded) fetchClientProjects(record.id);
-                          },
-                          expandIcon: ({ expanded, onExpand, record }) => (
-                            <button
-                              type="button"
-                              className={`cm-expand-btn ${expanded ? "open" : ""}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onExpand(record, e as any);
-                              }}
-                            >
-                              <ChevronRight size={14} />
-                            </button>
-                          ),
-                        }}
-                        rowClassName={() => "cm-row"}
-                      />
-                    </div>
-                  ) : (
-                    <div className="bh2-grid">
-                      {data.length === 0 ? (
-                        <div className="bh2-empty" style={{ gridColumn: "1 / -1" }}>
-                          <div className="bh2-empty-icon">
-                            <Building2 size={28} style={{ color: "#3b82f6" }} />
+                            <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                              No clients yet
+                            </Title>
+                            <Text style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
+                              Add your first client to start tracking projects and contracts.
+                            </Text>
+                            {canCreateClient && (
+                              <Button
+                                type="primary"
+                                icon={<Plus size={14} />}
+                                onClick={() => router.push("/clients-v2/create")}
+                                style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "#3b82f6", border: "none" }}
+                              >
+                                Create Client
+                              </Button>
+                            )}
                           </div>
-                          <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                            No clients yet
-                          </Title>
-                          <Text style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
-                            Add your first client to start tracking projects and contracts.
-                          </Text>
-                          {canCreateClient && (
-                            <Button
-                              type="primary"
-                              icon={<Plus size={14} />}
-                              onClick={() => router.push("/clients-v2/create")}
-                              style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "#3b82f6", border: "none" }}
-                            >
-                              Create Client
-                            </Button>
-                          )}
-                        </div>
-                      ) : (
-                        data.map((record) => {
-                          const initials = initialsOf(record.companyName, record.clientCode);
-                          const grad = gradientFor(record.companyName || record.clientCode);
-                          const isActive = record.status === "Active";
-                          const am = record.accountManager;
-                          const fullName = am ? `${am.first_name || ""} ${am.last_name || ""}`.trim() : "Unassigned";
-                          const projectCount = record?._count?.ClientProject ?? 0;
-                          const amInitials = am ? `${am.first_name?.[0] || "?"}${am.last_name?.[0] || ""}`.toUpperCase() : "U";
+                        ) : (
+                          data.map((record) => {
+                            const initials = initialsOf(record.companyName, record.clientCode);
+                            const grad = gradientFor(record.companyName || record.clientCode);
+                            const isActive = record.status === "Active";
+                            const am = record.accountManager;
+                            const fullName = am ? `${am.first_name || ""} ${am.last_name || ""}`.trim() : "Unassigned";
+                            const projectCount = record?._count?.ClientProject ?? 0;
+                            const amInitials = am ? `${am.first_name?.[0] || "?"}${am.last_name?.[0] || ""}`.toUpperCase() : "U";
 
-                          const accent = isActive ? "#3b82f6" : "#64748b";
+                            const accent = isActive ? "#3b82f6" : "#64748b";
 
-                          return (
-                            <article
-                              key={record.id}
-                              className="bh2-list-card"
-                              style={{ ["--row-accent" as any]: accent }}
-                            >
-                              <header className="bh2-list-head" style={{ padding: '10px 12px' }}>
-                                <div
-                                  className="bh2-list-row"
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => router.push(`/clients-v2/${record.id}`)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      router.push(`/clients-v2/${record.id}`);
-                                    }
-                                  }}
-                                >
-                                  <div className="bh2-list-avatar" style={{ width: 30, height: 30, borderRadius: 6 }}>
-                                    <span className="bh2-list-avatar-letter" style={{ fontSize: 12 }}>{initials}</span>
-                                  </div>
-
-                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 3 }}>
-                                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
-                                      {record.companyName}
-                                    </span>
-                                    <span style={{ fontSize: 11.5, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
-                                      <span style={{ color: 'var(--text-slate-400)' }}>Client:</span>
-                                      {record.clientCode}
-                                      {isActive ? (
-                                        <span
-                                          className="bh2-list-status"
-                                          style={{
-                                            background: "rgba(16,185,129,0.1)",
-                                            color: "#047857",
-                                            padding: "2px 6px",
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            borderRadius: 4,
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 4,
-                                            textTransform: "uppercase",
-                                            border: "none"
-                                          }}
-                                        >
-                                          <Globe2 size={10} />
-                                          Active
-                                        </span>
-                                      ) : (
-                                        <span
-                                          className="bh2-list-status"
-                                          style={{
-                                            background: "var(--bg-slate-50)",
-                                            color: "var(--text-slate-500)",
-                                            padding: "2px 6px",
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            borderRadius: 4,
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: 4,
-                                            textTransform: "uppercase",
-                                            border: "1px solid var(--border-slate-100)"
-                                          }}
-                                        >
-                                          <ShieldCheck size={10} />
-                                          Inactive
-                                        </span>
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Right side more icon */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <div className="bh2-list-more" onClick={e => e.stopPropagation()}>
-                                    <Dropdown
-                                      menu={{
-                                        items: [
-                                          {
-                                            key: 'view',
-                                            label: menuLabel('View client', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
-                                          },
-                                          ...(canUpdateClient ? [{
-                                            key: 'edit',
-                                            label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                                          }] : []),
-                                          ...(canDeleteClient ? [
-                                            { type: 'divider' as const },
-                                            {
-                                              key: 'delete',
-                                              danger: true,
-                                              label: (
-                                                <ConfirmDialog
-                                                  tone="danger"
-                                                  icon={<Trash2 size={16} />}
-                                                  title="Delete Client?"
-                                                  description={`Are you sure you want to delete ${record.companyName}? This action cannot be undone.`}
-                                                  confirmText="Delete"
-                                                  cancelText="Cancel"
-                                                  placement="left"
-                                                  onConfirm={async () => {
-                                                    try {
-                                                      await api.delete(`/api/clients-v2/${record.id}`);
-                                                      messageApi.success("Client deleted successfully");
-                                                      fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
-                                                      fetchAllClientOptions();
-                                                    } catch (err: any) {
-                                                      console.error("Failed to delete client", err);
-                                                      messageApi.error(err.response?.data?.error || "Failed to delete client");
-                                                    }
-                                                  }}
-                                                >
-                                                  <div onClick={(e) => e.stopPropagation()}>
-                                                    {menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
-                                                  </div>
-                                                </ConfirmDialog>
-                                              )
-                                            }
-                                          ] : [])
-                                        ],
-                                        onClick: ({ key, domEvent }) => {
-                                          domEvent.stopPropagation();
-                                          if (key === 'view') router.push(`/clients-v2/${record.id}`);
-                                          else if (key === 'edit') router.push(`/clients-v2/create?id=${record.id}`);
-                                        }
-                                      }}
-                                      overlayClassName="pm2-action-pop"
-                                      trigger={['click']}
-                                      placement="bottomRight"
-                                    >
-                                      <Button
-                                        type="text"
-                                        className="bh2-more-btn"
-                                        icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
-                                        style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
-                                        onClick={e => e.stopPropagation()}
-                                      />
-                                    </Dropdown>
-                                  </div>
-                                </div>
-                              </header>
-
-                              <div className="bh2-list-foot" style={{ padding: '8px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
-                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
-                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Manager</span>
-                                    {am ? (
-                                      <div
-                                        className="cm-mini-avatar"
-                                        style={{
-                                          width: 16,
-                                          height: 16,
-                                          fontSize: 8,
-                                          fontWeight: 700,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          borderRadius: '10px',
-                                          background: 'var(--bg-blue-50)',
-                                          color: 'rgb(59, 130, 246)',
-                                          marginLeft: 5,
-                                          marginRight: 5
-                                        }}
-                                      >
-                                        {amInitials}
-                                      </div>
-                                    ) : (
-                                      <div
-                                        className="cm-mini-avatar"
-                                        style={{
-                                          width: 16,
-                                          height: 16,
-                                          background: 'var(--bg-blue-50)',
-                                          fontSize: 8,
-                                          fontWeight: 700,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          borderRadius: '10px',
-                                          color: 'rgb(59, 130, 246)',
-                                          marginLeft: 4,
-                                          marginRight: 4
-                                        }}
-                                      >
-                                        U
-                                      </div>
-                                    )}
-                                    <span style={{ fontWeight: 600 }}>{fullName}</span>
-                                  </span>
-
-                                  <span className="bh2-list-foot-div" />
-
-                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation:</span>
-                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</span>
-                                  </span>
-                                </div>
-                              </div>
-
-                              <footer className="bh2-list-foot" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-slate-200)', background: 'var(--bg-slate-50)' }}>
-                                <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
-                                  <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
-                                    <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Created</span>
-                                    <span style={{ fontWeight: 600, marginLeft: 5 }}>
-                                      {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                  </span>
-
-                                  <span className="bh2-list-foot-div" style={{ display: 'inline-block', width: 1, height: 12, background: 'var(--border-slate-300)', margin: '0 4px' }} />
-
-                                  <button
-                                    type="button"
-                                    className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
-                                    style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(59, 130, 246, 0.08)', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: '#3b82f6', fontSize: 9.5, fontWeight: 700 }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setExpandedCardId((prev) => {
-                                        const next = prev === record.id ? null : record.id;
-                                        if (next && !expandedClientProjects[next]) {
-                                          fetchClientProjects(next);
-                                        }
-                                        return next;
-                                      });
+                            return (
+                              <article
+                                key={record.id}
+                                className="bh2-list-card"
+                                style={{ ["--row-accent" as any]: accent }}
+                              >
+                                <header className="bh2-list-head" style={{ padding: '10px 12px' }}>
+                                  <div
+                                    className="bh2-list-row"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => router.push(`/clients-v2/${record.id}`)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        router.push(`/clients-v2/${record.id}`);
+                                      }
                                     }}
                                   >
-                                    <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Projects</span>
-                                    <ChevronDown size={12} style={{ transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-                                  </button>
-                                </div>
-                              </footer>
+                                    <div className="bh2-list-avatar" style={{ width: 30, height: 30, borderRadius: 6 }}>
+                                      <span className="bh2-list-avatar-letter" style={{ fontSize: 12 }}>{initials}</span>
+                                    </div>
 
-                              {expandedCardId === record.id && (
-                                <>
-                                  <div className="bh2-list-divider" />
-                                  <div className="cm-card-expanded-area">
-                                    {expandedRowRender(record, true)}
+                                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, gap: 3 }}>
+                                      <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-slate-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                                        {record.companyName}
+                                      </span>
+                                      <span style={{ fontSize: 11.5, color: 'var(--text-slate-700)', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
+                                        <span style={{ color: 'var(--text-slate-400)' }}>Client:</span>
+                                        {record.clientCode}
+                                        {isActive ? (
+                                          <span
+                                            className="bh2-list-status"
+                                            style={{
+                                              background: "rgba(16,185,129,0.1)",
+                                              color: "#047857",
+                                              padding: "2px 6px",
+                                              fontSize: 10,
+                                              fontWeight: 700,
+                                              borderRadius: 4,
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 4,
+                                              textTransform: "uppercase",
+                                              border: "none"
+                                            }}
+                                          >
+                                            <Globe2 size={10} />
+                                            Active
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className="bh2-list-status"
+                                            style={{
+                                              background: "var(--bg-slate-50)",
+                                              color: "var(--text-slate-500)",
+                                              padding: "2px 6px",
+                                              fontSize: 10,
+                                              fontWeight: 700,
+                                              borderRadius: 4,
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 4,
+                                              textTransform: "uppercase",
+                                              border: "1px solid var(--border-slate-100)"
+                                            }}
+                                          >
+                                            <ShieldCheck size={10} />
+                                            Inactive
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
                                   </div>
-                                </>
-                              )}
-                            </article>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+
+                                  {/* Right side more icon */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div className="bh2-list-more" onClick={e => e.stopPropagation()}>
+                                      <Dropdown
+                                        menu={{
+                                          items: [
+                                            {
+                                              key: 'view',
+                                              label: menuLabel('View client', 'Open the full view', <Eye size={15} />, '#3b82f6', 'rgba(59,130,246,0.12)'),
+                                            },
+                                            ...(canUpdateClient ? [{
+                                              key: 'edit',
+                                              label: menuLabel('Configure', 'Open in the builder', <Settings2 size={15} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                                            }] : []),
+                                            ...(canDeleteClient ? [
+                                              { type: 'divider' as const },
+                                              {
+                                                key: 'delete',
+                                                danger: true,
+                                                label: (
+                                                  <ConfirmDialog
+                                                    tone="danger"
+                                                    icon={<Trash2 size={16} />}
+                                                    title="Delete Client?"
+                                                    description={`Are you sure you want to delete ${record.companyName}? This action cannot be undone.`}
+                                                    confirmText="Delete"
+                                                    cancelText="Cancel"
+                                                    placement="left"
+                                                    onConfirm={async () => {
+                                                      try {
+                                                        await api.delete(`/api/clients-v2/${record.id}`);
+                                                        messageApi.success("Client deleted successfully");
+                                                        fetchClients(pagination.current, pagination.pageSize, searchText, activeFilter, typeFilter);
+                                                        fetchAllClientOptions();
+                                                      } catch (err: any) {
+                                                        console.error("Failed to delete client", err);
+                                                        messageApi.error(err.response?.data?.error || "Failed to delete client");
+                                                      }
+                                                    }}
+                                                  >
+                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                      {menuLabel('Delete', 'Remove this client', <Trash2 size={15} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                                                    </div>
+                                                  </ConfirmDialog>
+                                                )
+                                              }
+                                            ] : [])
+                                          ],
+                                          onClick: ({ key, domEvent }) => {
+                                            domEvent.stopPropagation();
+                                            if (key === 'view') router.push(`/clients-v2/${record.id}`);
+                                            else if (key === 'edit') router.push(`/clients-v2/create?id=${record.id}`);
+                                          }
+                                        }}
+                                        overlayClassName="pm2-action-pop"
+                                        trigger={['click']}
+                                        placement="bottomRight"
+                                      >
+                                        <Button
+                                          type="text"
+                                          className="bh2-more-btn"
+                                          icon={<MoreHorizontal size={16} style={{ color: "#94a3b8" }} />}
+                                          style={{ padding: '4px', height: 'auto', minWidth: 'auto', marginLeft: '12px' }}
+                                          onClick={e => e.stopPropagation()}
+                                        />
+                                      </Dropdown>
+                                    </div>
+                                  </div>
+                                </header>
+
+                                <div className="bh2-list-foot" style={{ padding: '8px 12px', background: 'var(--bg-slate-50)', borderTop: '1px solid var(--border-slate-200)' }}>
+                                  <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                    <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                      <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Manager</span>
+                                      {am ? (
+                                        <div
+                                          className="cm-mini-avatar"
+                                          style={{
+                                            width: 16,
+                                            height: 16,
+                                            fontSize: 8,
+                                            fontWeight: 700,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '10px',
+                                            background: 'var(--bg-blue-50)',
+                                            color: 'rgb(59, 130, 246)',
+                                            marginLeft: 5,
+                                            marginRight: 5
+                                          }}
+                                        >
+                                          {amInitials}
+                                        </div>
+                                      ) : (
+                                        <div
+                                          className="cm-mini-avatar"
+                                          style={{
+                                            width: 16,
+                                            height: 16,
+                                            background: 'var(--bg-blue-50)',
+                                            fontSize: 8,
+                                            fontWeight: 700,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '10px',
+                                            color: 'rgb(59, 130, 246)',
+                                            marginLeft: 4,
+                                            marginRight: 4
+                                          }}
+                                        >
+                                          U
+                                        </div>
+                                      )}
+                                      <span style={{ fontWeight: 600 }}>{fullName}</span>
+                                    </span>
+
+                                    <span className="bh2-list-foot-div" />
+
+                                    <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                      <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Allocation:</span>
+                                      <span style={{ fontWeight: 600, marginLeft: 5 }}>{projectCount} projects, {record.riskLevel || 'Low'} risk</span>
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <footer className="bh2-list-foot" style={{ padding: '8px 12px', borderTop: '1px solid var(--border-slate-200)', background: 'var(--bg-slate-50)' }}>
+                                  <div className="bh2-list-foot-inline" style={{ gap: 8 }}>
+                                    <span className="bh2-list-foot-item" style={{ fontSize: 11.5, color: 'var(--text-slate-700)' }}>
+                                      <span className="bh2-list-foot-label" style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-slate-400)', textTransform: 'none', letterSpacing: 'normal' }}>Created</span>
+                                      <span style={{ fontWeight: 600, marginLeft: 5 }}>
+                                        {new Date(record.created_at || Date.now()).toLocaleDateString(undefined, {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </span>
+
+                                    <span className="bh2-list-foot-div" style={{ display: 'inline-block', width: 1, height: 12, background: 'var(--border-slate-300)', margin: '0 4px' }} />
+
+                                    <button
+                                      type="button"
+                                      className={`bh2-manage-btn ${expandedCardId === record.id ? "active" : ""}`}
+                                      style={{ ["--row-accent" as any]: accent, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(59, 130, 246, 0.08)', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: '#3b82f6', fontSize: 9.5, fontWeight: 700 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedCardId((prev) => {
+                                          const next = prev === record.id ? null : record.id;
+                                          if (next && !expandedClientProjects[next]) {
+                                            fetchClientProjects(next);
+                                          }
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Projects</span>
+                                      <ChevronDown size={12} style={{ transform: expandedCardId === record.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                                    </button>
+                                  </div>
+                                </footer>
+
+                                {expandedCardId === record.id && (
+                                  <>
+                                    <div className="bh2-list-divider" />
+                                    <div className="cm-card-expanded-area">
+                                      {expandedRowRender(record, true)}
+                                    </div>
+                                  </>
+                                )}
+                              </article>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </ZukvoLoadingOverlay>
                 </div>
 
                 {/* Fixed pagination footer */}

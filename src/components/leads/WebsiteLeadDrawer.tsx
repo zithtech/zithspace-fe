@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
-import { Drawer, Button, Spin, Empty, Tooltip, message } from "antd";
+import { Drawer, Button, Empty, Tooltip, message } from "antd";
 import {
   X,
   Calendar,
@@ -394,7 +396,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
 
         {tab === "timeline" && (
           tlLoading ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
+            <div style={{ padding: "40px 0", textAlign: "center" }}><ZukvoLoader size="md" /></div>
           ) : timeline.length === 0 ? (
             <Empty description={<span style={{ color: "var(--text-slate-500)" }}>No activity yet</span>} />
           ) : (
@@ -428,7 +430,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         )}
         {tab === "emails" && (
           mailsLoading ? (
-            <div style={{ padding: "40px 0", textAlign: "center" }}><Spin /></div>
+            <div style={{ padding: "40px 0", textAlign: "center" }}><ZukvoLoader size="md" /></div>
           ) : mails.length === 0 ? (
             <div className="wld-mails-empty">
               <Send size={22} strokeWidth={1.4} />

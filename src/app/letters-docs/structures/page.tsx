@@ -22,6 +22,7 @@ import { Table, Button, Tooltip, Select, Modal, Dropdown, Avatar } from 'antd';
 import { LetterStatsCards, StatCellData } from '@/components/letters/LetterStatsCards';
 import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined, AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MoreOutlined, EllipsisOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 
@@ -46,7 +47,7 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 export default function StructuresManagementPage() {
   const router = useRouter();
   const perms = usePermission() as unknown as Record<string, any>;
-  
+
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {
       router.push('/dashboard');
@@ -268,7 +269,7 @@ export default function StructuresManagementPage() {
         {/* Structures List */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            Loading custom structures...
+            <ZukvoLoader message="Loading custom structures..." size="md" />
           </div>
         ) : filteredStructures.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center' }}>

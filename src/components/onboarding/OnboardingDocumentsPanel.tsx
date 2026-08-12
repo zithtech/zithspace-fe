@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -12,7 +14,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Spin,
   Steps,
   Tag,
   Tooltip,
@@ -615,7 +616,7 @@ export default function OnboardingDocumentsPanel() {
         {loading ? (
           <div className="ob-doc-center">
             <Space direction="vertical" align="center">
-              <Spin size="large" />
+              <ZukvoLoader size="lg" />
               <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
             </Space>
           </div>

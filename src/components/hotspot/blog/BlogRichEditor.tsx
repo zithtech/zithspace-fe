@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -6,7 +8,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import { Placeholder } from '@tiptap/extensions';
-import { Spin, Tooltip } from 'antd';
+import {  Tooltip } from 'antd';
 import {
   AtSign,
   Bold,
@@ -239,7 +241,7 @@ export default function BlogRichEditor({
   if (!editor) {
     return (
       <div className="hsb-rte-boot">
-        <Spin size="small" />
+        <ZukvoLoader size="sm" />
         <style jsx>{`
           .hsb-rte-boot { display: flex; justify-content: center; padding: 32px; }
         `}</style>
@@ -299,7 +301,7 @@ export default function BlogRichEditor({
           <div className="hsb-rte-menu">
             {loading && suggestions.length === 0 ? (
               <div className="hsb-rte-loading">
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
               </div>
             ) : (
               suggestions.map((user, i) => (

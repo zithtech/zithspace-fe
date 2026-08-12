@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import {
@@ -9,7 +11,6 @@ import {
   Empty,
   Avatar,
   Tooltip,
-  Spin,
   Modal,
   message,
   Button,
@@ -211,7 +212,7 @@ function ProjectSelectContent() {
             background: 'var(--bg-pure-white)',
           }}
         >
-          <Spin size="large" tip="Redirecting..." />
+          <ZukvoLoader size="lg" message="Redirecting..." />
         </div>
       </MainLayout>
     );
@@ -988,7 +989,7 @@ export default function ProjectSelectPage() {
               background: 'var(--bg-pure-white)',
             }}
           >
-            <Spin size="large" tip="Loading Zukvo..." />
+            <ZukvoLoader size="lg" message="Loading Zukvo..." />
           </div>
         </MainLayout>
       }

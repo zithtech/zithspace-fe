@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import {
@@ -17,7 +19,6 @@ import {
   Input,
   Tooltip,
   Breadcrumb,
-  Spin,
   Timeline,
   notification,
   Divider,
@@ -173,7 +174,7 @@ export default function ViewClientPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <Spin size="large" tip="Loading client details..." />
+          <ZukvoLoader size="lg" message="Loading client details..." />
         </div>
       </MainLayout>
     );

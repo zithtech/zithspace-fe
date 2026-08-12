@@ -32,6 +32,7 @@ import {
   SelectOption,
 } from "@/services/recruitment.service";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Option } = Select;
 
@@ -112,7 +113,7 @@ export default function RequisitionsPage() {
   useEffect(() => {
     RecruitmentService.getClientsForSelect()
       .then(setClients)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleDelete = (id: string, ticketId: string) => {
@@ -472,27 +473,29 @@ export default function RequisitionsPage() {
           />
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={requisitions}
-          rowKey="id"
-          loading={loading}
-          rowSelection={{
-            selectedRowKeys,
-            onChange: (keys) => setSelectedRowKeys(keys),
-          }}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `${total} requisitions`,
-            onChange: (page, pageSize) =>
-              fetchRequisitions(page, pageSize),
-          }}
-          scroll={{ x: "max-content" }}
-          size="middle"
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            columns={columns}
+            dataSource={requisitions}
+            rowKey="id"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: (keys) => setSelectedRowKeys(keys),
+            }}
+            pagination={{
+              pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `${total} requisitions`,
+              onChange: (page, pageSize) =>
+                fetchRequisitions(page, pageSize),
+            }}
+            scroll={{ x: "max-content" }}
+            size="middle"
+          />
+        </ZukvoLoadingOverlay>
       </Card>
     </div>
   );

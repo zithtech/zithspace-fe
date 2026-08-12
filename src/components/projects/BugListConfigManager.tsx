@@ -38,6 +38,7 @@ import {
   BugOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
+import { Menu } from "lucide-react";
 import {
   useBugSeverityOptions,
   useBugTypeOptions,
@@ -135,6 +136,7 @@ export default function BugListConfigManager() {
 
   const [editing, setEditing] = useState<EditState>(null);
   const [activeKey, setActiveKey] = useState<SectionKey>("severity");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const closeEditor = () => setEditing(null);
 
@@ -149,103 +151,124 @@ export default function BugListConfigManager() {
     priority: priorities.isLoading,
   };
 
+  const activeSection = SECTIONS.find(s => s.key === activeKey)!;
+
   return (
     <>
       <BcmStyles />
-      <div
-        className={`bcm-root ${isDark ? "bcm-dark" : "bcm-light"}`}
-        style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
-      >
-        <Tabs
-          activeKey={activeKey}
-          onChange={(key) => setActiveKey(key as SectionKey)}
-          tabPosition={!screens.lg ? 'top' : 'left'}
-          className="bcm-manager-tabs"
-          style={{ flex: 1, height: '100%' }}
-          items={SECTIONS.map((s) => ({
-            key: s.key,
-            label: (
-              <div className="tab-label-container bcm-tab-item">
-                <div className={`tab-icon-box ${activeKey === s.key ? 'active' : ''}`} style={{ color: s.accent }}>
-                  {s.icon}
-                </div>
-                <div className="tab-text-box">
-                  <div className="tab-title">{s.title}</div>
-                  <div className="tab-subtitle-count">
-                    <Badge
-                      count={counts[s.key]}
-                      size="small"
-                      style={{
-                        backgroundColor: activeKey === s.key ? s.accent : 'rgba(0,0,0,0.06)',
-                        color: activeKey === s.key ? '#fff' : 'var(--text-secondary)',
-                        fontSize: 10,
-                        boxShadow: "none",
-                        border: 'none'
-                      }}
-                    />
-                    <span className="tab-subtitle-text" style={{ marginLeft: 6 }}>Definitions</span>
-                  </div>
-                </div>
-              </div>
-            ),
-            children: (
-              <div className="bcm-pane">
-                <ConfigSection
-                  key={s.key}
-                  accent={s.accent}
-                  accentBg={s.accentBg}
-                  accentFg={s.accentFg}
-                  icon={s.icon}
-                  eyebrow="Configuration"
-                  title={s.title}
-                  description={s.description}
-                  loading={loadingMap[s.key]}
-                  options={
-                    s.key === "severity"
-                      ? severities.data || []
-                      : s.key === "priority"
-                        ? priorities.data || []
-                        : types.data || []
-                  }
-                  showColor={s.key === "severity" || s.key === "priority"}
-                  onCreate={() => setEditing({ kind: s.key, option: null })}
-                  onEdit={(o) => setEditing({ kind: s.key, option: o })}
-                  onDelete={async (id) => {
-                    try {
-                      if (s.key === "severity") {
-                        await deleteSeverity.mutateAsync(id);
-                      } else if (s.key === "priority") {
-                        await deletePriority.mutateAsync(id);
-                      } else {
-                        await deleteType.mutateAsync(id);
-                      }
-                    } catch {
-                      /* hook surfaces toast */
-                    }
-                  }}
-                  onToggleActive={(o) => {
-                    if (s.key === "severity") {
-                      updateSeverity.mutate({
-                        id: o.id,
-                        input: { isActive: !o.isActive },
-                      });
-                    } else if (s.key === "priority") {
-                      updatePriority.mutate({
-                        id: o.id,
-                        input: { isActive: !o.isActive },
-                      });
-                    } else {
-                      updateType.mutate({
-                        id: o.id,
-                        input: { isActive: !o.isActive },
-                      });
-                    }
-                  }}
-                />
-              </div>
-            )
-          }))}
+      <div className={`dh-shell bcm-root ${isDark ? 'bcm-dark' : 'bcm-light'}`}>
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
         />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
+          <div className="dh-sidebar-top">
+            <div className="pp-side-head">
+              <div className="pp-side-logo"><BugOutlined /></div>
+              <div>
+                <h1 className="pp-side-title">Settings</h1>
+                <p className="pp-side-subtitle">QA Space</p>
+              </div>
+            </div>
+          </div>
+          <div className="dh-sidebar-scroll">
+            <span className="pp-nav-caption">Definitions</span>
+            {SECTIONS.map((s) => (
+              <button
+                key={s.key}
+                className={`pp-nav-item ${activeKey === s.key ? 'is-active' : ''}`}
+                onClick={() => { setActiveKey(s.key as SectionKey); setMobileSidebarOpen(false); }}
+              >
+                {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
+                <span className="pp-nav-label">{s.title}</span>
+                <span className="pp-nav-count">{counts[s.key]}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <main className="dh-main">
+          <div className="dh-main-topbar sc-topbar">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
+              <span className="sc-topbar__h1">{activeSection.title}</span>
+              <span className="sc-topbar__div" />
+              <span className="sc-topbar__sub">{activeSection.shortDescription}</span>
+            </div>
+            <div className="dh-main-controls">
+              {canManageBugs && (
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
+                >
+                  New {activeSection.title}
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="dh-main-scroll bcm-pane">
+            <ConfigSection
+              key={activeSection.key}
+              accent={activeSection.accent}
+              accentBg={activeSection.accentBg}
+              accentFg={activeSection.accentFg}
+              icon={activeSection.icon}
+              eyebrow="Configuration"
+              title={activeSection.title}
+              description={activeSection.description}
+              loading={loadingMap[activeSection.key as SectionKey]}
+              options={
+                activeSection.key === "severity"
+                  ? severities.data || []
+                  : activeSection.key === "priority"
+                    ? priorities.data || []
+                    : types.data || []
+              }
+              showColor={activeSection.key === "severity" || activeSection.key === "priority"}
+              onCreate={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
+              onEdit={(o) => setEditing({ kind: activeSection.key as EditorKind, option: o })}
+              onDelete={async (id) => {
+                try {
+                  if (activeSection.key === "severity") {
+                    await deleteSeverity.mutateAsync(id);
+                  } else if (activeSection.key === "priority") {
+                    await deletePriority.mutateAsync(id);
+                  } else {
+                    await deleteType.mutateAsync(id);
+                  }
+                } catch {
+                  /* hook surfaces toast */
+                }
+              }}
+              onToggleActive={(o) => {
+                if (activeSection.key === "severity") {
+                  updateSeverity.mutate({
+                    id: o.id,
+                    input: { isActive: !o.isActive },
+                  });
+                } else if (activeSection.key === "priority") {
+                  updatePriority.mutate({
+                    id: o.id,
+                    input: { isActive: !o.isActive },
+                  });
+                } else {
+                  updateType.mutate({
+                    id: o.id,
+                    input: { isActive: !o.isActive },
+                  });
+                }
+              }}
+            />
+          </div>
+        </main>
       </div>
 
       <OptionEditor
@@ -440,68 +463,22 @@ function ConfigSection({
   ];
 
   return (
-    <div
-      className="bcm-card"
-      style={{ ["--bcm-accent" as string]: accent } as React.CSSProperties}
-    >
-      <div className="bcm-card-head">
-        <div
-          className="bcm-icon-chip"
-          style={
-            {
-              ["--bcm-accent-bg" as string]: accentBg,
-              ["--bcm-accent-fg" as string]: accentFg,
-            } as React.CSSProperties
-          }
-        >
-          {icon}
+    <div style={{ marginTop: 12 }}>
+      {loading ? (
+        <div style={{ padding: 16 }}>
+          <Skeleton active paragraph={{ rows: 3 }} />
         </div>
-        <div className="bcm-card-text">
-          <div
-            className="bcm-card-eyebrow"
-            style={{ ["--bcm-accent-fg" as string]: accentFg } as React.CSSProperties}
-          >
-            <BugFilled />
-            {eyebrow}
-          </div>
-          <div className="bcm-card-title">{title}</div>
-          <div className="bcm-card-sub">{description}</div>
+      ) : options.length === 0 ? (
+        <div className="sc-empty">
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={`No ${title.toLowerCase()} options yet`}
+          />
         </div>
-        <span className="bcm-count">
-          {options.length} option{options.length === 1 ? "" : "s"}
-        </span>
-        {canManageBugs && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onCreate}
-            style={{
-              background: accent,
-              borderColor: accent,
-              borderRadius: 8,
-              fontWeight: 600,
-              boxShadow: `0 1px 2px ${accent}40`,
-            }}
-          >
-            Add option
-          </Button>
-        )}
-      </div>
-      <div className="bcm-card-body">
-        {loading ? (
-          <div style={{ padding: 16 }}>
-            <Skeleton active paragraph={{ rows: 3 }} />
-          </div>
-        ) : options.length === 0 ? (
-          <div className="bcm-empty">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No options yet"
-            />
-          </div>
-        ) : (
+      ) : (
+        <div className="sc-tablewrap">
           <Table
-            className="bcm-table"
+            className="ts-table sc-table"
             rowKey="id"
             size="middle"
             columns={columns}
@@ -509,8 +486,8 @@ function ConfigSection({
             pagination={false}
             scroll={{ x: 'max-content' }}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -831,162 +808,7 @@ function BcmStyles() {
         --bcm-default-border: rgba(252,211,77,0.4);
       }
 
-      /* ============ Tabs styling (Matching DropdownManager) ============ */
-      .bcm-root { height: 100%; min-height: 0; }
-      
-      .bcm-manager-tabs, 
-      .bcm-manager-tabs .ant-tabs-content, 
-      .bcm-manager-tabs .ant-tabs-content-holder,
-      .bcm-manager-tabs .ant-tabs-tabpane {
-        height: 100% !important;
-      }
-
-      /* ── Desktop Left Sidebar Nav ──────────────────────────────────────── */
-      .bcm-manager-tabs.ant-tabs-left > .ant-tabs-nav {
-        width: 264px;
-        background: transparent;
-        margin-bottom: 0 !important;
-        border-right: 1px solid rgba(0, 0, 0, 0.08);
-        padding: 20px 10px;
-      }
-      .bcm-dark .bcm-manager-tabs.ant-tabs-left > .ant-tabs-nav {
-        background: transparent !important;
-        border-right-color: #1f2937 !important;
-      }
-      
-      /* ── Mobile/Tablet Top Nav ─────────────────────────────────────────── */
-      .bcm-manager-tabs.ant-tabs-top > .ant-tabs-nav {
-        width: 100%;
-        background: transparent;
-        margin-bottom: 0 !important;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        padding: 10px 16px 0;
-      }
-      .bcm-dark .bcm-manager-tabs.ant-tabs-top > .ant-tabs-nav {
-        background: transparent !important;
-        border-bottom-color: #1f2937 !important;
-      }
-      .bcm-manager-tabs.ant-tabs-top .tab-label-container {
-        width: auto;
-      }
-      .bcm-manager-tabs.ant-tabs-top .tab-subtitle-count span:last-child,
-      .bcm-manager-tabs.ant-tabs-top .tab-subtitle-text {
-        display: none !important;
-      }
-      .bcm-manager-tabs.ant-tabs-top .bcm-tab-item {
-        gap: 8px !important;
-      }
-      .bcm-manager-tabs.ant-tabs-top .tab-icon-box {
-        display: none !important;
-      }
-      .bcm-manager-tabs.ant-tabs-top .tab-text-box {
-        align-items: center;
-        text-align: center;
-      }
-      .bcm-manager-tabs.ant-tabs-top .tab-title {
-        font-size: 13px !important;
-      }
-      .bcm-manager-tabs.ant-tabs-top .ant-tabs-tab {
-        padding: 8px 10px !important;
-        margin: 0 4px !important;
-      }
-
-      .bcm-manager-tabs .ant-tabs-tab {
-        margin: 4px 0 !important;
-        padding: 10px 12px !important;
-        border-radius: 12px !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid transparent !important;
-        position: relative;
-      }
-      .bcm-manager-tabs.ant-tabs-left .ant-tabs-tab:hover {
-        background: rgba(15, 23, 42, 0.03) !important;
-        transform: translateX(2px);
-      }
-      .bcm-manager-tabs.ant-tabs-top .ant-tabs-tab:hover {
-        background: rgba(15, 23, 42, 0.03) !important;
-        transform: translateY(-2px);
-      }
-      .bcm-dark .bcm-manager-tabs .ant-tabs-tab:hover {
-        background: rgba(255, 255, 255, 0.04) !important;
-      }
-      .bcm-manager-tabs .ant-tabs-tab-active {
-        background: transparent !important;
-        border-color: transparent !important;
-        box-shadow: none;
-      }
-      .bcm-manager-tabs.ant-tabs-left .ant-tabs-tab-active::before {
-        content: '';
-        position: absolute;
-        left: -10px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 24px;
-        background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
-        border-radius: 2px;
-        box-shadow: none;
-      }
-      .bcm-manager-tabs .ant-tabs-ink-bar {
-        display: none;
-      }
-
-      /* ── Tab labels ───────────────────────────────────────────── */
-      .tab-label-container {
-        width: 100%;
-        text-align: left;
-      }
-      .bcm-tab-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .tab-text-box {
-        display: flex;
-        flex-direction: column;
-      }
-      .tab-icon-box {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 17px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid var(--border-slate-100);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .bcm-dark .tab-icon-box {
-        background: rgba(255, 255, 255, 0.04) !important;
-        border-color: rgba(255, 255, 255, 0.05) !important;
-      }
-      .tab-icon-box.active {
-        background: var(--bg-pure-white);
-        box-shadow: none;
-        transform: scale(1.05);
-      }
-      .bcm-dark .tab-icon-box.active {
-        background: #1a2035 !important;
-        box-shadow: none;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-      }
-      .tab-title {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--bcm-text);
-        line-height: 1.2;
-        transition: color 0.3s;
-      }
-      .tab-subtitle-count {
-        display: flex;
-        align-items: center;
-        color: var(--bcm-text-soft);
-      }
-      .tab-subtitle-text {
-        font-size: 12px;
-        font-weight: 500;
-      }
+      /* Removed Tabs styling as we are using standard dh-shell */
 
       .bcm-pane {
         min-width: 0;
@@ -1001,70 +823,6 @@ function BcmStyles() {
         scrollbar-width: none;
       }
 
-      .bcm-card {
-        border: 1px solid var(--bcm-border);
-        border-radius: 16px;
-        background: var(--bcm-bg-elev);
-        overflow: hidden;
-        box-shadow: var(--bcm-shadow);
-        margin-bottom: 24px;
-      }
-      .bcm-card-head {
-        display: flex; align-items: center; gap: 16px;
-        flex-wrap: wrap;
-        padding: 20px 24px;
-        position: relative;
-        border-bottom: 1px solid var(--bcm-border);
-      }
-      .bcm-card-head::before {
-        content: ""; position: absolute; left: 0; top: 0; bottom: 0;
-        width: 4px;
-        background: var(--bcm-accent, #6366f1);
-        border-radius: 0 4px 4px 0;
-      }
-      .bcm-icon-chip {
-        width: 44px; height: 44px;
-        border-radius: 12px;
-        display: inline-flex; align-items: center; justify-content: center;
-        background: var(--bcm-accent-bg, rgba(99,102,241,0.12));
-        color: var(--bcm-accent-fg, #6366f1);
-        font-size: 20px;
-        flex-shrink: 0;
-      }
-      .bcm-card-text { flex: 1 1 200px; min-width: 0; }
-      .bcm-card-eyebrow {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-        color: var(--bcm-accent-fg, #6366f1);
-        text-transform: uppercase;
-        margin-bottom: 4px;
-      }
-      .bcm-card-title { font-size: 16px; font-weight: 700; color: var(--bcm-text); line-height: 1.2; }
-      .bcm-card-sub { font-size: 12.5px; color: var(--bcm-text-soft); margin-top: 4px; line-height: 1.5; }
-      .bcm-count {
-        padding: 3px 10px;
-        background: var(--bcm-bg-soft);
-        border: 1px solid var(--bcm-border-strong);
-        border-radius: 999px;
-        font-size: 11px; font-weight: 600; color: var(--bcm-text-soft);
-        font-variant-numeric: tabular-nums;
-      }
-      .bcm-card-body { 
-        padding: 12px 16px 18px; 
-        overflow-x: auto;
-        max-width: 100%;
-      }
-
-      .bcm-table .ant-table { background: transparent !important; }
-      .bcm-table .ant-table-thead > tr > th {
-        background: var(--bcm-bg-soft) !important;
-        color: var(--bcm-text-muted) !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.08em !important;
-        text-transform: uppercase !important;
-        border-bottom: 1px solid var(--bcm-border) !important;
-      }
       .bcm-table .ant-table-tbody > tr > td {
         background: var(--bcm-bg) !important;
         border-bottom: 1px solid var(--bcm-border) !important;

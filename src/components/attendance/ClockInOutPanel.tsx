@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Table, Select, message, Tooltip, Spin } from 'antd';
+import { Button, Table, Select, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   ClockCircleOutlined,
@@ -35,6 +37,7 @@ import {
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { getDeviceLocation } from '@/lib/geolocation';
 import { useSocket } from '@/providers/SocketProvider';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // ── Module palette: blue / green / amber / red / grey ───────────────────────
 const PALETTE = {
@@ -310,9 +313,8 @@ export default function ClockInOutPanel() {
   const state: AttendanceState = today?.state ?? 'not_started';
   const stateMeta = STATE_META[state];
   const sessionCount = today?.sessionCount ?? today?.sessions?.length ?? 0;
-  const completeDescription = `You've worked ${formatDuration(today?.totalWorkMinutes ?? 0)}${
-    sessionCount ? ` across ${sessionCount} session${sessionCount === 1 ? '' : 's'}` : ''
-  }. You won't be able to clock in again today.`;
+  const completeDescription = `You've worked ${formatDuration(today?.totalWorkMinutes ?? 0)}${sessionCount ? ` across ${sessionCount} session${sessionCount === 1 ? '' : 's'}` : ''
+    }. You won't be able to clock in again today.`;
 
   return (
     <div className="cio">
@@ -346,7 +348,7 @@ export default function ClockInOutPanel() {
         {/* action */}
         <div className="cio-band-action">
           {!today ? (
-            <Spin />
+            <ZukvoLoader size="md" />
           ) : state === 'not_started' ? (
             <Button
               type="primary"
@@ -492,21 +494,22 @@ export default function ClockInOutPanel() {
         <span className="cio-table-count">{total} record{total === 1 ? '' : 's'}</span>
       </div>
       <div className="cio-table-wrap" style={{ overflowX: 'auto' }}>
-        <Table
-          rowKey="id"
-          size="small"
-          className="cio-table"
-          loading={tableLoading}
-          columns={columns}
-          dataSource={rows}
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          onRow={() => ({ className: 'cio-row' })}
-          expandable={{
-            expandedRowRender: renderSessions,
-            rowExpandable: (record) => (record.sessions?.length || 0) > 0,
-          }}
-        />
+        <ZukvoLoadingOverlay loading={tableLoading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="cio-table"
+            columns={columns}
+            dataSource={rows}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={() => ({ className: 'cio-row' })}
+            expandable={{
+              expandedRowRender: renderSessions,
+              rowExpandable: (record) => (record.sessions?.length || 0) > 0,
+            }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* ── 5) STICKY BOTTOM PAGER ───────────────────────────────────────────── */}

@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState, useMemo } from "react";
 import {
@@ -9,7 +11,6 @@ import {
   Select,
   Card,
   message,
-  Spin,
   Slider,
   Empty,
   Badge,
@@ -216,9 +217,7 @@ const BoardView: React.FC = () => {
       <MainLayout>
         <div style={{ padding: "40px", textAlign: "center" }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading active pipeline">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" message="Loading active pipeline" />
           </div>
         </div>
       </MainLayout>

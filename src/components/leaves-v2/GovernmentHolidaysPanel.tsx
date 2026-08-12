@@ -21,6 +21,7 @@ import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import LeaveV2Service, { CatalogHoliday, HolidayType } from '@/services/leaveV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
@@ -178,9 +179,9 @@ export default function GovernmentHolidaysPanel() {
     <div className="lvgh">
       <div className="lvgh-header">
         <div className="lvgh-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -230,23 +231,24 @@ export default function GovernmentHolidaysPanel() {
       </div>
 
       <div className="lvgh-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="lvgh-table"
-          loading={loading}
-          columns={columns}
-          dataSource={paginatedData}
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          rowSelection={canCreateLeaveHoliday ? {
-            selectedRowKeys: selected,
-            onChange: setSelected,
-            preserveSelectedRowKeys: true,
-            getCheckboxProps: (r) => ({ disabled: r.added }),
-          } : undefined}
-          onRow={() => ({ className: 'lvgh-row' })}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="lvgh-table"
+            columns={columns}
+            dataSource={paginatedData}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            rowSelection={canCreateLeaveHoliday ? {
+              selectedRowKeys: selected,
+              onChange: setSelected,
+              preserveSelectedRowKeys: true,
+              getCheckboxProps: (r) => ({ disabled: r.added }),
+            } : undefined}
+            onRow={() => ({ className: 'lvgh-row' })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {filtered.length > 0 && (

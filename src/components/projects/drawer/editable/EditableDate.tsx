@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect, useRef } from 'react';
-import { DatePicker, Typography, Spin } from 'antd';
+import { DatePicker, Typography } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -99,7 +100,7 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 <Text style={{ color: '#bfbfbf', fontSize: '13px' }}>{placeholder || emptyText}</Text>
             )}
 
-            {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
+            {loading && <ZukvoLoader size="sm" />}
             {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`

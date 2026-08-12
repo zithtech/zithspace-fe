@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Avatar, Spin, Table, Tag, Tooltip, message } from 'antd';
+import { Avatar, Table, Tag, Tooltip, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { CalendarOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { CalendarCheck } from 'lucide-react';
@@ -11,6 +13,7 @@ import LeaveV2Service from '@/services/leaveV2Service';
 import PerformanceReportService, { ReportLeave } from '@/services/performanceReportService';
 import { pointsColor, fmtHM } from './moduleScores';
 import EmptyState from './EmptyState';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // Full hours earns full marks for a present day.
 const TARGET_HOURS = 7;
@@ -215,7 +218,7 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
   if (loading) {
     return (
       <div className="prr-center">
-        <Spin tip="Loading attendance…" />
+        <ZukvoLoader size="md" message="Loading attendance…" />
       </div>
     );
   }
@@ -282,15 +285,16 @@ export default function AttendanceSection({ projectId, userId, range }: Props) {
         </div>
       </div>
 
-      <Table
-        rowKey="id"
-        size="small"
-        columns={columns}
-        dataSource={rows}
-        loading={loading}
-        pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100] }}
-        scroll={{ x: 760 }}
-      />
+      <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+                  rowKey="id"
+                  size="small"
+                  columns={columns}
+                  dataSource={rows}
+                  pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100] }}
+                  scroll={{ x: 760 }}
+                />
+          </ZukvoLoadingOverlay>
     </div>
   );
 }

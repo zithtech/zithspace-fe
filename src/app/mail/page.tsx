@@ -1,9 +1,11 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
@@ -2109,7 +2111,7 @@ function MailPageContent() {
                           disabled={isFixingReplyGrammar || !quickReply.trim()}
                         >
                           {isFixingReplyGrammar ? (
-                            <Spin size="small" />
+                            <ZukvoLoader size="sm" />
                           ) : (
                             <CheckCircle2 size={13} className="ai-icon" />
                           )}
@@ -2273,7 +2275,7 @@ function MailPageContent() {
             <div className="compose-section-label">From</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               {!mailStatus ? (
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
               ) : (
                 <span style={{ fontSize: 13, color: PALETTE.slate700 }}>
                   {mailStatus.connectedEmail || "No connected email found"}
@@ -2433,7 +2435,7 @@ function MailPageContent() {
               disabled={isFixingGrammar || isEnhancing}
             >
               {isFixingGrammar ? (
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
               ) : (
                 <CheckCircle2 size={13} className="ai-icon" />
               )}
@@ -2446,7 +2448,7 @@ function MailPageContent() {
               disabled={isFixingGrammar || isEnhancing}
             >
               {isEnhancing ? (
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
               ) : (
                 <Wand2 size={13} className="ai-icon" />
               )}
@@ -2565,7 +2567,7 @@ function MailPageContent() {
 export default function MailPage() {
   useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationMail" });
   return (
-    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><Spin size="large" /></div>}>
+    <Suspense fallback={<div style={{ padding: 48, textAlign: "center" }}><ZukvoLoader size="lg" /></div>}>
       <MailPageContent />
     </Suspense>
   );

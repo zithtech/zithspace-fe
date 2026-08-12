@@ -59,6 +59,7 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -1006,119 +1007,121 @@ export default function AccountsPage() {
 
           {/* Main View Area */}
           <div className="pp-body">
-            {view === 'list' ? (
-              <div className="pp-table-wrap">
-                <Table
-                  columns={columns}
-                  dataSource={transactions}
-                  loading={loading}
-                  rowKey="id"
-                  size="small"
-                  className="pp-table"
-                  scroll={{ x: 1000 }}
-                  pagination={false}
-                  locale={{ emptyText: emptyState }}
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-icon-btn')) return;
-                      showEditModal(record);
-                    },
-                    className: 'pp-row',
-                  })}
-                />
-              </div>
-            ) : (
-              <div className="pp-grid">
-                {loading ? (
-                  <div className="pp-grid-loading">Loading…</div>
-                ) : transactions.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                ) : (
-                  transactions.map((item) => {
-                    const isCredit = item.type === 'credit';
-                    const color = isCredit ? '#10b981' : '#64748b';
-                    const bg = isCredit ? 'rgba(16,185,129,0.10)' : 'rgba(100,116,139,0.10)';
-                    const accent = accentFor(item.id || item.description || '');
-                    const member = typeof item.member === 'object' ? item.member : null;
-                    return (
-                      <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
-                        <div className="pc-top">
-                          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-                            {initialsOf(item.description)}
+            <ZukvoLoadingOverlay loading={loading} message="">
+              {view === 'list' ? (
+                <div className="pp-table-wrap">
+                  <Table
+                    columns={columns}
+                    dataSource={transactions}
+                    rowKey="id"
+                    size="small"
+                    className="pp-table"
+                    scroll={{ x: 1000 }}
+                    pagination={false}
+                    locale={{ emptyText: emptyState }}
+                    onRow={(record) => ({
+                      onClick: (e) => {
+                        const t = e.target as HTMLElement;
+                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-icon-btn')) return;
+                        showEditModal(record);
+                      },
+                      className: 'pp-row',
+                    })}
+                  />
+
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading ? (
+                    <div className="pp-grid-loading">Loading…</div>
+                  ) : transactions.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  ) : (
+                    transactions.map((item) => {
+                      const isCredit = item.type === 'credit';
+                      const color = isCredit ? '#10b981' : '#64748b';
+                      const bg = isCredit ? 'rgba(16,185,129,0.10)' : 'rgba(100,116,139,0.10)';
+                      const accent = accentFor(item.id || item.description || '');
+                      const member = typeof item.member === 'object' ? item.member : null;
+                      return (
+                        <div key={item.id} className="pc-card" onClick={() => showEditModal(item)}>
+                          <div className="pc-top">
+                            <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                              {initialsOf(item.description)}
+                            </div>
+                            <div className="pc-identity-body">
+                              <Tooltip title={item.description} placement="topLeft">
+                                <div className="pc-title" style={{ fontSize: '13px' }}>{item.description}</div>
+                              </Tooltip>
+                              <div className="pc-client-line">
+                                <span className="pc-client-key">Category:</span>
+                                <span className="pc-client-val" style={{ textTransform: 'capitalize' }}>
+                                  {item.category.replace('_', ' ')}
+                                </span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              menu={actionMenu(item)}
+                              overlayClassName="pp-action-pop"
+                              trigger={['click']}
+                              placement="bottomRight"
+                            >
+                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
                           </div>
-                          <div className="pc-identity-body">
-                            <Tooltip title={item.description} placement="topLeft">
-                              <div className="pc-title" style={{ fontSize: '13px' }}>{item.description}</div>
-                            </Tooltip>
-                            <div className="pc-client-line">
-                              <span className="pc-client-key">Category:</span>
-                              <span className="pc-client-val" style={{ textTransform: 'capitalize' }}>
-                                {item.category.replace('_', ' ')}
+
+                          <div className="pc-foot">
+                            <div className="pc-foot-row">
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Member:</span>
+                                {member ? (
+                                  <>
+                                    <Avatar size={16} src={member.avatarUrl} style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                                      {initialsOf(member.name)}
+                                    </Avatar>
+                                    <span className="pc-foot-val">{member.name}</span>
+                                  </>
+                                ) : <span className="pc-foot-val">—</span>}
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Date:</span>
+                                <span className="pc-foot-val">{dayjs(item.date).format('MMM D, YYYY · h:mm A')}</span>
                               </span>
                             </div>
-                          </div>
-                          <Dropdown
-                            menu={actionMenu(item)}
-                            overlayClassName="pp-action-pop"
-                            trigger={['click']}
-                            placement="bottomRight"
-                          >
-                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                              <EllipsisOutlined />
-                            </button>
-                          </Dropdown>
-                        </div>
-
-                        <div className="pc-foot">
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Member:</span>
-                              {member ? (
-                                <>
-                                  <Avatar size={16} src={member.avatarUrl} style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
-                                    {initialsOf(member.name)}
-                                  </Avatar>
-                                  <span className="pc-foot-val">{member.name}</span>
-                                </>
-                              ) : <span className="pc-foot-val">—</span>}
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Date:</span>
-                              <span className="pc-foot-val">{dayjs(item.date).format('MMM D, YYYY · h:mm A')}</span>
-                            </span>
-                          </div>
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Type:</span>
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: color }}>
-                                {item.type.toUpperCase()}
+                            <div className="pc-foot-row">
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Type:</span>
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: color }}>
+                                  {item.type.toUpperCase()}
+                                </span>
                               </span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Amount:</span>
-                              <span style={{ fontWeight: 800, color: 'var(--text-slate-900)' }}>
-                                {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Amount:</span>
+                                <span style={{ fontWeight: 800, color: 'var(--text-slate-900)' }}>
+                                  {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
+                                </span>
                               </span>
-                            </span>
-                            {/* <span className="pc-foot-div" /> */}
-                            {/* <button
+                              {/* <span className="pc-foot-div" /> */}
+                              {/* <button
                               type="button"
                               className="pc-foot-item pc-view-btn"
                               onClick={(e) => { e.stopPropagation(); showEditModal(item); }}
                             >
                               <EditOutlined /> Edit
                             </button> */}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}

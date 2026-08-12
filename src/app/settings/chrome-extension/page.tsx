@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,7 +16,6 @@ import {
   Button,
   Tooltip,
   Alert,
-  Spin,
   Popconfirm,
   message,
   theme,
@@ -129,7 +130,7 @@ export default function ChromeExtensionPage() {
 
           {installKeyLoading ? (
             <div style={{ padding: '24px 0', textAlign: 'center' }}>
-              <Spin />
+              <ZukvoLoader size="md" />
             </div>
           ) : installKey ? (
             <>

@@ -13,6 +13,7 @@ import ReimbursementV2Service, {
   DashboardSummary, CategorySpend, UserSpend,
 } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, StatusTag } from './ui';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function DashboardPanel() {
   const perms = usePermission() as any;
@@ -87,12 +88,16 @@ export default function DashboardPanel() {
       <Row gutter={16} className="rvp-dashboard-cards">
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" loading={loading} columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <ZukvoLoadingOverlay loading={loading} message="">
+                      <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+                      </ZukvoLoadingOverlay>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by employee" style={{ marginBottom: 16, borderRadius: 0 }}>
-            <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" loading={loading} columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            <ZukvoLoadingOverlay loading={loading} message="">
+                      <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+                      </ZukvoLoadingOverlay>
           </Card>
         </Col>
       </Row>

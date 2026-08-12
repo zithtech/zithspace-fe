@@ -27,6 +27,7 @@ import {
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -35,7 +36,7 @@ const { Title, Text, Paragraph } = Typography;
 export default function AccountTrashPage() {
   const router = useRouter();
   const { canReadAccount: canReadAccountTrash, canDeleteAccount } = usePermission();
-  
+
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
@@ -194,8 +195,8 @@ export default function AccountTrashPage() {
           title="Accounts Trash"
           description="View and manage soft-deleted transactions. Items here can be restored or permanently removed."
           extra={
-            <Button 
-              icon={<ArrowLeft size={16} />} 
+            <Button
+              icon={<ArrowLeft size={16} />}
               onClick={() => router.back()}
               className="flex items-center gap-2"
             >
@@ -222,22 +223,24 @@ export default function AccountTrashPage() {
             </Text>
           </div>
 
-          <Table
-            columns={columns}
-            dataSource={transactions}
-            rowKey="id"
-            loading={loading}
-            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
-              pageSize: pageSize,
-              total: total,
-              onChange: (p, s) => {
-                setPage(p);
-                setPageSize(s);
-              },
-              showSizeChanger: true,
-              className: "p-4",
-            }}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+            <Table
+              columns={columns}
+              dataSource={transactions}
+              rowKey="id"
+              pagination={{
+                pageSizeOptions: [10, 20, 25, 50, 100], current: page,
+                pageSize: pageSize,
+                total: total,
+                onChange: (p, s) => {
+                  setPage(p);
+                  setPageSize(s);
+                },
+                showSizeChanger: true,
+                className: "p-4",
+              }}
+            />
+          </ZukvoLoadingOverlay>
         </div>
       </div>
     </MainLayout>

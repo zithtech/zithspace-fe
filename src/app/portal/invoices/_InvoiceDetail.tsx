@@ -1,11 +1,12 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { InvoiceDocument } from "@/components/invoice/InvoiceDocument";
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Button,
-  Spin,
   Empty,
   Modal,
   Form,
@@ -198,7 +199,7 @@ export function PortalInvoiceDetailContent({ invoiceId, onClose }: { invoiceId?:
           justifyContent: "center",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

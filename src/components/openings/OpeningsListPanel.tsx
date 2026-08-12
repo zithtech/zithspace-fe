@@ -48,6 +48,7 @@ import {
 } from './ui';
 import { useReferenceData } from './useReferenceData';
 import OpeningFormDrawer from './OpeningFormDrawer';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // The working list of openings. `archived` is a prop rather than a filter here
 // so the Archive page can reuse this panel wholesale — the two views differ only
@@ -259,34 +260,34 @@ export default function OpeningsListPanel({
           <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 4 }}>
             {archived
               ? perms.canManageOpenings && (
-                  <Tooltip title="Restore from archive">
+                <Tooltip title="Restore from archive">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ArchiveRestore size={14} />}
+                    onClick={() => handleUnarchive(r.id)}
+                  />
+                </Tooltip>
+              )
+              : perms.canDeleteOpening && (
+                <ConfirmDialog
+                  tone="danger"
+                  icon={<Trash2 size={18} />}
+                  title="Delete this opening?"
+                  description="It will be removed from the list."
+                  confirmText="Delete"
+                  onConfirm={() => handleDelete(r.id)}
+                >
+                  <Tooltip title="Delete">
                     <Button
                       type="text"
                       size="small"
-                      icon={<ArchiveRestore size={14} />}
-                      onClick={() => handleUnarchive(r.id)}
+                      danger
+                      icon={<Trash2 size={14} />}
                     />
                   </Tooltip>
-                )
-              : perms.canDeleteOpening && (
-                  <ConfirmDialog
-                    tone="danger"
-                    icon={<Trash2 size={18} />}
-                    title="Delete this opening?"
-                    description="It will be removed from the list."
-                    confirmText="Delete"
-                    onConfirm={() => handleDelete(r.id)}
-                  >
-                    <Tooltip title="Delete">
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<Trash2 size={14} />}
-                      />
-                    </Tooltip>
-                  </ConfirmDialog>
-                )}
+                </ConfirmDialog>
+              )}
           </div>
         ),
       },
@@ -541,48 +542,49 @@ export default function OpeningsListPanel({
       </div>
 
       <div className="omp-table-wrap">
-        <Table<OpeningListItem>
-          rowKey="id"
-          size="small"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          scroll={{ x: 1500 }}
-          onRow={(record) => ({
-            onClick: () => router.push(`/openings/${record.id}`),
-          })}
-          locale={{
-            emptyText: (
-              <div className="omp-empty">
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <>
-                      <div className="omp-empty-title">
-                        {archived ? 'Nothing archived yet' : 'No openings yet'}
-                      </div>
-                      <div className="omp-empty-sub">
-                        {archived
-                          ? 'Closed openings land here once they are archived.'
-                          : 'Create a requisition to start hiring.'}
-                      </div>
-                    </>
-                  }
-                />
-              </div>
-            ),
-          }}
-          pagination={{
-            ...tablePaginationConfig,
-            current: page,
-            pageSize,
-            total,
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table<OpeningListItem>
+            rowKey="id"
+            size="small"
+            columns={columns}
+            dataSource={rows}
+            scroll={{ x: 1500 }}
+            onRow={(record) => ({
+              onClick: () => router.push(`/openings/${record.id}`),
+            })}
+            locale={{
+              emptyText: (
+                <div className="omp-empty">
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <>
+                        <div className="omp-empty-title">
+                          {archived ? 'Nothing archived yet' : 'No openings yet'}
+                        </div>
+                        <div className="omp-empty-sub">
+                          {archived
+                            ? 'Closed openings land here once they are archived.'
+                            : 'Create a requisition to start hiring.'}
+                        </div>
+                      </>
+                    }
+                  />
+                </div>
+              ),
+            }}
+            pagination={{
+              ...tablePaginationConfig,
+              current: page,
+              pageSize,
+              total,
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       <style jsx global>{`

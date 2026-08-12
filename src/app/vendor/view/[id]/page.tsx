@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import {
@@ -20,7 +22,6 @@ import {
   notification,
   Tooltip,
   Breadcrumb,
-  Spin,
   Timeline,
   Drawer,
   Collapse,
@@ -48,6 +49,7 @@ import {
 import { ImplementationPartnerService } from "@/services/implementationPartner.service";
 import { RecruitmentClientService } from "@/services/recruitmentClient.service";
 import { SearchOutlined } from "@ant-design/icons";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -271,7 +273,7 @@ export default function ViewVendorPage() {
     return (
       <MainLayout>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: "#fff" }}>
-          <Spin size="large" tip="Loading vendor details..." />
+          <ZukvoLoader size="lg" message="Loading vendor details..." />
         </div>
       </MainLayout>
     );
@@ -538,14 +540,15 @@ export default function ViewVendorPage() {
                       Add Client
                     </Button>
                   </div>
-                  <Table
-                    dataSource={assignedClients}
-                    columns={clientColumns}
-                    rowKey="id"
-                    loading={fetchingRelations}
-                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
-                    locale={{ emptyText: "No clients linked yet." }}
-                  />
+                  <ZukvoLoadingOverlay loading={fetchingRelations} message="">
+                    <Table
+                      dataSource={assignedClients}
+                      columns={clientColumns}
+                      rowKey="id"
+                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
+                      locale={{ emptyText: "No clients linked yet." }}
+                    />
+                  </ZukvoLoadingOverlay>
                 </div>
               </TabPane>
 
@@ -565,14 +568,15 @@ export default function ViewVendorPage() {
                       Upload
                     </Button>
                   </div>
-                  <Table
-                    dataSource={assignedPartners}
-                    columns={partnerColumns}
-                    rowKey="id"
-                    loading={fetchingRelations}
-                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
-                    locale={{ emptyText: "No implementation partners linked yet." }}
-                  />
+                  <ZukvoLoadingOverlay loading={fetchingRelations} message="">
+                    <Table
+                      dataSource={assignedPartners}
+                      columns={partnerColumns}
+                      rowKey="id"
+                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 5 }}
+                      locale={{ emptyText: "No implementation partners linked yet." }}
+                    />
+                  </ZukvoLoadingOverlay>
                 </div>
               </TabPane>
 
@@ -704,13 +708,13 @@ export default function ViewVendorPage() {
           </div>
 
           {selectedPartnerId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Partner details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkPartner(selectedPartnerId)}
                   disabled={assignedPartners.some(p => p.id === selectedPartnerId)}
                   loading={linkingRelation}
@@ -791,13 +795,13 @@ export default function ViewVendorPage() {
           </div>
 
           {selectedClientId && (
-            <Card 
+            <Card
               title={<Title level={5} style={{ margin: 0 }}>Client details</Title>}
               extra={
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
-                  icon={<PlusOutlined />} 
+                  icon={<PlusOutlined />}
                   onClick={() => handleLinkClient(selectedClientId)}
                   disabled={assignedClients.some(c => c.id === selectedClientId)}
                   loading={linkingRelation}

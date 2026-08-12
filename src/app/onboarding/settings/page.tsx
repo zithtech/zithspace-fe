@@ -41,6 +41,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // Employee codes are PREFIX-NNNNNN: a text prefix (1–30 letters) + a fixed
 // 6-digit zero-padded sequence (e.g. EMP-000001). The prefix is tenant-based
@@ -678,17 +679,18 @@ function DocumentsNeededTab() {
 
       {/* List */}
       <div className="docn-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="docn-table"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
-          scroll={{ x: 'max-content' }}
-          locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="docn-table"
+            columns={columns}
+            dataSource={rows}
+            pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
+            scroll={{ x: 'max-content' }}
+            locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       <style jsx global>{`

@@ -57,6 +57,7 @@ import { MembersService, Member } from "@/services/membersService";
 import type { ColumnsType } from "antd/es/table";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 interface TrashedMember extends Member {
   deletedAt: string;
@@ -815,178 +816,180 @@ export default function MemberTrashManagementPage() {
 
         {/* Main Body */}
         <div className="pp-body">
-          {viewMode === 'table' ? (
-            <div className="pp-table-wrap">
-              <Table
-                className="pp-table"
-                rowSelection={
-                  isLoading || isRefreshing
-                    ? undefined
-                    : {
-                      selectedRowKeys,
-                      onChange: (keys) => setSelectedRowKeys(keys),
-                    }
-                }
-                columns={columns.map((col) => ({
-                  ...col,
-                  render: (text: any, record: any, index: number) => {
-                    if (isLoading || isRefreshing) {
-                      return (
-                        <Skeleton.Input
-                          active
-                          size="small"
-                          block
-                          style={{ height: 20 }}
-                        />
-                      );
-                    }
-                    return col.render
-                      ? (col.render as any)(text, record, index)
-                      : text;
-                  },
-                }))}
-                dataSource={
-                  isLoading || isRefreshing
-                    ? Array(5).fill({})
-                    : filteredMembers.slice(
-                      (pagination.current - 1) * pagination.pageSize,
-                      pagination.current * pagination.pageSize
-                    )
-                }
-                rowKey="id"
-                loading={false}
-                pagination={false}
-                scroll={{ x: 1024 }}
-                locale={{ emptyText: emptyState }}
-              />
-            </div>
-          ) : (
-            <div className="pp-grid">
-              {isLoading || isRefreshing ? (
-                Array(6).fill({}).map((_, i) => (
-                  <div key={i} className="pc-card" style={{ padding: 12 }}>
-                    <Skeleton active avatar paragraph={{ rows: 2 }} />
-                  </div>
-                ))
-              ) : filteredMembers.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-              ) : (
-                filteredMembers.map((item) => {
-                  const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
-                  const rbacRole = (item as any).userRoles?.[0]?.role;
-                  const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);
-                  const roleMeta = ROLE_META[item.role] || {
-                    bg: "rgba(59,130,246,0.10)",
-                    color: "#3b82f6",
-                    dot: "#3b82f6",
-                  };
+          <ZukvoLoadingOverlay loading={false} message="">
+            {viewMode === 'table' ? (
+              <div className="pp-table-wrap">
+                <Table
+                  className="pp-table"
+                  rowSelection={
+                    isLoading || isRefreshing
+                      ? undefined
+                      : {
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys),
+                      }
+                  }
+                  columns={columns.map((col) => ({
+                    ...col,
+                    render: (text: any, record: any, index: number) => {
+                      if (isLoading || isRefreshing) {
+                        return (
+                          <Skeleton.Input
+                            active
+                            size="small"
+                            block
+                            style={{ height: 20 }}
+                          />
+                        );
+                      }
+                      return col.render
+                        ? (col.render as any)(text, record, index)
+                        : text;
+                    },
+                  }))}
+                  dataSource={
+                    isLoading || isRefreshing
+                      ? Array(5).fill({})
+                      : filteredMembers.slice(
+                        (pagination.current - 1) * pagination.pageSize,
+                        pagination.current * pagination.pageSize
+                      )
+                  }
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 1024 }}
+                  locale={{ emptyText: emptyState }}
+                />
 
-                  return (
-                    <div key={item.id} className="pc-card">
-                      <div className="pc-top">
-                        <Avatar
-                          size={34}
-                          shape="square"
-                          src={item.avatarUrl}
-                          style={{
-                            background: gradientFor(item.id || item.name || "x"),
-                            color: "#fff",
-                            fontSize: 13,
-                            fontWeight: 700,
-                            borderRadius: 9,
-                          }}
-                        >
-                          {initialsOf(item.name || '')}
-                        </Avatar>
-                        <div className="pc-identity-body">
-                          <Tooltip title={item.name} placement="topLeft">
-                            <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
-                          </Tooltip>
-                          <div className="pc-client-line">
-                            <span className="pc-client-val" style={{ fontSize: '11.5px', color: 'var(--text-slate-500)' }}>
-                              {item.position?.title || "—"}
-                            </span>
+              </div>
+            ) : (
+              <div className="pp-grid">
+                {isLoading || isRefreshing ? (
+                  Array(6).fill({}).map((_, i) => (
+                    <div key={i} className="pc-card" style={{ padding: 12 }}>
+                      <Skeleton active avatar paragraph={{ rows: 2 }} />
+                    </div>
+                  ))
+                ) : filteredMembers.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                ) : (
+                  filteredMembers.map((item) => {
+                    const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;
+                    const rbacRole = (item as any).userRoles?.[0]?.role;
+                    const roleLabel = rbacRole ? rbacRole.name : (ROLE_META[item.role]?.label || item.role);
+                    const roleMeta = ROLE_META[item.role] || {
+                      bg: "rgba(59,130,246,0.10)",
+                      color: "#3b82f6",
+                      dot: "#3b82f6",
+                    };
+
+                    return (
+                      <div key={item.id} className="pc-card">
+                        <div className="pc-top">
+                          <Avatar
+                            size={34}
+                            shape="square"
+                            src={item.avatarUrl}
+                            style={{
+                              background: gradientFor(item.id || item.name || "x"),
+                              color: "#fff",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              borderRadius: 9,
+                            }}
+                          >
+                            {initialsOf(item.name || '')}
+                          </Avatar>
+                          <div className="pc-identity-body">
+                            <Tooltip title={item.name} placement="topLeft">
+                              <div className="pc-title" style={{ fontSize: '13px' }}>{item.name}</div>
+                            </Tooltip>
+                            <div className="pc-client-line">
+                              <span className="pc-client-val" style={{ fontSize: '11.5px', color: 'var(--text-slate-500)' }}>
+                                {item.position?.title || "—"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="pc-foot" style={{ height: '80px' }}>
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
-                            <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.workEmail || "—"}</span>
-                          </span>
-                          {item.phone && (
-                            <>
-                              <span className="pc-foot-div" />
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
-                                <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.phone}</span>
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
-                          <span className="pc-foot-item" style={{ color: '#f87171' }}>
-                            <span className="pc-foot-key"><DeleteOutlined style={{ marginRight: 2, color: '#f87171' }} /></span>
-                            <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
-                              Deleted {item.deletedAt ? dayjs(item.deletedAt).fromNow() : '—'}
+                        <div className="pc-foot" style={{ height: '80px' }}>
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key"><MailOutlined style={{ marginRight: 2 }} /></span>
+                              <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.workEmail || "—"}</span>
                             </span>
-                            {item.deletedBy && (
+                            {item.phone && (
                               <>
-                                <span className="pc-foot-div" style={{ backgroundColor: 'rgba(248, 113, 113, 0.2)', height: '10px', margin: '0 6px' }} />
-                                <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-slate-500)' }}>
-                                  Deleted by <span style={{ color: '#f87171' }}>{item.deletedBy}</span>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key"><PhoneOutlined style={{ marginRight: 2 }} /></span>
+                                  <span className="pc-foot-val" style={{ fontSize: '11.5px' }}>{item.phone}</span>
                                 </span>
                               </>
                             )}
-                          </span>
+                          </div>
+                          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
+                            <span className="pc-foot-item" style={{ color: '#f87171' }}>
+                              <span className="pc-foot-key"><DeleteOutlined style={{ marginRight: 2, color: '#f87171' }} /></span>
+                              <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600 }}>
+                                Deleted {item.deletedAt ? dayjs(item.deletedAt).fromNow() : '—'}
+                              </span>
+                              {item.deletedBy && (
+                                <>
+                                  <span className="pc-foot-div" style={{ backgroundColor: 'rgba(248, 113, 113, 0.2)', height: '10px', margin: '0 6px' }} />
+                                  <span className="pc-foot-val" style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-slate-500)' }}>
+                                    Deleted by <span style={{ color: '#f87171' }}>{item.deletedBy}</span>
+                                  </span>
+                                </>
+                              )}
+                            </span>
 
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <Tooltip title="Restore Member">
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<UndoOutlined />}
-                                style={{ color: "#10b981", padding: 0 }}
-                                onClick={async () => {
-                                  await restoreMutation.mutateAsync(item.id);
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <Tooltip title="Restore Member">
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<UndoOutlined />}
+                                  style={{ color: "#10b981", padding: 0 }}
+                                  onClick={async () => {
+                                    await restoreMutation.mutateAsync(item.id);
+                                    setSelectedRowKeys(prev => prev.filter(k => k !== item.id));
+                                  }}
+                                  loading={restoreMutation.isPending}
+                                />
+                              </Tooltip>
+                              <ConfirmDialog
+                                tone="danger"
+                                icon={<DeleteOutlined />}
+                                title="Permanently delete member?"
+                                description="This action cannot be undone."
+                                confirmText="Purge"
+                                cancelText="Cancel"
+                                placement="left"
+                                onConfirm={async () => {
+                                  await deleteMutation.mutateAsync(item.id);
                                   setSelectedRowKeys(prev => prev.filter(k => k !== item.id));
                                 }}
-                                loading={restoreMutation.isPending}
-                              />
-                            </Tooltip>
-                            <ConfirmDialog
-                              tone="danger"
-                              icon={<DeleteOutlined />}
-                              title="Permanently delete member?"
-                              description="This action cannot be undone."
-                              confirmText="Purge"
-                              cancelText="Cancel"
-                              placement="left"
-                              onConfirm={async () => {
-                                await deleteMutation.mutateAsync(item.id);
-                                setSelectedRowKeys(prev => prev.filter(k => k !== item.id));
-                              }}
-                            >
-                              <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                style={{ color: "#ff4d4f", padding: 0 }}
-                                loading={deleteMutation.isPending}
-                              />
-                            </ConfirmDialog>
+                              >
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  style={{ color: "#ff4d4f", padding: 0 }}
+                                  loading={deleteMutation.isPending}
+                                />
+                              </ConfirmDialog>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </ZukvoLoadingOverlay>
         </div>
 
         {/* Sticky footer pagination */}

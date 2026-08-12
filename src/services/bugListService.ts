@@ -73,6 +73,8 @@ export interface BugListItem {
   ticketId?: string | null;
   ticketNumber?: string | null;
   ticketStatus?: string | null;
+  isRecurring?: boolean;
+  ticketHistory?: { ticketId: string; ticketNumber: string; status: string; timestamp: string }[];
   /** Set when the bug was raised from a QA test run. */
   testCaseId?: string | null;
   testCaseRef?: string | null;
@@ -663,6 +665,13 @@ class BugListService {
   static async reopen(bugId: string): Promise<BugListItem> {
     const res = await apiClient.post<{ success: boolean; data: BugListItem }>(
       `/api/bug-list/bugs/${bugId}/reopen`
+    );
+    return res.data.data;
+  }
+
+  static async markBugAsRecurring(bugId: string): Promise<BugListItem> {
+    const res = await apiClient.put<{ success: boolean; data: BugListItem }>(
+      `/api/bug-list/bugs/${bugId}/recurring`
     );
     return res.data.data;
   }

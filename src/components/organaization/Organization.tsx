@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { dashboardService, DashboardData } from "@/services/dashboardService";
 import { useZohoCalendar } from "@/hooks/useZohoCalendar";
 import { EmployeeService } from "@/services/employeeServices";
@@ -39,6 +38,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import ZukvoLoader from "../common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -1526,7 +1526,7 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
 
 export default function Organization({ dashboardSettings }: { dashboardSettings?: any }) {
   return (
-    <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+    <Suspense fallback={<ZukvoLoader message="Loading dashboard..." />}>
       <DashboardContent dashboardSettings={dashboardSettings} />
     </Suspense>
   );

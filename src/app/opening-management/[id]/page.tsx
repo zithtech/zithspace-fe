@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,7 +14,6 @@ import {
   Col,
   Tabs,
   Divider,
-  Spin,
   notification,
 } from 'antd';
 import {
@@ -172,7 +173,7 @@ export default function OpeningDetailPage() {
       <ProtectedRoute>
         <MainLayout>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <Spin size="large" tip="Loading Opening Details..." />
+            <ZukvoLoader size="lg" message="Loading Opening Details..." />
           </div>
         </MainLayout>
       </ProtectedRoute>

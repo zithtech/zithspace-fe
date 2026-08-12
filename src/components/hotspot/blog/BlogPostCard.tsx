@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState } from 'react';
-import { App, Button, Dropdown, Popover, Spin } from 'antd';
+import { App, Button, Dropdown, Popover } from 'antd';
 import { AtSign, MessageCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { PALETTE, fmtDateTime } from '@/components/openings/ui';
 import { avatarColorFor, initialsFor } from '@/components/common/SearchableDropdown';
@@ -199,7 +201,7 @@ export default function BlogPostCard({
             onOpenChange={(o) => o && loadReactors()}
             content={
               reactors === null ? (
-                <Spin size="small" />
+                <ZukvoLoader size="sm" />
               ) : (
                 // Styles for this live in the component's single <style jsx>
                 // block below — styled-jsx forbids nesting a second one inside
@@ -252,7 +254,7 @@ export default function BlogPostCard({
       {showComments &&
         (loadingComments ? (
           <div className="hsb-post-loading">
-            <Spin size="small" />
+            <ZukvoLoader size="sm" />
           </div>
         ) : (
           <CommentThread

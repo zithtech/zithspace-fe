@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -8,7 +10,6 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
-import { Spin } from "antd";
 
 interface TiptapViewerProps {
   content: string;
@@ -66,7 +67,7 @@ export default function TiptapViewer({
   }, [content, editor]);
 
   if (!editor) {
-    return <Spin />;
+    return <ZukvoLoader size="md" />;
   }
 
   return (

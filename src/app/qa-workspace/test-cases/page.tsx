@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -1054,57 +1056,57 @@ export default function TestCasesPage() {
             {/* Table or Grid — only the results blur, so the filters above stay
                 usable while a search refetches. */}
             <ZukvoLoadingOverlay loading={loading} message="Loading test cases…" minHeight={loading ? 320 : undefined}>
-            {viewMode === 'list' ? (
-              <div className="sc-tablewrap">
-                <Table
-                  className="ts-table sc-table"
-                  dataSource={pagedCases}
-                  columns={columns}
-                  rowKey="id"
-                  pagination={false}
-                  onRow={(record) => ({
-                    onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
-                  })}
-                  locale={{
-                    /* "No test cases yet" would be a lie while the first page is
-                       still in flight — hold the height instead. */
-                    emptyText: loading ? (
-                      <div style={{ minHeight: 240 }} />
-                    ) : (
-                      <div className="sc-empty">
-                        <Folder size={26} className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                        <p className="sc-empty__desc">
+              {viewMode === 'list' ? (
+                <div className="sc-tablewrap">
+                  <Table
+                    className="ts-table sc-table"
+                    dataSource={pagedCases}
+                    columns={columns}
+                    rowKey="id"
+                    pagination={false}
+                    onRow={(record) => ({
+                      onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
+                    })}
+                    locale={{
+                      /* "No test cases yet" would be a lie while the first page is
+                         still in flight — hold the height instead. */
+                      emptyText: loading ? (
+                        <div style={{ minHeight: 240 }} />
+                      ) : (
+                        <div className="sc-empty">
+                          <Folder size={26} className="sc-empty__icon" />
+                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0
+                              ? 'Try widening your search or clearing the filters.'
+                              : 'Create your first test case to start grouping testing scenarios.'}
+                          </p>
                           {activeFilterCount > 0
-                            ? 'Try widening your search or clearing the filters.'
-                            : 'Create your first test case to start grouping testing scenarios.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                      </div>
-                    )
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="pp-grid">
-                {loading ? null : filteredData.length === 0 ? (
-                  <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                    <Folder size={26} className="sc-empty__icon" />
-                    <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                    <p className="sc-empty__desc">
-                      {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
-                    </p>
-                    {activeFilterCount > 0
-                      ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                      : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                  </div>
-                ) : (
-                  pagedCases.map(r => renderCaseCard(r))
-                )}
-              </div>
-            )}
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                        </div>
+                      )
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading ? null : filteredData.length === 0 ? (
+                    <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                      <Folder size={26} className="sc-empty__icon" />
+                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                      <p className="sc-empty__desc">
+                        {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
+                      </p>
+                      {activeFilterCount > 0
+                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                    </div>
+                  ) : (
+                    pagedCases.map(r => renderCaseCard(r))
+                  )}
+                </div>
+              )}
             </ZukvoLoadingOverlay>
           </div>
 

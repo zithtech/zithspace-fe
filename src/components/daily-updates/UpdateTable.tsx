@@ -29,6 +29,7 @@ import {
   getStatusConfig,
 } from "@/types/dailyUpdate";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -454,21 +455,22 @@ export default function UpdateTable({
   return (
     <>
       <div style={{ flex: "1 0 auto", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)", overflow: "hidden", marginBottom: 24 }}>
-        <Table
-          columns={columns}
-          dataSource={paginatedData}
-          loading={loading}
-          pagination={false}
-          scroll={{ x: 1060 }}
-          onRow={(record) => ({
-            onClick: () => onViewDetails(record.update),
-            style: { cursor: "pointer" },
-          })}
-          style={{
-            background: "transparent",
-          }}
-          className="premium-table"
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            columns={columns}
+            dataSource={paginatedData}
+            pagination={false}
+            scroll={{ x: 1060 }}
+            onRow={(record) => ({
+              onClick: () => onViewDetails(record.update),
+              style: { cursor: "pointer" },
+            })}
+            style={{
+              background: "transparent",
+            }}
+            className="premium-table"
+          />
+        </ZukvoLoadingOverlay>
       </div>
       {total > 0 && (
         <div className="du-footer du-footer--sticky">

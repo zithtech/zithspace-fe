@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Input, Switch, Select, ColorPicker, Drawer, Upload, message, Spin } from 'antd';
+import { Button, Input, Switch, Select, ColorPicker, Drawer, Upload, message } from 'antd';
 import { FileCog, Save, RotateCcw, Palette, ListChecks, Landmark, Banknote, LayoutTemplate, Check, Eye, EyeOff, Building2, UserRound, ImageUp, Trash2, Menu } from 'lucide-react';
 import { usePermission } from '@/hooks/usePermission';
 import PayrollV2Service, {
@@ -259,7 +261,7 @@ export default function PayslipBankPanel() {
       </div>
 
       {loading ? (
-        <div className="pvpb-loading"><Spin /></div>
+        <div className="pvpb-loading"><ZukvoLoader size="md" /></div>
       ) : view === 'payslip' ? (
         <div className="pvpb-sections">
           <SectionCard icon={<LayoutTemplate size={16} />} tint={TINT.pink} color={PALETTE.pink} title="Payslip Template" subtitle="Choose one design — all generated payslips use it">
@@ -445,7 +447,7 @@ export default function PayslipBankPanel() {
         styles={{ header: { padding: '12px 20px' }, body: { padding: 16, background: '#e5e7eb' } }}
       >
         {previewing ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Spin /></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
         ) : (
           <iframe title="Payslip preview" srcDoc={previewHtml} style={{ width: '100%', height: '1050px', border: 'none', background: '#fff', boxShadow: '0 2px 14px rgba(0,0,0,0.15)' }} />
         )}

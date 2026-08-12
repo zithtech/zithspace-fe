@@ -7,6 +7,7 @@ import { BankOutlined, DollarOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, { ApprovalInboxItem, AdvanceInboxItem } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, tablePaginationConfig } from './ui';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 type PayTarget = { kind: 'claim' | 'advance'; id: string; label: string } | null;
 
@@ -96,8 +97,10 @@ export default function FinancePanel() {
             key: 'claims', label: `Claims (${claims.length})`,
             children: (
               <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
-                  locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                    <Table rowKey="id" size="middle" columns={claimCols} dataSource={claims}
+                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                    </ZukvoLoadingOverlay>
               </div>
             ),
           },
@@ -105,8 +108,10 @@ export default function FinancePanel() {
             key: 'advances', label: `Advances (${advances.length})`,
             children: (
               <div className="rvp-table-wrap">
-                <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
-                  locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                    <Table rowKey="id" size="middle" columns={advanceCols} dataSource={advances}
+                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                    </ZukvoLoadingOverlay>
               </div>
             ),
           },

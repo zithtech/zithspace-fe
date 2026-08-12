@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from 'react';
-import { List, Card, Button, Form, Input, Select, Modal, message, Spin, Empty, Avatar, Tag } from 'antd';
+import { List, Card, Button, Form, Input, Select, Modal, message, Empty, Avatar, Tag } from 'antd';
 import { MailOutlined, UserOutlined } from '@ant-design/icons';
 import { dealService, DealCommunication } from '@/services/dealService';
 import dayjs from 'dayjs';
@@ -63,7 +65,7 @@ const CommunicationTab: React.FC<CommunicationTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" className="shadow-sm">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><Spin /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" /></div>
         ) : communications.length > 0 ? (
           <List
             itemLayout="horizontal"

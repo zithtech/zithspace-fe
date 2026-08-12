@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import {
@@ -95,7 +97,7 @@ export default function RequisitionDetailPage() {
   if (loading)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
 

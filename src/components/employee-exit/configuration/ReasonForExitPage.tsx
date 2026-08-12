@@ -34,6 +34,7 @@ import { ReasonForExit, ReasonForExitService, ReasonForExitPayload } from '@/ser
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -52,13 +53,13 @@ const getCreatorName = (record: any, members: any[] = []) => {
   if (typeof c === 'object' && c !== null) {
     return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
   }
-  
+
   const creatorId = record.createdById || record.created_by_id || c;
   if (typeof creatorId === 'string' && members.length > 0) {
     const member = members.find(m => m.value === creatorId);
     if (member) return member.label;
   }
-  
+
   return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
 };
 
@@ -160,11 +161,11 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
       key: 'name',
       render: (text: string, record: ReasonForExit) => (
         <Space size={12}>
-          <div style={{ 
-            width: 36, 
-            height: 36, 
-            borderRadius: 10, 
-            background: "var(--bg-blue-50)", 
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "var(--bg-blue-50)",
             color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
@@ -240,8 +241,8 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
     },
   ];
 
-  const filteredReasons = reasons.filter(reason => 
-    (reason.name || '').toLowerCase().includes(searchText.toLowerCase()) || 
+  const filteredReasons = reasons.filter(reason =>
+    (reason.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
     (reason.code || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
@@ -342,15 +343,16 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
       ) : (
         <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
-            <Table
-              className="pp-table"
-              columns={columns}
-              dataSource={currentData}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1000 }}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                className="pp-table"
+                columns={columns}
+                dataSource={currentData}
+                rowKey="id"
+                pagination={false}
+                scroll={{ x: 1000 }}
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </div>
       )}
@@ -390,10 +392,10 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
             }}
           >
             <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 36 }}>Cancel</Button>
-            <Button 
-              type="primary" 
-              loading={loading} 
-              onClick={handleSave} 
+            <Button
+              type="primary"
+              loading={loading}
+              onClick={handleSave}
               style={{ borderRadius: 8, height: 36, padding: '0 18px', fontWeight: 600, background: '#2563eb' }}
             >
               {editingReason ? 'Update Reason' : 'Save Reason'}
@@ -402,7 +404,7 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
         }
       >
         <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
-        
+
         <div
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
@@ -458,7 +460,7 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
           className="customer-drawer-form"
         >
           <div className="px-6 py-6 space-y-5 pb-24">
-            
+
             <SectionCard title="Identity Details" icon={<Settings2 size={16} />}>
               <Form.Item
                 name="name"
@@ -466,8 +468,8 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 12 }}
               >
-                <Input 
-                  placeholder="e.g. Better Salary" 
+                <Input
+                  placeholder="e.g. Better Salary"
                   onChange={handleNameChange}
                   style={{ height: 38 }}
                 />
@@ -479,9 +481,9 @@ export default function ReasonForExitPage({ searchText = '', createTrigger = 0, 
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <Input 
-                  placeholder="Auto-gen" 
-                  readOnly 
+                <Input
+                  placeholder="Auto-gen"
+                  readOnly
                   style={{ backgroundColor: 'var(--bg-secondary)', height: 38 }}
                 />
               </Form.Item>

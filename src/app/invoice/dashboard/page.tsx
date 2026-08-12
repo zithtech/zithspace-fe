@@ -1,8 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { useEffect, useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Table, Button, Spin, Skeleton, Tooltip, Calendar } from "antd";
+import { Table, Button, Skeleton, Tooltip, Calendar } from "antd";
 import {
   FileText,
   DollarSign,
@@ -531,7 +533,7 @@ export default function DashboardPage() {
     return (
       <MainLayout>
         <div style={{ padding: 100, textAlign: "center" }}>
-          <Spin />
+          <ZukvoLoader size="md" />
         </div>
       </MainLayout>
     );

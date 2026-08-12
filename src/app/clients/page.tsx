@@ -852,7 +852,7 @@
 //                       {selectedClient.name}
 //                     </Title>
 
-                    
+
 //                     <Tag
 //                       color={selectedClient.isActive ? "green" : "red"}
 //                       style={{
@@ -876,7 +876,7 @@
 //               </div>
 
 //               {/* ===== BODY ===== */}
-            
+
 //               <div style={{ padding: 24, background: "#fafcff" }}>
 //                 <Row gutter={[16, 16]} align="stretch">
 //                   {selectedClient.company && (
@@ -1501,7 +1501,7 @@
 //                           <Text strong ellipsis style={{ fontSize: 15 }}>
 //                             {client.name}
 //                           </Text>
-                          
+
 //                           <Tag
 //                             color={getStatusColor(client.isActive)}
 //                             style={{
@@ -1876,6 +1876,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -2251,171 +2252,173 @@ export default function ClientsPage() {
         {viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {loading
-              ? [1, 2, 3, 4,5].map((i) => (
-                  <Col xs={24} sm={12} lg={8} xl={8} key={i}>
-                    <Card
-                      loading
-                      style={{
-                        height: 180,
-                        borderRadius: 12,
-                      }}
-                    />
-                  </Col>
-                ))
+              ? [1, 2, 3, 4, 5].map((i) => (
+                <Col xs={24} sm={12} lg={8} xl={8} key={i}>
+                  <Card
+                    loading
+                    style={{
+                      height: 180,
+                      borderRadius: 12,
+                    }}
+                  />
+                </Col>
+              ))
               : clients.map((client) => (
-                  <Col xs={24} sm={8} lg={8} xl={6} key={client.id}>
-                    <Card
-                      hoverable
-                      onClick={() => showViewModal(client)}
+                <Col xs={24} sm={8} lg={8} xl={6} key={client.id}>
+                  <Card
+                    hoverable
+                    onClick={() => showViewModal(client)}
+                    style={{
+                      borderRadius: 12,
+                      border: "1px solid #f0f0f0",
+                      transition: "all 0.2s",
+                      height: "100%",
+                    }}
+                    styles={{ body: { padding: "16px 18px" } }}
+                  >
+                    {/* LINE 1: Avatar + Name + Status Tag */}
+                    <div
                       style={{
-                        borderRadius: 12,
-                        border: "1px solid #f0f0f0",
-                        transition: "all 0.2s",
-                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: 12,
                       }}
-                      styles={{ body: { padding: "16px 18px" } }}
                     >
-                      {/* LINE 1: Avatar + Name + Status Tag */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 12,
+                          gap: 8,
+                          flex: 1,
+                          minWidth: 0,
                         }}
                       >
-                        <div
+                        <Avatar
+                          size={32}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flex: 1,
-                            minWidth: 0,
-                          }}
-                        >
-                          <Avatar
-                            size={32}
-                            style={{
-                              // background: client.isActive ? "#52c41a" : "#ff4d4f",
-                               background:
+                            // background: client.isActive ? "#52c41a" : "#ff4d4f",
+                            background:
                               "linear-gradient(135deg, #1677ff, #69b1ff)",
-                              fontWeight: 600,
-                              fontSize: 14,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {client.name?.[0]?.toUpperCase()}
-                          </Avatar>
-                          <Text strong ellipsis style={{ fontSize: 15 }}>
-                            {client.name}
-                          </Text>
-                          
-                          <Tag
-                            color={client.isActive ? "green" : "red"}
-                            style={{
-                              margin: 0,
-                              fontSize: 10,
-                              borderRadius: 3,
-                              padding: "1px 5px",
-                              flexShrink: 0,
-                              lineHeight: 1.2,
-                              height: "auto",
-                            }}
-                          >
-                            {client.isActive ? "ACTIVE" : "INACTIVE"}
-                          </Tag>
-                        </div>
-                      </div>
-
-                      {/* LINE 2: Company Name (like Project Manager in projects) */}
-                      {client.company && (
-                        <div
-                          style={{
-                            marginBottom: 12,
-                            fontSize: 13,
-                            color: "#595959",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
+                            fontWeight: 600,
+                            fontSize: 14,
+                            flexShrink: 0,
                           }}
                         >
-                          <ShopOutlined
-                            style={{ color: "#8c8c8c", fontSize: 12 }}
-                          />
-                          <Text style={{ fontSize: 13 }}>
-                            {client.company}
-                          </Text>
-                        </div>
-                      )}
+                          {client.name?.[0]?.toUpperCase()}
+                        </Avatar>
+                        <Text strong ellipsis style={{ fontSize: 15 }}>
+                          {client.name}
+                        </Text>
 
-                      {/* LINE 3: Email and Contact Info (like Members + Dates in projects) */}
+                        <Tag
+                          color={client.isActive ? "green" : "red"}
+                          style={{
+                            margin: 0,
+                            fontSize: 10,
+                            borderRadius: 3,
+                            padding: "1px 5px",
+                            flexShrink: 0,
+                            lineHeight: 1.2,
+                            height: "auto",
+                          }}
+                        >
+                          {client.isActive ? "ACTIVE" : "INACTIVE"}
+                        </Tag>
+                      </div>
+                    </div>
+
+                    {/* LINE 2: Company Name (like Project Manager in projects) */}
+                    {client.company && (
                       <div
                         style={{
+                          marginBottom: 12,
+                          fontSize: 13,
+                          color: "#595959",
                           display: "flex",
-                          justifyContent: "space-between",
                           alignItems: "center",
-                          marginTop: 8,
-                          paddingTop: 8,
+                          gap: 6,
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                            fontSize: 12,
-                            color: "#8c8c8c",
-                          }}
-                        >
-                          <span>
-                            <MailOutlined style={{ marginRight: 4 }} />
-                            {client.email || "—"}
-                          </span>
-                          {client.phone && (
-                            <span>
-                              <PhoneOutlined style={{ marginRight: 4 }} />
-                              {client.phone}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Created Date on right side */}
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          <CalendarOutlined style={{ marginRight: 4 }} />
-                          {dayjs(client.createdAt).format("MMM DD")}
+                        <ShopOutlined
+                          style={{ color: "#8c8c8c", fontSize: 12 }}
+                        />
+                        <Text style={{ fontSize: 13 }}>
+                          {client.company}
                         </Text>
                       </div>
-                    </Card>
-                  </Col>
-                ))}
+                    )}
+
+                    {/* LINE 3: Email and Contact Info (like Members + Dates in projects) */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginTop: 8,
+                        paddingTop: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                          fontSize: 12,
+                          color: "#8c8c8c",
+                        }}
+                      >
+                        <span>
+                          <MailOutlined style={{ marginRight: 4 }} />
+                          {client.email || "—"}
+                        </span>
+                        {client.phone && (
+                          <span>
+                            <PhoneOutlined style={{ marginRight: 4 }} />
+                            {client.phone}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Created Date on right side */}
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        <CalendarOutlined style={{ marginRight: 4 }} />
+                        {dayjs(client.createdAt).format("MMM DD")}
+                      </Text>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
           </Row>
         ) : (
           <Card size="small">
-            <Table
-              columns={columns}
-              dataSource={clients}
-              rowKey="id"
-              loading={loading}
-              onRow={(record) => ({
-                onClick: () => showViewModal(record),
-              })}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} clients`,
-                onChange: (page, pageSize) =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    current: page,
-                    pageSize: pageSize || 20,
-                  })),
-              }}
-              size="small"
-              scroll={{ x: 900 }}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                columns={columns}
+                dataSource={clients}
+                rowKey="id"
+                onRow={(record) => ({
+                  onClick: () => showViewModal(record),
+                })}
+                pagination={{
+                  pageSizeOptions: [10, 20, 25, 50, 100], current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} clients`,
+                  onChange: (page, pageSize) =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      current: page,
+                      pageSize: pageSize || 20,
+                    })),
+                }}
+                size="small"
+                scroll={{ x: 900 }}
+              />
+            </ZukvoLoadingOverlay>
           </Card>
         )}
 

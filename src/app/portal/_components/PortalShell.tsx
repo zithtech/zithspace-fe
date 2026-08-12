@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -21,7 +23,7 @@ import {
   KeyRound,
   LucideIcon,
 } from "lucide-react";
-import { Dropdown, Spin } from "antd";
+import { Dropdown } from "antd";
 import { useClientPortalAuth } from "@/context/ClientPortalAuthContext";
 import ChangePasswordModal from "./ChangePasswordModal";
 
@@ -92,7 +94,7 @@ export default function PortalShell({
           background: "#fafafa",
         }}
       >
-        <Spin size="large" />
+        <ZukvoLoader size="lg" />
       </div>
     );
   }

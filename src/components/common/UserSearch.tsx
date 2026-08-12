@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect } from 'react';
-import { Select, Spin } from 'antd';
+import { Select } from 'antd';
 import { MembersService } from '@/services/membersService';
 
 interface UserSearchProps {
@@ -44,7 +45,7 @@ export default function UserSearch({ placeholder, style, onChange, value }: User
                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             onChange={onChange}
-            notFoundContent={loading ? <Spin size="small" /> : null}
+            notFoundContent={loading ? <ZukvoLoader size="sm" /> : null}
             options={options}
         />
     );

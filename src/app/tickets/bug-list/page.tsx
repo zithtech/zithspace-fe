@@ -1,9 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Spin } from "antd";
 
 /**
  * The Bug List moved to QA Space. This route stays behind so existing links and
@@ -27,7 +28,7 @@ export default function BugListRedirect() {
           background: "var(--bg-pure-white)",
         }}
       >
-        <Spin size="large" tip="Taking you to QA Space…" />
+        <ZukvoLoader size="lg" message="Taking you to QA Space…" />
       </div>
     </MainLayout>
   );

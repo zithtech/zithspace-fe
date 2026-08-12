@@ -1,29 +1,29 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-  Drawer, 
-  Table, 
-  Tag, 
-  Space, 
-  Typography, 
-  Button, 
-  Tooltip, 
-  Badge, 
-  Empty, 
-  Input, 
+import {
+  Drawer,
+  Table,
+  Tag,
+  Space,
+  Typography,
+  Button,
+  Tooltip,
+  Badge,
+  Empty,
+  Input,
   Select
 } from 'antd';
-import { 
-  Mail, 
-  Search, 
-  Filter, 
-  Calendar, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  Eye, 
-  Download, 
+import {
+  Mail,
+  Search,
+  Filter,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Eye,
+  Download,
   RefreshCw,
   SendHorizontal,
   ChevronRight
@@ -31,6 +31,7 @@ import {
 import dayjs from 'dayjs';
 import { useEmailLogs } from '@/hooks/useEmailHistory';
 import { STATUS_CONFIGS, MODULE_CONFIGS } from '@/services/emailHistoryService';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text, Title } = Typography;
 
@@ -46,11 +47,11 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
 
-  const { 
-    data: historyData, 
-    isLoading, 
+  const {
+    data: historyData,
+    isLoading,
     isFetching,
-    refetch 
+    refetch
   } = useEmailLogs({
     page,
     limit: 10,
@@ -90,12 +91,12 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       key: 'from',
       render: (text: string) => (
         <Tooltip title={text}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: 6, 
-            background: 'var(--history-drawer-expanded-bg)', 
-            padding: '4px 10px', 
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'var(--history-drawer-expanded-bg)',
+            padding: '4px 10px',
             borderRadius: 8,
             border: '1px solid var(--history-drawer-header-border)'
           }}>
@@ -134,8 +135,8 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
               <Text style={{ fontSize: 12, color: 'var(--dashboard-stat-label)' }}>History of all sent invoice communications</Text>
             </div>
           </Space>
-          <Button 
-            icon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />} 
+          <Button
+            icon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />}
             onClick={() => refetch()}
           >
             Refresh
@@ -147,12 +148,12 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       onClose={onClose}
       open={open}
       styles={{
-        header: { 
-          borderBottom: '1px solid var(--history-drawer-header-border)', 
+        header: {
+          borderBottom: '1px solid var(--history-drawer-header-border)',
           padding: '20px 24px',
           background: 'var(--history-drawer-header-bg)'
         },
-        body: { 
+        body: {
           padding: '24px',
           background: 'var(--history-drawer-header-bg)'
         }
@@ -160,13 +161,13 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
     >
       {/* Filters Header */}
       <div style={{ marginBottom: 24, display: 'flex', gap: 16 }}>
-        <Input 
-          placeholder="Search by recipient or subject..." 
+        <Input
+          placeholder="Search by recipient or subject..."
           prefix={<Search size={16} className="text-slate-400" />}
           style={{ flex: 1, borderRadius: 10 }}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Select 
+        <Select
           placeholder="All Status"
           style={{ width: 150 }}
           allowClear
@@ -176,52 +177,55 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       </div>
 
       {/* Main Table */}
-      <Table 
-        columns={columns} 
-        dataSource={historyData?.data || []} 
-        loading={isLoading}
-        rowKey="id"
-        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], current: page,
+      <ZukvoLoadingOverlay loading={isLoading} message="">
+        <Table
+          columns={columns}
+          dataSource={historyData?.data || []}
+          rowKey="id"
+          pagination={{
+            pageSizeOptions: [10, 20, 25, 50, 100], current: page,
             pageSize: 10,
             total: historyData?.pagination?.total || 0,
             onChange: (p) => setPage(p),
             showSizeChanger: false,
             style: { marginTop: 24 }
-        }}
-        locale={{
+          }}
+          locale={{
             emptyText: (
-                <Empty 
-                    image={Empty.PRESENTED_IMAGE_SIMPLE} 
-                    description="No email history found" 
-                    style={{ padding: '60px 0' }}
-                />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No email history found"
+                style={{ padding: '60px 0' }}
+              />
             )
-        }}
-        className="email-history-table"
-        style={{
+          }}
+          className="email-history-table"
+          style={{
             background: 'var(--history-drawer-header-bg)',
             borderRadius: 16,
-        }}
-        expandable={{
+          }}
+          expandable={{
             expandedRowRender: (record) => (
-                <div style={{ padding: '16px 24px', background: 'var(--history-drawer-expanded-bg)', borderRadius: 12, border: '1px solid var(--history-drawer-header-border)' }}>
-                    <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                        <Space direction="vertical" size={4}>
-                            <Text strong style={{ fontSize: 13, color: 'var(--dashboard-stat-value)' }}>Subject</Text>
-                            <Text style={{ color: 'var(--dashboard-stat-label)' }}>{record.subject}</Text>
-                        </Space>
-                        {record.hasAttachment && (
-                            <Button size="small" icon={<Download size={14} />} style={{ borderRadius: 8, background: 'var(--history-drawer-header-bg)', color: 'var(--dashboard-stat-label)', border: '1px solid var(--history-drawer-header-border)' }}>
-                                Attachment
-                            </Button>
-                        )}
-                    </div>
+              <div style={{ padding: '16px 24px', background: 'var(--history-drawer-expanded-bg)', borderRadius: 12, border: '1px solid var(--history-drawer-header-border)' }}>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                  <Space direction="vertical" size={4}>
+                    <Text strong style={{ fontSize: 13, color: 'var(--dashboard-stat-value)' }}>Subject</Text>
+                    <Text style={{ color: 'var(--dashboard-stat-label)' }}>{record.subject}</Text>
+                  </Space>
+                  {record.hasAttachment && (
+                    <Button size="small" icon={<Download size={14} />} style={{ borderRadius: 8, background: 'var(--history-drawer-header-bg)', color: 'var(--dashboard-stat-label)', border: '1px solid var(--history-drawer-header-border)' }}>
+                      Attachment
+                    </Button>
+                  )}
                 </div>
+              </div>
             )
-        }}
-      />
+          }}
+        />
+      </ZukvoLoadingOverlay>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .email-history-table .ant-table-thead > tr > th {
           background: var(--history-drawer-table-header-bg) !important;
           color: var(--history-drawer-table-header-text) !important;

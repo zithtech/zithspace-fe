@@ -413,10 +413,16 @@ class DocumentHubService {
     }
   }
 
-  static async shareDocument(id: string, visibility: 'private' | 'public'): Promise<any> {
+  static async shareDocument(
+    id: string,
+    visibility: "private" | "public",
+    sharedWith?: string[],
+  ): Promise<any> {
     try {
-      const response = await apiClient.put(`/api/documenthub/document/${id}/share`, { visibility });
-      return response.data.data;
+      const response = await apiClient.put(
+        `/api/documenthub/document/${id}/share`,
+        { visibility, sharedWith },
+      );return response.data.data;
     } catch (error: any) {
       console.error("Error sharing document:", error);
       throw error;
@@ -442,10 +448,16 @@ class DocumentHubService {
     }
   }
 
-  static async shareDocumentHub(id: string, visibility: 'private' | 'public'): Promise<any> {
+  static async shareDocumentHub(
+    id: string,
+    visibility: "private" | "public",
+    sharedWith?: string[],
+  ): Promise<DocumentHub> {
     try {
-      const response = await apiClient.put(`/api/documenthub/${id}/share`, { visibility });
-      return response.data.data;
+      const response = await apiClient.put(`/api/documenthub/${id}/share`, {
+        visibility,
+        sharedWith,
+      });return response.data.data;
     } catch (error: any) {
       console.error("Error sharing document hub:", error);
       throw error;

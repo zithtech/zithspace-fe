@@ -1,11 +1,12 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState } from "react";
 import {
   Drawer,
   Space,
   Typography,
-  Spin,
   Empty,
   Tabs,
   Tag,
@@ -253,7 +254,7 @@ export function BucketDetailDrawer({
       >
         {isLoading ? (
           <div style={{ textAlign: "center", padding: "40px" }}>
-            <Spin size="large" />
+            <ZukvoLoader size="lg" />
           </div>
         ) : !bucket ? (
           <Empty description="Bucket not found" />

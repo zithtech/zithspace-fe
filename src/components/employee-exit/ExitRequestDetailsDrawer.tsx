@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useEffect, useState } from 'react';
-import { Drawer, Spin, Tabs, Tag, Timeline, Typography, Alert } from 'antd';
+import { Drawer, Tabs, Tag, Timeline, Typography, Alert } from 'antd';
 import { api } from '@/lib/axios';
 import dayjs from 'dayjs';
 import { CheckCircle, Clock, User, Calendar, FileText, CreditCard, ShieldCheck, X } from 'lucide-react';
@@ -96,7 +97,7 @@ export const ExitRequestDetailsDrawer: React.FC<ExitRequestDetailsDrawerProps> =
     if (loading) {
       return (
         <div style={{ padding: 60, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading details..." />
+          <ZukvoLoader size="lg" message="Loading details..." />
         </div>
       );
     }

@@ -5,8 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import TicketSettings from '@/components/projects/TicketSettings';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 export default function ProjectsSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -22,7 +22,7 @@ export default function ProjectsSettingsPage() {
 
   // Show loading spinner while authentication is being checked
   if (authLoading) {
-    return <LoadingSpinner message="Loading settings..." />;
+    return <ZukvoLoader message="Loading settings..." />;
   }
 
   // Don't render if no permission

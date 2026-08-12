@@ -20,6 +20,7 @@ import ReimbursementV2Service, {
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
@@ -381,8 +382,10 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
       ]} />
 
       <div className="rvp-table-wrap">
-        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={tablePaginationConfig} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+                        pagination={tablePaginationConfig} />
+              </ZukvoLoadingOverlay>
       </div>
 
       <Drawer

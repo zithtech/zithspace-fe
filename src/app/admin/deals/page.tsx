@@ -21,6 +21,7 @@ import { dealService, Deal } from "@/services/dealService";
 import MainLayout from "@/components/layout/MainLayout";
 import { TimeTrackingHeader } from "@/components/time-tracking/TimeTrackingHeader";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -352,21 +353,23 @@ const DealsListPage: React.FC = () => {
               </Row>
             </div>
 
-            <Table
-              columns={columns}
-              dataSource={filteredDeals}
-              rowKey="id"
-              loading={loading}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} deals`
-              }}
-              className="custom-table"
-              onRow={(record) => ({
-                onClick: () => router.push(`/admin/deals/${record.id}`),
-                style: { cursor: 'pointer' }
-              })}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                columns={columns}
+                dataSource={filteredDeals}
+                rowKey="id"
+                pagination={{
+                  pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
+                  showSizeChanger: true,
+                  showTotal: (total) => `Total ${total} deals`
+                }}
+                className="custom-table"
+                onRow={(record) => ({
+                  onClick: () => router.push(`/admin/deals/${record.id}`),
+                  style: { cursor: 'pointer' }
+                })}
+              />
+            </ZukvoLoadingOverlay>
           </Card>
 
           <style jsx global>{`

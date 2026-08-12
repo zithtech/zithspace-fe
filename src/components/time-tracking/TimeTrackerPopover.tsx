@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
-import { Popover, Button, Input, Select, Form, Spin, App } from "antd";
+import { Popover, Button, Input, Select, Form, App } from "antd";
 import {
   PlayCircleFilled,
   PauseCircleFilled,
@@ -246,7 +248,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
     >
       {isLoading && (
         <div className="ttp-loading">
-          <Spin size="small" />
+          <ZukvoLoader size="sm" />
         </div>
       )}
 

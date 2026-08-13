@@ -208,6 +208,27 @@ export default function SettingsPanel() {
     );
   };
 
+  const toggleModule = (key: ModuleKey, isEnabled: boolean) => {
+    setModules((prev) => {
+      const next = prev.map((m) => (m.moduleKey === key ? { ...m, isEnabled } : m));
+      const enabled = next.filter((m) => m.isEnabled);
+      if (enabled.length === 0) return next;
+      
+      // Auto-distribute evenly whenever a module is toggled
+      const base = Math.floor((100 / enabled.length) * 100) / 100;
+      let assigned = 0;
+      return next.map((m) => {
+        if (!m.isEnabled) return m;
+        assigned += base;
+        const isLastEnabled = enabled[enabled.length - 1].moduleKey === m.moduleKey;
+        if (isLastEnabled) {
+          return { ...m, weight: Math.round((base + (100 - assigned)) * 100) / 100 };
+        }
+        return { ...m, weight: base };
+      });
+    });
+  };
+
   // Currently-saved status→cap map on the Tickets module config.
   const ticketsModule = modules.find((m) => m.moduleKey === 'tickets');
   const savedStatusMarks = (ticketsModule?.config?.statusMarks ?? {}) as Record<string, number>;
@@ -428,7 +449,7 @@ export default function SettingsPanel() {
                 </div>
                 <Switch
                   checked={m.isEnabled}
-                  onChange={(v) => patchModule(m.moduleKey, { isEnabled: v })}
+                  onChange={(v) => toggleModule(m.moduleKey, v)}
                   disabled={readOnly}
                 />
               </div>

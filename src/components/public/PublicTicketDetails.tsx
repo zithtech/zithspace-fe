@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Typography, Tag, Space, Divider, Avatar, Alert, Row, Col, Layout, Collapse, Tabs, List, Timeline, Button, Empty, Card } from "antd";
+import { Typography, Tag, Space, Divider, Avatar, Alert, Row, Col, Layout, Collapse, Tabs, List, Timeline, Button, Empty, Card, Badge } from "antd";
 import {
     CalendarOutlined,
     UserOutlined,
@@ -21,12 +21,17 @@ import {
     BugOutlined,
     CheckOutlined,
     PauseCircleOutlined,
-    CheckSquareOutlined
+    CheckSquareOutlined,
+    ExperimentOutlined,
+    FieldTimeOutlined
 } from "@ant-design/icons";
 import { usePublicTicket } from "@/hooks/useTickets";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import AttachmentList from "@/components/common/AttachmentList";
+import { useTicketQaLinks } from "@/hooks/useTicketDetails";
+import { QaLinksSection } from "@/components/projects/ticket-details";
+import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 
 import PublicTicketSkeleton from "./PublicTicketSkeleton";
 import { getStatusColor, getStatusLabel, getPriorityColor, STATUS_OPTIONS } from "@/utils/ticketUtils";
@@ -44,13 +49,26 @@ interface PublicTicketDetailsProps {
 export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsProps) {
     const { data: ticket, isLoading: loading, error } = usePublicTicket(ticketId);
 
+    const { data: qaLinks = [], isLoading: qaLinksLoading } = useTicketQaLinks(ticketId);
+    const [timeEntries, setTimeEntries] = React.useState<TimeTrackingEntry[]>([]);
+    const [timeEntriesLoading, setTimeEntriesLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!ticketId) return;
+        setTimeEntriesLoading(true);
+        TimeTrackingService.getEntries({ ticketId: ticketId, allUsers: true })
+            .then(setTimeEntries)
+            .catch(() => {})
+            .finally(() => setTimeEntriesLoading(false));
+    }, [ticketId]);
+
     if (loading) {
         return <PublicTicketSkeleton />;
     }
 
     if (error || !ticket) {
         return (
-            <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+            <Layout style={{ minHeight: "100vh", background: "var(--bg-secondary)" }}>
                 <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
                     <Alert
                         message="Error"
@@ -64,9 +82,9 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
     }
 
     return (
-        <Layout style={{ height: "100vh", overflowY: "auto", background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
+        <Layout style={{ height: "100vh", overflowY: "auto", background: "var(--bg-primary)" }}>
             <div style={{
-                background: 'rgba(255, 255, 255, 0.75)',
+                background: 'var(--header-bg, var(--bg-pure-white))',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
                 padding: '0 20px',
@@ -89,8 +107,8 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
             
             <Content style={{ marginTop: 64, padding: '16px 12px' }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto', animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                    <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 10px 40px -10px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04)', backgroundColor: 'var(--bg-pure-white)', border: '1px solid rgba(15, 23, 42, 0.03)' }}>
-                        <Row style={{ minHeight: '80vh' }}>
+                    <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 10px 40px -10px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04)', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                        <Row style={{ minHeight: 'calc(100vh - 96px)' }}>
                             {/* LEFT COLUMN: Main Content */}
                             <Col
                                 xs={24}
@@ -98,7 +116,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                 style={{
                                     padding: '16px 24px',
                                     borderRight: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-pure-white)'
+                                    backgroundColor: 'var(--bg-secondary)'
                                 }}
                             >
                                 {/* Title Area */}
@@ -199,7 +217,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                     ticket.comments && ticket.comments.length > 0 ? (
                                                         <Space direction="vertical" style={{ width: '100%' }} size="middle">
                                                             {ticket.comments.map((comment: any) => (
-                                                                <Card key={comment.id} size="small" type="inner" style={{ background: '#fafafa', borderRadius: 8 }}>
+                                                                <Card key={comment.id} size="small" type="inner" style={{ background: 'var(--bg-slate-50)', borderRadius: 8 }}>
                                                                     <Space align="start">
                                                                         <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }}>
                                                                             {comment.user?.name?.charAt(0) || '?'}
@@ -254,6 +272,23 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                 )
                                             },
                                             {
+                                                key: 'qa',
+                                                label: <span><ExperimentOutlined style={{ marginRight: 6 }} />QA ({qaLinks.length})</span>,
+                                                children: (
+                                                    <div style={{ padding: '16px 0' }}>
+                                                        <QaLinksSection
+                                                            qaLinks={qaLinks}
+                                                            isLoading={qaLinksLoading}
+                                                            canEdit={false}
+                                                            onLink={async () => {}}
+                                                            onUnlink={async () => {}}
+                                                            isLinking={false}
+                                                            isUnlinking={false}
+                                                        />
+                                                    </div>
+                                                )
+                                            },
+                                            {
                                                 key: 'timeline',
                                                 label: <span><HistoryOutlined style={{ marginRight: 6 }} />Timeline</span>,
                                                 children: (
@@ -305,7 +340,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                 md={9}
                                 style={{
                                     padding: '16px',
-                                    backgroundColor: "var(--bg-pure-white)",
+                                    backgroundColor: "var(--bg-secondary)",
                                 }}
                             >
                                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -381,7 +416,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                     label: (
                                                         <div style={{ padding: '2px 0' }}>
                                                             <Space size={8}>
-                                                                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: '#e6f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(24, 144, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                                     <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 13 }} />
                                                                 </div>
                                                                 <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>Core Details</Text>
@@ -393,14 +428,14 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                             <Row gutter={[0, 0]}>
                                                                 <Col span={24}>
                                                                     <DrawerField label="Assignee" variant="table" interactive={false}>
-                                                                        <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                                                        <Text ellipsis={{ tooltip: true }} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', maxWidth: '100%' }}>
                                                                             {(typeof ticket.assignee === 'object' ? ticket.assignee?.name : ticket.assignee) || "Unassigned"}
                                                                         </Text>
                                                                     </DrawerField>
                                                                 </Col>
                                                                 <Col span={24}>
                                                                     <DrawerField label="Report To" variant="table" interactive={false}>
-                                                                        <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                                                        <Text ellipsis={{ tooltip: true }} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', maxWidth: '100%' }}>
                                                                             {(typeof ticket.reportTo === 'object' ? ticket.reportTo?.name : ticket.reportTo) || "No Reporter"}
                                                                         </Text>
                                                                     </DrawerField>
@@ -457,28 +492,28 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                             <Row gutter={[0, 0]}>
                                                                 <Col span={24}>
                                                                     <DrawerField label="Created by" variant="table" interactive={false}>
-                                                                        <Space size={6} align="center">
-                                                                            <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', minWidth: 0 }}>
+                                                                            <Text ellipsis={{ tooltip: true }} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: '0 1 auto' }}>
                                                                                 {ticket?.createdBy?.name ? ticket.createdBy.name.split(" ")[0] : 'System'}
                                                                             </Text>
-                                                                            <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
-                                                                            <Text type="secondary" style={{ fontSize: 11 }}>
+                                                                            <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>·</Text>
+                                                                            <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
                                                                                 {ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}
                                                                             </Text>
-                                                                        </Space>
+                                                                        </div>
                                                                     </DrawerField>
                                                                 </Col>
                                                                 <Col span={24}>
                                                                     <DrawerField label="Updated by" variant="table" interactive={false}>
-                                                                        <Space size={6} align="center">
-                                                                            <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', minWidth: 0 }}>
+                                                                            <Text ellipsis={{ tooltip: true }} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', flex: '0 1 auto' }}>
                                                                                 {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').split(" ")[0]}
                                                                             </Text>
-                                                                            <Text type="secondary" style={{ fontSize: 11 }}>·</Text>
-                                                                            <Text type="secondary" style={{ fontSize: 11 }}>
+                                                                            <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>·</Text>
+                                                                            <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
                                                                                 {ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}
                                                                             </Text>
-                                                                        </Space>
+                                                                        </div>
                                                                     </DrawerField>
                                                                 </Col>
                                                             </Row>
@@ -500,7 +535,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                     label: (
                                                         <div style={{ padding: '2px 0' }}>
                                                             <Space size={8}>
-                                                                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(82, 196, 26, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                                     <CalendarOutlined style={{ color: '#52c41a', fontSize: 13 }} />
                                                                 </div>
                                                                 <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>Planning & Estimates</Text>
@@ -539,6 +574,104 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                                     </DrawerField>
                                                                 </Col>
                                                             </Row>
+                                                        </div>
+                                                    )
+                                                }
+                                            ]}
+                                        />
+
+                                        <Collapse
+                                            ghost
+                                            expandIconPosition="end"
+                                            style={{ backgroundColor: 'transparent' }}
+                                            items={[
+                                                {
+                                                    key: "time-tracking",
+                                                    label: (
+                                                        <div style={{ padding: '2px 0' }}>
+                                                            <Space size={8}>
+                                                                <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(250, 140, 22, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <FieldTimeOutlined style={{ color: '#fa8c16', fontSize: 13 }} />
+                                                                </div>
+                                                                <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>Time Tracked</Text>
+                                                                {timeEntries.length > 0 && (
+                                                                    <Badge
+                                                                        count={(() => {
+                                                                            const total = timeEntries.reduce((sum, e) => {
+                                                                                let duration = e.duration || 0;
+                                                                                if (e.status === 'RUNNING') {
+                                                                                    const lastLog = e.logs?.find((l: any) => l.action === 'STARTED' || l.action === 'RESUMED');
+                                                                                    const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
+                                                                                    duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                                                                }
+                                                                                return sum + duration;
+                                                                            }, 0);
+                                                                            const h = Math.floor(total / 3600);
+                                                                            const m = Math.floor((total % 3600) / 60);
+                                                                            return `${h}h ${m}m`;
+                                                                        })()}
+                                                                        style={{ backgroundColor: 'rgba(250, 140, 22, 0.1)', color: '#fa8c16', boxShadow: 'none', border: 'none', fontWeight: 600, fontSize: 10, padding: '0 8px', height: 20, lineHeight: '20px', borderRadius: 10 }}
+                                                                    />
+                                                                )}
+                                                            </Space>
+                                                        </div>
+                                                    ),
+                                                    children: (
+                                                        <div style={{ padding: 0 }}>
+                                                            {timeEntriesLoading ? (
+                                                                <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>Loading...</Text>
+                                                            ) : timeEntries.length === 0 ? (
+                                                                <Text type="secondary" style={{ fontSize: 12, padding: 12 }}>No time tracked yet.</Text>
+                                                            ) : (
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                                                    {timeEntries.map(entry => (
+                                                                        <div key={entry.id} style={{ padding: '10px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                                                                            {entry.user && (
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                                                    <div style={{
+                                                                                        width: 20, height: 20, borderRadius: '50%',
+                                                                                        background: '#1890ff', color: 'white',
+                                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                                        fontSize: 10, fontWeight: 700
+                                                                                    }}>
+                                                                                        {entry.user.name.charAt(0).toUpperCase()}
+                                                                                    </div>
+                                                                                    <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                                                        {entry.user.name}
+                                                                                    </Text>
+                                                                                </div>
+                                                                            )}
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                <div>
+                                                                                    <div style={{ fontSize: 12, color: 'var(--text-slate-500)', fontWeight: 500 }}>
+                                                                                        {dayjs(entry.startTime).format('MMM D, YYYY')}
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>
+                                                                                        {dayjs(entry.startTime).format('h:mm A')}
+                                                                                        {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div style={{ textAlign: 'right' }}>
+                                                                                    <Text strong style={{ fontSize: 13, color: '#1890ff', fontFamily: 'monospace' }}>
+                                                                                        {(() => {
+                                                                                            let duration = entry.duration || 0;
+                                                                                            if (entry.status === 'RUNNING') {
+                                                                                                const lastLog = entry.logs?.find((l: any) => l.action === 'STARTED' || l.action === 'RESUMED');
+                                                                                                const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(entry.startTime).getTime();
+                                                                                                duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                                                                            }
+                                                                                            const h = Math.floor(duration / 3600);
+                                                                                            const m = Math.floor((duration % 3600) / 60);
+                                                                                            const s = duration % 60;
+                                                                                            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                                                                                        })()}
+                                                                                    </Text>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )
                                                 }
@@ -709,10 +842,10 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                 }
 
                 .premium-sidebar-cards .ant-collapse-item {
-                    border: 1px solid rgba(15, 23, 42, 0.05) !important;
+                    border: 1px solid var(--border-color) !important;
                     border-radius: 8px !important;
                     margin-bottom: 8px !important;
-                    background: var(--bg-pure-white) !important;
+                    background: var(--bg-secondary) !important;
                     overflow: hidden !important;
                     box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.03) !important;
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -723,7 +856,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                 }
                 
                 .premium-tabs-wrapper .ant-tabs-nav::before {
-                    border-bottom: 2px solid rgba(15, 23, 42, 0.05) !important;
+                    border-bottom: 2px solid var(--border-color) !important;
                 }
                 .premium-tabs-wrapper .ant-tabs-ink-bar {
                     background: linear-gradient(90deg, #3B82F6, #8B5CF6) !important;
@@ -735,11 +868,11 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                     transition: all 0.2s ease;
                 }
                 .premium-tabs-wrapper .ant-tabs-tab:hover {
-                    background: rgba(15, 23, 42, 0.02);
+                    background: rgba(128, 128, 128, 0.1);
                     border-radius: 8px 8px 0 0;
                 }
                 .premium-tabs-wrapper .ant-tabs-tab-active .ant-tabs-tab-btn {
-                    color: #0f172a !important;
+                    color: var(--text-primary) !important;
                     font-weight: 700 !important;
                 }
                 

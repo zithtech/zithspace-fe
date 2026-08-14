@@ -22,6 +22,8 @@ import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import TicketHistoryDrawer from "./TicketHistoryDrawer";
 import { useMarkBugRecurring } from "@/hooks/useBugList";
+import { useMembersSelect } from "@/hooks/useMembersSelect";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -154,6 +156,14 @@ export default function HivebugTable({
     canCreateTicket, 
     canManageBugs 
   } = usePermission();
+  const { users } = useMembersSelect();
+  const membersMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach(u => {
+      if (u.value && u.avatarUrl) map.set(u.value, u.avatarUrl);
+    });
+    return map;
+  }, [users]);
 
   const [historyDrawerBug, setHistoryDrawerBug] = useState<BugListItem | null>(null);
 
@@ -223,6 +233,7 @@ export default function HivebugTable({
               isNestedInSheet={isNestedInSheet}
               isNestedInFolder={isNestedInFolder}
               onOpenHistory={() => setHistoryDrawerBug(bug)}
+              creatorAvatarUrl={membersMap.get(bug.createdById)}
             />
           ))}
         </tbody>
@@ -254,6 +265,7 @@ interface BugRowProps {
   isNestedInSheet?: boolean;
   isNestedInFolder?: boolean;
   onOpenHistory: () => void;
+  creatorAvatarUrl?: string;
 }
 
 function BugRow({
@@ -274,6 +286,7 @@ function BugRow({
   isNestedInSheet,
   isNestedInFolder,
   onOpenHistory,
+  creatorAvatarUrl,
 }: BugRowProps) {
   const { message, modal } = App.useApp();
   const { open: openTicketDrawer } = useTicketDrawer();
@@ -379,6 +392,7 @@ function BugRow({
               style={{
                 background: avatarColor(bug.assignee.id),
                 fontSize: 11,
+                flexShrink: 0,
               }}
             >
               {initials(bug.assignee.name)}
@@ -393,9 +407,11 @@ function BugRow({
         <div className="hb-meta-cell">
           <Avatar
             size={20}
+            src={bug.createdBy?.avatarUrl || creatorAvatarUrl}
             style={{
               background: avatarColor(creatorId || creatorName),
               fontSize: 10,
+              flexShrink: 0,
             }}
           >
             {initials(creatorName)}
@@ -441,23 +457,24 @@ function BugRow({
       </td>
       <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
         <Tooltip title={bug.isRecurring ? "This bug has recurred" : "Mark as recurring"}>
-          <Checkbox
-            checked={bug.isRecurring}
-            disabled={!ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug || isTrashView || isArchiveView}
-            onChange={(e) => {
-              if (e.target.checked) {
-                modal.confirm({
-                  title: 'Mark Bug as Recurring',
-                  content: 'Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history.',
-                  okText: 'Yes, mark as recurring',
-                  cancelText: 'Cancel',
-                  onOk: () => {
-                    markRecurring(bug.id);
-                  }
-                });
-              }
+          <ConfirmDialog
+            title="Mark Bug as Recurring"
+            description="Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history."
+            confirmText="Yes, mark as recurring"
+            onConfirm={async () => {
+              markRecurring(bug.id);
             }}
-          />
+            disabled={!ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug || isTrashView || isArchiveView}
+            tone="primary"
+          >
+            <span style={{ display: 'inline-flex' }} onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={bug.isRecurring}
+                disabled={!ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug || isTrashView || isArchiveView}
+                style={{ pointerEvents: 'none' }}
+              />
+            </span>
+          </ConfirmDialog>
         </Tooltip>
       </td>
       <td style={{ textAlign: 'center' }} onClick={(e) => {

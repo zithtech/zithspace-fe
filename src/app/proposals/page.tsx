@@ -58,6 +58,7 @@ import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ProposalActivityDrawer from '@/components/proposals/ProposalActivityDrawer';
+import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import ProposalPreviewDrawer from '@/components/proposals/ProposalPreviewDrawer';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
@@ -185,6 +186,7 @@ export default function ProposalsListPage() {
   const [activityProposal, setActivityProposal] = useState<any>(null);
   const [previewProposal, setPreviewProposal] = useState<any>(null);
   const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
+  const [isZaiModalOpen, setIsZaiModalOpen] = useState(false);
 
   const searchRef = useRef<any>(null);
 
@@ -808,9 +810,23 @@ export default function ProposalsListPage() {
       <div className="pp-empty-title">No proposals found</div>
       <div className="pp-empty-sub">Start by creating your first premium proposal.</div>
       {canCreateProposal && (
-        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={() => router.push('/proposals/builder')} style={{ marginTop: 14 }}>
-          New Proposal
-        </Button>
+        <Dropdown 
+          trigger={['click']} 
+          menu={{
+            items: [
+              { key: 'manual', label: 'Manual Create', icon: <EditOutlined /> },
+              { key: 'zai', label: 'Create with ZAI', icon: <Sparkles size={14} color="#8b5cf6" /> },
+            ],
+            onClick: ({ key }) => {
+              if (key === 'manual') router.push('/proposals/builder');
+              if (key === 'zai') setIsZaiModalOpen(true);
+            }
+          }}
+        >
+          <Button type="primary" className="pp-btn-primary" style={{ marginTop: 14 }}>
+            <PlusOutlined /> New Proposal <CaretDownOutlined />
+          </Button>
+        </Dropdown>
       )}
     </div>
   );
@@ -834,15 +850,27 @@ export default function ProposalsListPage() {
             </div>
 
             {canCreateProposal && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="pp-create-btn"
-                onClick={() => router.push('/proposals/builder')}
-                block
+              <Dropdown 
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'manual', label: 'Manual Create', icon: <EditOutlined /> },
+                    { key: 'zai', label: 'Create with ZAI', icon: <Sparkles size={14} color="#8b5cf6" /> },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === 'manual') router.push('/proposals/builder');
+                    if (key === 'zai') setIsZaiModalOpen(true);
+                  }
+                }}
               >
-                Create Proposal
-              </Button>
+                <Button
+                  type="primary"
+                  className="pp-create-btn"
+                  block
+                >
+                  <PlusOutlined /> Create Proposal <CaretDownOutlined />
+                </Button>
+              </Dropdown>
             )}
 
             <div className="pp-side-scroll">
@@ -1199,6 +1227,14 @@ export default function ProposalsListPage() {
           onCancel={() => setTplProposal(null)}
           onSave={persistProposalAsTemplate}
         />
+
+        {isZaiModalOpen && (
+          <EndToEndZaiModal
+            visible={isZaiModalOpen}
+            onClose={() => setIsZaiModalOpen(false)}
+            onComplete={() => router.push('/proposals/builder')}
+          />
+        )}
 
         <style jsx global>{`
           .pp-shell {

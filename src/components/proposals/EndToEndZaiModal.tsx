@@ -473,7 +473,9 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
   };
 
   const handlePhoneChange = (val: string, field: keyof typeof coverDetails) => {
-    setCoverDetails({ ...coverDetails, [field]: val.replace(/[^0-9+\-()\s]/g, '') });
+    const cleaned = val.replace(/\D/g, '');
+    if (cleaned.length > 15) return;
+    setCoverDetails({ ...coverDetails, [field]: cleaned });
   };
 
   const handleEmailChange = (val: string, field: keyof typeof coverDetails) => {
@@ -501,6 +503,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
         onChange={(e) => onChange(e.target.value)} 
         status={validation.isInvalid ? 'error' : ''} 
         style={{ borderRadius: 6 }} 
+        className="zai-autofill-fix"
       />
       {validation.error && <div style={{ fontSize: 10, color: '#ef4444', paddingLeft: 4, marginTop: 2 }}>{validation.error}</div>}
     </div>
@@ -904,7 +907,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                                 {renderField('Company Name', coverDetails.clientCompany, (v) => handleNameChange(v, 'clientCompany'), <Building size={12} />, 'Company Name *', { error: !coverDetails.clientCompany ? 'Company Name is required' : undefined, isInvalid: !coverDetails.clientCompany })}
                                 {renderField('Contact Person', coverDetails.clientName, (v) => handleNameChange(v, 'clientName'), <User size={12} />, 'Contact Person *', { error: !coverDetails.clientName ? 'Contact Person is required' : coverDetails.clientName.trim().length < 2 ? 'Name is too short' : undefined, isInvalid: !coverDetails.clientName || coverDetails.clientName.trim().length < 2 })}
                                 {renderField('Email Address', coverDetails.clientEmail, (v) => handleEmailChange(v, 'clientEmail'), <Mail size={12} />, 'Email Address *', { error: !coverDetails.clientEmail ? 'Email Address is required' : !isValidEmail(coverDetails.clientEmail) ? 'Invalid email format' : undefined, isInvalid: !coverDetails.clientEmail || !isValidEmail(coverDetails.clientEmail) })}
-                                {renderField('Phone Number', coverDetails.clientPhone, (v) => handlePhoneChange(v, 'clientPhone'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.clientPhone ? 'Phone Number is required' : coverDetails.clientPhone.replace(/\D/g, '').length < 8 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.clientPhone || coverDetails.clientPhone.replace(/\D/g, '').length < 8 })}
+                                {renderField('Phone Number', coverDetails.clientPhone, (v) => handlePhoneChange(v, 'clientPhone'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.clientPhone ? 'Phone Number is required' : coverDetails.clientPhone.replace(/\D/g, '').length < 7 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.clientPhone || coverDetails.clientPhone.replace(/\D/g, '').length < 7 })}
                                 {renderField('Business Address', coverDetails.clientAddress, (v) => handleTextChange(v, 'clientAddress'), <MapPin size={12} />, 'Business Address *', { error: !coverDetails.clientAddress ? 'Business Address is required' : undefined, isInvalid: !coverDetails.clientAddress })}
                               </div>
                             </div>
@@ -925,7 +928,7 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
                                 {renderField('Your Name', coverDetails.senderName, (v) => handleNameChange(v, 'senderName'), <User size={12} />, 'Your Name *', { error: !coverDetails.senderName ? 'Name is required' : coverDetails.senderName.trim().length < 2 ? 'Name is too short' : undefined, isInvalid: !coverDetails.senderName || coverDetails.senderName.trim().length < 2 })}
                                 {renderField('Your Position', coverDetails.senderPosition, (v) => handleTextChange(v, 'senderPosition'), <Briefcase size={12} />, 'Your Position *', { error: !coverDetails.senderPosition ? 'Position is required' : undefined, isInvalid: !coverDetails.senderPosition })}
                                 {renderField('Email Address', coverDetails.senderEmail, (v) => handleEmailChange(v, 'senderEmail'), <Mail size={12} />, 'Email Address *', { error: !coverDetails.senderEmail ? 'Email Address is required' : !isValidEmail(coverDetails.senderEmail) ? 'Invalid email format' : undefined, isInvalid: !coverDetails.senderEmail || !isValidEmail(coverDetails.senderEmail) })}
-                                {renderField('Phone Number', coverDetails.senderContact, (v) => handlePhoneChange(v, 'senderContact'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.senderContact ? 'Phone Number is required' : coverDetails.senderContact.replace(/\D/g, '').length < 8 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.senderContact || coverDetails.senderContact.replace(/\D/g, '').length < 8 })}
+                                {renderField('Phone Number', coverDetails.senderContact, (v) => handlePhoneChange(v, 'senderContact'), <Phone size={12} />, 'Phone Number *', { error: !coverDetails.senderContact ? 'Phone Number is required' : coverDetails.senderContact.replace(/\D/g, '').length < 7 ? 'Phone must be valid length' : undefined, isInvalid: !coverDetails.senderContact || coverDetails.senderContact.replace(/\D/g, '').length < 7 })}
                                 {renderField('Website URL', coverDetails.senderWebsite, (v) => handleTextChange(v, 'senderWebsite'), <Link size={12} />, 'Website URL', {})}
                                 {renderField('Business Address', coverDetails.senderAddress, (v) => handleTextChange(v, 'senderAddress'), <MapPin size={12} />, 'Business Address *', { error: !coverDetails.senderAddress ? 'Business Address is required' : undefined, isInvalid: !coverDetails.senderAddress })}
                               </div>
@@ -1073,6 +1076,16 @@ export const EndToEndZaiModal: React.FC<EndToEndZaiModalProps> = ({ visible, onC
             </>
           )}
         </div>
+        <style jsx global>{`
+          .zai-autofill-fix input:-webkit-autofill,
+          .zai-autofill-fix input:-webkit-autofill:hover,
+          .zai-autofill-fix input:-webkit-autofill:focus,
+          .zai-autofill-fix input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 1000px ${isDark ? '#0f172a' : '#ffffff'} inset !important;
+            -webkit-text-fill-color: ${isDark ? '#f1f5f9' : '#0f172a'} !important;
+            transition: background-color 5000s ease-in-out 0s;
+          }
+        `}</style>
       </div>
     </Modal>
   );

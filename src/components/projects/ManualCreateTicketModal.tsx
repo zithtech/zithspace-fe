@@ -17,6 +17,7 @@ import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticket
 import { Ticket } from "@/services/ticketService";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { EditableTags } from "@/components/projects/drawer/editable/EditableTags";
+import SearchableDropdown, { SearchableDropdownOption } from "@/components/common/SearchableDropdown";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -60,6 +61,29 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   const selectedPlatform = Form.useWatch("platform", form);
   const tagsValue: string[] = Form.useWatch("tags", form) || [];
 
+  const platformOptions: SearchableDropdownOption[] = platforms.map((p: any) => ({ value: p.value, label: p.label }));
+  const projectOptions: SearchableDropdownOption[] = projects.map((p: any) => ({ value: p.value, label: p.label }));
+  const priorityOptions: SearchableDropdownOption[] = priorities.map((p: any) => ({
+    value: p.value,
+    label: p.label,
+    badge: <Badge color={getPriorityColor(p.value)} />
+  }));
+  const typeOptions: SearchableDropdownOption[] = taskTypes.map((t: any) => ({
+    value: t.value,
+    label: t.label,
+    badge: <Tag bordered={false} color="blue" style={{ margin: 0, fontWeight: 600, borderRadius: 0 }}>{t.label}</Tag>
+  }));
+  const stackOptions: SearchableDropdownOption[] = stacks.map((s: any) => ({ value: s.value, label: s.label }));
+  const pointOptions: SearchableDropdownOption[] = [1, 2, 3, 5, 8, 13, 21, 40].map(pt => ({
+    value: pt.toString(),
+    label: `${pt} Pts`
+  }));
+  const memberOptions: SearchableDropdownOption[] = companyMembers.map((m: any) => ({
+    value: m.value,
+    label: m.label,
+    avatarUrl: m.avatarUrl || undefined,
+  }));
+
   useEffect(() => {
     if (open) {
       loadCompanyMembers();
@@ -83,6 +107,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       setLoading(true);
       const ticketData = {
         ...values,
+        storyPoint: values.storyPoint ? Number(values.storyPoint) : undefined,
         startDate: values.startDate?.format("YYYY-MM-DD") || "",
         endDate: values.endDate?.format("YYYY-MM-DD") || "",
         status: defaultStatus || "not_started"
@@ -164,7 +189,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
         colon={false}
         className="lead-drawer-form customer-drawer-form"
         onFinish={onFinish}
-        initialValues={{ storyPoint: 2, estimateHours: 8, priority: 'P2', type: 'Task', tags: [] }}
+        initialValues={{ storyPoint: '2', estimateHours: 8, priority: 'P2', type: 'Task', tags: [] }}
         requiredMark={false}
       >
         <ConfigProvider
@@ -194,14 +219,10 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
               </Form.Item>
 
                   <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Platform</Text>} rules={[{ required: true }]}>
-                    <Select size="middle" placeholder="Select platform" style={{ width: '100%' }}>
-                      {platforms.map(p => <Option key={p.value} value={p.value}>{p.label}</Option>)}
-                    </Select>
+                    <SearchableDropdown options={platformOptions} placeholder="Select platform" hideAvatar allowClear />
                   </Form.Item>
                   <Form.Item name="project" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Target Project</Text>}>
-                    <Select size="middle" placeholder="Select project" style={{ width: '100%' }}>
-                      {projects.map(p => <Option key={p.value} value={p.value}>{p.label}</Option>)}
-                    </Select>
+                    <SearchableDropdown options={projectOptions} placeholder="Select project" hideAvatar allowClear />
                   </Form.Item>
             </SectionCard>
 
@@ -222,52 +243,21 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             <SectionCard step="STEP 3" icon={<ThunderboltOutlined style={{ color: '#f59e0b', fontSize: 13 }} />} title="Execution Specs" subtitle="Priority, type, and effort">
 
                   <Form.Item name="priority" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Priority Level</Text>}>
-                    <Select
-                      size="middle"
-                      style={{ width: '100%', height: 36 }}
-                      optionLabelProp="label"
-                      dropdownStyle={{ borderRadius: 0 }}
-                    >
-                      {priorities.map(p => (
-                        <Option key={p.value} value={p.value} label={p.label}>
-                          <Space size={8}>
-                            <Badge color={getPriorityColor(p.value)} />
-                            <span style={{ fontSize: 13, fontWeight: 500 }}>{p.label}</span>
-                          </Space>
-                        </Option>
-                      ))}
-                    </Select>
+                    <SearchableDropdown options={priorityOptions} placeholder="Select priority" allowClear />
                   </Form.Item>
                   <Form.Item name="type" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Technical Category</Text>}>
-                    <Select
-                      size="middle"
-                      style={{ width: '100%', height: 36 }}
-                      optionLabelProp="label"
-                      dropdownStyle={{ borderRadius: 0 }}
-                    >
-                      {taskTypes.map(t => (
-                        <Option key={t.value} value={t.value} label={t.label}>
-                          <Tag bordered={false} color="blue" style={{ margin: 0, fontWeight: 600, borderRadius: 0 }}>{t.label}</Tag>
-                        </Option>
-                      ))}
-                    </Select>
+                    <SearchableDropdown options={typeOptions} placeholder="Select category" allowClear />
                   </Form.Item>
 
                 {selectedPlatform?.toLowerCase() === 'development' && (
                      <Form.Item name="stack" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Technical Stack</Text>} rules={[{ required: true }]}>
-                        <Select size="middle" placeholder="Select technology stack" style={{ width: '100%', borderRadius: 0 }} dropdownStyle={{ borderRadius: 0 }}>
-                          {stacks.map(s => <Option key={s.value} value={s.value}>{s.label}</Option>)}
-                        </Select>
+                        <SearchableDropdown options={stackOptions} placeholder="Select technology stack" hideAvatar allowClear />
                       </Form.Item>
                 )}
 
                   
                         <Form.Item name="storyPoint" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Story Points</Text>}>
-                          <Select size="middle" placeholder="Points" style={{ width: '100%', height: 32 }} dropdownStyle={{ borderRadius: 0 }}>
-                            {[1, 2, 3, 5, 8, 13, 21, 40].map(pt => (
-                              <Option key={pt} value={pt}>{pt} Pts</Option>
-                            ))}
-                          </Select>
+                          <SearchableDropdown options={pointOptions} placeholder="Points" hideAvatar allowClear />
                         </Form.Item>
                         <Form.Item name="estimateHours" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Est. Hours</Text>}>
                           <InputNumber
@@ -282,29 +272,11 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             {/* Field Section: Ownership & Timeline */}
             <SectionCard step="STEP 4" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Ownership & Timeline" subtitle="Assignments and schedule">
 
-                  <Form.Item name="assignee" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Primary Owner</Text>}>
-                    <Select size="middle" showSearch optionFilterProp="label" placeholder="Select owner" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
-                      {companyMembers.map(m => (
-                        <Option key={m.value} value={m.value} label={m.label}>
-                          <Space size={8}>
-                            <Avatar size={20} src={m.avatarUrl || undefined} style={{ fontSize: 10, backgroundColor: '#3b82f6' }}>{m.label[0]}</Avatar>
-                            <span style={{ fontSize: 13, fontWeight: 500 }}>{m.label}</span>
-                          </Space>
-                        </Option>
-                      ))}
-                    </Select>
+                  <Form.Item name="assignee" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assignee</Text>}>
+                    <SearchableDropdown options={memberOptions} placeholder="Select assignee" allowClear />
                   </Form.Item>
                   <Form.Item name="reportTo" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Reporter</Text>}>
-                    <Select size="middle" showSearch optionFilterProp="label" placeholder="Select reporter" style={{ height: 36 }} dropdownStyle={{ borderRadius: 0 }}>
-                      {companyMembers.map(m => (
-                        <Option key={m.value} value={m.value} label={m.label}>
-                          <Space size={8}>
-                            <Avatar size={20} src={m.avatarUrl || undefined} style={{ fontSize: 10, backgroundColor: 'var(--text-slate-500)' }}>{m.label[0]}</Avatar>
-                            <span style={{ fontSize: 13, fontWeight: 500 }}>{m.label}</span>
-                          </Space>
-                        </Option>
-                      ))}
-                    </Select>
+                    <SearchableDropdown options={memberOptions} placeholder="Select reporter" allowClear />
                   </Form.Item>
                   <Form.Item name="startDate" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Start Date</Text>}>
                     <DatePicker size="middle" style={{ width: '100%', height: 36 }} placeholder="Select" />
@@ -316,7 +288,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
 
             {/* Field Section: Tags */}
             <SectionCard step="STEP 5" icon={<TagsOutlined style={{ color: '#3b82f6', fontSize: 13 }} />} title="Tags" subtitle="Label categorization">
-              <Form.Item name="tags" label={null}>
+              <Form.Item name="tags" label={null} noStyle>
                 <Input type="hidden" />
               </Form.Item>
               <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', border: '1px dashed var(--border-color)', borderRadius: 0, minHeight: 44 }}>

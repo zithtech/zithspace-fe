@@ -960,12 +960,12 @@ export default function CreateScopePage() {
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all'),
-          axios.get('/api/v2/qa/runs/all'),
-          axios.get('/api/v2/qa/test-scopes/documents'),
+          axios.get('/api/v2/qa/suites/all?limit=1000'),
+          axios.get('/api/v2/qa/runs/all?limit=1000'),
+          axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents'),
+          axios.get('/api/v2/qa/parents?limit=1000'),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -997,6 +997,40 @@ export default function CreateScopePage() {
         console.error("Failed to fetch parent test cases:", err);
       } finally {
         setLoadingTestCases(false);
+      }
+    }, 400),
+    []
+  );
+
+  const fetchTestSuitesSearch = React.useCallback(
+    debounce(async (search: string) => {
+      try {
+        setLoadingTestSuites(true);
+        const res: any = await axios.get('/api/v2/qa/suites/all', {
+          params: search ? { search, limit: 50 } : { limit: 1000 },
+        });
+        setTestSuites(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+      } catch (err) {
+        console.error("Failed to fetch test suites:", err);
+      } finally {
+        setLoadingTestSuites(false);
+      }
+    }, 400),
+    []
+  );
+
+  const fetchTestRunsSearch = React.useCallback(
+    debounce(async (search: string) => {
+      try {
+        setLoadingTestRuns(true);
+        const res: any = await axios.get('/api/v2/qa/runs/all', {
+          params: search ? { search, limit: 50 } : { limit: 1000 },
+        });
+        setTestRuns(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+      } catch (err) {
+        console.error("Failed to fetch test runs:", err);
+      } finally {
+        setLoadingTestRuns(false);
       }
     }, 400),
     []
@@ -3300,6 +3334,7 @@ export default function CreateScopePage() {
                           }),
                         )
                       }
+                      onSearch={fetchTestSuitesSearch}
                       loading={loadingTestSuites}
                       placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
                       itemNoun="suites"
@@ -3338,6 +3373,7 @@ export default function CreateScopePage() {
                           }),
                         )
                       }
+                      onSearch={fetchTestRunsSearch}
                       loading={loadingTestRuns}
                       placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
                       itemNoun="runs"

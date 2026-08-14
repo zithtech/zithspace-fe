@@ -109,7 +109,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
                                                 {ticket.ticketNumber || 'TICKET'}
                                             </Tag>
                                             <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-400)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                                                {ticket.project?.name || 'Project'}
+                                                {(typeof ticket.project === 'object' ? ticket.project?.name : ticket.project) || 'Project'}
                                             </Text>
                                         </Space>
                                     </div>

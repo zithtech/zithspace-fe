@@ -991,6 +991,11 @@ export const hivebugStyles = `
 .hb-filter-grid .sd-trigger {
   height: 42px !important;
   box-sizing: border-box !important;
+  background: var(--hb-bg-pure, var(--hb-bg-elev)) !important;
+  border-color: var(--hb-border) !important;
+}
+.hb-filter-grid .sd-trigger:hover {
+  border-color: var(--hb-border-strong) !important;
 }
 
 .hb-filter-range {
@@ -1373,7 +1378,11 @@ export const hivebugStyles = `
 .hb-table thead th.hb-col-ticket,
 .hb-table thead th.hb-col-actions {
   z-index: 3;
-  background: var(--hb-bg-elev) !important;
+  background: #161B22 !important;
+}
+.hb-light .hb-table thead th.hb-col-ticket,
+.hb-light .hb-table thead th.hb-col-actions {
+  background: var(--bg-slate-50, #f8fafc) !important;
 }
 
 .hb-main .pp-footer {

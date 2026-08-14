@@ -81,7 +81,7 @@ export interface BugListItem {
   assigneeId?: string | null;
   assignee?: { id: string; name: string; workEmail: string; avatarUrl?: string } | null;
   createdById: string;
-  createdBy?: { id: string; name: string; workEmail: string };
+  createdBy?: { id: string; name: string; workEmail: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
 }

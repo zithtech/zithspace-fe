@@ -1290,6 +1290,26 @@ export default function TestRunExecutionPage() {
 
         .dh-mobile-menu-btn { display: none !important; }
 
+        /* Pagination Footer */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
+          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
+          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
+          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
+          font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
         @media (max-width: 820px) {
           .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
           .dh-main { height: auto; overflow: visible; width: 100%; }
@@ -1326,7 +1346,7 @@ export default function TestRunExecutionPage() {
 
           /* Table: horizontal scroll for execution list */
           .ex-list { overflow-x: auto !important; }
-
+          
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
           .dh-main-controls .ant-btn span:not(.anticon), .ex-topactions .ant-btn span:not(.anticon) { display: none; }

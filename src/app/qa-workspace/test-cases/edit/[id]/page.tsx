@@ -70,7 +70,7 @@ export default function EditTestCasePage() {
     try {
       setLoading(true);
       const [modRes, tcRes] = await Promise.all([
-        axios.get("/api/v2/qa/modules"),
+        axios.get("/api/v2/qa/modules?limit=1000"),
         axios.get(`/api/v2/qa/${id}`)
       ]);
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));

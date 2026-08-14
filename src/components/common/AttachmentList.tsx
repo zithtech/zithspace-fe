@@ -40,7 +40,7 @@ interface Attachment {
 
 interface AttachmentListProps {
   attachments: Attachment[];
-  onDelete: (attachmentId: string) => Promise<void>;
+  onDelete?: (attachmentId: string) => Promise<void>;
   onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
   onOpen?: () => void;
   currentUserId?: string;
@@ -101,8 +101,9 @@ export default function AttachmentList({
   };
 
   const handleDelete = async (attachmentId: string) => {
+    if (!onDelete) return;
+    setDeletingId(attachmentId);
     try {
-      setDeletingId(attachmentId);
       await onDelete(attachmentId);
     } catch (error) {
       console.error("Failed to delete attachment:", error);
@@ -290,18 +291,20 @@ export default function AttachmentList({
                       style={{ background: "#fff7e6", borderRadius: 6 }}
                     />
                   )}
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
-                    loading={deletingId === attachment.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(attachment.id);
-                    }}
-                    style={{ background: "#fff1f0", borderRadius: 6 }}
-                  />
+                  {onDelete && (
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                      loading={deletingId === attachment.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(attachment.id);
+                      }}
+                      style={{ background: "#fff1f0", borderRadius: 6 }}
+                    />
+                  )}
                 </div>
               </div>
             </Col>

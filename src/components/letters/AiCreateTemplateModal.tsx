@@ -257,7 +257,7 @@ export default function AiCreateTemplateModal({ open, onClose, onCreated, catego
             </div>
 
             <Text type="secondary" style={{ fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase" }}>
-              {elapsed.toFixed(1)}s elapsed · powered by Gemini
+              {elapsed.toFixed(1)}s elapsed
             </Text>
 
             {elapsed > 10 && (

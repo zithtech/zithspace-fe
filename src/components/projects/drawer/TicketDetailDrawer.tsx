@@ -1877,7 +1877,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                           <Row gutter={[0, 0]}>
                             <Col span={24}>
                               <DrawerField label="Created by" variant="table">
-                                <Space size={6} align="center">
+                                <Space size={6} align="center" wrap>
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
                                     {ticket?.createdBy?.name ? ticket.createdBy.name.split(" ")[0] : 'System'}
                                   </Text>
@@ -1890,7 +1890,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                             </Col>
                             <Col span={24}>
                               <DrawerField label="Updated by" variant="table">
-                                <Space size={6} align="center">
+                                <Space size={6} align="center" wrap>
                                   <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
                                     {((ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System').split(" ")[0]}
                                   </Text>

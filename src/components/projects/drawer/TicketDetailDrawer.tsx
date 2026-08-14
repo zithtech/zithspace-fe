@@ -547,10 +547,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
             width: '100%',
             padding: '4px 8px'
           }}>
-            <Space size={12}>
+            <Space size={12} wrap>
               {/* Show back button + parent/subtask format for subtasks */}
               {ticket?.parentId ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -681,7 +683,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
 
 
-            <Space size={8}>
+            <Space size={8} wrap>
               {isInBacklog && activeSprint && (canUpdateTicket || canManageTickets) && (
                 <Tooltip title={`Add to ${activeSprint.version || activeSprint.name || "sprint"}`}>
                   <Button
@@ -900,6 +902,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             <Col
               xs={24}
               md={15}
+              className="no-scrollbar"
               style={{
                 padding: '24px 32px',
                 borderRight: '1px solid var(--border-color)',
@@ -1525,6 +1528,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             <Col
               xs={24}
               md={9}
+              className="no-scrollbar"
               style={{
                 padding: '24px 20px',
                 background: "var(--bg-pure-white)",

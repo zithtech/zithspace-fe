@@ -83,7 +83,7 @@ export class CustomersService {
       );
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch customers");
     }
@@ -94,7 +94,7 @@ export class CustomersService {
       return await api.get<Customer>(`/api/customers/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch customer");
     }
@@ -107,7 +107,7 @@ export class CustomersService {
       return await api.post<Customer>("/api/customers", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create customer");
     }
@@ -121,7 +121,7 @@ export class CustomersService {
       return await api.put<Customer>(`/api/customers/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update customer");
     }
@@ -132,7 +132,7 @@ export class CustomersService {
       await api.delete(`/api/customers/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete customer");
     }
@@ -145,7 +145,7 @@ export class CustomersService {
       );
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch customers for select");
     }

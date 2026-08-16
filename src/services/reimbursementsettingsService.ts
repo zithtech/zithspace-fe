@@ -58,7 +58,7 @@ export class ReimbursementSettingsService {
     } catch (error) {
       console.error('Error in getSettings:', error);
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch reimbursement settings');
     }
@@ -77,7 +77,7 @@ export class ReimbursementSettingsService {
       }
       throw new Error('Invalid response structure');
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch reimbursement setting');
     }
   }
@@ -99,7 +99,7 @@ export class ReimbursementSettingsService {
       }
       throw new Error('Invalid response structure');
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to create reimbursement setting');
     }
   }
@@ -120,7 +120,7 @@ export class ReimbursementSettingsService {
       }
       throw new Error('Invalid response structure');
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to update reimbursement setting');
     }
   }
@@ -130,7 +130,7 @@ export class ReimbursementSettingsService {
     try {
       await api.delete(`/api/reimbursement-settings/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to delete reimbursement setting');
     }
   }

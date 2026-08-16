@@ -190,6 +190,8 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_select_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_select_grid');
   const { theme } = useTheme();
   const {
     canCreateTicket,
@@ -4119,29 +4121,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   <Dropdown
                     menu={{
                       items: [
-                        {
-                          key: 'manual',
-                          label: 'Manual Creation',
-                          icon: <FileTextOutlined />,
-                          onClick: () => setManualModalOpen(true)
-                        },
-                        {
-                          key: 'instant',
-                          label: 'Instant Creation',
-                          icon: <ThunderboltOutlined />,
-                          onClick: () => setShowCreateForm(true)
-                        },
-                        {
-                          key: 'zai',
-                          label: (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                              Create with Zai
-                              <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
-                            </div>
-                          ),
-                          icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
-                          onClick: () => setAiModalOpen(true)
-                        }
+                        ...(hasGrid ? [
+                          {
+                            key: 'manual',
+                            label: 'Manual Creation',
+                            icon: <FileTextOutlined />,
+                            onClick: () => setManualModalOpen(true)
+                          },
+                          {
+                            key: 'instant',
+                            label: 'Instant Creation',
+                            icon: <ThunderboltOutlined />,
+                            onClick: () => setShowCreateForm(true)
+                          }
+                        ] : []),
+                        ...(hasPrime ? [
+                          {
+                            key: 'zai',
+                            label: (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                                Create with Zai
+                                <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
+                              </div>
+                            ),
+                            icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
+                            onClick: () => setAiModalOpen(true)
+                          }
+                        ] : [])
                       ],
                       style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
                     }}

@@ -24,6 +24,7 @@ import {
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import type {
   AiGroupSuggestion,
@@ -54,6 +55,9 @@ interface EditableGroup {
 
 export default function AiReviewModal({ open, onClose, bugs }: Props) {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
+  
   const { message } = App.useApp();
   const [step, setStep] = useState<Step>("review");
   const [reviewResults, setReviewResults] = useState<AiReviewResult[]>([]);
@@ -156,6 +160,8 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
   const reviewing = review.isPending;
   const grouping = suggest.isPending;
   const converting = convert.isPending;
+
+  if (!hasPrime) return null;
 
   return (
     <Modal

@@ -664,6 +664,10 @@ export default function LeadsPage() {
     canCreateProposal
   } = usePermission();
 
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_lead_management_leads_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_lead_management_leads_grid');
+
+
   const [form] = Form.useForm();
   // Watch the lead-kind picker once, at the top level — calling Form.useWatch
   // inside the render ternary would run the hook a variable number of times.
@@ -1544,7 +1548,7 @@ export default function LeadsPage() {
           !!record.ai_summary;
 
         return (
-          canManageLeads && (
+          canManageLeads && hasPrime ? (
             <Button
               type="link"
               icon={hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
@@ -1569,6 +1573,8 @@ export default function LeadsPage() {
             >
               {hasBidiq ? "View BidIq" : "BidIq"}
             </Button>
+          ) : (
+            <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>
           )
         );
       },
@@ -1597,7 +1603,7 @@ export default function LeadsPage() {
             >
               View Proposal
             </Button>
-          ) : (
+          ) : hasPrime ? (
             <Button
               type="link"
               icon={<Sparkles size={13} />}
@@ -1615,6 +1621,8 @@ export default function LeadsPage() {
             >
               Generate
             </Button>
+          ) : (
+            <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>
           )
         )
       ),
@@ -2515,7 +2523,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                {canCreateLead && (
+                {canCreateLead && hasGrid && (
                   <Button
                     type="primary"
                     icon={<Plus size={16} />}
@@ -3579,8 +3587,8 @@ export default function LeadsPage() {
                         <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
                           {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
                         </Typography.Text>
-                        {leads.length === 0 && (
-                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
+                        {leads.length === 0 && canCreateLead && hasGrid && (
+                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}>Add First Lead</Button>
                         )}
                       </div>
                     ) : (
@@ -3654,7 +3662,7 @@ export default function LeadsPage() {
                                   <div className="lm-card-footer-row">
                                     {canManageLeads && record.lead_source_kind !== "website" && (() => {
                                       const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
-                                      return (
+                                      return hasPrime ? (
                                         <>
                                           <button
                                             type="button"
@@ -3666,21 +3674,35 @@ export default function LeadsPage() {
                                           </button>
                                           <span className="lm-card-footer-div" />
                                         </>
-                                      );
+                                      ) : null;
                                     })()}
 
                                     {canCreateProposal && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
-                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
-                                        >
-                                          {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
-                                          {record.proposal_id ? 'View Proposal' : 'Generate'}
-                                        </button>
-                                        <span className="lm-card-footer-div" />
-                                      </>
+                                      record.proposal_id ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/proposals/builder?id=${record.proposal_id}`); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#10b981' }}
+                                          >
+                                            <FileText size={12} />
+                                            View Proposal
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      ) : hasPrime ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
+                                          >
+                                            <Sparkles size={12} />
+                                            Generate
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      ) : null
                                     )}
 
                                     <button

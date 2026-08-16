@@ -24,6 +24,7 @@ import { useBulkConvertBugsToTickets, useBulkMapBugsToTicket } from "@/hooks/use
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
 import TicketService, { Ticket } from "@/services/ticketService";
 
@@ -46,6 +47,9 @@ const SEVERITY_RANK: Record<string, number> = {
 };
 
 export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId }: Props) {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_bug_list_grid');
   const { theme } = useTheme();
   const convert = useBulkConvertBugsToTickets();
   const { data: projects } = useUserProjects();
@@ -329,6 +333,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
               onManual={() => setMode("manual")}
               onAi={onPickAi}
               onMap={() => setMode("map")}
+              hasPrime={hasPrime}
+              hasGrid={hasGrid}
             />
           )}
 
@@ -399,6 +405,8 @@ function ModePicker({
   onManual,
   onAi,
   onMap,
+  hasPrime,
+  hasGrid
 }: {
   count: number;
   createdCount: number;
@@ -406,6 +414,8 @@ function ModePicker({
   onManual: () => void;
   onAi: () => void;
   onMap: () => void;
+  hasPrime?: boolean;
+  hasGrid?: boolean;
 }) {
   return (
     <>
@@ -438,68 +448,74 @@ function ModePicker({
       </div>
 
       <div className="hb-btm-modegrid">
-        <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onManual}>
-          <div className="hb-btm-modecard-icon">
-            <Hand size={22} />
-          </div>
-          <div className="hb-btm-modecard-title">Hand-pick</div>
-          <div className="hb-btm-modecard-sub">
-            Stage a few bugs, write the ticket, repeat. Group-by helpers and
-            per-ticket assignee.
-          </div>
-          <ul className="hb-btm-modecard-list">
-            <li><CheckCircle2 size={12} /> Full control over scope</li>
-            <li><CheckCircle2 size={12} /> Select 5 of 20, 5 more, …</li>
-            <li><CheckCircle2 size={12} /> Quick group-by severity / type / module</li>
-          </ul>
-          <div className="hb-btm-modecard-cta">
-            Continue manually <ArrowRight size={14} />
-          </div>
-        </button>
+        {hasGrid !== false && (
+          <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onManual}>
+            <div className="hb-btm-modecard-icon">
+              <Hand size={22} />
+            </div>
+            <div className="hb-btm-modecard-title">Hand-pick</div>
+            <div className="hb-btm-modecard-sub">
+              Stage a few bugs, write the ticket, repeat. Group-by helpers and
+              per-ticket assignee.
+            </div>
+            <ul className="hb-btm-modecard-list">
+              <li><CheckCircle2 size={12} /> Full control over scope</li>
+              <li><CheckCircle2 size={12} /> Select 5 of 20, 5 more, …</li>
+              <li><CheckCircle2 size={12} /> Quick group-by severity / type / module</li>
+            </ul>
+            <div className="hb-btm-modecard-cta">
+              Continue manually <ArrowRight size={14} />
+            </div>
+          </button>
+        )}
 
-        <button className="hb-btm-modecard hb-btm-modecard-ai" onClick={onAi}>
-          <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai">
-            <Wand2 size={22} />
-          </div>
-          <div className="hb-btm-modecard-title">
-            AI assist
-            <span className="hb-btm-modecard-pill">Smart</span>
-          </div>
-          <div className="hb-btm-modecard-sub">
-            Auto-cluster bugs by context and polish each description before
-            creating tickets.
-          </div>
-          <ul className="hb-btm-modecard-list">
-            <li><CheckCircle2 size={12} /> Smart grouping by feature</li>
-            <li><CheckCircle2 size={12} /> Cleaned titles + repro steps</li>
-            <li><CheckCircle2 size={12} /> Edit before you ship</li>
-          </ul>
-          <div className="hb-btm-modecard-cta">
-            Continue with AI <ArrowRight size={14} />
-          </div>
-        </button>
+        {hasPrime !== false && (
+          <button className="hb-btm-modecard hb-btm-modecard-ai" onClick={onAi}>
+            <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai">
+              <Wand2 size={22} />
+            </div>
+            <div className="hb-btm-modecard-title">
+              AI assist
+              <span className="hb-btm-modecard-pill">Smart</span>
+            </div>
+            <div className="hb-btm-modecard-sub">
+              Auto-cluster bugs by context and polish each description before
+              creating tickets.
+            </div>
+            <ul className="hb-btm-modecard-list">
+              <li><CheckCircle2 size={12} /> Smart grouping by feature</li>
+              <li><CheckCircle2 size={12} /> Cleaned titles + repro steps</li>
+              <li><CheckCircle2 size={12} /> Edit before you ship</li>
+            </ul>
+            <div className="hb-btm-modecard-cta">
+              Continue with AI <ArrowRight size={14} />
+            </div>
+          </button>
+        )}
 
-        <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
-          <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
-            background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
-            color: 'var(--btm-success)',
-            border: '1px solid color-mix(in oklab, var(--btm-success) 30%, transparent)'
-          }}>
-            <LinkIcon size={22} />
-          </div>
-          <div className="hb-btm-modecard-title">Mapping Tickets</div>
-          <div className="hb-btm-modecard-sub">
-            Link these bugs directly to an existing ticket from your workspace.
-          </div>
-          <ul className="hb-btm-modecard-list">
-            <li><CheckCircle2 size={12} /> Search by ticket number/title</li>
-            <li><CheckCircle2 size={12} /> Quick link option</li>
-            <li><CheckCircle2 size={12} /> Status updates to converted</li>
-          </ul>
-          <div className="hb-btm-modecard-cta" style={{ color: 'var(--btm-success)' }}>
-            Continue mapping <ArrowRight size={14} />
-          </div>
-        </button>
+        {hasGrid !== false && (
+          <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
+            <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
+              background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
+              color: 'var(--btm-success)',
+              border: '1px solid color-mix(in oklab, var(--btm-success) 30%, transparent)'
+            }}>
+              <LinkIcon size={22} />
+            </div>
+            <div className="hb-btm-modecard-title">Mapping Tickets</div>
+            <div className="hb-btm-modecard-sub">
+              Link these bugs directly to an existing ticket from your workspace.
+            </div>
+            <ul className="hb-btm-modecard-list">
+              <li><CheckCircle2 size={12} /> Search by ticket number/title</li>
+              <li><CheckCircle2 size={12} /> Quick link option</li>
+              <li><CheckCircle2 size={12} /> Status updates to converted</li>
+            </ul>
+            <div className="hb-btm-modecard-cta" style={{ color: 'var(--btm-success)' }}>
+              Continue mapping <ArrowRight size={14} />
+            </div>
+          </button>
+        )}
       </div>
 
       <div className="hb-btm-footer">

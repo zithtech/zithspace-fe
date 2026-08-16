@@ -59,8 +59,9 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 
 export default function TemplateManagementPage() {
   const router = useRouter();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
 
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {
@@ -493,12 +494,12 @@ export default function TemplateManagementPage() {
                     label: 'Manual Creation',
                     onClick: () => router.push('/letters-docs/templates/builder')
                   },
-                  {
+                  ...(hasPrime ? [{
                     key: 'zai',
                     icon: <ThunderboltOutlined style={{ color: '#9333ea' }} />,
                     label: <span style={{ fontWeight: 600 }}>Create with Zai <span style={{ background: '#f3e8ff', color: '#9333ea', fontSize: '10px', padding: '1px 4px', borderRadius: '4px', marginLeft: '4px' }}>AI</span></span>,
                     onClick: () => setIsZaiModalOpen(true)
-                  }
+                  }] : [])
                 ]
               }}
               trigger={['click']}

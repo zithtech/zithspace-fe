@@ -86,7 +86,7 @@ export class MembersService {
       return await apiUtils.getPaginated<Member>('/api/members', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch members');
     }
@@ -100,7 +100,7 @@ export class MembersService {
       return await api.get<Member>(`/api/members/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch member');
     }
@@ -114,7 +114,7 @@ export class MembersService {
       return await api.get<Member>(`/api/members/user/${userId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch member by user ID');
     }
@@ -166,7 +166,7 @@ export class MembersService {
       return await api.post<Member>('/api/members', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create member');
     }
@@ -180,7 +180,7 @@ export class MembersService {
       return await api.put<Member>(`/api/members/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update member');
     }
@@ -194,7 +194,7 @@ export class MembersService {
       await api.delete(`/api/members/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to delete member');
     }
@@ -208,7 +208,7 @@ export class MembersService {
       return await api.patch<Member>(`/api/members/${id}/activate`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to activate member');
     }
@@ -228,7 +228,7 @@ export class MembersService {
   //     return await api.get('/api/members/select', { params: filters });
   //   } catch (error) {
   //     if (error instanceof ApiError) {
-  //       throw new Error(error.message);
+  //       throw error;
   //     }
   //     throw new Error('Failed to fetch members for selection');
   //   }
@@ -262,7 +262,7 @@ export class MembersService {
   //     } catch (error) {
   //       console.error("🔍 [API] Error in getMembersForSelect:", error);
   //       if (error instanceof ApiError) {
-  //         throw new Error(error.message);
+  //         throw error;
   //       }
   //       throw new Error('Failed to fetch members for selection');
   //     }
@@ -315,7 +315,7 @@ export class MembersService {
     } catch (error) {
       console.error("🔍 [API] Error in getMembersForSelect:", error);
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch members for selection');
     }
@@ -337,7 +337,7 @@ export class MembersService {
       return await api.patch<Member>(`/api/members/${id}/assign-shift`, { shiftId });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to assign shift to member');
     }
@@ -365,7 +365,7 @@ export class MembersService {
       return await apiUtils.getPaginated<Member>('/api/members/trash', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch deleted members');
     }
@@ -379,7 +379,7 @@ export class MembersService {
       return await api.patch<Member>(`/api/members/${id}/restore`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to restore member');
     }
@@ -393,7 +393,7 @@ export class MembersService {
       await api.delete(`/api/members/${id}/permanent`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to permanently delete member');
     }
@@ -407,7 +407,7 @@ export class MembersService {
       await api.delete('/api/members/trash/empty');
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to empty member trash');
     }
@@ -421,7 +421,7 @@ export class MembersService {
       await api.post('/api/members/trash/bulk-restore', { ids });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to bulk restore members');
     }
@@ -435,7 +435,7 @@ export class MembersService {
       await api.post('/api/members/trash/bulk-permanent-delete', { ids });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to bulk delete members');
     }

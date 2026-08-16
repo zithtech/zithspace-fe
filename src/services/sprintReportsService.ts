@@ -55,7 +55,7 @@ export const SprintReportsService = {
         `/api/sprint-reports?projectId=${encodeURIComponent(projectId)}`
       );
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to load sprint reports");
     }
   },
@@ -67,7 +67,7 @@ export const SprintReportsService = {
         `/api/sprint-reports/sprint/${sprintId}`
       );
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to load sprint report");
     }
   },
@@ -80,7 +80,7 @@ export const SprintReportsService = {
         {}
       );
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to generate sprint report");
     }
   },

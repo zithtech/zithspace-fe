@@ -1010,7 +1010,7 @@ function BuilderContent() {
               <kbd>K</kbd>
             </span>
           </button> */}
-          {!isTemplateMode && canUpdateProposal && hasPrime &&  (
+          {/* {!isTemplateMode && canUpdateProposal && (
             <Button
               className="pb-zai-cta"
               onClick={() => setEndToEndOpen(true)}
@@ -1018,7 +1018,7 @@ function BuilderContent() {
             >
               Create with Zai
             </Button>
-          )}
+          )} */}
           <Button className="pb-action-btn" icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)}>
             Live Preview
           </Button>

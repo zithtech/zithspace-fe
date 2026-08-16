@@ -1980,9 +1980,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         align: "right" as const,
         fixed: "right",
         render: (_: any, record: Ticket) => {
-          const handleShare = () => {
+          const handleShare = ({ domEvent }: any) => {
+            if (domEvent && typeof domEvent.stopPropagation === 'function') {
+              domEvent.stopPropagation();
+            }
             const url = `${window.location.origin}/public/tickets/${record.id}`;
             navigator.clipboard.writeText(url);
+            message.success("Public link copied to clipboard!");
           };
 
           return (

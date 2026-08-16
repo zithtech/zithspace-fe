@@ -89,11 +89,33 @@ function TestRunsContent() {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
+  // For dynamic suite search beyond the initial 1000
+  const [suiteSearchTerm, setSuiteSearchTerm] = useState("");
+  const debouncedSuiteSearch = useDebounce(suiteSearchTerm, 500);
+
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, suiteFilter, progressFilter]);
+  
+  useEffect(() => {
+    if (!debouncedSuiteSearch || debouncedSuiteSearch.trim().length < 2) return;
+    const searchSuites = async () => {
+      try {
+        const res = await axios.get("/api/v2/qa/suites/all", {
+          params: { search: debouncedSuiteSearch, limit: 50 }
+        });
+        const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setSuites((prev: any[]) => {
+          const map = new Map(prev.map(s => [s.id, s]));
+          fetched.forEach((s: any) => map.set(s.id, s));
+          return Array.from(map.values());
+        });
+      } catch (e) {}
+    };
+    searchSuites();
+  }, [debouncedSuiteSearch]);
   
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -127,9 +149,9 @@ function TestRunsContent() {
             progress: progressFilter || undefined
           }
         }),
-        axios.get("/api/v2/qa/suites/all"),
-        axios.get("/api/v2/qa/modules"),
-        axios.get("/api/v2/qa/test-scopes"),
+        axios.get("/api/v2/qa/suites/all?limit=1000"),
+        axios.get("/api/v2/qa/modules?limit=1000"),
+        axios.get("/api/v2/qa/test-scopes?limit=1000"),
       ]);
       const body = (runsRes as any).data;
       setRuns(body?.data || []);
@@ -902,6 +924,7 @@ function TestRunsContent() {
                     options={suiteFilterOptions}
                     value={suiteFilter}
                     onChange={(v) => setSuiteFilter(v)}
+                    onSearch={(v) => setSuiteSearchTerm(v)}
                     placeholder="All suites"
                     itemNoun="suites"
                     className="sc-filters__field"
@@ -1088,6 +1111,7 @@ function TestRunsContent() {
                 }))}
                 value={formData.suite_id}
                 onChange={(val) => setFormData({ ...formData, suite_id: val })}
+                onSearch={(val) => setSuiteSearchTerm(val)}
                 placeholder={filteredSuites.length ? "Select a suite to execute" : "No suites in this module"}
                 itemNoun="suites"
                 className="rd__control"

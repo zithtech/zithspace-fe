@@ -284,7 +284,7 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
     if (!draft) return;
     const seed = [titleInput, description].filter(Boolean).join("\n\n").trim() || draft.title;
     if (!seed) {
-      api.error({ message: "Cannot regenerate without the original description" });
+      message.error("Cannot regenerate without the original description");
       return;
     }
     setIsRegeneratingSubtasks(true);
@@ -295,12 +295,11 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
         hoursEach,
       });
       replaceSubtasks(result.subtasks);
-      api.success({
-        message: `Regenerated ${result.subtasks.length} subtasks`,
-        description: `Each ~${hoursEach}h · total ${result.subtasks.reduce((a, s) => a + s.hours, 0)}h`,
-      });
+      message.success(
+        `Regenerated ${result.subtasks.length} subtasks (Each ~${hoursEach}h · total ${result.subtasks.reduce((a: number, s: any) => a + s.hours, 0)}h)`
+      );
     } catch (err: any) {
-      api.error({ message: err?.message || "Failed to regenerate subtasks" });
+      message.error(err?.message || "Failed to regenerate subtasks");
     } finally {
       setIsRegeneratingSubtasks(false);
     }
@@ -816,7 +815,7 @@ const GeneratingStep: React.FC = () => {
         </div>
 
         <Text type="secondary" style={{ fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase" }}>
-          {elapsed.toFixed(1)}s elapsed · powered by Gemini
+          {elapsed.toFixed(1)}s elapsed
         </Text>
 
         {/* Soft reassurance once we cross 10s — Gemini may be retrying on 429. */}

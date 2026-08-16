@@ -86,6 +86,28 @@ export default function TestSuitesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
+  // For dynamic parent test case search beyond the initial 1000
+  const [parentSearchTerm, setParentSearchTerm] = useState("");
+  const debouncedParentSearch = useDebounce(parentSearchTerm, 500);
+
+  useEffect(() => {
+    if (!debouncedParentSearch || debouncedParentSearch.trim().length < 2) return;
+    const searchParents = async () => {
+      try {
+        const res = await axios.get("/api/v2/qa/parents", {
+          params: { search: debouncedParentSearch, limit: 50 }
+        });
+        const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setParents((prev: any[]) => {
+          const map = new Map(prev.map(p => [p.id, p]));
+          fetched.forEach((p: any) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      } catch (e) {}
+    };
+    searchParents();
+  }, [debouncedParentSearch]);
+
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
@@ -108,8 +130,8 @@ export default function TestSuitesPage() {
             coverageFilter: coverageFilter || undefined
           }
         }),
-        axios.get("/api/v2/qa/parents"),
-        axios.get("/api/v2/qa/modules")
+        axios.get("/api/v2/qa/parents?limit=1000"),
+        axios.get("/api/v2/qa/modules?limit=1000")
       ]);
       const body = (suitesRes as any).data;
       setSuites(body?.data || []);
@@ -936,6 +958,7 @@ export default function TestSuitesPage() {
               <SearchableDropdown
                 options={scenarioFilterOptions}
                 value={scenarioFilter}
+                onSearch={(val) => setParentSearchTerm(val)}
                 onChange={(v) => setScenarioFilter(v)}
                 placeholder="All scenarios"
                 itemNoun="scenarios"

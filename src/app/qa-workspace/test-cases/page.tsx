@@ -134,7 +134,7 @@ export default function TestCasesPage() {
             quickFilter: quickFilter || undefined
           }
         }),
-        axios.get("/api/v2/qa/modules"),
+        axios.get("/api/v2/qa/modules?limit=1000"),
         MembersService.getMembers({ limit: 500 }).catch(() => ({ data: [] }))
       ]);
       const body = (parentsRes as any).data;

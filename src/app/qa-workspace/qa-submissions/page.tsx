@@ -185,7 +185,7 @@ function QaSubmissionsContent() {
     (async () => {
       try {
         const [scopeRes, memberRes] = await Promise.all([
-          axios.get("/api/v2/qa/test-scopes"),
+          axios.get("/api/v2/qa/test-scopes?limit=1000"),
           MembersService.getMembers({ limit: 500 }),
         ]);
         setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);

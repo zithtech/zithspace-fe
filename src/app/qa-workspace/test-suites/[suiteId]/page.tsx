@@ -99,6 +99,28 @@ export default function TestSuiteDetailsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // For dynamic parent test case search beyond the initial 1000
+  const [parentSearchTerm, setParentSearchTerm] = useState("");
+  const debouncedParentSearch = useDebounce(parentSearchTerm, 500);
+
+  useEffect(() => {
+    if (!debouncedParentSearch || debouncedParentSearch.trim().length < 2) return;
+    const searchParents = async () => {
+      try {
+        const res = await axios.get("/api/v2/qa/parents", {
+          params: { search: debouncedParentSearch, limit: 50 }
+        });
+        const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setParents((prev: any[]) => {
+          const map = new Map(prev.map(p => [p.id, p]));
+          fetched.forEach((p: any) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      } catch (e) {}
+    };
+    searchParents();
+  }, [debouncedParentSearch]);
+
   useEffect(() => {
     setPage(1);
   }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter]);
@@ -113,8 +135,8 @@ export default function TestSuiteDetailsPage() {
       setLoading(true);
       const [suiteRes, parentsRes, modRes, casesRes] = await Promise.all([
         axios.get(`/api/v2/qa/suites/${suiteId}`),
-        axios.get("/api/v2/qa/parents"),
-        axios.get("/api/v2/qa/modules"),
+        axios.get("/api/v2/qa/parents?limit=1000"),
+        axios.get("/api/v2/qa/modules?limit=1000"),
         apiClient.get(`/api/v2/qa/suites/${suiteId}/cases`, {
           params: {
             page,
@@ -1190,6 +1212,7 @@ export default function TestSuiteDetailsPage() {
                       description: p.module_name ? `Module: ${p.module_name}` : "No Module assigned",
                     }))}
                     value={formData.parent_test_case_id || (formData.module_id && !formData.parent_test_case_id ? `module-${formData.module_id}` : undefined)}
+                    onSearch={(val) => setParentSearchTerm(val)}
                     onChange={(val: any) => {
                       if (!val) {
                         setFormData({ ...formData, parent_test_case_id: undefined, module_id: undefined, test_case_ids: [] });

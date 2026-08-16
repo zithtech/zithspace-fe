@@ -18,7 +18,9 @@ import {
   MoreVertical,
   UploadCloud,
   Check,
+  Zap,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { PositionService, Position } from '@/services/positionService';
 import OpeningV2Service, {
@@ -483,6 +485,8 @@ export default function CandidatesPage() {
 }
 
 function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boolean) => void, editCandidate?: any }) {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_candidate_pipeline_candidates_prime');
   const { message } = App.useApp();
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -748,8 +752,10 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                     icon={<FileText size={14} />}
                     subtitle="PDF or Word. The details below are filled in automatically."
                   >
-                    {uploadPhase === 'idle' || uploadPhase === 'error' ? (
-                      <label
+                    {hasPrime ? (
+                      <>
+                        {uploadPhase === 'idle' || uploadPhase === 'error' ? (
+                          <label
                         onDragOver={(e) => {
                           e.preventDefault();
                           setIsDragging(true);
@@ -877,6 +883,16 @@ function AddCandidateModal({ onClose, editCandidate }: { onClose: (refresh?: boo
                         100% { margin-left: 100%; }
                       }
                     `}</style>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <Zap size={24} className="text-purple-500 mb-2" />
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">AI Resume Extraction is a Prime Feature</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1 max-w-sm">
+                          Upgrade to Prime to automatically extract candidate details from resumes and match them against openings.
+                        </p>
+                      </div>
+                    )}
                   </SectionCard>
                 )}
 

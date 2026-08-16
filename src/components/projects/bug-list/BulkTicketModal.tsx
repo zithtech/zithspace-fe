@@ -48,7 +48,7 @@ const SEVERITY_RANK: Record<string, number> = {
 
 export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId }: Props) {
   const { user } = useAuth();
-  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_bug_list_prime');
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
   const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_bug_list_grid');
   const { theme } = useTheme();
   const convert = useBulkConvertBugsToTickets();

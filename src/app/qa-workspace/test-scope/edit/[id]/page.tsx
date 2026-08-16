@@ -612,6 +612,7 @@ export default function EditScopePage() {
   const id = params?.id as string;
   const { canUpdateScope } = usePermission();
   const { user, isLoading } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_scope_prime');
 
   /** Flips once the saved scope has been merged into the form. */
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -2404,14 +2405,16 @@ export default function EditScopePage() {
                   <div className="ts-editorhead">
                     <label className="ts-label" style={{ margin: 0 }}>Description</label>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="ts-minibtn ts-minibtn--ai"
-                        disabled={generatingDescription}
-                        onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
-                      >
-                        <Sparkles size={12} /> {generatingDescription ? 'Generating\u2026' : (prdDocumentId ? 'Create with Zai using PRD' : 'Create with Zai')}
-                      </button>
+                      {hasPrime && (
+                        <button
+                          type="button"
+                          className="ts-minibtn ts-minibtn--ai"
+                          disabled={generatingDescription}
+                          onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
+                        >
+                          <Sparkles size={12} /> {generatingDescription ? 'Generating\u2026' : (prdDocumentId ? 'Create with Zai using PRD' : 'Create with Zai')}
+                        </button>
+                      )}
                       <Tooltip title={!(formData.details.description || '').trim() ? 'Write something first' : 'Fix grammar & typos — keeps your wording'}>
                         <button
                           type="button"
@@ -2698,7 +2701,8 @@ export default function EditScopePage() {
                         composer; without one it stays visible but disabled, since
                         a disabled control with a reason is how the option gets
                         discovered in the first place. */}
-                    {prdDocumentId ? (
+                    {hasPrime && (
+                      prdDocumentId ? (
                       <Popover
                         open={prdPopoverOpen}
                         onOpenChange={(o) => {
@@ -2799,9 +2803,9 @@ export default function EditScopePage() {
                           </button>
                         </span>
                       </Tooltip>
-                    )}
+                    ))}
 
-                    {(() => {
+                    {hasPrime && (() => {
                       const scopeVal = formData.details.inScope || '';
                       const hasContent = scopeVal.trim() !== '' && scopeVal !== '<p></p>';
                       return hasContent ? (

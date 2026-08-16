@@ -29,7 +29,14 @@ const STANDARD_PLACEHOLDERS = [
   { key: "company_name", label: "Company Name" }
 ];
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function AiCreateTemplateModal({ open, onClose, onCreated, categories }: AiCreateTemplateModalProps) {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
+  
+  if (!hasPrime) return null;
+
   const [step, setStep] = useState<"input" | "generating">("input");
 
   const [templateName, setTemplateName] = useState("");

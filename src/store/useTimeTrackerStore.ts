@@ -33,8 +33,10 @@ export const useTimeTrackerStore = create<TimeTrackerState>((set, get) => ({
   isLoading: false,
   isPopoverOpen: false,
   refreshTrigger: 0,
+  serverTimeOffset: 0,
 
   setPopoverOpen: (open) => set({ isPopoverOpen: open }),
+  setServerTimeOffset: (offset) => set({ serverTimeOffset: offset }),
 
   fetchActiveTimer: async () => {
     try {

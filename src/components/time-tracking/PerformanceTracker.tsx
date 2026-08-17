@@ -34,7 +34,6 @@ import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
-import { EmptyState } from "@/components/common/EmptyState";
 import { getSyncedTime } from "@/utils/timeUtils";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 

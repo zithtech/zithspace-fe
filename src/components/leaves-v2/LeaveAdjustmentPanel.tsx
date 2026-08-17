@@ -62,6 +62,8 @@ export default function LeaveAdjustmentPanel() {
   console.log("Forcing HMR reload for LeaveAdjustmentPanel");
 
   const [rows, setRows] = useState<LeaveAdjustment[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, credited: 0, debited: 0, net: 0 });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [dirFilter, setDirFilter] = useState<'all' | 'credit' | 'debit'>('all');
@@ -81,16 +83,24 @@ export default function LeaveAdjustmentPanel() {
   const [reason, setReason] = useState('');
   const [currentBalance, setCurrentBalance] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = tablePage, size = tablePageSize, q = search, dir = dirFilter) => {
     setLoading(true);
     try {
-      setRows(await LeaveV2Service.listAdjustments());
+      const res = await LeaveV2Service.listAdjustments({
+        page: p,
+        pageSize: size,
+        search: q || undefined,
+        dirFilter: dir === 'all' ? undefined : dir,
+      });
+      setRows(res.data);
+      setTotalCount(res.total);
+      setApiStats(res.stats);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load adjustments');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, dirFilter]);
 
   useEffect(() => {
     if (canReadLeaveAdjustment) load();
@@ -99,7 +109,7 @@ export default function LeaveAdjustmentPanel() {
   // Load drawer option sources once.
   useEffect(() => {
     LeaveV2Service.getAdjustmentEmployees().then(setEmployees).catch(() => { });
-    LeaveV2Service.listLeaveTypes(false).then(setLeaveTypes).catch(() => { });
+    LeaveV2Service.listLeaveTypes(false).then(res => setLeaveTypes(res.data)).catch(() => { });
   }, []);
 
   // Fetch balance when employee + type selected.
@@ -113,11 +123,7 @@ export default function LeaveAdjustmentPanel() {
   }, [open, employeeId, leaveTypeId]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const credited = rows.filter((r) => r.units > 0).reduce((s, r) => s + r.units, 0);
-    const debited = rows.filter((r) => r.units < 0).reduce((s, r) => s + Math.abs(r.units), 0);
-    return { total: rows.length, credited, debited, net: credited - debited };
-  }, [rows]);
+  const stats = useMemo(() => apiStats, [apiStats]);
 
   const statCells = [
     { key: 'total', title: 'Adjustments', value: stats.total, period: 'entries', icon: <CalculatorOutlined />, color: PALETTE.blue, tint: TINT.blue },
@@ -126,23 +132,13 @@ export default function LeaveAdjustmentPanel() {
     { key: 'net', title: 'Net', value: stats.net, period: 'days', icon: <SwapOutlined />, color: PALETTE.grey, tint: TINT.grey },
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.userName.toLowerCase().includes(q) && !r.leaveTypeName.toLowerCase().includes(q)) return false;
-      if (dirFilter === 'credit' && r.units <= 0) return false;
-      if (dirFilter === 'debit' && r.units >= 0) return false;
-      return true;
-    });
-  }, [rows, search, dirFilter]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paged = rows;
   useEffect(() => { setTablePage(1); }, [search, dirFilter, tablePageSize]);
-  useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
+  useEffect(() => { if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount); }, [pageCount, tablePage]);
   const hasFilters = !!search || dirFilter !== 'all';
 
   // ── Drawer ──────────────────────────────────────────────────────────────────
@@ -282,7 +278,7 @@ export default function LeaveAdjustmentPanel() {
             <SearchOutlined className="lvadj-search-icon" />
             <input className="lvadj-search" placeholder="Search employee or type…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="lvadj-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="lvadj-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveAdjustment && <Button type="primary" icon={<PlusOutlined />} onClick={openNew} className="lvadj-add-btn">New Adjustment</Button>}
         </div>
       </div>
@@ -315,7 +311,7 @@ export default function LeaveAdjustmentPanel() {
           style={{ width: 160 }}
           width={210}
         />
-        <span className="lvadj-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="lvadj-filter-count">{total} of {stats.total}</span>
         {hasFilters && <button type="button" className="lvadj-clear" onClick={() => { setSearch(''); setDirFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 

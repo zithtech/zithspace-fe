@@ -29,9 +29,13 @@ export class EscalationServiceV2 {
     /**
      * Get all Escalations
      */
-    static async getAllEscalations(): Promise<any[]> {
-        const res: any = await api.get('/api/escalations-v2');
-        return res || [];
+    static async getAllEscalations(limit?: number, offset?: number): Promise<any> {
+        const response = await api.request({
+            method: 'GET',
+            url: '/api/escalations-v2',
+            params: { limit, offset }
+        });
+        return response.data;
     }
 
     /**
@@ -58,9 +62,13 @@ export class EscalationServiceV2 {
     /**
      * Get all trashed escalations
      */
-    static async getTrashEscalations(): Promise<any[]> {
-        const res: any = await api.get('/api/escalations-v2/trash');
-        return res || [];
+    static async getTrashEscalations(limit?: number, offset?: number): Promise<any> {
+        const response = await api.request({
+            method: 'GET',
+            url: '/api/escalations-v2/trash',
+            params: { limit, offset }
+        });
+        return response.data;
     }
 
     /**

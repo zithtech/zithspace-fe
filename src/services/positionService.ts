@@ -1,5 +1,4 @@
-// src/services/positionService.ts
-import { api } from "@/lib/axios";
+import { api, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export interface Position {
   id: string;
@@ -33,8 +32,11 @@ export interface UpdatePositionData extends Partial<CreatePositionData> {}
 const API_URL = "/api/positions";
 
 export const PositionService = {
-  getAll: async (): Promise<Position[]> => {
-    const response = await api.get<any>(API_URL);
+  getAll: async (filters?: any): Promise<any> => {
+    if (filters?.limit) {
+      return await apiUtils.getPaginated<Position>(API_URL, filters);
+    }
+    const response = await api.get<any>(API_URL, { params: filters });
     return response.data?.data || response.data || response;
   },
 

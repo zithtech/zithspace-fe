@@ -40,9 +40,8 @@ export interface UpdateSquadData extends Partial<CreateSquadData> {
 }
 
 export class SquadService {
-  static async getSquads(filters: any = {}): Promise<Squad[]> {
-    const response = await api.get('/api/squads', { params: filters });
-    return response;
+  static async getSquads(filters: any = {}): Promise<PaginatedResponse<Squad>> {
+    return apiUtils.getPaginated<Squad>('/api/squads', filters);
   }
 
   static async getSquad(id: string): Promise<Squad> {

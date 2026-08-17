@@ -26,6 +26,7 @@ import {
   Divider,
   App,
   theme as antdTheme,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -154,6 +155,8 @@ export default function SprintPlanComponent() {
   // State management
   const [sprintPlans, setSprintPlans] = useState<ReleasePlan[]>([]);
   const [allPlans, setAllPlans] = useState<ReleasePlan[]>([]);
+  const [tablePlans, setTablePlans] = useState<ReleasePlan[]>([]);
+  const [totalTablePlans, setTotalTablePlans] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -634,7 +637,50 @@ export default function SprintPlanComponent() {
   const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setCurrentPage(1); }, [tableFilters.search, tableFilters.projectId, tableFilters.status, sortBy]);
 
-  // Sorted view of sprintPlans
+  const loadTableData = async () => {
+    try {
+      setLoading(true);
+
+      let apiSortBy: string | undefined = undefined;
+      let apiSortOrder: 'asc' | 'desc' = 'desc';
+
+      switch (sortBy) {
+        case 'recent': apiSortBy = 'updatedAt'; apiSortOrder = 'desc'; break;
+        case 'endDate': apiSortBy = 'endDate'; apiSortOrder = 'asc'; break;
+        // name and progress aren't direct Prisma columns in this schema, omit to avoid 500 errors
+        default: apiSortBy = undefined; break;
+      }
+
+      const data = await ReleasePlanService.getReleasePlans({
+        type: "sprint_plan",
+        search: tableFilters.search || undefined,
+        projectId: tableFilters.projectId || undefined,
+        status: tableFilters.status || undefined,
+        page: currentPage,
+        limit: pageSize,
+        sortBy: apiSortBy,
+        sortOrder: apiSortOrder
+      });
+
+      let fetchedPlans = data?.data || [];
+      // Re-apply local sorting for name and progress on the current page
+      if (sortBy === 'name') fetchedPlans.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+      else if (sortBy === 'progress') fetchedPlans.sort((a: any, b: any) => (b.progress || 0) - (a.progress || 0));
+
+      setTablePlans(fetchedPlans);
+      setTotalTablePlans(data?.pagination?.total || 0);
+    } catch (error) {
+      console.error("Failed to load table plans:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTableData();
+  }, [currentPage, pageSize, tableFilters, sortBy]);
+
+  // Sorted view of sprintPlans (for calendar view)
   const sortedSprintPlans = useMemo(() => {
     const arr = [...sprintPlans];
     if (sortBy === 'name') arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -648,10 +694,7 @@ export default function SprintPlanComponent() {
     return arr;
   }, [sprintPlans, sortBy]);
 
-  const pagedSprintPlans = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedSprintPlans.slice(start, start + pageSize);
-  }, [sortedSprintPlans, currentPage, pageSize]);
+  // Removed pagedSprintPlans useMemo since we now use tablePlans from API
 
   // Project color helper (stable per project index)
   const getProjectColor = useCallback((projectId?: string) => {
@@ -1464,7 +1507,7 @@ export default function SprintPlanComponent() {
                     <div className="sp-card-loading">
                       <ZukvoLoader size="md" />
                     </div>
-                  ) : pagedSprintPlans.length === 0 ? (
+                  ) : tablePlans.length === 0 ? (
                     <div className="sp-empty-state">
                       <div className="sp-empty-icon">
                         <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
@@ -1493,7 +1536,7 @@ export default function SprintPlanComponent() {
                       )}
                     </div>
                   ) : (
-                    pagedSprintPlans.map((record) => {
+                    tablePlans.map((record) => {
                       const project = typeof record.project === 'object' ? record.project : null;
                       const initial = (record.name || '?').charAt(0).toUpperCase();
                       const accent =
@@ -1875,8 +1918,8 @@ export default function SprintPlanComponent() {
                 </div>
 
                 {loading ? (
-                  <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
-                ) : pagedSprintPlans.length === 0 ? (
+                  <div className="sp-card-loading"><Spin /></div>
+                ) : tablePlans.length === 0 ? (
                   <div className="sp-empty-state">
                     <div className="sp-empty-icon">
                       <TableOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
@@ -1899,7 +1942,7 @@ export default function SprintPlanComponent() {
                       <span className="sp-tbl-th sp-tbl-col-actions">Actions</span>
                     </div>
 
-                    {pagedSprintPlans.map((record) => {
+                    {tablePlans.map((record) => {
                       const project = typeof record.project === 'object' ? record.project : null;
                       const initial = (record.name || '?').charAt(0).toUpperCase();
                       const accent =
@@ -2125,17 +2168,17 @@ export default function SprintPlanComponent() {
             )}
 
             {/* Fixed pagination footer */}
-            {!loading && sortedSprintPlans.length > 0 && (viewMode === 'list' || viewMode === 'table') && (
+            {!loading && tablePlans.length > 0 && (viewMode === 'list' || viewMode === 'table') && (
               <div className="sp-card-pagination">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
-                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedSprintPlans.length)}
-                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{sortedSprintPlans.length}</span> sprint{sortedSprintPlans.length !== 1 ? 's' : ''}
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalTablePlans)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{totalTablePlans}</span> sprint{totalTablePlans !== 1 ? 's' : ''}
                 </Text>
                 <Pagination
                   current={currentPage}
                   pageSize={pageSize}
-                  total={sortedSprintPlans.length}
+                  total={totalTablePlans}
                   onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
                   showSizeChanger
                   pageSizeOptions={[10, 20, 25, 50, 100]}

@@ -190,8 +190,8 @@ export default function OverviewPage() {
   const [treeSearch, setTreeSearch] = useState<string>('');
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const { dataSource: grades, loading: gradesLoading } = useGrades();
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const { allGrades: grades = [], loading: gradesLoading } = useGrades();
+  const { allPositions: positions, loading: positionsLoading } = usePositions();
   const loading = gradesLoading || positionsLoading;
 
   useEffect(() => {

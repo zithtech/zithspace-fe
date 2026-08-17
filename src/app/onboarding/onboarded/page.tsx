@@ -137,6 +137,10 @@ const Onboarded = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
 
   useEffect(() => {
     if (!authLoading && !canReadOnboarding) {
@@ -148,13 +152,22 @@ const Onboarded = () => {
   const fetchEmployees = async (background = false) => {
     if (!background) setLoading(true);
     try {
-      const res = await EmployeeOnboardingService.getAllEmployees();
+      const res = await EmployeeOnboardingService.getAllEmployees({
+        search,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
+      });
+
       let employees = [];
 
       if (res?.data?.success) {
         employees = res.data.data || [];
+        setTotal(res.data.total || 0);
+        if (res.data.stats) setStats(res.data.stats);
       } else if (res?.success) {
         employees = res.data || [];
+        setTotal(res.total || 0);
+        if (res.stats) setStats(res.stats);
       } else if (Array.isArray(res?.data)) {
         employees = res.data;
       } else if (Array.isArray(res)) {
@@ -174,7 +187,7 @@ const Onboarded = () => {
     if (canReadOnboarding) {
       fetchEmployees();
     }
-  }, [canReadOnboarding]);
+  }, [canReadOnboarding, search, tablePage, tablePageSize]);
 
   // ✅ Status Toggle
   const handleStatusChange = async (id: string, checked: boolean) => {
@@ -209,20 +222,9 @@ const Onboarded = () => {
     }
   };
 
-  // ✅ Filter Employees
-  const filteredData = data.filter((e: any) => {
-    const personal = e.personal || e;
-    const fullName = `${personal.firstName || ""} ${personal.lastName || ""}`.toLowerCase();
-    const code = (e.employee_code || e.employeeCode || "").toLowerCase();
-    return (
-      fullName.includes(search.toLowerCase()) ||
-      code.includes(search.toLowerCase())
-    );
-  });
-
-  const activeCount = data.filter((item: any) => item.status).length;
-  const totalCount = data.length;
-  const inactiveCount = totalCount - activeCount;
+  const activeCount = stats.active;
+  const totalCount = stats.total;
+  const inactiveCount = stats.inactive;
 
   // ── Stat cards ──────────────────────────────────────────────────────────────
   const statCells = [
@@ -265,24 +267,17 @@ const Onboarded = () => {
   ];
 
   // ── Pagination (sticky footer) ────────────────────────────────────────────
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(10);
-
-  const total = filteredData.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const pagedRows = filteredData.slice(
-    (tablePage - 1) * tablePageSize,
-    tablePage * tablePageSize
-  );
+  const pagedRows = data;
 
   useEffect(() => {
     setTablePage(1);
   }, [search, tablePageSize]);
 
   useEffect(() => {
-    if (tablePage > pageCount) setTablePage(pageCount);
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
   }, [pageCount, tablePage]);
 
   // ✅ Premium Menu Label Helper

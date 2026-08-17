@@ -118,7 +118,6 @@ import TicketSidebar from "./TicketSidebar";
 import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -190,8 +189,6 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const { user } = useAuth();
-  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_select_prime');
-  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_select_grid');
   const { theme } = useTheme();
   const {
     canCreateTicket,
@@ -622,11 +619,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   }, [projectId]);
 
-  // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
+  // Query Params for Active Sprint List (WITH PAGINATION)
   const activeSprintParams = {
     ...baseQueryParams,
     sprintId: 'active',
-    limit: 9999 // Fetch all tickets in active sprint (no pagination)
+    page: activePagination.current,
+    limit: activePagination.pageSize,
   };
 
   // Combine global and local backlog search
@@ -685,11 +683,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // User asked for specific split. We will use these two data sources.)
 
   const activeTickets = activeSprintData?.data || [];
-  const pagedActiveTickets = useMemo(() => {
-    const start = (activePagination.current - 1) * activePagination.pageSize;
-    const end = start + activePagination.pageSize;
-    return activeTickets.slice(start, end);
-  }, [activeTickets, activePagination]);
+  const totalActiveTickets = activeSprintData?.pagination?.total || 0;
 
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
@@ -1980,13 +1974,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         align: "right" as const,
         fixed: "right",
         render: (_: any, record: Ticket) => {
-          const handleShare = ({ domEvent }: any) => {
-            if (domEvent && typeof domEvent.stopPropagation === 'function') {
-              domEvent.stopPropagation();
-            }
+          const handleShare = () => {
             const url = `${window.location.origin}/public/tickets/${record.id}`;
             navigator.clipboard.writeText(url);
-            message.success("Public link copied to clipboard!");
           };
 
           return (
@@ -4121,33 +4111,29 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   <Dropdown
                     menu={{
                       items: [
-                        ...(hasGrid ? [
-                          {
-                            key: 'manual',
-                            label: 'Manual Creation',
-                            icon: <FileTextOutlined />,
-                            onClick: () => setManualModalOpen(true)
-                          },
-                          {
-                            key: 'instant',
-                            label: 'Instant Creation',
-                            icon: <ThunderboltOutlined />,
-                            onClick: () => setShowCreateForm(true)
-                          }
-                        ] : []),
-                        ...(hasPrime ? [
-                          {
-                            key: 'zai',
-                            label: (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                                Create with Zai
-                                <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
-                              </div>
-                            ),
-                            icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
-                            onClick: () => setAiModalOpen(true)
-                          }
-                        ] : [])
+                        {
+                          key: 'manual',
+                          label: 'Manual Creation',
+                          icon: <FileTextOutlined />,
+                          onClick: () => setManualModalOpen(true)
+                        },
+                        {
+                          key: 'instant',
+                          label: 'Instant Creation',
+                          icon: <ThunderboltOutlined />,
+                          onClick: () => setShowCreateForm(true)
+                        },
+                        {
+                          key: 'zai',
+                          label: (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                              Create with Zai
+                              <Tag color="purple" bordered={false} style={{ margin: 0, fontSize: 9 }}>AI</Tag>
+                            </div>
+                          ),
+                          icon: <ThunderboltOutlined style={{ color: '#722ed1' }} />,
+                          onClick: () => setAiModalOpen(true)
+                        }
                       ],
                       style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
                     }}
@@ -4598,7 +4584,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 }}
                               >
                                 {activeSelectedRowKeys.length === 1 &&
-                                  pagedActiveTickets.find(t => t.id === activeSelectedRowKeys[0])?.assignee
+                                  activeTickets.find((t: any) => t.id === activeSelectedRowKeys[0])?.assignee
                                   ? 'Reassign' : 'Assignee'}
                               </Button>
                             </Dropdown>
@@ -4869,33 +4855,32 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       )}
 
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={activeSprintFetching} message="">
-                                                      <Table
-                                                                                rowSelection={activeRowSelection}
-                                                                                columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={pagedActiveTickets}
-                                                                                rowKey="id"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
-                                                                                tableLayout="fixed"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
+                        <Table
+                          rowSelection={activeRowSelection}
+                          columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={activeTickets}
+                          loading={activeSprintFetching}
+                          rowKey="id"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
+                          tableLayout="fixed"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         activePagination.current,
                         activePagination.pageSize,
-                        activeTickets.length,
+                        totalActiveTickets,
                         activeSelectedRowKeys.length,
                         (page) => setActivePagination((prev) => ({ ...prev, current: page })),
                         (size) => setActivePagination((prev) => ({ ...prev, current: 1, pageSize: size }))
@@ -5373,27 +5358,26 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       )}
 
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={backlogFetching} message="">
-                                                      <Table
-                                                                                rowSelection={backlogRowSelection}
-                                                                                columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={backlogTickets}
-                                                                                rowKey="id"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
+                        <Table
+                          rowSelection={backlogRowSelection}
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          loading={backlogFetching}
+                          dataSource={backlogTickets}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         pagination.current,
@@ -5473,26 +5457,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     </div>
                     <div className="tl-section-body">
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={filteredViewFetching} message="">
-                                                      <Table
-                                                                                columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={filteredViewTickets}
-                                                                                rowKey="id"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
+                        <Table
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={filteredViewTickets}
+                          loading={filteredViewFetching}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         pagination.current,

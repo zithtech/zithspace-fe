@@ -405,6 +405,7 @@ export default function OnboardingDocumentsPanel() {
   const [filterStatus, setFilterStatus] = useState<string | undefined>();
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -414,15 +415,27 @@ export default function OnboardingDocumentsPanel() {
         documentType: filterType,
         status: filterStatus,
         search: search || undefined,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
       });
       setDocuments(result.data || []);
+      setTotal(result.total || 0);
       setStats(result.stats || { total: 0, uploaded: 0, pending: 0, expired: 0 });
     } catch (err: any) {
       message.error(err?.message || 'Failed to load documents');
     } finally {
       setLoading(false);
     }
-  }, [filterEmployee, filterType, filterStatus, search]);
+  }, [filterEmployee, filterType, filterStatus, search, tablePage, tablePageSize]);
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [search, filterEmployee, filterType, filterStatus, tablePageSize]);
+
+  useEffect(() => {
+    const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
+  }, [total, tablePage, tablePageSize]);
 
   useEffect(() => {
     fetchDocuments();
@@ -508,7 +521,7 @@ export default function OnboardingDocumentsPanel() {
     return doc.status;
   };
 
-  const pagedDocs = documents.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedDocs = documents;
 
   return (
     <div className="ob-doc-wrap">
@@ -699,18 +712,18 @@ export default function OnboardingDocumentsPanel() {
         )}
       </div>
 
-      {documents.length > 0 && (
+      {total > 0 && (
         <div className="bd2-pagination">
           <Text className="bd2-pagination-meta">
-            <b>{documents.length === 0 ? 0 : (tablePage - 1) * tablePageSize + 1}</b>–
-            <b>{Math.min(tablePage * tablePageSize, documents.length)}</b> of{' '}
-            <b>{documents.length}</b>{' '}
-            {documents.length === 1 ? 'document' : 'documents'}
+            <b>{total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1}</b>–
+            <b>{Math.min(tablePage * tablePageSize, total)}</b> of{' '}
+            <b>{total}</b>{' '}
+            {total === 1 ? 'document' : 'documents'}
           </Text>
           <Pagination
             current={tablePage}
             pageSize={tablePageSize}
-            total={documents.length}
+            total={total}
             onChange={(p, s) => {
               setTablePage(p);
               if (s) setTablePageSize(s);

@@ -182,7 +182,18 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
   );
 
   const { user } = useAuth();
-  const { data: allTimesheets, isLoading } = useTimesheets(approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id }));
+  const baseFilters = approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id });
+  
+  const { data: allTimesheets, isLoading: isAllLoading } = useTimesheets({ ...baseFilters, limit: 1000 });
+  const { data: paginatedTimesheetsRes, isLoading: isPaginatedLoading } = useTimesheets({
+    ...baseFilters,
+    page: currentPage,
+    limit: pageSize,
+    search: searchText || undefined,
+    status: activeView === "all" ? undefined : activeView.toUpperCase()
+  });
+  
+  const isLoading = isAllLoading || isPaginatedLoading;
 
   useEffect(() => {
     if (previewId) {
@@ -218,23 +229,21 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
     return counts;
   }, [tableData]);
 
-  const filteredData = useMemo(() => {
-    return tableData.filter((item) => {
-      const search = searchText.toLowerCase();
-      const matchesSearch =
-        item.employeeName?.toLowerCase().includes(search) ||
-        item.status?.toLowerCase().includes(search) ||
-        dayjs(item.weekStart).format("MMM DD").toLowerCase().includes(search);
+  const paginatedTableData = useMemo(() => {
+    if (!paginatedTimesheetsRes?.data) return [];
 
-      let matchesView = true;
-      if (activeView === "draft") matchesView = item.status === "DRAFT";
-      if (activeView === "submitted") matchesView = item.status === "SUBMITTED";
-      if (activeView === "approved") matchesView = item.status === "APPROVED";
-      if (activeView === "rejected") matchesView = item.status === "REJECTED";
-
-      return matchesSearch && matchesView;
-    });
-  }, [tableData, searchText, activeView]);
+    return paginatedTimesheetsRes.data.map((t) => ({
+      key: t.id,
+      weekStart: t.weekStart,
+      employeeName: t.user?.name || "-",
+      status: t.status,
+      approvedBy: t.approvedBy,
+      createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+      totalHours: `${t.totalHours}h`,
+      leave: t.leaveCount || 0,
+      rejectReason: t.rejectReason || "",
+    }));
+  }, [paginatedTimesheetsRes]);
 
   const previewColumns = [
     {
@@ -681,9 +690,9 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
           </div>
 
           {(() => {
-            const total = filteredData.length;
-            const pageCount = Math.ceil(total / pageSize);
-            const pagedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+            const total = paginatedTimesheetsRes?.pagination?.total || paginatedTableData.length;
+            const pageCount = paginatedTimesheetsRes?.pagination?.totalPages || 1;
+            const pagedData = paginatedTableData;
             const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
             const pageEnd = Math.min(currentPage * pageSize, total);
 
@@ -842,7 +851,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                         </div>
                       );
                     })}
-                    {filteredData.length === 0 && !isLoading && (
+                    {total === 0 && !isLoading && (
                       <div className="ts-grid-loading">No timesheets found.</div>
                     )}
                   </div>

@@ -127,10 +127,16 @@ export default function SalaryStructurePanel() {
   const [rows, setRows] = useState<PayStructureListItem[]>([]);
   const [components, setComponents] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(false);
-  console.log("Forcing HMR reload for SalaryStructurePanel");
 
+  // filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+
+  // pagination
+  const [total, setTotal] = useState(0);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -151,21 +157,32 @@ export default function SalaryStructurePanel() {
   const [amountById, setAmountById] = useState<Record<string, number>>({});
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = tablePage, l = tablePageSize, s = debouncedSearch, st = statusFilter) => {
     setLoading(true);
     try {
       const [structs, comps] = await Promise.all([
-        PayrollV2Service.listStructures(true),
-        PayrollV2Service.listComponents(false),
+        PayrollV2Service.listStructures({
+          page: p,
+          limit: l,
+          search: s,
+          includeInactive: st !== 'active',
+        }),
+        PayrollV2Service.listComponents({ limit: 1000 }),
       ]);
-      setRows(structs);
-      setComponents(comps);
+      setRows(structs.data);
+      setTotal(structs.pagination.total);
+      setComponents(comps.data);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load salary structures');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, debouncedSearch, statusFilter]);
 
   useEffect(() => { if (canReadPayrollStructures) load(); }, [canReadPayrollStructures, load]);
 
@@ -200,11 +217,10 @@ export default function SalaryStructurePanel() {
   }, [drawerOpen, lines, monthlyCtc]);
 
   const stats = useMemo(() => {
-    const total = rows.length;
     const active = rows.filter((r) => r.isActive).length;
-    const avgCtc = total ? rows.reduce((s, r) => s + r.monthlyCtc, 0) / total : 0;
+    const avgCtc = rows.length ? rows.reduce((s, r) => s + r.monthlyCtc, 0) / rows.length : 0;
     return { total, active, avgCtc };
-  }, [rows]);
+  }, [rows, total]);
 
   const statCells = [
     { key: 'total', title: 'Total Structures', value: String(stats.total), period: 'grades', icon: <ApartmentOutlined />, color: PALETTE.violet, tint: TINT.violet },
@@ -212,26 +228,13 @@ export default function SalaryStructurePanel() {
     { key: 'avg', title: 'Avg Monthly CTC', value: money(stats.avgCtc), period: 'per grade', icon: <DollarOutlined />, color: PALETTE.blue, tint: TINT.blue },
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q)) return false;
-      if (statusFilter === 'active' && !r.isActive) return false;
-      if (statusFilter === 'inactive' && r.isActive) return false;
-      return true;
-    });
-  }, [rows, search, statusFilter]);
-
   const hasActiveFilters = !!search || statusFilter !== 'active';
   const clearFilters = () => { setSearch(''); setStatusFilter('active'); };
 
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
-  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const pagedRows = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedRows = rows;
   useEffect(() => { setTablePage(1); }, [search, statusFilter, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
 
@@ -402,7 +405,7 @@ export default function SalaryStructurePanel() {
             <SearchOutlined className="pvs-search-icon" />
             <input className="pvs-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvs-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvs-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollStructures && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvs-add-btn">New Structure</Button>}
         </div>
       </div>
@@ -433,7 +436,7 @@ export default function SalaryStructurePanel() {
           options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
           style={{ width: 160 }} width={210}
         />
-        <span className="pvs-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="pvs-filter-count">{total} structures</span>
         {hasActiveFilters && <button type="button" className="pvs-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
       </div>
 

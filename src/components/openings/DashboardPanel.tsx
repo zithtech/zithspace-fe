@@ -43,6 +43,8 @@ export default function DashboardPanel() {
   const [status, setStatus] = useState<OpeningStatus[]>([]);
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [includeClosed, setIncludeClosed] = useState(false);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(25);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,7 +54,8 @@ export default function DashboardPanel() {
           status: status.length ? status : undefined,
           departmentId: departmentId || undefined,
           includeClosed: includeClosed || undefined,
-          pageSize: 25,
+          page: tablePage,
+          pageSize: tablePageSize,
           sortBy: 'applications',
           sortOrder: 'desc',
         })
@@ -62,7 +65,11 @@ export default function DashboardPanel() {
     } finally {
       setLoading(false);
     }
-  }, [status, departmentId, includeClosed]);
+  }, [status, departmentId, includeClosed, tablePage, tablePageSize]);
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [status, departmentId, includeClosed, tablePageSize]);
 
   useEffect(() => {
     load();
@@ -337,7 +344,19 @@ export default function DashboardPanel() {
                   </div>
                 ),
               }}
-              pagination={{ ...tablePaginationConfig, total: data?.openings.total ?? 0, pageSize: 25 }}
+              pagination={{
+                ...tablePaginationConfig,
+                current: tablePage,
+                total: data?.openings.total ?? 0,
+                pageSize: tablePageSize,
+                onChange: (page, size) => {
+                  setTablePage(page);
+                  if (size && size !== tablePageSize) {
+                    setTablePageSize(size);
+                    setTablePage(1);
+                  }
+                },
+              }}
             />
           </div>
         </>

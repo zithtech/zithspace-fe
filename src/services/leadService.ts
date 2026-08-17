@@ -120,9 +120,9 @@ export class LeadService {
   /**
    * Fetch all leads for the current tenant
    */
-  static async getAll(): Promise<Lead[]> {
+  static async getAll(filters: any = {}): Promise<PaginatedResponse<Lead>> {
     try {
-      return await api.get<Lead[]>('/api/leads');
+      return await apiUtils.getPaginated<Lead>('/api/leads', filters);
     } catch (error) {
       console.error('Failed to fetch leads:', error);
       throw error;

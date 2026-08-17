@@ -10,6 +10,7 @@ import {
   RefreshCw,
   PackageOpen,
 } from "lucide-react";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 /**
  * Shared content-area scaffold for every Org-structure data submodule
@@ -261,19 +262,19 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
       <div className="omx-body">
         {view === "list" ? (
           <div className="omx-table-wrap">
-            <Table
-              className="omx-table"
-              rowKey={rowKey}
-              columns={columns}
-              dataSource={paged}
-              loading={loading}
-              size="small"
-              pagination={false}
-              scroll={{ x: "max-content" }}
-              locale={{ emptyText: emptyState }}
-              onRow={(record) =>
-                onRowClick
-                  ? {
+            <ZukvoLoadingOverlay loading={!!loading} message="">
+              <Table
+                className="omx-table"
+                rowKey={rowKey}
+                columns={columns}
+                dataSource={paged}
+                size="small"
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                locale={{ emptyText: emptyState }}
+                onRow={(record) =>
+                  onRowClick
+                    ? {
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
                         if (t.closest("button, input, .ant-select, .ant-dropdown-trigger, .ant-popover-open")) return;
@@ -281,9 +282,10 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
                       },
                       className: "omx-row",
                     }
-                  : {}
-              }
-            />
+                    : {}
+                }
+              />
+            </ZukvoLoadingOverlay>
           </div>
         ) : (
           <div className="omx-grid">

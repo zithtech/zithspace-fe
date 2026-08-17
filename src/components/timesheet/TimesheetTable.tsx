@@ -56,6 +56,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import utc from "dayjs/plugin/utc";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(utc);
 
@@ -700,16 +701,17 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                 {/* List View */}
                 {displayMode === 'list' && (
                   <div className="ts-table-wrap">
-                    <Table
-                      className="ts-table"
-                      loading={isLoading}
-                      columns={columns}
-                      dataSource={pagedData}
-                      rowKey="key"
-                      size="middle"
-                      pagination={false}
-                      scroll={{ x: 'max-content' }}
-                    />
+                    <ZukvoLoadingOverlay loading={isLoading} message="">
+                            <Table
+                                                  className="ts-table"
+                                                  columns={columns}
+                                                  dataSource={pagedData}
+                                                  rowKey="key"
+                                                  size="middle"
+                                                  pagination={false}
+                                                  scroll={{ x: 'max-content' }}
+                                                />
+                            </ZukvoLoadingOverlay>
                   </div>
                 )}
 
@@ -1005,16 +1007,17 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                 <List size={16} color="var(--text-slate-500)" />
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-slate-800)" }}>Time Entries</span>
               </div>
-              <Table
-                className="ts-preview-table-enhanced"
-                columns={previewColumns as any}
-                dataSource={getPreviewRows()}
-                pagination={false}
-                rowKey="id"
-                size="small"
-                loading={!previewTimesheetData}
-                bordered={false}
-              />
+              <ZukvoLoadingOverlay loading={!previewTimesheetData} message="">
+                          <Table
+                                          className="ts-preview-table-enhanced"
+                                          columns={previewColumns as any}
+                                          dataSource={getPreviewRows()}
+                                          pagination={false}
+                                          rowKey="id"
+                                          size="small"
+                                          bordered={false}
+                                        />
+                          </ZukvoLoadingOverlay>
             </div>
           </div>
         )}

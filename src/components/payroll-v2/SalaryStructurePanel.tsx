@@ -45,6 +45,7 @@ import PayrollV2Service, {
   ComponentCategory,
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', violet: '#8B5CF6', amber: '#F59E0B', grey: '#94A3B8' } as const;
 const TINT = {
@@ -441,7 +442,9 @@ export default function SalaryStructurePanel() {
 
       {/* TABLE */}
       <div className="pvs-table-wrap">
-        <Table rowKey="id" size="small" className="pvs-table" loading={loading} columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table rowKey="id" size="small" className="pvs-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
+              </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

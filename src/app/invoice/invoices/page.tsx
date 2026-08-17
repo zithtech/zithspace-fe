@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -21,7 +23,6 @@ import {
   Alert,
   Popover,
   Drawer,
-  Spin,
   App,
   Menu,
   Progress,
@@ -84,6 +85,7 @@ import type {
 import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -991,7 +993,7 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><ZukvoLoader size="md" message="Loading" /></div></MainLayout>;
   if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
@@ -1331,16 +1333,17 @@ export default function InvoiceInvoicesPage() {
                 </div>
               ) : (
                 <div className="pp-table-wrap">
-                  <Table
-                    size="small"
-                    rowSelection={rowSelection}
-                    columns={columns}
-                    dataSource={[]}
-                    loading={true}
-                    pagination={false}
-                    className="pp-table"
-                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
-                  />
+                  <ZukvoLoadingOverlay loading={true} message="">
+                                      <Table
+                                                          size="small"
+                                                          rowSelection={rowSelection}
+                                                          columns={columns}
+                                                          dataSource={[]}
+                                                          pagination={false}
+                                                          className="pp-table"
+                                                          scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
+                                                        />
+                                      </ZukvoLoadingOverlay>
                 </div>
               )
             ) : filteredInvoices.length === 0 ? (
@@ -1962,7 +1965,7 @@ export default function InvoiceInvoicesPage() {
       >
         {isPaymentLoading ? (
           <div className="flex flex-col justify-center items-center h-56">
-            <Spin size="default" />
+            <ZukvoLoader size="md" />
             <span className="mt-3 text-xs" style={{ color: 'var(--text-slate-500)' }}>Loading payment history...</span>
           </div>
         ) : !paymentHistory ? (

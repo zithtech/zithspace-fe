@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, message, Tooltip, Drawer, Form, Row, Col, Modal, Checkbox, Pagination } from "antd";
+import { Button, Input, message, Tooltip, Drawer, Form, Row, Col, Modal, Checkbox, Pagination, Select } from "antd";
 import {
   PlayCircleOutlined, ArrowLeftOutlined, SearchOutlined, CheckCircleOutlined,
   CloseCircleOutlined, StopOutlined, MinusCircleOutlined, FileTextOutlined, DownOutlined,
@@ -11,7 +11,7 @@ import {
 } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { PlayCircle, SpellCheck, Loader2, Sparkles, Folder, User, Clock } from "lucide-react";
+import { PlayCircle, SpellCheck, Loader2, Sparkles, Folder, User, Clock, Menu } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
@@ -74,6 +74,7 @@ export default function TestRunExecutionPage() {
   const router = useRouter();
   const params = useParams();
   const runId = params?.runId as string;
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const { canReadRun } = usePermission();
   // Priority / severity / type come from QA Settings
@@ -103,7 +104,7 @@ export default function TestRunExecutionPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
   // ── Server-side pagination ───────────────────────────────────────────────
-  const PAGE_SIZE = 10;
+  const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   /** Paging should land at the top of the list, not mid-scroll. */
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
@@ -458,7 +459,7 @@ export default function TestRunExecutionPage() {
       const res: any = await axios.get(`/api/v2/qa/runs/${runId}`, {
         params: {
           page,
-          pageSize: PAGE_SIZE,
+          pageSize: pageSize,
           ...(debouncedSearch ? { search: debouncedSearch } : {}),
           ...(statusFilter ? { status: statusFilter } : {}),
         },
@@ -491,7 +492,7 @@ export default function TestRunExecutionPage() {
   useEffect(() => {
     if (canReadRun && runId) fetchRun();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReadRun, runId, page, debouncedSearch, statusFilter]);
+  }, [canReadRun, runId, page, pageSize, debouncedSearch, statusFilter]);
 
   // Paging past the end (the last case on a page got filtered away) — go back
   useEffect(() => {
@@ -736,24 +737,42 @@ export default function TestRunExecutionPage() {
 
         /* Run summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 16px;
+          margin: 2px 0 0; padding: 12px;
           border: 1px solid var(--border-slate-200); border-radius: 12px;
           background: transparent;
           box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 8px; }
         .cd-meta__row { 
-          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
-          margin: 0; width: 100%; 
+          display: flex; align-items: center; gap: 12px;
+          padding: 10px 12px; border-radius: 10px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          transition: all 0.2s ease;
+          width: 100%;
+        }
+        .cd-meta__row:hover {
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+          transform: translateY(-1px);
+        }
+        .cd-meta__icon-box {
+          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .cd-meta__content {
+          display: flex; flex-direction: column; min-width: 0; flex: 1;
         }
         .cd-meta__row dt { 
-          display: flex; align-items: center;
-          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
-          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+          font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; 
+          color: var(--text-slate-400); font-weight: 700; margin-bottom: 2px;
         }
         .cd-meta__row dd {
-          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
-          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
+          margin: 0; font-size: 13px; font-weight: 600; color: var(--text-slate-800);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -1268,10 +1287,89 @@ export default function TestRunExecutionPage() {
         .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); display: inline-block; }
         .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
         .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        /* Pagination Footer */
+        .pp-footer {
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
+          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
+          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
+          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
+        }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
+          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
+          font-size: 12.5px; font-weight: 600;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Execution search/filter row: full-width search on mobile */
+          .ex-searchrow { gap: 6px; }
+          .ex-search { width: 100% !important; min-width: 0; flex: 1 1 auto; }
+          .ex-searchrow .sd-trigger { min-width: 120px; flex: 1 1 120px; }
+
+          /* Table: horizontal scroll for execution list */
+          .ex-list { overflow-x: auto !important; }
+          
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon), .ex-topactions .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn, .ex-topactions .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
       `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo"><PlayCircle size={16} /></div>
@@ -1298,20 +1396,31 @@ export default function TestRunExecutionPage() {
             <div className="cd-side">
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Suite</dt>
-                  <dd title={run?.suite_name}>{run?.suite_name || "—"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.2)' }}>
+                    <Clock size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Started</dt>
+                    <dd>{run?.started_at ? dayjs(run.started_at).format("D MMM, HH:mm") : "—"}</dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><Clock size={12} style={{ marginRight: 6 }} /> Started</dt>
-                  <dd>{run?.started_at ? dayjs(run.started_at).format("D MMM, HH:mm") : "—"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' }}>
+                    <CheckCircleOutlined style={{ fontSize: 14 }} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Executed</dt>
+                    <dd>{executed} / {counts.total}</dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><CheckCircleOutlined style={{ fontSize: 12, marginRight: 6 }} /> Executed</dt>
-                  <dd>{executed} / {counts.total}</dd>
-                </div>
-                <div className="cd-meta__row">
-                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
-                  <dd>{run?.created_by_name || "—"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#64748b', background: 'rgba(100,116,139,0.1)', borderColor: 'rgba(100,116,139,0.2)' }}>
+                    <User size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Created By</dt>
+                    <dd>{run?.created_by_name || "—"}</dd>
+                  </div>
                 </div>
               </dl>
             </div>
@@ -1320,8 +1429,14 @@ export default function TestRunExecutionPage() {
 
         <main className="dh-main">
           {/* Back · breadcrumb · run name */}
-          <div className="dh-main-topbar">
-            <div className="sc-topbar__title">
+          <div className="dh-main-topbar sc-topbar">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <Button
                 type="text"
                 size="small"
@@ -1758,24 +1873,26 @@ export default function TestRunExecutionPage() {
 
           {/* Pinned to the bottom of the run — never scrolls with the cases */}
           {totalMatching > 0 && (
-            <div className="ex-pagebar">
-              <span className="ex-pagebar__info">
-                Page <strong>{page}</strong> of {Math.max(1, Math.ceil(totalMatching / PAGE_SIZE))}
-                <span className="ex-pagebar__dot" />
-                {totalMatching} {isFiltered ? "matching" : ""} case{totalMatching === 1 ? "" : "s"}
-              </span>
-              <Pagination
-                current={page}
-                pageSize={PAGE_SIZE}
-                total={totalMatching}
-                onChange={(p) => {
-                  setPage(p);
-                  scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                showSizeChanger={false}
-                size="small"
-                hideOnSinglePage={false}
-              />
+            <div className="pp-footer">
+              <div className="pp-footer-info">
+                Showing <strong>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalMatching)}</strong> of <strong>{totalMatching}</strong> {isFiltered ? "matching" : ""} case{totalMatching === 1 ? "" : "s"}
+              </div>
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: Math.max(1, Math.ceil(totalMatching / pageSize)) }, (_, i) => i + 1)
+                  .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={page >= Math.max(1, Math.ceil(totalMatching / pageSize))} onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil(totalMatching / pageSize)), p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
             </div>
           )}
         </main>

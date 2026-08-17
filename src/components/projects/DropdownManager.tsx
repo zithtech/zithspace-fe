@@ -52,6 +52,7 @@ import { SettingsService, DropdownOption, CreateDropdownOptionData, UpdateDropdo
 import { useSocket } from "@/providers/SocketProvider";
 import { usePermission } from "@/hooks/usePermission";
 import { useTheme } from "@/context/ThemeContext";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -436,10 +437,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       title: 'Context & Rules',
       dataIndex: 'description',
       key: 'description',
-      ellipsis: true,
       render: (description: string) => (
-        <div style={{ maxWidth: 300 }}>
-          <Text type="secondary" style={{ fontSize: 13 }}>
+        <div style={{ maxWidth: 450 }}>
+          <Text type="secondary" style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>
             {description || 'No specialized context defined.'}
           </Text>
         </div>
@@ -705,13 +705,13 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 </div>
 
                 {/* Table */}
-                <div className="dm-table-wrapper">
-                  <Table
-                    columns={columns}
-                    dataSource={filteredItems}
-                    rowKey="id"
-                    loading={dataLoading}
-                    pagination={false}
+                <ZukvoLoadingOverlay loading={dataLoading} message="">
+                  <div className="dm-table-wrapper">
+                    <Table
+                      columns={columns}
+                      dataSource={filteredItems}
+                      rowKey="id"
+                      pagination={false}
                     size="middle"
                     className="premium-table workstation-grid"
                     scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
@@ -752,7 +752,8 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                       ),
                     }}
                   />
-                </div>
+                  </div>
+                </ZukvoLoadingOverlay>
               </div>
             );
           })()
@@ -1899,22 +1900,60 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         .dm-drawer .dm-input .ant-select-selector,
         .dm-drawer .dm-input .ant-input-number,
         .dm-drawer .ant-input,
+        .dm-drawer .ant-input-affix-wrapper,
+        .dm-drawer .ant-input-textarea,
+        .dm-drawer .ant-input-textarea-show-count,
+        .dm-drawer .ant-input-textarea-affix-wrapper,
         .dm-drawer .ant-input-number,
         .dm-drawer .ant-select-selector {
           border-radius: 10px !important;
           transition: all 0.2s ease !important;
         }
+        
+        .dm-drawer .ant-input-textarea,
+        .dm-drawer .ant-input-textarea-show-count,
+        .dm-drawer .ant-input-textarea-affix-wrapper {
+          overflow: hidden;
+        }
         .dm-drawer .ant-input:hover,
+        .dm-drawer .ant-input-affix-wrapper:hover,
+        .dm-drawer .ant-input-textarea:hover,
+        .dm-drawer .ant-input-textarea-show-count:hover,
+        .dm-drawer .ant-input-textarea-affix-wrapper:hover,
         .dm-drawer .ant-input-number:hover,
         .dm-drawer .ant-select:hover .ant-select-selector {
           border-color: #93c5fd !important;
         }
         .dm-drawer .ant-input:focus,
         .dm-drawer .ant-input-focused,
+        .dm-drawer .ant-input-affix-wrapper-focused,
+        .dm-drawer .ant-input-textarea-focused,
+        .dm-drawer .ant-input-textarea-show-count-focused,
+        .dm-drawer .ant-input-textarea-affix-wrapper-focused,
         .dm-drawer .ant-input-number-focused,
-        .dm-drawer .ant-select-focused .ant-select-selector {
+        .dm-drawer .ant-select-focused .ant-select-selector,
+        .dm-drawer .ant-input-textarea:focus-within,
+        .dm-drawer .ant-input-textarea-show-count:focus-within {
           border-color: #3b82f6 !important;
-          box-shadow: none;
+          box-shadow: none !important;
+          outline: none !important;
+        }
+        
+        .dm-drawer textarea,
+        .dm-drawer textarea:focus-visible,
+        .dm-drawer .ant-input-textarea-show-count::after,
+        .dm-drawer .ant-input-textarea::after {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        
+        /* Force border-radius on ANY textarea wrapper */
+        .dm-drawer .ant-input-textarea,
+        .dm-drawer .ant-input-textarea-show-count,
+        .dm-drawer .ant-input-textarea-affix-wrapper,
+        .dm-drawer .ant-form-item-control-input,
+        .dm-drawer .ant-form-item-control-input-content {
+           border-radius: 10px !important;
         }
         .dm-drawer .dm-input-mono input,
         .dm-drawer .dm-input-mono.ant-input {

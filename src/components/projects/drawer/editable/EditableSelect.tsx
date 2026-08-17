@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect, useRef } from 'react';
-import { Select, Typography, Spin, Tag, Space, Avatar } from 'antd';
+import { Select, Typography, Tag, Space, Avatar } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -146,16 +147,18 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
 
         if (mode === 'user') {
             return (
-                <Space size={4}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', minWidth: 0 }}>
                     <Avatar
                         size="small"
                         src={opt.avatarUrl}
-                        style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff' }}
+                        style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff', flexShrink: 0 }}
                     >
                         {opt.label.charAt(0)}
                     </Avatar>
-                    <Text style={textStyle}>{showFirstNameOnly ? opt.label.split(" ")[0] : opt.label}</Text>
-                </Space>
+                    <Text ellipsis={{ tooltip: true }} style={{ ...textStyle, flex: '0 1 auto' }}>
+                        {showFirstNameOnly ? opt.label.split(" ")[0] : opt.label}
+                    </Text>
+                </div>
             );
         }
 
@@ -187,7 +190,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
             title={label || placeholder}
         >
             <div style={{ flex: 1 }}>{renderValue()}</div>
-            {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
+            {loading && <ZukvoLoader size="sm" />}
             {!loading && !disabled && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`

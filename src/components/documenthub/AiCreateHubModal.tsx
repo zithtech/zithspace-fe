@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Input, Button, Typography, message, Select, Spin, Radio } from "antd";
+import { Modal, Input, Button, Typography, message, Select, Radio } from "antd";
 import {
   ThunderboltOutlined,
   SendOutlined,
@@ -17,6 +19,7 @@ import { documentHubService as DocumentHubService, DocumentHub } from "@/service
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+import { useAuth } from "@/context/AuthContext";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -278,6 +281,9 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
   lockedTicket,
   existingHubs,
 }) => {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+
   const [step, setStep] = useState<Step>("input");
   // When opened from inside a specific ticket, the textarea starts blank
   // (no ticket number prefill); otherwise reflect the caller's defaultPrompt.
@@ -527,6 +533,8 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
     }
   };
 
+  if (!hasPrime) return null;
+
   return (
     <>
       {contextHolder}
@@ -737,7 +745,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
               notFoundContent={
                 ticketsLoading ? (
                   <div style={{ textAlign: "center", padding: 8 }}>
-                    <Spin size="small" />
+                    <ZukvoLoader size="sm" />
                   </div>
                 ) : (
                   <span style={{ fontSize: 12, color: "var(--text-slate-400)" }}>
@@ -797,7 +805,7 @@ export const AiCreateHubModal: React.FC<AiCreateHubModalProps> = ({
                       fontSize: 12,
                     }}
                   >
-                    <Spin size="small" />
+                    <ZukvoLoader size="sm" />
                     <span>Loading ticket description…</span>
                   </div>
                 ) : ticketHasDescription ? (

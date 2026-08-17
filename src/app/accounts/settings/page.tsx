@@ -46,6 +46,7 @@ import {
 import { Sparkles, Check, AlertCircle, LayoutGrid, List, Menu } from 'lucide-react';
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -443,7 +444,7 @@ export default function AccountsSettingsPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-                
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={loading || isFetching} /></button>
@@ -648,27 +649,28 @@ export default function AccountsSettingsPage() {
               )
             ) : (
               <div className="pp-table-wrap">
-                <Table
-                  size="small"
-                  columns={columns}
-                  dataSource={pagedCategories}
-                  rowKey="id"
-                  loading={loading}
-                  className="pp-table"
-                  pagination={false}
-                  scroll={{ x: 'max-content' }}
-                  locale={{ emptyText: emptyState }}
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('button, input, .ant-select, .ant-popover, .ant-popconfirm, .settings-row-actions, .ant-dropdown-trigger')) return;
-                      if (canUpdateAccountConfig) {
-                        handleEdit(record);
-                      }
-                    },
-                    className: 'pp-row',
-                  })}
-                />
+                <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                    size="small"
+                    columns={columns}
+                    dataSource={pagedCategories}
+                    rowKey="id"
+                    className="pp-table"
+                    pagination={false}
+                    scroll={{ x: 'max-content' }}
+                    locale={{ emptyText: emptyState }}
+                    onRow={(record) => ({
+                      onClick: (e) => {
+                        const t = e.target as HTMLElement;
+                        if (t.closest('button, input, .ant-select, .ant-popover, .ant-popconfirm, .settings-row-actions, .ant-dropdown-trigger')) return;
+                        if (canUpdateAccountConfig) {
+                          handleEdit(record);
+                        }
+                      },
+                      className: 'pp-row',
+                    })}
+                  />
+                </ZukvoLoadingOverlay>
               </div>
             )}
           </div>

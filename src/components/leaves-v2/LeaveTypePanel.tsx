@@ -44,6 +44,7 @@ import LeaveV2Service, {
   CreateLeaveTypeInput,
   LeaveTypeV2,
 } from '@/services/leaveV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { TextArea } = Input;
 
@@ -375,9 +376,9 @@ export default function LeaveTypePanel() {
       {/* ── 1) HEADER: about + search + add ─────────────────────────────────── */}
       <div className="lvt-header">
         <div className="lvt-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -475,17 +476,18 @@ export default function LeaveTypePanel() {
 
       {/* ── 4) TABLE (Proposal table UI) ────────────────────────────────────── */}
       <div className="lvt-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="lvt-table"
-          loading={loading}
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          onRow={() => ({ className: 'lvt-row' })}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="lvt-table"
+            columns={columns}
+            dataSource={pagedRows}
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            onRow={() => ({ className: 'lvt-row' })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* Sticky footer pager (proposal-style) */}
@@ -602,133 +604,133 @@ export default function LeaveTypePanel() {
           </button>
         </div>
 
-          {/* Content */}
-          <div className="px-6 py-6 space-y-5 pb-24">
-            <Form
-              form={form}
-              layout="horizontal"
-              labelCol={{ span: 8 }}
-              wrapperCol={{ span: 16 }}
-              labelAlign="left"
-              colon={false}
-              requiredMark="optional"
-              className="customer-drawer-form lvt-drawer-form"
-              onValuesChange={(changed) => {
-                if (!editing && 'name' in changed && !codeTouched) {
-                  form.setFieldValue('code', slugifyCode(changed.name || ''));
-                }
-              }}
+        {/* Content */}
+        <div className="px-6 py-6 space-y-5 pb-24">
+          <Form
+            form={form}
+            layout="horizontal"
+            labelCol={{ span: 8 }}
+            wrapperCol={{ span: 16 }}
+            labelAlign="left"
+            colon={false}
+            requiredMark="optional"
+            className="customer-drawer-form lvt-drawer-form"
+            onValuesChange={(changed) => {
+              if (!editing && 'name' in changed && !codeTouched) {
+                form.setFieldValue('code', slugifyCode(changed.name || ''));
+              }
+            }}
+          >
+            {/* STEP 1 — Basic Details */}
+            <SectionCard
+              icon={<InfoCircleOutlined />}
+              title="Basic Information"
+              subtitle="Provide the leave type name, short code, and unit."
+              step="STEP 1"
             >
-              {/* STEP 1 — Basic Details */}
-              <SectionCard
-                icon={<InfoCircleOutlined />}
-                title="Basic Information"
-                subtitle="Provide the leave type name, short code, and unit."
-                step="STEP 1"
-              >
-                <div className="space-y-4">
-                  <Form.Item
-                    style={{ marginBottom: 0 }}
-                    name="name"
-                    label="Leave name"
-                    tooltip="Pick a common type or type your own"
-                    rules={[{ required: true, message: 'Name is required' }]}
+              <div className="space-y-4">
+                <Form.Item
+                  style={{ marginBottom: 0 }}
+                  name="name"
+                  label="Leave name"
+                  tooltip="Pick a common type or type your own"
+                  rules={[{ required: true, message: 'Name is required' }]}
+                >
+                  <AutoComplete
+                    options={suggestionOptions}
+                    onSelect={applySuggestion}
+                    filterOption={(input, option) =>
+                      (option?.value as string).toLowerCase().includes(input.toLowerCase())
+                    }
+                    allowClear
                   >
-                    <AutoComplete
-                      options={suggestionOptions}
-                      onSelect={applySuggestion}
-                      filterOption={(input, option) =>
-                        (option?.value as string).toLowerCase().includes(input.toLowerCase())
-                      }
-                      allowClear
-                    >
-                      <Input size="large" maxLength={120} placeholder="e.g. Sick Leave" />
-                    </AutoComplete>
-                  </Form.Item>
+                    <Input size="large" maxLength={120} placeholder="e.g. Sick Leave" />
+                  </AutoComplete>
+                </Form.Item>
 
-                  <Form.Item
-                    style={{ marginBottom: 0 }}
-                    name="code"
-                    label="Code"
-                    tooltip="Auto-generated from the name. You can override it."
-                    rules={[
-                      { required: true, message: 'Code is required' },
-                      { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' },
-                    ]}
-                  >
-                    <Input
+                <Form.Item
+                  style={{ marginBottom: 0 }}
+                  name="code"
+                  label="Code"
+                  tooltip="Auto-generated from the name. You can override it."
+                  rules={[
+                    { required: true, message: 'Code is required' },
+                    { pattern: /^[a-zA-Z0-9_-]+$/, message: 'Letters, numbers, - and _ only' },
+                  ]}
+                >
+                  <Input
+                    size="large"
+                    placeholder="SICK_LEAVE"
+                    maxLength={40}
+                    disabled={!!editing}
+                    onChange={() => setCodeTouched(true)}
+                    style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
+                  />
+                </Form.Item>
+
+                <Form.Item style={{ marginBottom: 0 }} name="unit" label="Unit">
+                  <SearchableDropdown
+                    className="lvt-dd-flat"
+                    placeholder="Select unit"
+                    searchPlaceholder="Search units"
+                    itemNoun="units"
+                    allowClear={false}
+                    options={[{ value: 'day', label: 'Daily' }, { value: 'hour', label: 'Hourly' }]}
+                    style={{ width: '100%', height: 40 }}
+                    width={210}
+                  />
+                </Form.Item>
+                <Form.Item style={{ marginBottom: 0 }} label="Color">
+                  <div className="lvt-color-field">
+                    <ColorPicker
+                      value={color}
+                      onChange={(_, hex) => setColor(hex)}
+                      presets={[{ label: 'Leaves palette', colors: [PALETTE.blue, PALETTE.green, PALETTE.red, PALETTE.grey] }]}
+                      showText={(c) => <span className="lvt-color-hex">{c.toHexString().toUpperCase()}</span>}
                       size="large"
-                      placeholder="SICK_LEAVE"
-                      maxLength={40}
-                      disabled={!!editing}
-                      onChange={() => setCodeTouched(true)}
-                      style={{ fontFamily: 'monospace', color: 'var(--text-slate-600)' }}
                     />
-                  </Form.Item>
+                  </div>
+                </Form.Item>
 
-                  <Form.Item style={{ marginBottom: 0 }} name="unit" label="Unit">
-                    <SearchableDropdown
-                      className="lvt-dd-flat"
-                      placeholder="Select unit"
-                      searchPlaceholder="Search units"
-                      itemNoun="units"
-                      allowClear={false}
-                      options={[{ value: 'day', label: 'Daily' }, { value: 'hour', label: 'Hourly' }]}
-                      style={{ width: '100%', height: 40 }}
-                      width={210}
-                    />
-                  </Form.Item>
-                  <Form.Item style={{ marginBottom: 0 }} label="Color">
-                    <div className="lvt-color-field">
-                      <ColorPicker
-                        value={color}
-                        onChange={(_, hex) => setColor(hex)}
-                        presets={[{ label: 'Leaves palette', colors: [PALETTE.blue, PALETTE.green, PALETTE.red, PALETTE.grey] }]}
-                        showText={(c) => <span className="lvt-color-hex">{c.toHexString().toUpperCase()}</span>}
-                        size="large"
-                      />
-                    </div>
-                  </Form.Item>
+                <Form.Item style={{ marginBottom: 0 }} name="description" label="Description">
+                  <TextArea rows={2} maxLength={500} placeholder="What is this leave for?" />
+                </Form.Item>
+              </div>
+            </SectionCard>
 
-                  <Form.Item style={{ marginBottom: 0 }} name="description" label="Description">
-                    <TextArea rows={2} maxLength={500} placeholder="What is this leave for?" />
-                  </Form.Item>
+            {/* STEP 2 — Policy & Settings */}
+            <SectionCard
+              icon={<SettingOutlined />}
+              title="Rules & Behavior"
+              subtitle="Define how this leave behaves when applied."
+              step="STEP 2"
+            >
+              <div className="lvt-toggles">
+                <div className="lvt-toggle-row">
+                  <div className="lvt-toggle-text">
+                    <div className="lvt-toggle-title">Paid leave</div>
+                    <div className="lvt-toggle-desc">Counts as paid time off</div>
+                  </div>
+                  <Form.Item name="isPaid" valuePropName="checked" noStyle><Switch /></Form.Item>
                 </div>
-              </SectionCard>
-
-              {/* STEP 2 — Policy & Settings */}
-              <SectionCard
-                icon={<SettingOutlined />}
-                title="Rules & Behavior"
-                subtitle="Define how this leave behaves when applied."
-                step="STEP 2"
-              >
-                <div className="lvt-toggles">
-                  <div className="lvt-toggle-row">
-                    <div className="lvt-toggle-text">
-                      <div className="lvt-toggle-title">Paid leave</div>
-                      <div className="lvt-toggle-desc">Counts as paid time off</div>
-                    </div>
-                    <Form.Item name="isPaid" valuePropName="checked" noStyle><Switch /></Form.Item>
+                <div className="lvt-toggle-row">
+                  <div className="lvt-toggle-text">
+                    <div className="lvt-toggle-title">Requires approval</div>
+                    <div className="lvt-toggle-desc">Manager must approve each request</div>
                   </div>
-                  <div className="lvt-toggle-row">
-                    <div className="lvt-toggle-text">
-                      <div className="lvt-toggle-title">Requires approval</div>
-                      <div className="lvt-toggle-desc">Manager must approve each request</div>
-                    </div>
-                    <Form.Item name="requiresApproval" valuePropName="checked" noStyle><Switch /></Form.Item>
-                  </div>
-                  <div className="lvt-toggle-row">
-                    <div className="lvt-toggle-text">
-                      <div className="lvt-toggle-title">Active</div>
-                      <div className="lvt-toggle-desc">Available for new requests</div>
-                    </div>
-                    <Form.Item name="isActive" valuePropName="checked" noStyle><Switch /></Form.Item>
-                  </div>
+                  <Form.Item name="requiresApproval" valuePropName="checked" noStyle><Switch /></Form.Item>
                 </div>
-              </SectionCard>
-            </Form>
-          </div>
+                <div className="lvt-toggle-row">
+                  <div className="lvt-toggle-text">
+                    <div className="lvt-toggle-title">Active</div>
+                    <div className="lvt-toggle-desc">Available for new requests</div>
+                  </div>
+                  <Form.Item name="isActive" valuePropName="checked" noStyle><Switch /></Form.Item>
+                </div>
+              </div>
+            </SectionCard>
+          </Form>
+        </div>
       </Drawer>
 
       <style jsx global>{`

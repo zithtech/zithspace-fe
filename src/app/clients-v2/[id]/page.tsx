@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from "react";
 import {
@@ -6,7 +8,6 @@ import {
   Tabs,
   Button,
   Space,
-  Spin,
   message,
   Input,
   Select,
@@ -774,7 +775,7 @@ export default function ClientV2DetailsPage() {
         <MainLayout>
           <div className="cd-loading">
             <div className="cd-loading-card">
-              <Spin size="large" />
+              <ZukvoLoader size="lg" />
               <Text className="cd-loading-text">Loading client profile…</Text>
             </div>
             <style jsx global>{`

@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { App, Button, Spin } from 'antd';
+import { App, Button } from 'antd';
 import { AtSign, ImagePlus, Newspaper, PenLine, Users } from 'lucide-react';
 import { OpeningStyles, PALETTE, PanelHeader, TINT } from '@/components/openings/ui';
 import { avatarColorFor, initialsFor } from '@/components/common/SearchableDropdown';
@@ -172,7 +174,7 @@ export default function BlogFeed() {
 
         {loading ? (
           <div className="hsb-state">
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : posts.length === 0 ? (
           <div className="hsb-state hsb-empty">

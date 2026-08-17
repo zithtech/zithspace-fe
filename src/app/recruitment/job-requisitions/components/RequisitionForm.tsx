@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -15,7 +17,6 @@ import {
   message,
   Space,
   Typography,
-  Spin,
   Divider,
 } from "antd";
 import {
@@ -310,7 +311,7 @@ export default function RequisitionForm({
   if (fetching)
     return (
       <div style={{ padding: "50px", textAlign: "center" }}>
-        <Spin size="large" tip="Loading requisition details..." />
+        <ZukvoLoader size="lg" message="Loading requisition details..." />
       </div>
     );
 

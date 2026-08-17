@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +16,6 @@ import {
   Popconfirm,
   Progress,
   Select,
-  Spin,
   Table,
   Tag,
   Tooltip,
@@ -44,6 +45,7 @@ import { useUserProjects } from "@/hooks/useGlobalData";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import TicketLifecycleShell, { ProjectFilterOption } from "@/components/projects/TicketLifecycleShell";
 import type { TrashTicket } from "@/services/trashService";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const RETENTION_DAYS = 7;
@@ -322,7 +324,7 @@ export default function TicketsTrashPage() {
           minHeight: "calc(100vh - 64px)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <Spin size="large" tip="Loading trash repository..." />
+          <ZukvoLoader size="lg" message="Loading trash repository..." />
         </div>
       </MainLayout>
     );
@@ -439,46 +441,47 @@ export default function TicketsTrashPage() {
           </div>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={tickets}
-          rowKey="id"
-          loading={isLoading}
-          size="small"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
-          className="trs2-table"
-          locale={{
-            emptyText: isLoading ? null : (
-              <div className="trs2-empty">
-                <div className="trs2-empty-icon">
-                  <RestOutlined />
+        <ZukvoLoadingOverlay loading={isLoading} message="">
+          <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            size="small"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
+            className="trs2-table"
+            locale={{
+              emptyText: isLoading ? null : (
+                <div className="trs2-empty">
+                  <div className="trs2-empty-icon">
+                    <RestOutlined />
+                  </div>
+                  <Text className="trs2-empty-title">
+                    {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
+                  </Text>
+                  <Text className="trs2-empty-sub">
+                    {isFiltered
+                      ? "Try adjusting your filters or search query."
+                      : "Tickets you delete will appear here for 7 days before they are permanently removed."}
+                  </Text>
+                  {isFiltered && (
+                    <Button
+                      size="small"
+                      onClick={() => { setSearchText(""); setSelectedProject(null); }}
+                      style={{ marginTop: 12 }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
                 </div>
-                <Text className="trs2-empty-title">
-                  {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
-                </Text>
-                <Text className="trs2-empty-sub">
-                  {isFiltered
-                    ? "Try adjusting your filters or search query."
-                    : "Tickets you delete will appear here for 7 days before they are permanently removed."}
-                </Text>
-                {isFiltered && (
-                  <Button
-                    size="small"
-                    onClick={() => { setSearchText(""); setSelectedProject(null); }}
-                    style={{ marginTop: 12 }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            ),
-          }}
-          pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
-        />
+              ),
+            }}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}
+          />
+        </ZukvoLoadingOverlay>
 
         {/* ── Sticky pagination footer ── */}
         {tickets.length > 0 && (

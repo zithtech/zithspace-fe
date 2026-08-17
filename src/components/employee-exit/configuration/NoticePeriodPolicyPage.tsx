@@ -40,6 +40,7 @@ import { PositionService, Position } from '@/services/positionService';
 import { commonDrawerProps, drawerFormStyles, SectionCard } from '@/components/common/DrawerSection';
 import { useMembers } from '@/hooks/useGlobalData';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -59,13 +60,13 @@ const getCreatorName = (record: any, members: any[] = []) => {
   if (typeof c === 'object' && c !== null) {
     return c.name || c.first_name || c.firstName || c.employeeProfile?.firstName || c.employee?.first_name || 'Admin';
   }
-  
+
   const creatorId = record.createdById || record.created_by_id || c;
   if (typeof creatorId === 'string' && members.length > 0) {
     const member = members.find(m => m.value === creatorId);
     if (member) return member.label;
   }
-  
+
   return (typeof c === 'string' && !c.includes('-')) ? c : (record.createdByName || record.created_by_name || 'Admin');
 };
 
@@ -76,7 +77,7 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<NoticePolicy | null>(null);
   const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { data: members = [] } = useMembers();
@@ -499,15 +500,16 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
       ) : (
         <div className="pp-table-wrap" style={{ flex: 1, overflow: 'auto' }}>
           <div style={{ border: '1px solid var(--border-color)', borderRadius: 0 }}>
-            <Table
-              className="pp-table"
-              columns={columns}
-              dataSource={currentData}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-              scroll={{ x: 1000 }}
-            />
+            <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                className="pp-table"
+                columns={columns}
+                dataSource={currentData}
+                rowKey="id"
+                pagination={false}
+                scroll={{ x: 1000 }}
+              />
+            </ZukvoLoadingOverlay>
           </div>
         </div>
       )}
@@ -559,7 +561,7 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
         }
       >
         <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
-        
+
         <div
           className="customer-drawer-header sticky top-0 z-10 px-6 py-4 flex items-start justify-between gap-3 border-b backdrop-blur-md"
           style={{
@@ -604,17 +606,17 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
           </button>
         </div>
 
-        <Form 
-          form={form} 
-          layout="horizontal" 
-          labelAlign="left" 
-          labelCol={{ span: 8 }} 
-          wrapperCol={{ span: 16 }} 
-          requiredMark={false} 
+        <Form
+          form={form}
+          layout="horizontal"
+          labelAlign="left"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          requiredMark={false}
           className="customer-drawer-form"
         >
           <div className="px-6 py-6 space-y-5 pb-24">
-            
+
             <SectionCard title="Notice Strategy" icon={<Settings2 size={16} />}>
               <Form.Item
                 name="policy_name"

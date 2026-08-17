@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   BarChart,
   Bar,
@@ -365,6 +366,13 @@ function SectionAnchor({
 }
 
 export default function SprintReportView({ sprintId }: SprintReportViewProps) {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_reports_prime');
+  
+  const activeSections = useMemo(() => {
+    return SECTIONS.filter(s => s.id !== "narrative" || hasPrime);
+  }, [hasPrime]);
+
   const [data, setData] = useState<SprintReport | null>(null);
   // The full stored snapshot (report_data) for a generated report, or null when
   // none exists yet (active/ungenerated sprint → sections fetch live).
@@ -397,7 +405,7 @@ export default function SprintReportView({ sprintId }: SprintReportViewProps) {
     };
   }, [sprintId]);
 
-  return <SprintReportContent data={data} snapshot={snapshot} loading={loading} error={error} sprintId={sprintId} />;
+  return <SprintReportContent data={data} snapshot={snapshot} loading={loading} error={error} sprintId={sprintId} hasPrime={hasPrime} activeSections={activeSections} />;
 }
 
 function SprintReportContent({
@@ -406,12 +414,16 @@ function SprintReportContent({
   loading,
   error,
   sprintId,
+  hasPrime,
+  activeSections,
 }: {
   data: SprintReport | null;
   snapshot: Record<string, any> | null;
   loading: boolean;
   error: string | null;
   sprintId: string;
+  hasPrime: boolean;
+  activeSections: { id: string; label: string }[];
 }) {
   // Measure the sticky chrome (header + tabs) so scroll-spy + anchor offsets stay
   // accurate even as the header height changes (long goal text, wrapping chips).
@@ -460,7 +472,7 @@ function SprintReportContent({
   }, [data]);
 
   const activeId = useScrollSpy(
-    SECTIONS.map((s) => s.id),
+    activeSections.map((s) => s.id),
     stickyH + 4,
     scrollRoot
   );
@@ -486,7 +498,7 @@ function SprintReportContent({
           <div className="border-t border-zinc-200/70 dark:border-zinc-800/70">
             <div className="mx-auto max-w-7xl">
               <SectionTabs
-                sections={SECTIONS}
+                sections={activeSections}
                 activeId={activeId}
                 offset={stickyH}
                 scrollRoot={scrollRoot}
@@ -497,9 +509,11 @@ function SprintReportContent({
 
         <div className="mx-auto max-w-7xl px-6 py-4 space-y-4">
           <KpiStrip overview={data.overview} />
-          <SectionAnchor id="narrative" offset={stickyH}>
-            <AiNarrativeSection sprintId={sprintId} />
-          </SectionAnchor>
+          {hasPrime && (
+            <SectionAnchor id="narrative" offset={stickyH}>
+              <AiNarrativeSection sprintId={sprintId} />
+            </SectionAnchor>
+          )}
           <SectionAnchor id="bottlenecks" offset={stickyH}>
             <BottlenecksSection sprintId={sprintId} />
           </SectionAnchor>
@@ -547,7 +561,7 @@ function SprintReportContent({
             }}
           >
             <div ref={exportRef} className="bg-zinc-50 dark:bg-[#0B0F1A]">
-              <SprintReportExport data={data} sprintId={sprintId} />
+              <SprintReportExport data={data} sprintId={sprintId} hasPrime={hasPrime} />
             </div>
           </div>
         ) : null}
@@ -585,18 +599,20 @@ function waitForExportReady(el: HTMLElement, timeoutMs = 9000): Promise<void> {
 function SprintReportExport({
   data,
   sprintId,
+  hasPrime,
 }: {
   data: SprintReport;
   sprintId: string;
+  hasPrime: boolean;
 }) {
   return (
     <div className="bg-zinc-50 dark:bg-[#0B0F1A]">
       <div className="px-8 pt-8 pb-4">
-        <ExportCover overview={data.overview} />
+        <ExportCover overview={data.overview} hasPrime={hasPrime} />
       </div>
       <div className="html2pdf__page-break" />
       <div className="px-8 py-4 space-y-6">
-        <AiNarrativeSection sprintId={sprintId} printMode />
+        {hasPrime && <AiNarrativeSection sprintId={sprintId} printMode />}
         <BottlenecksSection sprintId={sprintId} />
         <DistributionSection
           dist={data.ticketDistribution}
@@ -622,7 +638,8 @@ function SprintReportExport({
   );
 }
 
-function ExportCover({ overview }: { overview: SprintReport["overview"] }) {
+function ExportCover({ overview, hasPrime }: { overview: SprintReport["overview"]; hasPrime: boolean }) {
+  const activeSections = SECTIONS.filter(s => s.id !== "narrative" || hasPrime);
   return (
     <section className="flex flex-col gap-5">
       <Header overview={overview} printMode />
@@ -632,7 +649,7 @@ function ExportCover({ overview }: { overview: SprintReport["overview"] }) {
           Contents
         </div>
         <ol className="space-y-2.5">
-          {SECTIONS.map((s, i) => (
+          {activeSections.map((s, i) => (
             <li
               key={s.id}
               className="flex items-center gap-3 text-sm text-zinc-800 dark:text-zinc-200"
@@ -2178,6 +2195,8 @@ export function SprintReportExportRunner({
   format: "pdf" | "docx";
   onDone: (ok: boolean) => void;
 }) {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_tickets_reports_prime');
   const [payload, setPayload] = useState<{
     data: SprintReport;
     snapshot: Record<string, any> | null;
@@ -2242,7 +2261,7 @@ export function SprintReportExportRunner({
         }}
       >
         <div ref={ref} className="bg-zinc-50 dark:bg-[#0B0F1A]">
-          <SprintReportExport data={payload.data} sprintId={sprintId} />
+          <SprintReportExport data={payload.data} sprintId={sprintId} hasPrime={hasPrime} />
         </div>
       </div>
     </SnapshotContext.Provider>

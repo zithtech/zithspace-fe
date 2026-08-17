@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useMemo, useState, useEffect } from "react";
 import {
@@ -10,7 +12,6 @@ import {
   Col,
   Switch,
   Tooltip,
-  Spin,
   Drawer,
   App,
   Popover,
@@ -179,7 +180,7 @@ export default function GradesPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Grades..." />
+        <ZukvoLoader size="lg" message="Loading Grades..." />
       </div>
     );
   }

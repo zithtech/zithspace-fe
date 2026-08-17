@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Button, Typography, Tooltip, Spin, message, theme } from 'antd';
+import { Layout, Button, Typography, Tooltip, message, theme } from 'antd';
 import { PlusOutlined, EditOutlined, AppstoreOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import ChannelList from '@/features/chat/ChannelList';
 import BrowseChannelsModal from '@/features/chat/BrowseChannelsModal';
@@ -148,7 +150,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {loading ? (
                             <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                                <Spin size="small" />
+                                <ZukvoLoader size="sm" />
                             </div>
                         ) : (
                             <ChannelList />

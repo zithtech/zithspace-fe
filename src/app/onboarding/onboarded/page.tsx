@@ -36,6 +36,7 @@ import { EmployeeOnboardingService } from "@/services/onboardingService";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 // ── Module palette: blue / green / red / grey only ──────────────────────────
 const PALETTE = {
@@ -96,8 +97,8 @@ const ActionCell = ({ record, canUpdate, canDelete, onDelete, router, menuLabelH
               onDelete(record.id);
             }}
           >
-            <button 
-              className="ant-dropdown-menu-item ant-dropdown-menu-item-danger" 
+            <button
+              className="ant-dropdown-menu-item ant-dropdown-menu-item-danger"
               style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer" }}
             >
               {menuLabelHelper("Delete Record", "Permanently remove this record", <Trash2 size={14} />, "#ef4444", "rgba(239,68,68,0.10)")}
@@ -380,12 +381,12 @@ const Onboarded = () => {
         align: "right" as const,
         render: (_: any, record: any) => {
           return (
-            <ActionCell 
-              record={record} 
-              canUpdate={canUpdateOnboarding} 
-              canDelete={canDeleteOnboarding} 
-              onDelete={handleDelete} 
-              router={router} 
+            <ActionCell
+              record={record}
+              canUpdate={canUpdateOnboarding}
+              canDelete={canDeleteOnboarding}
+              onDelete={handleDelete}
+              router={router}
               menuLabelHelper={onbMenuLabel}
             />
           );
@@ -402,8 +403,8 @@ const Onboarded = () => {
       {/* ── 1) HEADER: about + search + add ─────────────────────────────────── */}
       <div className="onb-header">
         <div className="onb-header-about">
-          <button 
-            className="ob-mobile-menu-btn" 
+          <button
+            className="ob-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
             aria-label="Open menu"
           >
@@ -476,17 +477,18 @@ const Onboarded = () => {
 
       {/* ── 3) TABLE ─────────────────────────────────────────────────────────── */}
       <div className="onb-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="onb-table"
-          loading={loading}
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          onRow={() => ({ className: "onb-row" })}
-          scroll={{ x: 'max-content' }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="onb-table"
+            columns={columns}
+            dataSource={pagedRows}
+            pagination={false}
+            onRow={() => ({ className: "onb-row" })}
+            scroll={{ x: 'max-content' }}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* Sticky footer pager */}

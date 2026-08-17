@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState } from 'react';
-import { Typography, Tabs, Spin, Card, Input, Button, Dropdown } from 'antd';
+import { Typography, Tabs, Card, Input, Button, Dropdown } from 'antd';
 import { usePermission } from '@/hooks/usePermission';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -72,7 +74,7 @@ export default function EmployeeExitConfigurationPage() {
   if (authLoading || !canReadExitConfig) {
     return (
       <div style={{ padding: 100, textAlign: 'center' }}>
-        <Spin size="large" tip="Loading..." />
+        <ZukvoLoader size="lg" message="Loading..." />
       </div>
     );
   }

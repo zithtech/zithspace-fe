@@ -46,6 +46,7 @@ import PayrollV2Service, {
   ComponentCalcType,
   ComponentPercentageOf,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { TextArea } = Input;
 
@@ -552,17 +553,18 @@ export default function SalaryComponentPanel() {
 
       {/* ── TABLE ──────────────────────────────────────────────────────────── */}
       <div className="pvc-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="pvc-table"
-          loading={loading}
-          columns={columns}
-          dataSource={pagedRows}
-          pagination={false}
-          onRow={() => ({ className: 'pvc-row' })}
-          scroll={{ x: 'max-content' }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                        rowKey="id"
+                        size="small"
+                        className="pvc-table"
+                        columns={columns}
+                        dataSource={pagedRows}
+                        pagination={false}
+                        onRow={() => ({ className: 'pvc-row' })}
+                        scroll={{ x: 'max-content' }}
+                      />
+              </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (

@@ -41,12 +41,13 @@ import { SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, StarOutlined }
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, ReloadOutlined, EllipsisOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 function LetterGenerationContent() {
   const { user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
   const router = useRouter();
-  
+
   useEffect(() => {
     if (perms.canGenerateLetter === false) {
       router.push('/dashboard');
@@ -1061,7 +1062,9 @@ function LetterGenerationContent() {
             </div>
 
             {loading ? (
-              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>Loading active templates...</div>
+              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
+                <ZukvoLoader message="Loading active templates..." size="md" />
+              </div>
             ) : templates.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
                 No active document templates available. Please create or activate a template in Template Management first.

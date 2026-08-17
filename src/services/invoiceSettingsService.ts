@@ -107,7 +107,7 @@ export class InvoiceSettingsService {
       );
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch settings profiles");
     }
@@ -121,7 +121,7 @@ export class InvoiceSettingsService {
       return await api.get<SettingsProfile>(`/api/invoicesetting/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch profile details");
     }
@@ -137,7 +137,7 @@ export class InvoiceSettingsService {
       return await api.post<SettingsProfile>("/api/invoicesetting", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create settings profile");
     }
@@ -154,7 +154,7 @@ export class InvoiceSettingsService {
       return await api.patch<SettingsProfile>(`/api/invoicesetting/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update settings profile");
     }
@@ -168,7 +168,7 @@ export class InvoiceSettingsService {
       await api.delete(`/api/invoicesetting/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to deactivate profile");
     }
@@ -186,7 +186,7 @@ static async activateProfile(id: string, isActive: boolean): Promise<SettingsPro
       isActive 
     });
   } catch (error) {
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error("Failed to update profile status");
   }
 }

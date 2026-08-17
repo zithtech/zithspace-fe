@@ -15,6 +15,8 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useDebounce } from "@/hooks/useDebounce";
 
 /**
  * The standard testing types, kept identical to the Test Scope page so both
@@ -248,6 +250,28 @@ function CreateTestSuiteContent() {
   const [zaiPrompt, setZaiPrompt] = useState("");
   const [zaiDraft, setZaiDraft] = useState("");
 
+  // For dynamic parent test case search beyond the initial 1000
+  const [parentSearchTerm, setParentSearchTerm] = useState("");
+  const debouncedParentSearch = useDebounce(parentSearchTerm, 500);
+
+  useEffect(() => {
+    if (!debouncedParentSearch || debouncedParentSearch.trim().length < 2) return;
+    const searchParents = async () => {
+      try {
+        const res = await axios.get("/api/v2/qa/parents", {
+          params: { search: debouncedParentSearch, limit: 50 }
+        });
+        const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setParents((prev: any[]) => {
+          const map = new Map(prev.map(p => [p.id, p]));
+          fetched.forEach((p: any) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      } catch (e) {}
+    };
+    searchParents();
+  }, [debouncedParentSearch]);
+
   const patch = (next: Record<string, any>) => {
     setIsDirty(true);
     setFormData((prev: any) => ({ ...prev, ...next }));
@@ -259,8 +283,8 @@ function CreateTestSuiteContent() {
     (async () => {
       try {
         const [parentsRes, suitesRes]: any[] = await Promise.all([
-          axios.get("/api/v2/qa/parents"),
-          axios.get("/api/v2/qa/suites/all"),
+          axios.get("/api/v2/qa/parents?limit=1000"),
+          axios.get("/api/v2/qa/suites/all?limit=1000"),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setParents(unwrap(parentsRes));
@@ -1136,6 +1160,7 @@ function CreateTestSuiteContent() {
                       }
                     }}
                     placeholder="Select a test case to load its module cases"
+                    onSearch={(val) => setParentSearchTerm(val)}
                     allowClear
                     style={{ width: "100%" }}
                   />

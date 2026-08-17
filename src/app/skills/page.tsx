@@ -51,6 +51,7 @@ import SkillsAutocomplete from "@/components/SkillsAutocomplete";
 import { searchSkills } from "@/data/skillsData";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { usePermission } from "@/hooks/usePermission";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -328,11 +329,11 @@ export default function SkillsPage() {
       render: (desc: string) => (
         desc ? (
           <Tooltip title={desc}>
-            <span style={{ 
-              display: "block", 
-              maxWidth: 250, 
-              whiteSpace: "nowrap", 
-              overflow: "hidden", 
+            <span style={{
+              display: "block",
+              maxWidth: 250,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
               textOverflow: "ellipsis",
               color: "var(--text-slate-500)",
               fontSize: "12.5px"
@@ -499,11 +500,11 @@ export default function SkillsPage() {
       render: (desc: string) => (
         desc ? (
           <Tooltip title={desc}>
-            <span style={{ 
-              display: "block", 
-              maxWidth: 250, 
-              whiteSpace: "nowrap", 
-              overflow: "hidden", 
+            <span style={{
+              display: "block",
+              maxWidth: 250,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
               textOverflow: "ellipsis",
               color: "var(--text-slate-500)",
               fontSize: "12.5px"
@@ -614,7 +615,7 @@ export default function SkillsPage() {
       <MainLayout>
         {contextHolder}
 
-        
+
         <div className="pp-shell">
           {/* ============================ SIDEBAR ============================ */}
           <aside className="pp-sidebar">
@@ -647,9 +648,9 @@ export default function SkillsPage() {
                 </button>
               </div>
             </div>
-            
+
             <div className="pp-trash" style={{ cursor: "default" }}>
-               <Info size={14} /> {stats.skillCount + stats.experienceCount} entries
+              <Info size={14} /> {stats.skillCount + stats.experienceCount} entries
             </div>
           </aside>
 
@@ -830,102 +831,104 @@ export default function SkillsPage() {
             </div>
 
             <div className="pp-body">
-              {view === "list" ? (
-                <div className="pp-table-wrap">
-                  <Table
-                    rowKey="id"
-                    loading={loading}
-                    columns={(activeTab === "1" ? skillColumns : expColumns) as any}
-                    dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
-                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
-                    scroll={{ x: "max-content" }}
-                    size="small"
-                    className="pp-table"
-                    rowClassName="pp-row"
-                    onRow={(record) => ({
-                      onClick: () => handleView(record),
-                      style: { cursor: "pointer" }
-                    })}
-                    locale={{
-                      emptyText: (
-                        <div className="pp-empty">
-                          <div className="pp-empty-orb"><Inbox size={26} /></div>
-                          <div className="pp-empty-title">
-                            {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
-                          </div>
-                          <div className="pp-empty-sub">
-                            {searchText ? "Try a different keyword." : "Add your first entry."}
-                          </div>
-                        </div>
-                      )
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="pp-grid">
-                  {loading ? (
-                    <div style={{ padding: 20 }}>Loading...</div>
-                  ) : (activeTab === "1" && filteredSkills.length === 0) || (activeTab === "2" && filteredExperience.length === 0) ? (
-                    <div className="pp-empty" style={{ gridColumn: "1 / -1" }}>
-                      <div className="pp-empty-orb"><Inbox size={26} /></div>
-                      <div className="pp-empty-title">
-                        {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
-                      </div>
-                      <div className="pp-empty-sub">
-                        {searchText ? "Try a different keyword." : "Add your first entry."}
-                      </div>
-                    </div>
-                  ) : activeTab === "1" ? (
-                    filteredSkills.map(skill => (
-                      <div key={skill.id} className="pc-card" onClick={() => handleView(skill)}>
-                        <div className="pc-top">
-                          <div className="pc-head">
-                            <span className="pc-type-badge">
-                              {skill.category || "General"}
-                            </span>
-                          </div>
-                          <h3 className="pc-title">{skill.name}</h3>
-                          <div className="pc-desc" style={{ WebkitLineClamp: 2 }}>{skill.description || "No description provided."}</div>
-                        </div>
-                        <div className="pc-foot">
-                          <div className="pc-foot-meta">
-                            <Award size={13} style={{ color: "var(--text-slate-400)" }} />
-                            <span>{skill.proficiency_level}</span>
-                          </div>
-                          {skill.years_of_experience ? (
-                            <div className="pc-foot-meta">
-                              <Clock size={13} style={{ color: "var(--text-slate-400)" }} />
-                              <span>{skill.years_of_experience}y</span>
+              <ZukvoLoadingOverlay loading={loading} message="">
+                {view === "list" ? (
+                  <div className="pp-table-wrap">
+                    <Table
+                      rowKey="id"
+                      columns={(activeTab === "1" ? skillColumns : expColumns) as any}
+                      dataSource={activeTab === "1" ? filteredSkills : filteredExperience}
+                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"], hideOnSinglePage: true }}
+                      scroll={{ x: "max-content" }}
+                      size="small"
+                      className="pp-table"
+                      rowClassName="pp-row"
+                      onRow={(record) => ({
+                        onClick: () => handleView(record),
+                        style: { cursor: "pointer" }
+                      })}
+                      locale={{
+                        emptyText: (
+                          <div className="pp-empty">
+                            <div className="pp-empty-orb"><Inbox size={26} /></div>
+                            <div className="pp-empty-title">
+                              {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
                             </div>
-                          ) : null}
+                            <div className="pp-empty-sub">
+                              {searchText ? "Try a different keyword." : "Add your first entry."}
+                            </div>
+                          </div>
+                        )
+                      }}
+                    />
+
+                  </div>
+                ) : (
+                  <div className="pp-grid">
+                    {loading ? (
+                      <div style={{ padding: 20 }}>Loading...</div>
+                    ) : (activeTab === "1" && filteredSkills.length === 0) || (activeTab === "2" && filteredExperience.length === 0) ? (
+                      <div className="pp-empty" style={{ gridColumn: "1 / -1" }}>
+                        <div className="pp-empty-orb"><Inbox size={26} /></div>
+                        <div className="pp-empty-title">
+                          {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
+                        </div>
+                        <div className="pp-empty-sub">
+                          {searchText ? "Try a different keyword." : "Add your first entry."}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    filteredExperience.map(exp => (
-                      <div key={exp.id} className="pc-card" onClick={() => handleView(exp)}>
-                        <div className="pc-top">
-                          <div className="pc-head">
-                            <span className="pc-type-badge">
-                              {exp.company_name}
-                            </span>
+                    ) : activeTab === "1" ? (
+                      filteredSkills.map(skill => (
+                        <div key={skill.id} className="pc-card" onClick={() => handleView(skill)}>
+                          <div className="pc-top">
+                            <div className="pc-head">
+                              <span className="pc-type-badge">
+                                {skill.category || "General"}
+                              </span>
+                            </div>
+                            <h3 className="pc-title">{skill.name}</h3>
+                            <div className="pc-desc" style={{ WebkitLineClamp: 2 }}>{skill.description || "No description provided."}</div>
                           </div>
-                          <h3 className="pc-title">{exp.job_title}</h3>
-                          <div className="pc-desc">{exp.employment_type} {exp.location ? `· ${exp.location}` : ""}</div>
-                        </div>
-                        <div className="pc-foot">
-                          <div className="pc-foot-meta">
-                            <Calendar size={13} style={{ color: "var(--text-slate-400)" }} />
-                            <span>
-                              {new Date(exp.start_date).getFullYear()} - {exp.current_job ? "Present" : exp.end_date ? new Date(exp.end_date).getFullYear() : ""}
-                            </span>
+                          <div className="pc-foot">
+                            <div className="pc-foot-meta">
+                              <Award size={13} style={{ color: "var(--text-slate-400)" }} />
+                              <span>{skill.proficiency_level}</span>
+                            </div>
+                            {skill.years_of_experience ? (
+                              <div className="pc-foot-meta">
+                                <Clock size={13} style={{ color: "var(--text-slate-400)" }} />
+                                <span>{skill.years_of_experience}y</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+                      ))
+                    ) : (
+                      filteredExperience.map(exp => (
+                        <div key={exp.id} className="pc-card" onClick={() => handleView(exp)}>
+                          <div className="pc-top">
+                            <div className="pc-head">
+                              <span className="pc-type-badge">
+                                {exp.company_name}
+                              </span>
+                            </div>
+                            <h3 className="pc-title">{exp.job_title}</h3>
+                            <div className="pc-desc">{exp.employment_type} {exp.location ? `· ${exp.location}` : ""}</div>
+                          </div>
+                          <div className="pc-foot">
+                            <div className="pc-foot-meta">
+                              <Calendar size={13} style={{ color: "var(--text-slate-400)" }} />
+                              <span>
+                                {new Date(exp.start_date).getFullYear()} - {exp.current_job ? "Present" : exp.end_date ? new Date(exp.end_date).getFullYear() : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </ZukvoLoadingOverlay>
             </div>
           </main>
         </div>
@@ -1007,12 +1010,12 @@ export default function SkillsPage() {
                     const skill = matched.find((s: any) => s.name.toLowerCase() === viewedRecord.name?.toLowerCase());
                     const meta = PROFICIENCY_META[viewedRecord.proficiency_level] || PROFICIENCY_META.beginner;
                     const accentColor = meta.accent;
-                    
+
                     return (
                       <>
                         {/* HERO HEADER CARD */}
-                        <div 
-                          className="skl-view-hero-card" 
+                        <div
+                          className="skl-view-hero-card"
                           style={{
                             borderColor: `${accentColor}26`,
                             background: `radial-gradient(135deg, ${accentColor}08 0%, ${accentColor}02 100%), var(--bg-slate-50)`,
@@ -1074,7 +1077,7 @@ export default function SkillsPage() {
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="skl-view-segments" style={{ marginTop: 12 }}>
                               {[1, 2, 3, 4].map((i) => {
                                 const activeCount = getProficiencyBlocks(viewedRecord.proficiency_level);
@@ -1345,350 +1348,350 @@ export default function SkillsPage() {
           ) : (
             <Form
               form={form}
-            layout="vertical"
-            requiredMark={false}
-            initialValues={{ is_active: true, current_job: false, proficiency_level: "intermediate" }}
-            className="skl-drawer-form"
-          >
-            {activeTab === "1" ? (
-              <>
-                {/* IDENTITY */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(99,102,241,0.08)",
-                        color: "#6366f1",
-                        border: "1px solid rgba(99,102,241,0.2)",
-                      }}
-                    >
-                      01
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <Award size={13} color="#6366f1" />
-                        <span className="skl-section-title">Identity</span>
-                      </div>
-                      <span className="skl-section-sub">Name, category, and short description</span>
-                    </div>
-                  </div>
-                  <Form.Item
-                    name="name"
-                    label={<span className="skl-form-label">Skill Name</span>}
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <SkillsAutocomplete />
-                  </Form.Item>
-                  <Form.Item name="category" label={<span className="skl-form-label">Category</span>}>
-                    <Input placeholder="e.g. Frontend, DevOps, Design" />
-                  </Form.Item>
-                  <Form.Item
-                    name="description"
-                    label={<span className="skl-form-label">Description</span>}
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Briefly describe your experience with this skill..."
-                    />
-                  </Form.Item>
-                </div>
-
-                {/* PROFICIENCY */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(139,92,246,0.08)",
-                        color: "#8b5cf6",
-                        border: "1px solid rgba(139,92,246,0.2)",
-                      }}
-                    >
-                      02
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <TrendingUp size={13} color="#8b5cf6" />
-                        <span className="skl-section-title">Proficiency</span>
-                      </div>
-                      <span className="skl-section-sub">Level of mastery and years of experience</span>
-                    </div>
-                  </div>
-                  <Row gutter={12}>
-                    <Col xs={24} sm={14}>
-                      <Form.Item
-                        name="proficiency_level"
-                        label={<span className="skl-form-label">Level</span>}
+              layout="vertical"
+              requiredMark={false}
+              initialValues={{ is_active: true, current_job: false, proficiency_level: "intermediate" }}
+              className="skl-drawer-form"
+            >
+              {activeTab === "1" ? (
+                <>
+                  {/* IDENTITY */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(99,102,241,0.08)",
+                          color: "#6366f1",
+                          border: "1px solid rgba(99,102,241,0.2)",
+                        }}
                       >
-                        <Select
-                          options={Object.entries(PROFICIENCY_META).map(([value, m]) => ({
-                            value,
-                            label: (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ color: m.accent, display: "inline-flex" }}>{m.icon}</span>
-                                {m.label}
-                              </span>
-                            ),
-                          }))}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={10}>
-                      <Form.Item
-                        name="years_of_experience"
-                        label={<span className="skl-form-label">Years</span>}
-                      >
-                        <Input type="number" min={0} placeholder="0" suffix="yrs" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-
-                {/* CREDENTIALS */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(16,185,129,0.08)",
-                        color: "#10b981",
-                        border: "1px solid rgba(16,185,129,0.2)",
-                      }}
-                    >
-                      03
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <ShieldCheck size={13} color="#10b981" />
-                        <span className="skl-section-title">Credentials</span>
+                        01
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <Award size={13} color="#6366f1" />
+                          <span className="skl-section-title">Identity</span>
+                        </div>
+                        <span className="skl-section-sub">Name, category, and short description</span>
                       </div>
-                      <span className="skl-section-sub">
-                        Add certifications and toggle visibility
-                      </span>
                     </div>
-                  </div>
-                  <Form.Item
-                    name="certifications"
-                    label={<span className="skl-form-label">Certifications</span>}
-                  >
-                    <Select
-                      mode="tags"
-                      placeholder="e.g. AWS Certified Solutions Architect (press Enter)"
-                      style={{ width: "100%" }}
-                      tokenSeparators={[","]}
-                    />
-                  </Form.Item>
-
-                  <div className="skl-toggle-row">
-                    <div className="skl-toggle-text">
-                      <span className="skl-toggle-title">
-                        <Activity size={12} color="#10b981" /> Visible on profile
-                      </span>
-                      <span className="skl-toggle-sub">Show this skill on your public portfolio</span>
-                    </div>
-                    <Form.Item name="is_active" valuePropName="checked" noStyle>
-                      <Switch />
+                    <Form.Item
+                      name="name"
+                      label={<span className="skl-form-label">Skill Name</span>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <SkillsAutocomplete />
                     </Form.Item>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* ROLE */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(236,72,153,0.08)",
-                        color: "#ec4899",
-                        border: "1px solid rgba(236,72,153,0.2)",
-                      }}
+                    <Form.Item name="category" label={<span className="skl-form-label">Category</span>}>
+                      <Input placeholder="e.g. Frontend, DevOps, Design" />
+                    </Form.Item>
+                    <Form.Item
+                      name="description"
+                      label={<span className="skl-form-label">Description</span>}
                     >
-                      01
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <Briefcase size={13} color="#ec4899" />
-                        <span className="skl-section-title">Role</span>
-                      </div>
-                      <span className="skl-section-sub">Position, employer, and location</span>
-                    </div>
-                  </div>
-                  <Form.Item
-                    name="job_title"
-                    label={<span className="skl-form-label">Job Title</span>}
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Input placeholder="e.g. Senior Software Engineer" />
-                  </Form.Item>
-                  <Form.Item
-                    name="company_name"
-                    label={<span className="skl-form-label">Company</span>}
-                    rules={[{ required: true, message: "Required" }]}
-                  >
-                    <Input placeholder="e.g. Acme Corp" />
-                  </Form.Item>
-                  <Row gutter={12}>
-                    <Col xs={24} sm={14}>
-                      <Form.Item
-                        name="location"
-                        label={<span className="skl-form-label">Location</span>}
-                      >
-                        <Input placeholder="City, State or Remote" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={10}>
-                      <Form.Item
-                        name="employment_type"
-                        label={<span className="skl-form-label">Type</span>}
-                      >
-                        <Select
-                          placeholder="Select"
-                          options={[
-                            { value: "full-time", label: "Full-time" },
-                            { value: "part-time", label: "Part-time" },
-                            { value: "contract", label: "Contract" },
-                            { value: "freelance", label: "Freelance" },
-                            { value: "internship", label: "Internship" },
-                          ]}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-
-                {/* TIMELINE */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(245,158,11,0.08)",
-                        color: "#f59e0b",
-                        border: "1px solid rgba(245,158,11,0.2)",
-                      }}
-                    >
-                      02
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <Calendar size={13} color="#f59e0b" />
-                        <span className="skl-section-title">Timeline</span>
-                      </div>
-                      <span className="skl-section-sub">When you held this position</span>
-                    </div>
-                  </div>
-
-                  <div className="skl-toggle-row" style={{ marginBottom: 12 }}>
-                    <div className="skl-toggle-text">
-                      <span className="skl-toggle-title">
-                        <Activity size={12} color="#10b981" /> Current Position
-                      </span>
-                      <span className="skl-toggle-sub">I'm working here now</span>
-                    </div>
-                    <Form.Item name="current_job" valuePropName="checked" noStyle>
-                      <Switch />
+                      <Input.TextArea
+                        rows={3}
+                        placeholder="Briefly describe your experience with this skill..."
+                      />
                     </Form.Item>
                   </div>
 
-                  <Row gutter={12}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="start_date"
-                        label={<span className="skl-form-label">Start Date</span>}
+                  {/* PROFICIENCY */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(139,92,246,0.08)",
+                          color: "#8b5cf6",
+                          border: "1px solid rgba(139,92,246,0.2)",
+                        }}
                       >
-                        <Input type="date" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="end_date"
-                        label={<span className="skl-form-label">End Date</span>}
-                      >
-                        <Input type="date" disabled={!!isCurrent} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-
-                {/* DETAILS */}
-                <div className="skl-section-card">
-                  <div className="skl-section-head">
-                    <span
-                      className="skl-section-step"
-                      style={{
-                        background: "rgba(99,102,241,0.08)",
-                        color: "#6366f1",
-                        border: "1px solid rgba(99,102,241,0.2)",
-                      }}
-                    >
-                      03
-                    </span>
-                    <div>
-                      <div className="skl-section-row">
-                        <Sparkles size={13} color="#6366f1" />
-                        <span className="skl-section-title">Details & Impact</span>
+                        02
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <TrendingUp size={13} color="#8b5cf6" />
+                          <span className="skl-section-title">Proficiency</span>
+                        </div>
+                        <span className="skl-section-sub">Level of mastery and years of experience</span>
                       </div>
-                      <span className="skl-section-sub">Highlights, achievements, and skills used</span>
+                    </div>
+                    <Row gutter={12}>
+                      <Col xs={24} sm={14}>
+                        <Form.Item
+                          name="proficiency_level"
+                          label={<span className="skl-form-label">Level</span>}
+                        >
+                          <Select
+                            options={Object.entries(PROFICIENCY_META).map(([value, m]) => ({
+                              value,
+                              label: (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                                  <span style={{ color: m.accent, display: "inline-flex" }}>{m.icon}</span>
+                                  {m.label}
+                                </span>
+                              ),
+                            }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={10}>
+                        <Form.Item
+                          name="years_of_experience"
+                          label={<span className="skl-form-label">Years</span>}
+                        >
+                          <Input type="number" min={0} placeholder="0" suffix="yrs" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* CREDENTIALS */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(16,185,129,0.08)",
+                          color: "#10b981",
+                          border: "1px solid rgba(16,185,129,0.2)",
+                        }}
+                      >
+                        03
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <ShieldCheck size={13} color="#10b981" />
+                          <span className="skl-section-title">Credentials</span>
+                        </div>
+                        <span className="skl-section-sub">
+                          Add certifications and toggle visibility
+                        </span>
+                      </div>
+                    </div>
+                    <Form.Item
+                      name="certifications"
+                      label={<span className="skl-form-label">Certifications</span>}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="e.g. AWS Certified Solutions Architect (press Enter)"
+                        style={{ width: "100%" }}
+                        tokenSeparators={[","]}
+                      />
+                    </Form.Item>
+
+                    <div className="skl-toggle-row">
+                      <div className="skl-toggle-text">
+                        <span className="skl-toggle-title">
+                          <Activity size={12} color="#10b981" /> Visible on profile
+                        </span>
+                        <span className="skl-toggle-sub">Show this skill on your public portfolio</span>
+                      </div>
+                      <Form.Item name="is_active" valuePropName="checked" noStyle>
+                        <Switch />
+                      </Form.Item>
                     </div>
                   </div>
-                  <Form.Item
-                    name="description"
-                    label={<span className="skl-form-label">Description</span>}
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Describe your role and responsibilities..."
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="responsibilities"
-                    label={<span className="skl-form-label">Key Responsibilities</span>}
-                  >
-                    <Select
-                      mode="tags"
-                      placeholder="Add responsibilities (press Enter)"
-                      style={{ width: "100%" }}
-                      tokenSeparators={[","]}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="achievements"
-                    label={<span className="skl-form-label">Notable Achievements</span>}
-                  >
-                    <Select
-                      mode="tags"
-                      placeholder="Add achievements (press Enter)"
-                      style={{ width: "100%" }}
-                      tokenSeparators={[","]}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="skills_used"
-                    label={<span className="skl-form-label">Skills Used</span>}
-                  >
-                    <Select
-                      mode="tags"
-                      placeholder="Add skills (press Enter)"
-                      style={{ width: "100%" }}
-                      tokenSeparators={[","]}
-                    />
-                  </Form.Item>
-                </div>
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  {/* ROLE */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(236,72,153,0.08)",
+                          color: "#ec4899",
+                          border: "1px solid rgba(236,72,153,0.2)",
+                        }}
+                      >
+                        01
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <Briefcase size={13} color="#ec4899" />
+                          <span className="skl-section-title">Role</span>
+                        </div>
+                        <span className="skl-section-sub">Position, employer, and location</span>
+                      </div>
+                    </div>
+                    <Form.Item
+                      name="job_title"
+                      label={<span className="skl-form-label">Job Title</span>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input placeholder="e.g. Senior Software Engineer" />
+                    </Form.Item>
+                    <Form.Item
+                      name="company_name"
+                      label={<span className="skl-form-label">Company</span>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Input placeholder="e.g. Acme Corp" />
+                    </Form.Item>
+                    <Row gutter={12}>
+                      <Col xs={24} sm={14}>
+                        <Form.Item
+                          name="location"
+                          label={<span className="skl-form-label">Location</span>}
+                        >
+                          <Input placeholder="City, State or Remote" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={10}>
+                        <Form.Item
+                          name="employment_type"
+                          label={<span className="skl-form-label">Type</span>}
+                        >
+                          <Select
+                            placeholder="Select"
+                            options={[
+                              { value: "full-time", label: "Full-time" },
+                              { value: "part-time", label: "Part-time" },
+                              { value: "contract", label: "Contract" },
+                              { value: "freelance", label: "Freelance" },
+                              { value: "internship", label: "Internship" },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
 
-            <div className="skl-drawer-note">
-              <div className="skl-drawer-note-icon">
-                <Info size={13} />
+                  {/* TIMELINE */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(245,158,11,0.08)",
+                          color: "#f59e0b",
+                          border: "1px solid rgba(245,158,11,0.2)",
+                        }}
+                      >
+                        02
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <Calendar size={13} color="#f59e0b" />
+                          <span className="skl-section-title">Timeline</span>
+                        </div>
+                        <span className="skl-section-sub">When you held this position</span>
+                      </div>
+                    </div>
+
+                    <div className="skl-toggle-row" style={{ marginBottom: 12 }}>
+                      <div className="skl-toggle-text">
+                        <span className="skl-toggle-title">
+                          <Activity size={12} color="#10b981" /> Current Position
+                        </span>
+                        <span className="skl-toggle-sub">I'm working here now</span>
+                      </div>
+                      <Form.Item name="current_job" valuePropName="checked" noStyle>
+                        <Switch />
+                      </Form.Item>
+                    </div>
+
+                    <Row gutter={12}>
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          name="start_date"
+                          label={<span className="skl-form-label">Start Date</span>}
+                        >
+                          <Input type="date" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          name="end_date"
+                          label={<span className="skl-form-label">End Date</span>}
+                        >
+                          <Input type="date" disabled={!!isCurrent} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* DETAILS */}
+                  <div className="skl-section-card">
+                    <div className="skl-section-head">
+                      <span
+                        className="skl-section-step"
+                        style={{
+                          background: "rgba(99,102,241,0.08)",
+                          color: "#6366f1",
+                          border: "1px solid rgba(99,102,241,0.2)",
+                        }}
+                      >
+                        03
+                      </span>
+                      <div>
+                        <div className="skl-section-row">
+                          <Sparkles size={13} color="#6366f1" />
+                          <span className="skl-section-title">Details & Impact</span>
+                        </div>
+                        <span className="skl-section-sub">Highlights, achievements, and skills used</span>
+                      </div>
+                    </div>
+                    <Form.Item
+                      name="description"
+                      label={<span className="skl-form-label">Description</span>}
+                    >
+                      <Input.TextArea
+                        rows={3}
+                        placeholder="Describe your role and responsibilities..."
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="responsibilities"
+                      label={<span className="skl-form-label">Key Responsibilities</span>}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="Add responsibilities (press Enter)"
+                        style={{ width: "100%" }}
+                        tokenSeparators={[","]}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="achievements"
+                      label={<span className="skl-form-label">Notable Achievements</span>}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="Add achievements (press Enter)"
+                        style={{ width: "100%" }}
+                        tokenSeparators={[","]}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="skills_used"
+                      label={<span className="skl-form-label">Skills Used</span>}
+                    >
+                      <Select
+                        mode="tags"
+                        placeholder="Add skills (press Enter)"
+                        style={{ width: "100%" }}
+                        tokenSeparators={[","]}
+                      />
+                    </Form.Item>
+                  </div>
+                </>
+              )}
+
+              <div className="skl-drawer-note">
+                <div className="skl-drawer-note-icon">
+                  <Info size={13} />
+                </div>
+                <div className="skl-drawer-note-text">
+                  Updates sync to your portfolio and recruitment workflows immediately.
+                </div>
               </div>
-              <div className="skl-drawer-note-text">
-                Updates sync to your portfolio and recruitment workflows immediately.
-              </div>
-            </div>
-          </Form>
+            </Form>
           )}
         </Drawer>
 

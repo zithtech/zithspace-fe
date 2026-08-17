@@ -9,7 +9,7 @@ export class EmployeeOnboardingService {
       return await api.post<any>("/api/onboarding", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to complete employee onboarding");
     }
@@ -33,7 +33,7 @@ export class EmployeeOnboardingService {
       return res.data;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employees");
     }
@@ -47,7 +47,7 @@ export class EmployeeOnboardingService {
       return await api.get<any>(`/api/onboarding/${employeeId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employee details");
     }
@@ -65,7 +65,7 @@ export class EmployeeOnboardingService {
       return await api.put<any>(`/api/onboarding/${employeeId}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update employee");
     }
@@ -79,7 +79,7 @@ export class EmployeeOnboardingService {
       return await api.delete<any>(`/api/onboarding/${employeeId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete employee");
     }
@@ -98,7 +98,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>("/api/onboarding/invite", data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to create invite");
     }
   }
@@ -118,7 +118,7 @@ export class EmployeeOnboardingService {
       const res = await apiClient.get<any>(url);
       return res.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch invites");
     }
   }
@@ -131,7 +131,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.put<any>(`/api/onboarding/invite/${employeeId}`, data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to update invite");
     }
   }
@@ -151,7 +151,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>(`/api/onboarding/invite/${inviteId}/revoke`, {});
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to revoke invite");
     }
   }
@@ -161,7 +161,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>(`/api/onboarding/${employeeId}/activate`, {});
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to activate employee");
     }
   }
@@ -172,7 +172,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.get<any>("/api/onboarding/document-types");
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch document types");
     }
   }
@@ -181,7 +181,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>("/api/onboarding/document-types", data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to create document type");
     }
   }
@@ -193,7 +193,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.put<any>(`/api/onboarding/document-types/${id}`, data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to update document type");
     }
   }
@@ -202,7 +202,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.delete<any>(`/api/onboarding/document-types/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to delete document type");
     }
   }
@@ -254,7 +254,7 @@ export class EmployeeDocumentService {
       const response = await apiClient.get<any>(`/api/onboarding/employee-documents${qs ? `?${qs}` : ""}`);
       return response.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch documents");
     }
   }
@@ -274,7 +274,7 @@ export class EmployeeDocumentService {
       const response = await apiClient.get<any>(`/api/onboarding/my-documents${qs ? `?${qs}` : ""}`);
       return response.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch my documents");
     }
   }
@@ -302,7 +302,7 @@ export class EmployeeDocumentService {
         headers: { "Content-Type": "multipart/form-data" },
       });
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to upload document");
     }
   }
@@ -312,7 +312,7 @@ export class EmployeeDocumentService {
     try {
       await api.delete(`/api/onboarding/employee-documents/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to delete document");
     }
   }

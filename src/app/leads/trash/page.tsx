@@ -56,6 +56,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -553,7 +554,7 @@ export default function LeadsTrashPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-               
+
               </div>
 
               <div className="es-topbar-meta">
@@ -699,35 +700,36 @@ export default function LeadsTrashPage() {
                 </div>
               ) : view === 'list' ? (
                 <div className="es-table-wrap">
-                  <Table
-                    rowSelection={(loading || isRefreshing) ? undefined : {
-                      selectedRowKeys,
-                      onChange: (keys) => setSelectedRowKeys(keys)
-                    }}
-                    columns={columns.map(col => ({
-                      ...col,
-                      render: (text: any, record: any, index: number) => {
-                        if (loading || isRefreshing) {
-                          return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
+                  <ZukvoLoadingOverlay loading={false} message="">
+                    <Table
+                      rowSelection={(loading || isRefreshing) ? undefined : {
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys)
+                      }}
+                      columns={columns.map(col => ({
+                        ...col,
+                        render: (text: any, record: any, index: number) => {
+                          if (loading || isRefreshing) {
+                            return <Skeleton.Input active size="small" block style={{ height: 24 }} />;
+                          }
+                          return col.render ? (col.render as any)(text, record, index) : text;
                         }
-                        return col.render ? (col.render as any)(text, record, index) : text;
-                      }
-                    }))}
-                    dataSource={(loading || isRefreshing) ? Array(5).fill({}) : filteredLeads}
-                    loading={false}
-                    scroll={{ x: "max-content" }}
-                    rowKey={(record: any) => record.id || Math.random()}
-                    pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, size: "small" }}
-                    className="es-table"
-                    locale={{
-                      emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description={<Text type="secondary">No trashed leads found</Text>}
-                        />
-                      )
-                    }}
-                  />
+                      }))}
+                      dataSource={(loading || isRefreshing) ? Array(5).fill({}) : filteredLeads}
+                      scroll={{ x: "max-content" }}
+                      rowKey={(record: any) => record.id || Math.random()}
+                      pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, size: "small" }}
+                      className="es-table"
+                      locale={{
+                        emptyText: (
+                          <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={<Text type="secondary">No trashed leads found</Text>}
+                          />
+                        )
+                      }}
+                    />
+                  </ZukvoLoadingOverlay>
                 </div>
               ) : (
                 <div className="es-grid">

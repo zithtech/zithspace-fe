@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState } from "react";
-import { Modal, Tabs, Button, Spin, App } from "antd";
+import { Modal, Tabs, Button, App } from "antd";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -221,7 +223,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             background: 'var(--sc-canvas)',
           }}
         >
-          <Spin size="large" tip="Loading sprint data" />
+          <ZukvoLoader size="lg" message="Loading sprint data" />
         </div>
       ) : (
         <Tabs

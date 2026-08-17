@@ -294,8 +294,8 @@ export default function BugListPage() {
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
-  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
-  const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
+  const showWorkspaceStats = !!selectedProjectId && scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
+  const isViewingBugs = !!selectedProjectId && (selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs"));
 
   const isSelectedFolderArchived = useMemo(() => {
     return !!selectedFolderId && !!archivedFolders?.some(f => f.id === selectedFolderId);
@@ -753,7 +753,21 @@ export default function BugListPage() {
                   </div>
                   <div className="hb-project-trigger-header">
                     <span className="hb-project-trigger-hint">Switch Project</span>
-                    <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    {selectedProjectId ? (
+                      <X 
+                        size={12} 
+                        className="hb-project-hint-arrow" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProjectId(null);
+                          setSelectedFolderId(null);
+                          setSelectedSheetId(null);
+                        }}
+                        style={{ cursor: 'pointer', zIndex: 10 }}
+                      />
+                    ) : (
+                      <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    )}
                   </div>
                 </div>
               </Dropdown>

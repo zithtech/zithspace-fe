@@ -73,7 +73,7 @@ export class RecruitmentClientService {
             return await apiUtils.getPaginated<RecruitmentClient>(this.BASE_URL, filters);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch recruitment clients');
         }
@@ -87,7 +87,7 @@ export class RecruitmentClientService {
             return await api.get<RecruitmentClient>(`${this.BASE_URL}/${id}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch recruitment client');
         }
@@ -101,7 +101,7 @@ export class RecruitmentClientService {
             return await api.post<RecruitmentClient>(`${this.BASE_URL}/create`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to create recruitment client');
         }
@@ -115,7 +115,7 @@ export class RecruitmentClientService {
             await api.put(`${this.BASE_URL}/${id}`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to update recruitment client');
         }
@@ -129,7 +129,7 @@ export class RecruitmentClientService {
             await api.delete(`${this.BASE_URL}/${id}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete recruitment client');
         }

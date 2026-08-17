@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { RangePicker } = DatePicker;
 
@@ -115,6 +116,10 @@ export default function BidIqPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [paginatedLoading, setPaginatedLoading] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_grid');
+
 
   // Route guard — gated by the dedicated BidIq read permission.
   useEffect(() => {
@@ -485,13 +490,15 @@ export default function BidIqPage() {
                     >
                       <ListIcon size={15} />
                     </button>
-                    <button
-                      className={layout === "grid" ? "is-active" : ""}
-                      onClick={() => setLayout("grid")}
-                      title="Grid view"
-                    >
-                      <LayoutGrid size={15} />
-                    </button>
+                    {hasGrid && (
+                      <button
+                        className={layout === "grid" ? "is-active" : ""}
+                        onClick={() => setLayout("grid")}
+                        title="Grid view"
+                      >
+                        <LayoutGrid size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -604,7 +611,7 @@ export default function BidIqPage() {
                                   className="biq-card-avatar"
                                   style={{ background: level.color }}
                                 >
-                                  {typeof record.ai_score === "number" ? record.ai_score : "—"}
+                                  {hasPrime && typeof record.ai_score === "number" ? record.ai_score : "—"}
                                 </div>
                                 <div className="biq-card-title-group">
                                   <div className="biq-card-title" title={record.title}>

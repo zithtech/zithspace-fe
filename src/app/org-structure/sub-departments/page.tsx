@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useMemo, useEffect } from "react";
 import {
@@ -7,7 +9,6 @@ import {
   Form,
   Select,
   notification,
-  Spin,
   Tooltip,
   Switch,
   Drawer,
@@ -86,7 +87,7 @@ export default function SubDepartmentsPage() {
   if (authLoading) {
     return (
       <div className="orgx-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Spin size="large" tip="Loading Sub-Departments..." />
+        <ZukvoLoader size="lg" message="Loading Sub-Departments..." />
       </div>
     );
   }

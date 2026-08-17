@@ -9288,6 +9288,7 @@ import { useApproveItem, useRejectItem } from "@/hooks/usereimbursementcreate";
 import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function ManagerReimbursementsPage() {
   const queryClient = useQueryClient();
@@ -9815,33 +9816,34 @@ export default function ManagerReimbursementsPage() {
       </div>
 
       {/* Parent Table with Expandable Child Rows */}
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={filteredData}
-        loading={loading || isRefetching}
-        size="small"
-        bordered
-        expandable={{
-          expandedRowRender,
-          expandRowByClick: true,
-          expandedRowKeys: expandedRows,
-          onExpand: (expanded, record) => {
-            if (expanded) {
-              setExpandedRows([...expandedRows, record.id]);
-            } else {
-              setExpandedRows(expandedRows.filter(id => id !== record.id));
-            }
-          },
-          rowExpandable: (record) => (record.items?.length || 0) > 0,
-        }}
-        pagination={{
-          pageSize: 10,
-          size: "small",
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} reimbursements`,
-        }}
-      />
+      <ZukvoLoadingOverlay loading={loading || isRefetching} message="">
+          <Table
+                  rowKey="id"
+                  columns={columns}
+                  dataSource={filteredData}
+                  size="small"
+                  bordered
+                  expandable={{
+                    expandedRowRender,
+                    expandRowByClick: true,
+                    expandedRowKeys: expandedRows,
+                    onExpand: (expanded, record) => {
+                      if (expanded) {
+                        setExpandedRows([...expandedRows, record.id]);
+                      } else {
+                        setExpandedRows(expandedRows.filter(id => id !== record.id));
+                      }
+                    },
+                    rowExpandable: (record) => (record.items?.length || 0) > 0,
+                  }}
+                  pagination={{
+                    pageSize: 10,
+                    size: "small",
+                    showSizeChanger: true,
+                    showTotal: (total) => `Total ${total} reimbursements`,
+                  }}
+                />
+          </ZukvoLoadingOverlay>
 
       {/* Approve Modal */}
       <Modal

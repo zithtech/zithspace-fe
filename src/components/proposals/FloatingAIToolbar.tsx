@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, Input, message, Spin } from 'antd';
+import { Button, Input, message } from 'antd';
 import {
   Sparkles,
   Wand2,
@@ -13,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalStore } from '@/store/proposalStore';
+import { useAuth } from '@/context/AuthContext';
 
 type QuickAction = {
   key: string;
@@ -56,6 +59,8 @@ const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const FloatingAIToolbar: React.FC = () => {
   const updateBlock = useProposalStore((s) => s.updateBlock);
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_proposals_builder_prime');
 
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -134,6 +139,7 @@ export const FloatingAIToolbar: React.FC = () => {
   }, [loading, suggestion, showCustom]);
 
   useEffect(() => {
+    if (!hasPrime) return;
     const handler = () => {
       // Defer so the browser's selection has settled by the time we read it.
       window.setTimeout(updateFromSelection, 0);
@@ -144,7 +150,7 @@ export const FloatingAIToolbar: React.FC = () => {
       document.removeEventListener('mouseup', handler);
       document.removeEventListener('keyup', handler);
     };
-  }, [updateFromSelection]);
+  }, [updateFromSelection, hasPrime]);
 
   // Hide when the canvas scrolls (the rect goes stale).
   useEffect(() => {
@@ -275,7 +281,7 @@ export const FloatingAIToolbar: React.FC = () => {
     closeAll();
   };
 
-  if (!visible) return null;
+  if (!hasPrime || !visible) return null;
 
   return (
     <div
@@ -303,7 +309,7 @@ export const FloatingAIToolbar: React.FC = () => {
         </div>
       ) : loading ? (
         <div className="pb-ai-toolbar__loading">
-          <Spin size="small" />
+          <ZukvoLoader size="sm" />
           <span>Zai is thinking…</span>
         </div>
       ) : showCustom ? (

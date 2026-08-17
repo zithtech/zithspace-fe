@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -14,7 +16,6 @@ import {
   Input,
   App,
   Popconfirm,
-  Spin,
 } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -36,6 +37,7 @@ import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
 import { Avatar, Tooltip, Typography, Select } from 'antd';
 import TicketLifecycleShell, { ProjectFilterOption } from '@/components/projects/TicketLifecycleShell';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -337,7 +339,7 @@ export default function TicketsArchivedPage() {
             alignItems: 'center',
           }}
         >
-          <Spin size="large" tip="Loading archived repository..." />
+          <ZukvoLoader size="lg" message="Loading archived repository..." />
         </div>
       </MainLayout>
     );
@@ -428,77 +430,78 @@ export default function TicketsArchivedPage() {
             )}
           </div>
         }
-      footerSlot={
-        totalArchived > 0 ? (
-          <>
-            <div className="pp-footer-info">
-              Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
-              {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
-            </div>
-            <div className="pp-pager">
-              <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
-              {Array.from({ length: pageCount }, (_, i) => i + 1)
-                .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
-                .map((p) => (
-                  <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
-                ))}
-              <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
-              <Select
-                className="pp-pagesize"
-                value={pageSize}
-                onChange={(v) => { setPageSize(v); setPage(1); }}
-                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                popupMatchSelectWidth={120}
-              />
-            </div>
-          </>
-        ) : undefined
-      }
-    >
-        <Table
-          columns={columns}
-          dataSource={tickets}
-          rowKey="id"
-          loading={isLoading}
-          size="small"
-          rowSelection={{
-            selectedRowKeys,
-            onChange: setSelectedRowKeys,
-          }}
-          className="ar2-table"
-
-          locale={{
-            emptyText: isLoading ? null : (
-              <div className="ar2-empty">
-                <div className="ar2-empty-icon">
-                  <FolderOpenOutlined />
-                </div>
-                <Text className="ar2-empty-title">
-                  {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
-                </Text>
-                <Text className="ar2-empty-sub">
-                  {isFiltered
-                    ? 'Try adjusting your filters or search query.'
-                    : 'Tickets are automatically archived when sprints are completed.'}
-                </Text>
-                {isFiltered && (
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setSearchText('');
-                      setSelectedProject(null);
-                    }}
-                    style={{ marginTop: 12 }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
+        footerSlot={
+          totalArchived > 0 ? (
+            <>
+              <div className="pp-footer-info">
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalArchived}</strong>
+                {selectedRowKeys.length > 0 && <span className="pp-footer-sel"> · {selectedRowKeys.length} selected</span>}
               </div>
-            ),
-          }}
-          pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
-        />
+              <div className="pp-pager">
+                <button type="button" className="pp-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .slice(Math.max(0, page - 3), Math.max(0, page - 3) + 5)
+                  .map((p) => (
+                    <button key={p} type="button" className={`pp-pager-num ${p === page ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                  ))}
+                <button type="button" className="pp-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
+                <Select
+                  className="pp-pagesize"
+                  value={pageSize}
+                  onChange={(v) => { setPageSize(v); setPage(1); }}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  popupMatchSelectWidth={120}
+                />
+              </div>
+            </>
+          ) : undefined
+        }
+      >
+        <ZukvoLoadingOverlay loading={isLoading} message="">
+          <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            size="small"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
+            className="ar2-table"
+
+            locale={{
+              emptyText: isLoading ? null : (
+                <div className="ar2-empty">
+                  <div className="ar2-empty-icon">
+                    <FolderOpenOutlined />
+                  </div>
+                  <Text className="ar2-empty-title">
+                    {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
+                  </Text>
+                  <Text className="ar2-empty-sub">
+                    {isFiltered
+                      ? 'Try adjusting your filters or search query.'
+                      : 'Tickets are automatically archived when sprints are completed.'}
+                  </Text>
+                  {isFiltered && (
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setSearchText('');
+                        setSelectedProject(null);
+                      }}
+                      style={{ marginTop: 12 }}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              ),
+            }}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
+          />
+        </ZukvoLoadingOverlay>
 
         <style jsx global>{`
           /* ── Table sized + framed ─────────────────────────── */

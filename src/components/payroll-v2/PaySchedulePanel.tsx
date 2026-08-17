@@ -16,6 +16,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import PayrollV2Service, {
   PayScheduleListItem, PayGroupListItem, PayFrequency,
 } from '@/services/payrollV2Service';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', amber: '#F59E0B', violet: '#8B5CF6', grey: '#94A3B8' } as const;
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', amber: 'rgba(245,158,11,0.10)', violet: 'rgba(139,92,246,0.10)' } as const;
@@ -316,8 +317,12 @@ export default function PaySchedulePanel() {
       {/* TABLE */}
       <div className="pvg-table-wrap">
         {view === 'schedules'
-          ? <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />
-          : <Table rowKey="id" size="small" className="pvg-table" loading={loading} columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />}
+          ? <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table rowKey="id" size="small" className="pvg-table" columns={scheduleColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />
+                  </ZukvoLoadingOverlay>
+          : <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table rowKey="id" size="small" className="pvg-table" columns={groupColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvg-row' })} scroll={{ x: 'max-content' }} />
+                  </ZukvoLoadingOverlay>}
       </div>
 
       {total > 0 && (

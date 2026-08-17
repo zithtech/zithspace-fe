@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -13,7 +15,6 @@ import {
   App,
   Skeleton,
   Badge,
-  Spin,
   Select,
   Dropdown,
 } from 'antd';
@@ -45,6 +46,7 @@ import { EscalationServiceV2 } from '@/services/escalationServiceV2';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Menu } from 'lucide-react';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 dayjs.extend(relativeTime);
 
@@ -577,7 +579,7 @@ export default function EscalationTrashPage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Spin size="large" />
+          <ZukvoLoader size="lg" />
         </div>
       </MainLayout>
     );
@@ -770,29 +772,30 @@ export default function EscalationTrashPage() {
 
             {view === 'list' ? (
               <div className="es-table-wrap">
-                <Table
-                  rowSelection={isViewLoading ? undefined : {
-                    selectedRowKeys,
-                    onChange: (keys) => setSelectedRowKeys(keys),
-                    columnWidth: 40,
-                  }}
-                  dataSource={isViewLoading ? Array(5).fill({}) : pagedEscalations}
-                  columns={columns.map((col) => ({
-                    ...col,
-                    render: (text: any, record: any, index: number) => {
-                      if (isViewLoading) {
-                        return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
-                      }
-                      return col.render ? (col.render as any)(text, record, index) : text;
-                    },
-                  }))}
-                  loading={false}
-                  rowKey={(record: any) => record.id || Math.random()}
-                  pagination={false}
-                  className="es-table"
-                  scroll={{ x: 'max-content' }}
-                  locale={{ emptyText: emptyState }}
-                />
+                <ZukvoLoadingOverlay loading={false} message="">
+                              <Table
+                                                rowSelection={isViewLoading ? undefined : {
+                                                  selectedRowKeys,
+                                                  onChange: (keys) => setSelectedRowKeys(keys),
+                                                  columnWidth: 40,
+                                                }}
+                                                dataSource={isViewLoading ? Array(5).fill({}) : pagedEscalations}
+                                                columns={columns.map((col) => ({
+                                                  ...col,
+                                                  render: (text: any, record: any, index: number) => {
+                                                    if (isViewLoading) {
+                                                      return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
+                                                    }
+                                                    return col.render ? (col.render as any)(text, record, index) : text;
+                                                  },
+                                                }))}
+                                                rowKey={(record: any) => record.id || Math.random()}
+                                                pagination={false}
+                                                className="es-table"
+                                                scroll={{ x: 'max-content' }}
+                                                locale={{ emptyText: emptyState }}
+                                              />
+                              </ZukvoLoadingOverlay>
               </div>
             ) : (
               <div className="es-grid">

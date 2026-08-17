@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -19,7 +21,6 @@ import {
   Row,
   Col,
   Switch,
-  Spin,
   Modal,
   Checkbox,
 } from "antd";
@@ -106,9 +107,7 @@ export default function SubmitDailyUpdatePage() {
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <Spin size="large" tip="Loading">
-              <div style={{ padding: 20 }} />
-            </Spin>
+            <ZukvoLoader size="lg" message="Loading" />
           </div>
         </div>
       </MainLayout>

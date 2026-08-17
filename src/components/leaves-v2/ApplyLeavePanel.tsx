@@ -45,6 +45,7 @@ import LeaveV2Service, {
 } from '@/services/leaveV2Service';
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
 import ApplyLeaveDrawer from './ApplyLeaveDrawer';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -140,7 +141,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       setTotalCount(pagedReq.pagination?.total ?? (Array.isArray(pagedReq.data) ? pagedReq.data.length : 0));
       setHolidaySet(new Set(h));
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||'Failed to load leave data');
+      message.error(err?.response?.data?.error || err?.message || 'Failed to load leave data');
     } finally {
       setLoading(false);
     }
@@ -193,7 +194,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       message.success('Request cancelled');
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||'Failed to cancel');
+      message.error(err?.response?.data?.error || err?.message || 'Failed to cancel');
     }
   };
 
@@ -232,10 +233,10 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
     !wRequest
       ? null
       : !wStart
-      ? 'Select the days you want to withdraw'
-      : !wPlan || wPlan.releasedTotal <= 0
-      ? 'These dates release no leave days'
-      : null;
+        ? 'Select the days you want to withdraw'
+        : !wPlan || wPlan.releasedTotal <= 0
+          ? 'These dates release no leave days'
+          : null;
 
   // Submit a withdrawal request. `full` = release the whole leave (single-day or
   // withdrawing from day one); otherwise shorten to keep everything before wStart.
@@ -251,7 +252,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       setWOpen(false);
       await load();
     } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message ||'Failed to submit withdrawal');
+      message.error(err?.response?.data?.error || err?.message || 'Failed to submit withdrawal');
     } finally {
       setWSaving(false);
     }
@@ -390,9 +391,9 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
       <div className="lva-header">
         <div className="lva-header-about">
           {!hideSidebarToggle && (
-            <button 
+            <button
               type="button"
-              className="lv-mobile-menu-btn" 
+              className="lv-mobile-menu-btn"
               onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
               aria-label="Open menu"
             >
@@ -470,18 +471,19 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
 
       {/* TABLE */}
       <div className="lva-table-wrap">
-        <Table
-          rowKey="id"
-          size="small"
-          className="lva-table"
-          loading={loading}
-          columns={columns}
-          dataSource={paged}
-          pagination={false}
-          scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
-          expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-          onRow={() => ({ className: 'lva-row' })}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table
+            rowKey="id"
+            size="small"
+            className="lva-table"
+            columns={columns}
+            dataSource={paged}
+            pagination={false}
+            scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
+            expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
+            onRow={() => ({ className: 'lva-row' })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (
@@ -609,33 +611,33 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
               subtitle="Pick the unused days — released through the end of the leave"
               step="STEP 1"
             >
-                <Form.Item
-                  label={
-                    <span>
-                      Days to withdraw
-                      {wRequest && <div style={{ color: 'var(--text-slate-400)', fontWeight: 400, fontSize: 10 }}>leave is {fmt(wRequest.fromDate)} → {fmt(wRequest.toDate)}</div>}
-                    </span>
-                  }
-                  style={{ marginBottom: 0 }}
-                >
-                  <RangePicker
-                    style={{ width: '100%' }}
-                    value={wRange as any}
-                    onChange={(v) => setWRange(v as [Dayjs | null, Dayjs | null] | null)}
-                    format="MMM D, YYYY"
-                    allowEmpty={[false, true]}
-                    placeholder={['First day to withdraw', 'End of leave']}
-                    disabledDate={(d) => {
-                      if (!wRequest) return true;
-                      return d.isBefore(dayjs(wRequest.fromDate), 'day') || d.isAfter(dayjs(wRequest.toDate), 'day');
-                    }}
-                  />
-                </Form.Item>
+              <Form.Item
+                label={
+                  <span>
+                    Days to withdraw
+                    {wRequest && <div style={{ color: 'var(--text-slate-400)', fontWeight: 400, fontSize: 10 }}>leave is {fmt(wRequest.fromDate)} → {fmt(wRequest.toDate)}</div>}
+                  </span>
+                }
+                style={{ marginBottom: 0 }}
+              >
+                <RangePicker
+                  style={{ width: '100%' }}
+                  value={wRange as any}
+                  onChange={(v) => setWRange(v as [Dayjs | null, Dayjs | null] | null)}
+                  format="MMM D, YYYY"
+                  allowEmpty={[false, true]}
+                  placeholder={['First day to withdraw', 'End of leave']}
+                  disabledDate={(d) => {
+                    if (!wRequest) return true;
+                    return d.isBefore(dayjs(wRequest.fromDate), 'day') || d.isAfter(dayjs(wRequest.toDate), 'day');
+                  }}
+                />
+              </Form.Item>
 
-                <Form.Item label="Reason" style={{ marginBottom: 0 }}>
-                  <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={wReason} maxLength={500} placeholder="Optional note for your manager" onChange={(e) => setWReason(e.target.value)} />
-                </Form.Item>
-              </SectionCard>
+              <Form.Item label="Reason" style={{ marginBottom: 0 }}>
+                <TextArea rows={2} style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={wReason} maxLength={500} placeholder="Optional note for your manager" onChange={(e) => setWReason(e.target.value)} />
+              </Form.Item>
+            </SectionCard>
 
             {wRequest && wPlan && wPlan.releasedTotal > 0 && (
               <div

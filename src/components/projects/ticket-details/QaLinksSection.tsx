@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 /**
  * QA links on a ticket.
@@ -13,7 +15,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { Typography, Button, Tag, Spin, message } from "antd";
+import { Typography, Button, Tag, message } from "antd";
 import {
   ExportOutlined,
   DeleteOutlined,
@@ -239,7 +241,7 @@ export default function QaLinksSection({
       {/* Linked records, grouped by type */}
       {isLoading ? (
         <div style={{ padding: "24px 0", textAlign: "center" }}>
-          <Spin size="small" />
+          <ZukvoLoader size="sm" />
         </div>
       ) : qaLinks.length === 0 ? (
         <div

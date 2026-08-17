@@ -37,6 +37,7 @@ import { ThunderboltOutlined } from '@ant-design/icons';
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import type { ColumnsType } from 'antd/es/table';
 import { AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 const renderDropdownItem = (icon: React.ReactNode, title: string, subtitle: string, iconBg: string, iconColor: string, isDanger?: boolean) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '4px' }}>
@@ -58,9 +59,10 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 
 export default function TemplateManagementPage() {
   const router = useRouter();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
-  
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
+
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {
       router.push('/dashboard');
@@ -500,12 +502,12 @@ export default function TemplateManagementPage() {
                     label: 'Manual Creation',
                     onClick: () => router.push('/letters-docs/templates/builder')
                   },
-                  {
+                  ...(hasPrime ? [{
                     key: 'zai',
                     icon: <ThunderboltOutlined style={{ color: '#9333ea' }} />,
                     label: <span style={{ fontWeight: 600 }}>Create with Zai <span style={{ background: '#f3e8ff', color: '#9333ea', fontSize: '10px', padding: '1px 4px', borderRadius: '4px', marginLeft: '4px' }}>AI</span></span>,
                     onClick: () => setIsZaiModalOpen(true)
-                  }
+                  }] : [])
                 ]
               }}
               trigger={['click']}
@@ -530,7 +532,7 @@ export default function TemplateManagementPage() {
         {/* Templates List */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            Loading templates...
+            <ZukvoLoader message='Loading templates...' size="md" />
           </div>
         ) : templates.length === 0 ? (
           <div
@@ -543,32 +545,32 @@ export default function TemplateManagementPage() {
             }}
           >
             <div style={{ padding: '60px 0', textAlign: 'center' }}>
-            <FileText size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} />
-            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Templates Found</div>
-            <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
-              You don't have any templates matching your criteria yet.
-            </div>
-            {perms.canCreateLetterTemplate && (
-              <Link
-                href="/letters-docs/templates/builder"
-                style={{
-                  background: '#3b82f6',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Plus size={18} />
-                Create First Template
-              </Link>
-            )}
-          </div></div>
+              <FileText size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} />
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Templates Found</div>
+              <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
+                You don't have any templates matching your criteria yet.
+              </div>
+              {perms.canCreateLetterTemplate && (
+                <Link
+                  href="/letters-docs/templates/builder"
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <Plus size={18} />
+                  Create First Template
+                </Link>
+              )}
+            </div></div>
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table

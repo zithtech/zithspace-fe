@@ -95,6 +95,7 @@ import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, drawerFormStyles, SectionCard } from "@/components/common/DrawerSection";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text, Title } = Typography;
 
@@ -522,7 +523,7 @@ const AreaSparkline = ({ values, color }: { values: number[]; color: string }) =
 };
 
 export default function LeadSettingsPage() {
-  console.log("Forcing HMR reload for LeadSettingsPage");
+    console.log("Forcing HMR reload for LeadSettingsPage");
     useActivitySource({ section: "WORK", module: "Leads", page: "LeadSettings" });
     const { user, isLoading } = useAuth();
     const {
@@ -1640,53 +1641,204 @@ export default function LeadSettingsPage() {
 
                         {/* Table / grid */}
                         <div className="pp-body">
-                            {view === 'list' ? (
-                                <div className="pp-table-wrap">
-                                    <Table
-                                        loading={loading}
-                                        columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
-                                        dataSource={activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms}
-                                        pagination={false}
-                                        size="small"
-                                        scroll={{ x: "max-content" }}
-                                        className="pp-table"
-                                        rowClassName="pp-row"
-                                        locale={{ emptyText: emptyState }}
-                                        onRow={(record) => ({
-                                            onClick: (e) => {
-                                                const t = e.target as HTMLElement;
-                                                if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .ant-switch, .lset-flag, .lset-rank, .lset-icon-btn')) return;
-                                                if (activeTab === "1") handleEditStatus(record);
-                                                else if (activeTab === "2") handleEditAction(record);
-                                                else handleEditPlatform(record);
-                                            }
-                                        })}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="pp-grid">
-                                    {loading ? (
-                                        <div className="pp-grid-loading">Loading…</div>
-                                    ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
-                                        <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                                    ) : (
-                                        activeTab === "1" ? (
-                                            pagedStatuses.map((item, idx) => {
-                                                return (
-                                                    <div key={item.id} className="pc-card" onClick={() => handleEditStatus(item)}>
-                                                        <div className="pc-top">
-                                                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
-                                                                {item.icon && STATUS_ICON_BY_KEY[item.icon] ? STATUS_ICON_BY_KEY[item.icon].render(12) : item.statusName?.charAt(0).toUpperCase()}
+                            <ZukvoLoadingOverlay loading={loading} message="">
+                                {view === 'list' ? (
+                                    <div className="pp-table-wrap">
+                                        <Table
+                                            columns={(activeTab === "1" ? statusColumns : activeTab === "2" ? actionColumns : platformColumns) as any}
+                                            dataSource={activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms}
+                                            pagination={false}
+                                            size="small"
+                                            scroll={{ x: "max-content" }}
+                                            className="pp-table"
+                                            rowClassName="pp-row"
+                                            locale={{ emptyText: emptyState }}
+                                            onRow={(record) => ({
+                                                onClick: (e) => {
+                                                    const t = e.target as HTMLElement;
+                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .ant-switch, .lset-flag, .lset-rank, .lset-icon-btn')) return;
+                                                    if (activeTab === "1") handleEditStatus(record);
+                                                    else if (activeTab === "2") handleEditAction(record);
+                                                    else handleEditPlatform(record);
+                                                }
+                                            })}
+                                        />
+
+                                    </div>
+                                ) : (
+                                    <div className="pp-grid">
+                                        {loading ? (
+                                            <div className="pp-grid-loading">Loading…</div>
+                                        ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
+                                            <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                                        ) : (
+                                            activeTab === "1" ? (
+                                                pagedStatuses.map((item, idx) => {
+                                                    return (
+                                                        <div key={item.id} className="pc-card" onClick={() => handleEditStatus(item)}>
+                                                            <div className="pc-top">
+                                                                <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
+                                                                    {item.icon && STATUS_ICON_BY_KEY[item.icon] ? STATUS_ICON_BY_KEY[item.icon].render(12) : item.statusName?.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="pc-identity-body">
+                                                                    <div className="pc-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                                        <span className="lset-pill" style={{ background: `${item.color || '#3b82f6'}14`, color: item.color || '#3b82f6', border: `1px solid ${item.color || '#3b82f6'}33`, fontSize: 11 }}>
+                                                                            {item.statusName?.toUpperCase()}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="pc-client-line">
+                                                                        <span className="pc-client-key">Category:</span>
+                                                                        <span className="pc-client-val">{item.category || "uncategorized"}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <Dropdown
+                                                                    menu={{
+                                                                        items: [
+                                                                            {
+                                                                                key: 'edit',
+                                                                                label: (
+                                                                                    <div className="pp-menu-item">
+                                                                                        <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title">Edit status</span>
+                                                                                            <span className="pp-menu-desc">Modify status properties</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ),
+                                                                                onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditStatus(item); }
+                                                                            },
+                                                                            { type: 'divider' as const },
+                                                                            {
+                                                                                key: 'delete',
+                                                                                danger: true,
+                                                                                label: (
+                                                                                    <ConfirmDialog
+                                                                                        tone="danger"
+                                                                                        icon={<Trash2 size={16} />}
+                                                                                        title="Delete Status?"
+                                                                                        description="Leads using this status may need reassignment."
+                                                                                        confirmText="Delete"
+                                                                                        cancelText="Cancel"
+                                                                                        placement="left"
+                                                                                        onConfirm={async () => {
+                                                                                            try {
+                                                                                                await deleteStatus(item.id);
+                                                                                                message.success("Status deleted successfully");
+                                                                                            } catch (error) {
+                                                                                                message.error("Failed to delete status");
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                            <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                            <span className="pp-menu-text">
+                                                                                                <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete status</span>
+                                                                                                <span className="pp-menu-desc">Remove this stage</span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </ConfirmDialog>
+                                                                                )
+                                                                            }
+                                                                        ]
+                                                                    }}
+                                                                    overlayClassName="pp-action-pop"
+                                                                    trigger={['click']}
+                                                                    placement="bottomRight"
+                                                                >
+                                                                    <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                                                        <EllipsisOutlined />
+                                                                    </button>
+                                                                </Dropdown>
                                                             </div>
-                                                            <div className="pc-identity-body">
-                                                                <div className="pc-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                                                    <span className="lset-pill" style={{ background: `${item.color || '#3b82f6'}14`, color: item.color || '#3b82f6', border: `1px solid ${item.color || '#3b82f6'}33`, fontSize: 11 }}>
-                                                                        {item.statusName?.toUpperCase()}
+                                                            <div className="pc-foot">
+                                                                <div className="pc-foot-row">
+                                                                    <span className="pc-foot-item">
+                                                                        <span className="pc-foot-key">Behavior:</span>
+                                                                        <span
+                                                                            className={`lset-flag ${item.isDefault ? "is-on" : ""}`}
+                                                                            style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10 }}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleToggleStatusProperty(item.id, "isDefault", !item.isDefault);
+                                                                            }}
+                                                                        >
+                                                                            <Star size={10} fill={item.isDefault ? "#f59e0b" : "transparent"} stroke={item.isDefault ? "#f59e0b" : "#94a3b8"} />
+                                                                            Default
+                                                                        </span>
+                                                                        <span
+                                                                            className={`lset-flag ${item.isFinal ? "is-final" : ""}`}
+                                                                            style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10, marginLeft: 6 }}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleToggleStatusProperty(item.id, "isFinal", !item.isFinal);
+                                                                            }}
+                                                                        >
+                                                                            <CheckCircle2 size={10} />
+                                                                            Final
+                                                                        </span>
                                                                     </span>
                                                                 </div>
+                                                                <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                                                    <span className="pc-foot-item">
+                                                                        <span className="pc-foot-key">Visibility:</span>
+                                                                        <Switch
+                                                                            size="small"
+                                                                            checked={item.isActive}
+                                                                            onChange={(val) => handleToggleStatusProperty(item.id, "isActive", val)}
+                                                                            loading={loading}
+                                                                            disabled={!canUpdateLeadSetting}
+                                                                            onClick={(checked, e: any) => e.stopPropagation()}
+                                                                        />
+                                                                        <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
+                                                                            {item.isActive ? "Visible" : "Hidden"}
+                                                                        </span>
+                                                                    </span>
+                                                                    <span className="pc-foot-div" />
+                                                                    <span className="pc-foot-item">
+                                                                        <span className="pc-foot-key">Order:</span>
+                                                                        <span className="lset-rank" style={{ fontSize: 10, padding: '1px 6px' }}>#{item.sno}</span>
+                                                                        {canUpdateLeadSetting && (
+                                                                            <div style={{ display: 'inline-flex', gap: 2, marginLeft: 6 }}>
+                                                                                <button
+                                                                                    className="lset-icon-btn"
+                                                                                    style={{ width: 20, height: 20 }}
+                                                                                    disabled={dataSource.findIndex(d => d.id === item.id) === 0}
+                                                                                    onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "up"); }}
+                                                                                >
+                                                                                    <ArrowUp size={11} />
+                                                                                </button>
+                                                                                <button
+                                                                                    className="lset-icon-btn"
+                                                                                    style={{ width: 20, height: 20 }}
+                                                                                    disabled={dataSource.findIndex(d => d.id === item.id) === dataSource.length - 1}
+                                                                                    onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "down"); }}
+                                                                                >
+                                                                                    <ArrowDown size={11} />
+                                                                                </button>
+                                                                            </div>
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : activeTab === "2" ? (
+                                                pagedActions.map((item) => (
+                                                    <div key={item.id} className="pc-card" onClick={() => handleEditAction(item)}>
+                                                        <div className="pc-top">
+                                                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
+                                                                {renderIcon(item.icon) || item.actionName?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="pc-identity-body">
+                                                                <div className="pc-title">{item.actionName}</div>
                                                                 <div className="pc-client-line">
                                                                     <span className="pc-client-key">Category:</span>
-                                                                    <span className="pc-client-val">{item.category || "uncategorized"}</span>
+                                                                    <span className="pc-client-val">
+                                                                        <span className="lset-cat-pill" style={{ padding: '1px 6px', fontSize: 10 }}>
+                                                                            <Workflow size={9} /> {item.type}
+                                                                        </span>
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                             <Dropdown
@@ -1698,12 +1850,12 @@ export default function LeadSettingsPage() {
                                                                                 <div className="pp-menu-item">
                                                                                     <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
                                                                                     <span className="pp-menu-text">
-                                                                                        <span className="pp-menu-title">Edit status</span>
-                                                                                        <span className="pp-menu-desc">Modify status properties</span>
+                                                                                        <span className="pp-menu-title">Edit action</span>
+                                                                                        <span className="pp-menu-desc">Modify action properties</span>
                                                                                     </span>
                                                                                 </div>
                                                                             ),
-                                                                            onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditStatus(item); }
+                                                                            onClick: (e: any) => { e.domEvent?.stopPropagation(); handleEditAction(item); }
                                                                         },
                                                                         { type: 'divider' as const },
                                                                         {
@@ -1711,156 +1863,6 @@ export default function LeadSettingsPage() {
                                                                             danger: true,
                                                                             label: (
                                                                                 <ConfirmDialog
-                                                                                    tone="danger"
-                                                                                    icon={<Trash2 size={16} />}
-                                                                                    title="Delete Status?"
-                                                                                    description="Leads using this status may need reassignment."
-                                                                                    confirmText="Delete"
-                                                                                    cancelText="Cancel"
-                                                                                    placement="left"
-                                                                                    onConfirm={async () => {
-                                                                                        try {
-                                                                                            await deleteStatus(item.id);
-                                                                                            message.success("Status deleted successfully");
-                                                                                        } catch (error) {
-                                                                                            message.error("Failed to delete status");
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
-                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
-                                                                                        <span className="pp-menu-text">
-                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete status</span>
-                                                                                            <span className="pp-menu-desc">Remove this stage</span>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </ConfirmDialog>
-                                                                            )
-                                                                        }
-                                                                    ]
-                                                                }}
-                                                                overlayClassName="pp-action-pop"
-                                                                trigger={['click']}
-                                                                placement="bottomRight"
-                                                            >
-                                                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                                                                    <EllipsisOutlined />
-                                                                </button>
-                                                            </Dropdown>
-                                                        </div>
-                                                        <div className="pc-foot">
-                                                            <div className="pc-foot-row">
-                                                                <span className="pc-foot-item">
-                                                                    <span className="pc-foot-key">Behavior:</span>
-                                                                    <span
-                                                                        className={`lset-flag ${item.isDefault ? "is-on" : ""}`}
-                                                                        style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10 }}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleToggleStatusProperty(item.id, "isDefault", !item.isDefault);
-                                                                        }}
-                                                                    >
-                                                                        <Star size={10} fill={item.isDefault ? "#f59e0b" : "transparent"} stroke={item.isDefault ? "#f59e0b" : "#94a3b8"} />
-                                                                        Default
-                                                                    </span>
-                                                                    <span
-                                                                        className={`lset-flag ${item.isFinal ? "is-final" : ""}`}
-                                                                        style={{ cursor: 'pointer', padding: '2px 6px', fontSize: 10, marginLeft: 6 }}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleToggleStatusProperty(item.id, "isFinal", !item.isFinal);
-                                                                        }}
-                                                                    >
-                                                                        <CheckCircle2 size={10} />
-                                                                        Final
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                            <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
-                                                                <span className="pc-foot-item">
-                                                                    <span className="pc-foot-key">Visibility:</span>
-                                                                    <Switch
-                                                                        size="small"
-                                                                        checked={item.isActive}
-                                                                        onChange={(val) => handleToggleStatusProperty(item.id, "isActive", val)}
-                                                                        loading={loading}
-                                                                        disabled={!canUpdateLeadSetting}
-                                                                        onClick={(checked, e: any) => e.stopPropagation()}
-                                                                    />
-                                                                    <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
-                                                                        {item.isActive ? "Visible" : "Hidden"}
-                                                                    </span>
-                                                                </span>
-                                                                <span className="pc-foot-div" />
-                                                                <span className="pc-foot-item">
-                                                                    <span className="pc-foot-key">Order:</span>
-                                                                    <span className="lset-rank" style={{ fontSize: 10, padding: '1px 6px' }}>#{item.sno}</span>
-                                                                    {canUpdateLeadSetting && (
-                                                                        <div style={{ display: 'inline-flex', gap: 2, marginLeft: 6 }}>
-                                                                            <button
-                                                                                className="lset-icon-btn"
-                                                                                style={{ width: 20, height: 20 }}
-                                                                                disabled={dataSource.findIndex(d => d.id === item.id) === 0}
-                                                                                onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "up"); }}
-                                                                            >
-                                                                                <ArrowUp size={11} />
-                                                                            </button>
-                                                                            <button
-                                                                                className="lset-icon-btn"
-                                                                                style={{ width: 20, height: 20 }}
-                                                                                disabled={dataSource.findIndex(d => d.id === item.id) === dataSource.length - 1}
-                                                                                onClick={(e) => { e.stopPropagation(); moveRow(dataSource.findIndex(d => d.id === item.id), "down"); }}
-                                                                            >
-                                                                                <ArrowDown size={11} />
-                                                                            </button>
-                                                                        </div>
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : activeTab === "2" ? (
-                                            pagedActions.map((item) => (
-                                                <div key={item.id} className="pc-card" onClick={() => handleEditAction(item)}>
-                                                    <div className="pc-top">
-                                                        <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
-                                                            {renderIcon(item.icon) || item.actionName?.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <div className="pc-identity-body">
-                                                            <div className="pc-title">{item.actionName}</div>
-                                                            <div className="pc-client-line">
-                                                                <span className="pc-client-key">Category:</span>
-                                                                <span className="pc-client-val">
-                                                                    <span className="lset-cat-pill" style={{ padding: '1px 6px', fontSize: 10 }}>
-                                                                        <Workflow size={9} /> {item.type}
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <Dropdown
-                                                            menu={{
-                                                                items: [
-                                                                    {
-                                                                        key: 'edit',
-                                                                        label: (
-                                                                            <div className="pp-menu-item">
-                                                                                <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
-                                                                                <span className="pp-menu-text">
-                                                                                    <span className="pp-menu-title">Edit action</span>
-                                                                                    <span className="pp-menu-desc">Modify action properties</span>
-                                                                                </span>
-                                                                            </div>
-                                                                        ),
-                                                                        onClick: (e: any) => { e.domEvent?.stopPropagation(); handleEditAction(item); }
-                                                                    },
-                                                                    { type: 'divider' as const },
-                                                                    {
-                                                                        key: 'delete',
-                                                                        danger: true,
-                                                                        label: (
-                                                                            <ConfirmDialog
                                                                                     tone="danger"
                                                                                     icon={<Trash2 size={16} />}
                                                                                     title="Remove Action?"
@@ -1885,108 +1887,6 @@ export default function LeadSettingsPage() {
                                                                                         </span>
                                                                                     </div>
                                                                                 </ConfirmDialog>
-                                                                        )
-                                                                    }
-                                                                ]
-                                                            }}
-                                                            overlayClassName="pp-action-pop"
-                                                            trigger={['click']}
-                                                            placement="bottomRight"
-                                                        >
-                                                            <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                                                                <EllipsisOutlined />
-                                                            </button>
-                                                        </Dropdown>
-                                                    </div>
-                                                    <div className="pc-foot">
-                                                        <div className="pc-foot-row">
-                                                            <span className="pc-foot-item">
-                                                                <span className="pc-foot-key">Created:</span>
-                                                                <span className="pc-foot-val">{item.created}</span>
-                                                            </span>
-                                                        </div>
-                                                        <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
-                                                            <span className="pc-foot-item">
-                                                                <span className="pc-foot-key">Status:</span>
-                                                                <Switch
-                                                                    size="small"
-                                                                    checked={item.isActive}
-                                                                    onChange={(val) => handleToggleActionProperty(item.id, val)}
-                                                                    loading={loading}
-                                                                    disabled={!canUpdateLeadSetting}
-                                                                    onClick={(checked, e: any) => e.stopPropagation()}
-                                                                />
-                                                                <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
-                                                                    {item.isActive ? "Active" : "Disabled"}
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            pagedPlatforms.map((item) => {
-                                                const isOnline = item.type === "online";
-                                                const href = item.url ? (/^https?:\/\//i.test(item.url) ? item.url : `https://${item.url}`) : "";
-                                                return (
-                                                    <div key={item.id} className="pc-card" onClick={() => handleEditPlatform(item)}>
-                                                        <div className="pc-top">
-                                                            <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
-                                                                {renderPlatformLogo(item.logoUrl, 16, '#ffffff', false)}
-                                                            </div>
-                                                            <div className="pc-identity-body">
-                                                                <div className="pc-title">{item.name}</div>
-                                                                <div className="pc-client-line">
-                                                                    <span className="pc-client-key">Code:</span>
-                                                                    <span className="pc-client-val" style={{ fontFamily: 'monospace' }}>{item.code}</span>
-                                                                </div>
-                                                            </div>
-                                                            <Dropdown
-                                                                menu={{
-                                                                    items: [
-                                                                        {
-                                                                            key: 'edit',
-                                                                            label: (
-                                                                                <div className="pp-menu-item">
-                                                                                    <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
-                                                                                    <span className="pp-menu-text">
-                                                                                        <span className="pp-menu-title">Edit platform</span>
-                                                                                        <span className="pp-menu-desc">Modify source settings</span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            ),
-                                                                            onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditPlatform(item); }
-                                                                        },
-                                                                        { type: 'divider' as const },
-                                                                        {
-                                                                            key: 'delete',
-                                                                            danger: true,
-                                                                            label: (
-                                                                                <ConfirmDialog
-                                                                                    tone="danger"
-                                                                                    icon={<Trash2 size={16} />}
-                                                                                    title="Delete Platform?"
-                                                                                    description="This cannot be undone."
-                                                                                    confirmText="Delete"
-                                                                                    cancelText="Cancel"
-                                                                                    placement="left"
-                                                                                    onConfirm={async () => {
-                                                                                        try {
-                                                                                            await deletePlatform(item.id);
-                                                                                            message.success("Platform deleted");
-                                                                                        } catch {
-                                                                                            message.error("Failed to delete platform");
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
-                                                                                        <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
-                                                                                        <span className="pp-menu-text">
-                                                                                            <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete platform</span>
-                                                                                            <span className="pp-menu-desc">Remove source permanently</span>
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </ConfirmDialog>
                                                                             )
                                                                         }
                                                                     ]
@@ -2003,53 +1903,156 @@ export default function LeadSettingsPage() {
                                                         <div className="pc-foot">
                                                             <div className="pc-foot-row">
                                                                 <span className="pc-foot-item">
-                                                                    <span className="pc-foot-key">Type:</span>
-                                                                    <Tag color={isOnline ? "blue" : "purple"} style={{ borderRadius: 6, fontWeight: 700, fontSize: 10, margin: 0 }}>
-                                                                        {isOnline ? "Online platform" : "Own website"}
-                                                                    </Tag>
+                                                                    <span className="pc-foot-key">Created:</span>
+                                                                    <span className="pc-foot-val">{item.created}</span>
                                                                 </span>
-                                                                {href && (
-                                                                    <>
-                                                                        <span className="pc-foot-div" />
-                                                                        <span className="pc-foot-item">
-                                                                            <span className="pc-foot-key">URL:</span>
-                                                                            <a href={href} target="_blank" rel="noreferrer" className="lset-platform-url" style={{ fontSize: 11 }} onClick={(e) => e.stopPropagation()}>
-                                                                                <Link2 size={10} style={{ marginRight: 2 }} /> Link
-                                                                            </a>
-                                                                        </span>
-                                                                    </>
-                                                                )}
                                                             </div>
                                                             <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
                                                                 <span className="pc-foot-item">
-                                                                    <span className="pc-foot-key">Visibility:</span>
+                                                                    <span className="pc-foot-key">Status:</span>
                                                                     <Switch
                                                                         size="small"
                                                                         checked={item.isActive}
-                                                                        onChange={async (checked) => {
-                                                                            try {
-                                                                                await updatePlatform(item.id, { is_active: checked });
-                                                                                message.success("Platform updated");
-                                                                            } catch {
-                                                                                message.error("Failed to update platform");
-                                                                            }
-                                                                        }}
+                                                                        onChange={(val) => handleToggleActionProperty(item.id, val)}
+                                                                        loading={loading}
                                                                         disabled={!canUpdateLeadSetting}
                                                                         onClick={(checked, e: any) => e.stopPropagation()}
                                                                     />
                                                                     <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
-                                                                        {item.isActive ? "Visible" : "Hidden"}
+                                                                        {item.isActive ? "Active" : "Disabled"}
                                                                     </span>
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                );
-                                            })
-                                        )
-                                    )}
-                                </div>
-                            )}
+                                                ))
+                                            ) : (
+                                                pagedPlatforms.map((item) => {
+                                                    const isOnline = item.type === "online";
+                                                    const href = item.url ? (/^https?:\/\//i.test(item.url) ? item.url : `https://${item.url}`) : "";
+                                                    return (
+                                                        <div key={item.id} className="pc-card" onClick={() => handleEditPlatform(item)}>
+                                                            <div className="pc-top">
+                                                                <div className="pc-avatar" style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                                                                    {renderPlatformLogo(item.logoUrl, 16, '#ffffff', false)}
+                                                                </div>
+                                                                <div className="pc-identity-body">
+                                                                    <div className="pc-title">{item.name}</div>
+                                                                    <div className="pc-client-line">
+                                                                        <span className="pc-client-key">Code:</span>
+                                                                        <span className="pc-client-val" style={{ fontFamily: 'monospace' }}>{item.code}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <Dropdown
+                                                                    menu={{
+                                                                        items: [
+                                                                            {
+                                                                                key: 'edit',
+                                                                                label: (
+                                                                                    <div className="pp-menu-item">
+                                                                                        <span className="pp-menu-ic" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.12)' }}><Edit2 size={13} /></span>
+                                                                                        <span className="pp-menu-text">
+                                                                                            <span className="pp-menu-title">Edit platform</span>
+                                                                                            <span className="pp-menu-desc">Modify source settings</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                ),
+                                                                                onClick: (e: any) => { e.domEvent.stopPropagation(); handleEditPlatform(item); }
+                                                                            },
+                                                                            { type: 'divider' as const },
+                                                                            {
+                                                                                key: 'delete',
+                                                                                danger: true,
+                                                                                label: (
+                                                                                    <ConfirmDialog
+                                                                                        tone="danger"
+                                                                                        icon={<Trash2 size={16} />}
+                                                                                        title="Delete Platform?"
+                                                                                        description="This cannot be undone."
+                                                                                        confirmText="Delete"
+                                                                                        cancelText="Cancel"
+                                                                                        placement="left"
+                                                                                        onConfirm={async () => {
+                                                                                            try {
+                                                                                                await deletePlatform(item.id);
+                                                                                                message.success("Platform deleted");
+                                                                                            } catch {
+                                                                                                message.error("Failed to delete platform");
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="pp-menu-item" onClick={(e) => e.stopPropagation()}>
+                                                                                            <span className="pp-menu-ic" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.12)' }}><Trash2 size={13} /></span>
+                                                                                            <span className="pp-menu-text">
+                                                                                                <span className="pp-menu-title" style={{ color: '#ef4444' }}>Delete platform</span>
+                                                                                                <span className="pp-menu-desc">Remove source permanently</span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </ConfirmDialog>
+                                                                                )
+                                                                            }
+                                                                        ]
+                                                                    }}
+                                                                    overlayClassName="pp-action-pop"
+                                                                    trigger={['click']}
+                                                                    placement="bottomRight"
+                                                                >
+                                                                    <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                                                        <EllipsisOutlined />
+                                                                    </button>
+                                                                </Dropdown>
+                                                            </div>
+                                                            <div className="pc-foot">
+                                                                <div className="pc-foot-row">
+                                                                    <span className="pc-foot-item">
+                                                                        <span className="pc-foot-key">Type:</span>
+                                                                        <Tag color={isOnline ? "blue" : "purple"} style={{ borderRadius: 6, fontWeight: 700, fontSize: 10, margin: 0 }}>
+                                                                            {isOnline ? "Online platform" : "Own website"}
+                                                                        </Tag>
+                                                                    </span>
+                                                                    {href && (
+                                                                        <>
+                                                                            <span className="pc-foot-div" />
+                                                                            <span className="pc-foot-item">
+                                                                                <span className="pc-foot-key">URL:</span>
+                                                                                <a href={href} target="_blank" rel="noreferrer" className="lset-platform-url" style={{ fontSize: 11 }} onClick={(e) => e.stopPropagation()}>
+                                                                                    <Link2 size={10} style={{ marginRight: 2 }} /> Link
+                                                                                </a>
+                                                                            </span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                                <div className="pc-foot-row" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                                                                    <span className="pc-foot-item">
+                                                                        <span className="pc-foot-key">Visibility:</span>
+                                                                        <Switch
+                                                                            size="small"
+                                                                            checked={item.isActive}
+                                                                            onChange={async (checked) => {
+                                                                                try {
+                                                                                    await updatePlatform(item.id, { is_active: checked });
+                                                                                    message.success("Platform updated");
+                                                                                } catch {
+                                                                                    message.error("Failed to update platform");
+                                                                                }
+                                                                            }}
+                                                                            disabled={!canUpdateLeadSetting}
+                                                                            onClick={(checked, e: any) => e.stopPropagation()}
+                                                                        />
+                                                                        <span className={`lset-vis-label ${item.isActive ? "is-on" : ""}`} style={{ fontSize: 11, marginLeft: 4 }}>
+                                                                            {item.isActive ? "Visible" : "Hidden"}
+                                                                        </span>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </ZukvoLoadingOverlay>
                         </div>
 
                         {total > 0 && (
@@ -2155,414 +2158,414 @@ export default function LeadSettingsPage() {
                                 className="customer-drawer-form"
                                 initialValues={{ isDefault: false, isFinalStage: false, isActive: true }}
                             >
-                        {activeTab === "1" ? (
-                            <>
-                                {/* SECTION 1 */}
-                                <SectionCard step="STEP 1" icon={<Palette size={13} color="#6366f1" />} title="Identity & Appearance" subtitle="How this status looks across the app">
-                                    <Form.Item name="category" label={<span className="lset-form-label">Internal Category</span>} rules={[{ required: true, message: "Required" }]}>
-                                        <SearchableDropdown
-                                            placeholder="Pick or type — e.g. negotiation"
-                                            searchPlaceholder="Search categories…"
-                                            itemNoun="categories"
-                                            freeText
-                                            options={statusCategoryOptions}
-                                            onChange={(val) => {
-                                                if (val) applyStatusCategoryPreset(val);
-                                            }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item name="statusName" label={<span className="lset-form-label">Label Name</span>} rules={[{ required: true, message: "Required" }]}>
-                                        <SearchableDropdown
-                                            placeholder={statusCategoryWatch
-                                                ? `e.g. ${statusNameOptions[0]?.value || "IN PROPOSAL"}`
-                                                : "Pick a category or type freely"}
-                                            searchPlaceholder="Search status names…"
-                                            itemNoun="suggestions"
-                                            freeText
-                                            options={statusNameOptions}
-                                            // Picking a known status back-fills category, color and
-                                            // (for Won/Lost/Converted) the Final Milestone toggle.
-                                            onChange={(val) => {
-                                                if (val) applyStatusNamePreset(val);
-                                            }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item
-                                        name="color"
-                                        label={<span className="lset-form-label">Brand Color</span>}
-                                        rules={[{ required: true, message: "Required" }]}
-                                    >
-                                        <Select
-                                            options={[
-                                                { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
-                                                { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
-                                                { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
-                                                { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
-                                            ]}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item
-                                        name="statusIcon"
-                                        label={<span className="lset-form-label">Icon</span>}
-                                    >
-                                        <SearchableDropdown
-                                            placeholder="Pick a status icon"
-                                            searchPlaceholder="Search icons…"
-                                            itemNoun="icons"
-                                            options={STATUS_ICON_OPTIONS.map(icon => ({
-                                                value: icon.key,
-                                                label: icon.label,
-                                                description: icon.key,
-                                                badge: (
-                                                    <span style={{
-                                                        width: "100%", height: "100%",
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        color: "var(--text-slate-700, #475569)",
-                                                    }}>
-                                                        {icon.render(14)}
-                                                    </span>
-                                                ),
-                                            }))}
-                                        />
-                                    </Form.Item>
-                                </SectionCard>
-
-                                {/* SECTION 2 */}
-                                <SectionCard step="STEP 2" icon={<Activity size={13} color="#f59e0b" />} title="Behavioral Rules" subtitle="Lifecycle behavior for new and closing leads">
-
-                                    <div className="lset-toggle-row">
-                                        <div className="lset-toggle-text">
-                                            <span className="lset-toggle-title">
-                                                <Star size={12} color="#f59e0b" />
-                                                Default Starter
-                                            </span>
-                                            <span className="lset-toggle-sub">Auto-assigned to all new leads</span>
-                                        </div>
-                                        <Tooltip title={!(editingId && statuses.find(s => s.id === editingId)?.is_default) ? "Manage default from the table" : ""}>
-                                            <span>
-                                                <Form.Item name="isDefault" valuePropName="checked" noStyle>
-                                                    <Switch disabled={!(editingId && statuses.find(s => s.id === editingId)?.is_default)} />
-                                                </Form.Item>
-                                            </span>
-                                        </Tooltip>
-                                    </div>
-
-                                    <div className="lset-toggle-row">
-                                        <div className="lset-toggle-text">
-                                            <span className="lset-toggle-title">
-                                                <CheckCircle2 size={12} color="#10b981" />
-                                                Final Milestone
-                                            </span>
-                                            <span className="lset-toggle-sub">Marks completion of the pipeline</span>
-                                        </div>
-                                        <Form.Item name="isFinalStage" valuePropName="checked" noStyle>
-                                            <Switch />
-                                        </Form.Item>
-                                    </div>
-
-                                    <div className="lset-toggle-row">
-                                        <div className="lset-toggle-text">
-                                            <span className="lset-toggle-title">
-                                                <Eye size={12} color="#6366f1" />
-                                                Visible
-                                            </span>
-                                            <span className="lset-toggle-sub">Available for selection in lead views</span>
-                                        </div>
-                                        <Form.Item name="isActive" valuePropName="checked" noStyle>
-                                            <Switch />
-                                        </Form.Item>
-                                    </div>
-                                </SectionCard>
-                            </>
-                        ) : activeTab === "2" ? (
-                            <>
-                                {/* SECTION 1 */}
-                                <SectionCard step="STEP 1" icon={<Workflow size={13} color="#ec4899" />} title="Action Configuration" subtitle="Identity, type, and visual appearance">
-                                    <Form.Item name="actionType" label={<span className="lset-form-label">Category</span>} rules={[{ required: true, message: "Required" }]}>
-                                        <SearchableDropdown
-                                            placeholder="Pick or type — e.g. Communication"
-                                            searchPlaceholder="Search categories…"
-                                            itemNoun="categories"
-                                            freeText
-                                            options={WORKFLOW_ACTION_PRESETS.map(p => ({
-                                                value: p.category,
-                                                label: p.category,
-                                                description: `${p.types.length} suggested types`,
-                                            }))}
-                                            onChange={(val) => {
-                                                if (val) applyCategoryPreset(val);
-                                            }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item name="actionName" label={<span className="lset-form-label">Display Name</span>} rules={[{ required: true, message: "Required" }]}>
-                                        <SearchableDropdown
-                                            placeholder={actionCategoryWatch
-                                                ? `e.g. ${actionNameOptions[0]?.value || "Schedule Call"}`
-                                                : "Pick a category or type freely"}
-                                            searchPlaceholder="Search action names…"
-                                            itemNoun="suggestions"
-                                            freeText
-                                            options={actionNameOptions.map(o => ({
-                                                value: o.value,
-                                                label: o.value,
-                                            }))}
-                                            // Picking a known display name back-fills the matching
-                                            // category, icon, and color. Free-form typing leaves them
-                                            // alone so the user can override after the fact.
-                                            onChange={(val) => {
-                                                if (val) applyTypePreset(val);
-                                            }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item name="icon" label={<span className="lset-form-label">Icon</span>} rules={[{ required: true, message: "Required" }]}>
-                                        <Select
-                                            showSearch
-                                            placeholder="Search icon"
-                                            options={iconOptions}
-                                            filterOption={(input, option) =>
-                                                (option?.value as string).toLowerCase().includes(input.toLowerCase())
-                                            }
-                                        />
-                                    </Form.Item>
-                                    <Form.Item
-                                        name="color"
-                                        label={<span className="lset-form-label">Color</span>}
-                                        rules={[{ required: true, message: "Required" }]}
-                                    >
-                                        <Select
-                                            options={[
-                                                { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
-                                                { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
-                                                { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
-                                                { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
-                                            ]}
-                                        />
-                                    </Form.Item>
-                                </SectionCard>
-
-                                {/* SECTION 2 */}
-                                <SectionCard step="STEP 2" icon={<ShieldCheck size={13} color="#10b981" />} title="Availability" subtitle="Control whether this action shows up in workflows">
-                                    <div className="lset-toggle-row">
-                                        <div className="lset-toggle-text">
-                                            <span className="lset-toggle-title">
-                                                <Eye size={12} color="#10b981" />
-                                                Operational
-                                            </span>
-                                            <span className="lset-toggle-sub">Available for selection across leads</span>
-                                        </div>
-                                        <Form.Item name="isActive" valuePropName="checked" noStyle>
-                                            <Switch />
-                                        </Form.Item>
-                                    </div>
-                                </SectionCard>
-                            </>
-                        ) : (
-                            <>
-                                {/* PLATFORM SECTION 1 — Type */}
-                                <SectionCard step="STEP 1" icon={<Globe size={13} color="#06b6d4" />} title="Source kind" subtitle="Pick where leads come from. The next step adapts to your choice.">
-                                    <Form.Item
-                                        name="platformType"
-                                        rules={[{ required: true, message: "Pick a type" }]}
-                                    >
-                                        <Segmented
-                                            block
-                                            options={[
-                                                {
-                                                    value: "online",
-                                                    label: (
-                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 12 }}>
-                                                            <Globe size={12} /> Online platform
-                                                        </span>
-                                                    ),
-                                                },
-                                                {
-                                                    value: "website",
-                                                    label: (
-                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 12 }}>
-                                                            <Sparkles size={12} /> Own website
-                                                        </span>
-                                                    ),
-                                                },
-                                            ]}
-                                            onChange={() => {
-                                                // Reset downstream identity fields when the type flips.
-                                                form.setFieldsValue({
-                                                    platformPicker: undefined,
-                                                    platformName: undefined,
-                                                    platformCode: undefined,
-                                                });
-                                            }}
-                                        />
-                                    </Form.Item>
-                                </SectionCard>
-
-                                {/* PLATFORM SECTION 2 — Identity (depends on type) */}
-                                {platformTypeWatch && (
-                                    <SectionCard step="STEP 2" icon={<TagIcon size={13} color="#6366f1" />} title={platformTypeWatch === "online" ? "Pick a platform" : "Website identity"} subtitle={platformTypeWatch === "online" ? "Choose from the curated list — name, code and URL are auto-filled." : "Give your website a label leads will be grouped under."}>
-
-                                        {platformTypeWatch === "online" ? (
+                                {activeTab === "1" ? (
+                                    <>
+                                        {/* SECTION 1 */}
+                                        <SectionCard step="STEP 1" icon={<Palette size={13} color="#6366f1" />} title="Identity & Appearance" subtitle="How this status looks across the app">
+                                            <Form.Item name="category" label={<span className="lset-form-label">Internal Category</span>} rules={[{ required: true, message: "Required" }]}>
+                                                <SearchableDropdown
+                                                    placeholder="Pick or type — e.g. negotiation"
+                                                    searchPlaceholder="Search categories…"
+                                                    itemNoun="categories"
+                                                    freeText
+                                                    options={statusCategoryOptions}
+                                                    onChange={(val) => {
+                                                        if (val) applyStatusCategoryPreset(val);
+                                                    }}
+                                                />
+                                            </Form.Item>
+                                            <Form.Item name="statusName" label={<span className="lset-form-label">Label Name</span>} rules={[{ required: true, message: "Required" }]}>
+                                                <SearchableDropdown
+                                                    placeholder={statusCategoryWatch
+                                                        ? `e.g. ${statusNameOptions[0]?.value || "IN PROPOSAL"}`
+                                                        : "Pick a category or type freely"}
+                                                    searchPlaceholder="Search status names…"
+                                                    itemNoun="suggestions"
+                                                    freeText
+                                                    options={statusNameOptions}
+                                                    // Picking a known status back-fills category, color and
+                                                    // (for Won/Lost/Converted) the Final Milestone toggle.
+                                                    onChange={(val) => {
+                                                        if (val) applyStatusNamePreset(val);
+                                                    }}
+                                                />
+                                            </Form.Item>
                                             <Form.Item
-                                                name="platformPicker"
-                                                label={<span className="lset-form-label">Platform</span>}
-                                                rules={[{ required: true, message: "Pick a platform" }]}
+                                                name="color"
+                                                label={<span className="lset-form-label">Brand Color</span>}
+                                                rules={[{ required: true, message: "Required" }]}
+                                            >
+                                                <Select
+                                                    options={[
+                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                                    ]}
+                                                />
+                                            </Form.Item>
+                                            <Form.Item
+                                                name="statusIcon"
+                                                label={<span className="lset-form-label">Icon</span>}
                                             >
                                                 <SearchableDropdown
-                                                    placeholder="Search platforms…"
-                                                    searchPlaceholder="Search platforms…"
-                                                    itemNoun="platforms"
+                                                    placeholder="Pick a status icon"
+                                                    searchPlaceholder="Search icons…"
+                                                    itemNoun="icons"
+                                                    options={STATUS_ICON_OPTIONS.map(icon => ({
+                                                        value: icon.key,
+                                                        label: icon.label,
+                                                        description: icon.key,
+                                                        badge: (
+                                                            <span style={{
+                                                                width: "100%", height: "100%",
+                                                                display: "inline-flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                color: "var(--text-slate-700, #475569)",
+                                                            }}>
+                                                                {icon.render(14)}
+                                                            </span>
+                                                        ),
+                                                    }))}
+                                                />
+                                            </Form.Item>
+                                        </SectionCard>
+
+                                        {/* SECTION 2 */}
+                                        <SectionCard step="STEP 2" icon={<Activity size={13} color="#f59e0b" />} title="Behavioral Rules" subtitle="Lifecycle behavior for new and closing leads">
+
+                                            <div className="lset-toggle-row">
+                                                <div className="lset-toggle-text">
+                                                    <span className="lset-toggle-title">
+                                                        <Star size={12} color="#f59e0b" />
+                                                        Default Starter
+                                                    </span>
+                                                    <span className="lset-toggle-sub">Auto-assigned to all new leads</span>
+                                                </div>
+                                                <Tooltip title={!(editingId && statuses.find(s => s.id === editingId)?.is_default) ? "Manage default from the table" : ""}>
+                                                    <span>
+                                                        <Form.Item name="isDefault" valuePropName="checked" noStyle>
+                                                            <Switch disabled={!(editingId && statuses.find(s => s.id === editingId)?.is_default)} />
+                                                        </Form.Item>
+                                                    </span>
+                                                </Tooltip>
+                                            </div>
+
+                                            <div className="lset-toggle-row">
+                                                <div className="lset-toggle-text">
+                                                    <span className="lset-toggle-title">
+                                                        <CheckCircle2 size={12} color="#10b981" />
+                                                        Final Milestone
+                                                    </span>
+                                                    <span className="lset-toggle-sub">Marks completion of the pipeline</span>
+                                                </div>
+                                                <Form.Item name="isFinalStage" valuePropName="checked" noStyle>
+                                                    <Switch />
+                                                </Form.Item>
+                                            </div>
+
+                                            <div className="lset-toggle-row">
+                                                <div className="lset-toggle-text">
+                                                    <span className="lset-toggle-title">
+                                                        <Eye size={12} color="#6366f1" />
+                                                        Visible
+                                                    </span>
+                                                    <span className="lset-toggle-sub">Available for selection in lead views</span>
+                                                </div>
+                                                <Form.Item name="isActive" valuePropName="checked" noStyle>
+                                                    <Switch />
+                                                </Form.Item>
+                                            </div>
+                                        </SectionCard>
+                                    </>
+                                ) : activeTab === "2" ? (
+                                    <>
+                                        {/* SECTION 1 */}
+                                        <SectionCard step="STEP 1" icon={<Workflow size={13} color="#ec4899" />} title="Action Configuration" subtitle="Identity, type, and visual appearance">
+                                            <Form.Item name="actionType" label={<span className="lset-form-label">Category</span>} rules={[{ required: true, message: "Required" }]}>
+                                                <SearchableDropdown
+                                                    placeholder="Pick or type — e.g. Communication"
+                                                    searchPlaceholder="Search categories…"
+                                                    itemNoun="categories"
+                                                    freeText
+                                                    options={WORKFLOW_ACTION_PRESETS.map(p => ({
+                                                        value: p.category,
+                                                        label: p.category,
+                                                        description: `${p.types.length} suggested types`,
+                                                    }))}
+                                                    onChange={(val) => {
+                                                        if (val) applyCategoryPreset(val);
+                                                    }}
+                                                />
+                                            </Form.Item>
+                                            <Form.Item name="actionName" label={<span className="lset-form-label">Display Name</span>} rules={[{ required: true, message: "Required" }]}>
+                                                <SearchableDropdown
+                                                    placeholder={actionCategoryWatch
+                                                        ? `e.g. ${actionNameOptions[0]?.value || "Schedule Call"}`
+                                                        : "Pick a category or type freely"}
+                                                    searchPlaceholder="Search action names…"
+                                                    itemNoun="suggestions"
+                                                    freeText
+                                                    options={actionNameOptions.map(o => ({
+                                                        value: o.value,
+                                                        label: o.value,
+                                                    }))}
+                                                    // Picking a known display name back-fills the matching
+                                                    // category, icon, and color. Free-form typing leaves them
+                                                    // alone so the user can override after the fact.
+                                                    onChange={(val) => {
+                                                        if (val) applyTypePreset(val);
+                                                    }}
+                                                />
+                                            </Form.Item>
+                                            <Form.Item name="icon" label={<span className="lset-form-label">Icon</span>} rules={[{ required: true, message: "Required" }]}>
+                                                <Select
+                                                    showSearch
+                                                    placeholder="Search icon"
+                                                    options={iconOptions}
+                                                    filterOption={(input, option) =>
+                                                        (option?.value as string).toLowerCase().includes(input.toLowerCase())
+                                                    }
+                                                />
+                                            </Form.Item>
+                                            <Form.Item
+                                                name="color"
+                                                label={<span className="lset-form-label">Color</span>}
+                                                rules={[{ required: true, message: "Required" }]}
+                                            >
+                                                <Select
                                                     options={[
-                                                        ...KNOWN_ONLINE_PLATFORMS.map(p => ({
-                                                            value: p.name,
-                                                            label: p.name,
-                                                            description: p.url.replace(/^https?:\/\/(www\.)?/, ""),
-                                                            badge: (
-                                                                <span
-                                                                    aria-hidden
-                                                                    style={{
-                                                                        width: "100%", height: "100%",
-                                                                        background: `${p.brand}14`,
-                                                                        color: p.brand,
-                                                                        display: "inline-flex",
-                                                                        alignItems: "center",
-                                                                        justifyContent: "center",
-                                                                        fontSize: 12,
-                                                                        fontWeight: 800,
-                                                                    }}
-                                                                >
-                                                                    {p.name.slice(0, 1).toUpperCase()}
+                                                        { value: "#3b82f6", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }} /> Blue</span> },
+                                                        { value: "#10b981", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }} /> Green</span> },
+                                                        { value: "#94a3b8", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#94a3b8' }} /> Grey</span> },
+                                                        { value: "#f59e0b", label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }} /> Light Orange</span> },
+                                                    ]}
+                                                />
+                                            </Form.Item>
+                                        </SectionCard>
+
+                                        {/* SECTION 2 */}
+                                        <SectionCard step="STEP 2" icon={<ShieldCheck size={13} color="#10b981" />} title="Availability" subtitle="Control whether this action shows up in workflows">
+                                            <div className="lset-toggle-row">
+                                                <div className="lset-toggle-text">
+                                                    <span className="lset-toggle-title">
+                                                        <Eye size={12} color="#10b981" />
+                                                        Operational
+                                                    </span>
+                                                    <span className="lset-toggle-sub">Available for selection across leads</span>
+                                                </div>
+                                                <Form.Item name="isActive" valuePropName="checked" noStyle>
+                                                    <Switch />
+                                                </Form.Item>
+                                            </div>
+                                        </SectionCard>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* PLATFORM SECTION 1 — Type */}
+                                        <SectionCard step="STEP 1" icon={<Globe size={13} color="#06b6d4" />} title="Source kind" subtitle="Pick where leads come from. The next step adapts to your choice.">
+                                            <Form.Item
+                                                name="platformType"
+                                                rules={[{ required: true, message: "Pick a type" }]}
+                                            >
+                                                <Segmented
+                                                    block
+                                                    options={[
+                                                        {
+                                                            value: "online",
+                                                            label: (
+                                                                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 12 }}>
+                                                                    <Globe size={12} /> Online platform
                                                                 </span>
                                                             ),
-                                                        })),
+                                                        },
                                                         {
-                                                            value: "__other__",
-                                                            label: "Other (custom)",
-                                                            description: "Type your own name in the next step",
+                                                            value: "website",
+                                                            label: (
+                                                                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 12 }}>
+                                                                    <Sparkles size={12} /> Own website
+                                                                </span>
+                                                            ),
                                                         },
                                                     ]}
-                                                    onChange={(val) => {
-                                                        if (!val) return;
-                                                        if (val === "__other__") {
-                                                            form.setFieldsValue({ platformName: undefined, platformCode: undefined });
-                                                            return;
-                                                        }
-                                                        const meta = KNOWN_ONLINE_PLATFORMS.find(p => p.name === val);
-                                                        if (!meta) return;
-                                                        const updates: any = {
-                                                            platformName: meta.name,
-                                                            platformCode: derivePlatformCode(meta.name),
-                                                        };
-                                                        if (!form.getFieldValue("platformUrl")) {
-                                                            updates.platformUrl = meta.url;
-                                                        }
-                                                        const currentLogo = form.getFieldValue("platformLogo");
-                                                        const parsed = parseLogoValue(currentLogo);
-                                                        if (parsed.kind === "none" || parsed.kind === "icon") {
-                                                            updates.platformLogo = `icon:${meta.iconKey}`;
-                                                        }
-                                                        form.setFieldsValue(updates);
+                                                    onChange={() => {
+                                                        // Reset downstream identity fields when the type flips.
+                                                        form.setFieldsValue({
+                                                            platformPicker: undefined,
+                                                            platformName: undefined,
+                                                            platformCode: undefined,
+                                                        });
                                                     }}
                                                 />
                                             </Form.Item>
-                                        ) : null}
+                                        </SectionCard>
 
-                                        {(platformTypeWatch === "website" || platformPickerWatch === "__other__") ? (
-                                            <Form.Item
-                                                name="platformName"
-                                                label={<span className="lset-form-label">Name</span>}
-                                                rules={[{ required: true, message: "Required" }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: "Special characters are not allowed" }]}
-                                                getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}
-                                            >
-                                                <Input
-                                                    placeholder={platformTypeWatch === "website" ? "e.g. Zukvo, Zithtech" : "e.g. AngelList Talent"}
-                                                    onChange={(e) => {
-                                                        if (!editingId) {
-                                                            form.setFieldValue("platformCode", derivePlatformCode(e.target.value));
-                                                        }
-                                                    }}
-                                                />
-                                            </Form.Item>
-                                        ) : (
-                                            // Keep platformName registered even when its visible input is hidden
-                                            // (curated online pick auto-fills it). Without this Form.Item the
-                                            // value set via setFieldsValue isn't picked up by validateFields.
-                                            <Form.Item name="platformName" hidden>
-                                                <Input />
-                                            </Form.Item>
+                                        {/* PLATFORM SECTION 2 — Identity (depends on type) */}
+                                        {platformTypeWatch && (
+                                            <SectionCard step="STEP 2" icon={<TagIcon size={13} color="#6366f1" />} title={platformTypeWatch === "online" ? "Pick a platform" : "Website identity"} subtitle={platformTypeWatch === "online" ? "Choose from the curated list — name, code and URL are auto-filled." : "Give your website a label leads will be grouped under."}>
+
+                                                {platformTypeWatch === "online" ? (
+                                                    <Form.Item
+                                                        name="platformPicker"
+                                                        label={<span className="lset-form-label">Platform</span>}
+                                                        rules={[{ required: true, message: "Pick a platform" }]}
+                                                    >
+                                                        <SearchableDropdown
+                                                            placeholder="Search platforms…"
+                                                            searchPlaceholder="Search platforms…"
+                                                            itemNoun="platforms"
+                                                            options={[
+                                                                ...KNOWN_ONLINE_PLATFORMS.map(p => ({
+                                                                    value: p.name,
+                                                                    label: p.name,
+                                                                    description: p.url.replace(/^https?:\/\/(www\.)?/, ""),
+                                                                    badge: (
+                                                                        <span
+                                                                            aria-hidden
+                                                                            style={{
+                                                                                width: "100%", height: "100%",
+                                                                                background: `${p.brand}14`,
+                                                                                color: p.brand,
+                                                                                display: "inline-flex",
+                                                                                alignItems: "center",
+                                                                                justifyContent: "center",
+                                                                                fontSize: 12,
+                                                                                fontWeight: 800,
+                                                                            }}
+                                                                        >
+                                                                            {p.name.slice(0, 1).toUpperCase()}
+                                                                        </span>
+                                                                    ),
+                                                                })),
+                                                                {
+                                                                    value: "__other__",
+                                                                    label: "Other (custom)",
+                                                                    description: "Type your own name in the next step",
+                                                                },
+                                                            ]}
+                                                            onChange={(val) => {
+                                                                if (!val) return;
+                                                                if (val === "__other__") {
+                                                                    form.setFieldsValue({ platformName: undefined, platformCode: undefined });
+                                                                    return;
+                                                                }
+                                                                const meta = KNOWN_ONLINE_PLATFORMS.find(p => p.name === val);
+                                                                if (!meta) return;
+                                                                const updates: any = {
+                                                                    platformName: meta.name,
+                                                                    platformCode: derivePlatformCode(meta.name),
+                                                                };
+                                                                if (!form.getFieldValue("platformUrl")) {
+                                                                    updates.platformUrl = meta.url;
+                                                                }
+                                                                const currentLogo = form.getFieldValue("platformLogo");
+                                                                const parsed = parseLogoValue(currentLogo);
+                                                                if (parsed.kind === "none" || parsed.kind === "icon") {
+                                                                    updates.platformLogo = `icon:${meta.iconKey}`;
+                                                                }
+                                                                form.setFieldsValue(updates);
+                                                            }}
+                                                        />
+                                                    </Form.Item>
+                                                ) : null}
+
+                                                {(platformTypeWatch === "website" || platformPickerWatch === "__other__") ? (
+                                                    <Form.Item
+                                                        name="platformName"
+                                                        label={<span className="lset-form-label">Name</span>}
+                                                        rules={[{ required: true, message: "Required" }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: "Special characters are not allowed" }]}
+                                                        getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}
+                                                    >
+                                                        <Input
+                                                            placeholder={platformTypeWatch === "website" ? "e.g. Zukvo, Zithtech" : "e.g. AngelList Talent"}
+                                                            onChange={(e) => {
+                                                                if (!editingId) {
+                                                                    form.setFieldValue("platformCode", derivePlatformCode(e.target.value));
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Form.Item>
+                                                ) : (
+                                                    // Keep platformName registered even when its visible input is hidden
+                                                    // (curated online pick auto-fills it). Without this Form.Item the
+                                                    // value set via setFieldsValue isn't picked up by validateFields.
+                                                    <Form.Item name="platformName" hidden>
+                                                        <Input />
+                                                    </Form.Item>
+                                                )}
+
+                                                <Form.Item
+                                                    name="platformCode"
+                                                    label={
+                                                        <span className="lset-form-label">
+                                                            Code
+                                                            <Tooltip title="Derived from name. Used internally to match this platform with leads — cannot be changed.">
+                                                                <Info size={11} style={{ marginLeft: 6, color: "var(--text-slate-400)" }} />
+                                                            </Tooltip>
+                                                        </span>
+                                                    }
+                                                >
+                                                    <Input
+                                                        readOnly
+                                                        disabled
+                                                        placeholder="AUTO_FILLED"
+                                                        style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.04em" }}
+                                                    />
+                                                </Form.Item>
+                                            </SectionCard>
                                         )}
 
-                                        <Form.Item
-                                            name="platformCode"
-                                            label={
-                                                <span className="lset-form-label">
-                                                    Code
-                                                    <Tooltip title="Derived from name. Used internally to match this platform with leads — cannot be changed.">
-                                                        <Info size={11} style={{ marginLeft: 6, color: "var(--text-slate-400)" }} />
-                                                    </Tooltip>
-                                                </span>
-                                            }
-                                        >
-                                            <Input
-                                                readOnly
-                                                disabled
-                                                placeholder="AUTO_FILLED"
-                                                style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.04em" }}
-                                            />
-                                        </Form.Item>
-                                    </SectionCard>
+                                        {/* PLATFORM SECTION 3 — Branding & URL */}
+                                        {platformTypeWatch && (
+                                            <SectionCard step="STEP 3" icon={<ImageIcon size={13} color="#f59e0b" />} title="Branding & URL" subtitle="How this source looks in the leads table and where it lives.">
+                                                <Form.Item name="platformUrl" label={<span className="lset-form-label">URL</span>}>
+                                                    <Input prefix={<Link2 size={13} style={{ color: "var(--text-slate-400)" }} />} placeholder="https://…" />
+                                                </Form.Item>
+                                                <Form.Item
+                                                    name="platformLogo"
+                                                    label={<span className="lset-form-label">Logo</span>}
+                                                    valuePropName="value"
+                                                >
+                                                    <PlatformLogoPicker
+                                                        platformKind={platformTypeWatch === "website" ? "website" : "online"}
+                                                        onError={(msg) => message.error(msg)}
+                                                    />
+                                                </Form.Item>
+                                                <Form.Item name="platformDescription" label={<span className="lset-form-label">Description</span>}>
+                                                    <Input.TextArea rows={3} placeholder="Short note about how this source feeds leads in." />
+                                                </Form.Item>
+                                            </SectionCard>
+                                        )}
+
+                                        {/* PLATFORM SECTION 4 — Visibility */}
+                                        {platformTypeWatch && (
+                                            <SectionCard step="STEP 4" icon={<ShieldCheck size={13} color="#10b981" />} title="Status" subtitle="Hidden platforms won't appear in the lead source picker.">
+                                                <div className="lset-toggle-row">
+                                                    <div className="lset-toggle-text">
+                                                        <span className="lset-toggle-title">
+                                                            <Eye size={12} color="#10b981" />
+                                                            Active
+                                                        </span>
+                                                        <span className="lset-toggle-sub">Available as a lead source</span>
+                                                    </div>
+                                                    <Form.Item name="isActive" valuePropName="checked" noStyle>
+                                                        <Switch />
+                                                    </Form.Item>
+                                                </div>
+                                            </SectionCard>
+                                        )}
+                                    </>
                                 )}
 
-                                {/* PLATFORM SECTION 3 — Branding & URL */}
-                                {platformTypeWatch && (
-                                    <SectionCard step="STEP 3" icon={<ImageIcon size={13} color="#f59e0b" />} title="Branding & URL" subtitle="How this source looks in the leads table and where it lives.">
-                                        <Form.Item name="platformUrl" label={<span className="lset-form-label">URL</span>}>
-                                            <Input prefix={<Link2 size={13} style={{ color: "var(--text-slate-400)" }} />} placeholder="https://…" />
-                                        </Form.Item>
-                                        <Form.Item
-                                            name="platformLogo"
-                                            label={<span className="lset-form-label">Logo</span>}
-                                            valuePropName="value"
-                                        >
-                                            <PlatformLogoPicker
-                                                platformKind={platformTypeWatch === "website" ? "website" : "online"}
-                                                onError={(msg) => message.error(msg)}
-                                            />
-                                        </Form.Item>
-                                        <Form.Item name="platformDescription" label={<span className="lset-form-label">Description</span>}>
-                                            <Input.TextArea rows={3} placeholder="Short note about how this source feeds leads in." />
-                                        </Form.Item>
-                                    </SectionCard>
-                                )}
-
-                                {/* PLATFORM SECTION 4 — Visibility */}
-                                {platformTypeWatch && (
-                                    <SectionCard step="STEP 4" icon={<ShieldCheck size={13} color="#10b981" />} title="Status" subtitle="Hidden platforms won't appear in the lead source picker.">
-                                        <div className="lset-toggle-row">
-                                            <div className="lset-toggle-text">
-                                                <span className="lset-toggle-title">
-                                                    <Eye size={12} color="#10b981" />
-                                                    Active
-                                                </span>
-                                                <span className="lset-toggle-sub">Available as a lead source</span>
-                                            </div>
-                                            <Form.Item name="isActive" valuePropName="checked" noStyle>
-                                                <Switch />
-                                            </Form.Item>
-                                        </div>
-                                    </SectionCard>
-                                )}
-                            </>
-                        )}
-
-                        <div className="lset-drawer-note">
-                            <div className="lset-drawer-note-icon">
-                                <Info size={13} />
-                            </div>
-                            <div className="lset-drawer-note-text">
-                                Saved settings sync to every lead view and the public pipeline immediately.
-                            </div>
-                        </div>
+                                <div className="lset-drawer-note">
+                                    <div className="lset-drawer-note-icon">
+                                        <Info size={13} />
+                                    </div>
+                                    <div className="lset-drawer-note-text">
+                                        Saved settings sync to every lead view and the public pipeline immediately.
+                                    </div>
+                                </div>
                             </Form>
                         </div>
                         <div

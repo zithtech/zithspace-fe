@@ -13,6 +13,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Advance } from '@/services/reimbursementV2Service';
 import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 export default function AdvancesPanel() {
   const perms = usePermission() as any;

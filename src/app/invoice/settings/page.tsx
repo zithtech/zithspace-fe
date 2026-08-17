@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 import { useState, useMemo, useRef, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
@@ -12,7 +14,6 @@ import {
   Modal,
   Table,
   message,
-  Spin,
   Drawer,
   Tooltip,
   Select,
@@ -426,7 +427,7 @@ export default function InvoiceSettingPage() {
     return (
       <MainLayout>
         <div className="h-[60vh] flex items-center justify-center">
-          <Spin tip="Initializing session..." />
+          <ZukvoLoader size="md" message="Initializing session..." />
         </div>
       </MainLayout>
     );

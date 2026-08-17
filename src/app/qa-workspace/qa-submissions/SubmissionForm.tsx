@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 /**
  * Create / edit a QA Submission (§6–§8, §10, §16–§17).
@@ -21,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { debounce } from "lodash";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { MembersService } from "@/services/membersService";
@@ -69,6 +72,7 @@ export default function SubmissionForm({ submission }: Props) {
 
   const [name, setName] = useState(submission?.submission_name ?? "");
   const [scopeId, setScopeId] = useState<string | undefined>(submission?.scope_id);
+  const [loadingScopes, setLoadingScopes] = useState(false);
   const [type, setType] = useState<SubmissionType>(submission?.submission_type ?? "Testing Completion");
   const [qaOwnerId, setQaOwnerId] = useState<string | undefined>(submission?.qa_owner_id ?? undefined);
   const [reviewerId, setReviewerId] = useState<string | undefined>(submission?.reviewer_id ?? undefined);
@@ -92,7 +96,7 @@ export default function SubmissionForm({ submission }: Props) {
     (async () => {
       try {
         const [scopeRes, memberRes] = await Promise.all([
-          axios.get("/api/v2/qa/test-scopes"),
+          axios.get("/api/v2/qa/test-scopes?limit=1000"),
           MembersService.getMembers({ limit: 500 }),
         ]);
         setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
@@ -102,6 +106,23 @@ export default function SubmissionForm({ submission }: Props) {
       }
     })();
   }, [message]);
+
+  const fetchScopesSearch = React.useCallback(
+    debounce(async (search: string) => {
+      try {
+        setLoadingScopes(true);
+        const res: any = await axios.get('/api/v2/qa/test-scopes', {
+          params: search ? { search, limit: 50 } : { limit: 1000 },
+        });
+        setScopes(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+      } catch (err) {
+        // fail silently for searches
+      } finally {
+        setLoadingScopes(false);
+      }
+    }, 400),
+    []
+  );
 
   /** QA Owner defaults to the signed-in user (§7). Only fills an empty field. */
   useEffect(() => {
@@ -421,6 +442,8 @@ export default function SubmissionForm({ submission }: Props) {
                     }))}
                     value={scopeId}
                     onChange={(v) => setScopeId(v)}
+                    onSearch={fetchScopesSearch}
+                    loading={loadingScopes}
                     placeholder="Select the scope that was tested"
                     itemNoun="scopes"
                   />

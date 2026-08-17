@@ -1,5 +1,6 @@
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect, useRef, KeyboardEvent, useMemo } from 'react';
-import { AutoComplete, Tag, Typography, Spin, Tooltip } from 'antd';
+import { AutoComplete, Tag, Typography, Tooltip } from 'antd';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import type { RefSelectProps } from 'antd';
 
@@ -251,7 +252,7 @@ export const EditableTags: React.FC<EditableTagsProps> = ({
                 )
             )}
 
-            {loading && <Spin size="small" style={{ marginLeft: 4 }} />}
+            {loading && <ZukvoLoader size="sm" />}
         </div>
     );
 };

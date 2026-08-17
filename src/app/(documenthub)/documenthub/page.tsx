@@ -70,7 +70,6 @@ import {
   DatePicker,
   Space,
   message,
-  Spin,
   Divider,
   Avatar,
   Segmented,
@@ -91,6 +90,8 @@ import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { Trash2 } from "lucide-react";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { RangePicker } = DatePicker;
 
@@ -729,6 +730,8 @@ const HubCard: React.FC<{
 const DocumentHubPage = () => {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_grid');
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const {
@@ -1260,7 +1263,7 @@ const DocumentHubPage = () => {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <Spin size="large" tip="Orchestrating technical repository..." />
+          <ZukvoLoader size="lg" message="Orchestrating technical repository..." />
         </div>
       </MainLayout>
     );
@@ -1658,31 +1661,33 @@ const DocumentHubPage = () => {
           ) : (
             canCreateDocument && (
               <>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setModalVisible(true)}
-                  style={{
-                    height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                  }}
-                >
-                  Create your first hub
-                </Button>
-                <Button
-                  onClick={() => setAiModalVisible(true)}
-                  icon={<span style={{ fontSize: 13 }}>✨</span>}
-                  style={{
-                    height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
-                    background: 'var(--bg-pure-white)',
-                    border: '1px solid var(--border-slate-200)',
-                    color: 'var(--text-slate-700)',
-                  }}
-                >
-                  Generate with Zai
-                </Button>
+                {hasGrid && (
+                  <Button
+                    onClick={() => setModalVisible(true)}
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    style={{
+                      height: 40, borderRadius: 10, paddingInline: 18, fontWeight: 600,
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                    }}
+                  >
+                    Create your first hub
+                  </Button>
+                )}
+                {hasPrime && (
+                  <Button
+                    onClick={() => setAiModalVisible(true)}
+                    icon={<span style={{ fontSize: 13 }}>✨</span>}
+                    style={{
+                      height: 40, borderRadius: 10, paddingInline: 14, fontWeight: 600,
+                      background: 'var(--bg-pure-white)',
+                      border: '1px solid var(--border-slate-200)',
+                      color: 'var(--text-slate-700)',
+                    }}
+                  >
+                    Generate with Zai
+                  </Button>
+                )}
               </>
             )
           )}
@@ -1764,74 +1769,75 @@ const DocumentHubPage = () => {
           border: 'none',
         }}
       >
-        <Table
-          columns={visibleColumns}
-          dataSource={pagedHubs}
-          rowKey="id"
-          loading={hubsLoading || hubsFetching}
-          pagination={false}
-          size="small"
-          className="premium-table dh-table"
-          tableLayout="fixed"
-          sticky={{ offsetHeader: 0 }}
-          scroll={{ x: 980 }}
-          locale={{ emptyText: renderEmpty() }}
-          components={{
-            header: { cell: ResizableHeaderCell },
-          }}
-          rowSelection={{
-            selectedRowKeys: selectedKeys,
-            onChange: (keys) => setSelectedKeys(keys),
-            columnWidth: 26,
-          }}
-          expandable={{
-            columnWidth: 24,
-            expandedRowKeys: expandedKeys,
-            onExpand: (expanded, record) => {
-              setExpandedKeys((prev) =>
-                expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
-              );
-            },
-            expandedRowRender: (record) => (
-              <HubInlinePreview hub={record} onOpen={openHub} />
-            ),
-            expandIcon: ({ expanded, onExpand, record }) => (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
-                className="dh-expand-btn"
-                aria-label={expanded ? 'Collapse' : 'Expand preview'}
-                aria-expanded={expanded}
-                style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
-              >
-                <RightOutlined style={{ fontSize: 10 }} />
-              </button>
-            ),
-            expandIconColumnIndex: 1,
-            rowExpandable: () => true,
-            expandedRowClassName: () => 'dh-expanded-row',
-          }}
-          onChange={(_pagination, _filters, sorter: any) => {
-            if (sorter && !Array.isArray(sorter)) {
-              setSortedInfo({
-                key: sorter.order ? (sorter.columnKey as string) : null,
-                dir: sorter.order ?? null,
-              });
-            }
-          }}
-          onRow={(record) => ({
-            onClick: (e) => {
-              // Skip navigation if click came from selection cell or interactive control.
-              const target = e.target as HTMLElement;
-              if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, .dh-vis-pill, button, input, .ant-select')) {
-                return;
+        <ZukvoLoadingOverlay loading={hubsLoading || hubsFetching} message="">
+          <Table
+            columns={visibleColumns}
+            dataSource={pagedHubs}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            className="premium-table dh-table"
+            tableLayout="fixed"
+            sticky={{ offsetHeader: 0 }}
+            scroll={{ x: 980 }}
+            locale={{ emptyText: renderEmpty() }}
+            components={{
+              header: { cell: ResizableHeaderCell },
+            }}
+            rowSelection={{
+              selectedRowKeys: selectedKeys,
+              onChange: (keys) => setSelectedKeys(keys),
+              columnWidth: 26,
+            }}
+            expandable={{
+              columnWidth: 24,
+              expandedRowKeys: expandedKeys,
+              onExpand: (expanded, record) => {
+                setExpandedKeys((prev) =>
+                  expanded ? [...prev, record.id] : prev.filter((k) => k !== record.id),
+                );
+              },
+              expandedRowRender: (record) => (
+                <HubInlinePreview hub={record} onOpen={openHub} />
+              ),
+              expandIcon: ({ expanded, onExpand, record }) => (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onExpand(record, e as any); }}
+                  className="dh-expand-btn"
+                  aria-label={expanded ? 'Collapse' : 'Expand preview'}
+                  aria-expanded={expanded}
+                  style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                >
+                  <RightOutlined style={{ fontSize: 10 }} />
+                </button>
+              ),
+              expandIconColumnIndex: 1,
+              rowExpandable: () => true,
+              expandedRowClassName: () => 'dh-expanded-row',
+            }}
+            onChange={(_pagination, _filters, sorter: any) => {
+              if (sorter && !Array.isArray(sorter)) {
+                setSortedInfo({
+                  key: sorter.order ? (sorter.columnKey as string) : null,
+                  dir: sorter.order ?? null,
+                });
               }
-              openHub(record.id);
-            },
-            onMouseEnter: () => setFocusedRowId(record.id),
-            className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
-          })}
-        />
+            }}
+            onRow={(record) => ({
+              onClick: (e) => {
+                // Skip navigation if click came from selection cell or interactive control.
+                const target = e.target as HTMLElement;
+                if (target.closest('.ant-checkbox-wrapper, .ant-table-selection-column, .dh-expand-btn, .dh-row-actions, button, input, .ant-select')) {
+                  return;
+                }
+                openHub(record.id);
+              },
+              onMouseEnter: () => setFocusedRowId(record.id),
+              className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
+            })}
+          />
+        </ZukvoLoadingOverlay>
       </div>
     );
   };
@@ -2181,7 +2187,7 @@ const DocumentHubPage = () => {
                 overlayClassName="create-document-menu"
                 menu={{
                   items: [
-                    {
+                    ...(hasGrid ? [{
                       key: 'manual',
                       label: (
                         <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
@@ -2205,8 +2211,8 @@ const DocumentHubPage = () => {
                         </div>
                       ),
                       onClick: () => setModalVisible(true),
-                    },
-                    {
+                    }] : []),
+                    ...(hasPrime ? [{
                       key: 'zai',
                       label: (
                         <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
@@ -2238,7 +2244,7 @@ const DocumentHubPage = () => {
                         </div>
                       ),
                       onClick: () => setAiModalVisible(true),
-                    },
+                    }] : []),
                   ] as MenuProps['items'],
                 }}
               >
@@ -2551,7 +2557,7 @@ const DocumentHubPage = () => {
             <div className="dh-main-body">
               {hubsLoading && !documentHubs.length ? (
                 <div className="flex items-center justify-center py-16">
-                  <Spin />
+                  <ZukvoLoader size="md" />
                 </div>
               ) : viewMode === 'cards' ? renderRowCards()
                 : renderTable()}
@@ -3117,11 +3123,11 @@ const DocumentHubPage = () => {
               title: 'Linked to projects & tickets',
               body: 'Attach a hub to a project or ticket and it shows up alongside the work everywhere.'
             },
-            {
+            ...(hasPrime ? [{
               icon: <RobotOutlined />, color: '#8B5CF6', tint: 'rgba(139,92,246,0.10)',
               title: 'Generate with Zai',
               body: 'Skip the blank page — describe what you need and Zai drafts the structure for you.'
-            },
+            }] : []),
           ].map((step, i) => (
             <div
               key={i}

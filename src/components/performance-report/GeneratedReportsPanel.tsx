@@ -1,4 +1,6 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -26,7 +28,6 @@ import {
   Pagination,
   Popconfirm,
   Progress,
-  Spin,
   message,
 } from 'antd';
 import {
@@ -809,7 +810,7 @@ export default function GeneratedReportsPanel() {
             </div>
 
             {candidatesLoading ? (
-              <div className="wz-center"><Spin /></div>
+              <div className="wz-center"><ZukvoLoader size="md" /></div>
             ) : wizResolved.length === 0 ? (
               <div className="wz-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No members match" /></div>
             ) : (

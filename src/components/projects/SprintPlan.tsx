@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -18,13 +20,13 @@ import {
   Drawer,
   List,
   Avatar,
-  Spin,
   Popconfirm,
   Tooltip,
   ConfigProvider,
   Divider,
   App,
   theme as antdTheme,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -638,10 +640,10 @@ export default function SprintPlanComponent() {
   const loadTableData = async () => {
     try {
       setLoading(true);
-      
+
       let apiSortBy: string | undefined = undefined;
       let apiSortOrder: 'asc' | 'desc' = 'desc';
-      
+
       switch (sortBy) {
         case 'recent': apiSortBy = 'updatedAt'; apiSortOrder = 'desc'; break;
         case 'endDate': apiSortBy = 'endDate'; apiSortOrder = 'asc'; break;
@@ -659,7 +661,7 @@ export default function SprintPlanComponent() {
         sortBy: apiSortBy,
         sortOrder: apiSortOrder
       });
-      
+
       let fetchedPlans = data?.data || [];
       // Re-apply local sorting for name and progress on the current page
       if (sortBy === 'name') fetchedPlans.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
@@ -1227,7 +1229,7 @@ export default function SprintPlanComponent() {
 
                 <div className="sp-cal-body sp-cal-body-weeks">
                   {loading ? (
-                    <div className="sp-card-loading"><Spin /></div>
+                    <div className="sp-card-loading"><ZukvoLoader size="md" /></div>
                   ) : calendarData.weeks.map((week, wi) => {
                     const lanes = calendarData.maxLanesByWeek[wi];
                     const ribbonHeight = lanes > 0 ? lanes * 26 + 14 : 0;
@@ -1444,36 +1446,37 @@ export default function SprintPlanComponent() {
                   })}
                 </div>
 
-                {projects.length > 0 && (
-                  <div className="sp-cal-legend">
-                    <span className="sp-cal-legend-label">Projects</span>
-                    {(calLegendExpanded ? projects : projects.slice(0, CAL_LEGEND_LIMIT)).map((p: any) => {
-                      const c = getProjectColor(p.value);
-                      const active = !tableFilters.projectId || tableFilters.projectId === p.value;
-                      return (
-                        <button
-                          key={p.value}
-                          className={`sp-cal-legend-chip ${!active ? 'muted' : ''}`}
-                          onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === p.value ? '' : p.value }))}
-                          title={p.label}
-                        >
-                          <span className="sp-cal-legend-dot" style={{ background: c }} />
-                          {p.label}
-                        </button>
-                      );
-                    })}
-                    {projects.length > CAL_LEGEND_LIMIT && (
-                      <button
-                        className="sp-cal-legend-toggle"
-                        onClick={() => setCalLegendExpanded(v => !v)}
-                      >
-                        {calLegendExpanded
-                          ? 'Show less'
-                          : `+${projects.length - CAL_LEGEND_LIMIT} more`}
-                        <DownOutlined style={{ fontSize: 9, transform: calLegendExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                      </button>
-                    )}
-                  </div>
+              </div>
+            )}
+
+            {viewMode === 'calendar' && projects.length > 0 && (
+              <div className="sp-cal-legend">
+                <span className="sp-cal-legend-label">Projects</span>
+                {(calLegendExpanded ? projects : projects.slice(0, CAL_LEGEND_LIMIT)).map((p: any) => {
+                  const c = getProjectColor(p.value);
+                  const active = !tableFilters.projectId || tableFilters.projectId === p.value;
+                  return (
+                    <button
+                      key={p.value}
+                      className={`sp-cal-legend-chip ${!active ? 'muted' : ''}`}
+                      onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === p.value ? '' : p.value }))}
+                      title={p.label}
+                    >
+                      <span className="sp-cal-legend-dot" style={{ background: c }} />
+                      {p.label}
+                    </button>
+                  );
+                })}
+                {projects.length > CAL_LEGEND_LIMIT && (
+                  <button
+                    className="sp-cal-legend-toggle"
+                    onClick={() => setCalLegendExpanded(v => !v)}
+                  >
+                    {calLegendExpanded
+                      ? 'Show less'
+                      : `+${projects.length - CAL_LEGEND_LIMIT} more`}
+                    <DownOutlined style={{ fontSize: 9, transform: calLegendExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                  </button>
                 )}
               </div>
             )}
@@ -1502,7 +1505,7 @@ export default function SprintPlanComponent() {
                 <div className="sp-plist">
                   {loading ? (
                     <div className="sp-card-loading">
-                      <Spin />
+                      <ZukvoLoader size="md" />
                     </div>
                   ) : tablePlans.length === 0 ? (
                     <div className="sp-empty-state">
@@ -2317,7 +2320,7 @@ export default function SprintPlanComponent() {
                     optionLabelProp="label"
                     onSearch={handleTicketSearch}
                     filterOption={false}
-                    notFoundContent={ticketLoading ? <Spin size="small" /> : null}
+                    notFoundContent={ticketLoading ? <ZukvoLoader size="sm" /> : null}
                     options={ticketOptions}
                     dropdownStyle={{ borderRadius: 0 }}
                     optionRender={(option) => {
@@ -6411,8 +6414,10 @@ export default function SprintPlanComponent() {
           background: var(--bg-slate-50);
           position: sticky;
           bottom: 0;
-          z-index: 5;
+          z-index: 10;
+          margin: auto -20px -28px -20px;
           border-radius: 0 0 12px 12px;
+          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
         }
         [data-theme='dark'] .sp-cal-legend {
           background: #0f1419 !important;

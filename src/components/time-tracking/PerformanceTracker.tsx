@@ -34,6 +34,7 @@ import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 
@@ -963,33 +964,34 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           </div>
         </div>
         {fullSummary.length === 0 ? (
-          <Table
-            className="mtt-team-table perf-summary-table"
-            columns={summaryColumns}
-            dataSource={[]}
-            rowKey="label"
-            loading={loading}
-            pagination={false}
-            size="small"
-            scroll={{ x: 550 }}
-            locale={{
-              emptyText: (
-                <div className="mtt-tracker-card__empty">
-                  <div className="mtt-tracker-card__empty-icon">
-                    {hasLoaded ? <TrophyOutlined /> : <CalendarOutlined />}
-                  </div>
-                  <div className="mtt-tracker-card__empty-title">
-                    {hasLoaded ? "No performance data in this range" : "Select filters to view performance"}
-                  </div>
-                  <div className="mtt-tracker-card__empty-sub">
-                    {hasLoaded
-                      ? "Pick a project, members and a date range to see results."
-                      : "Adjust the filters or hit refresh to load the selected month."}
-                  </div>
-                </div>
-              ),
-            }}
-          />
+          <ZukvoLoadingOverlay loading={loading} message="">
+                  <Table
+                              className="mtt-team-table perf-summary-table"
+                              columns={summaryColumns}
+                              dataSource={[]}
+                              rowKey="label"
+                              pagination={false}
+                              size="small"
+                              scroll={{ x: 550 }}
+                              locale={{
+                                emptyText: (
+                                  <div className="mtt-tracker-card__empty">
+                                    <div className="mtt-tracker-card__empty-icon">
+                                      {hasLoaded ? <TrophyOutlined /> : <CalendarOutlined />}
+                                    </div>
+                                    <div className="mtt-tracker-card__empty-title">
+                                      {hasLoaded ? "No performance data in this range" : "Select filters to view performance"}
+                                    </div>
+                                    <div className="mtt-tracker-card__empty-sub">
+                                      {hasLoaded
+                                        ? "Pick a project, members and a date range to see results."
+                                        : "Adjust the filters or hit refresh to load the selected month."}
+                                    </div>
+                                  </div>
+                                ),
+                              }}
+                            />
+                  </ZukvoLoadingOverlay>
         ) : (
           <div className="perf-summary__split">
             <div className="perf-summary__col">
@@ -1035,26 +1037,27 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
             children: (
               <div className="perf-detail__body">
                 <div style={{ overflow: "auto" }}>
-                  <Table
-                    className="mtt-team-table"
-                    columns={columns}
-                    dataSource={pagedData}
-                    loading={loading}
-                    rowKey={(record) => `${record.userId}_${record.date}`}
-                    expandable={{ expandedRowRender }}
-                    pagination={false}
-                    size="small"
-                    scroll={{ x: 950 }}
-                    locale={{
-                      emptyText: loading ? <></> : (
-                        <div className="mtt-tracker-card__empty">
-                          <div className="mtt-tracker-card__empty-icon"><HistoryOutlined /></div>
-                          <div className="mtt-tracker-card__empty-title">No tracking records</div>
-                          <div className="mtt-tracker-card__empty-sub">Adjust the filters above to see detailed records.</div>
-                        </div>
-                      ),
-                    }}
-                  />
+                  <ZukvoLoadingOverlay loading={loading} message="">
+                        <Table
+                                            className="mtt-team-table"
+                                            columns={columns}
+                                            dataSource={pagedData}
+                                            rowKey={(record) => `${record.userId}_${record.date}`}
+                                            expandable={{ expandedRowRender }}
+                                            pagination={false}
+                                            size="small"
+                                            scroll={{ x: 950 }}
+                                            locale={{
+                                              emptyText: loading ? <></> : (
+                                                <div className="mtt-tracker-card__empty">
+                                                  <div className="mtt-tracker-card__empty-icon"><HistoryOutlined /></div>
+                                                  <div className="mtt-tracker-card__empty-title">No tracking records</div>
+                                                  <div className="mtt-tracker-card__empty-sub">Adjust the filters above to see detailed records.</div>
+                                                </div>
+                                              ),
+                                            }}
+                                          />
+                        </ZukvoLoadingOverlay>
                 </div>
 
                 {total > 0 && (

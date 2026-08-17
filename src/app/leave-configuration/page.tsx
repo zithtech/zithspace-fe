@@ -51,6 +51,8 @@ import {
 } from "@ant-design/icons";
 import { usePathname } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 const { Paragraph, Text } = Typography;
@@ -317,8 +319,8 @@ export default function leaveConfiguration() {
           <div
             style={{
               maxWidth: 400,
-             whiteSpace: "nowrap",
-             overflow: "hidden",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
               textOverflow: "ellipsis",
             }}
           >
@@ -377,7 +379,7 @@ export default function leaveConfiguration() {
       key: "actions",
       render: (_: unknown, record: LeaveType) => {
         if (!canManageLeaves) return null;
-        
+
         return (
           <Space>
             <Tooltip title="Edit Leave Type">
@@ -522,7 +524,7 @@ export default function leaveConfiguration() {
       <MainLayout>
         <div >
           {contextHolder}
-          <div style={{marginTop:20}}>
+          <div style={{ marginTop: 20 }}>
             <Tabs
               activeKey="configuration"
               onChange={(key) => {
@@ -595,71 +597,72 @@ export default function leaveConfiguration() {
               ]}
             />
           </div>
-          
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
+            }}
+          >
+            <div>
+              <Space align="center" size={8}>
+                <Columns3Cog style={{ color: "#1a64c4ff", fontSize: 20 }} />
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                  Leave Types
+                </Typography.Title>
+              </Space>
               <div>
-                <Space align="center" size={8}>
-                  <Columns3Cog style={{ color: "#1a64c4ff", fontSize: 20 }} />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Leave Types
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Manage leave types and define allocation rules for each position.
-                  </Text>
-                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Manage leave types and define allocation rules for each position.
+                </Text>
               </div>
-              <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
+            </div>
+            <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
 
-  <Input.Search
-    placeholder="Search Leave Types...."
-    allowClear
-    onChange={(e) => setSearchText(e.target.value)}
-    style={{ width: 390, height: 36 }}
-  />
+              <Input.Search
+                placeholder="Search Leave Types...."
+                allowClear
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 390, height: 36 }}
+              />
 
-  {canManageLeaves && (
-    <Button
-      type="primary"
-      style={{ width: 150, height: 30 }}
-      onClick={() => {
-        setEditingKey(null);
-        form.resetFields();
-        setLeaveUnit("Days");
-        setIsModalVisible(true);
-      }}
-    >
-      + Add Leave Type
-    </Button>
-  )}
-
-</div>
+              {canManageLeaves && (
+                <Button
+                  type="primary"
+                  style={{ width: 150, height: 30 }}
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    setLeaveUnit("Days");
+                    setIsModalVisible(true);
+                  }}
+                >
+                  + Add Leave Type
+                </Button>
+              )}
 
             </div>
-            {/* <Divider /> */}
-            <Space >
-              <Tag color="blue" style={{borderRadius:10}}>
-                Total Leave Types: {dataSource.length}
-              </Tag>
-              <Tag color="success" style={{borderRadius:10}}>
-                Active:{" "}
-                {dataSource.filter((item) => item.status === "Active").length}
-              </Tag>
-              <Tag style={{borderRadius:10}}>
-                Inactive:{" "}
-                {dataSource.filter((item) => item.status === "Inactive").length}
-              </Tag>
-            </Space>
-            <Divider style={{marginTop:20}} />
-          
+
+          </div>
+          {/* <Divider /> */}
+          <Space >
+            <Tag color="blue" style={{ borderRadius: 10 }}>
+              Total Leave Types: {dataSource.length}
+            </Tag>
+            <Tag color="success" style={{ borderRadius: 10 }}>
+              Active:{" "}
+              {dataSource.filter((item) => item.status === "Active").length}
+            </Tag>
+            <Tag style={{ borderRadius: 10 }}>
+              Inactive:{" "}
+              {dataSource.filter((item) => item.status === "Inactive").length}
+            </Tag>
+          </Space>
+          <Divider style={{ marginTop: 20 }} />
+
+          <ZukvoLoadingOverlay loading={loading} message="">
             <Table
               columns={columns}
               dataSource={dataSource.filter(
@@ -667,12 +670,12 @@ export default function leaveConfiguration() {
                   item.name.toLowerCase().includes(searchText.toLowerCase()) ||
                   item.code.toLowerCase().includes(searchText.toLowerCase()),
               )}
-              loading={loading}
               size="small"
-              style={{ marginTop:5 }}
-              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize:10}}
+              style={{ marginTop: 5 }}
+              pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10 }}
             />
-         
+          </ZukvoLoadingOverlay>
+
 
           <Modal
             title={

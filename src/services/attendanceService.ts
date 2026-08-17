@@ -157,7 +157,7 @@ export class AttendanceService {
       );
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch attendance records");
     }
@@ -171,7 +171,7 @@ export class AttendanceService {
       return await api.get<Attendance>(`/api/attendance/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch attendance record");
     }
@@ -185,7 +185,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>("/api/attendance/clock-in", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to clock in");
     }
@@ -199,7 +199,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>("/api/attendance/clock-out", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to clock out");
     }
@@ -214,7 +214,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>("/api/attendance/pause", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to pause");
     }
@@ -230,7 +230,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>("/api/attendance/resume", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to resume");
     }
@@ -244,7 +244,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>("/api/attendance/complete", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to complete the day");
     }
@@ -258,7 +258,7 @@ export class AttendanceService {
       return await api.get<TodayAttendance>("/api/attendance/today");
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch today's attendance");
     }
@@ -284,7 +284,7 @@ export class AttendanceService {
       return await api.get<AttendanceSummary>(url);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch attendance summary");
     }
@@ -310,7 +310,7 @@ export class AttendanceService {
       return await api.get<DashboardSummary>(url);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch dashboard summary");
     }
@@ -345,7 +345,7 @@ export class AttendanceService {
       return await api.get(url);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch present members");
     }
@@ -373,7 +373,7 @@ export class AttendanceService {
       return await api.put<Attendance>(`/api/attendance/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update attendance record");
     }
@@ -395,7 +395,7 @@ export class AttendanceService {
       return await api.post<Attendance>("/api/attendance", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create attendance record");
     }
@@ -410,7 +410,7 @@ export class AttendanceService {
       return await api.post<TodayAttendance>(`/api/attendance/${id}/reopen`, { resumeAt });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to reopen day");
     }
@@ -424,7 +424,7 @@ export class AttendanceService {
       await api.delete(`/api/attendance/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete attendance record");
     }

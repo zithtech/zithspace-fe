@@ -13799,6 +13799,7 @@ import {
   useUpdateReimbursementConfiguration,
   useDeleteReimbursementConfiguration,
 } from "@/hooks/usereimbursementconfig";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
@@ -15244,19 +15245,20 @@ export default function ReimbursementConfigurationPage() {
           </Space>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          size="small"
-          pagination={{
-            pageSize: 10,
-            size: "small",
-            showTotal: (total) => `Total ${total}`,
-          }}
-          loading={isLoading}
-          rowKey="id"
-          bordered
-        />
+        <ZukvoLoadingOverlay loading={isLoading} message="">
+              <Table
+                        columns={columns}
+                        dataSource={filteredData}
+                        size="small"
+                        pagination={{
+                          pageSize: 10,
+                          size: "small",
+                          showTotal: (total) => `Total ${total}`,
+                        }}
+                        rowKey="id"
+                        bordered
+                      />
+              </ZukvoLoadingOverlay>
 
         <Drawer
           title={

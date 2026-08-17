@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
@@ -20,7 +22,6 @@ import {
   Drawer,
   List,
   Avatar,
-  Spin,
   Empty,
   Popconfirm,
   Tooltip,
@@ -49,6 +50,7 @@ import ReleasePlanService, {
 import { ProjectService } from "@/services/projectService";
 import { SprintCompletionModal } from "./sprint-completion";
 import { usePermission } from "@/hooks/usePermission";
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -720,18 +722,19 @@ export default function ReleasePlanComponent() {
       />
 
       <Card>
-        <Table
-          columns={columns}
-          dataSource={releasePlans}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-        />
+        <ZukvoLoadingOverlay loading={loading} message="">
+              <Table
+                        columns={columns}
+                        dataSource={releasePlans}
+                        rowKey="id"
+                        pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20,
+                          showSizeChanger: true,
+                          showQuickJumper: true,
+                          showTotal: (total, range) =>
+                            `${range[0]}-${range[1]} of ${total} items`,
+                        }}
+                      />
+              </ZukvoLoadingOverlay>
       </Card>
 
       {/* Create/Edit Modal */}
@@ -837,7 +840,7 @@ export default function ReleasePlanComponent() {
                 optionLabelProp="label"
                 onSearch={handleTicketSearch}
                 filterOption={false}
-                notFoundContent={ticketLoading ? <Spin size="small" /> : null}
+                notFoundContent={ticketLoading ? <ZukvoLoader size="sm" /> : null}
                 options={ticketOptions}
                 optionRender={(option) => {
                    const t = option.data.item;

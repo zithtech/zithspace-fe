@@ -57,9 +57,33 @@ export const drawerFormStyles = `
   .customer-drawer-form .ant-input:focus,
   .customer-drawer-form .ant-input-focused,
   .customer-drawer-form .ant-select-selector:focus,
-  .customer-drawer-form .ant-select-focused .ant-select-selector {
+  .customer-drawer-form .ant-select-focused .ant-select-selector,
+  .customer-drawer-form .ant-input-textarea-show-count:focus-within,
+  .customer-drawer-form .ant-input-textarea-affix-wrapper:focus-within {
     border-color: #3b82f6 !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  /* Fix textarea wrappers to prevent double borders */
+  .customer-drawer-form .ant-input-textarea-show-count,
+  .customer-drawer-form .ant-input-textarea-affix-wrapper {
+    border-radius: 8px !important;
+    background: var(--bg-pure-white, #ffffff) !important;
+    border: 1px solid var(--border-slate-300, #cbd5e1) !important;
+    overflow: hidden;
+  }
+  .customer-drawer-form .ant-input-textarea-show-count textarea.ant-input,
+  .customer-drawer-form .ant-input-textarea-affix-wrapper textarea.ant-input {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 10px 14px !important;
+  }
+  
+  [data-theme='dark'] .customer-drawer-form .ant-input-textarea-show-count,
+  [data-theme='dark'] .customer-drawer-form .ant-input-textarea-affix-wrapper {
+    background: transparent !important;
+    border-color: #334155 !important;
   }
   .customer-drawer-form .sd-trigger {
     height: 40px !important;

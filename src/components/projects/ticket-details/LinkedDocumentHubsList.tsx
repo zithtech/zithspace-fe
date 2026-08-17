@@ -1,7 +1,9 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React from "react";
-import { Spin, Tag, Tooltip, Typography } from "antd";
+import {  Tag, Tooltip, Typography } from "antd";
 import {
   FolderOpenOutlined,
   ArrowRightOutlined,
@@ -79,7 +81,7 @@ export default function LinkedDocumentHubsList({
 
       {isLoading ? (
         <div style={{ padding: "8px 4px" }}>
-          <Spin size="small" />
+          <ZukvoLoader size="sm" />
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

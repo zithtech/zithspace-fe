@@ -1,9 +1,10 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Empty,
-  Spin,
   Pagination,
   Select,
   DatePicker,
@@ -336,7 +337,7 @@ export default function PortalReleasesPage() {
               borderRadius: 12,
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : items.length === 0 ? (
           <div
@@ -1106,7 +1107,7 @@ function ReleaseDetailDrawer({
               justifyContent: "center",
             }}
           >
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : notFound || !data ? (
           <div

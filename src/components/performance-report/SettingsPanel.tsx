@@ -1,7 +1,9 @@
 'use client';
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Switch, InputNumber, TimePicker, message, Spin, Tag, Tooltip, Drawer } from 'antd';
+import { Button, Switch, InputNumber, TimePicker, message, Tag, Tooltip, Drawer } from 'antd';
 import dayjs from 'dayjs';
 import {
   CalendarCheck,
@@ -206,6 +208,27 @@ export default function SettingsPanel() {
     );
   };
 
+  const toggleModule = (key: ModuleKey, isEnabled: boolean) => {
+    setModules((prev) => {
+      const next = prev.map((m) => (m.moduleKey === key ? { ...m, isEnabled } : m));
+      const enabled = next.filter((m) => m.isEnabled);
+      if (enabled.length === 0) return next;
+      
+      // Auto-distribute evenly whenever a module is toggled
+      const base = Math.floor((100 / enabled.length) * 100) / 100;
+      let assigned = 0;
+      return next.map((m) => {
+        if (!m.isEnabled) return m;
+        assigned += base;
+        const isLastEnabled = enabled[enabled.length - 1].moduleKey === m.moduleKey;
+        if (isLastEnabled) {
+          return { ...m, weight: Math.round((base + (100 - assigned)) * 100) / 100 };
+        }
+        return { ...m, weight: base };
+      });
+    });
+  };
+
   // Currently-saved status→cap map on the Tickets module config.
   const ticketsModule = modules.find((m) => m.moduleKey === 'tickets');
   const savedStatusMarks = (ticketsModule?.config?.statusMarks ?? {}) as Record<string, number>;
@@ -302,7 +325,7 @@ export default function SettingsPanel() {
   if (loading) {
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
-        <Spin />
+        <ZukvoLoader size="md" />
       </div>
     );
   }
@@ -426,7 +449,7 @@ export default function SettingsPanel() {
                 </div>
                 <Switch
                   checked={m.isEnabled}
-                  onChange={(v) => patchModule(m.moduleKey, { isEnabled: v })}
+                  onChange={(v) => toggleModule(m.moduleKey, v)}
                   disabled={readOnly}
                 />
               </div>
@@ -541,7 +564,7 @@ export default function SettingsPanel() {
 
         {statusLoading ? (
           <div style={{ padding: 40, textAlign: 'center' }}>
-            <Spin />
+            <ZukvoLoader size="md" />
           </div>
         ) : statusList.length === 0 ? (
           <div className="prs-sm-empty">No ticket statuses found for this workspace yet.</div>

@@ -1,4 +1,6 @@
 "use client";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
+
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -6,15 +8,16 @@ import { Button, Table, Tag, Dropdown, message, Modal, List, Typography, Input, 
 import { BugOutlined, PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, ClockCircleOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { Target, Trash2, Pencil, Layers, Folder } from "lucide-react";
+import { Target, Trash2, Pencil, Layers, Folder, Menu } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { MembersService } from "@/services/membersService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { ProjectService } from "@/services/projectService";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type TabKey = "cases";
 
@@ -71,12 +74,15 @@ export default function TestCasesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("cases");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [parentCases, setParentCases] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [modules, setModules] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 500);
   // Any filter change resets to the first page
   const [moduleFilter, setModuleFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -114,11 +120,26 @@ export default function TestCasesPage() {
     try {
       setLoading(true);
       const [parentsRes, modRes, memRes] = await Promise.all([
-        axios.get("/api/v2/qa/parents"),
-        axios.get("/api/v2/qa/modules"),
+        apiClient.get("/api/v2/qa/parents", {
+          params: {
+            page,
+            pageSize,
+            search: debouncedSearch || undefined,
+            module_id: moduleFilter || undefined,
+            // Additional filters will need to be supported by the backend, 
+            // but we'll pass them in case the backend uses them.
+            status: statusFilter || undefined,
+            automation: automationFilter || undefined,
+            owner: ownerFilter || undefined,
+            quickFilter: quickFilter || undefined
+          }
+        }),
+        axios.get("/api/v2/qa/modules?limit=1000"),
         MembersService.getMembers({ limit: 500 }).catch(() => ({ data: [] }))
       ]);
-      setParentCases(Array.isArray(parentsRes) ? parentsRes : (parentsRes?.data?.data || parentsRes?.data || []));
+      const body = (parentsRes as any).data;
+      setParentCases(body?.data || []);
+      setTotalItems(body?.pagination?.total || 0);
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
       setUsersList((memRes as any)?.data || []);
     } catch (error) {
@@ -133,7 +154,7 @@ export default function TestCasesPage() {
       fetchData();
       fetchProjects();
     }
-  }, [canReadCase]);
+  }, [canReadCase, page, pageSize, debouncedSearch, moduleFilter, statusFilter, automationFilter, ownerFilter, quickFilter]);
 
   /** Active projects the signed-in user belongs to. */
   const fetchProjects = async () => {
@@ -238,39 +259,37 @@ export default function TestCasesPage() {
     return (name && typeof name === 'string' && !/^[0-9a-fA-F]{8}-/.test(name)) ? name : '';
   };
 
-  const filteredData = parentCases.filter(p => {
-    if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      const match =
-        p.title?.toLowerCase().includes(s) ||
-        p.module_name?.toLowerCase().includes(s) ||
-        p.feature?.toLowerCase().includes(s) ||
-        ownerNameOf(p).toLowerCase().includes(s);
-      if (!match) return false;
-    }
-    if (moduleFilter && (p.module_name || 'Unassigned') !== moduleFilter) return false;
-    if (statusFilter && (p.status || 'Draft') !== statusFilter) return false;
-    if (automationFilter && (p.automation || 'Manual') !== automationFilter) return false;
-    if (ownerFilter && ownerNameOf(p) !== ownerFilter) return false;
-    if (quickFilter === 'ready' && !(p.status === 'Ready' || p.status === 'Active')) return false;
-    if (quickFilter === 'automated' && p.automation !== 'Automated') return false;
-    return true;
-  });
+  const filteredData = parentCases; // Data is already filtered by backend
 
   // Stat figures
   const readyCount = parentCases.filter(t => t.status === 'Ready' || t.status === 'Active').length;
   const automatedCount = parentCases.filter(t => t.automation === 'Automated').length;
   const totalChildCases = parentCases.reduce((acc, curr) => acc + (parseInt(curr.child_count || '0', 10)), 0);
 
-  // Filter option lists, derived from the data that's actually present
+  // Filter option lists, using backend data
   const uniqueSorted = (values: any[]) =>
     Array.from(new Set(values.filter(Boolean)))
       .sort((a, b) => String(a).localeCompare(String(b)))
       .map(v => ({ value: String(v), label: String(v) }));
 
-  const moduleFilterOptions = uniqueSorted(parentCases.map(p => p.module_name || 'Unassigned'));
-  const statusFilterOptions = uniqueSorted(parentCases.map(p => p.status || 'Draft'));
-  const ownerFilterOptions = uniqueSorted(parentCases.map(ownerNameOf));
+  const moduleFilterOptions = [
+    { value: 'Unassigned', label: 'Unassigned' },
+    ...modules.map(m => ({ value: m.module_name, label: m.module_name }))
+  ];
+  
+  const statusFilterOptions = [
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Ready', label: 'Ready' },
+    { value: 'Active', label: 'Active' },
+    { value: 'Deprecated', label: 'Deprecated' }
+  ];
+  
+  const automationFilterOptions = [
+    { value: 'Manual', label: 'Manual' },
+    { value: 'Automated', label: 'Automated' }
+  ];
+
+  const ownerFilterOptions = usersList.map(u => ({ value: u.name, label: u.name }));
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) +
@@ -285,12 +304,12 @@ export default function TestCasesPage() {
     setQuickFilter(undefined);
   };
 
-  // Client-side pagination, matching the app-wide sticky pager
-  const pageCount = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  // Client-side pagination variables are now derived from totalItems for the footer
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageStart = filteredData.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredData.length);
-  const pagedCases = filteredData.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageStart = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, totalItems);
+  const pagedCases = parentCases;
 
   const columns = [
     {
@@ -626,6 +645,8 @@ export default function TestCasesPage() {
         /* ── Table ──────────────────────────────────────────────────── */
         .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .sc-table .ant-table { background: transparent; }
+        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
           letter-spacing: .06em !important; padding: 8px 14px !important;
@@ -827,9 +848,69 @@ export default function TestCasesPage() {
         .ts-table .ant-table-tbody > tr:hover > td {
           background: rgba(59, 130, 246, 0.04) !important;
         }
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, other filters wrap */
+          .sc-filters { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
+
+          /* Table: horizontal scroll */
+          .sc-tablewrap { overflow-x: auto !important; }
+          .sc-table .ant-table { min-width: 640px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: stack on very small */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
         `}} />
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo">
@@ -866,7 +947,13 @@ export default function TestCasesPage() {
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
             {/* Title and subtitle share one line, split by a divider */}
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <span className="sc-topbar__h1">Cases</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">High-level testing scenarios and test cases for your QA Space</span>
@@ -969,57 +1056,57 @@ export default function TestCasesPage() {
             {/* Table or Grid — only the results blur, so the filters above stay
                 usable while a search refetches. */}
             <ZukvoLoadingOverlay loading={loading} message="Loading test cases…" minHeight={loading ? 320 : undefined}>
-            {viewMode === 'list' ? (
-              <div className="sc-tablewrap">
-                <Table
-                  className="ts-table sc-table"
-                  dataSource={pagedCases}
-                  columns={columns}
-                  rowKey="id"
-                  pagination={false}
-                  onRow={(record) => ({
-                    onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
-                  })}
-                  locale={{
-                    /* "No test cases yet" would be a lie while the first page is
-                       still in flight — hold the height instead. */
-                    emptyText: loading ? (
-                      <div style={{ minHeight: 240 }} />
-                    ) : (
-                      <div className="sc-empty">
-                        <Folder size={26} className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                        <p className="sc-empty__desc">
+              {viewMode === 'list' ? (
+                <div className="sc-tablewrap">
+                  <Table
+                    className="ts-table sc-table"
+                    dataSource={pagedCases}
+                    columns={columns}
+                    rowKey="id"
+                    pagination={false}
+                    onRow={(record) => ({
+                      onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
+                    })}
+                    locale={{
+                      /* "No test cases yet" would be a lie while the first page is
+                         still in flight — hold the height instead. */
+                      emptyText: loading ? (
+                        <div style={{ minHeight: 240 }} />
+                      ) : (
+                        <div className="sc-empty">
+                          <Folder size={26} className="sc-empty__icon" />
+                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0
+                              ? 'Try widening your search or clearing the filters.'
+                              : 'Create your first test case to start grouping testing scenarios.'}
+                          </p>
                           {activeFilterCount > 0
-                            ? 'Try widening your search or clearing the filters.'
-                            : 'Create your first test case to start grouping testing scenarios.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                      </div>
-                    )
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="pp-grid">
-                {loading ? null : filteredData.length === 0 ? (
-                  <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                    <Folder size={26} className="sc-empty__icon" />
-                    <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                    <p className="sc-empty__desc">
-                      {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
-                    </p>
-                    {activeFilterCount > 0
-                      ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                      : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                  </div>
-                ) : (
-                  pagedCases.map(r => renderCaseCard(r))
-                )}
-              </div>
-            )}
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                        </div>
+                      )
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading ? null : filteredData.length === 0 ? (
+                    <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                      <Folder size={26} className="sc-empty__icon" />
+                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                      <p className="sc-empty__desc">
+                        {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
+                      </p>
+                      {activeFilterCount > 0
+                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                    </div>
+                  ) : (
+                    pagedCases.map(r => renderCaseCard(r))
+                  )}
+                </div>
+              )}
             </ZukvoLoadingOverlay>
           </div>
 
@@ -1027,7 +1114,7 @@ export default function TestCasesPage() {
           {filteredData.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredData.length}</strong>
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
               </div>
               <div className="pp-pager">
                 <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
@@ -1041,7 +1128,7 @@ export default function TestCasesPage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

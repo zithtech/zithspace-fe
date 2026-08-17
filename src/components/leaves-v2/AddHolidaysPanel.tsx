@@ -30,8 +30,7 @@ const PALETTE = { blue: '#3B82F6', green: '#10B981', red: '#EF4444', grey: '#94A
 const TINT = { blue: 'rgba(59,130,246,0.10)', green: 'rgba(16,185,129,0.10)', red: 'rgba(239,68,68,0.10)', grey: 'rgba(148,163,184,0.12)' } as const;
 const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
 import { drawerFormStyles as formStyles, SectionCard } from "@/components/common/DrawerSection";
-
-
+import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const TYPE_OPTIONS: { value: HolidayType; label: string }[] = [
   { value: 'National', label: 'National' },
@@ -271,9 +270,9 @@ export default function AddHolidaysPanel() {
     <div className="lvh">
       <div className="lvh-header">
         <div className="lvh-header-about">
-          <button 
+          <button
             type="button"
-            className="lv-mobile-menu-btn" 
+            className="lv-mobile-menu-btn"
             onClick={() => window.dispatchEvent(new Event('open-lv-sidebar'))}
             aria-label="Open menu"
           >
@@ -319,7 +318,9 @@ export default function AddHolidaysPanel() {
       </div>
 
       <div className="lvh-table-wrap">
-        <Table rowKey="id" size="small" className="lvh-table" loading={loading} columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} />
+        <ZukvoLoadingOverlay loading={loading} message="">
+          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} />
+        </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (
@@ -433,38 +434,38 @@ export default function AddHolidaysPanel() {
               subtitle="Name, date and coverage"
               step="STEP 1"
             >
-                <Form.Item label="Holiday name" style={{ marginBottom: 0 }}>
-                  <Input size="large" style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={name} maxLength={160} placeholder="e.g. Republic Day" onChange={(e) => setName(e.target.value)} />
+              <Form.Item label="Holiday name" style={{ marginBottom: 0 }}>
+                <Input size="large" style={{ borderRadius: 8, borderColor: 'var(--border-color)' }} value={name} maxLength={160} placeholder="e.g. Republic Day" onChange={(e) => setName(e.target.value)} />
+              </Form.Item>
+              <Form.Item label="Date(s)" style={{ marginBottom: 0 }}>
+                <RangePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" allowClear />
+              </Form.Item>
+              <Form.Item label="Country" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={COUNTRY_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
+              </Form.Item>
+              <Form.Item label="Type" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Type" itemNoun="types" allowClear={false} value={type} onChange={(v) => setType(v as HolidayType)} options={TYPE_OPTIONS} style={{ width: '100%', height: 38 }} width={200} />
+              </Form.Item>
+              <Form.Item label="Recurrence" style={{ marginBottom: 0 }}>
+                <SearchableDropdown placeholder="Rule" itemNoun="rules" allowClear={false} value={rule} onChange={(v) => setRule(v as HolidayRule)} options={RULE_OPTIONS} style={{ width: '100%', height: 38 }} width={180} />
+              </Form.Item>
+              {(type === 'State' || type === 'Local') && (
+                <Form.Item label={<span>State{type === 'Local' ? '(s)' : 's'}</span>} style={{ marginBottom: 0 }}>
+                  <Select mode="multiple" style={{ width: '100%' }} placeholder="Select states" value={states} onChange={setStates}
+                    options={INDIAN_STATES.map((s) => ({ value: s.code, label: `${s.name} (${s.code})` }))}
+                    filterOption={(i, o) => (o?.label as string).toLowerCase().includes(i.toLowerCase())} maxTagCount="responsive" />
                 </Form.Item>
-                <Form.Item label="Date(s)" style={{ marginBottom: 0 }}>
-                  <RangePicker style={{ width: '100%', borderRadius: 8, borderColor: 'var(--border-color)' }} value={range as any} onChange={(v) => setRange(v as any)} format="MMM D, YYYY" allowClear />
+              )}
+              {type === 'Local' && (
+                <Form.Item label={<span>Districts <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}>(type a name & press enter)</span></span>} style={{ marginBottom: 0 }}>
+                  <Select mode="tags" style={{ width: '100%' }} placeholder="Add districts" value={districts} onChange={setDistricts} tokenSeparators={[',']} maxTagCount="responsive" open={false} suffixIcon={null} />
                 </Form.Item>
-                <Form.Item label="Country" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Country" itemNoun="countries" allowClear={false} value={country} onChange={(v) => setCountry(v as string)} options={COUNTRY_OPTIONS} style={{ width: '100%', height: 38 }} width={220} />
-                </Form.Item>
-                <Form.Item label="Type" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Type" itemNoun="types" allowClear={false} value={type} onChange={(v) => setType(v as HolidayType)} options={TYPE_OPTIONS} style={{ width: '100%', height: 38 }} width={200} />
-                </Form.Item>
-                <Form.Item label="Recurrence" style={{ marginBottom: 0 }}>
-                  <SearchableDropdown placeholder="Rule" itemNoun="rules" allowClear={false} value={rule} onChange={(v) => setRule(v as HolidayRule)} options={RULE_OPTIONS} style={{ width: '100%', height: 38 }} width={180} />
-                </Form.Item>
-                {(type === 'State' || type === 'Local') && (
-                  <Form.Item label={<span>State{type === 'Local' ? '(s)' : 's'}</span>} style={{ marginBottom: 0 }}>
-                    <Select mode="multiple" style={{ width: '100%' }} placeholder="Select states" value={states} onChange={setStates}
-                      options={INDIAN_STATES.map((s) => ({ value: s.code, label: `${s.name} (${s.code})` }))}
-                      filterOption={(i, o) => (o?.label as string).toLowerCase().includes(i.toLowerCase())} maxTagCount="responsive" />
-                  </Form.Item>
-                )}
-                {type === 'Local' && (
-                  <Form.Item label={<span>Districts <span style={{ color: 'var(--text-slate-400)', fontWeight: 400 }}>(type a name & press enter)</span></span>} style={{ marginBottom: 0 }}>
-                    <Select mode="tags" style={{ width: '100%' }} placeholder="Add districts" value={districts} onChange={setDistricts} tokenSeparators={[',']} maxTagCount="responsive" open={false} suffixIcon={null} />
-                  </Form.Item>
-                )}
-                <div className="lvh-toggle-row mt-2 border-t border-slate-100 pt-4" style={{ borderColor: 'var(--border-color)' }}>
-                  <div><div className="lvh-toggle-title">Active</div><div className="lvh-toggle-desc">Counts on the holiday calendar</div></div>
-                  <Switch checked={isActive} onChange={setIsActive} />
-                </div>
-              </SectionCard>
+              )}
+              <div className="lvh-toggle-row mt-2 border-t border-slate-100 pt-4" style={{ borderColor: 'var(--border-color)' }}>
+                <div><div className="lvh-toggle-title">Active</div><div className="lvh-toggle-desc">Counts on the holiday calendar</div></div>
+                <Switch checked={isActive} onChange={setIsActive} />
+              </div>
+            </SectionCard>
           </div>
         </Form>
       </Drawer>

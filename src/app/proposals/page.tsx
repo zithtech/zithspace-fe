@@ -58,14 +58,12 @@ import { LeadMailDrawer } from '@/components/leads/LeadMailDrawer';
 import { SearchableDropdown } from '@/components/common/SearchableDropdown';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ProposalActivityDrawer from '@/components/proposals/ProposalActivityDrawer';
-import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import ProposalPreviewDrawer from '@/components/proposals/ProposalPreviewDrawer';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import dayjs from 'dayjs';
 import { formatDistanceToNow } from 'date-fns';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -163,6 +161,8 @@ export default function ProposalsListPage() {
   const router = useRouter();
 
   const [proposals, setProposals] = useState<any[]>([]);
+  const [paginatedProposals, setPaginatedProposals] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -186,7 +186,6 @@ export default function ProposalsListPage() {
   const [activityProposal, setActivityProposal] = useState<any>(null);
   const [previewProposal, setPreviewProposal] = useState<any>(null);
   const [invoiceMailSettings, setInvoiceMailSettings] = useState<any>(null);
-  const [isZaiModalOpen, setIsZaiModalOpen] = useState(false);
 
   const searchRef = useRef<any>(null);
 
@@ -309,10 +308,34 @@ export default function ProposalsListPage() {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const data = await ProposalService.getProposals();
-      if (Array.isArray(data)) setProposals(data);
-      else if (data && Array.isArray(data.data)) setProposals(data.data);
-      else setProposals([]);
+      
+      // 1) Fetch large set for stats, dropdowns, and rails
+      const allRes = await ProposalService.getProposals({ limit: 1000 });
+      const allData = allRes?.data || (Array.isArray(allRes) ? allRes : []);
+      setProposals(allData);
+
+      // 2) Fetch paginated list
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        view: savedView !== 'all' ? savedView : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        client: clientFilter || undefined,
+        creator: creatorFilter || undefined,
+      };
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        filters.startDate = dateRange[0].toISOString();
+        filters.endDate = dateRange[1].toISOString();
+      }
+      if (savedView === 'starred') {
+        const starredIds = Object.keys(starred).filter((id) => starred[id]);
+        if (starredIds.length > 0) filters.starredIds = starredIds.join(',');
+      }
+
+      const pRes = await ProposalService.getProposals(filters);
+      setPaginatedProposals(pRes?.data || []);
+      setTotalCount(pRes?.pagination?.total || 0);
     } catch (err: any) {
       console.error('Fetch error:', err);
       if (err.status !== 401) messageApi.error('Failed to load proposals');
@@ -337,6 +360,10 @@ export default function ProposalsListPage() {
 
   useEffect(() => {
     fetchProposals();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablePage, tablePageSize, searchText, savedView, statusFilter, clientFilter, creatorFilter, dateRange, starred]);
+
+  useEffect(() => {
     fetchUsers();
   }, []);
 
@@ -355,11 +382,13 @@ export default function ProposalsListPage() {
     if (!canUpdateProposal || record.status === status) return;
     const prev = record.status;
     setProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status } : p)));
+    setPaginatedProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status } : p)));
     try {
       await ProposalService.updateProposal(record.id, { status });
       messageApi.success(`Marked as ${STATUS_META[status].label}`);
     } catch (err) {
       setProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status: prev } : p)));
+      setPaginatedProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status: prev } : p)));
       messageApi.error('Failed to update status');
     }
   };
@@ -494,37 +523,7 @@ export default function ProposalsListPage() {
   };
 
   // ─── Scope (saved views) + filtering ────────────────────────────────────────
-  const scopedProposals = useMemo(() => {
-    return proposals.filter((p) => {
-      switch (savedView) {
-        case 'mine': return p.createdBy?.id === user?.id;
-        case 'sent': return p.status === 'sent';
-        case 'starred': return !!starred[p.id];
-        default: return true;
-      }
-    });
-  }, [proposals, savedView, user?.id, starred]);
-
-  const filteredProposals = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    const from = dateRange?.[0] ? dayjs(dateRange[0]).startOf('day') : null;
-    const to = dateRange?.[1] ? dayjs(dateRange[1]).endOf('day') : null;
-    return scopedProposals.filter((p) => {
-      const matchesSearch =
-        !q ||
-        p.title?.toLowerCase().includes(q) ||
-        p.client_name?.toLowerCase().includes(q) ||
-        p.createdBy?.name?.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'all' || p.status?.toLowerCase() === statusFilter;
-      const matchesClient = !clientFilter || p.client_name === clientFilter;
-      const matchesCreator = !creatorFilter || p.createdBy?.id === creatorFilter;
-      const created = p.created_at ? dayjs(p.created_at) : null;
-      const matchesDate =
-        (!from || (created && !created.isBefore(from))) &&
-        (!to || (created && !created.isAfter(to)));
-      return matchesSearch && matchesStatus && matchesClient && matchesCreator && matchesDate;
-    });
-  }, [scopedProposals, searchText, statusFilter, clientFilter, creatorFilter, dateRange]);
+  // (Client-side filtering has been moved to the backend)
 
   // Reset to first page whenever the result set changes.
   useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, clientFilter, creatorFilter, dateRange]);
@@ -798,11 +797,11 @@ export default function ProposalsListPage() {
     },
   ];
 
-  const total = filteredProposals.length;
+  const total = totalCount;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedProposals = filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedProposals = paginatedProposals;
 
   const emptyState = (
     <div className="pp-empty">
@@ -810,23 +809,9 @@ export default function ProposalsListPage() {
       <div className="pp-empty-title">No proposals found</div>
       <div className="pp-empty-sub">Start by creating your first premium proposal.</div>
       {canCreateProposal && (
-        <Dropdown 
-          trigger={['click']} 
-          menu={{
-            items: [
-              { key: 'manual', label: 'Manual Create', icon: <EditOutlined /> },
-              { key: 'zai', label: 'Create with ZAI', icon: <Sparkles size={14} color="#8b5cf6" /> },
-            ],
-            onClick: ({ key }) => {
-              if (key === 'manual') router.push('/proposals/builder');
-              if (key === 'zai') setIsZaiModalOpen(true);
-            }
-          }}
-        >
-          <Button type="primary" className="pp-btn-primary" style={{ marginTop: 14 }}>
-            <PlusOutlined /> New Proposal <CaretDownOutlined />
-          </Button>
-        </Dropdown>
+        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={() => router.push('/proposals/builder')} style={{ marginTop: 14 }}>
+          New Proposal
+        </Button>
       )}
     </div>
   );
@@ -850,27 +835,15 @@ export default function ProposalsListPage() {
             </div>
 
             {canCreateProposal && (
-              <Dropdown 
-                trigger={['click']}
-                menu={{
-                  items: [
-                    { key: 'manual', label: 'Manual Create', icon: <EditOutlined /> },
-                    { key: 'zai', label: 'Create with ZAI', icon: <Sparkles size={14} color="#8b5cf6" /> },
-                  ],
-                  onClick: ({ key }) => {
-                    if (key === 'manual') router.push('/proposals/builder');
-                    if (key === 'zai') setIsZaiModalOpen(true);
-                  }
-                }}
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className="pp-create-btn"
+                onClick={() => router.push('/proposals/builder')}
+                block
               >
-                <Button
-                  type="primary"
-                  className="pp-create-btn"
-                  block
-                >
-                  <PlusOutlined /> Create Proposal <CaretDownOutlined />
-                </Button>
-              </Dropdown>
+                Create Proposal
+              </Button>
             )}
 
             <div className="pp-side-scroll">
@@ -1032,133 +1005,131 @@ export default function ProposalsListPage() {
 
             {/* Table / grid */}
             <div className="pp-body">
-              <ZukvoLoadingOverlay loading={loading} message="">
-                {view === 'list' ? (
-                  <div className="pp-table-wrap">
-                    <Table
-                      columns={columns}
-                      dataSource={pagedProposals}
-                      rowKey="id"
-                      size="small"
-                      className="pp-table"
-                      scroll={{ x: 1282 }}
-                      rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
-                      pagination={false}
-                      locale={{ emptyText: emptyState }}
-                      onRow={(record) => ({
-                        onClick: (e) => {
-                          const t = e.target as HTMLElement;
-                          if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-star, .pp-maillink')) return;
-                          openProposal(record);
-                        },
-                        className: 'pp-row',
-                      })}
-                    />
-
-                  </div>
-                ) : (
-                  <div className="pp-grid">
-                    {loading ? (
-                      <div className="pp-grid-loading">Loading…</div>
-                    ) : filteredProposals.length === 0 ? (
-                      <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                    ) : (
-                      filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((p) => {
-                        const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;
-                        const meta = STATUS_META[sKey] || STATUS_META.draft;
-                        const accent = accentFor(p.id || p.client_name || p.title || '');
-                        const title = resolveTitle(p);
-                        const created = p.created_at ? dayjs(p.created_at) : null;
-                        const updated = p.updated_at ? dayjs(p.updated_at) : null;
-                        const isSent = !!p.last_mail_at || !!p.is_mail_sent || sKey === 'sent';
-                        return (
-                          <div key={p.id} className="pc-card" onClick={() => openProposal(p)}>
-                            <div className="pc-top">
-                              <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-                                {initialsOf(p.client_name || title)}
-                              </div>
-                              <div className="pc-identity-body">
-                                <div className="pc-title">{title}</div>
-                                <div className="pc-client-line">
-                                  <span className="pc-client-key">Client:</span>
-                                  <span className="pc-client-val">{p.client_name || 'No client'}</span>
-                                </div>
-                              </div>
-                              <Dropdown
-                                menu={actionMenu(p)}
-                                overlayClassName="pp-action-pop"
-                                trigger={['click']}
-                                placement="bottomRight"
-                              >
-                                <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
-                                  <EllipsisOutlined />
-                                </button>
-                              </Dropdown>
+              {view === 'list' ? (
+                <div className="pp-table-wrap">
+                  <Table
+                    columns={columns}
+                    dataSource={paginatedProposals}
+                    loading={loading}
+                    rowKey="id"
+                    size="small"
+                    className="pp-table"
+                    scroll={{ x: 1282 }}
+                    rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
+                    pagination={false}
+                    locale={{ emptyText: emptyState }}
+                    onRow={(record) => ({
+                      onClick: (e) => {
+                        const t = e.target as HTMLElement;
+                        if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .pp-star, .pp-maillink')) return;
+                        openProposal(record);
+                      },
+                      className: 'pp-row',
+                    })}
+                  />
+                </div>
+              ) : (
+                <div className="pp-grid">
+                  {loading ? (
+                    <div className="pp-grid-loading">Loading…</div>
+                  ) : paginatedProposals.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  ) : (
+                    paginatedProposals.map((p) => {
+                      const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;
+                      const meta = STATUS_META[sKey] || STATUS_META.draft;
+                      const accent = accentFor(p.id || p.client_name || p.title || '');
+                      const title = resolveTitle(p);
+                      const created = p.created_at ? dayjs(p.created_at) : null;
+                      const updated = p.updated_at ? dayjs(p.updated_at) : null;
+                      const isSent = !!p.last_mail_at || !!p.is_mail_sent || sKey === 'sent';
+                      return (
+                        <div key={p.id} className="pc-card" onClick={() => openProposal(p)}>
+                          <div className="pc-top">
+                            <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
+                              {initialsOf(p.client_name || title)}
                             </div>
+                            <div className="pc-identity-body">
+                              <div className="pc-title">{title}</div>
+                              <div className="pc-client-line">
+                                <span className="pc-client-key">Client:</span>
+                                <span className="pc-client-val">{p.client_name || 'No client'}</span>
+                              </div>
+                            </div>
+                            <Dropdown
+                              menu={actionMenu(p)}
+                              overlayClassName="pp-action-pop"
+                              trigger={['click']}
+                              placement="bottomRight"
+                            >
+                              <button type="button" className="pc-actions" onClick={(e) => e.stopPropagation()}>
+                                <EllipsisOutlined />
+                              </button>
+                            </Dropdown>
+                          </div>
 
-                            <div className="pc-foot">
-                              <div className="pc-foot-row">
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key">Created by</span>
-                                  <Avatar size={16} src={p.createdBy?.avatarUrl || p.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
-                                    {initialsOf(p.createdBy?.name || '—')}
-                                  </Avatar>
-                                  <span className="pc-foot-val">{p.createdBy?.name || '—'}</span>
+                          <div className="pc-foot">
+                            <div className="pc-foot-row">
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Created by</span>
+                                <Avatar size={16} src={p.createdBy?.avatarUrl || p.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 8, fontWeight: 700 }}>
+                                  {initialsOf(p.createdBy?.name || '—')}
+                                </Avatar>
+                                <span className="pc-foot-val">{p.createdBy?.name || '—'}</span>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Created</span>
+                                <span className="pc-foot-val">{created ? created.format('MMM D, YYYY · h:mm A') : '—'}</span>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Updated</span>
+                                <span className="pc-foot-val">{updated ? updated.format('MMM D, YYYY · h:mm A') : '—'}</span>
+                              </span>
+                            </div>
+                            <div className="pc-foot-row">
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Status:</span>
+                                <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
+                                  {meta.icon}{meta.label}
                                 </span>
-                                <span className="pc-foot-div" />
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key">Created</span>
-                                  <span className="pc-foot-val">{created ? created.format('MMM D, YYYY · h:mm A') : '—'}</span>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <span className="pc-foot-item">
+                                <span className="pc-foot-key">Mail:</span>
+                                <span className="pc-mail-val" style={{ color: isSent ? '#10b981' : '#94a3b8' }}>
+                                  {isSent ? <CheckCircleOutlined /> : <Mail size={12} />}
+                                  {isSent ? 'Sent' : 'Not sent'}
                                 </span>
-                                <span className="pc-foot-div" />
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key">Updated</span>
-                                  <span className="pc-foot-val">{updated ? updated.format('MMM D, YYYY · h:mm A') : '—'}</span>
-                                </span>
-                              </div>
-                              <div className="pc-foot-row">
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key">Status:</span>
-                                  <span className="pc-status-tag" style={{ color: meta.color, background: meta.bg }}>
-                                    {meta.icon}{meta.label}
-                                  </span>
-                                </span>
-                                <span className="pc-foot-div" />
-                                <span className="pc-foot-item">
-                                  <span className="pc-foot-key">Mail:</span>
-                                  <span className="pc-mail-val" style={{ color: isSent ? '#10b981' : '#94a3b8' }}>
-                                    {isSent ? <CheckCircleOutlined /> : <Mail size={12} />}
-                                    {isSent ? 'Sent' : 'Not sent'}
-                                  </span>
-                                </span>
-                                <span className="pc-foot-div" />
-                                <button
-                                  type="button"
-                                  className="pc-foot-item pc-view-btn"
-                                  onClick={(e) => { e.stopPropagation(); setPreviewProposal(p); }}
-                                >
-                                  <EyeOutlined />
-                                  View Proposal
-                                </button>
-                                <span className="pc-foot-div" />
-                                <button
-                                  type="button"
-                                  className="pc-foot-item pc-timeline-btn"
-                                  onClick={(e) => { e.stopPropagation(); setActivityProposal(p); }}
-                                >
-                                  <HistoryOutlined />
-                                  <span className="pc-foot-key">Timeline</span>
-                                  <span className="pc-timeline-view">View</span>
-                                </button>
-                              </div>
+                              </span>
+                              <span className="pc-foot-div" />
+                              <button
+                                type="button"
+                                className="pc-foot-item pc-view-btn"
+                                onClick={(e) => { e.stopPropagation(); setPreviewProposal(p); }}
+                              >
+                                <EyeOutlined />
+                                View Proposal
+                              </button>
+                              <span className="pc-foot-div" />
+                              <button
+                                type="button"
+                                className="pc-foot-item pc-timeline-btn"
+                                onClick={(e) => { e.stopPropagation(); setActivityProposal(p); }}
+                              >
+                                <HistoryOutlined />
+                                <span className="pc-foot-key">Timeline</span>
+                                <span className="pc-timeline-view">View</span>
+                              </button>
                             </div>
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </ZukvoLoadingOverlay>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             {total > 0 && (
@@ -1227,14 +1198,6 @@ export default function ProposalsListPage() {
           onCancel={() => setTplProposal(null)}
           onSave={persistProposalAsTemplate}
         />
-
-        {isZaiModalOpen && (
-          <EndToEndZaiModal
-            visible={isZaiModalOpen}
-            onClose={() => setIsZaiModalOpen(false)}
-            onComplete={() => router.push('/proposals/builder')}
-          />
-        )}
 
         <style jsx global>{`
           .pp-shell {

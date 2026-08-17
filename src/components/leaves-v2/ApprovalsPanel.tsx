@@ -45,7 +45,9 @@ export default function ApprovalsPanel() {
   const { canApproveLeave } = usePermission();
   console.log("Forcing HMR reload for ApprovalsPanel");
 
-  const [rows, setRows] = useState<LeaveRequest[]>([]);
+  const [rows, setRows] = useState<LeaveRequest[]>([]); // all rows for stats/users
+  const [paginatedRows, setPaginatedRows] = useState<LeaveRequest[]>([]); // paginated rows for table
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -58,13 +60,29 @@ export default function ApprovalsPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRows(await LeaveV2Service.getApprovals());
+      const start = dateRange?.[0]?.format('YYYY-MM-DD');
+      const end = dateRange?.[1]?.format('YYYY-MM-DD');
+      const [allReq, pagedReq] = await Promise.all([
+        LeaveV2Service.getApprovals(),
+        LeaveV2Service.getApprovals({
+          page: tablePage,
+          limit: tablePageSize,
+          search,
+          status: statusFilter,
+          userId: userFilter,
+          fromDate: start,
+          toDate: end
+        })
+      ]);
+      setRows(allReq);
+      setPaginatedRows(pagedReq.data || []);
+      setTotalCount(pagedReq.pagination?.total ?? (Array.isArray(pagedReq.data) ? pagedReq.data.length : 0));
     } catch (err: any) {
       message.error(err?.response?.data?.error || err?.message || 'Failed to load approvals');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, statusFilter, userFilter, dateRange, message]);
 
   useEffect(() => {
     if (canApproveLeave) load();
@@ -97,28 +115,11 @@ export default function ApprovalsPanel() {
     return Array.from(seen, ([value, data]) => ({ value, label: data.label, avatarUrl: data.avatarUrl })).sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const start = dateRange?.[0]?.startOf('day') ?? null;
-    const end = dateRange?.[1]?.endOf('day') ?? null;
-    return rows.filter((r) => {
-      if (q && !(r.userName || '').toLowerCase().includes(q) && !(r.leaveTypeName || '').toLowerCase().includes(q)) return false;
-      if (statusFilter === 'withdrawal_requests') {
-        if (r.withdrawalStatus !== 'requested') return false;
-      } else if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-      if (userFilter && r.userId !== userFilter) return false;
-      // Keep requests whose leave period overlaps the selected range.
-      if (start && dayjs(r.toDate).isBefore(start)) return false;
-      if (end && dayjs(r.fromDate).isAfter(end)) return false;
-      return true;
-    });
-  }, [rows, search, statusFilter, userFilter, dateRange]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paged = paginatedRows;
   useEffect(() => { setTablePage(1); }, [search, statusFilter, userFilter, dateRange, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
   const hasFilters = !!search || statusFilter !== 'all' || !!userFilter || !!dateRange;
@@ -392,7 +393,7 @@ export default function ApprovalsPanel() {
           format="MMM D, YYYY"
           allowEmpty={[true, true]}
         />
-        <span className="lvap-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="lvap-filter-count">{totalCount} of {rows.length}</span>
         {hasFilters && <button type="button" className="lvap-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>}
       </div>
 

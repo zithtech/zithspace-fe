@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export interface GradePayload {
   name: string;
@@ -27,7 +27,7 @@ export interface GradeAPIResponse {
 }
 
 export const GradeService = {
-  getAllGrades: () => api.get<GradeAPIResponse[]>("/api/grades"),
+  getAllGrades: (filters?: any) => filters?.limit ? apiUtils.getPaginated<GradeAPIResponse>("/api/grades", filters) : api.get<GradeAPIResponse[]>("/api/grades", { params: filters }),
   getGradeById: (id: string) => api.get<GradeAPIResponse>(`/api/grades/${id}`),
   createGrade: (payload: GradePayload) => api.post<GradeAPIResponse>("/api/grades", payload),
   updateGrade: (id: string, payload: Partial<GradePayload>) =>

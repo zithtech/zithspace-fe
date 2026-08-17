@@ -68,6 +68,13 @@ interface OrgModuleScaffoldProps<T> {
 
   pageSizeOptions?: number[];
   defaultPageSize?: number;
+
+  serverPagination?: {
+    current: number;
+    pageSize: number;
+    total: number;
+    onChange: (page: number, pageSize: number) => void;
+  };
 }
 
 const DEFAULT_PAGE_SIZES = [10, 20, 25, 50, 100];
@@ -132,22 +139,44 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
   emptyAction,
   pageSizeOptions = DEFAULT_PAGE_SIZES,
   defaultPageSize,
+  serverPagination,
 }: OrgModuleScaffoldProps<T>) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize ?? 20);
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(defaultPageSize ?? 20);
+
+  const page = serverPagination ? serverPagination.current : internalPage;
+  const pageSize = serverPagination ? serverPagination.pageSize : internalPageSize;
+
+  const handlePageChange = (p: number) => {
+    if (serverPagination) {
+      serverPagination.onChange(p, pageSize);
+    } else {
+      setInternalPage(p);
+    }
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    if (serverPagination) {
+      serverPagination.onChange(1, size);
+    } else {
+      setInternalPageSize(size);
+      setInternalPage(1);
+    }
+  };
 
   // Reset to first page whenever the result set shrinks/changes.
   useEffect(() => {
-    setPage(1);
-  }, [data.length, search]);
+    if (!serverPagination) setInternalPage(1);
+  }, [data.length, search, serverPagination]);
 
-  const total = data.length;
+  const total = serverPagination ? serverPagination.total : data.length;
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(page * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  
   const paged = useMemo(
-    () => data.slice((page - 1) * pageSize, page * pageSize),
-    [data, page, pageSize],
+    () => serverPagination ? data : data.slice((page - 1) * pageSize, page * pageSize),
+    [data, page, pageSize, serverPagination],
   );
 
   const emptyState = (
@@ -280,15 +309,15 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
             Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
           </div>
           <div className="omx-pager">
-            <button type="button" className="omx-pager-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
+            <button type="button" className="omx-pager-btn" disabled={page <= 1} onClick={() => handlePageChange(Math.max(1, page - 1))}>‹</button>
             {pagerNums.map((p) => (
-              <button key={p} type="button" className={`omx-pager-num ${p === page ? "is-active" : ""}`} onClick={() => setPage(p)}>{p}</button>
+              <button key={p} type="button" className={`omx-pager-num ${p === page ? "is-active" : ""}`} onClick={() => handlePageChange(p)}>{p}</button>
             ))}
-            <button type="button" className="omx-pager-btn" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>›</button>
+            <button type="button" className="omx-pager-btn" disabled={page >= pageCount} onClick={() => handlePageChange(Math.min(pageCount, page + 1))}>›</button>
             <Select
               className="omx-pagesize"
               value={pageSize}
-              onChange={(v) => { setPageSize(v); setPage(1); }}
+              onChange={(v) => handlePageSizeChange(v)}
               options={pageSizeOptions.map((n) => ({ value: n, label: `${n} / page` }))}
               popupMatchSelectWidth={120}
             />

@@ -108,7 +108,9 @@ export default function AccountsSettingsPage() {
     canDeleteAccountConfig,
   } = usePermission();
 
-  const { data: categories = [], isLoading: loading, refetch, isFetching } = useExpenseCategories();
+  const { data: categoriesResponse, isLoading: loading, refetch, isFetching } = useExpenseCategories(pageSize, (currentPage - 1) * pageSize);
+  const categories = categoriesResponse?.data || [];
+  const totalCategories = categoriesResponse?.total || 0;
   const createMutation = useCreateExpenseCategory();
   const updateMutation = useUpdateExpenseCategory();
   const deleteMutation = useDeleteExpenseCategory();
@@ -154,13 +156,15 @@ export default function AccountsSettingsPage() {
   };
 
   const counts = useMemo(() => {
+    // Note: since it's paginated, active/inactive is only for the current page
+    // A robust fix would fetch stats from the server, but we will use the fetched categories for now
     const active = categories.filter((c: ExpenseCategory) => c.isActive).length;
     return {
-      total: categories.length,
+      total: totalCategories || categories.length,
       active,
       inactive: categories.length - active,
     };
-  }, [categories]);
+  }, [categories, totalCategories]);
 
   const filteredCategories = useMemo(() => {
     return categories.filter((c: ExpenseCategory) => {
@@ -175,14 +179,14 @@ export default function AccountsSettingsPage() {
     });
   }, [categories, searchText, statusFilter]);
 
-  // Client-side pagination counts
-  const total = filteredCategories.length;
+  // Server-side pagination total
+  const total = totalCategories || filteredCategories.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedCategories = useMemo(() => {
-    return filteredCategories.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredCategories, currentPage, pageSize]);
+    return filteredCategories;
+  }, [filteredCategories]);
 
   const columns = [
     {
@@ -482,7 +486,7 @@ export default function AccountsSettingsPage() {
                 emptyState
               ) : (
                 <div className="pp-grid">
-                  {pagedCategories.map((category) => {
+                  {pagedCategories.map((category: any) => {
                     const actionMenu = {
                       className: 'pp-action-menu',
                       items: [

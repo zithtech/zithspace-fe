@@ -10,7 +10,7 @@ export const memberTrashKeys = {
 /**
  * Hook to fetch trashed members with optional filters
  */
-export function useMemberTrash(filters: { search?: string; page?: number; limit?: number } = {}) {
+export function useMemberTrash(filters: { search?: string; page?: number; limit?: number; role?: string; position?: string; reportsTo?: string } = {}) {
   return useQuery({
     queryKey: memberTrashKeys.list(filters),
     queryFn: () => MembersService.getDeletedMembers(filters),

@@ -35,17 +35,33 @@ const transformApiToView = (position: Position): PositionViewData => ({
   gradeName: position.grade?.name,
 });
 
-export const usePositions = () => {
-  const [dataSource, setDataSource] = useState<PositionViewData[]>([]);
+export const usePositions = (filters?: { page?: number; limit?: number; search?: string; departmentId?: string | null; subDepartmentId?: string | null }) => {
+  const [paginatedPositions, setPaginatedPositions] = useState<PositionViewData[]>([]);
+  const [allPositions, setAllPositions] = useState<PositionViewData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchPositions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await PositionService.getAll();
-      setDataSource(data.map(transformApiToView));
+      const [allRes, paginatedRes]: any = await Promise.all([
+        PositionService.getAll({ limit: 1000 }),
+        filters?.page ? PositionService.getAll(filters) : Promise.resolve(null)
+      ]);
+
+      const allData = Array.isArray(allRes) ? allRes : (allRes.data || []);
+      setAllPositions(allData.map(transformApiToView));
+
+      if (paginatedRes) {
+        const paginatedData = Array.isArray(paginatedRes) ? paginatedRes : (paginatedRes.data || []);
+        setPaginatedPositions(paginatedData.map(transformApiToView));
+        setTotalCount(paginatedRes.pagination?.total || paginatedData.length);
+      } else {
+        setPaginatedPositions(allData.map(transformApiToView));
+        setTotalCount(allData.length);
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to load positions.";
       setError(errorMessage);
@@ -53,7 +69,7 @@ export const usePositions = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters?.page, filters?.limit, filters?.search, filters?.departmentId, filters?.subDepartmentId]);
 
   useEffect(() => {
     fetchPositions();
@@ -86,7 +102,8 @@ export const usePositions = () => {
   const deletePosition = async (id: string) => {
     try {
       await PositionService.delete(id);
-      setDataSource((prev) => prev.filter((item) => item.id !== id));
+      setAllPositions((prev) => prev.filter((item) => item.id !== id));
+      setPaginatedPositions((prev) => prev.filter((item) => item.id !== id));
       notification.success({ message: "Position deleted successfully" });
       return true;
     } catch (err: any) {
@@ -96,10 +113,12 @@ export const usePositions = () => {
   };
 
   return {
-    dataSource,
+    allPositions,
+    paginatedPositions,
+    totalCount,
     loading,
     error,
-    fetchPositions,
+    refresh: fetchPositions,
     createPosition,
     updatePosition,
     deletePosition,

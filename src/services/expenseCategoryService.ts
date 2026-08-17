@@ -38,13 +38,16 @@ export interface CategoryStats {
 
 export class ExpenseCategoryService {
   // Get all categories
-  static async getCategories(): Promise<Category[]> {
+  static async getCategories(limit?: number, offset?: number): Promise<any> {
     console.log('ExpenseCategoryService: Fetching categories...');
     try {
-      const categories = await api.get<Category[]>('/api/categories');
-      console.log('ExpenseCategoryService: API response received:', categories);
-      console.log('ExpenseCategoryService: Categories extracted:', categories);
-      return categories;
+      const response = await api.request({
+        method: 'GET',
+        url: '/api/categories',
+        params: { limit, offset }
+      });
+      console.log('ExpenseCategoryService: API response received:', response);
+      return response.data;
     } catch (error) {
       console.error('ExpenseCategoryService: Error fetching categories:', error);
       throw error;

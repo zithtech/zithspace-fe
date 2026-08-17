@@ -61,38 +61,28 @@ export default function SubDepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
-  const { departments, loading: departmentsLoading } = useDepartments();
+  const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
   const {
-    subDepartments,
+    allSubDepartments,
+    paginatedSubDepartments,
+    totalCount,
     loading: subDepartmentsLoading,
     fetchSubDepartments,
     createSubDepartment,
     updateSubDepartment,
     deleteSubDepartment,
-  } = useSubDepartments();
-
-  const filteredData = useMemo(() => {
-    return subDepartments.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.code.toLowerCase().includes(q) ||
-        item.name.toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesDepartment =
-        !departmentFilter || item.parentDepartmentId === departmentFilter;
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [subDepartments, searchText, statusFilter, departmentFilter]);
+  } = useSubDepartments({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchText,
+    parentDepartmentId: departmentFilter,
+  });
 
   useEffect(() => {
-    if (!authLoading && !canReadOrg) {
-      router.push("/dashboard");
-    }
-  }, [authLoading, canReadOrg, router]);
+    setPagination((p) => ({ ...p, current: 1 }));
+  }, [searchText, statusFilter, departmentFilter]);
 
   if (authLoading) {
     return (
@@ -104,10 +94,10 @@ export default function SubDepartmentsPage() {
 
   if (!canReadOrg) return null;
 
-  const totalSubDepartments = subDepartments.length;
-  const activeSubDepartments = subDepartments.filter((d) => d.isActive).length;
+  const totalSubDepartments = allSubDepartments.length;
+  const activeSubDepartments = allSubDepartments.filter((d) => d.isActive).length;
   const inactiveSubDepartments = totalSubDepartments - activeSubDepartments;
-  const uniqueParents = new Set(subDepartments.map((s) => s.parentDepartmentId).filter(Boolean));
+  const uniqueParents = new Set(allSubDepartments.map((s) => s.parentDepartmentId).filter(Boolean));
 
   const generateCodeFromName = (name: string): string => {
     if (!name || typeof name !== "string") return "";
@@ -390,16 +380,22 @@ export default function SubDepartmentsPage() {
           <OrgModuleScaffold<any>
             search={searchText}
             onSearchChange={setSearchText}
-            searchPlaceholder="Search by name, code, or description…"
-            meta={<><strong>{filteredData.length}</strong> of {totalSubDepartments} sub-departments</>}
+            searchPlaceholder="Search by name, code, or description..."
+            meta={<><strong>{paginatedSubDepartments.length}</strong> of {totalCount} sub-departments</>}
             view={view}
             onViewChange={setView}
             onRefresh={fetchSubDepartments}
             loading={subDepartmentsLoading}
             stats={stats}
             columns={columns}
-            data={filteredData}
+            data={paginatedSubDepartments}
             rowKey="id"
+            serverPagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: totalCount,
+              onChange: (page, pageSize) => setPagination({ current: page, pageSize })
+            }}
             renderCard={renderSubDepartmentCard}
             emptyTitle="No sub-departments found"
             emptySubtitle="Create your first sub-department to organize nested business units."

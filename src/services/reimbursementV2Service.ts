@@ -334,11 +334,12 @@ function toArray(raw: any): any[] {
 // ─── Service ─────────────────────────────────────────────────────────────────
 export const ReimbursementV2Service = {
   // ── Categories ─────────────────────────────────────────────────────────────
-  async listCategories(includeInactive = false): Promise<ExpenseCategory[]> {
-    const res = await apiClient.get(`${BASE}/categories`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<ExpenseCategory[]>(res.data) ?? [];
+  async listCategories(params?: { includeInactive?: boolean; search?: string; page?: number; limit?: number }): Promise<{ data: ExpenseCategory[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/categories`, { params });
+    return {
+      data: (res.data?.data as ExpenseCategory[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async createCategory(input: SaveCategoryInput): Promise<ExpenseCategory> {
     const res = await apiClient.post(`${BASE}/categories`, input);
@@ -353,11 +354,12 @@ export const ReimbursementV2Service = {
   },
 
   // ── Policies ───────────────────────────────────────────────────────────────
-  async listPolicies(includeInactive = false): Promise<ReimbursementPolicyListItem[]> {
-    const res = await apiClient.get(`${BASE}/policies`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<ReimbursementPolicyListItem[]>(res.data) ?? [];
+  async listPolicies(params?: { includeInactive?: boolean; search?: string; page?: number; limit?: number }): Promise<{ data: ReimbursementPolicyListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/policies`, { params });
+    return {
+      data: (res.data?.data as ReimbursementPolicyListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getPolicy(id: string): Promise<ReimbursementPolicyDetail> {
     const res = await apiClient.get(`${BASE}/policies/${id}`);
@@ -379,9 +381,12 @@ export const ReimbursementV2Service = {
   async validateClaim(input: CreateClaimInput): Promise<void> {
     await apiClient.post(`${BASE}/claims/validate`, input);
   },
-  async listMyClaims(status?: ClaimStatus): Promise<Claim[]> {
-    const res = await apiClient.get(`${BASE}/claims`, { params: status ? { status } : undefined });
-    return unwrap<Claim[]>(res.data) ?? [];
+  async listMyClaims(params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Claim[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/claims`, { params });
+    return {
+      data: (res.data?.data as Claim[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getClaim(id: string): Promise<ClaimDetail> {
     const res = await apiClient.get(`${BASE}/claims/${id}`);
@@ -433,9 +438,12 @@ export const ReimbursementV2Service = {
   },
 
   // ── Approvals (manager) ────────────────────────────────────────────────────
-  async listPendingClaims(): Promise<ApprovalInboxItem[]> {
-    const res = await apiClient.get(`${BASE}/approvals/pending`);
-    return unwrap<ApprovalInboxItem[]>(res.data) ?? [];
+  async listPendingClaims(params?: { page?: number; limit?: number }): Promise<{ data: ApprovalInboxItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/approvals/pending`, { params });
+    return {
+      data: (res.data?.data as ApprovalInboxItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getApprovalClaim(id: string): Promise<ClaimDetail> {
     const res = await apiClient.get(`${BASE}/approvals/${id}`);
@@ -455,9 +463,12 @@ export const ReimbursementV2Service = {
   },
 
   // ── Finance ────────────────────────────────────────────────────────────────
-  async listPayableClaims(): Promise<ApprovalInboxItem[]> {
-    const res = await apiClient.get(`${BASE}/finance/payable`);
-    return unwrap<ApprovalInboxItem[]>(res.data) ?? [];
+  async listPayableClaims(params?: { page?: number; limit?: number }): Promise<{ data: ApprovalInboxItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/finance/payable`, { params });
+    return {
+      data: (res.data?.data as ApprovalInboxItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getFinanceClaim(id: string): Promise<ClaimDetail> {
     const res = await apiClient.get(`${BASE}/finance/${id}`);
@@ -469,9 +480,12 @@ export const ReimbursementV2Service = {
   },
 
   // ── Advances ───────────────────────────────────────────────────────────────
-  async listMyAdvances(status?: AdvanceStatus): Promise<Advance[]> {
-    const res = await apiClient.get(`${BASE}/advances`, { params: status ? { status } : undefined });
-    return unwrap<Advance[]>(res.data) ?? [];
+  async listMyAdvances(params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Advance[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/advances`, { params });
+    return {
+      data: (res.data?.data as Advance[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getAdvance(id: string): Promise<Advance> {
     const res = await apiClient.get(`${BASE}/advances/${id}`);
@@ -485,9 +499,12 @@ export const ReimbursementV2Service = {
     const res = await apiClient.post(`${BASE}/advances/${id}/cancel`, { remarks });
     return unwrap<Advance>(res.data);
   },
-  async listPendingAdvances(): Promise<AdvanceInboxItem[]> {
-    const res = await apiClient.get(`${BASE}/advances/pending`);
-    return unwrap<AdvanceInboxItem[]>(res.data) ?? [];
+  async listPendingAdvances(params?: { page?: number; limit?: number }): Promise<{ data: AdvanceInboxItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/advances/pending`, { params });
+    return {
+      data: (res.data?.data as AdvanceInboxItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async approveAdvance(id: string, remarks?: string): Promise<Advance> {
     const res = await apiClient.post(`${BASE}/advances/${id}/approve`, { remarks });
@@ -497,9 +514,12 @@ export const ReimbursementV2Service = {
     const res = await apiClient.post(`${BASE}/advances/${id}/reject`, { remarks });
     return unwrap<Advance>(res.data);
   },
-  async listPayableAdvances(): Promise<AdvanceInboxItem[]> {
-    const res = await apiClient.get(`${BASE}/advances/payable`);
-    return unwrap<AdvanceInboxItem[]>(res.data) ?? [];
+  async listPayableAdvances(params?: { page?: number; limit?: number }): Promise<{ data: AdvanceInboxItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/advances/payable`, { params });
+    return {
+      data: (res.data?.data as AdvanceInboxItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async markAdvancePaid(id: string, paymentReference: string, remarks?: string): Promise<Advance> {
     const res = await apiClient.post(`${BASE}/advances/${id}/mark-paid`, { paymentReference, remarks });
@@ -511,11 +531,12 @@ export const ReimbursementV2Service = {
   },
 
   // ── Budgets ────────────────────────────────────────────────────────────────
-  async listBudgets(includeInactive = false): Promise<Budget[]> {
-    const res = await apiClient.get(`${BASE}/budgets`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<Budget[]>(res.data) ?? [];
+  async listBudgets(params?: { includeInactive?: boolean; search?: string; page?: number; limit?: number }): Promise<{ data: Budget[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/budgets`, { params });
+    return {
+      data: (res.data?.data as Budget[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async createBudget(input: SaveBudgetInput): Promise<Budget> {
     const res = await apiClient.post(`${BASE}/budgets`, input);

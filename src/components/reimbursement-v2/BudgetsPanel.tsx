@@ -41,9 +41,13 @@ export default function BudgetsPanel() {
   const canManage = perms.can(Permissions.REIMBURSEMENT_CONFIG_UPDATE) || perms.canManageReimbursements;
 
   const [rows, setRows] = useState<Budget[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [cats, setCats] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -56,17 +60,24 @@ export default function BudgetsPanel() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = limit, s = debouncedSearch) => {
     setLoading(true);
     try {
       const [b, c] = await Promise.all([
-        ReimbursementV2Service.listBudgets(true),
-        ReimbursementV2Service.listCategories(true),
+        ReimbursementV2Service.listBudgets({ includeInactive: true, page: p, limit: l, search: s }),
+        ReimbursementV2Service.listCategories({ includeInactive: true, limit: 1000 }),
       ]);
-      setRows(b); setCats(c);
+      setRows(b.data);
+      setTotal(b.pagination.total);
+      setCats(c.data);
     } catch (e: any) { message.error(e?.response?.data?.error || 'Failed to load budgets'); }
     finally { setLoading(false); }
-  }, []);
+  }, [page, limit, debouncedSearch]);
 
   const loadOptions = useCallback(async () => {
     try {
@@ -94,16 +105,11 @@ export default function BudgetsPanel() {
   }, [canRead, load, loadOptions]);
 
   const stats = useMemo(() => ({
-    total: rows.length,
+    total: total,
     budgeted: rows.reduce((s, r) => s + r.amount, 0),
     spent: rows.reduce((s, r) => s + r.spent, 0),
     over: rows.filter((r) => r.utilization >= 1).length,
-  }), [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.name.toLowerCase().includes(q));
-  }, [rows, search]);
+  }), [rows, total]);
 
   const openCreate = () => {
     setEditingId(null); 
@@ -204,10 +210,17 @@ export default function BudgetsPanel() {
       ]} />
 
       <div className="rvp-table-wrap">
-        <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-                        pagination={tablePaginationConfig} />
-              </ZukvoLoadingOverlay>
+        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}
+          pagination={{
+            ...tablePaginationConfig,
+            current: page,
+            pageSize: limit,
+            total,
+            onChange: (p, s) => {
+              setPage(p);
+              setLimit(s ?? limit);
+            },
+          }} />
       </div>
 
       <Drawer

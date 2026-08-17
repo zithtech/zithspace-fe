@@ -147,11 +147,11 @@ export default function ProjectTrashManagementPage() {
   const paginatedTrashProjects = Array.isArray(paginatedTrashRes) ? paginatedTrashRes : (paginatedTrashRes?.data || []);
   const totalTrashItems = Array.isArray(paginatedTrashRes) ? paginatedTrashRes.length : (paginatedTrashRes?.pagination?.total || 0);
 
-  const uniqueProjects = Array.from(new Map(allTrashProjects?.map(p => [p.id, p.name])).entries());
-  const uniqueManagers = Array.from(new Map(allTrashProjects?.filter(p => p.projectManager).map(p => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
+  const uniqueProjects = Array.from(new Map(allTrashProjects?.map((p: any) => [p.id, p.name])).entries());
+  const uniqueManagers = Array.from(new Map(allTrashProjects?.filter((p: any) => p.projectManager).map((p: any) => [p.projectManager.id, { name: p.projectManager.name, avatarUrl: p.projectManager.avatarUrl }])).entries());
 
   // We filter the ALL projects for the stats and sidebar filters
-  const filteredProjectsForStats = allTrashProjects?.filter((p) => {
+  const filteredProjectsForStats = allTrashProjects?.filter((p: any) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.code.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProject = !filters.projectId || p.id === filters.projectId;
     const matchesManager = !filters.projectManagerId || p.projectManager?.id === filters.projectManagerId;
@@ -169,9 +169,9 @@ export default function ProjectTrashManagementPage() {
 
   const stats = {
     total: filteredProjectsForStats.length,
-    recent: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') <= 7).length,
-    older: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 7 && dayjs().diff(dayjs(p.updatedAt), 'day') <= 30).length,
-    purgeReady: filteredProjectsForStats.filter(p => dayjs().diff(dayjs(p.updatedAt), 'day') > 30).length,
+    recent: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') <= 7).length,
+    older: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') > 7 && dayjs().diff(dayjs(p.updatedAt), 'day') <= 30).length,
+    purgeReady: filteredProjectsForStats.filter((p: any) => dayjs().diff(dayjs(p.updatedAt), 'day') > 30).length,
   };
 
   const columns = [

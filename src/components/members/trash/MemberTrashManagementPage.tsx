@@ -132,7 +132,7 @@ export default function MemberTrashManagementPage() {
   const [reportsToFilter, setReportsToFilter] = useState<string | undefined>(undefined);
 
   // Position, Managers filter data sources
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const { allPositions: positions, loading: positionsLoading } = usePositions();
   const [managers, setManagers] = useState<Member[]>([]);
 
   // Fetch trash members

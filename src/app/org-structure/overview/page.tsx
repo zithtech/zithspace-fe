@@ -189,7 +189,7 @@ export default function OverviewPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const { allGrades: grades = [], loading: gradesLoading } = useGrades();
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const { allPositions: positions, loading: positionsLoading } = usePositions();
   const loading = gradesLoading || positionsLoading;
 
   useEffect(() => {

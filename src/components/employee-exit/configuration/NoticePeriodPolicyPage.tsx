@@ -110,7 +110,7 @@ export default function NoticePeriodPolicyPage({ searchText = '', createTrigger 
         GradeService.getAllGrades(),
         PositionService.getAll(),
       ]);
-      setGrades(gradesData || []);
+      setGrades((Array.isArray(gradesData) ? gradesData : gradesData?.data) || []);
       setPositions(positionsData || []);
     } catch (error: any) {
       process.env.NODE_ENV === 'development' && console.error('Error fetching levels:', error);

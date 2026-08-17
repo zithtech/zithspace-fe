@@ -2561,7 +2561,7 @@ const DocumentHubPage = () => {
           {/* Fixed pagination footer (Cards & Table views) */}
           {!(hubsLoading && !documentHubs.length) && filteredHubs.length > 0 && (() => {
             const total = paginatedHubsRes?.pagination?.total || 0;
-            const curPage = paginatedHubsRes?.pagination?.page || 1;
+            const curPage = paginatedHubsRes?.pagination?.current || 1;
             const start = (curPage - 1) * tablePageSize + 1;
             const end = Math.min(curPage * tablePageSize, total);
             return (

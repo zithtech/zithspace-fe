@@ -1331,7 +1331,7 @@ export default function MembersPage() {
     canManageUsers,
   } = usePermission();
   console.log("Forcing HMR reload for members page");
-  const { dataSource: positions, loading: positionsLoading, fetchPositions } = usePositions();
+  const { allPositions: positions, loading: positionsLoading, refresh: fetchPositions } = usePositions();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [members, setMembers] = useState<Member[]>([]);

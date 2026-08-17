@@ -34,8 +34,8 @@ class ProjectTrashService {
       url: `/api/projects/trash?${params.toString()}`
     });
     
-    if (response?.data?.pagination) {
-      return { data: response.data.data, pagination: response.data.pagination };
+    if ((response?.data as any)?.pagination) {
+      return { data: (response.data as any).data, pagination: (response.data as any).pagination };
     }
     return response?.data?.data || response?.data || [];
   }

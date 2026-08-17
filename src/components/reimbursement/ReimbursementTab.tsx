@@ -14675,7 +14675,7 @@ export default function ReimbursementConfigurationPage() {
   const { allGrades: grades = [], loading: gradesLoading } = useGrades();
   const { allDepartments: departments = [], loading: departmentsLoading } = useDepartments();
   const { allSubDepartments: subDepartments = [], loading: subDepartmentsLoading } = useSubDepartments();
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
+  const { allPositions: positions, loading: positionsLoading } = usePositions();
 
   useEffect(() => {
     const fetchCategoryOptions = async () => {

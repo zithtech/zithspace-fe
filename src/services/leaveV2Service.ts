@@ -336,11 +336,14 @@ function toArray(raw: any): any[] {
 
 export const LeaveV2Service = {
   // ── Leave Types ──────────────────────────────────────────────────────────
-  async listLeaveTypes(includeInactive = false): Promise<LeaveTypeV2[]> {
+  async listLeaveTypes(
+    includeInactive = false,
+    opts: { search?: string; unit?: string; paid?: string; status?: string; page?: number; pageSize?: number } = {}
+  ): Promise<{ data: LeaveTypeV2[]; total: number; stats: { total: number; active: number; paid: number; approval: number } }> {
     const res = await apiClient.get(`${BASE}/types`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
+      params: { includeInactive, ...opts }
     });
-    return unwrap<LeaveTypeV2[]>(res.data) ?? [];
+    return unwrap<{ data: LeaveTypeV2[]; total: number; stats: { total: number; active: number; paid: number; approval: number } }>(res.data) ?? { data: [], total: 0, stats: { total: 0, active: 0, paid: 0, approval: 0 } };
   },
 
   async getLeaveType(id: string): Promise<LeaveTypeV2> {
@@ -363,11 +366,14 @@ export const LeaveV2Service = {
   },
 
   // ── Leave Policies ─────────────────────────────────────────────────────────
-  async listPolicies(includeInactive = false): Promise<LeavePolicyListItem[]> {
+  async listPolicies(
+    includeInactive = false,
+    opts: { search?: string; status?: string; page?: number; pageSize?: number } = {}
+  ): Promise<{ data: LeavePolicyListItem[]; total: number; stats: { total: number; active: number; allocations: number; targets: number } }> {
     const res = await apiClient.get(`${BASE}/policies`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
+      params: { includeInactive, ...opts }
     });
-    return unwrap<LeavePolicyListItem[]>(res.data) ?? [];
+    return unwrap<{ data: LeavePolicyListItem[]; total: number; stats: { total: number; active: number; allocations: number; targets: number } }>(res.data) ?? { data: [], total: 0, stats: { total: 0, active: 0, allocations: 0, targets: 0 } };
   },
 
   async getPolicy(id: string): Promise<LeavePolicyDetail> {
@@ -448,11 +454,11 @@ export const LeaveV2Service = {
   },
 
   // ── Government Holidays ────────────────────────────────────────────────────
-  async listHolidays(opts: { year?: number; includeInactive?: boolean } = {}): Promise<Holiday[]> {
+  async listHolidays(opts: { year?: number; includeInactive?: boolean; search?: string; type?: string; page?: number; pageSize?: number } = {}): Promise<{ data: Holiday[]; total: number; stats: { total: number; national: number; state: number; active: number } }> {
     const res = await apiClient.get(`${BASE}/holidays`, {
-      params: { year: opts.year, includeInactive: opts.includeInactive ? true : undefined },
+      params: { year: opts.year, includeInactive: opts.includeInactive ? true : undefined, search: opts.search, type: opts.type, page: opts.page, pageSize: opts.pageSize },
     });
-    return unwrap<Holiday[]>(res.data) ?? [];
+    return unwrap<{ data: Holiday[]; total: number; stats: { total: number; national: number; state: number; active: number } }>(res.data) ?? { data: [], total: 0, stats: { total: 0, national: 0, state: 0, active: 0 } };
   },
 
   async createHoliday(input: HolidayInput): Promise<Holiday> {
@@ -474,9 +480,9 @@ export const LeaveV2Service = {
     return unwrap<string[]>(res.data) ?? [];
   },
 
-  async getHolidayCatalog(country: string): Promise<CatalogHoliday[]> {
-    const res = await apiClient.get(`${BASE}/holidays/catalog`, { params: { country } });
-    return unwrap<CatalogHoliday[]>(res.data) ?? [];
+  async getHolidayCatalog(opts: { country: string; search?: string; type?: string; page?: number; pageSize?: number }): Promise<{ data: CatalogHoliday[]; total: number; stats: { total: number; added: number; available: number } }> {
+    const res = await apiClient.get(`${BASE}/holidays/catalog`, { params: opts });
+    return unwrap<{ data: CatalogHoliday[]; total: number; stats: { total: number; added: number; available: number } }>(res.data) ?? { data: [], total: 0, stats: { total: 0, added: 0, available: 0 } };
   },
 
   async addCatalogHolidays(catalogIds: string[]): Promise<{ added: number; skipped: number }> {
@@ -490,9 +496,11 @@ export const LeaveV2Service = {
   },
 
   // ── Leave Adjustments ──────────────────────────────────────────────────────
-  async listAdjustments(): Promise<LeaveAdjustment[]> {
-    const res = await apiClient.get(`${BASE}/adjustments`);
-    return unwrap<LeaveAdjustment[]>(res.data) ?? [];
+  async listAdjustments(opts: { search?: string; dirFilter?: string; page?: number; pageSize?: number } = {}): Promise<{ data: LeaveAdjustment[]; total: number; stats: { total: number; credited: number; debited: number; net: number } }> {
+    const res = await apiClient.get(`${BASE}/adjustments`, {
+      params: { search: opts.search, dir: opts.dirFilter, page: opts.page, pageSize: opts.pageSize }
+    });
+    return unwrap<{ data: LeaveAdjustment[]; total: number; stats: { total: number; credited: number; debited: number; net: number } }>(res.data) ?? { data: [], total: 0, stats: { total: 0, credited: 0, debited: 0, net: 0 } };
   },
 
   async getAdjustmentEmployees(): Promise<EmployeeOption[]> {

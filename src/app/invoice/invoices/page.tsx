@@ -220,8 +220,6 @@ export default function InvoiceInvoicesPage() {
   const [searchText, setSearchText] = useState("");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const { data, isLoading, isError, refetch, isFetching } = useInvoices();
-  const invoices = data?.data ?? [];
   const deleteMutation = useDeleteInvoice();
   const bulkDeleteMutation = useBulkDeleteInvoice();
 
@@ -291,6 +289,13 @@ export default function InvoiceInvoicesPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const { data, isLoading, isError, refetch, isFetching } = useInvoices({
+    page: currentPage,
+    limit: pageSize
+  });
+  const invoices = data?.data ?? [];
+  const totalInvoices = data?.pagination?.total ?? 0;
 
   // Reset page when filters change
   useEffect(() => {
@@ -666,13 +671,13 @@ export default function InvoiceInvoicesPage() {
     });
   }, [invoices, activeView, searchText, customerFilter, dateRange]);
 
-  const total = filteredInvoices.length;
+  const total = totalInvoices || filteredInvoices.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedInvoices = useMemo(() => {
-    return filteredInvoices.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredInvoices, currentPage, pageSize]);
+    return filteredInvoices;
+  }, [filteredInvoices]);
 
   const viewCounts = useMemo(() => {
     let drafts = 0;

@@ -3,14 +3,14 @@ import { App } from 'antd';
 import ExpenseCategoryService, { Category, CreateCategoryData, UpdateCategoryData } from '@/services/expenseCategoryService';
 
 // Get all categories
-export function useExpenseCategories() {
+export function useExpenseCategories(limit?: number, offset?: number) {
   const { message } = App.useApp();
   const query = useQuery({
-    queryKey: ['expense-categories'],
+    queryKey: ['expense-categories', limit, offset],
     queryFn: async () => {
       console.log('useExpenseCategories: Starting query...');
       try {
-        const result = await ExpenseCategoryService.getCategories();
+        const result = await ExpenseCategoryService.getCategories(limit, offset);
         console.log('useExpenseCategories: Query completed successfully:', result);
         return result;
       } catch (error: any) {

@@ -154,8 +154,6 @@ export default function InvoiceSettingPage() {
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceSettingsView" });
 
   const [mode, setMode] = useState<"view" | "create">("view");
-  const { data: savedSettingsData, isLoading, isError, error, refetch, isFetching } =
-    useSettingsProfiles();
 
   const [currentStep, setCurrentStep] = useState(0);
   const createMutation = useCreateSettingsProfile();
@@ -163,7 +161,6 @@ export default function InvoiceSettingPage() {
   const deleteMutation = useDeleteSettingsProfile();
   const activateMutation = useActivateSettingsProfile();
 
-  const settingsList = savedSettingsData?.data || [];
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -176,37 +173,31 @@ export default function InvoiceSettingPage() {
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const filteredSettings = useMemo(() => {
-    return settingsList.filter((s: any) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !q ||
-        s.general?.companyName?.toLowerCase().includes(q) ||
-        s.invoice?.format?.toLowerCase().includes(q) ||
-        s.general?.address?.city?.toLowerCase().includes(q) ||
-        s.general?.address?.country?.toLowerCase().includes(q);
-      if (!matchesSearch) return false;
-      if (statusFilter === "active") return s.isActive;
-      if (statusFilter === "inactive") return !s.isActive;
-      return true;
-    });
-  }, [settingsList, searchText, statusFilter]);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
+  const { data: savedSettingsData, isLoading, isError, error, refetch, isFetching } = useSettingsProfiles({
+    page: currentPage,
+    limit: pageSize,
+    search: searchText || undefined,
+    isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : "all",
+  });
+
+  const settingsList = savedSettingsData?.data || [];
+  const totalSettings = savedSettingsData?.pagination?.total ?? 0;
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchText, statusFilter]);
 
-  const total = filteredSettings.length;
+  const total = totalSettings || settingsList.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedSettings = useMemo(() => {
-    return filteredSettings.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredSettings, currentPage, pageSize]);
+    return settingsList;
+  }, [settingsList]);
 
   const filterPills: { key: "all" | "active" | "inactive"; label: string; count: number }[] = [
     { key: "all", label: "All", count: settingsList.length },
@@ -559,7 +550,7 @@ export default function InvoiceSettingPage() {
               <input className="pp-search" placeholder="Search profiles..." value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             </div>
             <div className="pp-topbar-meta">
-              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{filteredSettings.length}</strong> profiles</span>
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{total}</strong> profiles</span>
             </div>
 
             <div className="pp-topbar-actions">
@@ -683,7 +674,7 @@ export default function InvoiceSettingPage() {
                       </Button>
                     )}
                   </div>
-                ) : filteredSettings.length === 0 ? (
+                ) : settingsList.length === 0 ? (
                   <div
                     className="flex flex-col items-center justify-center py-16 rounded-2xl"
                     style={{

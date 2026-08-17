@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Menu,
   Clock,
+  Search,
 } from 'lucide-react';
 import OnboardingGuard from '@/components/onboarding/OnboardingGuard';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -144,39 +145,42 @@ function InvitesContent() {
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [candidateSearch, setCandidateSearch] = useState('');
 
-  // ── Defensive list reader: the api helper may unwrap to the array, or hand
-  // back the full body. Accept res (array), res.data (array), or res.data.data.
-  const readInvites = (res: any): Invite[] => {
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res?.data)) return res.data;
-    if (Array.isArray(res?.data?.data)) return res.data.data;
-    return [];
-  };
+  const [search, setSearch] = useState('');
+  const [total, setTotal] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, invited: 0, submitted: 0, completed: 0 });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await EmployeeOnboardingService.listInvites();
-      setRows(readInvites(res));
+      const res = await EmployeeOnboardingService.listInvites({
+        search,
+        limit: tablePageSize,
+        offset: (tablePage - 1) * tablePageSize,
+      });
+
+      if (res?.data?.success) {
+        setRows(res.data.data || []);
+        setTotal(res.data.total || 0);
+        if (res.data.stats) setApiStats(res.data.stats);
+      } else if (res?.success) {
+        setRows(res.data || []);
+        setTotal(res.total || 0);
+        if (res.stats) setApiStats(res.stats);
+      } else if (Array.isArray(res?.data)) {
+        setRows(res.data);
+      } else if (Array.isArray(res)) {
+        setRows(res);
+      }
     } catch (err: any) {
       message.error(err?.message || 'Failed to load invites');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, tablePage, tablePageSize]);
 
   useEffect(() => {
     load();
   }, [load]);
-
-  const stats = useMemo(() => {
-    return {
-      total: rows.length,
-      invited: rows.filter((r) => r.status === 'invited').length,
-      submitted: rows.filter((r) => r.status === 'employee_submitted').length,
-      completed: rows.filter((r) => r.status === 'completed').length,
-    };
-  }, [rows]);
 
   // ── Create ──────────────────────────────────────────────────────────────
   const fetchCandidates = async () => {
@@ -509,12 +513,18 @@ function InvitesContent() {
     },
   ];
 
-  const total = rows.length;
-  const pageStart = (tablePage - 1) * tablePageSize + 1;
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+  const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
-  const pagedRows = useMemo(() => {
-    return rows.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-  }, [rows, tablePage, tablePageSize]);
+  const pagedRows = rows;
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [search, tablePageSize]);
+
+  useEffect(() => {
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
+  }, [pageCount, tablePage]);
 
   return (
     <div className="onbi">
@@ -539,6 +549,24 @@ function InvitesContent() {
           </div>
         </div>
         <div className="onbi-header-actions">
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, color: 'var(--text-slate-400)' }} />
+            <input
+              type="text"
+              placeholder="Search invites…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: 200,
+                height: 36,
+                padding: '0 12px 0 32px',
+                border: '1px solid var(--border-slate-200)',
+                borderRadius: 8,
+                fontSize: 13,
+                outline: 'none',
+              }}
+            />
+          </div>
           <Tooltip title="Refresh">
             <button type="button" className="onbi-ghost-btn" onClick={load} aria-label="Refresh">
               <RefreshCw size={15} className={loading ? 'onbi-spin' : ''} />
@@ -560,10 +588,10 @@ function InvitesContent() {
       {/* ── STAT CARDS ──────────────────────────────────────────────────── */}
       <div className="onbi-stats">
         {[
-          { key: 'total', label: 'Total Invites', value: stats.total, icon: <Mail size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'sent' },
-          { key: 'invited', label: 'Awaiting', value: stats.invited, icon: <Link2 size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'not started' },
-          { key: 'submitted', label: 'Submitted', value: stats.submitted, icon: <ShieldCheck size={14} />, color: PALETTE.gold, tint: TINT.gold, period: 'to activate' },
-          { key: 'completed', label: 'Completed', value: stats.completed, icon: <CheckCircle2 size={14} />, color: PALETTE.green, tint: TINT.green, period: 'active' },
+          { key: 'total', label: 'Total Invites', value: apiStats.total, icon: <Mail size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'sent' },
+          { key: 'invited', label: 'Awaiting', value: apiStats.invited, icon: <Link2 size={14} />, color: PALETTE.blue, tint: TINT.blue, period: 'not started' },
+          { key: 'submitted', label: 'Submitted', value: apiStats.submitted, icon: <ShieldCheck size={14} />, color: PALETTE.gold, tint: TINT.gold, period: 'to activate' },
+          { key: 'completed', label: 'Completed', value: apiStats.completed, icon: <CheckCircle2 size={14} />, color: PALETTE.green, tint: TINT.green, period: 'active' },
         ].map((s) => (
           <div key={s.key} className="onbi-stat-card">
             <div className="onbi-stat-top">

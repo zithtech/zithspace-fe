@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ReloadOutlined } from "@ant-design/icons";
-import isBetween from "dayjs/plugin/isBetween";
+
 
 import {
   useDeletedInvoices,
@@ -57,7 +57,6 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
-dayjs.extend(isBetween);
 
 // Define the InvoiceStatus to match TypeScript interface
 type InvoiceStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'SENT' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
@@ -140,6 +139,9 @@ export default function InvoiceTrashPage() {
     page: pagination.page,
     limit: pagination.limit,
     search: debouncedSearch,
+    status: statusFilter || undefined,
+    startDate: dateRange && dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : undefined,
+    endDate: dateRange && dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : undefined,
   });
 
   const restoreMutation = useRestoreInvoice();
@@ -158,24 +160,10 @@ export default function InvoiceTrashPage() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, [debouncedSearch, statusFilter, dateRange]);
 
-  const filteredInvoices = useMemo(
-    () =>
-      invoices.filter((inv: any) => {
-        if (statusFilter && inv.status !== statusFilter) return false;
-        if (dateRange && dateRange[0] && dateRange[1]) {
-          const date = dayjs(inv.invoiceDate);
-          if (!date.isBetween(dateRange[0], dateRange[1], "day", "[]"))
-            return false;
-        }
-        return true;
-      }),
-    [invoices, statusFilter, dateRange]
-  );
-
   const customerCount = new Set(
-    filteredInvoices.map((i: any) => i.customerId)
+    invoices.map((i: any) => i.customerId)
   ).size;
-  const totalAmount = filteredInvoices.reduce(
+  const totalAmount = invoices.reduce(
     (sum: number, i: any) => sum + Number(i.grandTotal || 0),
     0
   );
@@ -904,7 +892,7 @@ export default function InvoiceTrashPage() {
             )}
 
             {/* CONTENT */}
-            {isLoading || (filteredInvoices.length === 0 && isFetching) ? (
+            {isLoading || (invoices.length === 0 && isFetching) ? (
               <div
                 className="flex flex-col justify-center items-center h-64 rounded-none"
                 style={{
@@ -914,7 +902,7 @@ export default function InvoiceTrashPage() {
               >
                 <Spin />
               </div>
-            ) : filteredInvoices.length === 0 ? (
+            ) : invoices.length === 0 ? (
               <div
                 className="flex flex-col items-center justify-center py-20 rounded-none"
                 style={{
@@ -985,7 +973,7 @@ export default function InvoiceTrashPage() {
                   size="middle"
                   rowSelection={rowSelection}
                   columns={columns}
-                  dataSource={filteredInvoices.map((inv) => ({
+                  dataSource={invoices.map((inv: any) => ({
                     ...inv,
                     key: inv.id,
                   }))}

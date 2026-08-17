@@ -52,10 +52,10 @@ interface ApiResponse<T> {
 }
 
 class InvoiceTemplateService {
-  static async getTemplates() {
+  static async getTemplates(params?: { page?: number; limit?: number }) {
     try {
-      const response = await apiClient.get<ApiResponse<InvoiceTemplate[]>>('/api/invoice-templates');
-      return response.data.data;
+      const response = await apiClient.get<ApiResponse<InvoiceTemplate[]> & { pagination?: { total: number } }>('/api/invoice-templates', { params });
+      return { data: response.data.data, total: response.data.pagination?.total || (response.data as any).total || response.data.data.length };
     } catch (error: any) {
       throw new Error(error.message || 'Failed to fetch templates');
     }

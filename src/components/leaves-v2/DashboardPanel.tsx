@@ -68,7 +68,7 @@ export default function DashboardPanel() {
     } finally {
       setLoading(false);
     }
-    if (canReadLeaveHoliday) LeaveV2Service.listHolidays({ year: dayjs().year() }).then(setHolidays).catch(() => {});
+    if (canReadLeaveHoliday) LeaveV2Service.listHolidays({ year: dayjs().year() }).then(res => setHolidays(res.data)).catch(() => {});
     if (canApproveLeave) LeaveV2Service.getApprovals().then((a) => setApprovals(a.filter((x) => x.status === 'pending'))).catch(() => {});
   }, [canReadLeaveHoliday, canApproveLeave]);
 

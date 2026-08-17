@@ -111,7 +111,8 @@ export default function InvoiceNewinvoicePage() {
     "DRAFT" | "PENDING" | null
   >(null);
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const { data: templates = [], isLoading: loadingTemplates } = useInvoiceTemplates();
+  const { data: templatesResponse, isLoading: loadingTemplates } = useInvoiceTemplates();
+  const templates = templatesResponse?.data || [];
   // We use explicit state for templateId to ensure reliable prop updates to children
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [isTaxInclusive, setIsTaxInclusive] = useState(false);

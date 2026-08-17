@@ -226,8 +226,14 @@ export default function SalaryComponentPanel() {
 
   // filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+
+  // pagination
+  const [total, setTotal] = useState(0);
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
   // drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -237,29 +243,42 @@ export default function SalaryComponentPanel() {
   const [form] = Form.useForm<CreateComponentInput>();
   const calcType = Form.useWatch('calculationType', form) as ComponentCalcType | undefined;
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = tablePage, l = tablePageSize, s = debouncedSearch, c = categoryFilter, st = statusFilter) => {
     setLoading(true);
     try {
-      const data = await PayrollV2Service.listComponents(true);
-      setRows(data);
+      const data = await PayrollV2Service.listComponents({
+        page: p,
+        limit: l,
+        search: s,
+        category: c === 'all' ? undefined : c,
+        status: st,
+      });
+      setRows(data.data);
+      setTotal(data.pagination.total);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load salary components');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, debouncedSearch, categoryFilter, statusFilter]);
 
   useEffect(() => {
     if (canReadPayrollComponents) load();
   }, [canReadPayrollComponents, load]);
 
   const stats = useMemo(() => {
-    const total = rows.length;
+    // Stats will reflect the current page for earning/deduction/reimb, 
+    // but the true total from the API.
     const earning = rows.filter((r) => r.category === 'earning').length;
     const deduction = rows.filter((r) => r.category === 'deduction').length;
     const reimb = rows.filter((r) => r.category === 'reimbursement' || r.category === 'benefit').length;
     return { total, earning, deduction, reimb };
-  }, [rows]);
+  }, [rows, total]);
 
   const statCells = [
     { key: 'total', title: 'Total Components', value: stats.total, period: 'configured', icon: <PieChartOutlined />, color: PALETTE.blue, tint: TINT.blue, trend: TRENDS.total },
@@ -267,17 +286,6 @@ export default function SalaryComponentPanel() {
     { key: 'deduction', title: 'Deductions', value: stats.deduction, period: `of ${stats.total}`, icon: <FallOutlined />, color: PALETTE.red, tint: TINT.red, trend: TRENDS.deduction },
     { key: 'reimb', title: 'Reimb. & Benefits', value: stats.reimb, period: `of ${stats.total}`, icon: <WalletOutlined />, color: PALETTE.violet, tint: TINT.violet, trend: TRENDS.reimb },
   ];
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q)) return false;
-      if (categoryFilter !== 'all' && r.category !== categoryFilter) return false;
-      if (statusFilter === 'active' && !r.isActive) return false;
-      if (statusFilter === 'inactive' && r.isActive) return false;
-      return true;
-    });
-  }, [rows, search, categoryFilter, statusFilter]);
 
   const hasActiveFilters = !!search || categoryFilter !== 'all' || statusFilter !== 'active';
 
@@ -287,14 +295,10 @@ export default function SalaryComponentPanel() {
     setStatusFilter('active');
   };
 
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
-
-  const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const pagedRows = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedRows = rows; // We already have the paginated rows from the server
 
   useEffect(() => { setTablePage(1); }, [search, categoryFilter, statusFilter, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
@@ -479,7 +483,7 @@ export default function SalaryComponentPanel() {
             <SearchOutlined className="pvc-search-icon" />
             <input className="pvc-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvc-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvc-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollComponents && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvc-add-btn">New Component</Button>
           )}
@@ -540,7 +544,7 @@ export default function SalaryComponentPanel() {
           style={{ width: 160 }}
           width={210}
         />
-        <span className="pvc-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="pvc-filter-count">{total} components</span>
         {hasActiveFilters && (
           <button type="button" className="pvc-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
         )}

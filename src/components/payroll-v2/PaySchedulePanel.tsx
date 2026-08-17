@@ -77,6 +77,12 @@ export default function PaySchedulePanel() {
   const [groups, setGroups] = useState<PayGroupListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalSchedules, setTotalSchedules] = useState(0);
+  const [totalGroups, setTotalGroups] = useState(0);
 
   // schedule drawer
   const [sOpen, setSOpen] = useState(false);
@@ -98,18 +104,26 @@ export default function PaySchedulePanel() {
   const [gSchedule, setGSchedule] = useState<string | undefined>(undefined);
   const [gLegal, setGLegal] = useState(''); const [gDesc, setGDesc] = useState(''); const [gActive, setGActive] = useState(true);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = pageSize, s = debouncedSearch) => {
     setLoading(true);
     try {
-      const [s, g] = await Promise.all([
-        PayrollV2Service.listSchedules(true),
-        PayrollV2Service.listGroups(true),
+      const [schedRes, groupRes] = await Promise.all([
+        PayrollV2Service.listSchedules({ page: p, limit: l, search: s }),
+        PayrollV2Service.listGroups({ page: p, limit: l, search: s }),
       ]);
-      setSchedules(s); setGroups(g);
+      setSchedules(schedRes.data);
+      setTotalSchedules(schedRes.pagination.total);
+      setGroups(groupRes.data);
+      setTotalGroups(groupRes.pagination.total);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load pay schedules');
     } finally { setLoading(false); }
-  }, []);
+  }, [page, pageSize, debouncedSearch]);
   useEffect(() => { if (canReadPayrollSchedules) load(); }, [canReadPayrollSchedules, load]);
 
   // ── schedule drawer handlers ───────────────────────────────────────────────
@@ -146,7 +160,11 @@ export default function PaySchedulePanel() {
   };
 
   // ── group drawer handlers ──────────────────────────────────────────────────
-  const activeSchedules = useMemo(() => schedules.filter((s) => s.isActive), [schedules]);
+  const [activeSchedules, setActiveSchedules] = useState<PayScheduleListItem[]>([]);
+  useEffect(() => {
+    PayrollV2Service.listSchedules({ limit: 1000 }).then(res => setActiveSchedules(res.data.filter(s => s.isActive)));
+  }, []);
+  
   const openCreateGroup = () => {
     if (activeSchedules.length === 0) { message.warning('Create a pay schedule first'); setView('schedules'); return; }
     setGEditing(null); setGCodeTouched(false);
@@ -178,25 +196,13 @@ export default function PaySchedulePanel() {
   };
 
   // ── filtering ──────────────────────────────────────────────────────────────
-  const q = search.trim().toLowerCase();
-  const filteredSchedules = useMemo(
-    () => schedules.filter((r) => !q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q)),
-    [schedules, q]
-  );
-  const filteredGroups = useMemo(
-    () => groups.filter((r) => !q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q) || (r.legalEntity ?? '').toLowerCase().includes(q)),
-    [groups, q]
-  );
-
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setPage(1); }, [view, search, pageSize]);
-  const activeRows: any[] = view === 'schedules' ? filteredSchedules : filteredGroups;
-  const total = activeRows.length;
+  const activeRows: any[] = view === 'schedules' ? schedules : groups;
+  const total = view === 'schedules' ? totalSchedules : totalGroups;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(total, page * pageSize);
-  const pagedRows = activeRows.slice((page - 1) * pageSize, page * pageSize);
+  const pagedRows = activeRows;
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
   const scheduleColumns: ColumnsType<PayScheduleListItem> = [
@@ -289,7 +295,7 @@ export default function PaySchedulePanel() {
             <SearchOutlined className="pvg-search-icon" />
             <input className="pvg-search" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvg-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvg-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollSchedules && <Button type="primary" icon={<PlusOutlined />} onClick={onNew} className="pvg-add-btn">{view === 'schedules' ? 'New Schedule' : 'New Group'}</Button>}
         </div>
       </div>

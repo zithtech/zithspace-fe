@@ -159,6 +159,8 @@ export default function LeaveTypePanel() {
   console.log("Forcing HMR reload for LeaveTypePanel");
 
   const [rows, setRows] = useState<LeaveTypeV2[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, active: 0, paid: 0, approval: 0 });
   const [loading, setLoading] = useState(false);
 
   // filters
@@ -174,32 +176,38 @@ export default function LeaveTypePanel() {
   const [color, setColor] = useState<string>(PALETTE.blue);
   const [codeTouched, setCodeTouched] = useState(false);
   const [form] = Form.useForm<CreateLeaveTypeInput>();
+  
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(20);
 
-  // Fetch ALL types once (incl. inactive); filter in-memory for instant UX.
-  const load = useCallback(async () => {
+  // Fetch types with filters for server-side pagination
+  const load = useCallback(async (p = tablePage, size = tablePageSize, q = search, u = unitFilter, paid = paidFilter, stat = statusFilter) => {
     setLoading(true);
     try {
-      const data = await LeaveV2Service.listLeaveTypes(true);
-      setRows(data);
+      const res = await LeaveV2Service.listLeaveTypes(true, {
+        page: p,
+        pageSize: size,
+        search: q || undefined,
+        unit: u === 'all' ? undefined : u,
+        paid: paid === 'all' ? undefined : paid,
+        status: stat === 'all' ? undefined : stat,
+      });
+      setRows(res.data);
+      setTotalCount(res.total);
+      setApiStats(res.stats);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load leave types');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, unitFilter, paidFilter, statusFilter]);
 
   useEffect(() => {
     if (canReadLeaveType) load();
   }, [canReadLeaveType, load]);
 
   // ── Stats ────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const total = rows.length;
-    const active = rows.filter((r) => r.isActive).length;
-    const paid = rows.filter((r) => r.isPaid).length;
-    const approval = rows.filter((r) => r.requiresApproval).length;
-    return { total, active, paid, approval };
-  }, [rows]);
+  const stats = useMemo(() => apiStats, [apiStats]);
 
   const statCells = [
     { key: 'total', title: 'Total Types', value: stats.total, period: 'configured', icon: <TagsOutlined />, color: PALETTE.blue, tint: TINT.blue, trend: TRENDS.total },
@@ -209,19 +217,6 @@ export default function LeaveTypePanel() {
   ];
 
   // ── Filtering ──────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q)) return false;
-      if (unitFilter !== 'all' && r.unit !== unitFilter) return false;
-      if (paidFilter === 'paid' && !r.isPaid) return false;
-      if (paidFilter === 'unpaid' && r.isPaid) return false;
-      if (statusFilter === 'active' && !r.isActive) return false;
-      if (statusFilter === 'inactive' && r.isActive) return false;
-      return true;
-    });
-  }, [rows, search, unitFilter, paidFilter, statusFilter]);
-
   const hasActiveFilters =
     !!search || unitFilter !== 'all' || paidFilter !== 'all' || statusFilter !== 'all';
 
@@ -233,14 +228,12 @@ export default function LeaveTypePanel() {
   };
 
   // ── Pagination (sticky footer, proposal-style) ────────────────────────────
-  const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
 
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const pagedRows = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedRows = rows;
 
   // Reset to first page on filter/search/page-size change.
   useEffect(() => {
@@ -249,7 +242,7 @@ export default function LeaveTypePanel() {
 
   // Clamp current page if rows shrink (e.g. after a delete).
   useEffect(() => {
-    if (tablePage > pageCount) setTablePage(pageCount);
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
   }, [pageCount, tablePage]);
 
   // ── Drawer handlers ──────────────────────────────────────────────────────────
@@ -401,7 +394,7 @@ export default function LeaveTypePanel() {
             <SearchOutlined className="lvt-search-icon" />
             <input className="lvt-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="lvt-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="lvt-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeaveType && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvt-add-btn">New Leave Type</Button>
           )}
@@ -474,7 +467,7 @@ export default function LeaveTypePanel() {
           style={{ width: 160 }}
           width={210}
         />
-        <span className="lvt-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="lvt-filter-count">{total} of {stats.total}</span>
         {hasActiveFilters && (
           <button type="button" className="lvt-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
         )}

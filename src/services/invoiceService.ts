@@ -144,9 +144,11 @@ export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {
 export interface InvoiceListParams {
   page?: number;
   limit?: number;
-  status?: InvoiceStatus;
+  status?: InvoiceStatus | string;
   customerId?: string;
   search?: string;
+  startDate?: string;
+  endDate?: string;
 }
 export type PaymentStatus =
   | 'PENDING'

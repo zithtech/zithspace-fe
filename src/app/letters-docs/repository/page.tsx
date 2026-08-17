@@ -144,7 +144,7 @@ export default function DocumentRepositoryPage() {
         LettersService.getCategories(),
       ]);
       setDocuments(docs);
-      setTemplates(tpls);
+      setTemplates(tpls.data || []);
       setCategories(cats);
     } catch (err: any) {
       toast.error(err.message || 'Failed to fetch generated documents');

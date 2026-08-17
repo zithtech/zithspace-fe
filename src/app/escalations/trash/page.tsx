@@ -126,6 +126,8 @@ export default function EscalationTrashPage() {
   // Pagination states
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [totalEscalations, setTotalEscalations] = useState(0);
+  const [totalActive, setTotalActive] = useState(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { message, modal } = App.useApp();
@@ -144,12 +146,18 @@ export default function EscalationTrashPage() {
   const fetchTrashedEscalations = async () => {
     setLoading(true);
     try {
+      const limit = tablePageSize;
+      const offset = (tablePage - 1) * tablePageSize;
+
       const [activeData, trashData] = await Promise.all([
-        EscalationServiceV2.getAllEscalations(),
-        EscalationServiceV2.getTrashEscalations(),
+        EscalationServiceV2.getAllEscalations(limit, offset),
+        EscalationServiceV2.getTrashEscalations(limit, offset),
       ]);
-      setActiveEscalations(activeData || []);
-      setEscalations(trashData || []);
+      setActiveEscalations(activeData?.data || []);
+      setTotalActive(activeData?.total || 0);
+
+      setEscalations(trashData?.data || []);
+      setTotalEscalations(trashData?.total || 0);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       message.error('Failed to fetch trashed escalations.');
@@ -169,7 +177,7 @@ export default function EscalationTrashPage() {
     if (canReadEscalation) {
       fetchTrashedEscalations();
     }
-  }, [canReadEscalation]);
+  }, [canReadEscalation, tablePage, tablePageSize]);
 
   const handleRestore = async (id: string) => {
     setRestoringId(id);
@@ -270,7 +278,7 @@ export default function EscalationTrashPage() {
 
   // Stats computation
   const statsData = useMemo(() => {
-    const total = escalations.length;
+    const total = totalEscalations || escalations.length;
     const highPriority = escalations.filter((e) => {
       const weight = e.priority_weight || e.priority?.weight || 0;
       const name = (e.priority_name || e.priority?.name || '').toLowerCase();
@@ -551,11 +559,11 @@ export default function EscalationTrashPage() {
     },
   ];
 
-  const total = filteredEscalations.length;
+  const total = totalEscalations || filteredEscalations.length;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedEscalations = filteredEscalations.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedEscalations = filteredEscalations;
 
   const emptyState = (
     <div className="es-empty">

@@ -79,8 +79,12 @@ export default function CategoriesPanel() {
   const canDelete = perms.can(Permissions.REIMBURSEMENT_CATEGORY_DELETE) || perms.canManageReimbursements;
 
   const [rows, setRows] = useState<ExpenseCategory[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<ExpenseCategory | null>(null);
   const [saving, setSaving] = useState(false);
@@ -97,30 +101,32 @@ export default function CategoriesPanel() {
     </span>
   );
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = limit, s = debouncedSearch) => {
     setLoading(true);
     try {
-      setRows(await ReimbursementV2Service.listCategories(true));
+      const res = await ReimbursementV2Service.listCategories({ includeInactive: true, page: p, limit: l, search: s });
+      setRows(res.data);
+      setTotal(res.pagination.total);
     } catch (e: any) {
       message.error(e?.response?.data?.error || 'Failed to load categories');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, limit, debouncedSearch]);
 
   useEffect(() => { if (canRead) load(); }, [canRead, load]);
 
   const stats = useMemo(() => ({
-    total: rows.length,
+    total: total,
     active: rows.filter((r) => r.isActive).length,
     mileage: rows.filter((r) => r.kind === 'mileage').length,
     receipt: rows.filter((r) => r.receiptRequired).length,
-  }), [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q));
-  }, [rows, search]);
+  }), [rows, total]);
 
   const openCreate = () => {
     setEditing(null);
@@ -230,8 +236,17 @@ export default function CategoriesPanel() {
       ]} />
 
       <div className="rvp-table-wrap">
-        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={filtered}
-          pagination={tablePaginationConfig} />
+        <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}
+          pagination={{
+            ...tablePaginationConfig,
+            current: page,
+            pageSize: limit,
+            total,
+            onChange: (p, s) => {
+              setPage(p);
+              setLimit(s ?? limit);
+            },
+          }} />
       </div>
 
       <Drawer

@@ -156,14 +156,19 @@ export interface ModuleConfig {
 /** Pages that aren't part of a specific module group but still need protection. */
 export interface StandalonePage {
   path: string;
-  requiredPermission: string;
+  requiredPermission?: string;
+  requiredAnyPermission?: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const STANDALONE_PAGES: StandalonePage[] = [
-  { path: "/mail", requiredPermission: Permissions.MAIL_READ },
-  { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ },
-  { path: "/chat", requiredPermission: Permissions.CHAT_READ },
-  { path: "/skills", requiredPermission: Permissions.SKILLS_READ },
+  { path: "/mail", requiredPermission: Permissions.MAIL_READ, requiredSubscriptionFeature: ["home_home_general_mail"] },
+  { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ, requiredSubscriptionFeature: ["home_home_general_calendar"] },
+  { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredSubscriptionFeature: ["home_home_general_team_chat"] },
+  { path: "/skills", requiredPermission: Permissions.SKILLS_READ, requiredSubscriptionFeature: ["home_home_general_skills"] },
+  { path: "/activity", requiredPermission: Permissions.ACTIVITY_LOG_READ_ALL, requiredSubscriptionFeature: ["home_home_general_activity"] },
+  { path: "/bookmarks", requiredPermission: Permissions.BOOKMARK_READ, requiredSubscriptionFeature: ["home_home_general_bookmarks"] },
+  { path: "/hotspot", requiredAnyPermission: [Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ], requiredSubscriptionFeature: ["home_home_general_hotspot"] },
 ];
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
@@ -321,6 +326,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "qa-workspace",
         label: "QA Space",
         icon: I(Bug),
+        requiredSubscriptionFeature: ["work_qa_workspace"],
         requiredAnyPermission: [
           Permissions.QA_SCOPE_READ,
           Permissions.QA_CASE_READ,
@@ -428,6 +434,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "timesheet-group",
         label: "Timesheet",
         icon: I(CalendarClock),
+        requiredSubscriptionFeature: ["work_timesheet"],
         requiredAnyPermission: [
           Permissions.TIMESHEET_READ,
           Permissions.TIMESHEET_CREATE,
@@ -965,6 +972,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(FileText),
         label: "Doc Suite",
         path: "/letters-docs/templates",
+        requiredSubscriptionFeature: ["hrms_doc_suite"],
         requiredAnyPermission: [
           Permissions.LETTER_TEMPLATE_READ,
           Permissions.LETTER_READ,
@@ -975,6 +983,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Users),
         label: "Candidate Pipeline",
         path: "/pipeline/candidates",
+        requiredSubscriptionFeature: ["hrms_candidate_pipeline"],
         requiredAnyPermission: [
           Permissions.RECRUITMENT_READ,
         ],
@@ -984,56 +993,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Megaphone),
         label: "Openings",
         path: "/openings/dashboard",
+        requiredSubscriptionFeature: ["hrms_openings"],
         requiredAnyPermission: [
           Permissions.OPENING_READ,
           Permissions.OPENING_MANAGE,
-        ],
-      },
-      {
-        key: "escalations-group",
-        label: "Escalations",
-        icon: I(Siren),
-        requiredAnyPermission: [
-          Permissions.ESCALATION_READ,
-          Permissions.ESCALATION_CREATE,
-          Permissions.ESCALATION_MANAGE,
-        ],
-        children: [
-          {
-            key: "/escalations",
-            label: "Escalation List",
-            icon: I(List),
-            path: "/escalations",
-            requiredPermission: Permissions.ESCALATION_READ,
-          },
-          // {
-          //   key: "/escalations/create",
-          //   label: "Create Escalation",
-          //   icon: I(PlusCircle),
-          //   path: "/escalations/create",
-          //   requiredPermission: Permissions.ESCALATION_CREATE,
-          // },
-          // {
-          //   key: "/escalations/sla-rules",
-          //   label: "SLA & Rules Engine",
-          //   icon: I(Gavel),
-          //   path: "/escalations/sla-rules",
-          //   requiredPermission: Permissions.ESCALATION_MANAGE,
-          // },
-          {
-            key: "/escalations/settings",
-            label: "Settings",
-            icon: I(Cog),
-            path: "/escalations/settings",
-            requiredPermission: Permissions.ESCALATION_MANAGE,
-          },
-          {
-            key: "/escalations/trash",
-            label: "Trash",
-            icon: I(Trash2),
-            path: "/escalations/trash",
-            requiredPermission: Permissions.ESCALATION_READ,
-          },
         ],
       },
 
@@ -1268,7 +1231,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Overview",
         icon: I(LayoutGrid),
         path: "/my-hub",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_overview"],
         requiredPermission: Permissions.MY_HUB_OVERVIEW_READ,
       },
       {
@@ -1276,7 +1239,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Profile",
         icon: I(CircleUser),
         path: "/my-hub/profile",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_profile"],
         requiredPermission: Permissions.MY_HUB_PROFILE_READ,
       },
       {
@@ -1284,7 +1247,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Apply Leave",
         icon: I(CalendarPlus),
         path: "/my-hub/apply-leave",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_apply_leave"],
         requiredPermission: Permissions.MY_HUB_APPLY_LEAVE_READ,
       },
       {
@@ -1292,7 +1255,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Attendance",
         icon: I(CalendarCheck),
         path: "/my-hub/attendance",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_attendance"],
         requiredPermission: Permissions.MY_HUB_ATTENDANCE_READ,
       },
       {
@@ -1302,7 +1265,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Escalations",
         icon: I(Siren),
         path: "/my-hub/escalations",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_escalations"],
         requiredPermission: Permissions.MY_HUB_ESCALATION_READ,
       },
       {
@@ -1310,7 +1273,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Performance Report",
         icon: I(TrendingUp),
         path: "/my-hub/performance",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_performance"],
         requiredPermission: Permissions.MY_HUB_PERFORMANCE_READ,
       },
       {
@@ -1318,7 +1281,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Payslips",
         icon: I(Banknote),
         path: "/my-hub/payslips",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_payslips"],
         requiredPermission: Permissions.MY_HUB_PAYSLIPS_READ,
       },
       {
@@ -1326,7 +1289,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Claims",
         icon: I(ReceiptText),
         path: "/my-hub/claims",
-        requiredSubscriptionFeature: ["my_hub_my_hub_general"],
+        requiredSubscriptionFeature: ["my_hub_my_hub_general_claims"],
         requiredPermission: Permissions.MY_HUB_CLAIMS_READ,
       },
       {

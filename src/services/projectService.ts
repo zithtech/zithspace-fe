@@ -241,10 +241,10 @@ export class ProjectService {
   }
 
   /**
-   * Get projects where user is a member (for ticket creation)
+   * Get projects where user is a member (for ticket creation and QA)
    */
-  static async getUserProjects(): Promise<
-    Array<{ value: string; label: string; code: string }>
+  static async getUserProjects(explicitOnly: boolean = false): Promise<
+    Array<{ value: string; label: string; code: string; description?: string }>
   > {
     try {
       return await api.get<
@@ -254,7 +254,7 @@ export class ProjectService {
           code: string;
           description: string;
         }>
-      >("/api/projects/user-projects");
+      >(`/api/projects/user-projects${explicitOnly ? '?explicitOnly=true' : ''}`);
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;

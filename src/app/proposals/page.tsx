@@ -45,7 +45,8 @@ import {
   CaretDownOutlined,
   MenuOutlined,
 } from '@ant-design/icons';
-import { Sparkles, Mail } from 'lucide-react';
+import { Sparkles, Mail, Wand2 } from 'lucide-react';
+import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
@@ -174,6 +175,7 @@ export default function ProposalsListPage() {
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isZaiModalOpen, setIsZaiModalOpen] = useState(false);
 
   const [starred, setStarred] = useState<Record<string, boolean>>({});
   const [recents, setRecents] = useState<any[]>([]);
@@ -803,15 +805,58 @@ export default function ProposalsListPage() {
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pagedProposals = paginatedProposals;
 
+  const createMenuItems = [
+    {
+      key: 'manual',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', flexShrink: 0 }}>
+            <PlusOutlined style={{ fontSize: 13 }} />
+          </span>
+          <span>
+            <div style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' }}>Manual creation</div>
+            <div style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)', lineHeight: '15px' }}>Open the proposal builder</div>
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'zai',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', flexShrink: 0 }}>
+            <Wand2 size={13} />
+          </span>
+          <span>
+            <div style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' }}>Create with Zai</div>
+            <div style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)', lineHeight: '15px' }}>AI-powered proposal builder</div>
+          </span>
+        </div>
+      ),
+    },
+  ];
+
   const emptyState = (
     <div className="pp-empty">
       <div className="pp-empty-orb"><Sparkles size={26} /></div>
       <div className="pp-empty-title">No proposals found</div>
       <div className="pp-empty-sub">Start by creating your first premium proposal.</div>
       {canCreateProposal && (
-        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={() => router.push('/proposals/builder')} style={{ marginTop: 14 }}>
-          New Proposal
-        </Button>
+        <Dropdown
+          menu={{
+            items: createMenuItems,
+            onClick: ({ key }) => {
+              if (key === 'manual') router.push('/proposals/builder');
+              else if (key === 'zai') setIsZaiModalOpen(true);
+            },
+          }}
+          trigger={['click']}
+          placement="bottomCenter"
+        >
+          <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" style={{ marginTop: 14 }}>
+            New Proposal
+          </Button>
+        </Dropdown>
       )}
     </div>
   );
@@ -835,15 +880,26 @@ export default function ProposalsListPage() {
             </div>
 
             {canCreateProposal && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="pp-create-btn"
-                onClick={() => router.push('/proposals/builder')}
-                block
+              <Dropdown
+                menu={{
+                  items: createMenuItems,
+                  onClick: ({ key }) => {
+                    if (key === 'manual') router.push('/proposals/builder');
+                    else if (key === 'zai') setIsZaiModalOpen(true);
+                  },
+                }}
+                trigger={['click']}
+                placement="bottomRight"
               >
-                Create Proposal
-              </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="pp-create-btn"
+                  block
+                >
+                  Create Proposal
+                </Button>
+              </Dropdown>
             )}
 
             <div className="pp-side-scroll">
@@ -1197,6 +1253,15 @@ export default function ProposalsListPage() {
           saving={tplSaving}
           onCancel={() => setTplProposal(null)}
           onSave={persistProposalAsTemplate}
+        />
+
+        <EndToEndZaiModal
+          visible={isZaiModalOpen}
+          onClose={() => setIsZaiModalOpen(false)}
+          onComplete={() => {
+            setIsZaiModalOpen(false);
+            fetchProposals();
+          }}
         />
 
         <style jsx global>{`

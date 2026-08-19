@@ -33,28 +33,28 @@ const { Title, Text } = Typography;
 
 const ME_METRICS = [
   {
-    name: "metricDailyUpdates",
+    name: "metricDailyUpdates", requiredFeatures: ["work_daily_updates"],
     title: "Daily Updates",
     description: "Overview of BOD and EOD submission status.",
     icon: Zap,
     color: "#3B82F6",
   },
   {
-    name: "metricAvgHours",
+    name: "metricAvgHours", requiredFeatures: ["work_time_tracking"],
     title: "Avg Hours",
     description: "Average working hours over the last 5 days.",
     icon: Clock,
     color: "#10B981",
   },
   {
-    name: "metricMyTickets",
+    name: "metricMyTickets", requiredFeatures: ["work_projects"],
     title: "My Tickets",
     description: "Your open and closed tickets progress.",
     icon: Ticket,
     color: "#F59E0B",
   },
   {
-    name: "metricTeamToday",
+    name: "metricTeamToday", requiredFeatures: ["hrms_attendance", "my_hub_my_hub_general_attendance"],
     title: "Team Today",
     description: "Quick look at team members on leave or working today.",
     icon: Users,
@@ -71,7 +71,7 @@ const ME_CARDS = [
     color: "#8B5CF6",
   },
   {
-    name: "dailyAttendanceCard",
+    name: "dailyAttendanceCard", requiredFeatures: ["hrms_attendance", "my_hub_my_hub_general_attendance"],
     title: "Daily Attendance",
     description: "Time tracker and daily attendance logs.",
     icon: CalendarClock,
@@ -85,21 +85,21 @@ const ME_CARDS = [
     color: "#EC4899",
   },
   {
-    name: "recentTickets",
+    name: "recentTickets", requiredFeatures: ["work_projects"],
     title: "Recent Tickets",
     description: "Ticket resolution times, volume, and customer satisfaction.",
     icon: Ticket,
     color: "#F43F5E",
   },
   {
-    name: "myTicketsProgress",
+    name: "myTicketsProgress", requiredFeatures: ["work_projects"],
     title: "My Tickets",
     description: "Your open and closed tickets progress.",
     icon: Ticket,
     color: "#F59E0B",
   },
   {
-    name: "calendar",
+    name: "calendar", requiredFeatures: ["home_home_general_calendar"],
     title: "Calendar",
     description: "Upcoming meetings and calendar schedule.",
     icon: CalendarDays,
@@ -107,7 +107,7 @@ const ME_CARDS = [
   },
 
   {
-    name: "cardSalarySlip",
+    name: "cardSalarySlip", requiredFeatures: ["hrms_payroll_v2", "hrms_payroll"],
     title: "Salary Slip",
     description: "Download your monthly salary slips.",
     icon: FileText,
@@ -117,28 +117,28 @@ const ME_CARDS = [
 
 const ORG_METRICS = [
   {
-    name: "metricTotalMembers",
+    name: "metricTotalMembers", requiredFeatures: ["hrms_directory", "home_home_general_people"],
     title: "Total Members",
     description: "Number of active team members in the organization.",
     icon: Users,
     color: "#3B82F6",
   },
   {
-    name: "metricActiveProjects",
+    name: "metricActiveProjects", requiredFeatures: ["work_projects"],
     title: "Active Projects",
     description: "Number of currently active projects.",
     icon: Folder,
     color: "#F59E0B",
   },
   {
-    name: "metricOrgTickets",
+    name: "metricOrgTickets", requiredFeatures: ["work_projects"],
     title: "Tickets",
     description: "Overview of open and resolved tickets.",
     icon: Ticket,
     color: "#10B981",
   },
   {
-    name: "metricOrgTeamToday",
+    name: "metricOrgTeamToday", requiredFeatures: ["hrms_attendance", "my_hub_my_hub_general_attendance"],
     title: "Team Today",
     description: "Quick look at team members on leave or working today.",
     icon: Users,
@@ -148,7 +148,7 @@ const ORG_METRICS = [
 
 const ORG_CARDS = [
   {
-    name: "cardProjectPulse",
+    name: "cardProjectPulse", requiredFeatures: ["work_projects"],
     title: "Project Pulse",
     description: "Real-time tracking of project health and velocity.",
     icon: Activity,
@@ -163,7 +163,7 @@ const ORG_CARDS = [
     color: "#F59E0B",
   },
   {
-    name: "cardTodayLeaves",
+    name: "cardTodayLeaves", requiredFeatures: ["hrms_leaves", "my_hub_my_hub_general_leaves"],
     title: "Today's Leaves",
     description: "See who is on leave or working from home today.",
     icon: CalendarClock,
@@ -225,7 +225,7 @@ export default function DashboardSettingsPage() {
   useActivitySource({ section: "HOME", module: "Dashboard", page: "DashboardSettings" });
   const { message: messageApi } = App.useApp();
   const { token } = theme.useToken();
-  const { user } = useAuth();
+  const { user, hasAnySubscriptionFeature } = useAuth();
   const { canUpdateSettings } = usePermission();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
@@ -389,7 +389,7 @@ export default function DashboardSettingsPage() {
                         Status Cards
                       </Title>
                       <Row gutter={[16, 0]}>
-                        {ME_METRICS.map((card) => (
+                        {ME_METRICS.filter(m => !m.requiredFeatures || hasAnySubscriptionFeature(...m.requiredFeatures)).map((card) => (
                           <Col xs={24} lg={12} key={card.name}>
                             <SettingRow {...card} formItemName={card.name} />
                           </Col>
@@ -402,7 +402,7 @@ export default function DashboardSettingsPage() {
                         Dashboard Cards
                       </Title>
                       <Row gutter={[16, 0]}>
-                        {ME_CARDS.map((card) => (
+                        {ME_CARDS.filter(c => !c.requiredFeatures || hasAnySubscriptionFeature(...c.requiredFeatures)).map((card) => (
                           <Col xs={24} lg={12} key={card.name}>
                             <SettingRow {...card} formItemName={card.name} />
                           </Col>
@@ -417,7 +417,7 @@ export default function DashboardSettingsPage() {
                         Status Cards
                       </Title>
                       <Row gutter={[16, 0]}>
-                        {ORG_METRICS.map((card) => (
+                        {ORG_METRICS.filter(m => !m.requiredFeatures || hasAnySubscriptionFeature(...m.requiredFeatures)).map((card) => (
                           <Col xs={24} lg={12} key={card.name}>
                             <SettingRow {...card} formItemName={card.name} />
                           </Col>
@@ -430,7 +430,7 @@ export default function DashboardSettingsPage() {
                         Dashboard Cards
                       </Title>
                       <Row gutter={[16, 0]}>
-                        {ORG_CARDS.map((card) => (
+                        {ORG_CARDS.filter(c => !c.requiredFeatures || hasAnySubscriptionFeature(...c.requiredFeatures)).map((card) => (
                           <Col xs={24} lg={12} key={card.name}>
                             <SettingRow {...card} formItemName={card.name} />
                           </Col>

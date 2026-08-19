@@ -254,7 +254,7 @@ export class ProjectService {
           code: string;
           description: string;
         }>
-      >("/api/projects/user-projects");
+      >("/api/projects/user-projects?strict=true");
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -367,6 +367,7 @@ export class ProjectService {
       position: string;
       workEmail: string;
       isProjectManager: boolean;
+      avatarUrl?: string | null;
     }>
   > {
     try {
@@ -377,6 +378,7 @@ export class ProjectService {
           position: string;
           workEmail: string;
           isProjectManager: boolean;
+          avatarUrl?: string | null;
         }>
       >(`/api/projects/${projectId}/members`);
     } catch (error) {

@@ -21,8 +21,7 @@ import {
   Split,
 } from "lucide-react";
 import { useBulkConvertBugsToTickets, useBulkMapBugsToTicket } from "@/hooks/useBugList";
-import { useUserProjects } from "@/hooks/useGlobalData";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
@@ -53,7 +52,6 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const { theme } = useTheme();
   const convert = useBulkConvertBugsToTickets();
   const { data: projects } = useUserProjects();
-  const { users: members } = useMembersSelect();
 
   const { message } = App.useApp();
 
@@ -108,6 +106,9 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
+  // `members` will only populate once projectId is selected.
+  const { data: members = [] } = useProjectMembers(projectId);
+  
   const [assigneeId, setAssigneeId] = useState<string | undefined>();
   const [isAssigneeManuallyChanged, setIsAssigneeManuallyChanged] = useState(false);
 

@@ -530,12 +530,11 @@ function BugRow({
                     ...(bug.status === "converted" || bug.status === "reopened"
                       ? [
                           { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
-                          { key: "reopen", label: menuLabel("Reopen", "Reopen bug", <RotateCcw size={15}/>, "#f59e0b", "rgba(245,158,11,0.12)"), disabled: !canUpdateBug },
                         ]
                       : []),
                     {
                       key: "recurring",
-                      label: menuLabel("Mark as Recurring", "Convert to recurring bug", <Repeat size={15}/>, "#8b5cf6", "rgba(139,92,246,0.12)"),
+                      label: menuLabel("Recurring", "Convert to recurring bug", <Repeat size={15}/>, "#8b5cf6", "rgba(139,92,246,0.12)"),
                       disabled: !ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug,
                     },
                     { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
@@ -545,7 +544,7 @@ function BugRow({
               onClick: ({ key }) => {
                 if (key === "edit") onEdit();
                 if (key === "verify") onVerify();
-                if (key === "reopen") onReopen();
+
                 if (key === "recurring") setConfirmOpen(true);
                 /* if (key === "ignore") onIgnore(); */
                 if (key === "delete") onDelete();

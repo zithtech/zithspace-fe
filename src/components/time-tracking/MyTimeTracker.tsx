@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { getSyncedTime } from "@/utils/timeUtils";
 import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined, FileTextOutlined, ReloadOutlined } from "@ant-design/icons";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
@@ -580,7 +581,7 @@ export function MyTimeTracker({
                                                     }}>
                                                       {(() => {
                                                         const start = new Date(session.start).getTime();
-                                                        const end = session.end ? new Date(session.end).getTime() : new Date().getTime();
+                                                        const end = session.end ? new Date(session.end).getTime() : getSyncedTime().getTime();
                                                         const diff = Math.floor((end - start) / 1000);
                                                         const h = Math.floor(diff / 3600);
                                                         const m = Math.floor((diff % 3600) / 60);

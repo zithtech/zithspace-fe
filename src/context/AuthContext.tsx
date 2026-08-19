@@ -478,9 +478,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const hasAnySubscriptionFeature = (...features: string[]): boolean => {
     if (!user || !user.subscriptionFeatures) return true;
-    // Hierarchical check: if the user requires 'my_hub', any feature including 'my_hub' satisfies it.
     return features.some(k => 
-      user.subscriptionFeatures!.some(feature => feature.includes(k))
+      user.subscriptionFeatures!.some(feature => feature === k || feature.startsWith(k + "_") || k.startsWith(feature + "_"))
     );
   };
 

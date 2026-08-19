@@ -139,7 +139,7 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function MilestonesTab({ clientId, projects = [] }: Props) {
+export default function MilestonesTab({ clientId, projects = [], onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -169,6 +169,21 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
       messageApi.error(`Failed to load milestones: ${err?.message || ""}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -423,6 +438,8 @@ export default function MilestonesTab({ clientId, projects = [] }: Props) {
             icon={<Flag size={20} color="#3b82f6" />}
             title="Delivery tracker"
             description="Milestones the client should know about, with a breakdown of the work behind each one."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

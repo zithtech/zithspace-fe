@@ -26,7 +26,8 @@ import {
   Activity,
   Lightbulb,
   History,
-  BarChart
+  BarChart,
+  RotateCw
 } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -230,56 +231,51 @@ export default function DashboardSettingsPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeMenu, setActiveMenu] = useState("me");
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      if (user) {
-        try {
-          const DEFAULT_SETTINGS = {
-            // Me Dashboard
-            heroSection: true,
-            quickActions: true,
-            dailyAttendanceCard: true,
-            recentTickets: true,
-            calendar: true,
-            upcomingBirthdays: true,
-            cardTodayLeaves: true,
-            cardSalarySlip: true,
-            metricDailyUpdates: true,
-            metricAvgHours: true,
-            metricMyTickets: true,
-            metricTeamToday: true,
-            // Organization Dashboard
-            metricTotalMembers: true,
-            metricActiveProjects: true,
-            metricOrgTickets: true,
-            metricOrgTeamToday: true,
-            cardProjectPulse: true,
-            cardTodaysPulse: true,
-            cardOrgUpcomingBirthdays: true,
-            cardTeamInsights: true,
-            cardRecentActivities: true,
-          };
+  const DEFAULT_SETTINGS = {
+    heroSection: true, quickActions: true, dailyAttendanceCard: true,
+    recentTickets: true, calendar: true, upcomingBirthdays: true,
+    cardTodayLeaves: true, cardSalarySlip: true, metricDailyUpdates: true,
+    metricAvgHours: true, metricMyTickets: true, metricTeamToday: true,
+    metricTotalMembers: true, metricActiveProjects: true, metricOrgTickets: true,
+    metricOrgTeamToday: true, cardProjectPulse: true, cardTodaysPulse: true,
+    cardOrgUpcomingBirthdays: true, cardTeamInsights: true, cardRecentActivities: true,
+  };
 
-          const data = await dashboardService.getSettings();
-          if (data && data.visibleCards) {
-            form.setFieldsValue({
-              ...DEFAULT_SETTINGS,
-              ...data.visibleCards
-            });
-          } else {
-            form.setFieldsValue(DEFAULT_SETTINGS);
-          }
-        } catch (error) {
-          console.error("Failed to fetch dashboard settings", error);
-        } finally {
-          setLoading(false);
-        }
-      }
+  const fetchSettings = async () => {
+    if (!user) return;
+    try {
+      const data = await dashboardService.getSettings();
+      form.setFieldsValue({
+        ...DEFAULT_SETTINGS,
+        ...(data?.visibleCards || {})
+      });
+    } catch (error) {
+      console.error("Failed to fetch dashboard settings", error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchSettings();
+    } catch (error) {
+      console.error("Refresh failed", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      await fetchSettings();
+      setLoading(false);
     };
-    fetchSettings();
-  }, [user, form]);
+    if (user) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -359,16 +355,26 @@ export default function DashboardSettingsPage() {
                 Control which cards and metrics are visible for this segment.
               </Text>
             </div>
-            {canUpdateSettings && (
-              <Button 
-                type="primary" 
-                loading={saving}
-                onClick={() => form.submit()}
-                style={{ borderRadius: 6, fontWeight: 600, height: 36, padding: '0 20px' }}
-              >
-                Save Changes
-              </Button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+                onClick={handleRefresh}
+                disabled={refreshing || loading}
+                title="Refresh settings"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, padding: 0, borderRadius: 8 }}
+              />
+              {canUpdateSettings && (
+                <Button
+                  type="primary"
+                  loading={saving}
+                  onClick={() => form.submit()}
+                  style={{ borderRadius: 6, fontWeight: 600, height: 36, padding: '0 20px' }}
+                >
+                  Save Changes
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Main Content scrollable area */}

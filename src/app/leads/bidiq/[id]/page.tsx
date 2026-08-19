@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Users,
   RefreshCw,
+  RotateCw,
   Activity,
   Flame,
   ArrowUpRight,
@@ -129,6 +130,23 @@ export default function BidiqIntelligencePage() {
     setCustomDates(null);
     setCustomCost(null);
     setProposalStep(1);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await fetchLeads();
+      setFetchingAI(true);
+      try {
+        const result = await LeadService.analyze(id as string);
+        setAiData(result);
+      } catch (error) {
+        console.error("AI Fetch error:", error);
+      } finally {
+        setFetchingAI(false);
+      }
+    } catch (err) {
+      console.error("Failed to refresh:", err);
+    }
   };
 
   const openProposalFlow = () => {
@@ -409,6 +427,15 @@ export default function BidiqIntelligencePage() {
             </div>
 
             <div className="biq-topbar-right">
+              <Button
+                type="text"
+                className="biq-refresh-btn"
+                onClick={handleRefresh}
+                disabled={loading || fetchingAI}
+                icon={<RotateCw size={14} className={loading || fetchingAI ? "biq-spin animate-spin" : ""} />}
+                title="Refresh page data"
+                style={{ width: 34, height: 34, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid var(--border-color, #e2e8f0)" }}
+              />
               <div className={`biq-ai-status ${fetchingAI ? "is-loading" : aiData ? "is-ready" : "is-fallback"}`}>
                 {fetchingAI ? (
                   <>

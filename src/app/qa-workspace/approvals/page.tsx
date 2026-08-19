@@ -28,6 +28,7 @@ import {
   ThumbsUp,
   Undo2,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
@@ -235,6 +236,17 @@ function ApprovalsContent() {
     if (!stats) return "—";
     if (key === "awaiting") return stats.submitted + stats.retesting + stats.ready_for_signoff;
     return (stats as any)[key] ?? 0;
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchList(),
+        fetchStats()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
   };
 
   const confirmApprove = async () => {
@@ -554,6 +566,16 @@ function ApprovalsContent() {
               <span className="sc-topbar__sub">
                 Reported QA submissions waiting on a business decision — approve, or send back with a reason
               </span>
+            </div>
+            <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
             </div>
           </div>
 

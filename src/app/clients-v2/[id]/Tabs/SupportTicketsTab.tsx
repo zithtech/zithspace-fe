@@ -170,7 +170,7 @@ interface Props {
   onCountChange?: (n: number) => void;
 }
 
-export default function SupportTicketsTab({ clientId, projects = [], onCountChange }: Props) {
+export default function SupportTicketsTab({ clientId, projects = [], onCountChange, onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -202,10 +202,25 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, statusFilter]);
+  }, [clientId, statusFilter, search]);
 
   useEffect(() => {
     const t = setTimeout(load, 250);
@@ -407,6 +422,8 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
             icon={<LifeBuoy size={20} color="#3b82f6" />}
             title="Support tickets"
             description="Tickets raised by the client through the portal or opened by your team on their behalf."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

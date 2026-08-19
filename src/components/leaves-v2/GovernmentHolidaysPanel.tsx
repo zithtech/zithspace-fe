@@ -237,9 +237,10 @@ export default function GovernmentHolidaysPanel() {
             size="small"
             className="lvgh-table"
             columns={columns}
-            dataSource={paginatedData}
+            dataSource={loading ? [] : paginatedData}
             pagination={false}
             scroll={{ x: 'max-content' }}
+            locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : undefined }}
             rowSelection={canCreateLeaveHoliday ? {
               selectedRowKeys: selected,
               onChange: setSelected,
@@ -252,7 +253,7 @@ export default function GovernmentHolidaysPanel() {
       </div>
 
       {filtered.length > 0 && (
-        <div className="lvgh-footer">
+        <div className="lvgh-footer lvgh-footer--sticky">
           <div className="lvgh-footer-info">
             Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
             {selected.length > 0 && (
@@ -345,12 +346,10 @@ export default function GovernmentHolidaysPanel() {
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 10px;
-          padding: 0 4px;
           height: 52px;
           box-sizing: border-box;
-          background: transparent;
-          flex-shrink: 0;
         }
+        .lvgh-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvgh-footer-info {
           font-size: 12px;
           color: var(--text-slate-500);

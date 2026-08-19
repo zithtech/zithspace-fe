@@ -303,8 +303,8 @@ export default function SettingsPanel() {
 
   if (loading) {
     return (
-      <div style={{ padding: 64, textAlign: 'center' }}>
-        <ZukvoLoader size="md" />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <ZukvoLoader size="md" fullscreen="viewport" />
       </div>
     );
   }

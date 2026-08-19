@@ -413,8 +413,8 @@ export default function DocumentRepositoryPage() {
         <LetterStatsCards statCells={statCells} />
         {/* Documents List Table */}
         {loading ? (
-          <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            <ZukvoLoader message="Loading document repository..." size="md" />
+          <div style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ZukvoLoader message="Loading document repository..." size="md" fullscreen='viewport' />
           </div>
         ) : documents.length === 0 ? (
           <div

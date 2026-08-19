@@ -327,7 +327,7 @@ export default function AddHolidaysPanel() {
       </div>
 
       {total > 0 && (
-        <div className="lvh-footer">
+        <div className="lvh-footer lvh-footer--sticky">
           <div className="lvh-footer-info">Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong></div>
           <div className="lvh-pager">
             <button type="button" className="lvh-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
@@ -515,6 +515,7 @@ export default function AddHolidaysPanel() {
         .lvh-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvh-table .ant-table-tbody > tr.lvh-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; padding: 0 4px; box-sizing: border-box; background: transparent; flex-shrink: 0; }
+        .lvh-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvh-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvh-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvh-pager { display: flex; align-items: center; gap: 3px; }

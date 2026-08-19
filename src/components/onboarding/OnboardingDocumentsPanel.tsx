@@ -436,12 +436,12 @@ export default function OnboardingDocumentsPanel() {
     ])
       .then(([empRes, invRes]) => {
         let combined: any[] = [];
-        
+
         if (empRes.status === 'fulfilled') {
           const data = empRes.value?.data || empRes.value || [];
           if (Array.isArray(data)) combined = [...combined, ...data];
         }
-        
+
         if (invRes.status === 'fulfilled') {
           const data = invRes.value?.data || invRes.value || [];
           if (Array.isArray(data)) combined = [...combined, ...data];
@@ -450,11 +450,11 @@ export default function OnboardingDocumentsPanel() {
         // Map to what the UI expects (firstName, lastName, avatarUrl, positionTitle)
         // Ensure we handle id vs employeeId to prevent duplicates
         const uniqueEmployees = new Map();
-        
+
         combined.forEach((e: any) => {
           const id = e.id || e.employeeId;
           if (!id || uniqueEmployees.has(id)) return;
-          
+
           uniqueEmployees.set(id, {
             ...e,
             id,
@@ -616,7 +616,7 @@ export default function OnboardingDocumentsPanel() {
         {loading ? (
           <div className="ob-doc-center">
             <Space direction="vertical" align="center">
-              <ZukvoLoader size="lg" />
+              <ZukvoLoader size="md" />
               <div style={{ color: 'var(--text-slate-500)', fontSize: 13, marginTop: 4 }}>Loading documents…</div>
             </Space>
           </div>

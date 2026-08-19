@@ -50,7 +50,7 @@ function resolveHostInfo() {
     try {
       rootHost = new URL(envAppUrl).host;
       hasValidEnvRoot = true;
-    } catch (e) {}
+    } catch (e) { }
   }
 
 
@@ -74,7 +74,7 @@ function resolveHostInfo() {
   // If we are currently ON the rootHost, then we don't need to redirect
   // This prevents infinite loops if rootHost is misconfigured to point to itself
   if (window.location.host === rootHost) {
-    subdomain = ""; 
+    subdomain = "";
   }
 
   return { subdomain, rootHost };
@@ -127,19 +127,19 @@ function LoginFormWithParams() {
         const params = new URLSearchParams(hash.substring(1)); // strip '#'
         const token = params.get("access_token");
         const stateStr = params.get("state");
-        
+
         if (token && !window.opener) {
           // Top-level window received Google token
           window.history.replaceState(null, "", window.location.pathname + window.location.search);
-          
+
           let stateSubdomain = "";
           if (stateStr) {
             try {
               const stateObj = JSON.parse(decodeURIComponent(stateStr));
               stateSubdomain = stateObj.subdomain;
-            } catch(e) {}
+            } catch (e) { }
           }
-          
+
           const { subdomain: hostnameSubdomain, rootHost } = resolveHostInfo();
           // Strip 'app.' prefix when building tenant subdomain URLs:
           // app.zukvo.com → zukvo.com, so redirect becomes company1.zukvo.com not company1.app.zukvo.com
@@ -178,7 +178,7 @@ function LoginFormWithParams() {
             });
             return;
           }
-          
+
           // No subdomain — proceed with login on root host (app.zukvo.com)
           setLoading(true);
           AuthService.googleLogin(token).then(async (response) => {
@@ -230,7 +230,7 @@ function LoginFormWithParams() {
               const tenantBaseHost = currentRootHost.startsWith('app.') ? currentRootHost.slice(4) : currentRootHost;
 
               const response = await AuthService.googleLogin(tokenResponse.access_token, effectiveSubdomain || undefined);
-              
+
               if (effectiveSubdomain) {
                 const targetHost = `${effectiveSubdomain}.${tenantBaseHost}`;
                 if (window.location.host === targetHost) {
@@ -281,7 +281,7 @@ function LoginFormWithParams() {
     const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
     const scope = encodeURIComponent("openid profile email User.Read");
-    
+
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
 
     const width = 600;
@@ -306,7 +306,7 @@ function LoginFormWithParams() {
       if (event.data?.type === "microsoft-token" && event.data?.token) {
         const token = event.data.token;
         cleanup();
-        
+
         try {
           const { subdomain, rootHost } = resolveHostInfo();
 
@@ -381,13 +381,13 @@ function LoginFormWithParams() {
       const { rootHost } = resolveHostInfo();
       const protocol = window.location.protocol;
       const redirectUri = `${protocol}//${rootHost}/login`;
-      
+
       const clientId = "945644412981-eu93b14d7jr5d0gd5s04758lu6mupad8.apps.googleusercontent.com";
       const scope = encodeURIComponent("https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email");
       const state = encodeURIComponent(JSON.stringify({ subdomain: subdomain || '' }));
-      
+
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
-      
+
       window.location.replace(authUrl);
     }
   }, [searchParams]);
@@ -533,7 +533,7 @@ function LoginFormWithParams() {
     try {
       setLoading(true);
       setError('');
-      
+
       if (values.remember) {
         localStorage.setItem('remembered_email', values.email);
       } else {
@@ -550,7 +550,7 @@ function LoginFormWithParams() {
   if (user) {
     return (
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        <ZukvoLoader size="lg" />
+        <ZukvoLoader size="lg" fullscreen='viewport' />
         <div style={{ marginTop: 16 }}>
           <Text type="secondary">Redirecting...</Text>
         </div>
@@ -721,7 +721,7 @@ function LoginFormWithParams() {
 function LoginFormSkeleton() {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <ZukvoLoader size="lg" />
+      <ZukvoLoader size="lg" fullscreen='viewport' />
       <div style={{ marginTop: 16 }}>
         <Text type="secondary">Loading login form...</Text>
       </div>

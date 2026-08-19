@@ -404,11 +404,13 @@ const WebsiteLeadFields = ({ configStatuses }: { configStatuses: any[] }) => {
             }
             return limited;
           }}
-          rules={[{ validator: (_, value) => {
-            if (!value || value.trim() === '') return Promise.resolve();
-            if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
-            return Promise.resolve();
-          }}]}
+          rules={[{
+            validator: (_, value) => {
+              if (!value || value.trim() === '') return Promise.resolve();
+              if (value.replace(/\D/g, '').length < 7) return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+              return Promise.resolve();
+            }
+          }]}
         >
           <Input placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
@@ -500,43 +502,43 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
   return (
     <>
       <SectionCard step="STEP 1" icon={<Building2 size={13} color="#6366f1" />} title="Company Information" subtitle="The organisation you're building a relationship with">
-            <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
-              <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
-              <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
+        <Form.Item name="intakeCompanyName" label={label('Company Name')} rules={[{ required: true }]}>
+          <Input placeholder="e.g. Acme Corporation" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeCompanyType" label={label('Industry / Company Type')}>
+          <Input placeholder="e.g. SaaS · Fintech · Agency" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
         <Form.Item name="intakeCoreBusiness" label={label('Core Business')}>
           <Input placeholder="What the company primarily does" style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
         <Form.Item name="intakeCompanyDescription" label={label('Core Business Details')}>
           <TextArea rows={3} placeholder="A short description of the company, its products and market." style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-            <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
-              <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
-              <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeWebsite" label={label('Website URL')}>
-              <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
-              <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeLocation" label={label('Company Location')}>
-              <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
-            </Form.Item>
-            <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
-              <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
-                <Select.Option value="1-10">1 – 10</Select.Option>
-                <Select.Option value="11-50">11 – 50</Select.Option>
-                <Select.Option value="51-200">51 – 200</Select.Option>
-                <Select.Option value="201-500">201 – 500</Select.Option>
-                <Select.Option value="501-1000">501 – 1,000</Select.Option>
-                <Select.Option value="1000+">1,000+</Select.Option>
-              </Select>
-            </Form.Item>
+        <Form.Item name="intakeCompanyEmail" label={label('Company Email')} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+          <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="hello@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeCompanyPhone" label={label('Company Phone Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+          <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeWebsite" label={label('Website URL')}>
+          <Input prefix={<Globe size={13} style={{ color: '#94a3b8' }} />} placeholder="https://acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeLinkedin" label={label('LinkedIn Company Page')}>
+          <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/company/acme" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeLocation" label={label('Company Location')}>
+          <Input prefix={<MapPin size={13} style={{ color: '#94a3b8' }} />} placeholder="Headquarters — City, Country" style={{ borderRadius: 6 }} autoComplete="off" />
+        </Form.Item>
+        <Form.Item name="intakeTeamSize" label={label('Company Team Size')}>
+          <Select placeholder="Select range" style={{ borderRadius: 6 }} allowClear suffixIcon={<Users size={13} color="#94a3b8" />}>
+            <Select.Option value="1-10">1 – 10</Select.Option>
+            <Select.Option value="11-50">11 – 50</Select.Option>
+            <Select.Option value="51-200">51 – 200</Select.Option>
+            <Select.Option value="201-500">201 – 500</Select.Option>
+            <Select.Option value="501-1000">501 – 1,000</Select.Option>
+            <Select.Option value="1000+">1,000+</Select.Option>
+          </Select>
+        </Form.Item>
       </SectionCard>
 
       <SectionCard step="STEP 2" icon={<Star size={13} color="#f59e0b" />} title="Research" subtitle="Reputation signals and your own working notes">
@@ -551,15 +553,15 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
         }>
           <TextArea rows={2} placeholder="Private notes for your team — never shown to the client." style={{ borderRadius: 6 }} autoComplete="off" />
         </Form.Item>
-            <Form.Item name="intakeStatus" label={label('Pipeline')}>
-              <Select placeholder="Select pipeline" style={{ borderRadius: 6 }} allowClear>
-                {configStatuses.map((s: any) => (
-                  <Select.Option key={s.id} value={s.name}>
-                    <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
+        <Form.Item name="intakeStatus" label={label('Pipeline')}>
+          <Select placeholder="Select pipeline" style={{ borderRadius: 6 }} allowClear>
+            {configStatuses.map((s: any) => (
+              <Select.Option key={s.id} value={s.name}>
+                <Space><div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />{s.name}</Space>
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
       </SectionCard>
 
       <SectionCard step="STEP 3" icon={<Users size={13} color="#10b981" />} title="Decision Makers" subtitle="One company, many contacts — add everyone worth knowing">
@@ -577,32 +579,32 @@ const LeadIntakeFields = ({ configStatuses }: { configStatuses: any[] }) => {
                       <Button type="text" danger size="small" icon={<Trash2 size={15} />} onClick={() => remove(field.name)} />
                     </Tooltip>
                   </div>
-                  
-                      <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')}>
-                        <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                  
-                      <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
-                        <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
-                        <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                  
-                      <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')}>
-                        <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
-                        <Space size={6}>
-                          {label('Remarks / Notes')}
-                          <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
-                        </Space>
-                      } style={{ marginBottom: 0 }}>
-                        <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
+
+                  <Form.Item {...field} key={`${field.key}-name`} name={[field.name, 'name']} label={label('Contact Name')} rules={[{ required: true, message: 'Name required' }]}>
+                    <Input placeholder="e.g. John Doe" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
+                  <Form.Item {...field} key={`${field.key}-designation`} name={[field.name, 'designation']} label={label('Job Title / Designation')}>
+                    <Input placeholder="e.g. CEO · CTO · Head of Product" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
+
+                  <Form.Item {...field} key={`${field.key}-email`} name={[field.name, 'email']} label={label('Email Address')} rules={[{ type: 'email', message: 'Invalid email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+                    <Input prefix={<Mail size={13} style={{ color: '#94a3b8' }} />} placeholder="john@acme.com" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
+                  <Form.Item {...field} key={`${field.key}-phone`} name={[field.name, 'phone']} label={label('Mobile Number')} getValueFromEvent={sanitizePhone} rules={[phoneRule]}>
+                    <Input prefix={<Phone size={13} style={{ color: '#94a3b8' }} />} placeholder="+91 …" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
+
+                  <Form.Item {...field} key={`${field.key}-linkedin`} name={[field.name, 'linkedin']} label={label('LinkedIn Profile')}>
+                    <Input prefix={<Linkedin size={13} style={{ color: '#94a3b8' }} />} placeholder="linkedin.com/in/john" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
+                  <Form.Item {...field} key={`${field.key}-notes`} name={[field.name, 'notes']} label={
+                    <Space size={6}>
+                      {label('Remarks / Notes')}
+                      <span style={{ padding: '1px 6px', borderRadius: 6, background: '#f1f5f9', color: '#64748b', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Optional</span>
+                    </Space>
+                  } style={{ marginBottom: 0 }}>
+                    <Input placeholder="e.g. Primary point of contact" style={{ borderRadius: 6 }} autoComplete="off" />
+                  </Form.Item>
 
                   {idx < fields.length - 1 && <div style={{ height: 1, background: 'var(--border-slate-100)', marginTop: 24, marginBottom: 8 }} />}
                 </div>
@@ -4264,291 +4266,291 @@ export default function LeadsPage() {
                 </div>
               </div>
             </div>
-            <Button 
-              type="text" 
-              icon={<XIcon size={16} />} 
-              onClick={() => setIsDrawerVisible(false)} 
+            <Button
+              type="text"
+              icon={<XIcon size={16} />}
+              onClick={() => setIsDrawerVisible(false)}
               style={{ color: 'var(--text-secondary)' }}
             />
           </div>
           <div style={{ padding: 24, paddingBottom: 100 }}>
             <style>{drawerFormStyles}</style>
-          <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
-            {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
-            <Form.Item name="leadSourceKind" hidden initialValue="platform">
-              <Input />
-            </Form.Item>
-            <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
-              <Tabs
-                activeKey={leadSourceKindWatch}
-                onChange={(key) => form.setFieldValue('leadSourceKind', key)}
-                size="large"
-                type="line"
-                tabBarStyle={{
-                  background: 'transparent',
-                  marginBottom: 0,
-                }}
-                items={[
-                  {
-                    key: 'platform',
-                    label: (
-                      <Space size={8} style={{ padding: "4px 8px" }}>
-                        <Briefcase size={16} />
-                        <span style={{ fontWeight: 600 }}>Online Platform</span>
-                      </Space>
-                    ),
-                  },
-                  {
-                    key: 'website',
-                    label: (
-                      <Space size={8} style={{ padding: "4px 8px" }}>
-                        <Globe size={16} />
-                        <span style={{ fontWeight: 600 }}>Website Inquiry</span>
-                      </Space>
-                    ),
-                  },
-                  {
-                    key: 'intake',
-                    label: (
-                      <Space size={8} style={{ padding: "4px 8px" }}>
-                        <Building2 size={16} />
-                        <span style={{ fontWeight: 600 }}>Lead Intake</span>
-                      </Space>
-                    ),
-                  },
-                ]}
-              />
-            </Form.Item>
+            <Form form={form} layout="horizontal" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }} labelAlign="left" colon={false} onFinish={handleSaveLead} requiredMark={false} className="lead-drawer-form customer-drawer-form" autoComplete="off">
+              {/* Lead-kind picker — switches the form between online platforms and own-website inquiries */}
+              <Form.Item name="leadSourceKind" hidden initialValue="platform">
+                <Input />
+              </Form.Item>
+              <Form.Item style={{ marginBottom: 20 }} wrapperCol={{ span: 24 }}>
+                <Tabs
+                  activeKey={leadSourceKindWatch}
+                  onChange={(key) => form.setFieldValue('leadSourceKind', key)}
+                  size="large"
+                  type="line"
+                  tabBarStyle={{
+                    background: 'transparent',
+                    marginBottom: 0,
+                  }}
+                  items={[
+                    {
+                      key: 'platform',
+                      label: (
+                        <Space size={8} style={{ padding: "4px 8px" }}>
+                          <Briefcase size={16} />
+                          <span style={{ fontWeight: 600 }}>Online Platform</span>
+                        </Space>
+                      ),
+                    },
+                    {
+                      key: 'website',
+                      label: (
+                        <Space size={8} style={{ padding: "4px 8px" }}>
+                          <Globe size={16} />
+                          <span style={{ fontWeight: 600 }}>Website Inquiry</span>
+                        </Space>
+                      ),
+                    },
+                    {
+                      key: 'intake',
+                      label: (
+                        <Space size={8} style={{ padding: "4px 8px" }}>
+                          <Building2 size={16} />
+                          <span style={{ fontWeight: 600 }}>Lead Intake</span>
+                        </Space>
+                      ),
+                    },
+                  ]}
+                />
+              </Form.Item>
 
-            {leadSourceKindWatch === 'intake' ? (
-              <LeadIntakeFields configStatuses={configStatuses} />
-            ) : leadSourceKindWatch === 'website' ? (
-              <WebsiteLeadFields configStatuses={configStatuses} />
-            ) : (
-              <>
-                {/* Client Details Section */}
-                <SectionCard step="STEP 1" icon={<User size={13} color="#3b82f6" />} title="Client Information" subtitle="Who you're pitching — contact, location, and trust signals">
-                      <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
-                        <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
-                        <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item
-                        name="clientPhone"
-                        label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
-                        getValueFromEvent={(e) => {
-                          const value = e.target.value;
-                          let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
-                          if (sanitized.includes('+')) {
-                            const hasPlusAtStart = sanitized.startsWith('+');
-                            sanitized = sanitized.replace(/\+/g, '');
-                            if (hasPlusAtStart) {
-                              sanitized = '+' + sanitized;
-                            }
+              {leadSourceKindWatch === 'intake' ? (
+                <LeadIntakeFields configStatuses={configStatuses} />
+              ) : leadSourceKindWatch === 'website' ? (
+                <WebsiteLeadFields configStatuses={configStatuses} />
+              ) : (
+                <>
+                  {/* Client Details Section */}
+                  <SectionCard step="STEP 1" icon={<User size={13} color="#3b82f6" />} title="Client Information" subtitle="Who you're pitching — contact, location, and trust signals">
+                    <Form.Item name="clientName" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Name</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z\s\-']+$/, message: 'Please enter a valid name (no numbers or special characters)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s\-']/g, '')}>
+                      <Input placeholder="e.g. John Doe" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="clientMail" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Email Address</Text>} rules={[{ required: true, type: 'email' }]} getValueFromEvent={(e) => e.target.value.replace(/\s/g, '')}>
+                      <Input placeholder="john@example.com" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item
+                      name="clientPhone"
+                      label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Number</Text>}
+                      getValueFromEvent={(e) => {
+                        const value = e.target.value;
+                        let sanitized = value.replace(/[^0-9\s\-()+]/g, '');
+                        if (sanitized.includes('+')) {
+                          const hasPlusAtStart = sanitized.startsWith('+');
+                          sanitized = sanitized.replace(/\+/g, '');
+                          if (hasPlusAtStart) {
+                            sanitized = '+' + sanitized;
                           }
-                          let digitsCount = 0;
-                          let limited = '';
-                          for (let i = 0; i < sanitized.length; i++) {
-                            const char = sanitized[i];
-                            if (/\d/.test(char)) {
-                              if (digitsCount < 15) {
-                                digitsCount++;
-                                limited += char;
-                              }
-                            } else {
+                        }
+                        let digitsCount = 0;
+                        let limited = '';
+                        for (let i = 0; i < sanitized.length; i++) {
+                          const char = sanitized[i];
+                          if (/\d/.test(char)) {
+                            if (digitsCount < 15) {
+                              digitsCount++;
                               limited += char;
                             }
+                          } else {
+                            limited += char;
                           }
-                          return limited;
-                        }}
-                        rules={[
-                          {
-                            validator: (_, value) => {
-                              if (!value || value.trim() === '') {
-                                return Promise.resolve();
-                              }
-                              const digits = value.replace(/\D/g, '');
-                              if (digits.length < 7) {
-                                return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
-                              }
+                        }
+                        return limited;
+                      }}
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value || value.trim() === '') {
                               return Promise.resolve();
                             }
+                            const digits = value.replace(/\D/g, '');
+                            if (digits.length < 7) {
+                              return Promise.reject(new Error('Phone number must contain at least 7 digits.'));
+                            }
+                            return Promise.resolve();
                           }
-                        ]}
-                      >
-                        <Input placeholder="+1 234..." style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
-                        <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>} rules={[{ pattern: /^([0-5](\.\d{1,2})?(\/5)?)$/, message: 'Please enter a valid rating (e.g. 4.9 or 4.9/5)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-5./]/g, '')}>
-                        <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>} rules={[{ pattern: /^[\$0-9kKMB,\.+\s]+$/, message: 'Please enter a valid amount (e.g. $10k+)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\$0-9kKMB,\.+\s]/g, '')}>
-                        <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
-                        <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                          <Select.Option value={true}>
-                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                          </Select.Option>
-                          <Select.Option value={false}>
-                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                          </Select.Option>
-                        </Select>
-                      </Form.Item>
-                      <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
-                        <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
-                          <Select.Option value={true}>
-                            <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
-                          </Select.Option>
-                          <Select.Option value={false}>
-                            <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
-                          </Select.Option>
-                        </Select>
-                      </Form.Item>
-                </SectionCard>
+                        }
+                      ]}
+                    >
+                      <Input placeholder="+1 234..." style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="clientLocation" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Location</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Please enter a valid location' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
+                      <Input placeholder="City, Country" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="clientRating" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Client Rating</Text>} rules={[{ pattern: /^([0-5](\.\d{1,2})?(\/5)?)$/, message: 'Please enter a valid rating (e.g. 4.9 or 4.9/5)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^0-5./]/g, '')}>
+                      <Input placeholder="e.g. 4.9/5" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="clientSpend" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Total Spend</Text>} rules={[{ pattern: /^[\$0-9kKMB,\.+\s]+$/, message: 'Please enter a valid amount (e.g. $10k+)' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\$0-9kKMB,\.+\s]/g, '')}>
+                      <Input placeholder="e.g. $10k+" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="clientPaymentVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Payment Verified</Text>}>
+                      <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                        <Select.Option value={true}>
+                          <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                        </Select.Option>
+                        <Select.Option value={false}>
+                          <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                        </Select.Option>
+                      </Select>
+                    </Form.Item>
+                    <Form.Item name="clientPhoneVerified" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Phone Verified</Text>}>
+                      <Select className="lead-verified-select" style={{ borderRadius: 0 }} suffixIcon={<ChevronRight size={13} color="#94a3b8" />}>
+                        <Select.Option value={true}>
+                          <Space size={6}><CheckCircle size={13} style={{ color: "#10b981" }} /> <span style={{ fontWeight: 600 }}>Verified</span></Space>
+                        </Select.Option>
+                        <Select.Option value={false}>
+                          <Space size={6}><AlertCircle size={13} style={{ color: "#94a3b8" }} /> <span style={{ fontWeight: 600 }}>Not Verified</span></Space>
+                        </Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </SectionCard>
 
-                {/* Job Details Section */}
-                <SectionCard step="STEP 2" icon={<Briefcase size={15} color="#3b82f6" />} title="Job Specification" subtitle="Scope, skills, and budget — what success looks like">
-                  <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
-                    <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
-                  </Form.Item>
-                  <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>} rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]} getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}>
-                    <TextArea
-                      rows={4}
-                      placeholder="Enter the full job description or client request..."
-                      style={{ borderRadius: 0 }}
-                      autoComplete="off"
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="ai_summary"
-                    label={
-                      <Space size={6}>
-                        <span className="lead-ai-chip" style={{
-                          display: "inline-flex", alignItems: "center", gap: 4,
-                          padding: "2px 8px", borderRadius: 0,
-                          background: "rgba(59, 130, 246, 0.1)",
-                          color: "#2563eb", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
-                          textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.2)",
-                        }}>
-                          <Sparkles size={10} /> AI
-                        </span>
-                        <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
-                      </Space>
-                    }
-                    rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]}
-                    getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}
-                  >
-                    <TextArea
-                      rows={4}
-                      placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
-                      className="lead-ai-textarea"
-                      style={{
-                        borderRadius: 0,
-                        background: "rgba(59, 130, 246, 0.03)",
-                        border: "1px solid rgba(59, 130, 246, 0.18)",
-                      }}
-                      autoComplete="off"
-                    />
-                  </Form.Item>
-                      <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
-                        <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
-                      </Form.Item>
-                      <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
-                        <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
-                        <Input placeholder="e.g. 50" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
-                        <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>} rules={[{ pattern: /^[A-Za-z\/\-]+$/, message: 'Please enter a valid type' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\/\-]/g, '')}>
-                        <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
-                      </Form.Item>
-                </SectionCard>
+                  {/* Job Details Section */}
+                  <SectionCard step="STEP 2" icon={<Briefcase size={15} color="#3b82f6" />} title="Job Specification" subtitle="Scope, skills, and budget — what success looks like">
+                    <Form.Item name="title" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Title</Text>} rules={[{ required: true }, { pattern: /^[A-Za-z0-9\s\-&.,]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-&.,]/g, '')}>
+                      <Input placeholder="e.g. Senior Frontend Engineer" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="summary" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Description</Text>} rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]} getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}>
+                      <TextArea
+                        rows={4}
+                        placeholder="Enter the full job description or client request..."
+                        style={{ borderRadius: 0 }}
+                        autoComplete="off"
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      name="ai_summary"
+                      label={
+                        <Space size={6}>
+                          <span className="lead-ai-chip" style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            padding: "2px 8px", borderRadius: 0,
+                            background: "rgba(59, 130, 246, 0.1)",
+                            color: "#2563eb", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
+                            textTransform: "uppercase", border: "1px solid rgba(59, 130, 246, 0.2)",
+                          }}>
+                            <Sparkles size={10} /> AI
+                          </span>
+                          <Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Intelligence Summary</Text>
+                        </Space>
+                      }
+                      rules={[{ pattern: /^[^<>{}]+$/, message: 'Please remove invalid special characters' }]}
+                      getValueFromEvent={(e) => e.target.value.replace(/[<>{}]+/g, '')}
+                    >
+                      <TextArea
+                        rows={4}
+                        placeholder="Paste the job description or key notes — AI will distill this into actionable insights..."
+                        className="lead-ai-textarea"
+                        style={{
+                          borderRadius: 0,
+                          background: "rgba(59, 130, 246, 0.03)",
+                          border: "1px solid rgba(59, 130, 246, 0.18)",
+                        }}
+                        autoComplete="off"
+                      />
+                    </Form.Item>
+                    <Form.Item name="skills" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Required Skills</Text>} rules={[{ type: 'array', defaultField: { pattern: /^[A-Za-z0-9\s\-]+$/, message: 'Special characters are not allowed' } }]}>
+                      <Select mode="tags" style={{ width: '100%' }} placeholder="Add skills..." tokenSeparators={[',']} onInputKeyDown={(e) => { if (/[^A-Za-z0-9\s\-]/.test(e.key) && e.key.length === 1) e.preventDefault(); }} />
+                    </Form.Item>
+                    <Form.Item name="duration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Duration</Text>} rules={[{ pattern: /^[A-Za-z0-9\s\-,.]+$/, message: 'Special characters are not allowed' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9\s\-,.]/g, '')}>
+                      <Input placeholder="e.g. 3 Months" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="hourBasedAmount" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Hourly ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
+                      <Input placeholder="e.g. 50" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="budget" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Budget ($)</Text>} rules={[{ pattern: /^\d+(\.\d{1,2})?$/, message: 'Please enter a valid numeric amount' }]} getValueFromEvent={(e) => e.target.value.replace(/[^\d.]/g, '')}>
+                      <Input placeholder="e.g. 5000" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="estOrProjectDuration" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Type</Text>} rules={[{ pattern: /^[A-Za-z\/\-]+$/, message: 'Please enter a valid type' }]} getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\/\-]/g, '')}>
+                      <Input placeholder="Fixed/Hourly" style={{ borderRadius: 0 }} autoComplete="off" />
+                    </Form.Item>
+                  </SectionCard>
 
-                {/* Timeline & Meta Section */}
-                <SectionCard step="STEP 3" icon={<LinkIcon size={15} color="#10b981" />} title="Platform & Status" subtitle="Where this came from and where it sits in your pipeline">
-                      <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
-                        <Select placeholder="Select Platform" style={{ borderRadius: 6 }}>
-                          <Select.Option value="Upwork">Upwork</Select.Option>
-                          <Select.Option value="LinkedIn">LinkedIn</Select.Option>
-                          <Select.Option value="Freelancer">Freelancer</Select.Option>
-                          <Select.Option value="Fiverr">Fiverr</Select.Option>
-                          <Select.Option value="Website">Website</Select.Option>
-                          <Select.Option value="Other">Other</Select.Option>
-                        </Select>
-                      </Form.Item>
-                      <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
-                        <Select placeholder="Select Status" style={{ borderRadius: 6 }}>
-                          {configStatuses.map((s: any) => (
-                            <Select.Option key={s.id} value={s.name}>
-                              <Space>
-                                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
-                                {s.name}
-                              </Space>
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                  
-                      <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
-                        <Input placeholder="https://..." style={{ borderRadius: 6 }} autoComplete="off" />
-                      </Form.Item>
-                      <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
-                        <DatePicker style={{ width: '100%', borderRadius: 6 }} />
-                      </Form.Item>
-
-                      <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
-                        <Select placeholder="Select Action" allowClear style={{ borderRadius: 6 }}>
-                          {configActions.map((a: any) => (
-                            <Select.Option key={a.id} value={a.name}>
-                              <Space>
-                                {renderActionIcon(a.icon)}
-                                <span style={{ color: a.color }}>{a.name}</span>
-                              </Space>
-                            </Select.Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                </SectionCard>
-
-                {/* Documents Section */}
-                <SectionCard step="STEP 4" icon={<FileText size={15} color="#ec4899" />} title="Supporting Documents" subtitle="Briefs, mockups, or contract drafts shared by the client">
-                  <Form.List name="documents">
-                    {(fields, { add, remove }) => (
-                      <>
-                        {fields.map((field) => (
-                          <DocumentRow
-                            key={field.key}
-                            field={field}
-                            remove={remove}
-                            handleFileUpload={handleFileUpload}
-                            messageApi={messageApi}
-                          />
+                  {/* Timeline & Meta Section */}
+                  <SectionCard step="STEP 3" icon={<LinkIcon size={15} color="#10b981" />} title="Platform & Status" subtitle="Where this came from and where it sits in your pipeline">
+                    <Form.Item name="platform" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Platform</Text>} initialValue="Upwork">
+                      <Select placeholder="Select Platform" style={{ borderRadius: 6 }}>
+                        <Select.Option value="Upwork">Upwork</Select.Option>
+                        <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+                        <Select.Option value="Freelancer">Freelancer</Select.Option>
+                        <Select.Option value="Fiverr">Fiverr</Select.Option>
+                        <Select.Option value="Website">Website</Select.Option>
+                        <Select.Option value="Other">Other</Select.Option>
+                      </Select>
+                    </Form.Item>
+                    <Form.Item name="status" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Current Status</Text>}>
+                      <Select placeholder="Select Status" style={{ borderRadius: 6 }}>
+                        {configStatuses.map((s: any) => (
+                          <Select.Option key={s.id} value={s.name}>
+                            <Space>
+                              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                              {s.name}
+                            </Space>
+                          </Select.Option>
                         ))}
-                        <Form.Item wrapperCol={{ span: 24 }}>
-                          <Button
-                            type="dashed"
-                            onClick={() => add({ type: 'file' })}
-                            block
-                            icon={<PlusCircle size={16} />}
-                            className="doc-add-btn"
-                          >
-                            Add Supporting Document
-                          </Button>
-                        </Form.Item>
-                      </>
-                    )}
-                  </Form.List>
-                </SectionCard>
-              </>
-            )}
-          </Form>
+                      </Select>
+                    </Form.Item>
+
+                    <Form.Item name="jobLink" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Job Link</Text>} rules={[{ type: 'url', message: 'Please enter a valid URL' }]}>
+                      <Input placeholder="https://..." style={{ borderRadius: 6 }} autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item name="postedOn" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Posted On</Text>} initialValue={dayjs()}>
+                      <DatePicker style={{ width: '100%', borderRadius: 6 }} />
+                    </Form.Item>
+
+                    <Form.Item name="actions" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: '#64748b' }}>Next Action Items</Text>}>
+                      <Select placeholder="Select Action" allowClear style={{ borderRadius: 6 }}>
+                        {configActions.map((a: any) => (
+                          <Select.Option key={a.id} value={a.name}>
+                            <Space>
+                              {renderActionIcon(a.icon)}
+                              <span style={{ color: a.color }}>{a.name}</span>
+                            </Space>
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </SectionCard>
+
+                  {/* Documents Section */}
+                  <SectionCard step="STEP 4" icon={<FileText size={15} color="#ec4899" />} title="Supporting Documents" subtitle="Briefs, mockups, or contract drafts shared by the client">
+                    <Form.List name="documents">
+                      {(fields, { add, remove }) => (
+                        <>
+                          {fields.map((field) => (
+                            <DocumentRow
+                              key={field.key}
+                              field={field}
+                              remove={remove}
+                              handleFileUpload={handleFileUpload}
+                              messageApi={messageApi}
+                            />
+                          ))}
+                          <Form.Item wrapperCol={{ span: 24 }}>
+                            <Button
+                              type="dashed"
+                              onClick={() => add({ type: 'file' })}
+                              block
+                              icon={<PlusCircle size={16} />}
+                              className="doc-add-btn"
+                            >
+                              Add Supporting Document
+                            </Button>
+                          </Form.Item>
+                        </>
+                      )}
+                    </Form.List>
+                  </SectionCard>
+                </>
+              )}
+            </Form>
           </div>
           <div
             className="customer-drawer-footer"
@@ -4649,7 +4651,7 @@ export default function LeadsPage() {
         >
           {timelineLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <ZukvoLoader size="lg" />
+              <ZukvoLoader size="lg" fullscreen='viewport' />
             </div>
           ) : timelineData.length === 0 ? (
             <Empty description="No activity recorded yet" />

@@ -231,9 +231,9 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
 
       {/* ── Body ── */}
       <div className="omx-body">
+        <ZukvoLoadingOverlay loading={!!loading} message="">
         {view === "list" ? (
           <div className="omx-table-wrap">
-            <ZukvoLoadingOverlay loading={!!loading} message="">
               <Table
                 className="omx-table"
                 rowKey={rowKey}
@@ -242,7 +242,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
                 size="small"
                 pagination={false}
                 scroll={{ x: "max-content" }}
-                locale={{ emptyText: emptyState }}
+                locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : emptyState }}
                 onRow={(record) =>
                   onRowClick
                     ? {
@@ -256,12 +256,11 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
                     : {}
                 }
               />
-            </ZukvoLoadingOverlay>
           </div>
         ) : (
           <div className="omx-grid">
             {loading ? (
-              <div className="omx-grid-loading">Loading…</div>
+              <div style={{ gridColumn: "1 / -1", minHeight: 400 }} />
             ) : total === 0 ? (
               <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
             ) : (
@@ -271,6 +270,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
             )}
           </div>
         )}
+        </ZukvoLoadingOverlay>
       </div>
 
       {/* ── Sticky pager ── */}

@@ -546,9 +546,9 @@ export default function BidIqPage() {
 
               {/* Body */}
               <div className="biq-body">
+                <ZukvoLoadingOverlay loading={loading} message="">
                 {layout === "list" ? (
                   <div className="biq-table-card">
-                    <ZukvoLoadingOverlay loading={loading} message="">
                                       <Table<Lead>
                                                             rowKey="id"
                                                             dataSource={paged}
@@ -563,7 +563,9 @@ export default function BidIqPage() {
                                                             })}
                                                             pagination={false}
                                                             locale={{
-                                                              emptyText: (
+                                                              emptyText: loading ? (
+                                                                <div style={{ minHeight: 400 }} />
+                                                              ) : (
                                                                 <div className="biq-empty">
                                                                   <div className="biq-empty-icon">
                                                                     <Zap size={26} />
@@ -576,11 +578,12 @@ export default function BidIqPage() {
                                                               ),
                                                             }}
                                                           />
-                                      </ZukvoLoadingOverlay>
                   </div>
                 ) : (
                   <div className="biq-grid-view">
-                    {filtered.length === 0 ? (
+                    {loading ? (
+                      <div style={{ minHeight: 400 }} />
+                    ) : filtered.length === 0 ? (
                       <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                         description="No BidIq analyses yet."
@@ -660,6 +663,7 @@ export default function BidIqPage() {
                     )}
                   </div>
                 )}
+                </ZukvoLoadingOverlay>
               </div>
 
               {filtered.length > 0 && (

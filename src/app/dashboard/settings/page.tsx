@@ -182,8 +182,8 @@ const ORG_CARDS = [
 const SettingRow = ({ title, description, icon: Icon, color, formItemName }: any) => {
   const { token } = theme.useToken();
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -196,13 +196,13 @@ const SettingRow = ({ title, description, icon: Icon, color, formItemName }: any
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ 
-          width: 32, 
-          height: 32, 
-          borderRadius: 8, 
-          backgroundColor: `${color}20`, 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          backgroundColor: `${color}20`,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           color: color,
           flexShrink: 0
@@ -297,10 +297,10 @@ export default function DashboardSettingsPage() {
   return (
     <MainLayout noPadding>
       <div style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden', background: token.colorBgContainer }}>
-        
+
         {/* Left Sidebar */}
         <div style={{ width: 260, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgContainer, overflowY: 'auto' }}>
-          
+
           {/* Sidebar Header */}
           <div style={{ padding: '24px 20px' }}>
             <Title level={4} style={{ margin: 0, fontWeight: 700, color: token.colorText }}>Settings</Title>
@@ -313,11 +313,11 @@ export default function DashboardSettingsPage() {
             <div style={{ fontSize: 11, fontWeight: 700, color: token.colorTextTertiary, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 12 }}>
               VIEWS
             </div>
-            
-            <div 
+
+            <div
               onClick={() => setActiveMenu('me')}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                 borderRadius: 6, cursor: 'pointer', marginBottom: 4,
                 backgroundColor: activeMenu === 'me' ? token.colorPrimaryBg : 'transparent',
                 color: activeMenu === 'me' ? token.colorPrimary : token.colorTextSecondary,
@@ -329,10 +329,10 @@ export default function DashboardSettingsPage() {
               <span>Me Dashboard</span>
             </div>
 
-            <div 
+            <div
               onClick={() => setActiveMenu('organization')}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
                 borderRadius: 6, cursor: 'pointer',
                 backgroundColor: activeMenu === 'organization' ? token.colorPrimaryBg : 'transparent',
                 color: activeMenu === 'organization' ? token.colorPrimary : token.colorTextSecondary,
@@ -348,7 +348,7 @@ export default function DashboardSettingsPage() {
 
         {/* Right Content Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgLayout, position: 'relative', overflowY: 'auto' }}>
-          
+
           {/* Top Header inside Content */}
           <div style={{ padding: '16px 32px', backgroundColor: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
             <div>
@@ -360,8 +360,8 @@ export default function DashboardSettingsPage() {
               </Text>
             </div>
             {canUpdateSettings && (
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 loading={saving}
                 onClick={() => form.submit()}
                 style={{ borderRadius: 6, fontWeight: 600, height: 36, padding: '0 20px' }}
@@ -374,8 +374,8 @@ export default function DashboardSettingsPage() {
           {/* Main Content scrollable area */}
           <div style={{ flex: 1, padding: '32px' }}>
             {loading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                <ZukvoLoader size="lg" />
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <ZukvoLoader size="md" />
               </div>
             ) : (
               <Form
@@ -385,59 +385,59 @@ export default function DashboardSettingsPage() {
               >
                 <div className="fade-in" style={{ display: activeMenu === 'me' ? 'block' : 'none' }}>
                   <div style={{ marginBottom: 32 }}>
-                      <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
-                        Status Cards
-                      </Title>
-                      <Row gutter={[16, 0]}>
-                        {ME_METRICS.map((card) => (
-                          <Col xs={24} lg={12} key={card.name}>
-                            <SettingRow {...card} formItemName={card.name} />
-                          </Col>
-                        ))}
-                      </Row>
-                    </div>
-
-                    <div style={{ marginBottom: 32 }}>
-                      <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
-                        Dashboard Cards
-                      </Title>
-                      <Row gutter={[16, 0]}>
-                        {ME_CARDS.map((card) => (
-                          <Col xs={24} lg={12} key={card.name}>
-                            <SettingRow {...card} formItemName={card.name} />
-                          </Col>
-                        ))}
-                      </Row>
-                    </div>
+                    <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
+                      Status Cards
+                    </Title>
+                    <Row gutter={[16, 0]}>
+                      {ME_METRICS.map((card) => (
+                        <Col xs={24} lg={12} key={card.name}>
+                          <SettingRow {...card} formItemName={card.name} />
+                        </Col>
+                      ))}
+                    </Row>
                   </div>
+
+                  <div style={{ marginBottom: 32 }}>
+                    <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
+                      Dashboard Cards
+                    </Title>
+                    <Row gutter={[16, 0]}>
+                      {ME_CARDS.map((card) => (
+                        <Col xs={24} lg={12} key={card.name}>
+                          <SettingRow {...card} formItemName={card.name} />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                </div>
 
                 <div className="fade-in" style={{ display: activeMenu === 'organization' ? 'block' : 'none' }}>
                   <div style={{ marginBottom: 32 }}>
-                      <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
-                        Status Cards
-                      </Title>
-                      <Row gutter={[16, 0]}>
-                        {ORG_METRICS.map((card) => (
-                          <Col xs={24} lg={12} key={card.name}>
-                            <SettingRow {...card} formItemName={card.name} />
-                          </Col>
-                        ))}
-                      </Row>
-                    </div>
-
-                    <div style={{ marginBottom: 32 }}>
-                      <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
-                        Dashboard Cards
-                      </Title>
-                      <Row gutter={[16, 0]}>
-                        {ORG_CARDS.map((card) => (
-                          <Col xs={24} lg={12} key={card.name}>
-                            <SettingRow {...card} formItemName={card.name} />
-                          </Col>
-                        ))}
-                      </Row>
-                    </div>
+                    <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
+                      Status Cards
+                    </Title>
+                    <Row gutter={[16, 0]}>
+                      {ORG_METRICS.map((card) => (
+                        <Col xs={24} lg={12} key={card.name}>
+                          <SettingRow {...card} formItemName={card.name} />
+                        </Col>
+                      ))}
+                    </Row>
                   </div>
+
+                  <div style={{ marginBottom: 32 }}>
+                    <Title level={5} style={{ marginBottom: 16, color: token.colorTextHeading, fontWeight: 600 }}>
+                      Dashboard Cards
+                    </Title>
+                    <Row gutter={[16, 0]}>
+                      {ORG_CARDS.map((card) => (
+                        <Col xs={24} lg={12} key={card.name}>
+                          <SettingRow {...card} formItemName={card.name} />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                </div>
               </Form>
             )}
           </div>

@@ -452,6 +452,7 @@ export default function AccountsSettingsPage() {
 
           {/* Main View Area */}
           <div className="pp-body">
+            <ZukvoLoadingOverlay loading={loading || isFetching} message="">
             {viewMode === "card" ? (
               loading ? (
                 <div className="pp-grid">
@@ -645,7 +646,6 @@ export default function AccountsSettingsPage() {
               )
             ) : (
               <div className="pp-table-wrap">
-                <ZukvoLoadingOverlay loading={loading} message="">
                   <Table
                     size="small"
                     columns={columns}
@@ -654,7 +654,7 @@ export default function AccountsSettingsPage() {
                     className="pp-table"
                     pagination={false}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: (loading || isFetching) ? <div style={{ minHeight: 400 }} /> : emptyState }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
@@ -666,9 +666,9 @@ export default function AccountsSettingsPage() {
                       className: 'pp-row',
                     })}
                   />
-                </ZukvoLoadingOverlay>
               </div>
             )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}

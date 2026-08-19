@@ -5550,7 +5550,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<ZukvoLoader message="Loading dashboard..." />}>
+    <Suspense fallback={<ZukvoLoader message="Loading dashboard..." fullscreen='viewport' />}>
       <DashboardContent />
     </Suspense>
   );

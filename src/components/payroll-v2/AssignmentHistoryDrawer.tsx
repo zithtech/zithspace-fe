@@ -59,7 +59,7 @@ export default function AssignmentHistoryDrawer({
 
         <div className="ahd-body">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 48 }}><ZukvoLoader size="md" fullscreen="viewport" /></div>
           ) : rows.length === 0 ? (
             <Empty description="No salary assignments yet" style={{ marginTop: 48 }} />
           ) : (

@@ -169,8 +169,8 @@ export function PanelHeader({
     <div className="rvp-header">
       <div className="rvp-head-about">
         {!hideSidebarToggle && (
-          <button 
-            className="rvp-mobile-toggle" 
+          <button
+            className="rvp-mobile-toggle"
             onClick={() => window.dispatchEvent(new CustomEvent('open-reimbursement-sidebar'))}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -280,7 +280,16 @@ export const tablePaginationConfig = {
     <>Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong></>
   ),
   showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '25', '50', '100']
+  pageSizeOptions: ['10', '20', '25', '50', '100'],
+  itemRender: (_: any, type: string, originalElement: any) => {
+    if (type === 'prev') {
+      return <a>‹</a>;
+    }
+    if (type === 'next') {
+      return <a>›</a>;
+    }
+    return originalElement;
+  },
 };
 
 // ── Shared styles (render once per panel) ────────────────────────────────────
@@ -344,6 +353,7 @@ export function RmbStyles() {
         display: flex; flex-direction: column; flex: 1; min-height: 0;
       }
       .rvp-table-wrap .ant-table-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .rvp-table-wrap > .zlo, .rvp-table-wrap > .zlo > .zlo__content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .rvp-table-wrap .ant-spin-nested-loading { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .rvp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .rvp-table-wrap .ant-table {
@@ -390,27 +400,48 @@ export function RmbStyles() {
         text-align: left !important;
       }
 
-      /* Square pagination buttons */
+      /* Square/Proposals-style pagination buttons */
       .rvp-table-wrap .ant-pagination .ant-pagination-item,
       .rvp-table-wrap .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
       .rvp-table-wrap .ant-pagination .ant-pagination-next .ant-pagination-item-link {
-        border-radius: 4px !important;
+        min-width: 28px !important;
+        height: 28px !important;
+        line-height: 26px !important;
+        border-radius: 7px !important;
+        border: 1px solid var(--border-slate-200) !important;
+        background: var(--bg-pure-white) !important;
+        font-size: 12.5px !important;
+        font-weight: 600 !important;
+      }
+      .rvp-table-wrap .ant-pagination .ant-pagination-item a {
+        color: var(--text-slate-600) !important;
       }
       .rvp-table-wrap .ant-pagination .ant-pagination-item-active {
-        border-radius: 4px !important;
+        background: #3B82F6 !important;
+        border-color: #3B82F6 !important;
+      }
+      .rvp-table-wrap .ant-pagination .ant-pagination-item-active a {
+        color: #fff !important;
+      }
+      .rvp-table-wrap .ant-pagination .ant-select-selector {
+        border-radius: 7px !important;
+        height: 28px !important;
+        align-items: center;
       }
 
       .rvp-table-wrap .ant-pagination {
-
         margin: auto -32px 0 -32px !important;
-        padding: 12px 32px;
+        padding: 0 18px !important;
+        height: 52px !important;
         background: var(--bg-pure-white);
         border-top: 1px solid var(--border-slate-200);
         position: sticky; bottom: 0; z-index: 20;
         display: flex; align-items: center;
-        box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.03);
+        box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
+        box-sizing: border-box;
       }
-      .rvp-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 13px; }
+      .rvp-table-wrap .ant-pagination-total-text { margin-right: auto; color: var(--text-slate-500); font-size: 12px; }
+      .rvp-table-wrap .ant-pagination-total-text strong { color: var(--text-slate-700); font-weight: 700; }
       .rvp-empty { padding: 48px; text-align: center; color: var(--text-slate-400); }
       .rvp-section {
         border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-pure-white);

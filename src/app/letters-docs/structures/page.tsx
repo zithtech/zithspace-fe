@@ -268,8 +268,8 @@ export default function StructuresManagementPage() {
 
         {/* Structures List */}
         {loading ? (
-          <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-slate-600)', fontSize: '15px' }}>
-            <ZukvoLoader message="Loading custom structures..." size="md" />
+          <div style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ZukvoLoader message="Loading custom structures..." size="md" fullscreen='viewport' />
           </div>
         ) : filteredStructures.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center' }}>

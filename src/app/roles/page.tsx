@@ -1341,13 +1341,14 @@ export default function RolesPage() {
                   rowKey="id"
                   pagination={false}
                   scroll={{ x: 1000 }}
+                  locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : undefined }}
                 />
 
               </div>
             ) : (
               <div className="rp-grid">
                 {loading ? (
-                  <div className="rp-grid-loading">Loading…</div>
+                  <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
                 ) : filteredRoles.length === 0 ? (
                   <div className="rp-grid-loading">No roles match your filters.</div>
                 ) : (

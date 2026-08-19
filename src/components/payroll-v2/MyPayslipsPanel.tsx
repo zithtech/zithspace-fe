@@ -71,7 +71,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : rows.length === 0 ? (
         <div style={{ padding: 56 }}><Empty description="No payslips available yet" /></div>
       ) : (

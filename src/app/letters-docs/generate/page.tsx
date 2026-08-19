@@ -1062,8 +1062,8 @@ function LetterGenerationContent() {
             </div>
 
             {loading ? (
-              <div style={{ padding: '20px', color: 'var(--text-slate-600)', fontSize: '14px' }}>
-                <ZukvoLoader message="Loading active templates..." size="md" />
+              <div style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ZukvoLoader message="Loading active templates..." size="md" fullscreen='viewport' />
               </div>
             ) : templates.length === 0 ? (
               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>

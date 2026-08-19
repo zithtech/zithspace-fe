@@ -1089,7 +1089,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        <div style={{ minWidth: 0, overflow: 'auto' }}>
           <ZukvoLoadingOverlay loading={loading} message="">
                   <Table
                               className="mtt-team-table"
@@ -1101,7 +1101,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                               size="small"
                               scroll={{ x: 900 }}
                               locale={{
-                                emptyText: loading ? <></> : (
+                                emptyText: loading ? <div style={{ minHeight: 400 }} /> : (
                                   <div className="mtt-tracker-card__empty">
                                     <div className="mtt-tracker-card__empty-icon">
                                       <TeamOutlined />

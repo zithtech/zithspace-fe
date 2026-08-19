@@ -9,7 +9,7 @@ const DocumentWorkspace = dynamic(
     () => import('@/components/documenthub/DocumentWorkspace'),
     {
         ssr: false,
-        loading: () => <ZukvoLoader message="Loading workspace..." />
+        loading: () => <ZukvoLoader message="Loading workspace..." fullscreen='viewport' />
     }
 )
 

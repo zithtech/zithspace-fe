@@ -18,6 +18,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History, Menu, Gauge, Users } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useTheme } from "@/context/ThemeContext";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 export default function TeamTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingTeam" });
@@ -46,7 +47,9 @@ export default function TeamTimePage() {
     message.success("Time logged successfully");
   };
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />;
+  }
 
   if (!canReadTimeTrackingTeam) {
     return (

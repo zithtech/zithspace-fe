@@ -752,7 +752,7 @@ export default function SquadManagement() {
                     scroll={{ x: 'max-content' }}
                     rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
                     pagination={false}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : emptyState }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
@@ -767,7 +767,7 @@ export default function SquadManagement() {
               ) : (
                 <div className="sq-grid">
                   {loading ? (
-                    <div className="sq-grid-loading">Loading…</div>
+                    <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
                   ) : filteredSquads.length === 0 ? (
                     <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                   ) : (

@@ -83,7 +83,7 @@ export default function DocumentPreviewPage({ params }: { params: Promise<{ docu
     if (isLoading) {
         return (
             <MainLayout>
-                <ZukvoLoader message="Loading document..." />
+                <ZukvoLoader message="Loading document..." fullscreen='viewport' />
             </MainLayout>
         )
     }

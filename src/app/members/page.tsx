@@ -2161,7 +2161,7 @@ export default function MembersPage() {
   );
 
   if (isLoading) {
-    return <ZukvoLoader message="Loading members..." />;
+    return <ZukvoLoader message="Loading members..." fullscreen='viewport' />;
   }
 
   if (!canReadUser) {
@@ -2169,7 +2169,7 @@ export default function MembersPage() {
   }
 
   if (!user || isLoading || !canReadUser) {
-    if (isLoading) return <ZukvoLoader message="Loading members..." />;
+    if (isLoading) return <ZukvoLoader message="Loading members..." fullscreen='viewport' />;
     return null;
   }
 
@@ -2358,11 +2358,11 @@ export default function MembersPage() {
                   <Table
                     className="pp-table"
                     columns={columns}
-                    dataSource={members}
+                    dataSource={loading ? [] : members}
                     rowKey="id"
                     pagination={false}
                     scroll={{ x: 1024 }}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : emptyState }}
                     rowClassName="pp-row"
                     onRow={(record) => ({
                       onClick: () => showPreviewDrawer(record),
@@ -2373,7 +2373,7 @@ export default function MembersPage() {
               ) : (
                 <div className="pp-grid">
                   {loading && members.length === 0 ? (
-                    <div className="pp-grid-loading">Loading…</div>
+                    <div style={{ minHeight: 400, gridColumn: '1 / -1' }} />
                   ) : members.length === 0 ? (
                     <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                   ) : (

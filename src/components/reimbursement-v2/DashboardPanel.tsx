@@ -89,15 +89,15 @@ export default function DashboardPanel() {
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
             <ZukvoLoadingOverlay loading={loading} message="">
-                      <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
-                      </ZukvoLoadingOverlay>
+              <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            </ZukvoLoadingOverlay>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by employee" style={{ marginBottom: 16, borderRadius: 0 }}>
             <ZukvoLoadingOverlay loading={loading} message="">
-                      <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
-                      </ZukvoLoadingOverlay>
+              <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+            </ZukvoLoadingOverlay>
           </Card>
         </Col>
       </Row>

@@ -194,7 +194,7 @@ export default function IntegrationPage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <ZukvoLoader size="lg" message="Loading permissions..." />
+          <ZukvoLoader size="lg" message="Loading permissions..." fullscreen="viewport" />
         </div>
       </MainLayout>
     );

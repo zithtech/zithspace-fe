@@ -86,7 +86,7 @@ export default function BudgetsPanel() {
     }
   }, []);
 
-  useEffect(() => { 
+  useEffect(() => {
     if (canRead) {
       load();
       loadOptions();
@@ -106,7 +106,7 @@ export default function BudgetsPanel() {
   }, [rows, search]);
 
   const openCreate = () => {
-    setEditingId(null); 
+    setEditingId(null);
     setSubmitError(null);
     form.resetFields();
     form.setFieldsValue({ scopeType: 'org', currency: 'INR', isActive: true });
@@ -135,7 +135,7 @@ export default function BudgetsPanel() {
       if (editingId) { await ReimbursementV2Service.updateBudget(editingId, payload); message.success('Budget updated'); }
       else { await ReimbursementV2Service.createBudget(payload); message.success('Budget created'); }
       setDrawerOpen(false); await load();
-    } catch (e: any) { 
+    } catch (e: any) {
       const errMsg = e?.response?.data?.error || e?.message || 'Failed to save budget';
       setSubmitError(errMsg);
     }
@@ -148,9 +148,11 @@ export default function BudgetsPanel() {
   };
 
   const columns: ColumnsType<Budget> = [
-    { title: 'Budget', dataIndex: 'name', render: (v, r) => (
-      <div><div style={{ fontWeight: 600 }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{SCOPES.find((s) => s.value === r.scopeType)?.label}</div></div>) },
+    {
+      title: 'Budget', dataIndex: 'name', render: (v, r) => (
+        <div><div style={{ fontWeight: 600 }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{SCOPES.find((s) => s.value === r.scopeType)?.label}</div></div>)
+    },
     { title: 'Period', key: 'period', render: (_, r) => `${fmtDate(r.periodStart)} – ${fmtDate(r.periodEnd)}` },
     { title: 'Budget', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     {
@@ -205,9 +207,9 @@ export default function BudgetsPanel() {
 
       <div className="rvp-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-                        pagination={tablePaginationConfig} />
-              </ZukvoLoadingOverlay>
+          <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+            pagination={tablePaginationConfig} />
+        </ZukvoLoadingOverlay>
       </div>
 
       <Drawer
@@ -289,13 +291,13 @@ export default function BudgetsPanel() {
 
         <div className="px-6 py-6 space-y-5 pb-24">
           {submitError && (
-            <Alert 
-              message={submitError} 
-              type="error" 
-              showIcon 
-              closable 
-              onClose={() => setSubmitError(null)} 
-              style={{ marginBottom: 16 }} 
+            <Alert
+              message={submitError}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setSubmitError(null)}
+              style={{ marginBottom: 16 }}
             />
           )}
           <Form
@@ -308,48 +310,48 @@ export default function BudgetsPanel() {
             requiredMark="optional"
             className="customer-drawer-form"
           >
-          <SectionCard icon={<AimOutlined />} title="Budget" subtitle="Scope, period and cap">
-            <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
-              <Input placeholder="e.g. Q3 Travel Budget" />
-            </Form.Item>
-            <Form.Item name="scopeType" label="Scope"><SearchableDropdown options={SCOPES} /></Form.Item>
-            {scopeType === 'category' && (
-              <Form.Item name="scopeId" label="Category" rules={[{ required: true, message: 'Pick a category' }]}>
-                <SearchableDropdown options={cats.map((c) => ({ value: c.id, label: c.name }))} />
+            <SectionCard icon={<AimOutlined />} title="Budget" subtitle="Scope, period and cap">
+              <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }, { pattern: /^[a-zA-Z0-9\s\-_.,()&/]*$/, message: 'Special characters are not allowed' }]}>
+                <Input placeholder="e.g. Q3 Travel Budget" />
               </Form.Item>
-            )}
-            {scopeType === 'user' && (
-              <Form.Item name="scopeId" label="User" rules={[{ required: true, message: 'Pick a user' }]}>
-                <SearchableDropdown options={users.map((u) => ({ value: u.id, label: u.name, avatarUrl: u.avatarUrl }))} />
+              <Form.Item name="scopeType" label="Scope"><SearchableDropdown options={SCOPES} /></Form.Item>
+              {scopeType === 'category' && (
+                <Form.Item name="scopeId" label="Category" rules={[{ required: true, message: 'Pick a category' }]}>
+                  <SearchableDropdown options={cats.map((c) => ({ value: c.id, label: c.name }))} />
+                </Form.Item>
+              )}
+              {scopeType === 'user' && (
+                <Form.Item name="scopeId" label="User" rules={[{ required: true, message: 'Pick a user' }]}>
+                  <SearchableDropdown options={users.map((u) => ({ value: u.id, label: u.name, avatarUrl: u.avatarUrl }))} />
+                </Form.Item>
+              )}
+              {scopeType === 'department' && (
+                <Form.Item name="scopeId" label="Department" rules={[{ required: true, message: 'Pick a department' }]}>
+                  <SearchableDropdown options={departments.map((d) => ({ value: d.id, label: d.name }))} />
+                </Form.Item>
+              )}
+              {scopeType === 'project' && (
+                <Form.Item name="scopeId" label="Project" rules={[{ required: true, message: 'Pick a project' }]}>
+                  <SearchableDropdown options={projects.map((p) => ({ value: p.value || p.id, label: p.label || p.name }))} />
+                </Form.Item>
+              )}
+              {scopeType && !['org', 'category', 'user', 'department', 'project'].includes(scopeType) && (
+                <Form.Item name="scopeId" label={`${SCOPES.find((s) => s.value === scopeType)?.label} ID`} rules={[{ required: true, message: 'ID required' }]}>
+                  <Input placeholder="Target ID (UUID)" />
+                </Form.Item>
+              )}
+              <Form.Item name="period" label="Period" rules={[{ required: true, message: 'Period required' }]}>
+                <DatePicker.RangePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />
               </Form.Item>
-            )}
-            {scopeType === 'department' && (
-              <Form.Item name="scopeId" label="Department" rules={[{ required: true, message: 'Pick a department' }]}>
-                <SearchableDropdown options={departments.map((d) => ({ value: d.id, label: d.name }))} />
-              </Form.Item>
-            )}
-            {scopeType === 'project' && (
-              <Form.Item name="scopeId" label="Project" rules={[{ required: true, message: 'Pick a project' }]}>
-                <SearchableDropdown options={projects.map((p) => ({ value: p.value || p.id, label: p.label || p.name }))} />
-              </Form.Item>
-            )}
-            {scopeType && !['org', 'category', 'user', 'department', 'project'].includes(scopeType) && (
-              <Form.Item name="scopeId" label={`${SCOPES.find((s) => s.value === scopeType)?.label} ID`} rules={[{ required: true, message: 'ID required' }]}>
-                <Input placeholder="Target ID (UUID)" />
-              </Form.Item>
-            )}
-            <Form.Item name="period" label="Period" rules={[{ required: true, message: 'Period required' }]}>
-              <DatePicker.RangePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />
-            </Form.Item>
-            <>
-              <Form.Item name="amount" label="Amount"
-                rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
-                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-              <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
-            </>
-            <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
-          </SectionCard>
+              <>
+                <Form.Item name="amount" label="Amount"
+                  rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
+                  <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+                <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
+              </>
+              <Form.Item name="isActive" label="Active" valuePropName="checked"><Switch /></Form.Item>
+            </SectionCard>
           </Form>
         </div>
       </Drawer>

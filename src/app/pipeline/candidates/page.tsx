@@ -369,6 +369,7 @@ export default function CandidatesPage() {
                 pagination={false}
                 className="pp-table"
                 scroll={{ x: 800 }}
+                locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : undefined }}
                 onRow={(record) => ({
                   onClick: (e) => {
                     const t = e.target as HTMLElement;
@@ -384,7 +385,7 @@ export default function CandidatesPage() {
           ) : (
             <div className="pp-grid">
               {loading ? (
-                <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
+                <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
               ) : filteredCandidates.length === 0 ? (
                 <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
               ) : (

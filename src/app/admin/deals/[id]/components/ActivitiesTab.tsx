@@ -73,10 +73,10 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ dealId }) => {
   return (
     <div style={{ padding: '24px 0' }}>
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           shape="round"
-          icon={<PlusOutlined />} 
+          icon={<PlusOutlined />}
           onClick={() => setIsModalVisible(true)}
           style={{ background: 'linear-gradient(90deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
         >
@@ -86,7 +86,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ dealId }) => {
 
       <Card variant="borderless" style={glassStyle}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" /></div>
+          <div style={{ textAlign: 'center', padding: '40px' }}><ZukvoLoader size="md" fullscreen='viewport' /></div>
         ) : activities.length > 0 ? (
           <div style={{ padding: '20px' }}>
             <Timeline
@@ -100,9 +100,9 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ dealId }) => {
                 children: (
                   <div style={{ paddingBottom: '24px' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '8px' }}>{activity.type}</div>
-                    <div style={{ 
-                      backgroundColor: 'rgba(0,0,0,0.02)', 
-                      padding: '16px', 
+                    <div style={{
+                      backgroundColor: 'rgba(0,0,0,0.02)',
+                      padding: '16px',
                       borderRadius: '12px',
                       border: '1px solid rgba(0,0,0,0.03)',
                       color: '#434343'
@@ -112,10 +112,10 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ dealId }) => {
                   </div>
                 ),
                 dot: (
-                  <div style={{ 
-                    backgroundColor: '#fff', 
-                    padding: '8px', 
-                    borderRadius: '50%', 
+                  <div style={{
+                    backgroundColor: '#fff',
+                    padding: '8px',
+                    borderRadius: '50%',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                     display: 'flex',
                     alignItems: 'center',

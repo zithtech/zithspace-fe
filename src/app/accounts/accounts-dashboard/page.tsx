@@ -1018,7 +1018,7 @@ export default function AccountsPage() {
                     className="pp-table"
                     scroll={{ x: 1000 }}
                     pagination={false}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : emptyState }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
@@ -1033,7 +1033,7 @@ export default function AccountsPage() {
               ) : (
                 <div className="pp-grid">
                   {loading ? (
-                    <div className="pp-grid-loading">Loading…</div>
+                    <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
                   ) : transactions.length === 0 ? (
                     <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                   ) : (

@@ -37,13 +37,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    return <ZukvoLoader message="Checking authentication..." />;
+    return <ZukvoLoader message="Checking authentication..." fullscreen="viewport" />;
   }
 
   // If auth is required but user is not authenticated, don't render children
   // (redirect will happen in useEffect)
   if (requireAuth && !isAuthenticated) {
-    return <ZukvoLoader message="Redirecting to login..." />;
+    return <ZukvoLoader message="Redirecting to login..." fullscreen="viewport" />;
   }
 
   // Render children if authentication check passes

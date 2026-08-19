@@ -1652,7 +1652,7 @@ export default function LeadSettingsPage() {
                                             scroll={{ x: "max-content" }}
                                             className="pp-table"
                                             rowClassName="pp-row"
-                                            locale={{ emptyText: emptyState }}
+                                            locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : emptyState }}
                                             onRow={(record) => ({
                                                 onClick: (e) => {
                                                     const t = e.target as HTMLElement;
@@ -1668,7 +1668,7 @@ export default function LeadSettingsPage() {
                                 ) : (
                                     <div className="pp-grid">
                                         {loading ? (
-                                            <div className="pp-grid-loading">Loading…</div>
+                                            <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
                                         ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
                                             <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                                         ) : (

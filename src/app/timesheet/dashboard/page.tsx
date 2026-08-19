@@ -23,9 +23,7 @@ export default function TimesheetDashboardPage() {
 
   if (authLoading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <ZukvoLoader size="lg" message="Loading..." />
-      </div>
+      <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />
     );
   }
 

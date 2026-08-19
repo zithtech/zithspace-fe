@@ -988,7 +988,7 @@ export default function InvoiceInvoicesPage() {
     }
   };
 
-  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><ZukvoLoader size="md" message="Loading" /></div></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><ZukvoLoader size="md" message="Loading" fullscreen='viewport' /></div></MainLayout>;
   if (!canReadInvoice && !canReadInvoiceHistory) return null;
 
   return (
@@ -1310,187 +1310,177 @@ export default function InvoiceInvoicesPage() {
               </div>
             )}
 
-            {isLoading ? (
-              viewMode === "card" ? (
-                <div className="pp-grid">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="pc-card p-4"
-                      style={{
-                        background: "var(--bg-slate-50)",
-                        border: "1px solid var(--border-slate-200)",
-                      }}
+            <ZukvoLoadingOverlay loading={isLoading || isFetching} message="">
+              {(isLoading || isFetching) ? (
+                viewMode === "card" ? (
+                  <div className="pp-grid">
+                    <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                  </div>
+                ) : (
+                  <div className="pp-table-wrap">
+                    <Table
+                      size="small"
+                      rowSelection={rowSelection}
+                      columns={columns}
+                      dataSource={[]}
+                      pagination={false}
+                      className="pp-table"
+                      scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
+                      locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
+                    />
+                  </div>
+                )
+              ) : filteredInvoices.length === 0 ? (
+                <div className="pp-empty">
+                  <div className="pp-empty-orb"><FileText size={26} /></div>
+                  <div className="pp-empty-title">No invoices found</div>
+                  <div className="pp-empty-sub">
+                    {searchText || customerFilter || dateRange
+                      ? "Try adjusting your search or filters."
+                      : "Get started by creating your first invoice."}
+                  </div>
+                  {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={14} />}
+                      onClick={() => router.push("/invoice/newinvoice")}
+                      className="pp-btn-primary"
+                      style={{ marginTop: 14 }}
                     >
-                      <Skeleton active avatar paragraph={{ rows: 1 }} />
-                    </div>
-                  ))}
+                      New Invoice
+                    </Button>
+                  )}
+                </div>
+              ) : viewMode === "card" ? (
+                <div className="pp-grid">
+                  {pagedInvoices.map((record) => {
+                    const snapshot = record.customerSnapshot as any;
+                    const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
+                    const accent = accentFor(companyName);
+                    const statusCfg = INVOICE_STATUS_META[fromBackendStatus(record.status)];
+
+                    return (
+                      <div
+                        key={record.id}
+                        className="pc-card"
+                        onClick={() => setPreviewInvoiceNumber(record.invoiceNumber)}
+                      >
+                        <div className="pc-top">
+                          <div
+                            className="pc-avatar"
+                            style={{
+                              background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                            }}
+                          >
+                            {initialsOf(companyName)}
+                          </div>
+                          <div className="pc-identity-body">
+                            <div className="pc-title" style={{ fontSize: '13px' }}>
+                              {record.invoiceNumber}
+                            </div>
+                            <div className="pc-client-line">
+                              <span className="pc-client-key">Company:</span>
+                              <span className="pc-client-val">{companyName}</span>
+                            </div>
+                          </div>
+                          <Dropdown
+                            overlay={<Menu items={getMenuItems(record)} />}
+                            overlayClassName="pp-action-pop"
+                            trigger={["click"]}
+                            placement="bottomRight"
+                          >
+                            <button
+                              type="button"
+                              className="pc-actions"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                          </Dropdown>
+                        </div>
+
+                        <div className="pc-foot">
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Billed:</span>
+                              <span className="pc-foot-val">
+                                {record.invoiceDate ? dayjs(record.invoiceDate).format("MMM DD, YYYY") : "—"}
+                              </span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Amount:</span>
+                              <span className="pc-foot-val" style={{ fontWeight: 700 }}>
+                                ${Number(record.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Status:</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: statusCfg.color,
+                                }}
+                              >
+                                {statusCfg.label.toUpperCase()}
+                              </span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <button
+                              type="button"
+                              className="pc-foot-item pc-view-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
+                              }}
+                            >
+                              View
+                            </button>
+                            <span className="pc-foot-div" />
+                            <button
+                              type="button"
+                              className="pc-foot-item pc-view-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadInvoice(record.id);
+                              }}
+                            >
+                              PDF
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="pp-table-wrap">
-                  <ZukvoLoadingOverlay loading={true} message="">
-                                      <Table
-                                                          size="small"
-                                                          rowSelection={rowSelection}
-                                                          columns={columns}
-                                                          dataSource={[]}
-                                                          pagination={false}
-                                                          className="pp-table"
-                                                          scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
-                                                        />
-                                      </ZukvoLoadingOverlay>
+                  <Table
+                    size="small"
+                    rowSelection={rowSelection}
+                    columns={columns}
+                    dataSource={pagedInvoices.map((inv) => ({
+                      ...inv,
+                      key: inv.id,
+                    }))}
+                    pagination={false}
+                    scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
+                    className="pp-table"
+                    onRow={(record) => ({
+                      onClick: (e) => {
+                        const t = e.target as HTMLElement;
+                        if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
+                        setPreviewInvoiceNumber(record.invoiceNumber);
+                      },
+                      className: 'pp-row',
+                    })}
+                  />
                 </div>
-              )
-            ) : filteredInvoices.length === 0 ? (
-              <div className="pp-empty">
-                <div className="pp-empty-orb"><FileText size={26} /></div>
-                <div className="pp-empty-title">No invoices found</div>
-                <div className="pp-empty-sub">
-                  {searchText || customerFilter || dateRange
-                    ? "Try adjusting your search or filters."
-                    : "Get started by creating your first invoice."}
-                </div>
-                {!searchText && !customerFilter && !dateRange && canCreateInvoice && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={() => router.push("/invoice/newinvoice")}
-                    className="pp-btn-primary"
-                    style={{ marginTop: 14 }}
-                  >
-                    New Invoice
-                  </Button>
-                )}
-              </div>
-            ) : viewMode === "card" ? (
-              <div className="pp-grid">
-                {pagedInvoices.map((record) => {
-                  const snapshot = record.customerSnapshot as any;
-                  const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
-                  const accent = accentFor(companyName);
-                  const statusCfg = INVOICE_STATUS_META[fromBackendStatus(record.status)];
-
-                  return (
-                    <div
-                      key={record.id}
-                      className="pc-card"
-                      onClick={() => setPreviewInvoiceNumber(record.invoiceNumber)}
-                    >
-                      <div className="pc-top">
-                        <div
-                          className="pc-avatar"
-                          style={{
-                            background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
-                          }}
-                        >
-                          {initialsOf(companyName)}
-                        </div>
-                        <div className="pc-identity-body">
-                          <div className="pc-title" style={{ fontSize: '13px' }}>
-                            {record.invoiceNumber}
-                          </div>
-                          <div className="pc-client-line">
-                            <span className="pc-client-key">Company:</span>
-                            <span className="pc-client-val">{companyName}</span>
-                          </div>
-                        </div>
-                        <Dropdown
-                          overlay={<Menu items={getMenuItems(record)} />}
-                          overlayClassName="pp-action-pop"
-                          trigger={["click"]}
-                          placement="bottomRight"
-                        >
-                          <button
-                            type="button"
-                            className="pc-actions"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        </Dropdown>
-                      </div>
-
-                      <div className="pc-foot">
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Billed:</span>
-                            <span className="pc-foot-val">
-                              {record.invoiceDate ? dayjs(record.invoiceDate).format("MMM DD, YYYY") : "—"}
-                            </span>
-                          </span>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Amount:</span>
-                            <span className="pc-foot-val" style={{ fontWeight: 700 }}>
-                              ${Number(record.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </span>
-                        </div>
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Status:</span>
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 700,
-                                color: statusCfg.color,
-                              }}
-                            >
-                              {statusCfg.label.toUpperCase()}
-                            </span>
-                          </span>
-                          <span className="pc-foot-div" />
-                          <button
-                            type="button"
-                            className="pc-foot-item pc-view-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
-                            }}
-                          >
-                            View
-                          </button>
-                          <span className="pc-foot-div" />
-                          <button
-                            type="button"
-                            className="pc-foot-item pc-view-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadInvoice(record.id);
-                            }}
-                          >
-                            PDF
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="pp-table-wrap">
-                <Table
-                  size="small"
-                  rowSelection={rowSelection}
-                  columns={columns}
-                  dataSource={pagedInvoices.map((inv) => ({
-                    ...inv,
-                    key: inv.id,
-                  }))}
-                  pagination={false}
-                  scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
-                  className="pp-table"
-                  onRow={(record) => ({
-                    onClick: (e) => {
-                      const t = e.target as HTMLElement;
-                      if (t.closest('button, input, .ant-select, .ant-dropdown, .ant-popover, .ant-popconfirm, .ant-modal, .ant-menu')) return;
-                      setPreviewInvoiceNumber(record.invoiceNumber);
-                    },
-                    className: 'pp-row',
-                  })}
-                />
-              </div>
-            )}
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}
@@ -1960,7 +1950,7 @@ export default function InvoiceInvoicesPage() {
       >
         {isPaymentLoading ? (
           <div className="flex flex-col justify-center items-center h-56">
-            <ZukvoLoader size="md" />
+            <ZukvoLoader size="md" fullscreen='viewport' />
             <span className="mt-3 text-xs" style={{ color: 'var(--text-slate-500)' }}>Loading payment history...</span>
           </div>
         ) : !paymentHistory ? (

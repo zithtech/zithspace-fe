@@ -22,11 +22,7 @@ export default function SubmitTimesheetPage() {
   }, [authLoading, canReadTimesheet, canCreateTimesheet, router]);
 
   if (authLoading) {
-    return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <ZukvoLoader size="lg" message="Loading..." />
-      </div>
-    );
+    return <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />;
   }
 
   if (!canReadTimesheet || !canCreateTimesheet) {

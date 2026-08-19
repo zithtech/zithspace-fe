@@ -54,13 +54,17 @@ export default function FinancePanel() {
   };
 
   const claimCols: ColumnsType<ApprovalInboxItem> = [
-    { title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Claim', dataIndex: 'claimNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Title', dataIndex: 'title', render: (v) => v || '—' },
-    { title: 'Amount', dataIndex: 'baseAmount', align: 'right', render: (v, r) => (
-      <div><div style={{ fontWeight: 600 }}>{money(v, r.baseCurrency)}</div>
-      {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.totalAmount, r.currency)}</div>}</div>) },
+    {
+      title: 'Amount', dataIndex: 'baseAmount', align: 'right', render: (v, r) => (
+        <div><div style={{ fontWeight: 600 }}>{money(v, r.baseCurrency)}</div>
+          {r.currency !== r.baseCurrency && <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{money(r.totalAmount, r.currency)}</div>}</div>)
+    },
     { title: 'Approved', dataIndex: 'decidedAt', render: (v) => fmtDate(v) },
     {
       title: 'Actions', key: 'actions', width: 130, align: 'right',
@@ -69,9 +73,11 @@ export default function FinancePanel() {
   ];
 
   const advanceCols: ColumnsType<AdvanceInboxItem> = [
-    { title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>) },
+    {
+      title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.requesterName || r.requesterEmail || r.userId}</div></div>)
+    },
     { title: 'Purpose', dataIndex: 'purpose', render: (v) => v || '—' },
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Needed by', dataIndex: 'neededBy', render: (v) => fmtDate(v) },
@@ -98,9 +104,9 @@ export default function FinancePanel() {
             children: (
               <div className="rvp-table-wrap">
                 <ZukvoLoadingOverlay loading={loading} message="">
-                    <Table rowKey="id" size="middle" columns={claimCols} dataSource={claims}
-                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
-                    </ZukvoLoadingOverlay>
+                  <Table rowKey="id" size="middle" columns={claimCols} dataSource={claims}
+                    locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                </ZukvoLoadingOverlay>
               </div>
             ),
           },
@@ -109,9 +115,9 @@ export default function FinancePanel() {
             children: (
               <div className="rvp-table-wrap">
                 <ZukvoLoadingOverlay loading={loading} message="">
-                    <Table rowKey="id" size="middle" columns={advanceCols} dataSource={advances}
-                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
-                    </ZukvoLoadingOverlay>
+                  <Table rowKey="id" size="middle" columns={advanceCols} dataSource={advances}
+                    locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
+                </ZukvoLoadingOverlay>
               </div>
             ),
           },
@@ -159,27 +165,27 @@ export default function FinancePanel() {
 
           <div className="p-5 pb-1">
             <Form form={form} layout="vertical" requiredMark={false}>
-              <Form.Item 
-                name="paymentReference" 
-                label={<span style={{ color: 'var(--text-secondary)' }}>Payment reference</span>} 
+              <Form.Item
+                name="paymentReference"
+                label={<span style={{ color: 'var(--text-secondary)' }}>Payment reference</span>}
                 rules={[{ required: true, message: 'Reference required' }]}
               >
-                <Input 
-                  placeholder="e.g. NEFT-2024-00123" 
+                <Input
+                  placeholder="e.g. NEFT-2024-00123"
                   style={{
                     background: 'var(--bg-primary)',
                     borderColor: 'var(--border-color)',
                     color: 'var(--text-primary)',
-                  }} 
+                  }}
                 />
               </Form.Item>
-              <Form.Item 
-                name="remarks" 
+              <Form.Item
+                name="remarks"
                 label={<span style={{ color: 'var(--text-secondary)' }}>Remarks</span>}
               >
-                <Input.TextArea 
-                  rows={3} 
-                  placeholder="Optional" 
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Optional"
                   style={{
                     background: 'var(--bg-primary)',
                     borderColor: 'var(--border-color)',

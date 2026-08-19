@@ -705,7 +705,7 @@ export default function ReportsHub() {
             ) : (
               <div className="pp-grid">
                 {loading ? (
-                  <div className="pp-grid-loading">Loading…</div>
+                  <div style={{ minHeight: 400, gridColumn: "1 / -1" }} />
                 ) : filteredReports.length === 0 ? (
                   <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
                 ) : (

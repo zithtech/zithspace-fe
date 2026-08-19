@@ -1242,9 +1242,10 @@ export default function EscalationSettingsPage() {
                   )}
                 </Empty>
               </div>
-            ) : view === 'list' ? (
-              <div className="es-table-wrap">
-                <ZukvoLoadingOverlay loading={loading} message="">
+            ) : (
+              <ZukvoLoadingOverlay loading={loading} message="">
+                {view === 'list' ? (
+                  <div className="es-table-wrap">
                                   <Table
                                                     className="es-table"
                                                     size="small"
@@ -1252,6 +1253,7 @@ export default function EscalationSettingsPage() {
                                                     columns={activeSection.columns as any}
                                                     rowKey="id"
                                                     pagination={false}
+                                                    locale={{ emptyText: loading ? <div style={{ minHeight: 400 }} /> : undefined }}
                                                     rowClassName={() => 'es-row'}
                                                     onRow={(record) => ({
                                                       onClick: (e) => {
@@ -1262,16 +1264,15 @@ export default function EscalationSettingsPage() {
                                                       className: 'es-row',
                                                     })}
                                                   />
-                                  </ZukvoLoadingOverlay>
-              </div>
-            ) : (
-              <div className="es-grid">
-                {loading ? (
-                  <div className="es-grid-loading">Loading…</div>
+                  </div>
                 ) : (
-                  filteredData.map((item: any) => {
-                    if (activeTab === 'categories') {
-                      return (
+                  <div className="es-grid">
+                    {loading ? (
+                      <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                    ) : (
+                      filteredData.map((item: any) => {
+                        if (activeTab === 'categories') {
+                          return (
                         <div key={item.id} className="ec-card group transition-all flex flex-col relative cursor-pointer" onClick={() => handleOpenDrawer(item)}>
                           <div className="ec-top">
                             <div
@@ -1523,7 +1524,9 @@ export default function EscalationSettingsPage() {
                     );
                   })
                 )}
-              </div>
+                  </div>
+                )}
+              </ZukvoLoadingOverlay>
             )}
           </div>
         </main>

@@ -51,6 +51,11 @@ export default function SettingsPanel() {
         }
         .rb2-settings-tabs .ant-tabs-content-holder {
           padding: 0 24px 24px 24px;
+          display: flex; flex-direction: column; flex: 1; min-height: 0;
+        }
+        .rb2-settings-tabs .ant-tabs-content,
+        .rb2-settings-tabs .ant-tabs-tabpane {
+          display: flex; flex-direction: column; flex: 1; min-height: 0;
         }
         .rb2-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border-slate-200); flex-wrap: wrap; }
         .rb2-header-about { display: flex; align-items: center; gap: 12px; min-width: 200px; }

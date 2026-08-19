@@ -129,7 +129,8 @@ export default function ProjectTrashManagementPage() {
     }
   }, []);
 
-  const { data: trashProjects, isLoading, refetch } = useProjectTrash();
+  const { data: trashProjects, isLoading: queryLoading, isFetching, refetch } = useProjectTrash();
+  const isLoading = queryLoading || isRefreshing || isFetching;
   const restoreProject = useRestoreProject();
   const permanentDelete = usePermanentDeleteProject();
   const emptyTrash = useEmptyTrash();
@@ -355,32 +356,32 @@ export default function ProjectTrashManagementPage() {
                   />
 
                   <SearchableDropdown
-                      className="pm2-side-filter-select"
-                      placeholder="Project Manager"
-                      searchPlaceholder="Search managers"
-                      itemNoun="managers"
-                      value={filters.projectManagerId || undefined}
-                      onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
-                      options={uniqueManagers.map(([id, pm]) => ({
-                        value: id as string,
-                        label: (pm as any).name as string,
-                        badge: (
-                          <Avatar
-                            src={(pm as any).avatarUrl || undefined}
-                            size={20}
-                            style={{
-                              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                              fontSize: 9,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {((pm as any).name || "?").charAt(0).toUpperCase()}
-                          </Avatar>
-                        )
-                      }))}
-                      width="100%"
-                      style={{ width: '100%' }}
-                    />
+                    className="pm2-side-filter-select"
+                    placeholder="Project Manager"
+                    searchPlaceholder="Search managers"
+                    itemNoun="managers"
+                    value={filters.projectManagerId || undefined}
+                    onChange={(val) => setFilters(prev => ({ ...prev, projectManagerId: val ?? undefined }))}
+                    options={uniqueManagers.map(([id, pm]) => ({
+                      value: id as string,
+                      label: (pm as any).name as string,
+                      badge: (
+                        <Avatar
+                          src={(pm as any).avatarUrl || undefined}
+                          size={20}
+                          style={{
+                            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                            fontSize: 9,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {((pm as any).name || "?").charAt(0).toUpperCase()}
+                        </Avatar>
+                      )
+                    }))}
+                    width="100%"
+                    style={{ width: '100%' }}
+                  />
 
                   <DatePicker.RangePicker
                     className="premium-range-picker"
@@ -457,7 +458,7 @@ export default function ProjectTrashManagementPage() {
                     className="pp-ghost-btn"
                     onClick={async () => {
                       setIsRefreshing(true);
-                      await queryClient.invalidateQueries({ queryKey: ["projects-trash"] });
+                      await queryClient.invalidateQueries({ queryKey: ["project-trash"] });
                       setIsRefreshing(false);
                       message.success("Trash view refreshed");
                     }}
@@ -614,37 +615,34 @@ export default function ProjectTrashManagementPage() {
 
               {viewMode === "table" ? (
                 <div className="pm2-table-shell" style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}>
-                  <ZukvoLoadingOverlay loading={false} message="">
-                                  <Table
-                                                      size="small"
-                                                      className="premium-table"
-                                                      rowSelection={(isLoading || isRefreshing) ? undefined : {
-                                                        selectedRowKeys,
-                                                        onChange: (keys) => setSelectedRowKeys(keys)
-                                                      }}
-                                                      dataSource={(isLoading || isRefreshing) ? Array(5).fill({}) : filteredProjects.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
-                                                      columns={columns.map(col => ({
-                                                        ...col,
-                                                        render: (text: any, record: any, index: number) => {
-                                                          if (isLoading || isRefreshing) {
-                                                            return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
-                                                          }
-                                                          return col.render ? (col.render as any)(text, record, index) : text;
-                                                        }
-                                                      }))}
-                                                      rowKey={(record: any) => record.id || Math.random()}
-                                                      pagination={false}
-                                                      scroll={{ x: "max-content" }}
-                                                      locale={{
-                                                        emptyText: (
-                                                          <Empty
-                                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                                            description={<Text type="secondary">No projects found in trash</Text>}
-                                                          />
-                                                        ),
-                                                      }}
-                                                    />
-                                  </ZukvoLoadingOverlay>
+                  <ZukvoLoadingOverlay loading={isLoading} message="">
+                    <Table
+                      size="small"
+                      className="premium-table"
+                      rowSelection={(isLoading || isRefreshing) ? undefined : {
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys)
+                      }}
+                      dataSource={isLoading ? [] : filteredProjects.slice((pagination.current - 1) * pagination.pageSize, pagination.current * pagination.pageSize)}
+                      columns={columns.map(col => ({
+                        ...col,
+                        render: (text: any, record: any, index: number) => {
+                          return col.render ? (col.render as any)(text, record, index) : text;
+                        }
+                      }))}
+                      rowKey={(record: any) => record.id || Math.random()}
+                      pagination={false}
+                      scroll={{ x: "max-content" }}
+                      locale={{
+                        emptyText: isLoading ? <div style={{ minHeight: 400 }} /> : (
+                          <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={<Text type="secondary">No projects found in trash</Text>}
+                          />
+                        ),
+                      }}
+                    />
+                  </ZukvoLoadingOverlay>
                 </div>
               ) : (
                 <div className="pm2-grid">
@@ -708,7 +706,7 @@ export default function ProjectTrashManagementPage() {
                                 <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-slate-700)' }}>
                                   {pmFullName.split(' ')[0]}
                                 </span>
-                                       <ConfirmDialog
+                                <ConfirmDialog
                                   tone="success"
                                   title="Restore project?"
                                   description="This will restore the project back to active status."

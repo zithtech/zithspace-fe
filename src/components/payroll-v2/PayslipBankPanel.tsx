@@ -447,7 +447,7 @@ export default function PayslipBankPanel() {
         styles={{ header: { padding: '12px 20px' }, body: { padding: 16, background: '#e5e7eb' } }}
       >
         {previewing ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 64 }}><ZukvoLoader size="md" /></div>
         ) : (
           <iframe title="Payslip preview" srcDoc={previewHtml} style={{ width: '100%', height: '1050px', border: 'none', background: '#fff', boxShadow: '0 2px 14px rgba(0,0,0,0.15)' }} />
         )}

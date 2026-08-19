@@ -107,7 +107,7 @@ export default function SubmitDailyUpdatePage() {
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
-            <ZukvoLoader size="lg" message="Loading" />
+            <ZukvoLoader size="lg" message="Loading" fullscreen='viewport' />
           </div>
         </div>
       </MainLayout>
@@ -183,7 +183,7 @@ function SubmitDailyUpdateContent() {
     fetchActiveTimer();
     AttendanceService.getTodayAttendance()
       .then(setTodayAtt)
-      .catch(() => {});
+      .catch(() => { });
   }, [fetchActiveTimer]);
   // ✅ FETCH UPDATE FOR EDIT MODE
   const fetchUpdateById = async (id: string) => {
@@ -1295,34 +1295,34 @@ function SubmitDailyUpdateContent() {
         <div className="du-sidebar-scroll">
           <div className="du-side-group">
             <button
-               type="button"
-               onClick={() => router.push("/daily-updates/view")}
-               className="du-side-view"
+              type="button"
+              onClick={() => router.push("/daily-updates/view")}
+              className="du-side-view"
             >
               <span className="du-side-view-icon"><ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} /></span>
               <span className="du-side-view-label">Back to view</span>
             </button>
           </div>
-          
+
 
 
           <div className="du-side-group">
             <div className="du-side-label">Summary</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
-               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                   <Briefcase size={14} color="var(--text-slate-400)" />
-                   <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Projects</Text>
-                 </div>
-                 <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
-               </div>
-               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                   <Clock size={14} color="#0ea5e9" />
-                   <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Total Time</Text>
-                 </div>
-                 <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{formatHours(totalHours)}</Text>
-               </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Briefcase size={14} color="var(--text-slate-400)" />
+                  <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Projects</Text>
+                </div>
+                <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Clock size={14} color="#0ea5e9" />
+                  <Text style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Total Time</Text>
+                </div>
+                <Text strong style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{formatHours(totalHours)}</Text>
+              </div>
             </div>
           </div>
         </div>
@@ -1416,9 +1416,9 @@ function SubmitDailyUpdateContent() {
               </div>
 
               {alreadySubmitted && (
-                 <Tag color="success" style={{ margin: 0, borderRadius: 6, fontSize: 11, fontWeight: 600, padding: "2px 8px" }}>
-                   Submitted
-                 </Tag>
+                <Tag color="success" style={{ margin: 0, borderRadius: 6, fontSize: 11, fontWeight: 600, padding: "2px 8px" }}>
+                  Submitted
+                </Tag>
               )}
             </div>
           </header>
@@ -1426,462 +1426,462 @@ function SubmitDailyUpdateContent() {
           <div className="du-main-scroll daily-update-scroll-area" style={{ paddingTop: 16 }}>
             <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
 
-            {/* Missed-update date picker (revealed below toolbar) */}
-            {isMissedUpdate && (
-              <div className="dud-anim" style={{
-                marginBottom: 22,
-                padding: "12px 16px",
-                background: isDark ? "rgba(22, 119, 255, 0.08)" : "#eff6ff",
-                border: isDark ? "1px solid rgba(22, 119, 255, 0.2)" : "1px solid #bfdbfe",
-                borderRadius: 0,
+              {/* Missed-update date picker (revealed below toolbar) */}
+              {isMissedUpdate && (
+                <div className="dud-anim" style={{
+                  marginBottom: 22,
+                  padding: "12px 16px",
+                  background: isDark ? "rgba(22, 119, 255, 0.08)" : "#eff6ff",
+                  border: isDark ? "1px solid rgba(22, 119, 255, 0.2)" : "1px solid #bfdbfe",
+                  borderRadius: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}>
+                  <AlertTriangle size={16} color={isDark ? "#60a5fa" : "#1d4ed8"} />
+                  <Text style={{ fontSize: 12, color: isDark ? "#60a5fa" : "#1d4ed8", fontWeight: 600 }}>
+                    Date for the missed update:
+                  </Text>
+                  <DatePicker
+                    placeholder="Select missed date"
+                    style={{ flex: 1, maxWidth: 240, borderRadius: 8 }}
+                    value={missedDate}
+                    onChange={(date) => setMissedDate(date)}
+                    disabledDate={(current) =>
+                      current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"))
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Project Updates Section Title */}
+              <div style={{
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: 12,
+                marginBottom: 14,
               }}>
-                <AlertTriangle size={16} color={isDark ? "#60a5fa" : "#1d4ed8"} />
-                <Text style={{ fontSize: 12, color: isDark ? "#60a5fa" : "#1d4ed8", fontWeight: 600 }}>
-                  Date for the missed update:
-                </Text>
-                <DatePicker
-                  placeholder="Select missed date"
-                  style={{ flex: 1, maxWidth: 240, borderRadius: 8 }}
-                  value={missedDate}
-                  onChange={(date) => setMissedDate(date)}
-                  disabledDate={(current) =>
-                    current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"))
-                  }
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div style={{ width: 3, height: 16, borderRadius: 2, background: "#6366f1" }} />
+                  <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)", letterSpacing: -0.1 }}>
+                    Work Details
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                    · {projectUpdates.length} {projectUpdates.length === 1 ? "entry" : "entries"}
+                  </Text>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    loading={importing}
+                    icon={<CalendarClock size={14} />}
+                    onClick={handleImportFromTimeTracking}
+                    style={{
+                      height: 32,
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      border: "1px solid var(--border-slate-200)",
+                      background: "var(--bg-pure-white)",
+                      color: "var(--text-slate-700)",
+                    }}
+                  >
+                    Import from Time Tracking
+                  </Button>
+                  <Button
+                    icon={<Plus size={14} />}
+                    onClick={handleAddProject}
+                    style={{
+                      height: 32,
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      border: "1px solid var(--border-slate-200)",
+                      background: "var(--bg-pure-white)",
+                      color: "var(--text-slate-700)",
+                    }}
+                  >
+                    Add Project
+                  </Button>
+                </div>
               </div>
-            )}
 
-            {/* Project Updates Section Title */}
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 14,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <div style={{ width: 3, height: 16, borderRadius: 2, background: "#6366f1" }} />
-                <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)", letterSpacing: -0.1 }}>
-                  Work Details
-                </Text>
-                <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                  · {projectUpdates.length} {projectUpdates.length === 1 ? "entry" : "entries"}
-                </Text>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Button
-                  loading={importing}
-                  icon={<CalendarClock size={14} />}
-                  onClick={handleImportFromTimeTracking}
-                  style={{
-                    height: 32,
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    border: "1px solid var(--border-slate-200)",
-                    background: "var(--bg-pure-white)",
-                    color: "var(--text-slate-700)",
-                  }}
-                >
-                  Import from Time Tracking
-                </Button>
-                <Button
-                  icon={<Plus size={14} />}
-                  onClick={handleAddProject}
-                  style={{
-                    height: 32,
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    border: "1px solid var(--border-slate-200)",
-                    background: "var(--bg-pure-white)",
-                    color: "var(--text-slate-700)",
-                  }}
-                >
-                  Add Project
-                </Button>
-              </div>
-            </div>
-
-            {/* Project Cards */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {projectUpdates.map((update, projectIndex) => (
-                <div
-                  key={projectIndex}
-                  className="dud-card dud-anim"
-                  style={{
-                    overflow: "hidden",
-                    animationDelay: `${projectIndex * 30}ms`,
-                  }}
-                >
-                  {/* Card Header Strip */}
-                  <div className="dud-card-header" style={{
-                    padding: "10px 16px",
-                    background: "var(--bg-slate-50)",
-                    borderBottom: "1px solid var(--border-slate-100)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <div className="dud-index-badge" style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 6,
-                        background: "var(--bg-pure-white)",
-                        border: "1px solid var(--border-slate-200)",
-                        color: "var(--text-slate-700)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        flexShrink: 0,
-                      }}>
-                        {projectIndex + 1}
-                      </div>
-                      <Text strong style={{ color: "var(--text-slate-900)", fontSize: 13 }}>
-                        Project Entry
-                      </Text>
-                      {update.projectName && (
-                        <>
-                          <span style={{ color: "var(--text-slate-400)", fontSize: 12 }}>·</span>
-                          <Text style={{
-                            fontSize: 12,
-                            color: "var(--text-slate-600)",
-                            fontWeight: 500,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}>
-                            {update.projectName}
-                          </Text>
-                        </>
-                      )}
-                      {update.hoursWorked > 0 && (
-                        <div style={{
-                          display: "inline-flex",
+              {/* Project Cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {projectUpdates.map((update, projectIndex) => (
+                  <div
+                    key={projectIndex}
+                    className="dud-card dud-anim"
+                    style={{
+                      overflow: "hidden",
+                      animationDelay: `${projectIndex * 30}ms`,
+                    }}
+                  >
+                    {/* Card Header Strip */}
+                    <div className="dud-card-header" style={{
+                      padding: "10px 16px",
+                      background: "var(--bg-slate-50)",
+                      borderBottom: "1px solid var(--border-slate-100)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <div className="dud-index-badge" style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 6,
+                          background: "var(--bg-pure-white)",
+                          border: "1px solid var(--border-slate-200)",
+                          color: "var(--text-slate-700)",
+                          display: "flex",
                           alignItems: "center",
-                          gap: 4,
-                          padding: "2px 8px",
-                          background: "#ecfdf5",
-                          color: "#047857",
-                          borderRadius: 999,
+                          justifyContent: "center",
                           fontSize: 11,
                           fontWeight: 700,
-                          border: "1px solid #a7f3d0",
-                          marginLeft: 4,
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                           flexShrink: 0,
                         }}>
-                          <Clock size={10} strokeWidth={2.5} />
-                          {formatHours(update.hoursWorked)}
+                          {projectIndex + 1}
                         </div>
-                      )}
-                    </div>
-                    {projectUpdates.length > 1 && (
-                      <Button
-                        type="text"
-                        danger
-                        size="small"
-                        icon={<Trash2 size={13} />}
-                        onClick={() => handleRemoveProject(projectIndex)}
-                        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-
-                  <div style={{ padding: 16 }}>
-                    <Row gutter={14}>
-                      <Col span={10}>
-                        <Form.Item
-                          label="Project & Client"
-                          required
-                          style={{ marginBottom: 14 }}
-                        >
-                          <Select
-                            placeholder="Search and select project"
-                            value={update.projectId || undefined}
-                            onChange={(value) => handleProjectChange(projectIndex, value)}
-                            options={getAvailableProjects(projectIndex).map((p) => ({
-                              label: `${p.label} (${p.code})`,
-                              value: p.value,
-                            }))}
-                            showSearch
-                            optionFilterProp="label"
-                            size="middle"
-                            style={{ width: "100%" }}
-                            suffixIcon={<ChevronRight size={14} />}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col span={14}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 96px", gap: 10 }}>
-                          <Form.Item label="Start Time" required style={{ marginBottom: 14 }}>
-                            <DatePicker
-                              showTime
-                              format="DD-MM-YYYY HH:mm"
-                              placeholder="00-00-00 00:00"
-                              value={update.startTime ? dayjs(update.startTime) : null}
-                              onChange={(value) => handleTimeChange(projectIndex, "startTime", value)}
-                              needConfirm={false}
-                              disabledDate={(current) => {
-                                if (isMissedUpdate) {
-                                  if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
-                                  return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
-                                }
-
-                                return current && current.isBefore(dayjs(), "day");
-                              }}
-                              style={{ width: "100%" }}
-                              suffixIcon={<Clock size={14} />}
-                            />
-                          </Form.Item>
-                          <Form.Item label="End Time" required style={{ marginBottom: 14 }}>
-                            <DatePicker
-                              showTime
-                              format="DD-MM-YYYY HH:mm"
-                              placeholder="00-00-00 00:00"
-                              value={update.endTime ? dayjs(update.endTime) : null}
-                              needConfirm={false}
-                              onChange={(value) => handleTimeChange(projectIndex, "endTime", value)}
-                              disabledDate={(current) => {
-                                if (isMissedUpdate) {
-                                  if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
-                                  return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
-                                }
-                                return current && current.isBefore(dayjs(), "day");
-                              }}
-                              style={{ width: "100%" }}
-                              suffixIcon={<Clock size={14} />}
-                            />
-                          </Form.Item>
-                          <Form.Item label="Total" style={{ marginBottom: 14 }}>
-                            <div style={{
-                              height: 32,
-                              background: "var(--bg-slate-50)",
-                              borderRadius: 6,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              border: "1px solid var(--border-slate-200)",
-                              fontWeight: 700,
-                              color: update.hoursWorked > 0 ? "#047857" : "var(--text-slate-400)",
-                              fontSize: 13,
-                              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        <Text strong style={{ color: "var(--text-slate-900)", fontSize: 13 }}>
+                          Project Entry
+                        </Text>
+                        {update.projectName && (
+                          <>
+                            <span style={{ color: "var(--text-slate-400)", fontSize: 12 }}>·</span>
+                            <Text style={{
+                              fontSize: 12,
+                              color: "var(--text-slate-600)",
+                              fontWeight: 500,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
                             }}>
-                              {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "—"}
-                            </div>
-                          </Form.Item>
-                        </div>
-                      </Col>
-                    </Row>
-
-                    {/* Tasks Content Area */}
-                    <div className="dud-tasks-container" style={{
-                      marginTop: 4,
-                      padding: 14,
-                      background: "var(--bg-slate-50)",
-                      borderRadius: 10,
-                      border: "1px solid var(--border-slate-200)",
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <ListChecks size={14} color="var(--text-slate-600)" />
-                          <Text style={{
-                            fontSize: 11,
-                            color: "var(--text-slate-600)",
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}>
-                            Tasks &amp; Deliverables · {update.tasks.length}
-                          </Text>
-                        </div>
-                        <Button
-                          size="small"
-                          icon={<Plus size={12} />}
-                          onClick={() => handleAddTask(projectIndex)}
-                          style={{
-                            height: 26,
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            display: "flex",
+                              {update.projectName}
+                            </Text>
+                          </>
+                        )}
+                        {update.hoursWorked > 0 && (
+                          <div style={{
+                            display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
-                            border: "1px solid var(--border-slate-200)",
-                            background: "var(--bg-pure-white)",
-                            color: "var(--text-slate-700)",
-                          }}
-                        >
-                          Add Task
-                        </Button>
-                      </div>
-
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {update.tasks.map((task, taskIndex) => (
-                          <div
-                            key={taskIndex}
-                            className="dud-task-row"
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "112px minmax(0, 1fr) 170px 32px",
-                              gap: 8,
-                              alignItems: "stretch",
-                              background: "var(--bg-pure-white)",
-                              padding: 8,
-                              borderRadius: 8,
-                              border: "1px solid var(--border-slate-200)",
-                            }}
-                          >
-                            <Select
-                              size="small"
-                              value={task.type}
-                              onChange={(val) => handleTaskTypeChange(projectIndex, taskIndex, val as any)}
-                              options={[
-                                { label: "Ticket", value: "ticket" },
-                                { label: "Manual", value: "manual" },
-                              ]}
-                              style={{ width: "100%" }}
-                            />
-
-                            {task.type === "ticket" ? (
-                              <Select
-                                size="small"
-                                placeholder="Select ticket"
-                                value={task.ticketId || undefined}
-                                onChange={(value) => handleTicketSelect(projectIndex, taskIndex, value)}
-                                options={projectTickets[update.projectId]?.map((t) => ({
-                                  label: `${t.ticketNumber} - ${t.title}`,
-                                  value: t.id,
-                                })) || []}
-                                showSearch
-                                optionFilterProp="label"
-                                style={{ width: "100%" }}
-                                disabled={!update.projectId}
-                              />
-                            ) : (
-                              <TextArea
-                                size="small"
-                                placeholder="Task description..."
-                                autoSize={{ minRows: 1, maxRows: 3 }}
-                                value={task.description || ""}
-                                onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
-                                style={{ padding: "4px 10px", fontSize: 13 }}
-                              />
-                            )}
-
-                            <Select
-                              size="small"
-                              placeholder="Status"
-                              value={task.status}
-                              onChange={(value) => handleTaskStatusChange(projectIndex, taskIndex, value as WorkStatus)}
-                              options={STATUS_OPTIONS}
-                              style={{ width: "100%" }}
-                            />
-
-                            <Button
-                              type="text"
-                              danger
-                              size="small"
-                              icon={<Trash2 size={14} />}
-                              onClick={() => handleRemoveTask(projectIndex, taskIndex)}
-                              disabled={update.tasks.length === 1}
-                              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-                            />
+                            padding: "2px 8px",
+                            background: "#ecfdf5",
+                            color: "#047857",
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            border: "1px solid #a7f3d0",
+                            marginLeft: 4,
+                            flexShrink: 0,
+                          }}>
+                            <Clock size={10} strokeWidth={2.5} />
+                            {formatHours(update.hoursWorked)}
                           </div>
-                        ))}
+                        )}
                       </div>
+                      {projectUpdates.length > 1 && (
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<Trash2 size={13} />}
+                          onClick={() => handleRemoveProject(projectIndex)}
+                          style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+                        >
+                          Remove
+                        </Button>
+                      )}
                     </div>
 
-                    {/* Blockers & Notes Grid */}
-                    <Row gutter={12} style={{ marginTop: 14 }}>
-                      <Col span={12}>
-                        <Form.Item
-                          label={
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <AlertTriangle size={12} color="#f59e0b" />
-                              Blockers
-                            </span>
-                          }
-                          style={{ marginBottom: 0 }}
-                        >
-                          <TextArea
-                            rows={2}
-                            placeholder="Any blockers or dependencies…"
-                            value={update.blockers}
-                            onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
-                            style={{ borderRadius: 8, fontSize: 13 }}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item
-                          label={
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <MessageSquare size={12} color="var(--text-slate-600)" />
-                              Comments
-                            </span>
-                          }
-                          style={{ marginBottom: 0 }}
-                        >
-                          <TextArea
-                            rows={2}
-                            placeholder="Project specific notes…"
-                            value={update.notes}
-                            onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
-                            style={{ borderRadius: 8, fontSize: 13 }}
-                          />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+                    <div style={{ padding: 16 }}>
+                      <Row gutter={14}>
+                        <Col span={10}>
+                          <Form.Item
+                            label="Project & Client"
+                            required
+                            style={{ marginBottom: 14 }}
+                          >
+                            <Select
+                              placeholder="Search and select project"
+                              value={update.projectId || undefined}
+                              onChange={(value) => handleProjectChange(projectIndex, value)}
+                              options={getAvailableProjects(projectIndex).map((p) => ({
+                                label: `${p.label} (${p.code})`,
+                                value: p.value,
+                              }))}
+                              showSearch
+                              optionFilterProp="label"
+                              size="middle"
+                              style={{ width: "100%" }}
+                              suffixIcon={<ChevronRight size={14} />}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={14}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 96px", gap: 10 }}>
+                            <Form.Item label="Start Time" required style={{ marginBottom: 14 }}>
+                              <DatePicker
+                                showTime
+                                format="DD-MM-YYYY HH:mm"
+                                placeholder="00-00-00 00:00"
+                                value={update.startTime ? dayjs(update.startTime) : null}
+                                onChange={(value) => handleTimeChange(projectIndex, "startTime", value)}
+                                needConfirm={false}
+                                disabledDate={(current) => {
+                                  if (isMissedUpdate) {
+                                    if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
+                                    return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
+                                  }
+
+                                  return current && current.isBefore(dayjs(), "day");
+                                }}
+                                style={{ width: "100%" }}
+                                suffixIcon={<Clock size={14} />}
+                              />
+                            </Form.Item>
+                            <Form.Item label="End Time" required style={{ marginBottom: 14 }}>
+                              <DatePicker
+                                showTime
+                                format="DD-MM-YYYY HH:mm"
+                                placeholder="00-00-00 00:00"
+                                value={update.endTime ? dayjs(update.endTime) : null}
+                                needConfirm={false}
+                                onChange={(value) => handleTimeChange(projectIndex, "endTime", value)}
+                                disabledDate={(current) => {
+                                  if (isMissedUpdate) {
+                                    if (missedDate) return !current.isSame(missedDate, "day") && !current.isSame(dayjs(missedDate).add(1, "day"), "day");
+                                    return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
+                                  }
+                                  return current && current.isBefore(dayjs(), "day");
+                                }}
+                                style={{ width: "100%" }}
+                                suffixIcon={<Clock size={14} />}
+                              />
+                            </Form.Item>
+                            <Form.Item label="Total" style={{ marginBottom: 14 }}>
+                              <div style={{
+                                height: 32,
+                                background: "var(--bg-slate-50)",
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "1px solid var(--border-slate-200)",
+                                fontWeight: 700,
+                                color: update.hoursWorked > 0 ? "#047857" : "var(--text-slate-400)",
+                                fontSize: 13,
+                                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                              }}>
+                                {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "—"}
+                              </div>
+                            </Form.Item>
+                          </div>
+                        </Col>
+                      </Row>
+
+                      {/* Tasks Content Area */}
+                      <div className="dud-tasks-container" style={{
+                        marginTop: 4,
+                        padding: 14,
+                        background: "var(--bg-slate-50)",
+                        borderRadius: 10,
+                        border: "1px solid var(--border-slate-200)",
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <ListChecks size={14} color="var(--text-slate-600)" />
+                            <Text style={{
+                              fontSize: 11,
+                              color: "var(--text-slate-600)",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.5,
+                            }}>
+                              Tasks &amp; Deliverables · {update.tasks.length}
+                            </Text>
+                          </div>
+                          <Button
+                            size="small"
+                            icon={<Plus size={12} />}
+                            onClick={() => handleAddTask(projectIndex)}
+                            style={{
+                              height: 26,
+                              borderRadius: 6,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              border: "1px solid var(--border-slate-200)",
+                              background: "var(--bg-pure-white)",
+                              color: "var(--text-slate-700)",
+                            }}
+                          >
+                            Add Task
+                          </Button>
+                        </div>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {update.tasks.map((task, taskIndex) => (
+                            <div
+                              key={taskIndex}
+                              className="dud-task-row"
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "112px minmax(0, 1fr) 170px 32px",
+                                gap: 8,
+                                alignItems: "stretch",
+                                background: "var(--bg-pure-white)",
+                                padding: 8,
+                                borderRadius: 8,
+                                border: "1px solid var(--border-slate-200)",
+                              }}
+                            >
+                              <Select
+                                size="small"
+                                value={task.type}
+                                onChange={(val) => handleTaskTypeChange(projectIndex, taskIndex, val as any)}
+                                options={[
+                                  { label: "Ticket", value: "ticket" },
+                                  { label: "Manual", value: "manual" },
+                                ]}
+                                style={{ width: "100%" }}
+                              />
+
+                              {task.type === "ticket" ? (
+                                <Select
+                                  size="small"
+                                  placeholder="Select ticket"
+                                  value={task.ticketId || undefined}
+                                  onChange={(value) => handleTicketSelect(projectIndex, taskIndex, value)}
+                                  options={projectTickets[update.projectId]?.map((t) => ({
+                                    label: `${t.ticketNumber} - ${t.title}`,
+                                    value: t.id,
+                                  })) || []}
+                                  showSearch
+                                  optionFilterProp="label"
+                                  style={{ width: "100%" }}
+                                  disabled={!update.projectId}
+                                />
+                              ) : (
+                                <TextArea
+                                  size="small"
+                                  placeholder="Task description..."
+                                  autoSize={{ minRows: 1, maxRows: 3 }}
+                                  value={task.description || ""}
+                                  onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
+                                  style={{ padding: "4px 10px", fontSize: 13 }}
+                                />
+                              )}
+
+                              <Select
+                                size="small"
+                                placeholder="Status"
+                                value={task.status}
+                                onChange={(value) => handleTaskStatusChange(projectIndex, taskIndex, value as WorkStatus)}
+                                options={STATUS_OPTIONS}
+                                style={{ width: "100%" }}
+                              />
+
+                              <Button
+                                type="text"
+                                danger
+                                size="small"
+                                icon={<Trash2 size={14} />}
+                                onClick={() => handleRemoveTask(projectIndex, taskIndex)}
+                                disabled={update.tasks.length === 1}
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Blockers & Notes Grid */}
+                      <Row gutter={12} style={{ marginTop: 14 }}>
+                        <Col span={12}>
+                          <Form.Item
+                            label={
+                              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <AlertTriangle size={12} color="#f59e0b" />
+                                Blockers
+                              </span>
+                            }
+                            style={{ marginBottom: 0 }}
+                          >
+                            <TextArea
+                              rows={2}
+                              placeholder="Any blockers or dependencies…"
+                              value={update.blockers}
+                              onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
+                              style={{ borderRadius: 8, fontSize: 13 }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                          <Form.Item
+                            label={
+                              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <MessageSquare size={12} color="var(--text-slate-600)" />
+                                Comments
+                              </span>
+                            }
+                            style={{ marginBottom: 0 }}
+                          >
+                            <TextArea
+                              rows={2}
+                              placeholder="Project specific notes…"
+                              value={update.notes}
+                              onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
+                              style={{ borderRadius: 8, fontSize: 13 }}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* General Comments Section */}
-            <div className="dud-card" style={{ marginTop: 22, padding: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <MessageSquare size={15} color="var(--text-slate-600)" />
-                <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
-                  General Comments
-                </Text>
-                <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
-                  · Optional
-                </Text>
+                ))}
               </div>
-              <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
-                <TextArea
-                  rows={4}
-                  placeholder="Provide any overall updates, wins, or concerns for the day…"
-                  style={{
-                    borderRadius: 8,
-                    border: "1px solid var(--border-slate-200)",
-                    background: "var(--bg-pure-white)",
-                    padding: 12,
-                    fontSize: 13,
-                  }}
-                />
-              </Form.Item>
-            </div>
+
+              {/* General Comments Section */}
+              <div className="dud-card" style={{ marginTop: 22, padding: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <MessageSquare size={15} color="var(--text-slate-600)" />
+                  <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>
+                    General Comments
+                  </Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
+                    · Optional
+                  </Text>
+                </div>
+                <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
+                  <TextArea
+                    rows={4}
+                    placeholder="Provide any overall updates, wins, or concerns for the day…"
+                    style={{
+                      borderRadius: 8,
+                      border: "1px solid var(--border-slate-200)",
+                      background: "var(--bg-pure-white)",
+                      padding: 12,
+                      fontSize: 13,
+                    }}
+                  />
+                </Form.Item>
+              </div>
 
 
 
-            {/* Extra Spacing Bottom */}
-            <div style={{ height: 40 }} />
+              {/* Extra Spacing Bottom */}
+              <div style={{ height: 40 }} />
             </div>
           </div>
 

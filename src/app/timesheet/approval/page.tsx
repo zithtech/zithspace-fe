@@ -35,17 +35,7 @@ export default function ApprovalTimesheetsPage() {
 
   // Loading state
   if (authLoading) {
-    return (
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)",
-        textAlign: 'center' 
-      }}>
-        <ZukvoLoader size="lg" message="Loading..." />
-      </div>
-    );
+    return <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />;
   }
 
   // Permission check

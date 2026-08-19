@@ -5703,8 +5703,11 @@ export default function SprintPlanComponent() {
         }
         .sp-card-loading {
           display: flex;
+          align-items: center;
           justify-content: center;
-          padding: 60px 0;
+          //  padding: 60px 0;
+          flex: 1;
+          min-height: 400px;
         }
         .sp-card-pagination {
           display: flex;

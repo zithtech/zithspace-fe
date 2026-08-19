@@ -40,7 +40,7 @@ export default function MembersTrashPage() {
             alignItems: "center",
           }}
         >
-          <ZukvoLoader size="lg" message="Loading member trash..." />
+          <ZukvoLoader size="lg" message="Loading member trash..." fullscreen='viewport' />
         </div>
       </MainLayout>
     );

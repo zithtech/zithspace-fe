@@ -68,7 +68,7 @@ export default function ReimbursementMailConfiguration() {
     });
 
   if (loading) {
-    return <div style={{ padding: 24, textAlign: 'center' }}><ZukvoLoader size="md" /></div>;
+    return <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 400 }}><ZukvoLoader size="md" fullscreen='viewport' /></div>;
   }
 
   return (
@@ -90,7 +90,7 @@ export default function ReimbursementMailConfiguration() {
             <div className="rb2-card-head"><MailOutlined style={{ color: PALETTE.blue }} /> Reply-To Email</div>
             <div className="rb2-card-body">
               <div className="rb2-hint" style={{ marginBottom: 16, marginTop: -8 }}>
-                The <strong>From</strong> address is automatically set to the configured SMTP account to ensure deliverability and avoid spoofing rejection. 
+                The <strong>From</strong> address is automatically set to the configured SMTP account to ensure deliverability and avoid spoofing rejection.
                 Configure the <strong>Reply-To</strong> address below:
               </div>
 

@@ -1280,7 +1280,7 @@ const DocumentHubPage = () => {
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          <ZukvoLoader size="lg" message="Orchestrating technical repository..." />
+          <ZukvoLoader size="lg" message="Orchestrating technical repository..." fullscreen='viewport' />
         </div>
       </MainLayout>
     );
@@ -1791,7 +1791,7 @@ const DocumentHubPage = () => {
         <ZukvoLoadingOverlay loading={hubsLoading || hubsFetching} message="">
           <Table
             columns={visibleColumns}
-            dataSource={pagedHubs}
+            dataSource={(hubsLoading || hubsFetching) ? [] : pagedHubs}
             rowKey="id"
             pagination={false}
             size="small"
@@ -1799,7 +1799,7 @@ const DocumentHubPage = () => {
             tableLayout="fixed"
             sticky={{ offsetHeader: 0 }}
             scroll={{ x: 980 }}
-            locale={{ emptyText: renderEmpty() }}
+            locale={{ emptyText: (hubsLoading || hubsFetching) ? <div style={{ minHeight: 400 }} /> : renderEmpty() }}
             components={{
               header: { cell: ResizableHeaderCell },
             }}
@@ -1956,7 +1956,7 @@ const DocumentHubPage = () => {
 
   // Render Cards (List view matching Proposals)
   const renderRowCards = () => {
-    if (!filteredHubs.length) return renderEmpty();
+    if (!filteredHubs.length && !(hubsLoading || hubsFetching)) return renderEmpty();
     const allSelected = filteredHubs.every((h) => selectedKeys.includes(h.id));
     const someSelected = filteredHubs.some((h) => selectedKeys.includes(h.id));
     // Page the list — paging controls live in the fixed footer below.
@@ -1967,213 +1967,217 @@ const DocumentHubPage = () => {
 
     return (
       <div className="dh-rowcards-wrap" style={{ padding: '0px 0px', overflowY: 'auto' }}>
-        <div className="dh-rowcards-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', paddingBottom: '24px' }}>
-          {pageHubs.map((hub) => {
-            const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
-            const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
-            const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
-            const isEditingThis = editingNameId === hub.id;
-            const isOwner = user?.id === hub.createdById;
-            const starred = isHubStarred(hub);
-            const selected = selectedKeys.includes(hub.id);
-            const accent = accentForId(hub.id);
+        <ZukvoLoadingOverlay loading={hubsLoading || hubsFetching} message="">
+          <div className="dh-rowcards-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', paddingBottom: '24px' }}>
+            {(hubsLoading || hubsFetching) ? (
+              <div style={{ minHeight: 400, gridColumn: '1 / -1' }} />
+            ) : (pageHubs.map((hub) => {
+              const docCount = (hub as any).treeNodes?.filter((n: any) => n.type === 'file').length || 0;
+              const updatedRel = formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true });
+              const isNew = Date.now() - new Date(hub.createdAt).getTime() < NEW_BADGE_MS;
+              const isEditingThis = editingNameId === hub.id;
+              const isOwner = user?.id === hub.createdById;
+              const starred = isHubStarred(hub);
+              const selected = selectedKeys.includes(hub.id);
+              const accent = accentForId(hub.id);
 
-            return (
-              <div
-                key={hub.id}
-                role="button"
-                onMouseEnter={() => setFocusedRowId(hub.id)}
-                onClick={(e) => {
-                  const target = e.target as HTMLElement;
-                  if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
-                    return;
-                  }
-                  openHub(hub.id);
-                }}
-                className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
-                style={{
-                  display: 'flex', flexDirection: 'column',
-                  border: '1px solid var(--border-slate-200)',
-                  borderRadius: '0px',
-                  background: 'var(--bg-pure-white)',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                  ...(selected ? { borderColor: '#3b82f6', boxShadow: '0 0 0 1px #3b82f6' } : {})
-                }}
-              >
-                {/* Top Section */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', flex: 1 }}>
-                  <div className="flex items-center gap-2">
-                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selected}
-                        onChange={(e) =>
-                          setSelectedKeys((prev) =>
-                            e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
-                          )
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => handleToggleStar(e, hub)}
-                        className={`dh-name-star ${starred ? 'is-starred' : ''}`}
-                      >
-                        {starred ? <StarFilled style={{ fontSize: 14 }} /> : <StarOutlined style={{ fontSize: 14 }} />}
-                      </button>
-                    </div>
-                    <div
-                      className="dh-avatar"
-                      style={{
-                        background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from
-                      }}
-                    >
-                      {hub.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="dh-identity-body">
-                      <div className="flex items-center gap-2 group/name">
-                        <span className="dh-doccount-title">{hub.name}</span>
-                        {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+              return (
+                <div
+                  key={hub.id}
+                  role="button"
+                  onMouseEnter={() => setFocusedRowId(hub.id)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('.ant-checkbox-wrapper, .dh-row-actions, .dh-name-star, .dh-name-pencil, .dh-name-edit-btn, button, input, .ant-select, .dh-inline-cell, .dh-inline-add-btn')) {
+                      return;
+                    }
+                    openHub(hub.id);
+                  }}
+                  className={`dh-new-rowcard ${selected ? 'is-selected' : ''}`}
+                  style={{
+                    display: 'flex', flexDirection: 'column',
+                    border: '1px solid var(--border-slate-200)',
+                    borderRadius: '0px',
+                    background: 'var(--bg-pure-white)',
+                    transition: 'all 0.2s',
+                    cursor: 'pointer',
+                    ...(selected ? { borderColor: '#3b82f6', boxShadow: '0 0 0 1px #3b82f6' } : {})
+                  }}
+                >
+                  {/* Top Section */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 16px', flex: 1 }}>
+                    <div className="flex items-center gap-2">
+                      <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selected}
+                          onChange={(e) =>
+                            setSelectedKeys((prev) =>
+                              e.target.checked ? [...prev, hub.id] : prev.filter((k) => k !== hub.id),
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleStar(e, hub)}
+                          className={`dh-name-star ${starred ? 'is-starred' : ''}`}
+                        >
+                          {starred ? <StarFilled style={{ fontSize: 14 }} /> : <StarOutlined style={{ fontSize: 14 }} />}
+                        </button>
                       </div>
-                      <span className="dh-doccount" >
-                        <span className="dh-doccount-key"> {docCount}</span>
-                        <span className="dh-doccount-key">{docCount === 1 ? 'doc' : 'docs'}</span>
-                        <span className="dh-doccount-val"> · Updated {updatedRel}</span>
+                      <div
+                        className="dh-avatar"
+                        style={{
+                          background: isDark ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)' : accent.from
+                        }}
+                      >
+                        {hub.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="dh-identity-body">
+                        <div className="flex items-center gap-2 group/name">
+                          <span className="dh-doccount-title">{hub.name}</span>
+                          {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+                        </div>
+                        <span className="dh-doccount" >
+                          <span className="dh-doccount-key"> {docCount}</span>
+                          <span className="dh-doccount-key">{docCount === 1 ? 'doc' : 'docs'}</span>
+                          <span className="dh-doccount-val"> · Updated {updatedRel}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 dh-row-actions" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip title="Share">
+                        <button type="button" onClick={(e) => handleShareHub(e, hub)} className="dh-row-action-btn" aria-label="Share">
+                          <ShareAltOutlined style={{ fontSize: 14 }} />
+                        </button>
+                      </Tooltip>
+                      <Dropdown
+                        overlayClassName="create-document-menu"
+                        menu={{
+                          items: [
+                            ...(isOwner && canUpdateDocument ? [{
+                              key: 'rename',
+                              label: renderRichMenuItem(<EditOutlined />, 'var(--bg-slate-100)', 'var(--text-slate-600)', 'Rename', 'Change the name of this hub'),
+                              onClick: () => startNameEdit(hub)
+                            }] : []),
+                            {
+                              key: 'star',
+                              label: renderRichMenuItem(
+                                starred ? <StarFilled /> : <StarOutlined />,
+                                starred ? '#FEF3C7' : 'var(--bg-blue-50)',
+                                starred ? '#D97706' : '#3B82F6',
+                                starred ? 'Unstar' : 'Star',
+                                starred ? 'Remove from your starred list' : 'Add to your starred list'
+                              ),
+                              onClick: () => handleToggleStar({ stopPropagation: () => { } } as any, hub)
+                            },
+                            ...(canDeleteDocument ? [
+                              { type: 'divider' as const },
+                              {
+                                key: 'delete',
+                                danger: true,
+                                label: (
+                                  <ConfirmDialog
+                                    tone="danger"
+                                    icon={<Trash2 size={15} />}
+                                    title="Delete Document Hub"
+                                    description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
+                                    confirmText="Delete"
+                                    cancelText="Cancel"
+                                    placement="left"
+                                    onConfirm={() => executeDeleteHub(hub.id)}
+                                  >
+                                    <div
+                                      style={{
+                                        margin: '-5px -12px',
+                                        padding: '5px 12px',
+                                        width: 'calc(100% + 24px)',
+                                        height: '100%'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    >
+                                      {renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true)}
+                                    </div>
+                                  </ConfirmDialog>
+                                )
+                              }
+                            ] : [])
+                          ]
+                        }}
+                        trigger={['click']}
+                        placement="bottomRight"
+                      >
+                        <button type="button" className="dh-row-action-btn" aria-label="More">
+                          <MoreOutlined style={{ fontSize: 14 }} />
+                        </button>
+                      </Dropdown>
+                    </div>
+                  </div>
+
+                  {/* Middle Section */}
+                  <div className='dh-foot'>
+                    <div className="dh-foot-row">
+                      <span className='dh-foot-item'>
+                        <span className="dh-foot-key">Created by</span>
+                        <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
+                          {hub.createdBy?.name?.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <span className="dh-foot-val">{hub.createdBy?.name?.split(' ')[0] || 'Unknown'}</span>
+                      </span>
+                      <span className="dh-foot-div" />
+                      <span className="dh-foot-item">
+                        <span className="dh-foot-key">Created</span>
+                        <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy · h:mm a")}</span>
+                      </span>
+                      <span className="dh-foot-div" />
+                      <span className="dh-foot-item">
+                        <span className="dh-foot-key">Updated</span>
+                        <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy · h:mm a")}</span>
+                      </span>
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div className='dh-foot-row'>
+                      <span className="dh-foot-item">
+                        <span className="dh-foot-key">Project:</span>
+                        <div onClick={(e) => e.stopPropagation()} >
+                          <InlineProjectSelector
+                            record={hub}
+                            projects={projects}
+                            projectsLoading={projectsLoading}
+                            updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                            user={user}
+                          />
+                        </div>
+                      </span>
+                      <span className='dh-foot-div' />
+                      <span className="dh-foot-item">
+                        <span className="dh-foot-key">Ticket:</span>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <InlineTicketSelector
+                            record={hub}
+                            updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+                            user={user}
+                          />
+                        </div>
+                      </span>
+                      <span className='dh-foot-div' />
+                      <span className="dh-foot-item">
+                        <span className="dh-foot-key">Visibility:</span>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          {renderVisibilityCell(hub)}
+                        </div>
                       </span>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 dh-row-actions" onClick={(e) => e.stopPropagation()}>
-                    <Tooltip title="Share">
-                      <button type="button" onClick={(e) => handleShareHub(e, hub)} className="dh-row-action-btn" aria-label="Share">
-                        <ShareAltOutlined style={{ fontSize: 14 }} />
-                      </button>
-                    </Tooltip>
-                    <Dropdown
-                      overlayClassName="create-document-menu"
-                      menu={{
-                        items: [
-                          ...(isOwner && canUpdateDocument ? [{
-                            key: 'rename',
-                            label: renderRichMenuItem(<EditOutlined />, 'var(--bg-slate-100)', 'var(--text-slate-600)', 'Rename', 'Change the name of this hub'),
-                            onClick: () => startNameEdit(hub)
-                          }] : []),
-                          {
-                            key: 'star',
-                            label: renderRichMenuItem(
-                              starred ? <StarFilled /> : <StarOutlined />,
-                              starred ? '#FEF3C7' : 'var(--bg-blue-50)',
-                              starred ? '#D97706' : '#3B82F6',
-                              starred ? 'Unstar' : 'Star',
-                              starred ? 'Remove from your starred list' : 'Add to your starred list'
-                            ),
-                            onClick: () => handleToggleStar({ stopPropagation: () => { } } as any, hub)
-                          },
-                          ...(canDeleteDocument ? [
-                            { type: 'divider' as const },
-                            {
-                              key: 'delete',
-                              danger: true,
-                              label: (
-                                <ConfirmDialog
-                                  tone="danger"
-                                  icon={<Trash2 size={15} />}
-                                  title="Delete Document Hub"
-                                  description={`Are you sure you want to delete "${hub.name}"? This will move it to trash.`}
-                                  confirmText="Delete"
-                                  cancelText="Cancel"
-                                  placement="left"
-                                  onConfirm={() => executeDeleteHub(hub.id)}
-                                >
-                                  <div
-                                    style={{
-                                      margin: '-5px -12px',
-                                      padding: '5px 12px',
-                                      width: 'calc(100% + 24px)',
-                                      height: '100%'
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                    }}
-                                  >
-                                    {renderRichMenuItem(<Trash2 size={16} strokeWidth={2} />, '#FEE2E2', '#EF4444', 'Delete', 'Move this hub to trash', true)}
-                                  </div>
-                                </ConfirmDialog>
-                              )
-                            }
-                          ] : [])
-                        ]
-                      }}
-                      trigger={['click']}
-                      placement="bottomRight"
-                    >
-                      <button type="button" className="dh-row-action-btn" aria-label="More">
-                        <MoreOutlined style={{ fontSize: 14 }} />
-                      </button>
-                    </Dropdown>
-                  </div>
                 </div>
-
-                {/* Middle Section */}
-                <div className='dh-foot'>
-                  <div className="dh-foot-row">
-                    <span className='dh-foot-item'>
-                      <span className="dh-foot-key">Created by</span>
-                      <Avatar size={18} src={hub.createdBy?.avatarUrl} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: 10 }}>
-                        {hub.createdBy?.name?.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <span className="dh-foot-val">{hub.createdBy?.name?.split(' ')[0] || 'Unknown'}</span>
-                    </span>
-                    <span className="dh-foot-div" />
-                    <span className="dh-foot-item">
-                      <span className="dh-foot-key">Created</span>
-                      <span className="dh-foot-val">{format(new Date(hub.createdAt), "MMM d, yyyy · h:mm a")}</span>
-                    </span>
-                    <span className="dh-foot-div" />
-                    <span className="dh-foot-item">
-                      <span className="dh-foot-key">Updated</span>
-                      <span className="dh-foot-val">{format(new Date(hub.updatedAt), "MMM d, yyyy · h:mm a")}</span>
-                    </span>
-                  </div>
-
-                  {/* Bottom Section */}
-                  <div className='dh-foot-row'>
-                    <span className="dh-foot-item">
-                      <span className="dh-foot-key">Project:</span>
-                      <div onClick={(e) => e.stopPropagation()} >
-                        <InlineProjectSelector
-                          record={hub}
-                          projects={projects}
-                          projectsLoading={projectsLoading}
-                          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                          user={user}
-                        />
-                      </div>
-                    </span>
-                    <span className='dh-foot-div' />
-                    <span className="dh-foot-item">
-                      <span className="dh-foot-key">Ticket:</span>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <InlineTicketSelector
-                          record={hub}
-                          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
-                          user={user}
-                        />
-                      </div>
-                    </span>
-                    <span className='dh-foot-div' />
-                    <span className="dh-foot-item">
-                      <span className="dh-foot-key">Visibility:</span>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        {renderVisibilityCell(hub)}
-                      </div>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            }))}
+          </div>
+        </ZukvoLoadingOverlay>
       </div>
     );
   };
@@ -2579,7 +2583,7 @@ const DocumentHubPage = () => {
             <div className="dh-main-body">
               {hubsLoading && !documentHubs.length ? (
                 <div className="flex items-center justify-center py-16">
-                  <ZukvoLoader size="md" />
+                  <ZukvoLoader size="md" fullscreen='viewport' />
                 </div>
               ) : viewMode === 'cards' ? renderRowCards()
                 : renderTable()}

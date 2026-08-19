@@ -43,7 +43,7 @@ export default function MyTimesheetsPage() {
         minHeight: "calc(100vh - 64px)",
         textAlign: 'center' 
       }}>
-        <ZukvoLoader size="lg" message="Loading..." />
+        <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />
       </div>
     );
   }

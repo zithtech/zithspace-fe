@@ -571,7 +571,7 @@ export default function EscalationTrashPage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <ZukvoLoader size="lg" />
+          <ZukvoLoader size="lg" fullscreen='viewport' />
         </div>
       </MainLayout>
     );
@@ -762,145 +762,145 @@ export default function EscalationTrashPage() {
               </div>
             )}
 
-            {view === 'list' ? (
-              <div className="es-table-wrap">
-                <ZukvoLoadingOverlay loading={false} message="">
-                              <Table
-                                                rowSelection={isViewLoading ? undefined : {
-                                                  selectedRowKeys,
-                                                  onChange: (keys) => setSelectedRowKeys(keys),
-                                                  columnWidth: 40,
-                                                }}
-                                                dataSource={isViewLoading ? Array(5).fill({}) : pagedEscalations}
-                                                columns={columns.map((col) => ({
-                                                  ...col,
-                                                  render: (text: any, record: any, index: number) => {
-                                                    if (isViewLoading) {
-                                                      return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
-                                                    }
-                                                    return col.render ? (col.render as any)(text, record, index) : text;
-                                                  },
-                                                }))}
-                                                rowKey={(record: any) => record.id || Math.random()}
-                                                pagination={false}
-                                                className="es-table"
-                                                scroll={{ x: 'max-content' }}
-                                                locale={{ emptyText: emptyState }}
-                                              />
-                              </ZukvoLoadingOverlay>
-              </div>
-            ) : (
-              <div className="es-grid">
-                {isViewLoading ? (
-                  <div className="es-grid-loading">Loading…</div>
-                ) : filteredEscalations.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
-                ) : (
-                  pagedEscalations.map((record) => {
-                    const title = record.subject || record.short_summary || 'No Subject';
-                    const list = record.targetMembers || [];
-                    const statusName = 'DELETED';
-                    const statusColor = '#ff4d4f';
-                    const catName = record.category?.name || record.category_name || 'General';
-                    const isHighProd = catName.toLowerCase() === 'high production issue';
+            <ZukvoLoadingOverlay loading={isViewLoading} message="">
+              {view === 'list' ? (
+                <div className="es-table-wrap">
+                  <Table
+                    rowSelection={isViewLoading ? undefined : {
+                      selectedRowKeys,
+                      onChange: (keys) => setSelectedRowKeys(keys),
+                      columnWidth: 40,
+                    }}
+                    dataSource={isViewLoading ? Array(5).fill({}) : pagedEscalations}
+                    columns={columns.map((col) => ({
+                      ...col,
+                      render: (text: any, record: any, index: number) => {
+                        if (isViewLoading) {
+                          return <Skeleton.Input active size="small" block style={{ height: 20 }} />;
+                        }
+                        return col.render ? (col.render as any)(text, record, index) : text;
+                      },
+                    }))}
+                    rowKey={(record: any) => record.id || Math.random()}
+                    pagination={false}
+                    className="es-table"
+                    scroll={{ x: 'max-content' }}
+                    locale={{ emptyText: isViewLoading ? <div style={{ minHeight: 400 }} /> : emptyState }}
+                  />
+                </div>
+              ) : (
+                <div className="es-grid">
+                  {isViewLoading ? (
+                    <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                  ) : filteredEscalations.length === 0 ? (
+                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  ) : (
+                    pagedEscalations.map((record) => {
+                      const title = record.subject || record.short_summary || 'No Subject';
+                      const list = record.targetMembers || [];
+                      const statusName = 'DELETED';
+                      const statusColor = '#ff4d4f';
+                      const catName = record.category?.name || record.category_name || 'General';
+                      const isHighProd = catName.toLowerCase() === 'high production issue';
 
-                    return (
-                      <div
-                        key={record.id}
-                        className="ec-card dh-card group transition-all flex flex-col relative cursor-pointer"
-                        style={{
-                          borderRadius: 0,
-                          border: '1px solid var(--border-slate-200)',
-                          background: 'var(--bg-pure-white)',
-                          overflow: 'hidden',
-                          minHeight: 110,
-                        }}
-                      >
-                        {/* ROW 1: Header */}
-                        <div className="flex-1 flex flex-col p-3 min-w-0" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
-                          <div className="flex items-start gap-2 min-w-0 pr-[68px]">
-                            <div
-                              className="flex items-center justify-center shrink-0"
-                              style={{ width: 28, height: 28, borderRadius: 8, background: isHighProd ? '#fef2f2' : 'var(--bg-blue-50)', color: isHighProd ? '#ef4444' : '#3b82f6' }}
-                            >
-                              <AlertOutlined style={{ fontSize: 14 }} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="m-0 font-semibold text-[13px] leading-tight truncate" style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }} title={title}>
-                                {title}
-                              </h4>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 10.5, color: 'var(--text-slate-500)' }}>
-                                <span>ID: {record.id?.split('-')[0].toUpperCase()}</span>
-                                <span>•</span>
-                                <span>Category: {catName}</span>
+                      return (
+                        <div
+                          key={record.id}
+                          className="ec-card dh-card group transition-all flex flex-col relative cursor-pointer"
+                          style={{
+                            borderRadius: 0,
+                            border: '1px solid var(--border-slate-200)',
+                            background: 'var(--bg-pure-white)',
+                            overflow: 'hidden',
+                            minHeight: 110,
+                          }}
+                        >
+                          {/* ROW 1: Header */}
+                          <div className="flex-1 flex flex-col p-3 min-w-0" style={{ borderBottom: '1px solid var(--border-slate-100)' }}>
+                            <div className="flex items-start gap-2 min-w-0 pr-[68px]">
+                              <div
+                                className="flex items-center justify-center shrink-0"
+                                style={{ width: 28, height: 28, borderRadius: 8, background: isHighProd ? '#fef2f2' : 'var(--bg-blue-50)', color: isHighProd ? '#ef4444' : '#3b82f6' }}
+                              >
+                                <AlertOutlined style={{ fontSize: 14 }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="m-0 font-semibold text-[13px] leading-tight truncate" style={{ color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }} title={title}>
+                                  {title}
+                                </h4>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: 10.5, color: 'var(--text-slate-500)' }}>
+                                  <span>ID: {record.id?.split('-')[0].toUpperCase()}</span>
+                                  <span>•</span>
+                                  <span>Category: {catName}</span>
+                                </div>
                               </div>
                             </div>
+
+                            <div className="mt-auto pt-2 flex items-center justify-between gap-2" style={{ position: 'absolute', top: 12, right: 12 }}>
+                              <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
+                                <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                  <EllipsisOutlined style={{ fontSize: 16 }} />
+                                </button>
+                              </Dropdown>
+                            </div>
                           </div>
 
-                          <div className="mt-auto pt-2 flex items-center justify-between gap-2" style={{ position: 'absolute', top: 12, right: 12 }}>
-                            <Dropdown menu={actionMenu(record)} overlayClassName="es-action-pop" trigger={['click']} placement="bottomRight">
-                              <button type="button" onClick={(e) => e.stopPropagation()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-slate-400)', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }} className="hover:bg-slate-100 hover:text-slate-700 transition-colors">
-                                <EllipsisOutlined style={{ fontSize: 16 }} />
-                              </button>
-                            </Dropdown>
+                          {/* ROW 2: Raised By & Deleted Date */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderBottom: '1px solid var(--border-slate-100)', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>Raised by</span>
+                              <Avatar size={16} src={record.createdBy?.avatarUrl || record.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
+                                {initialsOf(record.createdBy?.name || 'System')}
+                              </Avatar>
+                              <span style={{ fontWeight: 500, color: 'var(--text-slate-700)' }}>{record.createdBy?.name || 'System'}</span>
+                            </div>
+                            <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                            <div>Deleted {dayjs(record.deleted_at).format('MMM D, YYYY - hh:mm A')}</div>
                           </div>
-                        </div>
 
-                        {/* ROW 2: Raised By & Deleted Date */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderBottom: '1px solid var(--border-slate-100)', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>Raised by</span>
-                            <Avatar size={16} src={record.createdBy?.avatarUrl || record.createdBy?.avatar} style={{ background: 'var(--bg-blue-50)', color: '#3b82f6', fontSize: 9, fontWeight: 700 }}>
-                              {initialsOf(record.createdBy?.name || 'System')}
-                            </Avatar>
-                            <span style={{ fontWeight: 500, color: 'var(--text-slate-700)' }}>{record.createdBy?.name || 'System'}</span>
-                          </div>
-                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
-                          <div>Deleted {dayjs(record.deleted_at).format('MMM D, YYYY - hh:mm A')}</div>
-                        </div>
-
-                        {/* ROW 3: Footer Stats */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>Status:</span>
-                            <span className="es-vis-pill" style={{ color: statusColor, background: `${statusColor}1A`, borderColor: `${statusColor}40`, height: 20, fontSize: 10.5, padding: '0 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <span className="es-vis-dot" style={{ background: statusColor, width: 6, height: 6, borderRadius: '50%' }} />
-                              {statusName}
-                            </span>
-                          </div>
-                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>Priority:</span>
-                            <Tag color={record.priority_color || record.priority?.color || 'blue'} style={{ borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
-                              {(record.priority_name || record.priority?.name || 'MEDIUM').toUpperCase()}
-                            </Tag>
-                          </div>
-                          <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>Target Members:</span>
-                            {list.length > 0 ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                {list.map((m: any, idx: number) => (
-                                  <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <Avatar size={16} style={{ background: '#e2e8f0', color: '#475569', fontSize: 9.5, fontWeight: 700, border: '1px solid #fff', flexShrink: 0 }}>
-                                      {initialsOf(m.user?.name)}
-                                    </Avatar>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-slate-700)', fontSize: 11 }}>{m.user?.name || '—'}</span>
-                                    {idx < list.length - 1 && <span style={{ color: 'var(--border-slate-300)', marginLeft: 2 }}>,</span>}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>—</span>
-                            )}
+                          {/* ROW 3: Footer Stats */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', fontSize: 11, color: 'var(--text-slate-500)', whiteSpace: 'nowrap', overflowX: 'auto', background: 'var(--bg-slate-50)' }} className="scrollbar-hide">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>Status:</span>
+                              <span className="es-vis-pill" style={{ color: statusColor, background: `${statusColor}1A`, borderColor: `${statusColor}40`, height: 20, fontSize: 10.5, padding: '0 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span className="es-vis-dot" style={{ background: statusColor, width: 6, height: 6, borderRadius: '50%' }} />
+                                {statusName}
+                              </span>
+                            </div>
+                            <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>Priority:</span>
+                              <Tag color={record.priority_color || record.priority?.color || 'blue'} style={{ borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
+                                {(record.priority_name || record.priority?.name || 'MEDIUM').toUpperCase()}
+                              </Tag>
+                            </div>
+                            <div style={{ width: 1, height: 12, background: 'var(--border-slate-200)' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>Target Members:</span>
+                              {list.length > 0 ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  {list.map((m: any, idx: number) => (
+                                    <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                      <Avatar size={16} style={{ background: '#e2e8f0', color: '#475569', fontSize: 9.5, fontWeight: 700, border: '1px solid #fff', flexShrink: 0 }}>
+                                        {initialsOf(m.user?.name)}
+                                      </Avatar>
+                                      <span style={{ fontWeight: 600, color: 'var(--text-slate-700)', fontSize: 11 }}>{m.user?.name || '—'}</span>
+                                      {idx < list.length - 1 && <span style={{ color: 'var(--border-slate-300)', marginLeft: 2 }}>,</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ fontWeight: 600, color: 'var(--text-slate-700)' }}>—</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer custom pagination */}

@@ -154,7 +154,7 @@ const OnboardingContent = () => {
   if (authLoading || dataLoading) {
     return (
       <div style={{ padding: 100, textAlign: "center" }}>
-        <ZukvoLoader size="lg" message="Loading" />
+        <ZukvoLoader size="lg" message="Loading" fullscreen='viewport' />
       </div>
     );
   }
@@ -241,11 +241,11 @@ const OnboardingContent = () => {
     try {
       const personalData = payload.personal || allData.personal;
       if (personalData?.workEmail || personalData?.mobile) {
-        const res = await MembersService.checkSync({ 
-          workEmail: personalData.workEmail, 
-          phone: personalData.mobile 
+        const res = await MembersService.checkSync({
+          workEmail: personalData.workEmail,
+          phone: personalData.mobile
         });
-        
+
         if (res.exists && res.member) {
           setSyncMemberInfo(res.member);
           setPendingSavePayload(payload);
@@ -257,7 +257,7 @@ const OnboardingContent = () => {
     } catch (e) {
       console.error("Check sync error", e);
     }
-    
+
     return executeSave(payload, actionType);
   };
 
@@ -332,8 +332,8 @@ const OnboardingContent = () => {
       <div className="onb-header">
         <div className="onb-header-top">
           <div className="onb-header-about">
-            <button 
-              className="ob-mobile-menu-btn" 
+            <button
+              className="ob-mobile-menu-btn"
               onClick={() => window.dispatchEvent(new Event('open-ob-sidebar'))}
               aria-label="Open menu"
             >
@@ -755,7 +755,7 @@ const Onboarding = () => (
     <Suspense
       fallback={
         <div style={{ padding: 100, textAlign: "center" }}>
-          <ZukvoLoader size="lg" />
+          <ZukvoLoader size="lg" fullscreen='viewport' />
         </div>
       }
     >

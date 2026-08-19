@@ -126,16 +126,16 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const fetchCounts = async () => {
     try {
       const now = dayjs();
-      
+
       const todayStart = now.startOf('day').format("YYYY-MM-DD");
       const todayEnd = now.endOf('day').format("YYYY-MM-DD");
-      
+
       const weekStart = now.startOf('week').format("YYYY-MM-DD");
       const weekEnd = now.endOf('week').format("YYYY-MM-DD");
-      
+
       const monthStart = now.startOf('month').format("YYYY-MM-DD");
       const monthEnd = now.endOf('month').format("YYYY-MM-DD");
-      
+
       const baseFilters: any = {
         projectId: selectedProject,
         userId: selectedUser,
@@ -205,7 +205,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
 
   const [cardPage, setCardPage] = useState(1);
   const [cardPageSize, setCardPageSize] = useState(20);
-  
+
   useEffect(() => {
     setCardPage(1);
   }, [updates]);
@@ -939,7 +939,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            
+
             <div style={{
               display: "flex",
               alignItems: "center",
@@ -1019,7 +1019,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
             {/* Content Loading/Empty States */}
             {loading ? (
               <div style={{ padding: "100px 0", textAlign: "center" }}>
-                <ZukvoLoader size="lg" />
+                <ZukvoLoader size="md" />
                 <div style={{ marginTop: 16, color: "var(--text-slate-400)", fontWeight: 500 }}>Fetching status updates...</div>
               </div>
             ) : updates.length === 0 ? (

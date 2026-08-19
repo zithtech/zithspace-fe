@@ -599,7 +599,7 @@ export default function InvoiceTrashPage() {
     return (
       <MainLayout>
         <div className="flex justify-center items-center h-screen">
-          <ZukvoLoader size="lg" />
+          <ZukvoLoader size="lg" fullscreen='viewport' />
         </div>
       </MainLayout>
     );
@@ -906,83 +906,92 @@ export default function InvoiceTrashPage() {
             )}
 
             {/* CONTENT */}
-            {isLoading || (filteredInvoices.length === 0 && isFetching) ? (
-              <div
-                className="flex flex-col justify-center items-center h-64 rounded-none"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <ZukvoLoader size="md" />
-              </div>
-            ) : filteredInvoices.length === 0 ? (
-              <div
-                className="flex flex-col items-center justify-center py-20 rounded-none"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1.5px dashed var(--border-color)",
-                }}
-              >
+            <ZukvoLoadingOverlay loading={isLoading || isFetching} message="">
+              {isLoading || (filteredInvoices.length === 0 && isFetching) ? (
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center mb-3.5"
+                  className="rounded-none overflow-hidden"
                   style={{
-                    background: "rgba(248,113,113,0.1)",
-                    color: "#f87171",
-                    border: "1px solid rgba(248,113,113,0.2)",
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
                   }}
                 >
-                  <Trash2 size={20} strokeWidth={2} />
+                  <Table
+                    size="middle"
+                    rowSelection={rowSelection}
+                    columns={columns}
+                    dataSource={[]}
+                    pagination={false}
+                    scroll={{ x: 1100 }}
+                    className="trash-table"
+                    locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
+                  />
                 </div>
-                <Title
-                  level={5}
+              ) : filteredInvoices.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center py-20 rounded-none"
                   style={{
-                    color: "var(--text-primary)",
-                    margin: 0,
-                    fontWeight: 700,
-                    fontSize: 14,
+                    background: "var(--bg-secondary)",
+                    border: "1.5px dashed var(--border-color)",
                   }}
                 >
-                  {searchText || filterCount > 0
-                    ? "No deleted invoices match"
-                    : "Trash is empty"}
-                </Title>
-                <Typography.Text
-                  style={{
-                    color: "var(--text-secondary)",
-                    fontSize: 12,
-                    marginTop: 4,
-                    marginBottom: 16,
-                  }}
-                >
-                  {searchText || filterCount > 0
-                    ? "Try adjusting your search or filters"
-                    : "Deleted invoices will appear here for 30 days"}
-                </Typography.Text>
-                {!searchText && filterCount === 0 && (
-                  <Button
-                    icon={<ChevronLeft size={13} />}
-                    onClick={() => router.push("/invoice/invoices")}
+                  <div
+                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-3.5"
                     style={{
-                      borderRadius: 6,
-                      height: 32,
-                      fontSize: 12,
-                      fontWeight: 600,
+                      background: "rgba(248,113,113,0.1)",
+                      color: "#f87171",
+                      border: "1px solid rgba(248,113,113,0.2)",
                     }}
                   >
-                    Back to invoices
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div
-                className="rounded-none overflow-hidden"
-                style={{
-                  background: "var(--bg-secondary)",
-                  border: "1px solid var(--border-color)",
-                }}
-              >
-                <ZukvoLoadingOverlay loading={isFetching} message="">
+                    <Trash2 size={20} strokeWidth={2} />
+                  </div>
+                  <Title
+                    level={5}
+                    style={{
+                      color: "var(--text-primary)",
+                      margin: 0,
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }}
+                  >
+                    {searchText || filterCount > 0
+                      ? "No deleted invoices match"
+                      : "Trash is empty"}
+                  </Title>
+                  <Typography.Text
+                    style={{
+                      color: "var(--text-secondary)",
+                      fontSize: 12,
+                      marginTop: 4,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {searchText || filterCount > 0
+                      ? "Try adjusting your search or filters"
+                      : "Deleted invoices will appear here for 30 days"}
+                  </Typography.Text>
+                  {!searchText && filterCount === 0 && (
+                    <Button
+                      icon={<ChevronLeft size={13} />}
+                      onClick={() => router.push("/invoice/invoices")}
+                      style={{
+                        borderRadius: 6,
+                        height: 32,
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Back to invoices
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="rounded-none overflow-hidden"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
                   <Table
                     size="middle"
                     rowSelection={rowSelection}
@@ -995,9 +1004,9 @@ export default function InvoiceTrashPage() {
                     scroll={{ x: 1100 }}
                     className="trash-table"
                   />
-                </ZukvoLoadingOverlay>
-              </div>
-            )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
         </div>
 

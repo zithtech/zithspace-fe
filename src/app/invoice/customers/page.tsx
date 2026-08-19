@@ -1,5 +1,5 @@
 "use client";
-import ZukvoLoader from "@/components/common/ZukvoLoader";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -517,7 +517,7 @@ export default function InvoiceproCustomerPage() {
     },
   ];
 
-  if (authLoading) return <MainLayout><ZukvoLoader size="md" /></MainLayout>;
+  if (authLoading) return <MainLayout><ZukvoLoader size="md" fullscreen='viewport' /></MainLayout>;
   if (!canReadInvoiceCustomer) return null;
 
   return (
@@ -625,7 +625,7 @@ export default function InvoiceproCustomerPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -641,7 +641,7 @@ export default function InvoiceproCustomerPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -721,187 +721,198 @@ export default function InvoiceproCustomerPage() {
             </div>
 
             {/* Content */}
-            {isLoading ? (
-              <div className="pp-grid">
-                {[1, 2, 3, 4].map((i) => (
+            <ZukvoLoadingOverlay loading={isLoading || isFetching} message="">
+              {(isLoading || isFetching) ? (
+                viewMode === "card" ? (
+                  <div className="pp-grid">
+                    <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                  </div>
+                ) : (
                   <div
-                    key={i}
-                    className="pc-card p-4"
+                    className="overflow-hidden"
                     style={{
-                      background: "var(--bg-slate-50)",
+                      background: "var(--bg-pure-white)",
                       border: "1px solid var(--border-slate-200)",
                     }}
                   >
-                    <Skeleton active avatar paragraph={{ rows: 1 }} />
+                    <Table
+                      rowKey="id"
+                      columns={columns}
+                      dataSource={[]}
+                      pagination={false}
+                      size="middle"
+                      className="customers-table"
+                      locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
+                    />
                   </div>
-                ))}
-              </div>
-            ) : filteredCustomers.length === 0 ? (
-              <div className="pp-empty">
-                <div className="pp-empty-orb"><Users size={26} /></div>
-                <div className="pp-empty-title">
-                  {search || statusFilter !== "all"
-                    ? "No customers match your filters"
-                    : "No customers yet"}
-                </div>
-                <div className="pp-empty-sub">
-                  {search || statusFilter !== "all"
-                    ? "Try adjusting your search or filter"
-                    : "Get started by adding your first customer."}
-                </div>
-                {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={() => {
-                      setEditingCustomer(null);
-                      form.resetFields();
-                      setIsModalOpen(true);
-                    }}
-                    className="pp-btn-primary"
-                    style={{
-                      marginTop: 14,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    Add Customer
-                  </Button>
-                )}
-              </div>
-            ) : viewMode === "card" ? (
-              <div className="pp-grid">
-                {pagedCustomers.map((customer) => {
-                  const accent = accentFor(customer.companyName || '');
-                  return (
-                    <div
-                      key={customer.id}
-                      className="pc-card"
+                )
+              ) : filteredCustomers.length === 0 ? (
+                <div className="pp-empty">
+                  <div className="pp-empty-orb"><Users size={26} /></div>
+                  <div className="pp-empty-title">
+                    {search || statusFilter !== "all"
+                      ? "No customers match your filters"
+                      : "No customers yet"}
+                  </div>
+                  <div className="pp-empty-sub">
+                    {search || statusFilter !== "all"
+                      ? "Try adjusting your search or filter"
+                      : "Get started by adding your first customer."}
+                  </div>
+                  {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={14} />}
                       onClick={() => {
-                        setSelectedCustomerForView(customer);
-                        setViewDrawerVisible(true);
+                        setEditingCustomer(null);
+                        form.resetFields();
+                        setIsModalOpen(true);
+                      }}
+                      className="pp-btn-primary"
+                      style={{
+                        marginTop: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
                       }}
                     >
-                      <div className="pc-top">
-                        <div
-                          className="pc-avatar"
-                          style={{
-                            background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
-                          }}
-                        >
-                          {initialsOf(customer.companyName)}
-                        </div>
-                        <div className="pc-identity-body">
-                          <div className="pc-title" style={{ fontSize: '13px' }}>{customer.companyName}</div>
-                          <div className="pc-client-line">
-                            <span className="pc-client-key">Tax ID:</span>
-                            <span className="pc-client-val">
-                              {customer.taxId || customer.gstin || "—"}
-                            </span>
-                          </div>
-                        </div>
-                        <Dropdown
-                          menu={{ items: getMenuItems(customer) }}
-                          overlayClassName="pp-action-pop"
-                          trigger={["click"]}
-                          placement="bottomRight"
-                        >
-                          <button
-                            type="button"
-                            className="pc-actions"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-                        </Dropdown>
-                      </div>
-
-                      <div className="pc-foot">
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Email:</span>
-                            <span className="pc-foot-val">{customer.email || "—"}</span>
-                          </span>
-                          <span className="pc-foot-div" />
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Phone:</span>
-                            <span className="pc-foot-val">{customer.phone || "—"}</span>
-                          </span>
-                        </div>
-                        <div className="pc-foot-row">
-                          <span className="pc-foot-item">
-                            <span className="pc-foot-key">Status:</span>
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 700,
-                                color: customer.isActive ? "#10b981" : "#94a3b8",
-                              }}
-                            >
-                              {customer.isActive ? "ACTIVE" : "INACTIVE"}
-                            </span>
-                          </span>
-                          <span className="pc-foot-div" />
-                          <button
-                            type="button"
-                            className="pc-foot-item pc-view-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCustomerForView(customer);
-                              setViewDrawerVisible(true);
+                      Add Customer
+                    </Button>
+                  )}
+                </div>
+              ) : viewMode === "card" ? (
+                <div className="pp-grid">
+                  {pagedCustomers.map((customer) => {
+                    const accent = accentFor(customer.companyName || '');
+                    return (
+                      <div
+                        key={customer.id}
+                        className="pc-card"
+                        onClick={() => {
+                          setSelectedCustomerForView(customer);
+                          setViewDrawerVisible(true);
+                        }}
+                      >
+                        <div className="pc-top">
+                          <div
+                            className="pc-avatar"
+                            style={{
+                              background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
                             }}
                           >
-                            Profile
-                          </button>
-                          {canUpdateInvoiceCustomer && (
-                            <>
-                              <span className="pc-foot-div" />
-                              <button
-                                type="button"
-                                className="pc-foot-item pc-view-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(customer);
+                            {initialsOf(customer.companyName)}
+                          </div>
+                          <div className="pc-identity-body">
+                            <div className="pc-title" style={{ fontSize: '13px' }}>{customer.companyName}</div>
+                            <div className="pc-client-line">
+                              <span className="pc-client-key">Tax ID:</span>
+                              <span className="pc-client-val">
+                                {customer.taxId || customer.gstin || "—"}
+                              </span>
+                            </div>
+                          </div>
+                          <Dropdown
+                            menu={{ items: getMenuItems(customer) }}
+                            overlayClassName="pp-action-pop"
+                            trigger={["click"]}
+                            placement="bottomRight"
+                          >
+                            <button
+                              type="button"
+                              className="pc-actions"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+                          </Dropdown>
+                        </div>
+
+                        <div className="pc-foot">
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Email:</span>
+                              <span className="pc-foot-val">{customer.email || "—"}</span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Phone:</span>
+                              <span className="pc-foot-val">{customer.phone || "—"}</span>
+                            </span>
+                          </div>
+                          <div className="pc-foot-row">
+                            <span className="pc-foot-item">
+                              <span className="pc-foot-key">Status:</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: customer.isActive ? "#10b981" : "#94a3b8",
                                 }}
                               >
-                                Edit
-                              </button>
-                            </>
-                          )}
+                                {customer.isActive ? "ACTIVE" : "INACTIVE"}
+                              </span>
+                            </span>
+                            <span className="pc-foot-div" />
+                            <button
+                              type="button"
+                              className="pc-foot-item pc-view-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedCustomerForView(customer);
+                                setViewDrawerVisible(true);
+                              }}
+                            >
+                              Profile
+                            </button>
+                            {canUpdateInvoiceCustomer && (
+                              <>
+                                <span className="pc-foot-div" />
+                                <button
+                                  type="button"
+                                  className="pc-foot-item pc-view-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(customer);
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div
-                className="overflow-hidden"
-                style={{
-                  background: "var(--bg-pure-white)",
-                  border: "1px solid var(--border-slate-200)",
-                }}
-              >
-                <Table
-                  rowKey="id"
-                  columns={columns}
-                  dataSource={pagedCustomers}
-                  pagination={false}
-                  size="middle"
-                  onRow={(record) => ({
-                    onClick: () => {
-                      setSelectedCustomerForView(record);
-                      setViewDrawerVisible(true);
-                    },
-                    className: "cursor-pointer",
+                    );
                   })}
-                  className="customers-table"
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
-                />
-              </div>
-            )}
+                </div>
+              ) : (
+                <div
+                  className="overflow-hidden"
+                  style={{
+                    background: "var(--bg-pure-white)",
+                    border: "1px solid var(--border-slate-200)",
+                  }}
+                >
+                  <Table
+                    rowKey="id"
+                    columns={columns}
+                    dataSource={pagedCustomers}
+                    pagination={false}
+                    size="middle"
+                    onRow={(record) => ({
+                      onClick: () => {
+                        setSelectedCustomerForView(record);
+                        setViewDrawerVisible(true);
+                      },
+                      className: "cursor-pointer",
+                    })}
+                    className="customers-table"
+                    scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
+                  />
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}

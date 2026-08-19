@@ -67,13 +67,14 @@ export default function TicketsArchivedPage() {
   const [pageSize, setPageSize] = useState(20);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: ticketsData, isLoading, refetch, isFetching } = useTickets({
+  const { data: ticketsData, isLoading: queryLoading, refetch, isFetching } = useTickets({
     archivedOnly: true,
     projectId: selectedProject || undefined,
     search: searchText,
     page,
     limit: pageSize,
   });
+  const isLoading = queryLoading || isFetching || isRefreshing;
 
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -460,7 +461,7 @@ export default function TicketsArchivedPage() {
         <ZukvoLoadingOverlay loading={isLoading} message="">
           <Table
             columns={columns}
-            dataSource={tickets}
+            dataSource={isLoading ? [] : tickets}
             rowKey="id"
             size="small"
             rowSelection={{
@@ -470,7 +471,7 @@ export default function TicketsArchivedPage() {
             className="ar2-table"
 
             locale={{
-              emptyText: isLoading ? null : (
+              emptyText: isLoading ? <div style={{ minHeight: 400 }} /> : (
                 <div className="ar2-empty">
                   <div className="ar2-empty-icon">
                     <FolderOpenOutlined />

@@ -54,6 +54,9 @@ export default function ZukvoLoader({
   const showScenery = size !== "sm";
   const fill = fullscreen === "viewport" ? " zl--viewport" : fullscreen ? " zl--fullscreen" : "";
 
+  // const isFullscreen = (size === "lg" && fullscreen === false) ? true : fullscreen;
+  // const fill = isFullscreen === "viewport" ? " zl--viewport" : isFullscreen ? " zl--fullscreen" : "";
+
   return (
     <div
       className={`zl zl--${size}${fill}${className ? ` ${className}` : ""}`}
@@ -149,6 +152,7 @@ const STYLES = `
 .zl {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 8px; color: var(--text-slate-500);
+  width: 100%; height: 100%; flex: 1;
 }
 .zl--sm { flex-direction: row; gap: 10px; padding: 4px 0; }
 /* Inside MainLayout the 64px app header is already on screen. */

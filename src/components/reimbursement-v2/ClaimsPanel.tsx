@@ -383,9 +383,9 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
       <div className="rvp-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-                        pagination={tablePaginationConfig} />
-              </ZukvoLoadingOverlay>
+          <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+            pagination={tablePaginationConfig} />
+        </ZukvoLoadingOverlay>
       </div>
 
       <Drawer

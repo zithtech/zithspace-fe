@@ -1,5 +1,5 @@
 "use client";
-import ZukvoLoader from "@/components/common/ZukvoLoader";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -436,7 +436,7 @@ export default function InvoiceSettingPage() {
     return (
       <MainLayout>
         <div className="h-[60vh] flex items-center justify-center">
-          <ZukvoLoader size="md" message="Initializing session..." />
+          <ZukvoLoader size="md" message="Initializing session..." fullscreen='viewport' />
         </div>
       </MainLayout>
     );
@@ -565,7 +565,7 @@ export default function InvoiceSettingPage() {
 
             <div className="pp-topbar-actions">
               <div className="pp-segmented">
-                 <button
+                <button
                   type="button"
                   className={viewMode === "table" ? "is-active" : ""}
                   onClick={() => setViewMode("table")}
@@ -581,7 +581,7 @@ export default function InvoiceSettingPage() {
                 >
                   <LayoutGrid size={14} />
                 </button>
-               
+
               </div>
               <Tooltip title="Refresh">
                 <button type="button" className="pp-ghost-btn" onClick={() => refetch()}><ReloadOutlined spin={isLoading || isFetching} /></button>
@@ -611,488 +611,499 @@ export default function InvoiceSettingPage() {
                 </div>
 
                 {/* CONTENT */}
-                {isLoading ? (
-                  <div className="pp-grid">
-                    {[1, 2, 3, 4].map((i) => (
+                <ZukvoLoadingOverlay loading={isLoading || isFetching} message="">
+                  {(isLoading || isFetching) ? (
+                    viewMode === "table" ? (
                       <div
-                        key={i}
-                        className="pc-card p-4"
+                        className="overflow-hidden"
                         style={{
-                          background: "var(--bg-slate-50)",
+                          background: "var(--bg-pure-white)",
                           border: "1px solid var(--border-slate-200)",
                         }}
                       >
-                        <Skeleton active avatar paragraph={{ rows: 1 }} />
+                        <Table
+                          className="profiles-table"
+                          rowKey="id"
+                          dataSource={[]}
+                          pagination={false}
+                          size="middle"
+                          columns={[]}
+                          locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                ) : settingsList.length === 0 ? (
-                  <div
-                    onClick={() => setMode("create")}
-                    className="flex flex-col items-center justify-center py-20 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--bg-slate-50)]"
-                    style={{
-                      background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
-                    }}
-                  >
+                    ) : (
+                      <div className="pp-grid">
+                        <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                      </div>
+                    )
+                  ) : settingsList.length === 0 ? (
                     <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                      onClick={() => setMode("create")}
+                      className="flex flex-col items-center justify-center py-20 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--bg-slate-50)]"
                       style={{
-                        background: "var(--bg-blue-50)",
-                        color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
+                        background: "var(--bg-secondary)",
+                        border: "1.5px dashed var(--border-color)",
                       }}
                     >
-                      <Sparkles size={24} strokeWidth={2} />
-                    </div>
-                    <Title
-                      level={5}
-                      style={{
-                        color: "var(--text-primary)",
-                        margin: 0,
-                        fontWeight: 700,
-                      }}
-                    >
-                      No settings profiles yet
-                    </Title>
-                    <Typography.Text
-                      style={{
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                        marginTop: 6,
-                        marginBottom: 20,
-                      }}
-                    >
-                      Create a profile to start generating invoices.
-                    </Typography.Text>
-                    {canCreateInvoiceSetting && (
-                      <Button
-                        type="primary"
-                        icon={<Plus size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMode("create");
-                        }}
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
                         style={{
-                          borderRadius: 8,
-                          height: 38,
-                          fontWeight: 600,
-                          background: "#2563eb",
+                          background: "var(--bg-blue-50)",
+                          color: "var(--text-blue-700)",
+                          border: "1px solid var(--border-blue-200)",
                         }}
                       >
-                        Create profile
-                      </Button>
-                    )}
-                  </div>
-                ) : filteredSettings.length === 0 ? (
-                  <div
-                    className="flex flex-col items-center justify-center py-16 rounded-2xl"
-                    style={{
-                      background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
-                    }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-                      style={{
-                        background: "var(--bg-blue-50)",
-                        color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
-                      }}
-                    >
-                      <Search size={20} strokeWidth={2} />
+                        <Sparkles size={24} strokeWidth={2} />
+                      </div>
+                      <Title
+                        level={5}
+                        style={{
+                          color: "var(--text-primary)",
+                          margin: 0,
+                          fontWeight: 700,
+                        }}
+                      >
+                        No settings profiles yet
+                      </Title>
+                      <Typography.Text
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 13,
+                          marginTop: 6,
+                          marginBottom: 20,
+                        }}
+                      >
+                        Create a profile to start generating invoices.
+                      </Typography.Text>
+                      {canCreateInvoiceSetting && (
+                        <Button
+                          type="primary"
+                          icon={<Plus size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMode("create");
+                          }}
+                          style={{
+                            borderRadius: 8,
+                            height: 38,
+                            fontWeight: 600,
+                            background: "#2563eb",
+                          }}
+                        >
+                          Create profile
+                        </Button>
+                      )}
                     </div>
-                    <Title
-                      level={5}
+                  ) : filteredSettings.length === 0 ? (
+                    <div
+                      className="flex flex-col items-center justify-center py-16 rounded-2xl"
                       style={{
-                        color: "var(--text-primary)",
-                        margin: 0,
-                        fontWeight: 700,
+                        background: "var(--bg-secondary)",
+                        border: "1.5px dashed var(--border-color)",
                       }}
                     >
-                      No profiles match your filters
-                    </Title>
-                    <Typography.Text
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                        style={{
+                          background: "var(--bg-blue-50)",
+                          color: "var(--text-blue-700)",
+                          border: "1px solid var(--border-blue-200)",
+                        }}
+                      >
+                        <Search size={20} strokeWidth={2} />
+                      </div>
+                      <Title
+                        level={5}
+                        style={{
+                          color: "var(--text-primary)",
+                          margin: 0,
+                          fontWeight: 700,
+                        }}
+                      >
+                        No profiles match your filters
+                      </Title>
+                      <Typography.Text
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 13,
+                          marginTop: 6,
+                        }}
+                      >
+                        Try adjusting your search or filter
+                      </Typography.Text>
+                    </div>
+                  ) : viewMode === "table" ? (
+                    <div
+                      className="overflow-hidden"
                       style={{
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                        marginTop: 6,
+                        background: "var(--bg-pure-white)",
+                        border: "1px solid var(--border-slate-200)",
                       }}
                     >
-                      Try adjusting your search or filter
-                    </Typography.Text>
-                  </div>
-                ) : viewMode === "table" ? (
-                  <div
-                    className="overflow-hidden"
-                    style={{
-                      background: "var(--bg-pure-white)",
-                      border: "1px solid var(--border-slate-200)",
-                    }}
-                  >
-                    <Table
-                      className="profiles-table"
-                      rowKey="id"
-                      dataSource={pagedSettings}
-                      pagination={false}
-                      size="middle"
-                      onRow={(record) => ({
-                        onClick: () => {
-                          setSelectedProfileForView(record);
-                          setViewDrawerVisible(true);
-                        },
-                        className: "cursor-pointer",
-                      })}
-                      columns={[
-                        {
-                          title: "PROFILE",
-                          dataIndex: "general",
-                          key: "name",
-                          render: (_: any, record: any) => (
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 overflow-hidden"
+                      <Table
+                        className="profiles-table"
+                        rowKey="id"
+                        dataSource={pagedSettings}
+                        pagination={false}
+                        size="middle"
+                        onRow={(record) => ({
+                          onClick: () => {
+                            setSelectedProfileForView(record);
+                            setViewDrawerVisible(true);
+                          },
+                          className: "cursor-pointer",
+                        })}
+                        columns={[
+                          {
+                            title: "PROFILE",
+                            dataIndex: "general",
+                            key: "name",
+                            render: (_: any, record: any) => (
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 overflow-hidden"
+                                  style={{
+                                    background: record.general?.companyLogo
+                                      ? "var(--bg-secondary)"
+                                      : "var(--bg-blue-50)",
+                                    color: "var(--text-blue-700)",
+                                    border: "1px solid var(--border-color)",
+                                  }}
+                                >
+                                  {record.general?.companyLogo ? (
+                                    <img
+                                      src={record.general.companyLogo}
+                                      alt="Logo"
+                                      className="w-full h-full object-contain p-1"
+                                    />
+                                  ) : (
+                                    <Building2 size={16} strokeWidth={2.25} />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div
+                                    className="text-sm font-semibold truncate"
+                                    style={{ color: "var(--text-primary)" }}
+                                  >
+                                    {record.general?.companyName ||
+                                      "Unnamed profile"}
+                                  </div>
+                                  <div
+                                    className="text-[11px] mt-0.5 flex items-center gap-1"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    <MapPin size={10} />
+                                    {[
+                                      record.general?.address?.city,
+                                      record.general?.address?.country,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(", ") || "No location"}
+                                  </div>
+                                </div>
+                              </div>
+                            ),
+                          },
+                          {
+                            title: "FORMAT",
+                            dataIndex: "invoice",
+                            key: "format",
+                            render: (_: any, record: any) => (
+                              <code
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold"
                                 style={{
-                                  background: record.general?.companyLogo
-                                    ? "var(--bg-secondary)"
-                                    : "var(--bg-blue-50)",
-                                  color: "var(--text-blue-700)",
+                                  background: "var(--bg-slate-50)",
+                                  color: "var(--text-primary)",
                                   border: "1px solid var(--border-color)",
+                                  fontFamily:
+                                    "ui-monospace, SFMono-Regular, Menlo, monospace",
                                 }}
                               >
-                                {record.general?.companyLogo ? (
+                                {record.invoice?.format || "—"}
+                              </code>
+                            ),
+                          },
+                          {
+                            title: "CURRENCY",
+                            dataIndex: ["general", "currency"],
+                            key: "currency",
+                            width: 120,
+                            render: (v: string) => (
+                              <span
+                                className="text-[12.5px] font-semibold tabular-nums"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {v || "—"}
+                              </span>
+                            ),
+                          },
+                          {
+                            title: "STATUS",
+                            dataIndex: "isActive",
+                            key: "status",
+                            width: 110,
+                            render: (isActive: boolean) =>
+                              isActive ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
+                                  style={{
+                                    background: "rgba(16,185,129,0.08)",
+                                    color: "#10b981",
+                                    border: "1px solid rgba(16,185,129,0.25)",
+                                  }}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ background: "#10b981" }}
+                                  />
+                                  Active
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
+                                  style={{
+                                    background: "var(--bg-slate-50)",
+                                    color: "var(--text-secondary)",
+                                    border: "1px solid var(--border-color)",
+                                  }}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ background: "#94a3b8" }}
+                                  />
+                                  Inactive
+                                </span>
+                              ),
+                          },
+                          {
+                            title: "",
+                            key: "action",
+                            width: 130,
+                            render: (_: any, record: any) => (
+                              <div
+                                className="flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {canUpdateInvoiceSetting && (
+                                  <Tooltip title="Edit">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEdit(record.id)}
+                                      className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                      style={{ color: "var(--text-secondary)" }}
+                                    >
+                                      <Edit size={13} />
+                                    </button>
+                                  </Tooltip>
+                                )}
+                                {canUpdateInvoiceSetting && (
+                                  <Tooltip
+                                    title={
+                                      record.isActive ? "Deactivate" : "Set active"
+                                    }
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        activateMutation.mutate({
+                                          id: record.id,
+                                          isActive: !record.isActive,
+                                        })
+                                      }
+                                      className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                      style={{ color: "var(--text-secondary)" }}
+                                    >
+                                      <Power size={13} />
+                                    </button>
+                                  </Tooltip>
+                                )}
+                                {canDeleteInvoiceSetting && (
+                                  <Tooltip title="Delete">
+                                    <ConfirmDialog
+                                      tone="danger"
+                                      title="Delete Profile"
+                                      description="Are you sure you want to delete this profile? This action cannot be undone."
+                                      confirmText="Delete"
+                                      onConfirm={() => handleDelete(record.id)}
+                                      placement="left"
+                                    >
+                                      <button
+                                        type="button"
+                                        className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
+                                        style={{ color: "#dc2626" }}
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </ConfirmDialog>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pp-grid">
+                      {pagedSettings.map((setting) => {
+                        const accent = accentFor(setting.general?.companyName || '');
+
+                        const menuItems = [
+                          canUpdateInvoiceSetting && {
+                            key: "edit",
+                            label: ppMenuLabel('Edit', 'Modify settings', <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                            onClick: () => handleEdit(setting.id),
+                          },
+                          canUpdateInvoiceSetting && {
+                            key: "status_toggle",
+                            label: ppMenuLabel(setting.isActive ? "Deactivate" : "Activate", 'Toggle status', <Power size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
+                            onClick: () =>
+                              activateMutation.mutate({
+                                id: setting.id,
+                                isActive: !setting.isActive,
+                              }),
+                          },
+                          canDeleteInvoiceSetting && { type: "divider" },
+                          canDeleteInvoiceSetting && {
+                            key: "delete",
+                            danger: true,
+                            label: (
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ConfirmDialog
+                                  tone="danger"
+                                  title="Delete Profile"
+                                  description="Are you sure you want to delete this profile? This action cannot be undone."
+                                  confirmText="Delete"
+                                  onConfirm={() => handleDelete(setting.id)}
+                                  placement="left"
+                                >
+                                  <div style={{ padding: 0, margin: 0 }}>
+                                    {ppMenuLabel('Delete', 'Remove profile', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
+                                  </div>
+                                </ConfirmDialog>
+                              </div>
+                            ),
+                          },
+                        ].filter(Boolean);
+
+                        return (
+                          <div
+                            key={setting.id}
+                            className="pc-card"
+                            onClick={() => {
+                              setSelectedProfileForView(setting);
+                              setViewDrawerVisible(true);
+                            }}
+                          >
+                            <div className="pc-top">
+                              <div
+                                className="pc-avatar"
+                                style={
+                                  setting.general?.companyLogo
+                                    ? { background: "var(--bg-slate-50)" }
+                                    : {
+                                      background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                                    }
+                                }
+                              >
+                                {setting.general?.companyLogo ? (
                                   <img
-                                    src={record.general.companyLogo}
+                                    src={setting.general.companyLogo}
                                     alt="Logo"
                                     className="w-full h-full object-contain p-1"
                                   />
                                 ) : (
-                                  <Building2 size={16} strokeWidth={2.25} />
+                                  initialsOf(setting.general?.companyName)
                                 )}
                               </div>
-                              <div className="min-w-0">
-                                <div
-                                  className="text-sm font-semibold truncate"
-                                  style={{ color: "var(--text-primary)" }}
-                                >
-                                  {record.general?.companyName ||
-                                    "Unnamed profile"}
+                              <div className="pc-identity-body">
+                                <div className="pc-title" style={{ fontSize: '13px' }}>
+                                  {setting.general?.companyName || "Unnamed profile"}
                                 </div>
-                                <div
-                                  className="text-[11px] mt-0.5 flex items-center gap-1"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  <MapPin size={10} />
-                                  {[
-                                    record.general?.address?.city,
-                                    record.general?.address?.country,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(", ") || "No location"}
+                                <div className="pc-client-line">
+                                  <span className="pc-client-key">Format:</span>
+                                  <span className="pc-client-val">
+                                    {setting.invoice?.format || "—"}
+                                  </span>
                                 </div>
                               </div>
-                            </div>
-                          ),
-                        },
-                        {
-                          title: "FORMAT",
-                          dataIndex: "invoice",
-                          key: "format",
-                          render: (_: any, record: any) => (
-                            <code
-                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold"
-                              style={{
-                                background: "var(--bg-slate-50)",
-                                color: "var(--text-primary)",
-                                border: "1px solid var(--border-color)",
-                                fontFamily:
-                                  "ui-monospace, SFMono-Regular, Menlo, monospace",
-                              }}
-                            >
-                              {record.invoice?.format || "—"}
-                            </code>
-                          ),
-                        },
-                        {
-                          title: "CURRENCY",
-                          dataIndex: ["general", "currency"],
-                          key: "currency",
-                          width: 120,
-                          render: (v: string) => (
-                            <span
-                              className="text-[12.5px] font-semibold tabular-nums"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {v || "—"}
-                            </span>
-                          ),
-                        },
-                        {
-                          title: "STATUS",
-                          dataIndex: "isActive",
-                          key: "status",
-                          width: 110,
-                          render: (isActive: boolean) =>
-                            isActive ? (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
-                                style={{
-                                  background: "rgba(16,185,129,0.08)",
-                                  color: "#10b981",
-                                  border: "1px solid rgba(16,185,129,0.25)",
-                                }}
+                              <Dropdown
+                                overlayClassName="pp-action-pop"
+                                menu={{ items: menuItems as any }}
+                                trigger={["click"]}
                               >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ background: "#10b981" }}
-                                />
-                                Active
-                              </span>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold"
-                                style={{
-                                  background: "var(--bg-slate-50)",
-                                  color: "var(--text-secondary)",
-                                  border: "1px solid var(--border-color)",
-                                }}
-                              >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ background: "#94a3b8" }}
-                                />
-                                Inactive
-                              </span>
-                            ),
-                        },
-                        {
-                          title: "",
-                          key: "action",
-                          width: 130,
-                          render: (_: any, record: any) => (
-                            <div
-                              className="flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {canUpdateInvoiceSetting && (
-                                <Tooltip title="Edit">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEdit(record.id)}
-                                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Edit size={13} />
-                                  </button>
-                                </Tooltip>
-                              )}
-                              {canUpdateInvoiceSetting && (
-                                <Tooltip
-                                  title={
-                                    record.isActive ? "Deactivate" : "Set active"
-                                  }
+                                <button
+                                  type="button"
+                                  className="pc-actions"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      activateMutation.mutate({
-                                        id: record.id,
-                                        isActive: !record.isActive,
-                                      })
-                                    }
-                                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Power size={13} />
-                                  </button>
-                                </Tooltip>
-                              )}
-                              {canDeleteInvoiceSetting && (
-                                <Tooltip title="Delete">
-                                  <ConfirmDialog
-                                    tone="danger"
-                                    title="Delete Profile"
-                                    description="Are you sure you want to delete this profile? This action cannot be undone."
-                                    confirmText="Delete"
-                                    onConfirm={() => handleDelete(record.id)}
-                                    placement="left"
-                                  >
-                                    <button
-                                      type="button"
-                                      className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-slate-50)]"
-                                      style={{ color: "#dc2626" }}
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </ConfirmDialog>
-                                </Tooltip>
-                              )}
+                                  <MoreVertical size={16} />
+                                </button>
+                              </Dropdown>
                             </div>
-                          ),
-                        },
-                      ]}
-                    />
-                  </div>
-                ) : (
-                  <div className="pp-grid">
-                    {pagedSettings.map((setting) => {
-                      const accent = accentFor(setting.general?.companyName || '');
 
-                      const menuItems = [
-                        canUpdateInvoiceSetting && {
-                          key: "edit",
-                          label: ppMenuLabel('Edit', 'Modify settings', <Edit size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                          onClick: () => handleEdit(setting.id),
-                        },
-                        canUpdateInvoiceSetting && {
-                          key: "status_toggle",
-                          label: ppMenuLabel(setting.isActive ? "Deactivate" : "Activate", 'Toggle status', <Power size={14} />, '#64748b', 'rgba(100,116,139,0.12)'),
-                          onClick: () =>
-                            activateMutation.mutate({
-                              id: setting.id,
-                              isActive: !setting.isActive,
-                            }),
-                        },
-                        canDeleteInvoiceSetting && { type: "divider" },
-                        canDeleteInvoiceSetting && {
-                          key: "delete",
-                          danger: true,
-                          label: (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <ConfirmDialog
-                                tone="danger"
-                                title="Delete Profile"
-                                description="Are you sure you want to delete this profile? This action cannot be undone."
-                                confirmText="Delete"
-                                onConfirm={() => handleDelete(setting.id)}
-                                placement="left"
-                              >
-                                <div style={{ padding: 0, margin: 0 }}>
-                                  {ppMenuLabel('Delete', 'Remove profile', <Trash2 size={14} />, '#ef4444', 'rgba(239,68,68,0.12)')}
-                                </div>
-                              </ConfirmDialog>
-                            </div>
-                          ),
-                        },
-                      ].filter(Boolean);
-
-                      return (
-                        <div
-                          key={setting.id}
-                          className="pc-card"
-                          onClick={() => {
-                            setSelectedProfileForView(setting);
-                            setViewDrawerVisible(true);
-                          }}
-                        >
-                          <div className="pc-top">
-                            <div
-                              className="pc-avatar"
-                              style={
-                                setting.general?.companyLogo
-                                  ? { background: "var(--bg-slate-50)" }
-                                  : {
-                                    background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
-                                  }
-                              }
-                            >
-                              {setting.general?.companyLogo ? (
-                                <img
-                                  src={setting.general.companyLogo}
-                                  alt="Logo"
-                                  className="w-full h-full object-contain p-1"
-                                />
-                              ) : (
-                                initialsOf(setting.general?.companyName)
-                              )}
-                            </div>
-                            <div className="pc-identity-body">
-                              <div className="pc-title" style={{ fontSize: '13px' }}>
-                                {setting.general?.companyName || "Unnamed profile"}
-                              </div>
-                              <div className="pc-client-line">
-                                <span className="pc-client-key">Format:</span>
-                                <span className="pc-client-val">
-                                  {setting.invoice?.format || "—"}
+                            <div className="pc-foot">
+                              <div className="pc-foot-row">
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Currency:</span>
+                                  <span className="pc-foot-val">{setting.general?.currency || "—"}</span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">GSTIN/PAN:</span>
+                                  <span className="pc-foot-val">
+                                    {setting.general?.gstin || setting.general?.pan || "—"}
+                                  </span>
                                 </span>
                               </div>
-                            </div>
-                            <Dropdown
-                              overlayClassName="pp-action-pop"
-                              menu={{ items: menuItems as any }}
-                              trigger={["click"]}
-                            >
-                              <button
-                                type="button"
-                                className="pc-actions"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical size={16} />
-                              </button>
-                            </Dropdown>
-                          </div>
-
-                          <div className="pc-foot">
-                            <div className="pc-foot-row">
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Currency:</span>
-                                <span className="pc-foot-val">{setting.general?.currency || "—"}</span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">GSTIN/PAN:</span>
-                                <span className="pc-foot-val">
-                                  {setting.general?.gstin || setting.general?.pan || "—"}
-                                </span>
-                              </span>
-                            </div>
-                            <div className="pc-foot-row">
-                              <span className="pc-foot-item">
-                                <span className="pc-foot-key">Status:</span>
-                                <span
-                                  style={{
-                                    fontSize: "11px",
-                                    fontWeight: 700,
-                                    color: setting.isActive ? "#10b981" : "#94a3b8",
-                                  }}
-                                >
-                                  {setting.isActive ? "ACTIVE" : "INACTIVE"}
-                                </span>
-                              </span>
-                              <span className="pc-foot-div" />
-                              <button
-                                type="button"
-                                className="pc-foot-item pc-view-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedProfileForView(setting);
-                                  setViewDrawerVisible(true);
-                                }}
-                              >
-                                Profile
-                              </button>
-                              {canUpdateInvoiceSetting && (
-                                <>
-                                  <span className="pc-foot-div" />
-                                  <button
-                                    type="button"
-                                    className="pc-foot-item pc-view-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEdit(setting.id);
+                              <div className="pc-foot-row">
+                                <span className="pc-foot-item">
+                                  <span className="pc-foot-key">Status:</span>
+                                  <span
+                                    style={{
+                                      fontSize: "11px",
+                                      fontWeight: 700,
+                                      color: setting.isActive ? "#10b981" : "#94a3b8",
                                     }}
                                   >
-                                    Edit
-                                  </button>
-                                </>
-                              )}
+                                    {setting.isActive ? "ACTIVE" : "INACTIVE"}
+                                  </span>
+                                </span>
+                                <span className="pc-foot-div" />
+                                <button
+                                  type="button"
+                                  className="pc-foot-item pc-view-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProfileForView(setting);
+                                    setViewDrawerVisible(true);
+                                  }}
+                                >
+                                  Profile
+                                </button>
+                                {canUpdateInvoiceSetting && (
+                                  <>
+                                    <span className="pc-foot-div" />
+                                    <button
+                                      type="button"
+                                      className="pc-foot-item pc-view-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(setting.id);
+                                      }}
+                                    >
+                                      Edit
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </ZukvoLoadingOverlay>
               </div>)}
           </div>
 

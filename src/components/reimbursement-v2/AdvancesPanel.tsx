@@ -73,9 +73,11 @@ export default function AdvancesPanel() {
   };
 
   const columns: ColumnsType<Advance> = [
-    { title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
-      <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.purpose || '—'}</div></div>) },
+    {
+      title: 'Advance', dataIndex: 'advanceNo', render: (v, r) => (
+        <div><div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{v}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-slate-500)' }}>{r.purpose || '—'}</div></div>)
+    },
     { title: 'Status', dataIndex: 'status', render: (v) => <StatusTag status={v} /> },
     { title: 'Amount', dataIndex: 'amount', align: 'right', render: (v, r) => money(v, r.currency) },
     { title: 'Reconciled', dataIndex: 'reconciledAmount', align: 'right', render: (v, r) => money(v, r.currency) },
@@ -114,9 +116,9 @@ export default function AdvancesPanel() {
 
       <div className="rvp-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-                        pagination={tablePaginationConfig} />
-              </ZukvoLoadingOverlay>
+          <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
+            pagination={tablePaginationConfig} />
+        </ZukvoLoadingOverlay>
       </div>
 
       <Drawer
@@ -207,17 +209,17 @@ export default function AdvancesPanel() {
             requiredMark="optional"
             className="customer-drawer-form"
           >
-          <SectionCard icon={<WalletOutlined />} title="Advance details" subtitle="Sent to your reporting manager">
-            <Form.Item name="purpose" label="Purpose" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input.TextArea rows={2} placeholder="e.g. Onsite travel to Bangalore" /></Form.Item>
-            <>
-              <Form.Item name="amount" label="Amount"
-                rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
-                <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
-              </Form.Item>
-              <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
-            </>
-            <Form.Item name="neededBy" label="Needed by"><DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" /></Form.Item>
-          </SectionCard>
+            <SectionCard icon={<WalletOutlined />} title="Advance details" subtitle="Sent to your reporting manager">
+              <Form.Item name="purpose" label="Purpose" rules={[{ pattern: /^[a-zA-Z0-9\s\-_.,()]*$/, message: 'Special characters are not allowed' }]}><Input.TextArea rows={2} placeholder="e.g. Onsite travel to Bangalore" /></Form.Item>
+              <>
+                <Form.Item name="amount" label="Amount"
+                  rules={[{ required: true, message: 'Amount required' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}>
+                  <InputNumber min={1} prefix={currencySymbol(cur)} style={{ width: '100%' }} onKeyDown={preventInvalidNumberKeys as any} />
+                </Form.Item>
+                <Form.Item name="currency" label="Currency"><CurrencySelect style={{ width: '100%' }} /></Form.Item>
+              </>
+              <Form.Item name="neededBy" label="Needed by"><DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" /></Form.Item>
+            </SectionCard>
           </Form>
         </div>
       </Drawer>

@@ -530,7 +530,7 @@ export default function PayRunPanel() {
 
           <div className="pvr-drawer-body">
             {detailLoading || !detail ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 64 }}><ZukvoLoader size="md" /></div>
             ) : (
               <>
                 <div className="pvr-summary">

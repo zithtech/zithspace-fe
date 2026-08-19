@@ -1,4 +1,5 @@
 "use client";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 import React, { useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -584,21 +585,25 @@ export default function InvoiceTemplatePage() {
             </div>
 
             {/* List & Cards Content */}
-            {isLoading ? (
-              <div className="pp-grid">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="pc-card p-4"
-                    style={{
-                      background: "var(--bg-slate-50)",
-                      border: "1px solid var(--border-slate-200)",
-                    }}
-                  >
-                    <Skeleton active avatar paragraph={{ rows: 1 }} />
-                  </div>
-                ))}
-              </div>
+            <ZukvoLoadingOverlay loading={isLoading || isFetching} message="">
+            {(isLoading || isFetching) ? (
+              viewMode === "card" ? (
+                <div className="pp-grid">
+                  <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
+                </div>
+              ) : (
+                <div className="pp-table-wrap">
+                  <Table
+                    rowKey="id"
+                    size="small"
+                    columns={columns}
+                    dataSource={[]}
+                    pagination={false}
+                    className="pp-table"
+                    locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
+                  />
+                </div>
+              )
             ) : !pagedTemplates || pagedTemplates.length === 0 ? (
               <div className="pp-empty">
                 <div className="pp-empty-orb"><Sparkles size={26} /></div>
@@ -808,6 +813,7 @@ export default function InvoiceTemplatePage() {
                 />
               </div>
             )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Sticky footer pagination */}

@@ -320,11 +320,11 @@ export default function EmployeePaySetupPanel() {
         {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 
-      <div className="pvep-table-wrap">
-        <ZukvoLoadingOverlay loading={loading} message="">
+      <ZukvoLoadingOverlay loading={loading} message="" minHeight={400} className="pvep-zlo">
+        <div className="pvep-table-wrap">
           <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
-        </ZukvoLoadingOverlay>
-      </div>
+        </div>
+      </ZukvoLoadingOverlay>
 
       {total > 0 && (
         <div className="pvep-footer pvep-footer--sticky">
@@ -462,6 +462,9 @@ export default function EmployeePaySetupPanel() {
         .pvep-filter-label .anticon { color: var(--text-slate-400); font-size: 13px; }
         .pvep-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .pvep-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
+
+        .pvep-zlo .zlo__veil { align-items: flex-start !important; }
+        .pvep-zlo .zl { position: sticky !important; top: 50vh !important; transform: translateY(-50%) !important; height: auto !important; margin-top: 0 !important; }
 
         .pvep-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .pvep-table, .pvep-table.ant-table-wrapper, .pvep-table .ant-table, .pvep-table .ant-table-container, .pvep-table .ant-table-content, .pvep-table .ant-table-header, .pvep-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }

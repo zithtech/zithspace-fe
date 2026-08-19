@@ -692,7 +692,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                 {/* List View */}
                 {displayMode === 'list' && (
                   <div className="ts-table-wrap">
-                    <ZukvoLoadingOverlay loading={isLoading} message="">
+                    <ZukvoLoadingOverlay loading={isLoading} message="" className="ts-zlo">
                             <Table
                                                   className="ts-table"
                                                   columns={columns}
@@ -1275,7 +1275,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
         .ts-stat-spark { opacity: 0.95; }
 
         /* Table */
-        .ts-table-wrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; }
+        .ts-table-wrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; margin-bottom: 24px; flex: 1; display: flex; flex-direction: column; }
+        .ts-zlo { flex: 1; display: flex; flex-direction: column; }
         .ts-table-wrap ::-webkit-scrollbar { display: none !important; }
         .ts-table-wrap, .ts-table-wrap * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
         .ts-table, .ts-table.ant-table-wrapper, .ts-table .ant-table, .ts-table .ant-table-container, .ts-table .ant-table-content, .ts-table .ant-table-header, .ts-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }

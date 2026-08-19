@@ -103,7 +103,7 @@ export default function EmployeeProfileDrawer({
         </div>
 
         <div className="epd-body">
-          {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div> : (
+          {loading ? <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 48 }}><ZukvoLoader size="md" /></div> : (
             <>
               <SectionCard icon={<SafetyCertificateOutlined />} tint={TINT.violet} color={PALETTE.violet} title="Statutory IDs" subtitle="Identity & compliance numbers">
                 <Field label="PAN" hint="10-character income-tax PAN"><Input value={form.pan ?? ''} maxLength={10} onChange={(e) => set('pan', e.target.value.toUpperCase())} placeholder="ABCDE1234F" style={{ fontFamily: 'monospace' }} /></Field>

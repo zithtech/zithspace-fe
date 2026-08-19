@@ -17,6 +17,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { History, Menu } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useTheme } from "@/context/ThemeContext";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 export default function MyTimePage() {
   useActivitySource({ section: "WORK", module: "TimeTracking", page: "TimeTrackingMy" });
@@ -47,7 +48,9 @@ export default function MyTimePage() {
     setTotalSeconds(total);
   }, []);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return <ZukvoLoader size="lg" message="Loading..." fullscreen="viewport" />;
+  }
 
   if (!canReadTimeTracking) {
     return (

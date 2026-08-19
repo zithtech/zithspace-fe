@@ -22,6 +22,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { Dayjs } from "dayjs";
 import { SearchableDropdown, SearchableDropdownOption } from "@/components/common/SearchableDropdown";
+import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import {
   PlusOutlined,
   EditOutlined,
@@ -219,7 +220,8 @@ export default function BucketManagementPage() {
 
   // ── Data ─────────────────────────────────────────────────────────
   const { data: projects } = useUserProjects();
-  const { data: bucketsData, isLoading, refetch } = useBuckets(undefined);
+  const { data: bucketsData, isLoading: queryLoading, refetch, isFetching } = useBuckets(undefined);
+  const isLoading = queryLoading || isRefreshing || isFetching;
   const allBuckets = bucketsData || [];
 
   const deleteBucket = useDeleteBucket();
@@ -684,7 +686,8 @@ export default function BucketManagementPage() {
       <div className="bh2-table-shell">
         <Table
           columns={columns}
-          dataSource={pagedBuckets}
+          dataSource={isLoading ? [] : pagedBuckets}
+          locale={{ emptyText: isLoading ? <div style={{ minHeight: 400 }} /> : undefined }}
           rowKey="id"
           pagination={false}
           scroll={{ x: 800 }}
@@ -1097,409 +1100,411 @@ export default function BucketManagementPage() {
 
             {/* List or Cards */}
             <div className="bh2-main-body">
-            {viewMode === "list" ? renderTable() : (
-              <div className="bh2-list">
-                {isLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="bh2-list-card bh2-list-card-skel">
-                      <Skeleton active avatar paragraph={{ rows: 2 }} />
+              <ZukvoLoadingOverlay loading={isLoading} message="">
+                {(isLoading) ? (
+                  viewMode === "list" ? renderTable() : (
+                    <div className="bh2-list">
+                      <div style={{ minHeight: 400 }} />
                     </div>
-                  ))
-                ) : filteredBuckets.length === 0 ? (
-                  <div className="bh2-empty">
-                    <div className="bh2-empty-icon">
-                      <FolderOpenOutlined style={{ fontSize: 28, color: "#3b82f6" }} />
-                    </div>
-                    <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                      {allBuckets.length === 0 ? "No buckets yet" : "No matches for these filters"}
-                    </Title>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: "var(--text-slate-500)",
-                        display: "block",
-                        marginBottom: 20,
-                        maxWidth: 360,
-                        textAlign: "center",
-                      }}
-                    >
-                      {allBuckets.length === 0
-                        ? "Organize tickets across projects with collaborative hubs."
-                        : "Try adjusting visibility, project, size, or search."}
-                    </Text>
-                    {allBuckets.length === 0 && canCreateTicketBucket ? (
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleCreate}
-                        style={{
-                          height: 36,
-                          fontWeight: 700,
-                          borderRadius: 8,
-                          background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                          border: "none",
-                        }}
-                      >
-                        Create your first bucket
-                      </Button>
-                    ) : (
-                      <Button onClick={resetFilters}>Reset filters</Button>
-                    )}
-                  </div>
-                ) : (
-                  pagedBuckets.map((bucket) => {
-                    const accent = bucket.color || PALETTE_FALLBACK;
-                    const ticketCount = bucket._count?.tickets || 0;
-                    const memberCount = bucket._count?.members || bucket.members?.length || 0;
-                    const owner = bucket.createdBy;
-                    const initial = (bucket.name || "?").charAt(0).toUpperCase();
-                    const isExpanded = expandedBucketId === bucket.id;
-
-                    return (
-                      <article
-                        key={bucket.id}
-                        ref={(el) => {
-                          cardRefs.current[bucket.id] = el;
-                        }}
-                        className="bh2-list-card"
-                        style={{ ["--row-accent" as any]: accent }}
-                      >
-
-                        <header className="bh2-list-head">
-                          <div
-                            className="bh2-list-row"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              if (ticketCount > 0) handleView(bucket.id);
-                            }}
-                            onKeyDown={(e) => {
-                              if ((e.key === "Enter" || e.key === " ") && ticketCount > 0) {
-                                e.preventDefault();
-                                handleView(bucket.id);
-                              }
+                  )
+                ) : viewMode === "list" ? renderTable() : (
+                  <div className="bh2-list">
+                    {filteredBuckets.length === 0 ? (
+                      <div className="bh2-empty">
+                        <div className="bh2-empty-icon">
+                          <FolderOpenOutlined style={{ fontSize: 28, color: "#3b82f6" }} />
+                        </div>
+                        <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                          {allBuckets.length === 0 ? "No buckets yet" : "No matches for these filters"}
+                        </Title>
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            color: "var(--text-slate-500)",
+                            display: "block",
+                            marginBottom: 20,
+                            maxWidth: 360,
+                            textAlign: "center",
+                          }}
+                        >
+                          {allBuckets.length === 0
+                            ? "Organize tickets across projects with collaborative hubs."
+                            : "Try adjusting visibility, project, size, or search."}
+                        </Text>
+                        {allBuckets.length === 0 && canCreateTicketBucket ? (
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleCreate}
+                            style={{
+                              height: 36,
+                              fontWeight: 700,
+                              borderRadius: 8,
+                              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                              border: "none",
                             }}
                           >
-                            <div
-                              className="bh2-list-avatar"
-                              style={{
-                                background: `linear-gradient(135deg, #3b82f622 0%, #3b82f63a 100%)`,
-                                color: "#3b82f6",
-                                borderColor: `#3b82f666`,
-                              }}
-                            >
-                              <span className="bh2-list-avatar-letter">{initial}</span>
-                            </div>
+                            Create your first bucket
+                          </Button>
+                        ) : (
+                          <Button onClick={resetFilters}>Reset filters</Button>
+                        )}
+                      </div>
+                    ) : (
+                      pagedBuckets.map((bucket) => {
+                        const accent = bucket.color || PALETTE_FALLBACK;
+                        const ticketCount = bucket._count?.tickets || 0;
+                        const memberCount = bucket._count?.members || bucket.members?.length || 0;
+                        const owner = bucket.createdBy;
+                        const initial = (bucket.name || "?").charAt(0).toUpperCase();
+                        const isExpanded = expandedBucketId === bucket.id;
 
-                            <div className="bh2-list-row-segments" style={{ alignItems: 'center' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0, marginTop: '10px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span className="bh2-list-seg-name" title={bucket.name}>
-                                    {bucket.name}
-                                    {bucket.userRole === "owner" && (
-                                      <Tooltip title="You own this hub">
-                                        <CrownOutlined style={{ fontSize: 11, marginLeft: 6, color: "#f59e0b" }} />
-                                      </Tooltip>
-                                    )}
-                                  </span>
+                        return (
+                          <article
+                            key={bucket.id}
+                            ref={(el) => {
+                              cardRefs.current[bucket.id] = el;
+                            }}
+                            className="bh2-list-card"
+                            style={{ ["--row-accent" as any]: accent }}
+                          >
+
+                            <header className="bh2-list-head">
+                              <div
+                                className="bh2-list-row"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                  if (ticketCount > 0) handleView(bucket.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if ((e.key === "Enter" || e.key === " ") && ticketCount > 0) {
+                                    e.preventDefault();
+                                    handleView(bucket.id);
+                                  }
+                                }}
+                              >
+                                <div
+                                  className="bh2-list-avatar"
+                                  style={{
+                                    background: `linear-gradient(135deg, #3b82f622 0%, #3b82f63a 100%)`,
+                                    color: "#3b82f6",
+                                    borderColor: `#3b82f666`,
+                                  }}
+                                >
+                                  <span className="bh2-list-avatar-letter">{initial}</span>
                                 </div>
-                                <span className="bh2-list-seg bh2-list-seg-project">
-                                  <span className="bh2-list-seg-label">Project:</span>
-                                  {bucket.project ? (
-                                    <span className="bh2-list-seg-value" title={bucket.project.name}>
-                                      <span className="bh2-list-seg-dot" style={{ background: accent }} />
-                                      {bucket.project.name}
+
+                                <div className="bh2-list-row-segments" style={{ alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0, marginTop: '10px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <span className="bh2-list-seg-name" title={bucket.name}>
+                                        {bucket.name}
+                                        {bucket.userRole === "owner" && (
+                                          <Tooltip title="You own this hub">
+                                            <CrownOutlined style={{ fontSize: 11, marginLeft: 6, color: "#f59e0b" }} />
+                                          </Tooltip>
+                                        )}
+                                      </span>
+                                    </div>
+                                    <span className="bh2-list-seg bh2-list-seg-project">
+                                      <span className="bh2-list-seg-label">Project:</span>
+                                      {bucket.project ? (
+                                        <span className="bh2-list-seg-value" title={bucket.project.name}>
+                                          <span className="bh2-list-seg-dot" style={{ background: accent }} />
+                                          {bucket.project.name}
+                                        </span>
+                                      ) : (
+                                        <span className="bh2-list-seg-value muted">Cross-Project</span>
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  {bucket.isShared ? (
+                                    <span
+                                      className="bh2-list-status"
+                                      style={{
+                                        background: "rgba(16,185,129,0.08)",
+                                        borderColor: "rgba(16,185,129,0.2)",
+                                        color: "#047857",
+                                      }}
+                                    >
+                                      <GlobalOutlined style={{ fontSize: 9 }} />
+                                      Public
                                     </span>
                                   ) : (
-                                    <span className="bh2-list-seg-value muted">Cross-Project</span>
+                                    <span
+                                      className="bh2-list-status"
+                                      style={{
+                                        background: "rgba(245,158,11,0.08)",
+                                        borderColor: "rgba(245,158,11,0.2)",
+                                        color: "#b45309",
+                                      }}
+                                    >
+                                      <LockOutlined style={{ fontSize: 9 }} />
+                                      Private
+                                    </span>
                                   )}
-                                </span>
+                                </div>
+                              </div>
+                            </header>
+
+                            {bucket.description && (
+                              <p className="bh2-list-desc" title={bucket.description}>
+                                {bucket.description.length > 160
+                                  ? `${bucket.description.substring(0, 160)}…`
+                                  : bucket.description}
+                              </p>
+                            )}
+
+                            <div className="bh2-list-body">
+                              {/* Allocation block */}
+                              <div className="bh2-list-block">
+                                <div className="bh2-list-block-head">
+                                  <div className="bh2-list-block-label">
+                                    <FileTextOutlined style={{ fontSize: 10 }} />
+                                    Allocation
+                                  </div>
+                                </div>
+                                <div className="bh2-list-stats">
+                                  <div className="bh2-list-stat">
+                                    <FileTextOutlined style={{ fontSize: 11, color: "#94a3b8" }} />
+                                    <span className="bh2-list-stat-value">{ticketCount}</span>
+                                    <span className="bh2-list-stat-label">tickets</span>
+                                  </div>
+                                  <span className="bh2-list-stat-sep" />
+                                  <div className="bh2-list-stat">
+                                    <TeamOutlined style={{ fontSize: 11, color: "#94a3b8" }} />
+                                    <span className="bh2-list-stat-value">{memberCount}</span>
+                                    <span className="bh2-list-stat-label">members</span>
+                                  </div>
+                                </div>
                               </div>
 
-                              {bucket.isShared ? (
-                                <span
-                                  className="bh2-list-status"
-                                  style={{
-                                    background: "rgba(16,185,129,0.08)",
-                                    borderColor: "rgba(16,185,129,0.2)",
-                                    color: "#047857",
-                                  }}
-                                >
-                                  <GlobalOutlined style={{ fontSize: 9 }} />
-                                  Public
-                                </span>
-                              ) : (
-                                <span
-                                  className="bh2-list-status"
-                                  style={{
-                                    background: "rgba(245,158,11,0.08)",
-                                    borderColor: "rgba(245,158,11,0.2)",
-                                    color: "#b45309",
-                                  }}
-                                >
-                                  <LockOutlined style={{ fontSize: 9 }} />
-                                  Private
-                                </span>
-                              )}
+                              {/* Owner block */}
+                              <div className="bh2-list-block">
+                                <div className="bh2-list-block-head">
+                                  <div className="bh2-list-block-label">
+                                    <CrownOutlined style={{ fontSize: 10 }} />
+                                    Owner
+                                  </div>
+                                </div>
+                                <div className="bh2-list-owner">
+                                  {owner?.avatarUrl ? (
+                                    <Avatar
+                                      src={owner?.avatarUrl || undefined}
+                                      size={26}
+                                      style={{
+                                        background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
+                                        fontSize: 11,
+                                        fontWeight: 800,
+                                      }}
+                                    >
+                                      {initialsOf(owner?.name)}
+                                    </Avatar>
+                                  ) : (
+                                    <Avatar
+                                      size={26}
+                                      style={{
+                                        background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
+                                        fontSize: 11,
+                                        fontWeight: 800,
+                                      }}
+                                    >
+                                      {initialsOf(owner?.name)}
+                                    </Avatar>
+                                  )}
+                                  <div className="bh2-list-owner-info">
+                                    <span className="bh2-list-owner-name">{owner?.name || "—"}</span>
+                                    {owner?.workEmail && (
+                                      <span className="bh2-list-owner-email">{owner.workEmail}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </header>
 
-                        {bucket.description && (
-                          <p className="bh2-list-desc" title={bucket.description}>
-                            {bucket.description.length > 160
-                              ? `${bucket.description.substring(0, 160)}…`
-                              : bucket.description}
-                          </p>
-                        )}
-
-                        <div className="bh2-list-body">
-                          {/* Allocation block */}
-                          <div className="bh2-list-block">
-                            <div className="bh2-list-block-head">
-                              <div className="bh2-list-block-label">
-                                <FileTextOutlined style={{ fontSize: 10 }} />
-                                Allocation
-                              </div>
-                            </div>
-                            <div className="bh2-list-stats">
-                              <div className="bh2-list-stat">
-                                <FileTextOutlined style={{ fontSize: 11, color: "#94a3b8" }} />
-                                <span className="bh2-list-stat-value">{ticketCount}</span>
-                                <span className="bh2-list-stat-label">tickets</span>
-                              </div>
-                              <span className="bh2-list-stat-sep" />
-                              <div className="bh2-list-stat">
-                                <TeamOutlined style={{ fontSize: 11, color: "#94a3b8" }} />
-                                <span className="bh2-list-stat-value">{memberCount}</span>
-                                <span className="bh2-list-stat-label">members</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Owner block */}
-                          <div className="bh2-list-block">
-                            <div className="bh2-list-block-head">
-                              <div className="bh2-list-block-label">
-                                <CrownOutlined style={{ fontSize: 10 }} />
-                                Owner
-                              </div>
-                            </div>
-                            <div className="bh2-list-owner">
-                              {owner?.avatarUrl ? (
-                                <Avatar
-                                  src={owner?.avatarUrl || undefined}
-                                  size={26}
-                                  style={{
-                                    background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  {initialsOf(owner?.name)}
-                                </Avatar>
-                              ) : (
-                                <Avatar
-                                  size={26}
-                                  style={{
-                                    background: `linear-gradient(135deg, #3b82f6 0%, #3b82f6cc 100%)`,
-                                    fontSize: 11,
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  {initialsOf(owner?.name)}
-                                </Avatar>
-                              )}
-                              <div className="bh2-list-owner-info">
-                                <span className="bh2-list-owner-name">{owner?.name || "—"}</span>
-                                {owner?.workEmail && (
-                                  <span className="bh2-list-owner-email">{owner.workEmail}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <footer className="bh2-list-foot">
-                          <div className="bh2-list-foot-inline">
-                            <span className="bh2-list-foot-item">
-                              <span className="bh2-list-foot-label">Created:</span>
-                              <b>
-                                {new Date(bucket.createdAt).toLocaleDateString(undefined, {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
-                              </b>
-                            </span>
-                            {bucket.updatedAt && bucket.updatedAt !== bucket.createdAt && (
-                              <>
-                                <span className="bh2-list-foot-div" />
+                            <footer className="bh2-list-foot">
+                              <div className="bh2-list-foot-inline">
                                 <span className="bh2-list-foot-item">
-                                  <span className="bh2-list-foot-label">Updated:</span>
+                                  <span className="bh2-list-foot-label">Created:</span>
                                   <b>
-                                    {new Date(bucket.updatedAt).toLocaleDateString(undefined, {
+                                    {new Date(bucket.createdAt).toLocaleDateString(undefined, {
                                       month: "short",
                                       day: "numeric",
                                       year: "numeric",
                                     })}
                                   </b>
                                 </span>
-                              </>
-                            )}
+                                {bucket.updatedAt && bucket.updatedAt !== bucket.createdAt && (
+                                  <>
+                                    <span className="bh2-list-foot-div" />
+                                    <span className="bh2-list-foot-item">
+                                      <span className="bh2-list-foot-label">Updated:</span>
+                                      <b>
+                                        {new Date(bucket.updatedAt).toLocaleDateString(undefined, {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                        })}
+                                      </b>
+                                    </span>
+                                  </>
+                                )}
 
-                            <span className="bh2-list-foot-div" />
+                                <span className="bh2-list-foot-div" />
 
-                            <button
-                              type="button"
-                              className={`bh2-manage-btn ${isExpanded ? "active" : ""}`}
-                              style={{ ["--row-accent" as any]: accent }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedBucketId((prev) => {
-                                  const next = prev === bucket.id ? null : bucket.id;
-                                  if (next) {
-                                    // Wait for the panel to mount, then smooth-scroll the
-                                    // card's top under the sticky header.
-                                    requestAnimationFrame(() => {
-                                      cardRefs.current[next]?.scrollIntoView({
-                                        behavior: "smooth",
-                                        block: "start",
-                                      });
+                                <button
+                                  type="button"
+                                  className={`bh2-manage-btn ${isExpanded ? "active" : ""}`}
+                                  style={{ ["--row-accent" as any]: accent }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedBucketId((prev) => {
+                                      const next = prev === bucket.id ? null : bucket.id;
+                                      if (next) {
+                                        // Wait for the panel to mount, then smooth-scroll the
+                                        // card's top under the sticky header.
+                                        requestAnimationFrame(() => {
+                                          cardRefs.current[next]?.scrollIntoView({
+                                            behavior: "smooth",
+                                            block: "start",
+                                          });
+                                        });
+                                      }
+                                      return next;
                                     });
-                                  }
-                                  return next;
-                                });
-                              }}
-                            >
-                              <SettingOutlined style={{ fontSize: 11 }} />
-                              <span>Manage Tickets</span>
-                              {isExpanded ? (
-                                <UpOutlined style={{ fontSize: 9 }} />
-                              ) : (
-                                <DownOutlined style={{ fontSize: 9 }} />
-                              )}
-                            </button>
-                          </div>
+                                  }}
+                                >
+                                  <SettingOutlined style={{ fontSize: 11 }} />
+                                  <span>Manage Tickets</span>
+                                  {isExpanded ? (
+                                    <UpOutlined style={{ fontSize: 9 }} />
+                                  ) : (
+                                    <DownOutlined style={{ fontSize: 9 }} />
+                                  )}
+                                </button>
+                              </div>
 
-                          <div className="bh2-list-actions" onClick={(e) => e.stopPropagation()}>
-                            <MoveToSprintAction
-                              bucket={bucket}
-                              showLabel
-                              onMove={(sprintId) =>
-                                moveBucketToSprint.mutate(
-                                  { bucketId: bucket.id, sprintId },
-                                  {
-                                    onSuccess: (result) => {
-                                      if (result.movedCount > 0)
-                                        message.success("Tickets added to sprint");
-                                      else message.info("This bucket has no tickets to move");
-                                    },
-                                    onError: (err: any) =>
-                                      message.error(err.message || "Movement failed"),
+                              <div className="bh2-list-actions" onClick={(e) => e.stopPropagation()}>
+                                <MoveToSprintAction
+                                  bucket={bucket}
+                                  showLabel
+                                  onMove={(sprintId) =>
+                                    moveBucketToSprint.mutate(
+                                      { bucketId: bucket.id, sprintId },
+                                      {
+                                        onSuccess: (result) => {
+                                          if (result.movedCount > 0)
+                                            message.success("Tickets added to sprint");
+                                          else message.info("This bucket has no tickets to move");
+                                        },
+                                        onError: (err: any) =>
+                                          message.error(err.message || "Movement failed"),
+                                      }
+                                    )
                                   }
-                                )
-                              }
-                              loading={
-                                moveBucketToSprint.isPending &&
-                                moveBucketToSprint.variables?.bucketId === bucket.id
-                              }
-                              disabled={ticketCount === 0}
-                            />
-                            <Popconfirm
-                              title="Move to backlog"
-                              description="Move all tickets back to backlog?"
-                              onConfirm={() => {
-                                moveBucketToBacklog.mutate(bucket.id, {
-                                  onSuccess: (result) => {
-                                    if (result.movedCount > 0)
-                                      message.success("Tickets removed from sprint");
-                                    else message.info("This bucket has no tickets to move");
-                                  },
-                                  onError: (err: any) =>
-                                    message.error(err.message || "Movement failed"),
-                                });
-                              }}
-                              okText="Move"
-                              cancelText="Cancel"
-                            >
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<RollbackOutlined style={{ fontSize: 12, color: "#64748b" }} />}
-                                loading={
-                                  moveBucketToBacklog.isPending &&
-                                  moveBucketToBacklog.variables === bucket.id
-                                }
-                                disabled={ticketCount === 0}
-                                className="bh2-foot-btn"
-                              >
-                                Move to Backlog
-                              </Button>
-                            </Popconfirm>
-                            <Tooltip title={ticketCount === 0 ? "No tickets to view" : "View details"}>
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<EyeOutlined style={{ color: "#64748b" }} />}
-                                onClick={() => handleView(bucket.id)}
-                                disabled={ticketCount === 0}
-                                className="bh2-list-action-btn"
-                              />
-                            </Tooltip>
-                            {canUpdateTicketBucket && (
-                              <Tooltip title="Configure">
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<EditOutlined style={{ color: "#64748b" }} />}
-                                  onClick={() => handleEdit(bucket)}
-                                  className="bh2-list-action-btn"
+                                  loading={
+                                    moveBucketToSprint.isPending &&
+                                    moveBucketToSprint.variables?.bucketId === bucket.id
+                                  }
+                                  disabled={ticketCount === 0}
                                 />
-                              </Tooltip>
-                            )}
-                            {canDeleteTicketBucket && (
-                              <Popconfirm
-                                title="Delete bucket"
-                                description="This permanently removes the bucket."
-                                onConfirm={() => handleDelete(bucket.id)}
-                                okText="Delete"
-                                cancelText="Cancel"
-                                okButtonProps={{ danger: true }}
-                              >
-                                <Tooltip title="Delete">
+                                <Popconfirm
+                                  title="Move to backlog"
+                                  description="Move all tickets back to backlog?"
+                                  onConfirm={() => {
+                                    moveBucketToBacklog.mutate(bucket.id, {
+                                      onSuccess: (result) => {
+                                        if (result.movedCount > 0)
+                                          message.success("Tickets removed from sprint");
+                                        else message.info("This bucket has no tickets to move");
+                                      },
+                                      onError: (err: any) =>
+                                        message.error(err.message || "Movement failed"),
+                                    });
+                                  }}
+                                  okText="Move"
+                                  cancelText="Cancel"
+                                >
                                   <Button
                                     type="text"
                                     size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
+                                    icon={<RollbackOutlined style={{ fontSize: 12, color: "#64748b" }} />}
                                     loading={
-                                      deleteBucket.isPending && deleteBucket.variables === bucket.id
+                                      moveBucketToBacklog.isPending &&
+                                      moveBucketToBacklog.variables === bucket.id
                                     }
+                                    disabled={ticketCount === 0}
+                                    className="bh2-foot-btn"
+                                  >
+                                    Move to Backlog
+                                  </Button>
+                                </Popconfirm>
+                                <Tooltip title={ticketCount === 0 ? "No tickets to view" : "View details"}>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<EyeOutlined style={{ color: "#64748b" }} />}
+                                    onClick={() => handleView(bucket.id)}
+                                    disabled={ticketCount === 0}
                                     className="bh2-list-action-btn"
                                   />
                                 </Tooltip>
-                              </Popconfirm>
+                                {canUpdateTicketBucket && (
+                                  <Tooltip title="Configure">
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<EditOutlined style={{ color: "#64748b" }} />}
+                                      onClick={() => handleEdit(bucket)}
+                                      className="bh2-list-action-btn"
+                                    />
+                                  </Tooltip>
+                                )}
+                                {canDeleteTicketBucket && (
+                                  <Popconfirm
+                                    title="Delete bucket"
+                                    description="This permanently removes the bucket."
+                                    onConfirm={() => handleDelete(bucket.id)}
+                                    okText="Delete"
+                                    cancelText="Cancel"
+                                    okButtonProps={{ danger: true }}
+                                  >
+                                    <Tooltip title="Delete">
+                                      <Button
+                                        type="text"
+                                        size="small"
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        loading={
+                                          deleteBucket.isPending && deleteBucket.variables === bucket.id
+                                        }
+                                        className="bh2-list-action-btn"
+                                      />
+                                    </Tooltip>
+                                  </Popconfirm>
+                                )}
+                              </div>
+                            </footer>
+                            {isExpanded && (
+                              <>
+                                <div className="bh2-list-divider" />
+                                <BucketManageInlinePanel
+                                  bucketId={bucket.id}
+                                  accent={accent}
+                                  onClose={() => setExpandedBucketId(null)}
+                                  nested
+                                />
+                              </>
                             )}
-                          </div>
-                        </footer>
-                        {isExpanded && (
-                          <>
-                            <div className="bh2-list-divider" />
-                            <BucketManageInlinePanel
-                              bucketId={bucket.id}
-                              accent={accent}
-                              onClose={() => setExpandedBucketId(null)}
-                              nested
-                            />
-                          </>
-                        )}
-                      </article>
-                    );
-                  })
+                          </article>
+                        );
+                      })
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
+              </ZukvoLoadingOverlay>
             </div>
 
             {!isLoading && filteredBuckets.length > 0 && (

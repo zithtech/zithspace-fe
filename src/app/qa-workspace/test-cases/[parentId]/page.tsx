@@ -559,7 +559,8 @@ export default function ParentTestCaseDetailsPage() {
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar { height: auto; min-height: 64px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; }
-        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; }
+        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; display: flex; flex-direction: column; }
+        .sc-zlo { flex: 1; display: flex; flex-direction: column; }
 
         /* ── Topbar: one line ───────────────────────────────────────── */
         .sc-topbar { min-height: 52px !important; padding: 8px 20px !important; }
@@ -1094,7 +1095,7 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             {/* Module Test Cases */}
-            <ZukvoLoadingOverlay loading={loading} message="Loading module cases…" minHeight={loading ? 300 : undefined}>
+            <ZukvoLoadingOverlay loading={loading} message="Loading module cases…" minHeight={loading ? 300 : undefined} className="sc-zlo">
             <div className="sc-tablewrap">
               <Table
                 className="ts-table sc-table"

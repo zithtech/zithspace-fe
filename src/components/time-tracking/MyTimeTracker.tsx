@@ -449,7 +449,7 @@ export function MyTimeTracker({
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        <div style={{ minWidth: 0, overflow: 'auto' }}>
           <ZukvoLoadingOverlay loading={loading} message="">
                   <Table
                               columns={columns.filter(col => col.key !== 'action' || canCreateTimeTracking || canDeleteTimeTracking)}
@@ -459,7 +459,7 @@ export function MyTimeTracker({
                               rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
                               scroll={{ x: 800 }}
                               locale={{
-                                emptyText: loading ? <></> : (
+                                emptyText: loading ? <div style={{ minHeight: 400 }} /> : (
                                   <div className="mtt-tracker-card__empty">
                                     <div className="mtt-tracker-card__empty-icon">
                                       <ClockCircleOutlined />

@@ -126,7 +126,7 @@ export default function ReportsPanel() {
       </div>
 
       {loadingReg ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : !reg ? (
         <div style={{ padding: 56 }}><Empty description={runs.length ? 'Select a pay run' : 'No pay runs yet'} /></div>
       ) : (

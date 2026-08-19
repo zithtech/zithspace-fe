@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, message } from 'antd';
-import { FilePdfOutlined, DownloadOutlined } from '@ant-design/icons';
+import { FilePdfOutlined, DownloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { FileSearch, TrendingUp, TrendingDown, Minus, CalendarDays, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 import PerformanceReportService, { GeneratedReport } from '@/services/performanceReportService';
@@ -36,17 +36,20 @@ export default function MyReportsPanel() {
   const [reports, setReports] = useState<GeneratedReport[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setReports(await PerformanceReportService.getMyGeneratedReports());
-      } catch (err: any) {
-        message.error(err?.response?.data?.error || err?.message || 'Failed to load your reports');
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setReports(await PerformanceReportService.getMyGeneratedReports());
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || err?.message || 'Failed to load your reports');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Newest first, so the most recent month leads the grid.
   const sorted = useMemo(
@@ -74,48 +77,57 @@ export default function MyReportsPanel() {
             <p className="mr-sub">Your monthly performance reports — open or download any month’s PDF.</p>
           </div>
 
-          {!loading && sorted.length > 0 && (
-            <div className="mr-kpis">
-              <div className="mr-kpi">
-                <span className="mr-kpi-ic mr-kpi-ic--blue">
-                  <FileText size={14} />
-                </span>
-                <span className="mr-kpi-body">
-                  <span className="mr-kpi-num">{sorted.length}</span>
-                  <span className="mr-kpi-label">Reports</span>
-                </span>
-              </div>
-              <div className="mr-kpi">
-                <span className="mr-kpi-ic mr-kpi-ic--slate">
-                  <CalendarDays size={14} />
-                </span>
-                <span className="mr-kpi-body">
-                  <span className="mr-kpi-num mr-kpi-num--sm">
-                    {dayjs(`${sorted[0].periodKey}-01`).format('MMM YYYY')}
-                  </span>
-                  <span className="mr-kpi-label">Latest</span>
-                </span>
-              </div>
-              {trend !== null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {!loading && sorted.length > 0 && (
+              <div className="mr-kpis">
                 <div className="mr-kpi">
-                  <span
-                    className={`mr-kpi-ic ${trend > 0 ? 'mr-kpi-ic--green' : trend < 0 ? 'mr-kpi-ic--amber' : 'mr-kpi-ic--slate'}`}
-                  >
-                    {trend > 0 ? <TrendingUp size={14} /> : trend < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
+                  <span className="mr-kpi-ic mr-kpi-ic--blue">
+                    <FileText size={14} />
                   </span>
                   <span className="mr-kpi-body">
-                    <span
-                      className="mr-kpi-num"
-                      style={{ color: trend > 0 ? '#059669' : trend < 0 ? '#b45309' : undefined }}
-                    >
-                      {trend > 0 ? `+${trend}` : trend}
-                    </span>
-                    <span className="mr-kpi-label">vs last month</span>
+                    <span className="mr-kpi-num">{sorted.length}</span>
+                    <span className="mr-kpi-label">Reports</span>
                   </span>
                 </div>
-              )}
-            </div>
-          )}
+                <div className="mr-kpi">
+                  <span className="mr-kpi-ic mr-kpi-ic--slate">
+                    <CalendarDays size={14} />
+                  </span>
+                  <span className="mr-kpi-body">
+                    <span className="mr-kpi-num mr-kpi-num--sm">
+                      {dayjs(`${sorted[0].periodKey}-01`).format('MMM YYYY')}
+                    </span>
+                    <span className="mr-kpi-label">Latest</span>
+                  </span>
+                </div>
+                {trend !== null && (
+                  <div className="mr-kpi">
+                    <span
+                      className={`mr-kpi-ic ${trend > 0 ? 'mr-kpi-ic--green' : trend < 0 ? 'mr-kpi-ic--amber' : 'mr-kpi-ic--slate'}`}
+                    >
+                      {trend > 0 ? <TrendingUp size={14} /> : trend < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
+                    </span>
+                    <span className="mr-kpi-body">
+                      <span
+                        className="mr-kpi-num"
+                        style={{ color: trend > 0 ? '#059669' : trend < 0 ? '#b45309' : undefined }}
+                      >
+                        {trend > 0 ? `+${trend}` : trend}
+                      </span>
+                      <span className="mr-kpi-label">vs last month</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            <Button
+              icon={<SyncOutlined />}
+              loading={loading}
+              onClick={load}
+              style={{ height: 42, width: 42, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Refresh"
+            />
+          </div>
         </div>
       </div>
 

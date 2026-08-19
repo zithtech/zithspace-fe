@@ -19,6 +19,7 @@ import {
   UploadCloud,
   Check,
   Zap,
+  RotateCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -278,6 +279,15 @@ export default function CandidatesPage() {
               <LayoutGrid size={14} />
             </button>
           </div>
+          <button
+            type="button"
+            className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md border border-slate-200 bg-white transition"
+            onClick={fetchCandidates}
+            title="Refresh candidates"
+            disabled={loading}
+          >
+            <RotateCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
           {canCreateRecruitment && (
             <button
               onClick={() => { setEditCandidate(null); setIsModalOpen(true); }}

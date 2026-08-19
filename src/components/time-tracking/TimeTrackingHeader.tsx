@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Row, Col, Space, Divider, Typography, Input } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Row, Col, Space, Divider, Typography, Input, Button } from "antd";
+import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -18,6 +18,8 @@ interface TimeTrackingHeaderProps {
   style?: React.CSSProperties;
   className?: string;
   showIconBox?: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 export function TimeTrackingHeader({
@@ -32,6 +34,8 @@ export function TimeTrackingHeader({
   style,
   className,
   showIconBox = true,
+  onRefresh,
+  refreshing,
 }: TimeTrackingHeaderProps) {
   return (
     <>
@@ -99,6 +103,15 @@ export function TimeTrackingHeader({
                     allowClear
                   />
                 </div>
+              )}
+              {onRefresh && (
+                <Button
+                  icon={<SyncOutlined spin={refreshing} />}
+                  onClick={onRefresh}
+                  disabled={refreshing}
+                  style={{ height: 38, width: 38, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Refresh"
+                />
               )}
               {extra}
             </Space>

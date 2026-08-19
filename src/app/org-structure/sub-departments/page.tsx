@@ -343,6 +343,8 @@ export default function SubDepartmentsPage() {
             icon={<GitBranch size={20} color="#3b82f6" />}
             title="Sub-Departments"
             description="Define specialized organizational branches and nested business units."
+            onRefresh={fetchSubDepartments}
+            refreshing={subDepartmentsLoading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",

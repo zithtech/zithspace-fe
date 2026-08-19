@@ -326,7 +326,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "qa-workspace",
         label: "QA Space",
         icon: I(Bug),
-        requiredSubscriptionFeature: ["work_qa_workspace"],
+        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
         requiredAnyPermission: [
           Permissions.QA_SCOPE_READ,
           Permissions.QA_CASE_READ,

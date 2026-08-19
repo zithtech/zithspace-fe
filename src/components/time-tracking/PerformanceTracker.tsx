@@ -34,6 +34,7 @@ import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { getSyncedTime } from "@/utils/timeUtils";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Text } = Typography;
@@ -143,7 +144,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
   const [rows, setRows] = useState<PerformanceRow[]>([]);
   const [legend, setLegend] = useState<PerformanceLegend | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getSyncedTime());
 
   const [filters, setFilters] = useState(() => ({
     userIds: [] as string[],
@@ -258,7 +259,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
 
   // Live ticker for running sessions in the expanded timeline.
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(getSyncedTime()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -640,7 +641,7 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
                         {(() => {
                           const start = new Date(session.start).getTime();
                           const end = session.end ? new Date(session.end).getTime() : currentTime.getTime();
-                          const diff = Math.floor((end - start) / 1000);
+                          const diff = Math.max(0, Math.floor((end - start) / 1000));
                           const h = Math.floor(diff / 3600);
                           const m = Math.floor((diff % 3600) / 60);
                           const s = diff % 60;

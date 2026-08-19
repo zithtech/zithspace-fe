@@ -241,6 +241,12 @@ const createApiClient = (): AxiosInstance => {
         });
       }
 
+      if (response.data && response.data.serverTime) {
+        import('@/utils/timeUtils').then(({ setServerTimeOffset }) => {
+          setServerTimeOffset(new Date(response.data.serverTime).getTime() - Date.now());
+        });
+      }
+
       return response;
     },
     async (error: AxiosError) => {

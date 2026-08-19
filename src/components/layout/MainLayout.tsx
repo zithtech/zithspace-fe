@@ -105,7 +105,16 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+          ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
+          : true;
+        const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
+          ? true
+          : foundStandalone.requiredPermission
+            ? hasPermission(foundStandalone.requiredPermission)
+            : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
+        
+        if (!hasSubAccess || !hasPermAccess) {
           router.push("/dashboard");
           return;
         }
@@ -249,7 +258,16 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+          ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
+          : true;
+        const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
+          ? true
+          : foundStandalone.requiredPermission
+            ? hasPermission(foundStandalone.requiredPermission)
+            : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
+        
+        if (!hasSubAccess || !hasPermAccess) {
           isAuthorized = false;
         }
       }

@@ -1926,13 +1926,13 @@ export default function RolesPage() {
                           ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
-                        const selectedCount = allPermsForRes.filter((p) =>
-                          selectedPermIds.includes(p.id),
-                        ).length;
-                        const allInGroup = selectedCount === allPermsForRes.length;
-                        const someInGroup = selectedCount > 0 && !allInGroup;
                         const subFeatures = RESOURCE_TO_SUBSCRIPTION_FEATURE[resource] || [resource];
                         const isFeatureEnabled = hasAnySubscriptionFeature(...subFeatures);
+                        const selectedCount = isFeatureEnabled ? allPermsForRes.filter((p) =>
+                          selectedPermIds.includes(p.id),
+                        ).length : 0;
+                        const allInGroup = selectedCount === allPermsForRes.length;
+                        const someInGroup = selectedCount > 0 && !allInGroup;
                         const canModifyResource = canUpdateRole && isFeatureEnabled;
 
                         // Sub-grouping logic (preserved)
@@ -2085,16 +2085,16 @@ export default function RolesPage() {
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
                                       <Row gutter={[10, 10]}>
                                         {subPerms.map((perm) => {
-                                          const isSelected = selectedPermIds.includes(perm.id);
+                                          const isSelected = isFeatureEnabled && selectedPermIds.includes(perm.id);
                                           return (
                                             <Col key={perm.id} xs={24} sm={12} lg={8}>
                                               <div
-                                                onClick={() => canUpdateRole && togglePermission(perm.id)}
-                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
+                                                onClick={() => canModifyResource && togglePermission(perm.id)}
+                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canModifyResource ? ' is-readonly' : ''}`}
                                               >
                                                 <Checkbox
                                                   checked={isSelected}
-                                                  disabled={!canUpdateRole}
+                                                  disabled={!canModifyResource}
                                                   className="rp-acc-perm__check"
                                                 />
                                                 <div className="rp-acc-perm__text">

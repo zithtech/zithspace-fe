@@ -675,9 +675,9 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
+            {canReadTimeTracking && canCreateTimeTracking && hasAnySubscriptionFeature("work_time_tracking") && <TimeTrackerPopover />}
 
-            {canReadHotspot && (
+            {canReadHotspot && hasAnySubscriptionFeature("home_home_general_hotspot") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -699,7 +699,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadMail && (
+            {canReadMail && hasAnySubscriptionFeature("home_home_general_mail") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -720,7 +720,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadCalendar && (
+            {canReadCalendar && hasAnySubscriptionFeature("home_home_general_calendar") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -741,7 +741,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadSkills && (
+            {canReadSkills && hasAnySubscriptionFeature("home_home_general_skills") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -763,7 +763,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadChat && (
+            {canReadChat && hasAnySubscriptionFeature("home_home_general_team_chat") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -784,7 +784,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadActivityLogAll && (
+            {canReadActivityLogAll && hasAnySubscriptionFeature("home_home_general_activity") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -828,7 +828,7 @@ export default function TopNav({
                 </div>
               </Tooltip>
             )} */}
-            {canReadBookmark && (
+            {canReadBookmark && hasAnySubscriptionFeature("home_home_general_bookmarks") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">

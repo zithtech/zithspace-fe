@@ -156,23 +156,24 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             background: var(--bg-pure-white);
             display: flex;
             flex-direction: column;
-            padding: 0;
+            padding: 14px 14px 0;
             position: sticky;
             top: 0;
             height: calc(100vh - 64px);
           }
           .lv-side-head {
-            display: flex; align-items: center; gap: 12px; 
-            padding: 0 14px;
-            height: 53px;
-            box-sizing: border-box;
-            border-bottom: 1px solid var(--border-slate-200);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 2px 2px 14px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border-slate-100);
           }
           .lv-side-logo {
             flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-slate-900);
           }
           .lv-side-head-text { display: flex; flex-direction: column; min-width: 0; }
-          .lv-side-title { font-size: 15px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
+          .lv-side-title { font-size: 16px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.025em; line-height: 1.1; }
           .lv-side-subtitle {
             font-size: 10.5px; color: var(--text-slate-400); font-weight: 700; margin-top: 4px;
             text-transform: uppercase; letter-spacing: 0.07em;
@@ -181,7 +182,7 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             display: none; background: none; border: none; color: var(--text-slate-600); cursor: pointer; margin-left: auto;
           }
           .lv-side-scroll {
-            flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 14px;
+            flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px;
           }
           .lv-side-scroll::-webkit-scrollbar { width: 5px; }
           .lv-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
@@ -190,37 +191,64 @@ export default function LettersDocsLayout({ children }: { children: React.ReactN
             color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
           }
           .lv-side-scroll > .lv-side-section-label:first-child { margin-top: 6px; }
-          .lv-side-list { display: flex; flex-direction: column; gap: 1px; }
+          .lv-side-list { display: flex; flex-direction: column; gap: 2px; }
           .lv-view-item {
             display: flex; align-items: center; gap: 10px; width: 100%;
-            padding: 7px 10px; border-radius: 8px; border: none; background: transparent;
-            cursor: pointer; transition: background .12s ease; text-align: left; text-decoration: none;
+            padding: 9px 10px; border-radius: 10px; border: none; background: transparent;
+            cursor: pointer; text-align: left; text-decoration: none;
+            color: var(--text-slate-600, #475569);
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.15s, color 0.15s;
           }
-          .lv-view-item:hover { background: var(--bg-slate-50); }
-          .lv-view-item.is-active { background: var(--bg-blue-50); }
-          .lv-view-item.is-active .lv-view-label { color: var(--text-slate-900); font-weight: 600; }
-          .lv-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
-          .lv-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
+          .lv-view-item:hover {
+            background: color-mix(in srgb, #3b82f6 8%, transparent);
+            color: #3b82f6;
+          }
+          .lv-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; color: var(--text-slate-400); flex-shrink: 0; }
+          .lv-view-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .lv-view-item.is-active {
+            position: relative;
+            background: color-mix(in srgb, #3b82f6 14%, transparent);
+            color: #3b82f6;
+            box-shadow: 0 2px 8px -3px color-mix(in srgb, #3b82f6 50%, transparent);
+          }
+          .lv-view-item.is-active .lv-view-icon { color: #3b82f6; }
+          .lv-view-item.is-active .lv-view-label { color: #3b82f6; font-weight: 600; }
+          .lv-view-item.is-active::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 9px;
+            bottom: 9px;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+            background: linear-gradient(180deg, #3b82f6 0%, #6366f1 100%);
+          }
           @media (max-width: 1024px) {
             .lv-sidebar {
               position: fixed;
-              left: -280px;
-              top: 64px;
-              height: calc(100vh - 64px);
-              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
-              transition: left 0.25s ease;
+              left: 0;
+              top: 0;
+              height: 100vh;
+              z-index: 1000;
+              transform: translateX(-100%);
+              transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+              box-shadow: none;
             }
             .lv-sidebar.is-open {
-              left: 0;
+              transform: translateX(0);
+              box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
             }
             .lv-sidebar-close {
               display: block;
             }
             .lv-sidebar-backdrop {
               position: fixed;
-              inset: 64px 0 0 0;
+              inset: 0;
               background: rgba(15, 23, 42, 0.4);
-              z-index: 15;
+              z-index: 999;
+              backdrop-filter: blur(2px);
             }
           }
           .lv-header {

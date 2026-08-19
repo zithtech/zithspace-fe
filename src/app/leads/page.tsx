@@ -34,6 +34,7 @@ import {
   Eye,
   Filter,
   RefreshCw,
+  RotateCw,
   ShieldCheck,
   Zap,
   Sparkles,
@@ -985,6 +986,20 @@ export default function LeadsPage() {
       setPaginatedLoading(false);
     }
   }, [tablePage, tablePageSize, searchText, filterStatus, filterAction, filterPlatform, filterCreatedBy, filterMailStatus, activeSegment, filterDateRange]);
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchLeads(),
+        fetchPaginatedLeads(),
+        fetchStatuses(),
+        fetchActions(),
+        fetchPlatforms(),
+      ]);
+    } catch (err) {
+      console.error('Failed to refresh:', err);
+    }
+  };
 
   useEffect(() => {
     fetchPaginatedLeads();
@@ -2622,6 +2637,14 @@ export default function LeadsPage() {
                   </div>
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Button
+                    type="default"
+                    icon={<RotateCw size={15} className={loading ? "animate-spin" : ""} />}
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    style={{ height: 38, width: 38, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    title="Refresh leads"
+                  />
                   <Space.Compact className="ticket-filter-group">
                     <Popover
                       trigger={["click"]}

@@ -17,6 +17,7 @@ import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoade
 import { useTheme } from "@/context/ThemeContext";
 import { Line } from "@ant-design/plots";
 import dayjs from "dayjs";
+import { ProjectService } from "@/services/projectService";
 
 const { Text, Paragraph } = Typography;
 
@@ -251,11 +252,14 @@ function TestScopeContent() {
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
   const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [sortKey] = useState<string>('recent');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
+  // User's accessible projects — drives both dropdown options and visibility restriction
+  const [userProjects, setUserProjects] = useState<{ value: string; label: string }[]>([]);
 
   const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa, canApproveScope } = usePermission();
   const { user, isLoading } = useAuth();
@@ -267,7 +271,7 @@ function TestScopeContent() {
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter]);
+  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
 
   useEffect(() => {
     setMounted(true);
@@ -302,6 +306,9 @@ function TestScopeContent() {
           status: statusFilter || undefined,
           priority: priorityFilter || undefined,
           qa_owner: ownerFilter || undefined,
+          ...(projectFilter ? { product: projectFilter } : {}),
+          // Pass the user's accessible project names so the backend restricts visibility
+          ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
           sortBy: sortKey === 'endDate' ? 'endDate' : sortKey === 'name' ? 'name' : 'created_at',
           sortOrder: 'desc',
           isApproval: activeTab === 'approvals' ? 'true' : undefined
@@ -322,7 +329,7 @@ function TestScopeContent() {
     if (!isLoading && canReadScope) {
       fetchScopes();
     }
-  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, sortKey, activeTab]);
+  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey, activeTab]);
 
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
@@ -416,6 +423,16 @@ function TestScopeContent() {
     if (!isLoading && canReadScope) {
       fetchScopeSettings();
       fetchStats();
+      // Fetch user's accessible projects for the visibility restriction + dropdown
+      ProjectService.getUserProjects(true)
+        .then((projects: any) => {
+          const list = Array.isArray(projects) ? projects : (projects?.data ?? []);
+          setUserProjects(
+            list.map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
+                .filter((p: any) => p.value)
+          );
+        })
+        .catch(console.error);
       axios.get("/api/release-plans").then((res: any) => {
         const data = Array.isArray(res) ? res : (res.data || []);
         const map: Record<string, string> = {};
@@ -766,7 +783,7 @@ function TestScopeContent() {
 
   const activeFilterCount =
     (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
-    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+    (timelineFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -774,11 +791,13 @@ function TestScopeContent() {
     setPriorityFilter(undefined);
     setOwnerFilter(undefined);
     setTimelineFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
     .sort((a, b) => String(a).localeCompare(String(b)))
     .map(v => ({ value: String(v), label: String(v) }));
+
 
   // Server-side pagination state already handles fetching
   const pageStart = totalScopes === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -1630,6 +1649,15 @@ function TestScopeContent() {
                     placeholder="Any timeline"
                     hideAvatar
                     itemNoun="ranges"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
                     className="sc-filters__field"
                   />
                   {activeFilterCount > 0 && (

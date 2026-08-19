@@ -356,7 +356,7 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
 
       console.log("[Zai] Structured ticket created:", { parent, subtasks: cleanSubtasks });
       // Removed local success message, let handleTicketCreated in TicketList handle it
-      
+
       if (onTicketCreated) onTicketCreated(parent);
       onClose();
     } catch (err: any) {
@@ -441,9 +441,9 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
       </div>
 
       {/* Body */}
-      <div 
-        style={{ 
-          padding: "20px 24px 24px", 
+      <div
+        style={{
+          padding: "20px 24px 24px",
           height: step === "input" ? "min(520px, calc(100vh - 160px))" : "min(680px, calc(100vh - 160px))",
           display: "flex",
           flexDirection: "column",
@@ -815,7 +815,7 @@ const GeneratingStep: React.FC = () => {
         </div>
 
         <Text type="secondary" style={{ fontSize: 11, letterSpacing: 0.4, textTransform: "uppercase" }}>
-          {elapsed.toFixed(1)}s elapsed
+          {elapsed.toFixed(1)}s elapsed <span style={{ fontWeight: 700 }}>Powered by ZAI</span>
         </Text>
 
         {/* Soft reassurance once we cross 10s — Gemini may be retrying on 429. */}
@@ -832,7 +832,7 @@ const GeneratingStep: React.FC = () => {
               border: "1px dashed rgba(114,46,209,0.25)",
             }}
           >
-            Taking a moment longer than usual — sometimes Gemini retries when busy. Hang tight, your draft is on the way.
+            Taking a moment longer than usual — sometimes Zai retries when busy. Hang tight, your draft is on the way.
           </Text>
         )}
       </div>
@@ -883,428 +883,358 @@ const PreviewStep: React.FC<{
   assigneeId,
   onAssigneeChange,
 }) => {
-  // Local controls for the "N subtasks × H hours" custom-shape regenerator.
-  const [shapeCount, setShapeCount] = React.useState<number>(
-    Math.max(2, Math.min(8, draft.subtasks.length || 5)),
-  );
-  const [shapeHours, setShapeHours] = React.useState<number>(4);
-  // Show the "Looks big — break it down?" banner only for high-effort tickets
-  // the user hasn't decided on yet, and only when there are suggestions to offer.
-  const showSuggestionBanner =
-    suggestionStatus === "pending" && draft.totalHours > 12 && suggestionCount > 0;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
-      {source === "mock" && (
-        <div
-          style={{
-            fontSize: 11,
-            color: "#92400e",
-            background: "#fef3c7",
-            border: "1px solid #fde68a",
-            padding: "6px 10px",
-            borderRadius: 8,
-            gridColumn: "1 / -1",
-            flexShrink: 0
-          }}
-        >
-          {fallbackReason
-            ? <>Heuristic draft used — Gemini fell back. Reason: <code>{fallbackReason}</code></>
-            : <>Heuristic draft (no AI key configured) — set <code>GEMINI_API_KEY</code> in the backend env to use Gemini.</>}
-        </div>
-      )}
-
-      {/* Two-column layout: form fields left, subtasks panel right.
-          Cap heights on each column so the modal stops growing tall. */}
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flex: 1, minHeight: 0 }}>
-        <div style={{ flex: "1.15", display: "flex", flexDirection: "column", gap: 16, minWidth: 0, height: "100%", overflowY: "auto", paddingRight: 8 }}>
-
-      {/* Title */}
-      <div>
-        <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>Title</Text>
-        <Input
-          value={draft.title}
-          onChange={(e) => onChange("title", e.target.value)}
-          style={{ marginTop: 6, borderRadius: 10, height: 40, fontWeight: 600 }}
-        />
-      </div>
-
-      {/* Description — Tiptap renders the AI's bulleted/numbered HTML and stays editable */}
-      <div>
-        <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>Description</Text>
-        <div
-          className="tiptap-minimized-wrapper"
-          style={{
-            marginTop: 6,
-            borderRadius: 12,
-            border: "1px solid var(--border-color)",
-            overflow: "hidden",
-            background: "var(--bg-pure-white, #fff)",
-          }}
-        >
-          <TiptapEditor
-            content={draft.description}
-            minHeight={160}
-            maxHeight={360}
-            onChange={(html) => onChange("description", html)}
-          />
-        </div>
-      </div>
-
-      {/* Priority + Assignee — two dropdowns sharing one row in the left column */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div>
-          <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-            Priority
-          </Text>
-          <SearchableDropdown
-            value={draft.priority}
-            onChange={(v) => onChange("priority", v as AiPriority)}
-            style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
-            options={(["High", "Medium", "Low"] as AiPriority[]).map((p) => ({
-              value: p,
-              label: p,
-              badge: (
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: PRIORITY_DOT[p],
-                    display: "inline-block",
-                  }}
-                />
-              ),
-            }))}
-          />
-        </div>
-
-        <div>
-          <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-            Assignee
-          </Text>
-          <SearchableDropdown
-            value={assigneeId}
-            onChange={(v) => onAssigneeChange(v as string | undefined)}
-            placeholder="Select assignee"
-            style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
-            options={projectMembers.map((m) => ({
-              value: m.value,
-              label: m.label,
-            }))}
-          />
-        </div>
-      </div>
-
-        </div>
-        {/* Right column: ticket meta + subtasks panel */}
-        <div
-          style={{
-            flex: "1",
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            minWidth: 0,
-            paddingLeft: 20,
-            borderLeft: "1px solid var(--border-color)",
-            alignSelf: "stretch",
-            height: "100%",
-            overflowY: "auto",
-            paddingRight: 8
-          }}
-        >
-
-      {/* Total Hours card — compact 2-row layout: inline-editable hero + chips.
-          The hero number IS the input (no separate override row); InputNumber is
-          styled borderless and oversized so it reads as a value but stays editable. */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          padding: "12px 14px",
-          borderRadius: 14,
-          background: "var(--bg-secondary, #fafafa)",
-          border: "1px solid var(--border-color)",
-        }}
-      >
-        {/* Row 1: label + inline editable hero number + baseline reference */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <ClockCircleOutlined style={{ fontSize: 18, color: PURPLE }} />
-          <div style={{ display: "flex", alignItems: "baseline", flex: 1, gap: 6, minWidth: 0 }}>
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "var(--text-slate-500, #64748b)",
-                textTransform: "uppercase",
-                letterSpacing: 0.4,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Total Hours
-            </Text>
-          </div>
-          <InputNumber
-            value={draft.totalHours || undefined}
-            onChange={(v) => onChange("totalHours", typeof v === "number" && v > 0 ? Math.round(v) : 0)}
-            min={0}
-            max={1000}
-            step={1}
-            precision={0}
-            variant="borderless"
-            controls={false}
-            formatter={(v) => (v == null || v === ("" as any) ? "" : `${v}h`)}
-            parser={(v) => (Number(String(v ?? "").replace(/[^\d]/g, "")) || 0) as 0}
-            style={{
-              width: 90,
-              fontSize: 24,
-              fontWeight: 800,
-              color: "var(--text-primary)",
-              padding: 0,
-              textAlign: "right",
-            }}
-          />
-          <Tooltip title={`Zai's baseline estimate: ${aiEstimatedHours || 0}h`}>
-            <Text type="secondary" style={{ fontSize: 10, whiteSpace: "nowrap" }}>
-              base {aiEstimatedHours || 0}h
-            </Text>
-          </Tooltip>
-        </div>
-
-        {/* Row 2: Mode chips with each strategy's hour value preview */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {(["ai", "hybrid", "manual"] as HoursMode[]).map((m) => {
-            const selected = hoursMode === m;
-            const v = computeHoursForMode(aiEstimatedHours, m);
-            const label = m === "ai" ? "AI" : m === "hybrid" ? "Hybrid" : "Manual";
-            return (
-              <Tooltip
-                key={m}
-                title={
-                  m === "ai"
-                    ? "Coded with AI tools (Copilot, Cursor, etc.)"
-                    : m === "hybrid"
-                      ? "Mix of AI + hand-written code (default)"
-                      : "Hand-written, no AI tools"
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => onHoursModeChange(m)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    height: 30,
-                    padding: "0 8px",
-                    borderRadius: 8,
-                    border: selected ? `1px solid ${PURPLE}` : "1px solid var(--border-color)",
-                    background: selected
-                      ? `linear-gradient(135deg, ${PURPLE}1A 0%, ${PURPLE_DEEP}11 100%)`
-                      : "var(--bg-pure-white, #fff)",
-                    color: selected ? PURPLE : "var(--text-secondary, #64748b)",
-                    cursor: "pointer",
-                    transition: "all 120ms ease",
-                    fontSize: 11,
-                    fontWeight: selected ? 700 : 600,
-                  }}
-                >
-                  {m === "ai" && <ThunderboltOutlined style={{ fontSize: 11 }} />}
-                  <span style={{ textTransform: "uppercase", letterSpacing: 0.3 }}>{label}</span>
-                  <span
-                    style={{
-                      fontWeight: 800,
-                      fontSize: 12,
-                      padding: "1px 6px",
-                      borderRadius: 6,
-                      background: selected ? `${PURPLE}1F` : "var(--bg-slate-100, #f1f5f9)",
-                      color: selected ? PURPLE : "var(--text-slate-500, #64748b)",
-                    }}
-                  >
-                    {v}h
-                  </span>
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Big-task suggestion banner: appears only when totalHours > 12 and Zai
-          has subtasks ready to propose. User can accept (loads them) or dismiss. */}
-      {showSuggestionBanner && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "12px 14px",
-            borderRadius: 12,
-            background: "linear-gradient(135deg, rgba(114,46,209,0.08) 0%, rgba(114,46,209,0.04) 100%)",
-            border: "1px solid rgba(114,46,209,0.25)",
-          }}
-        >
+    // Local controls for the "N subtasks × H hours" custom-shape regenerator.
+    const [shapeCount, setShapeCount] = React.useState<number>(
+      Math.max(2, Math.min(8, draft.subtasks.length || 5)),
+    );
+    const [shapeHours, setShapeHours] = React.useState<number>(4);
+    // Show the "Looks big — break it down?" banner only for high-effort tickets
+    // the user hasn't decided on yet, and only when there are suggestions to offer.
+    const showSuggestionBanner =
+      suggestionStatus === "pending" && draft.totalHours > 12 && suggestionCount > 0;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+        {source === "mock" && (
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              flexShrink: 0,
+              fontSize: 11,
+              color: "#92400e",
+              background: "#fef3c7",
+              border: "1px solid #fde68a",
+              padding: "6px 10px",
+              borderRadius: 8,
+              gridColumn: "1 / -1",
+              flexShrink: 0
             }}
           >
-            <ThunderboltOutlined />
+            {fallbackReason
+              ? <>Heuristic draft used — Gemini fell back. Reason: <code>{fallbackReason}</code></>
+              : <>Heuristic draft (no AI key configured) — set <code>GEMINI_API_KEY</code> in the backend env to use Gemini.</>}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Text strong style={{ fontSize: 13, display: "block" }}>
-              Looks like a big task — {draft.totalHours}h estimated.
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Want me to break it into {suggestionCount} subtasks?
-            </Text>
+        )}
+
+        {/* Two-column layout: form fields left, subtasks panel right.
+          Cap heights on each column so the modal stops growing tall. */}
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flex: 1, minHeight: 0 }}>
+          <div style={{ flex: "1.15", display: "flex", flexDirection: "column", gap: 16, minWidth: 0, height: "100%", overflowY: "auto", paddingRight: 8 }}>
+
+            {/* Title */}
+            <div>
+              <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>Title</Text>
+              <Input
+                value={draft.title}
+                onChange={(e) => onChange("title", e.target.value)}
+                style={{ marginTop: 6, borderRadius: 10, height: 40, fontWeight: 600 }}
+              />
+            </div>
+
+            {/* Description — Tiptap renders the AI's bulleted/numbered HTML and stays editable */}
+            <div>
+              <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>Description</Text>
+              <div
+                className="tiptap-minimized-wrapper"
+                style={{
+                  marginTop: 6,
+                  borderRadius: 12,
+                  border: "1px solid var(--border-color)",
+                  overflow: "hidden",
+                  background: "var(--bg-pure-white, #fff)",
+                }}
+              >
+                <TiptapEditor
+                  content={draft.description}
+                  minHeight={160}
+                  maxHeight={360}
+                  onChange={(html) => onChange("description", html)}
+                />
+              </div>
+            </div>
+
+            {/* Priority + Assignee — two dropdowns sharing one row in the left column */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  Priority
+                </Text>
+                <SearchableDropdown
+                  value={draft.priority}
+                  onChange={(v) => onChange("priority", v as AiPriority)}
+                  style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
+                  options={(["High", "Medium", "Low"] as AiPriority[]).map((p) => ({
+                    value: p,
+                    label: p,
+                    badge: (
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: PRIORITY_DOT[p],
+                          display: "inline-block",
+                        }}
+                      />
+                    ),
+                  }))}
+                />
+              </div>
+
+              <div>
+                <Text style={{ fontSize: 11, fontWeight: 700, color: "var(--text-slate-500, #64748b)", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                  Assignee
+                </Text>
+                <SearchableDropdown
+                  value={assigneeId}
+                  onChange={(v) => onAssigneeChange(v as string | undefined)}
+                  placeholder="Select assignee"
+                  style={{ marginTop: 6, height: 38, width: "100%", borderRadius: 10 }}
+                  options={projectMembers.map((m) => ({
+                    value: m.value,
+                    label: m.label,
+                  }))}
+                />
+              </div>
+            </div>
+
           </div>
-          <Space size={6}>
-            <Button size="small" onClick={onDismissSuggestion} style={{ borderRadius: 6 }}>
-              No thanks
-            </Button>
-            <Button
-              size="small"
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={onAcceptSuggestion}
-              style={{
-                borderRadius: 6,
-                background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
-                border: "none",
-                fontWeight: 600,
-              }}
-            >
-              Yes, suggest
-            </Button>
-          </Space>
-        </div>
-      )}
-
-      {/* Subtasks */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-          <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>
-            Subtasks <Text type="secondary" style={{ fontWeight: 400 }}>({draft.subtasks.length})</Text>
-          </Text>
-          <Button size="small" type="text" icon={<PlusOutlined />} onClick={onAddSubtask}>
-            Add subtask
-          </Button>
-        </div>
-
-        {/* Custom-shape regenerator: ask Zai for N subtasks of H hours each */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 12px",
-            marginBottom: 10,
-            borderRadius: 10,
-            background: "rgba(114,46,209,0.04)",
-            border: "1px dashed rgba(114,46,209,0.25)",
-          }}
-        >
-          <Text style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-            <ThunderboltOutlined style={{ color: PURPLE, marginRight: 6 }} />
-            Break into
-          </Text>
-          <InputNumber
-            value={shapeCount}
-            onChange={(v) => setShapeCount(typeof v === "number" ? Math.max(2, Math.min(12, Math.round(v))) : 2)}
-            min={2}
-            max={12}
-            step={1}
-            precision={0}
-            size="small"
-            style={{ width: 64 }}
-          />
-          <Text style={{ fontSize: 12, color: "var(--text-secondary)" }}>subtasks of</Text>
-          <InputNumber
-            value={shapeHours}
-            onChange={(v) => setShapeHours(typeof v === "number" ? Math.max(1, Math.min(40, Math.round(v))) : 1)}
-            min={1}
-            max={40}
-            step={1}
-            precision={0}
-            size="small"
-            formatter={(v) => (v == null || v === ("" as any) ? "" : `${v}h`)}
-            parser={(v) => (Number(String(v ?? "").replace(/[^\d]/g, "")) || 0) as 0}
-            style={{ width: 70 }}
-          />
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            = {shapeCount * shapeHours}h total
-          </Text>
-          <Button
-            size="small"
-            type="primary"
-            loading={isRegeneratingSubtasks}
-            onClick={() => onRegenerateSubtasks(shapeCount, shapeHours)}
+          {/* Right column: ticket meta + subtasks panel */}
+          <div
             style={{
-              marginLeft: "auto",
-              borderRadius: 6,
-              background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
-              border: "none",
-              fontWeight: 600,
+              flex: "1",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              minWidth: 0,
+              paddingLeft: 20,
+              borderLeft: "1px solid var(--border-color)",
+              alignSelf: "stretch",
+              height: "100%",
+              overflowY: "auto",
+              paddingRight: 8
             }}
           >
-            {isRegeneratingSubtasks ? "Regenerating…" : "Regenerate with Zai"}
-          </Button>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            maxHeight: 360,
-            overflowY: "auto",
-            paddingRight: 4,
-          }}
-        >
-          {draft.subtasks.length === 0 && (
-            <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
-              No subtasks. Click “Add subtask” to add one.
-            </Paragraph>
-          )}
-          {draft.subtasks.map((s, i) => (
+
+            {/* Total Hours card — compact 2-row layout: inline-editable hero + chips.
+          The hero number IS the input (no separate override row); InputNumber is
+          styled borderless and oversized so it reads as a value but stays editable. */}
             <div
-              key={i}
               style={{
                 display: "flex",
-                gap: 8,
-                alignItems: "center",
+                flexDirection: "column",
+                gap: 10,
+                padding: "12px 14px",
+                borderRadius: 14,
                 background: "var(--bg-secondary, #fafafa)",
-                padding: "6px 8px 6px 10px",
-                borderRadius: 10,
                 border: "1px solid var(--border-color)",
               }}
             >
-              <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700, width: 22 }}>
-                {String(i + 1).padStart(2, "0")}
-              </Text>
-              <Input
-                value={s.title}
-                onChange={(e) => onSubtaskChange(i, e.target.value)}
-                placeholder="Subtask description"
-                variant="borderless"
-                style={{ flex: 1, padding: "4px 6px" }}
-              />
-              <Tooltip title="Estimated hours for this subtask">
+              {/* Row 1: label + inline editable hero number + baseline reference */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <ClockCircleOutlined style={{ fontSize: 18, color: PURPLE }} />
+                <div style={{ display: "flex", alignItems: "baseline", flex: 1, gap: 6, minWidth: 0 }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "var(--text-slate-500, #64748b)",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.4,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Total Hours
+                  </Text>
+                </div>
                 <InputNumber
-                  value={s.hours || undefined}
-                  onChange={(v) => onSubtaskHoursChange(i, typeof v === "number" ? v : 0)}
+                  value={draft.totalHours || undefined}
+                  onChange={(v) => onChange("totalHours", typeof v === "number" && v > 0 ? Math.round(v) : 0)}
                   min={0}
                   max={1000}
+                  step={1}
+                  precision={0}
+                  variant="borderless"
+                  controls={false}
+                  formatter={(v) => (v == null || v === ("" as any) ? "" : `${v}h`)}
+                  parser={(v) => (Number(String(v ?? "").replace(/[^\d]/g, "")) || 0) as 0}
+                  style={{
+                    width: 90,
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "var(--text-primary)",
+                    padding: 0,
+                    textAlign: "right",
+                  }}
+                />
+                <Tooltip title={`Zai's baseline estimate: ${aiEstimatedHours || 0}h`}>
+                  <Text type="secondary" style={{ fontSize: 10, whiteSpace: "nowrap" }}>
+                    base {aiEstimatedHours || 0}h
+                  </Text>
+                </Tooltip>
+              </div>
+
+              {/* Row 2: Mode chips with each strategy's hour value preview */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                {(["ai", "hybrid", "manual"] as HoursMode[]).map((m) => {
+                  const selected = hoursMode === m;
+                  const v = computeHoursForMode(aiEstimatedHours, m);
+                  const label = m === "ai" ? "AI" : m === "hybrid" ? "Hybrid" : "Manual";
+                  return (
+                    <Tooltip
+                      key={m}
+                      title={
+                        m === "ai"
+                          ? "Coded with AI tools (Copilot, Cursor, etc.)"
+                          : m === "hybrid"
+                            ? "Mix of AI + hand-written code (default)"
+                            : "Hand-written, no AI tools"
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onHoursModeChange(m)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          height: 30,
+                          padding: "0 8px",
+                          borderRadius: 8,
+                          border: selected ? `1px solid ${PURPLE}` : "1px solid var(--border-color)",
+                          background: selected
+                            ? `linear-gradient(135deg, ${PURPLE}1A 0%, ${PURPLE_DEEP}11 100%)`
+                            : "var(--bg-pure-white, #fff)",
+                          color: selected ? PURPLE : "var(--text-secondary, #64748b)",
+                          cursor: "pointer",
+                          transition: "all 120ms ease",
+                          fontSize: 11,
+                          fontWeight: selected ? 700 : 600,
+                        }}
+                      >
+                        {m === "ai" && <ThunderboltOutlined style={{ fontSize: 11 }} />}
+                        <span style={{ textTransform: "uppercase", letterSpacing: 0.3 }}>{label}</span>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 12,
+                            padding: "1px 6px",
+                            borderRadius: 6,
+                            background: selected ? `${PURPLE}1F` : "var(--bg-slate-100, #f1f5f9)",
+                            color: selected ? PURPLE : "var(--text-slate-500, #64748b)",
+                          }}
+                        >
+                          {v}h
+                        </span>
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Big-task suggestion banner: appears only when totalHours > 12 and Zai
+          has subtasks ready to propose. User can accept (loads them) or dismiss. */}
+            {showSuggestionBanner && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: "linear-gradient(135deg, rgba(114,46,209,0.08) 0%, rgba(114,46,209,0.04) 100%)",
+                  border: "1px solid rgba(114,46,209,0.25)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    flexShrink: 0,
+                  }}
+                >
+                  <ThunderboltOutlined />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Text strong style={{ fontSize: 13, display: "block" }}>
+                    Looks like a big task — {draft.totalHours}h estimated.
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Want me to break it into {suggestionCount} subtasks?
+                  </Text>
+                </div>
+                <Space size={6}>
+                  <Button size="small" onClick={onDismissSuggestion} style={{ borderRadius: 6 }}>
+                    No thanks
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<CheckCircleOutlined />}
+                    onClick={onAcceptSuggestion}
+                    style={{
+                      borderRadius: 6,
+                      background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
+                      border: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Yes, suggest
+                  </Button>
+                </Space>
+              </div>
+            )}
+
+            {/* Subtasks */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+                <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-slate-500, #64748b)" }}>
+                  Subtasks <Text type="secondary" style={{ fontWeight: 400 }}>({draft.subtasks.length})</Text>
+                </Text>
+                <Button size="small" type="text" icon={<PlusOutlined />} onClick={onAddSubtask}>
+                  Add subtask
+                </Button>
+              </div>
+
+              {/* Custom-shape regenerator: ask Zai for N subtasks of H hours each */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 12px",
+                  marginBottom: 10,
+                  borderRadius: 10,
+                  background: "rgba(114,46,209,0.04)",
+                  border: "1px dashed rgba(114,46,209,0.25)",
+                }}
+              >
+                <Text style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  <ThunderboltOutlined style={{ color: PURPLE, marginRight: 6 }} />
+                  Break into
+                </Text>
+                <InputNumber
+                  value={shapeCount}
+                  onChange={(v) => setShapeCount(typeof v === "number" ? Math.max(2, Math.min(12, Math.round(v))) : 2)}
+                  min={2}
+                  max={12}
+                  step={1}
+                  precision={0}
+                  size="small"
+                  style={{ width: 64 }}
+                />
+                <Text style={{ fontSize: 12, color: "var(--text-secondary)" }}>subtasks of</Text>
+                <InputNumber
+                  value={shapeHours}
+                  onChange={(v) => setShapeHours(typeof v === "number" ? Math.max(1, Math.min(40, Math.round(v))) : 1)}
+                  min={1}
+                  max={40}
                   step={1}
                   precision={0}
                   size="small"
@@ -1312,33 +1242,103 @@ const PreviewStep: React.FC<{
                   parser={(v) => (Number(String(v ?? "").replace(/[^\d]/g, "")) || 0) as 0}
                   style={{ width: 70 }}
                 />
-              </Tooltip>
-              <Tooltip title="Remove">
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  = {shapeCount * shapeHours}h total
+                </Text>
                 <Button
-                  type="text"
                   size="small"
-                  shape="circle"
-                  icon={<CloseOutlined style={{ fontSize: 12 }} />}
-                  onClick={() => onRemoveSubtask(i)}
-                />
-              </Tooltip>
+                  type="primary"
+                  loading={isRegeneratingSubtasks}
+                  onClick={() => onRegenerateSubtasks(shapeCount, shapeHours)}
+                  style={{
+                    marginLeft: "auto",
+                    borderRadius: 6,
+                    background: `linear-gradient(135deg, ${PURPLE} 0%, ${PURPLE_DEEP} 100%)`,
+                    border: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  {isRegeneratingSubtasks ? "Regenerating…" : "Regenerate with Zai"}
+                </Button>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  maxHeight: 360,
+                  overflowY: "auto",
+                  paddingRight: 4,
+                }}
+              >
+                {draft.subtasks.length === 0 && (
+                  <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
+                    No subtasks. Click “Add subtask” to add one.
+                  </Paragraph>
+                )}
+                {draft.subtasks.map((s, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      background: "var(--bg-secondary, #fafafa)",
+                      padding: "6px 8px 6px 10px",
+                      borderRadius: 10,
+                      border: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700, width: 22 }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </Text>
+                    <Input
+                      value={s.title}
+                      onChange={(e) => onSubtaskChange(i, e.target.value)}
+                      placeholder="Subtask description"
+                      variant="borderless"
+                      style={{ flex: 1, padding: "4px 6px" }}
+                    />
+                    <Tooltip title="Estimated hours for this subtask">
+                      <InputNumber
+                        value={s.hours || undefined}
+                        onChange={(v) => onSubtaskHoursChange(i, typeof v === "number" ? v : 0)}
+                        min={0}
+                        max={1000}
+                        step={1}
+                        precision={0}
+                        size="small"
+                        formatter={(v) => (v == null || v === ("" as any) ? "" : `${v}h`)}
+                        parser={(v) => (Number(String(v ?? "").replace(/[^\d]/g, "")) || 0) as 0}
+                        style={{ width: 70 }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Remove">
+                      <Button
+                        type="text"
+                        size="small"
+                        shape="circle"
+                        icon={<CloseOutlined style={{ fontSize: 12 }} />}
+                        onClick={() => onRemoveSubtask(i)}
+                      />
+                    </Tooltip>
+                  </div>
+                ))}
+                {draft.subtasks.length > 0 && (
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 11, marginTop: 4, textAlign: "right", display: "block" }}
+                  >
+                    Subtask subtotal:{" "}
+                    <Text strong>{draft.subtasks.reduce((acc, s) => acc + (s.hours || 0), 0)}h</Text>{" "}
+                    · Ticket estimate <Text strong>{draft.totalHours}h</Text>
+                  </Text>
+                )}
+              </div>
             </div>
-          ))}
-          {draft.subtasks.length > 0 && (
-            <Text
-              type="secondary"
-              style={{ fontSize: 11, marginTop: 4, textAlign: "right", display: "block" }}
-            >
-              Subtask subtotal:{" "}
-              <Text strong>{draft.subtasks.reduce((acc, s) => acc + (s.hours || 0), 0)}h</Text>{" "}
-              · Ticket estimate <Text strong>{draft.totalHours}h</Text>
-            </Text>
-          )}
-        </div>
-      </div>
 
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };

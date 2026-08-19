@@ -190,9 +190,19 @@ export default function OverviewPage() {
   const [treeSearch, setTreeSearch] = useState<string>('');
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const { allGrades: grades = [], loading: gradesLoading } = useGrades();
-  const { allPositions: positions, loading: positionsLoading } = usePositions();
-  const loading = gradesLoading || positionsLoading;
+  const { allGrades: grades = [], loading: gradesLoading, fetchGrades } = useGrades();
+  const { allPositions: positions, loading: positionsLoading, refresh: refreshPositions } = usePositions();
+  const [refreshing, setRefreshing] = useState(false);
+  const loading = gradesLoading || positionsLoading || refreshing;
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchGrades(), refreshPositions()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !canReadOrgDashboard) {
@@ -379,6 +389,8 @@ export default function OverviewPage() {
           icon={<Layout size={20} color="#3b82f6" />}
           title="Organization Overview"
           description="View company hierarchy, reporting lines, and grades."
+          onRefresh={handleRefresh}
+          refreshing={loading}
           style={{
             borderBottom: '1px solid var(--border-slate-200)',
             padding: '9px 32px',

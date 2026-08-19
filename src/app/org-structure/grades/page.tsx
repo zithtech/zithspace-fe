@@ -67,7 +67,7 @@ export default function GradesPage() {
 
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
-  const { allGrades, paginatedGrades, totalCount, loading, addGrade, updateGrade, deleteGrade } = useGrades({
+  const { allGrades, paginatedGrades, totalCount, loading, addGrade, updateGrade, deleteGrade, fetchGrades } = useGrades({
     page: pagination.current,
     limit: pagination.pageSize,
     search: search
@@ -381,6 +381,8 @@ export default function GradesPage() {
             icon={<ShieldCheck size={20} color="#3b82f6" />}
             title="Grade Hierarchy"
             description="Define and manage organization grade levels and reporting tiers."
+            onRefresh={fetchGrades}
+            refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               marginBottom: 8,

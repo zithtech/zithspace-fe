@@ -35,6 +35,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   ThunderboltOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import {
   Search,
@@ -488,6 +489,13 @@ export default function GeneratedReportsPanel() {
                 </span>
               </div>
             </div>
+            <Button
+              icon={<SyncOutlined />}
+              loading={loading}
+              onClick={load}
+              style={{ height: 42, width: 42, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Refresh"
+            />
 
             {canUpdatePerformanceReportSetting && (
               <Button

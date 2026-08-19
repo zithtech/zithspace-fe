@@ -369,6 +369,8 @@ export default function PositionsPage() {
             icon={<Trophy size={20} color="#3b82f6" />}
             title="Positions"
             description="Define and manage organization roles, grade assignments, and designations."
+            onRefresh={refresh}
+            refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",

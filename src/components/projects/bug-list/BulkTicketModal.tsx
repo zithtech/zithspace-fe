@@ -21,6 +21,7 @@ import {
   Split,
 } from "lucide-react";
 import { useBulkConvertBugsToTickets, useBulkMapBugsToTicket } from "@/hooks/useBugList";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -736,39 +737,28 @@ function ManualWorkspace(p: ManualWorkspaceProps) {
 
                 <div className="hb-btm-row2">
                   <Field label="Project" required>
-                    <Select
-                      showSearch
+                    <SearchableDropdown
                       placeholder="Pick a project"
                       value={p.projectId}
                       onChange={(v) => p.onProjectId(v)}
-                      popupClassName={popupCls}
-                      style={{ width: "100%" }}
                       options={p.projects.map((pr) => ({
                         value: pr.value,
                         label: pr.code ? `${pr.code} · ${pr.label}` : pr.label,
                       }))}
-                      filterOption={(input, option) =>
-                        (option?.label as string)
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
+                      itemNoun="projects"
+                      hideAvatar
+                      className="sc-filters__field"
                     />
                   </Field>
                   <Field label="Assignee" optional>
-                    <Select
-                      allowClear
-                      showSearch
+                    <SearchableDropdown
                       placeholder="Unassigned"
                       value={p.assigneeId}
                       onChange={(v) => p.onAssigneeId(v)}
-                      popupClassName={popupCls}
-                      style={{ width: "100%" }}
                       options={p.members}
-                      filterOption={(input, option) =>
-                        (option?.label as string)
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
+                      itemNoun="members"
+                      showSelectedAvatar
+                      className="sc-filters__field"
                     />
                   </Field>
                 </div>

@@ -77,6 +77,7 @@ export default function TestCasesPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [parentCases, setParentCases] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({});
   const [totalItems, setTotalItems] = useState(0);
   const [modules, setModules] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -88,8 +89,7 @@ export default function TestCasesPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [automationFilter, setAutomationFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
-  /** Set by clicking the Ready / Automated stat tiles. */
-  const [quickFilter, setQuickFilter] = useState<string | undefined>();
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [suitesModalVisible, setSuitesModalVisible] = useState(false);
@@ -131,7 +131,8 @@ export default function TestCasesPage() {
             status: statusFilter || undefined,
             automation: automationFilter || undefined,
             owner: ownerFilter || undefined,
-            quickFilter: quickFilter || undefined
+            project_id: projectFilter || undefined,
+            allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
         }),
         axios.get("/api/v2/qa/modules?limit=1000"),
@@ -140,6 +141,7 @@ export default function TestCasesPage() {
       const body = (parentsRes as any).data;
       setParentCases(body?.data || []);
       setTotalItems(body?.pagination?.total || 0);
+      setStats(body?.stats || {});
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
       setUsersList((memRes as any)?.data || []);
     } catch (error) {
@@ -151,16 +153,21 @@ export default function TestCasesPage() {
 
   useEffect(() => {
     if (canReadCase) {
-      fetchData();
       fetchProjects();
     }
-  }, [canReadCase, page, pageSize, debouncedSearch, moduleFilter, statusFilter, automationFilter, ownerFilter, quickFilter]);
+  }, [canReadCase]);
+
+  useEffect(() => {
+    if (canReadCase) {
+      fetchData();
+    }
+  }, [canReadCase, page, pageSize, debouncedSearch, moduleFilter, statusFilter, automationFilter, ownerFilter, projectFilter, projectOptions]);
 
   /** Active projects the signed-in user belongs to. */
   const fetchProjects = async () => {
     try {
       setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects();
+      const res: any = await ProjectService.getUserProjects(true);
       const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
       setProjectOptions(
         list
@@ -182,7 +189,7 @@ export default function TestCasesPage() {
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, moduleFilter, statusFilter, automationFilter, ownerFilter, quickFilter]);
+  }, [searchTerm, moduleFilter, statusFilter, automationFilter, ownerFilter, projectFilter]);
 
   const handleOpenCreateModal = () => {
     setEditingId(null);
@@ -262,9 +269,9 @@ export default function TestCasesPage() {
   const filteredData = parentCases; // Data is already filtered by backend
 
   // Stat figures
-  const readyCount = parentCases.filter(t => t.status === 'Ready' || t.status === 'Active').length;
-  const automatedCount = parentCases.filter(t => t.automation === 'Automated').length;
-  const totalChildCases = parentCases.reduce((acc, curr) => acc + (parseInt(curr.child_count || '0', 10)), 0);
+  const readyCount = stats?.readyCount || 0;
+  const automatedCount = stats?.automatedCount || 0;
+  const totalChildCases = stats?.childCount || 0;
 
   // Filter option lists, using backend data
   const uniqueSorted = (values: any[]) =>
@@ -291,9 +298,8 @@ export default function TestCasesPage() {
 
   const ownerFilterOptions = usersList.map(u => ({ value: u.name, label: u.name }));
 
-  const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) +
-    (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0) + (quickFilter ? 1 : 0);
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) + 
+    (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0) + (projectFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -301,7 +307,7 @@ export default function TestCasesPage() {
     setStatusFilter(undefined);
     setAutomationFilter(undefined);
     setOwnerFilter(undefined);
-    setQuickFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -891,8 +897,6 @@ export default function TestCasesPage() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: stack on very small */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -939,7 +943,7 @@ export default function TestCasesPage() {
             <button className="pp-nav-item is-active" onClick={() => setActiveTab("cases")}>
               <Target size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">Cases</span>
-              {parentCases.length > 0 && <span className="pp-nav-count">{parentCases.length}</span>}
+              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
             </button>
           </div>
         </aside>
@@ -984,27 +988,13 @@ export default function TestCasesPage() {
             {/* Stats — product-standard StatTile, clickable to filter */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
-                { key: undefined, label: "Total Test Cases", value: parentCases.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Folder, sub: `${modules.length} modules covered` },
-                { key: 'ready', label: "Ready", value: readyCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${parentCases.length ? Math.round((readyCount / parentCases.length) * 100) : 0}% of all cases` },
-                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${parentCases.length - automatedCount} still manual` },
+                { key: undefined, label: "Total Test Cases", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Folder, sub: `${modules.length} modules covered` },
+                { key: 'ready', label: "Ready", value: readyCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round((readyCount / totalItems) * 100) : 0}% of all cases` },
+                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${totalItems - automatedCount} still manual` },
                 { key: undefined, label: "Module Cases", value: totalChildCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'nested under these cases' }
               ].map((stat, i) => {
-                const clickable = !!stat.key;
-                const isActive = stat.key ? quickFilter === stat.key : false;
                 return (
-                  <div
-                    key={`${stat.label}-${i}`}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={() => clickable && setQuickFilter(quickFilter === stat.key ? undefined : stat.key)}
-                    onKeyDown={(e) => {
-                      if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        setQuickFilter(quickFilter === stat.key ? undefined : stat.key);
-                      }
-                    }}
-                    className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
-                  >
+                  <div key={`${stat.label}-${i}`}>
                     <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
                 );
@@ -1020,6 +1010,15 @@ export default function TestCasesPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 allowClear
+              />
+              <SearchableDropdown
+                options={projectOptions}
+                value={projectFilter}
+                onChange={(v) => setProjectFilter(v)}
+                placeholder="Any project"
+                hideAvatar
+                itemNoun="projects"
+                className="sc-filters__field"
               />
               <SearchableDropdown
                 options={moduleFilterOptions}

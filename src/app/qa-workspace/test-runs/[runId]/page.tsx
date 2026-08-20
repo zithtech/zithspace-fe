@@ -1349,7 +1349,6 @@ export default function TestRunExecutionPage() {
           
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon), .ex-topactions .ant-btn span:not(.anticon) { display: none; }
           .dh-main-controls .ant-btn, .ex-topactions .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */

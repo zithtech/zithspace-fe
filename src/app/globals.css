@@ -27468,3 +27468,15 @@ select:-webkit-autofill:focus {
   flex: 1;
   overflow-y: auto !important;
 }
+/* ─── SearchableDropdown: popup expands to fit content ─────────────────────
+   The .sd-overlay inside the popover gets width:max-content so long option
+   labels (project names, owner names, etc.) are never truncated.
+   The trigger button width is controlled separately by .sc-filters__field
+   and is NOT affected by this rule. */
+.sd-overlay-popover .ant-popover-inner-content,
+.sd-overlay-popover .ant-popover-content,
+.sd-overlay {
+  width: max-content !important;
+  min-width: 220px !important;
+  max-width: 420px !important;
+}

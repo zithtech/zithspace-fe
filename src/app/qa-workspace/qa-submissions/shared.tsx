@@ -345,23 +345,23 @@ export const QA_SUBMISSION_STYLES = `
    strip scrolls sideways rather than squashing into something unreadable. */
 .qs-statrow {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(130px, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   margin-bottom: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
-  overscroll-behavior-x: contain;
 }
-/* Stretch every tile to the tallest in the row, so a label that wraps doesn't
-   leave the others short — grid handles the alignment, no reserved height. */
+@media (min-width: 1024px) {
+  .qs-statrow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .qs-statrow {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
 .qs-statrow > * { min-width: 0; display: flex; }
-.qs-statrow .pp-stat-card { width: 100%; }
-.qs-statrow::-webkit-scrollbar { height: 6px; }
-.qs-statrow::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
-.qs-statrow::-webkit-scrollbar-track { background: transparent; }
+.qs-statrow .pp-stat-card { width: 100%; height: 100%; }
 
 .pp-stat-card--compact { min-height: 0; padding: 9px 10px; gap: 7px; }
 .pp-stat-card--compact .pp-stat-top { align-items: center; gap: 8px; }

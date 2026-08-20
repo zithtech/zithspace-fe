@@ -16,6 +16,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ProjectService } from "@/services/projectService";
 
 type TabKey = "suites";
 
@@ -82,8 +83,12 @@ export default function TestSuitesPage() {
   const [scenarioFilter, setScenarioFilter] = useState<string | undefined>();
   const [moduleFilter, setModuleFilter] = useState<string | undefined>();
   const [coverageFilter, setCoverageFilter] = useState<string | undefined>();
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [stats, setStats] = useState<any>({});
   const [totalItems, setTotalItems] = useState(0);
 
   // For dynamic parent test case search beyond the initial 1000
@@ -112,7 +117,7 @@ export default function TestSuitesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, scenarioFilter, moduleFilter, coverageFilter]);
+  }, [debouncedSearch, scenarioFilter, moduleFilter, coverageFilter, projectFilter]);
 
   const { canReadSuite, canCreateSuite, canUpdateSuite, canDeleteSuite } = usePermission();
 
@@ -127,7 +132,9 @@ export default function TestSuitesPage() {
             search: debouncedSearch || undefined,
             parent_test_case_id: scenarioFilter || undefined,
             module_id: moduleFilter || undefined,
-            coverageFilter: coverageFilter || undefined
+            coverageFilter: coverageFilter || undefined,
+            project_id: projectFilter || undefined,
+            allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
         }),
         axios.get("/api/v2/qa/parents?limit=1000"),
@@ -136,6 +143,7 @@ export default function TestSuitesPage() {
       const body = (suitesRes as any).data;
       setSuites(body?.data || []);
       setTotalItems(body?.pagination?.total || 0);
+      setStats(body?.stats || {});
       setParents(Array.isArray(parentsRes) ? parentsRes : (parentsRes?.data?.data || parentsRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
     } catch (error) {
@@ -147,9 +155,37 @@ export default function TestSuitesPage() {
 
   useEffect(() => {
     if (canReadSuite) {
+      fetchProjects();
+    }
+  }, [canReadSuite]);
+
+  useEffect(() => {
+    if (canReadSuite) {
       fetchData();
     }
-  }, [canReadSuite, page, pageSize, debouncedSearch, scenarioFilter, moduleFilter, coverageFilter]);
+  }, [canReadSuite, page, pageSize, debouncedSearch, scenarioFilter, moduleFilter, coverageFilter, projectFilter, projectOptions]);
+
+  /** Active projects the signed-in user belongs to. */
+  const fetchProjects = async () => {
+    try {
+      setLoadingProjects(true);
+      const res: any = await ProjectService.getUserProjects(true);
+      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      setProjectOptions(
+        list
+          .map((p: any) => ({
+            value: String(p.value ?? p.id ?? ''),
+            label: String(p.label ?? p.name ?? ''),
+            description: p.code || undefined,
+          }))
+          .filter(o => o.value && o.label)
+      );
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
 
   /**
    * Creating and editing a suite is a full page, the same shape as Create Test
@@ -174,10 +210,10 @@ export default function TestSuitesPage() {
 
   const filteredSuites = suites; // Data is already filtered by backend
 
-  const totalLinkedCases = suites.reduce((acc, curr) => acc + (parseInt(curr.case_count || '0', 10)), 0);
-  const uniqueScenarios = new Set(suites.map(s => s.parent_test_case_id).filter(Boolean)).size;
-  const emptySuites = suites.filter(s => parseInt(s.case_count || '0', 10) === 0).length;
-  const avgCasesPerSuite = suites.length ? (totalLinkedCases / suites.length).toFixed(1) : '0';
+  const totalLinkedCases = stats?.totalLinkedCases || 0;
+  const uniqueScenarios = stats?.uniqueScenarios || 0;
+  const emptySuites = stats?.emptySuites || 0;
+  const avgCasesPerSuite = totalItems > 0 ? (totalLinkedCases / totalItems).toFixed(1) : '0';
 
   const scenarioFilterOptions = [
     { value: 'Unassigned', label: 'Unassigned' },
@@ -190,13 +226,14 @@ export default function TestSuitesPage() {
   ];
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0) + (projectFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setScenarioFilter(undefined);
     setModuleFilter(undefined);
     setCoverageFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -856,8 +893,6 @@ export default function TestSuitesPage() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -903,7 +938,7 @@ export default function TestSuitesPage() {
             <button className="pp-nav-item is-active" onClick={() => setActiveTab("suites")}>
               <Layers size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">Suites</span>
-              {suites.length > 0 && <span className="pp-nav-count">{suites.length}</span>}
+              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
             </button>
           </div>
         </aside>
@@ -939,7 +974,7 @@ export default function TestSuitesPage() {
           <div className="dh-main-scroll">
             {/* Stats — product-standard tiles */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              <StatTile label="Total Suites" value={suites.length} icon={SnippetsOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${emptySuites} with no cases`} />
+              <StatTile label="Total Suites" value={totalItems} icon={SnippetsOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${emptySuites} with no cases`} />
               <StatTile label="Scenarios Covered" value={uniqueScenarios} icon={Folder} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub={`of ${parents.length} scenarios`} />
               <StatTile label="Linked Cases" value={totalLinkedCases} icon={Layers} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${avgCasesPerSuite} per suite on average`} />
               <StatTile label="Active Modules" value={modules.length} icon={CheckCircleOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="across the workspace" />
@@ -954,6 +989,15 @@ export default function TestSuitesPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 allowClear
+              />
+                            <SearchableDropdown
+                options={projectOptions}
+                value={projectFilter}
+                onChange={(v) => setProjectFilter(v)}
+                placeholder="Any project"
+                hideAvatar
+                itemNoun="projects"
+                className="sc-filters__field"
               />
               <SearchableDropdown
                 options={scenarioFilterOptions}
@@ -984,6 +1028,7 @@ export default function TestSuitesPage() {
                 itemNoun="options"
                 className="sc-filters__field"
               />
+
               {activeFilterCount > 0 && (
                 <button type="button" className="sc-clear" onClick={clearFilters}>
                   Clear ({activeFilterCount})

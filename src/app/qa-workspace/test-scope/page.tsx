@@ -268,6 +268,13 @@ function TestScopeContent() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
+  // Pre-fill the QA Owner filter with the current user's name once auth loads
+  useEffect(() => {
+    if (!isLoading && user?.name) {
+      setOwnerFilter(user.name);
+    }
+  }, [isLoading, user?.name]);
+
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
@@ -778,7 +785,7 @@ function TestScopeContent() {
     setSearchTerm('');
     setStatusFilter(undefined);
     setPriorityFilter(undefined);
-    setOwnerFilter(undefined);
+    setOwnerFilter(user?.name || undefined);
     setTimelineFilter(undefined);
     setProjectFilter(undefined);
   };
@@ -1433,8 +1440,6 @@ function TestScopeContent() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -1600,6 +1605,15 @@ function TestScopeContent() {
                     allowClear
                   />
                   <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
                     options={statusOptions}
                     value={statusFilter}
                     onChange={(v) => setStatusFilter(v)}
@@ -1630,15 +1644,6 @@ function TestScopeContent() {
                     placeholder="Any timeline"
                     hideAvatar
                     itemNoun="ranges"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={userProjects}
-                    value={projectFilter}
-                    onChange={(v) => setProjectFilter(v)}
-                    placeholder="Any project"
-                    hideAvatar
-                    itemNoun="projects"
                     className="sc-filters__field"
                   />
                   {activeFilterCount > 0 && (
@@ -1743,6 +1748,28 @@ function TestScopeContent() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     allowClear
                   />
+                  <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={statusOptions}
+                    value={statusFilter}
+                    onChange={(v) => setStatusFilter(v)}
+                    placeholder="All statuses"
+                    itemNoun="statuses"
+                    className="sc-filters__field"
+                  />
+                  {(searchTerm || projectFilter || statusFilter) && (
+                    <button type="button" className="sc-clear" onClick={() => { setSearchTerm(''); setProjectFilter(undefined); setStatusFilter(undefined); }}>
+                      Clear
+                    </button>
+                  )}
                 </div>
 
                 <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>

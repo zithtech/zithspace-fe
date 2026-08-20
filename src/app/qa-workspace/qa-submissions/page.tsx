@@ -47,6 +47,7 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
+import { ProjectService } from "@/services/projectService";
 import QaSubmissionService, {
   RECOMMENDATIONS,
   SUBMISSION_STATUSES,
@@ -121,6 +122,8 @@ function QaSubmissionsContent() {
   );
   const [recommendationFilter, setRecommendationFilter] = useState<string | undefined>();
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([]);
   const [sortBy, setSortBy] = useState("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -136,7 +139,7 @@ function QaSubmissionsContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, scopeFilter, ownerFilter, statusFilter, recommendationFilter, dateRange]);
+  }, [debouncedSearch, scopeFilter, ownerFilter, statusFilter, recommendationFilter, dateRange, projectFilter]);
 
   const fetchList = useCallback(async () => {
     try {
@@ -153,6 +156,7 @@ function QaSubmissionsContent() {
         to: dateRange?.[1]?.format("YYYY-MM-DD"),
         sortBy,
         sortDir,
+        projectName: projectFilter || undefined,
       });
       setRows(res.data);
       setTotal(res.pagination.total);
@@ -163,7 +167,7 @@ function QaSubmissionsContent() {
     }
   }, [
     page, pageSize, debouncedSearch, scopeFilter, ownerFilter, statusFilter,
-    recommendationFilter, dateRange, sortBy, sortDir, message,
+    recommendationFilter, dateRange, sortBy, sortDir, message, projectFilter,
   ]);
 
   const fetchStats = useCallback(async () => {
@@ -184,12 +188,19 @@ function QaSubmissionsContent() {
     fetchStats();
     (async () => {
       try {
-        const [scopeRes, memberRes] = await Promise.all([
+        const [scopeRes, memberRes, projectRes] = await Promise.all([
           axios.get("/api/v2/qa/test-scopes?limit=1000"),
           MembersService.getMembers({ limit: 500 }),
+          ProjectService.getUserProjects(true),
         ]);
         setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
         setMembers(memberRes.data || []);
+        const plist: any[] = Array.isArray(projectRes) ? projectRes : (projectRes as any)?.data ?? [];
+        setProjectOptions(
+          plist
+            .map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
+            .filter(o => o.value)
+        );
       } catch {
         /* filters degrade to free-text search */
       }
@@ -213,7 +224,8 @@ function QaSubmissionsContent() {
     (ownerFilter ? 1 : 0) +
     (statusFilter ? 1 : 0) +
     (recommendationFilter ? 1 : 0) +
-    (dateRange?.[0] ? 1 : 0);
+    (dateRange?.[0] ? 1 : 0) +
+    (projectFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearch("");
@@ -222,6 +234,7 @@ function QaSubmissionsContent() {
     setStatusFilter(undefined);
     setRecommendationFilter(undefined);
     setDateRange(null);
+    setProjectFilter(undefined);
   };
 
   /** Clicking a dashboard card filters the list to that card's statuses. */
@@ -493,8 +506,6 @@ function QaSubmissionsContent() {
 
           /* Topbar: compress buttons */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -598,22 +609,9 @@ function QaSubmissionsContent() {
                 only has room for the count and its label. */}
             <div className="qs-statrow">
               {DASHBOARD_CARDS.map((card) => {
-                const clickable = !!card.statuses;
-                const active = clickable && statusFilter === card.statuses![0];
                 return (
                   <Tooltip key={card.key} title={card.sub} mouseEnterDelay={0.4}>
-                  <div
-                    role={clickable ? "button" : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={() => clickable && applyCardFilter(card)}
-                    onKeyDown={(e) => {
-                      if (clickable && (e.key === "Enter" || e.key === " ")) {
-                        e.preventDefault();
-                        applyCardFilter(card);
-                      }
-                    }}
-                    className={clickable ? `sc-stat-hit${active ? " is-active" : ""}` : undefined}
-                  >
+                  <div>
                     <StatTile
                       compact
                       label={card.label}
@@ -637,6 +635,15 @@ function QaSubmissionsContent() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 allowClear
+              />
+              <SearchableDropdown
+                options={projectOptions}
+                value={projectFilter}
+                onChange={setProjectFilter}
+                placeholder="Any project"
+                hideAvatar
+                itemNoun="projects"
+                className="sc-filters__field"
               />
               <SearchableDropdown
                 options={scopeOptions}

@@ -273,6 +273,7 @@ export interface SubmissionListItem {
 export interface SubmissionDetail extends SubmissionListItem {
   description?: string | null;
   qa_summary?: string | null;
+  owner_reports_to_id?: string | null;
   recommendation_ack: boolean;
   recommendation_ack_note?: string | null;
   reviewer_id?: string | null;
@@ -330,6 +331,8 @@ export interface SubmissionFilters {
   to?: string;
   sortBy?: string;
   sortDir?: "asc" | "desc";
+  /** Project name (label) to filter submissions via their linked scope's product. */
+  projectName?: string;
 }
 
 export interface SaveSubmissionInput {

@@ -170,7 +170,7 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function ApprovalsTab({ clientId, projects = [] }: Props) {
+export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -204,6 +204,21 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
       load();
     } catch (err: any) {
       messageApi.error(`Failed to delete approval: ${err?.message || ""}`);
+    }
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -462,6 +477,8 @@ export default function ApprovalsTab({ clientId, projects = [] }: Props) {
             icon={<CheckSquare size={20} color="#3b82f6" />}
             title="Approvals"
             description="Request explicit client sign-off on designs, requirements, deliverables or releases."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

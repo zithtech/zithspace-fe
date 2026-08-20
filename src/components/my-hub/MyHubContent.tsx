@@ -29,6 +29,14 @@ export default function MyHubContent({ children }: { children: React.ReactNode }
           flex-direction: column;
           position: relative;
         }
+        .mh-page-content > div {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+        .mh-page-content > div > [class*="-footer--sticky"] {
+          margin-top: auto !important;
+        }
         /* Stretch panel headers to the edges and keep them sticky, mirroring the
            feature layouts' content shells. */
         .mh-page-content > * > [class*="-header"] {

@@ -7,7 +7,7 @@ import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOut
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink } from "lucide-react";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
@@ -412,6 +412,17 @@ function TestScopeContent() {
     } catch (err) {
       console.error("Failed to fetch settings", err);
     } finally { setSettingsLoading(false); }
+  };
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchScopes(),
+        fetchStats(),
+        fetchScopeSettings()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
   };
 
   // ── Initialisation effect: runs once auth is ready ────────────────────────
@@ -1554,6 +1565,14 @@ function TestScopeContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'settings' && canManageQa && (
                 <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
               )}

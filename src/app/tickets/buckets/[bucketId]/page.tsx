@@ -138,7 +138,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
     data: ticketsData,
     isLoading: ticketsLoading,
     refetch: refetchTickets,
-  } = useBucketTickets(bucketId, 1, 200);
+  } = useBucketTickets(bucketId, page, pageSize);
   const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints(bucket?.project?.id);
 
   const { mutateAsync: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
@@ -172,9 +172,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   }, [searchText, statusFilter, priorityFilter, assigneeFilter]);
 
   const pagedTickets = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredTickets.slice(start, start + pageSize);
-  }, [filteredTickets, page, pageSize]);
+    return filteredTickets;
+  }, [filteredTickets]);
 
   // Aggregate analytics over the unfiltered list
   const analytics = useMemo(() => {
@@ -686,8 +685,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                     </span>
                   </Tooltip>
                   <span className="bd2-toolbar-count">
-                    <b>{filteredTickets.length}</b> of <b>{analytics.total}</b>{' '}
-                    {analytics.total === 1 ? 'ticket' : 'tickets'}
+                    <b>{filteredTickets.length}</b> of <b>{ticketsData?.pagination?.total || 0}</b>{' '}
+                    {(ticketsData?.pagination?.total || 0) === 1 ? 'ticket' : 'tickets'}
                   </span>
                 </div>
                 <div className="bd2-filter-group">
@@ -742,7 +741,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
           {/* Ticket list */}
           <div className="bd2-list">
-            {ticketsLoading && !pagedTickets.length ? (
+            {(ticketsLoading || isRefreshing) ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="bd2-ticket-row bd2-ticket-row-skel">
                   <Skeleton active paragraph={{ rows: 1 }} title={false} />
@@ -855,18 +854,18 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           </div>
 
           {/* Sticky pagination */}
-          {!ticketsLoading && filteredTickets.length > 0 && (
+          {!ticketsLoading && !isRefreshing && filteredTickets.length > 0 && (
             <div className="bd2-pagination">
               <Text className="bd2-pagination-meta">
                 <b>{(page - 1) * pageSize + 1}</b>–
-                <b>{Math.min(page * pageSize, filteredTickets.length)}</b> of{' '}
-                <b>{filteredTickets.length}</b>{' '}
-                {filteredTickets.length === 1 ? 'ticket' : 'tickets'}
+                <b>{Math.min(page * pageSize, ticketsData?.pagination?.total || 0)}</b> of{' '}
+                <b>{ticketsData?.pagination?.total || 0}</b>{' '}
+                {(ticketsData?.pagination?.total || 0) === 1 ? 'ticket' : 'tickets'}
               </Text>
               <Pagination
                 current={page}
                 pageSize={pageSize}
-                total={filteredTickets.length}
+                total={ticketsData?.pagination?.total || 0}
                 onChange={(p, s) => {
                   setPage(p);
                   setPageSize(s);

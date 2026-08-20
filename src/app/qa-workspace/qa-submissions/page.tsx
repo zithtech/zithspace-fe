@@ -35,6 +35,7 @@ import {
   Trash2,
   Layers,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
@@ -206,6 +207,17 @@ function QaSubmissionsContent() {
       }
     })();
   }, [canReadSubmission, fetchStats]);
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchList(),
+        fetchStats()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -586,6 +598,14 @@ function QaSubmissionsContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               <div className="pp-segmented">
                 <button type="button" className={viewMode === "grid" ? "is-active" : ""} onClick={() => setViewMode("grid")} aria-label="Grid view">
                   <AppstoreOutlined />

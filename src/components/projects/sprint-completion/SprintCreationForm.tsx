@@ -15,11 +15,12 @@ import {
   FlagOutlined,
   ThunderboltOutlined,
   InfoCircleOutlined,
-  ArrowRightOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import TiptapEditor from "@/components/common/TiptapEditor";
+import { SectionCard } from "@/components/common/DrawerSection";
 
 const { Text } = Typography;
 
@@ -132,140 +133,214 @@ export function SprintCreationForm({
   const effectivePreset = activePreset && activePreset === inferredPreset ? activePreset : inferredPreset;
 
   return (
-    <div className="sprint-creation-form">
-      {/* Hero header */}
-      <div className="scf-hero">
-        <div className="scf-hero__icon">
-          <RocketOutlined />
-        </div>
-        <div className="scf-hero__copy">
-          <div className="scf-hero__title">Plan a new sprint</div>
-          <div className="scf-hero__subtitle">
-            Set a clear goal and timeline. Adjust scope later from the backlog.
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--customers-page-bg, #0B0F1A)" }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .customer-drawer-form .ant-input-affix-wrapper {
+          border-radius: 8px !important;
+          background: var(--bg-pure-white, #ffffff) !important;
+          border: 1px solid var(--border-slate-300, #cbd5e1) !important;
+          padding: 8px 12px !important;
+          box-shadow: none !important;
+        }
+        .customer-drawer-form .ant-input-affix-wrapper input.ant-input {
+          border: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
+          padding: 0 !important;
+        }
+        .customer-drawer-form .ant-input-affix-wrapper:focus-within {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        }
+        [data-theme='dark'] .customer-drawer-form .ant-input-affix-wrapper {
+          background: transparent !important;
+          border-color: #334155 !important;
+        }
+      `}} />
+      {/* Header */}
+      <div
+        className="customer-drawer-header"
+        style={{
+          padding: "16px 20px",
+          borderBottom: "1px solid var(--border-color, #e2e8f0)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "var(--bg-pure-white, #ffffff)"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: "rgba(59, 130, 246, 0.10)",
+              color: "var(--premium-blue, #3b82f6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              flexShrink: 0,
+            }}
+          >
+            <RocketOutlined />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                margin: 0,
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--text-slate-900, #0f172a)",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.2,
+              }}
+            >
+              Plan a new sprint
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-slate-500, #64748b)", fontWeight: 500 }}>
+              Set a clear goal and timeline. Adjust scope later from the backlog.
+            </div>
           </div>
         </div>
-        <div className={`scf-hero__badge ${isDraft ? "is-draft" : "is-active"}`}>
-          <span className="scf-hero__dot" />
-          {isDraft ? "Draft" : "Will go live"}
-        </div>
+        <Button
+          type="text"
+          shape="circle"
+          icon={<CloseOutlined />}
+          onClick={onCancel}
+          style={{ color: "var(--text-slate-500)" }}
+        />
       </div>
 
-      <Form form={form} layout="vertical" requiredMark={false} className="scf-form">
-        {/* Section: Details */}
-        <div className="scf-section">
-          <div className="scf-section__head">
-            <FlagOutlined className="scf-section__icon" />
-            <span className="scf-section__title">Sprint details</span>
-          </div>
-
-          <Form.Item
-            label={
-              <div className="scf-label">
-                <span>Sprint name</span>
-                <span className="scf-counter">
-                  {nameValue.length}/{NAME_MAX}
-                </span>
-              </div>
-            }
-            name="name"
-            rules={[
-              { required: true, message: "Sprint name is required" },
-              { max: NAME_MAX, message: `Name must be ${NAME_MAX} characters or fewer` },
-            ]}
+      {/* Form Content */}
+      <div style={{ padding: "20px", flex: 1, overflowY: "auto" }}>
+        <Form
+          form={form}
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelAlign="left"
+          colon={false}
+          className="customer-drawer-form"
+        >
+          {/* Section 1: Details */}
+          <SectionCard
+            step="STEP 1"
+            icon={<FlagOutlined />}
+            title="Sprint details"
+            subtitle="Define the sprint name and core goal"
           >
-            <Input
-              placeholder="e.g. Sprint 6 — Onboarding polish"
-              size="large"
-              autoFocus
-              maxLength={NAME_MAX}
-              className="scf-input"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label={
-              <div className="scf-label">
-                <span>
-                  Sprint goal
-                  <Tooltip title="A short statement that explains what success looks like for this sprint.">
-                    <InfoCircleOutlined className="scf-label__hint" />
-                  </Tooltip>
-                </span>
-                <span className={`scf-counter ${goalText.length > GOAL_MAX ? "is-over" : ""}`}>
-                  {goalText.length}/{GOAL_MAX}
-                </span>
-              </div>
-            }
-            name="goal"
-            valuePropName="content"
-            trigger="onChange"
-            rules={[
-              {
-                validator: (_rule, value: string | undefined) =>
-                  stripHtml(value || "").length > GOAL_MAX
-                    ? Promise.reject(new Error(`Goal must be ${GOAL_MAX} characters or fewer`))
-                    : Promise.resolve(),
-              },
-            ]}
-          >
-            <TiptapEditor
-              placeholder="What outcome would make this sprint a clear win?"
-              minHeight={92}
-              maxHeight={200}
-            />
-          </Form.Item>
-        </div>
-
-        {/* Section: Timeline */}
-        <div className="scf-section">
-          <div className="scf-section__head">
-            <CalendarOutlined className="scf-section__icon" />
-            <span className="scf-section__title">Timeline</span>
-            {durationDays !== null && (
-              <span className="scf-section__meta">
-                <ThunderboltOutlined /> {durationDays} day{durationDays === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
-
-          {/* Duration chips */}
-          <div className="scf-presets">
-            {DURATION_PRESETS.map((preset) => {
-              const isActive = effectivePreset === preset.value;
-              return (
-                <button
-                  key={preset.value}
-                  type="button"
-                  className={`scf-preset ${isActive ? "is-active" : ""}`}
-                  onClick={() => applyPreset(preset)}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="scf-dates">
             <Form.Item
-              label="Start"
+              label={
+                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", paddingRight: 8 }}>
+                  <span>Sprint name</span>
+                </div>
+              }
+              name="name"
+              rules={[
+                { required: true, message: "Sprint name is required" },
+                { max: NAME_MAX, message: `Name must be ${NAME_MAX} characters or fewer` },
+              ]}
+            >
+              <Input
+                placeholder="e.g. Sprint 6 — Onboarding polish"
+                maxLength={NAME_MAX}
+                suffix={
+                  <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                    {nameValue.length}/{NAME_MAX}
+                  </span>
+                }
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Sprint goal</span>
+                  <Tooltip title="A short statement that explains what success looks like for this sprint.">
+                    <InfoCircleOutlined style={{ color: "var(--text-slate-400)", cursor: "pointer" }} />
+                  </Tooltip>
+                </div>
+              }
+              name="goal"
+              valuePropName="content"
+              trigger="onChange"
+              labelCol={{ span: 24 }}
+              wrapperCol={{ span: 24 }}
+              rules={[
+                {
+                  validator: (_rule, value: string | undefined) =>
+                    stripHtml(value || "").length > GOAL_MAX
+                      ? Promise.reject(new Error(`Goal must be ${GOAL_MAX} characters or fewer`))
+                      : Promise.resolve(),
+                },
+              ]}
+            >
+              <div>
+                <TiptapEditor
+                  placeholder="What outcome would make this sprint a clear win?"
+                  minHeight={92}
+                  maxHeight={200}
+                />
+                <div style={{ textAlign: "right", fontSize: 11, color: goalText.length > GOAL_MAX ? "#ff4d4f" : "var(--text-slate-400)", marginTop: 4 }}>
+                  {goalText.length}/{GOAL_MAX}
+                </div>
+              </div>
+            </Form.Item>
+          </SectionCard>
+
+          {/* Section 2: Timeline */}
+          <SectionCard
+            step="STEP 2"
+            icon={<CalendarOutlined />}
+            title="Timeline"
+            subtitle="Set duration and target dates"
+          >
+            <Form.Item label="Duration">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {DURATION_PRESETS.map((preset) => {
+                  const isActive = effectivePreset === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className={`scf-preset ${isActive ? "is-active" : ""}`}
+                      onClick={() => applyPreset(preset)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        border: isActive ? "1px solid var(--premium-blue, #3b82f6)" : "1px solid var(--border-slate-300, #cbd5e1)",
+                        background: isActive ? "rgba(59, 130, 246, 0.08)" : "transparent",
+                        color: isActive ? "var(--premium-blue, #3b82f6)" : "var(--text-slate-700, #475569)",
+                        fontWeight: isActive ? 600 : 500,
+                        cursor: "pointer",
+                        fontSize: 13
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Form.Item>
+
+            <Form.Item
+              label="Start Date"
               name="startDate"
               rules={[{ required: true, message: "Start date is required" }]}
-              className="scf-date-item"
             >
               <DatePicker
-                size="large"
                 style={{ width: "100%" }}
-                className="scf-date"
                 placeholder="Pick a start"
               />
             </Form.Item>
 
-            <div className="scf-dates__arrow" aria-hidden>
-              <ArrowRightOutlined />
-            </div>
-
             <Form.Item
-              label="End"
+              label="End Date"
               name="endDate"
               rules={[
                 { required: true, message: "End date is required" },
@@ -279,53 +354,64 @@ export function SprintCreationForm({
                   },
                 },
               ]}
-              className="scf-date-item"
             >
               <DatePicker
-                size="large"
                 style={{ width: "100%" }}
-                className="scf-date"
                 placeholder="Pick an end"
               />
             </Form.Item>
-          </div>
 
-          {startDate && endDate && durationDays !== null && (
-            <>
-              <div className="scf-timeline-preview">
-                <span className="scf-timeline-preview__chip">
-                  {startDate.format("ddd, MMM D")}
-                </span>
-                <span className="scf-timeline-preview__bar" />
-                <span className="scf-timeline-preview__duration">
-                  {durationDays} day{durationDays === 1 ? "" : "s"}
-                </span>
-                <span className="scf-timeline-preview__bar" />
-                <span className="scf-timeline-preview__chip">
-                  {endDate.format("ddd, MMM D")}
-                </span>
-              </div>
-              {workingDays !== null && (
-                <div className="scf-timeline-meta">
-                  <CalendarOutlined style={{ fontSize: 11 }} />
-                  <span>
-                    <b>{workingDays}</b> working day{workingDays === 1 ? "" : "s"} · weekends excluded
+            {startDate && endDate && durationDays !== null && (
+              <div style={{ paddingLeft: "33.333%", display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                <div className="scf-timeline-preview" style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="scf-timeline-preview__chip" style={{ background: "rgba(59, 130, 246, 0.08)", padding: "4px 8px", borderRadius: 4, fontSize: 12, color: "var(--premium-blue)" }}>
+                    {startDate.format("ddd, MMM D")}
+                  </span>
+                  <span className="scf-timeline-preview__bar" style={{ flex: 1, height: 2, background: "var(--border-slate-200, #e2e8f0)" }} />
+                  <span className="scf-timeline-preview__duration" style={{ fontSize: 12, fontWeight: 600 }}>
+                    {durationDays} day{durationDays === 1 ? "" : "s"}
+                  </span>
+                  <span className="scf-timeline-preview__bar" style={{ flex: 1, height: 2, background: "var(--border-slate-200, #e2e8f0)" }} />
+                  <span className="scf-timeline-preview__chip" style={{ background: "rgba(59, 130, 246, 0.08)", padding: "4px 8px", borderRadius: 4, fontSize: 12, color: "var(--premium-blue)" }}>
+                    {endDate.format("ddd, MMM D")}
                   </span>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </Form>
+                {workingDays !== null && (
+                  <div className="scf-timeline-meta" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-slate-500)" }}>
+                    <CalendarOutlined style={{ fontSize: 11 }} />
+                    <span>
+                      <b>{workingDays}</b> working day{workingDays === 1 ? "" : "s"} · weekends excluded
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </SectionCard>
+        </Form>
+      </div>
 
-      <div className="scf-footer">
-        <Text type="secondary" className="scf-footer__hint">
+      {/* Footer */}
+      <div
+        className="customer-drawer-footer"
+        style={{
+          padding: "14px 20px",
+          borderTop: "1px solid var(--border-color, #e2e8f0)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          position: "sticky",
+          bottom: 0,
+          background: "var(--bg-pure-white, #ffffff)",
+          gap: 16
+        }}
+      >
+        <div style={{ fontSize: 12, color: "var(--text-slate-500)", flex: 1, minWidth: 0 }}>
           {isDraft
             ? "This sprint will be saved as a draft alongside your active sprint."
             : "This sprint will become your active sprint immediately."}
-        </Text>
-        <div className="scf-footer__actions">
-          <Button onClick={onCancel} disabled={submitting || loading} className="scf-btn-ghost">
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <Button onClick={onCancel} disabled={submitting || loading} style={{ borderRadius: 6, height: 38, fontWeight: 600 }}>
             Cancel
           </Button>
           <Button
@@ -333,7 +419,7 @@ export function SprintCreationForm({
             onClick={handleSubmit}
             loading={submitting || loading}
             icon={<RocketOutlined />}
-            className="scf-btn-primary"
+            style={{ borderRadius: 6, height: 38, fontWeight: 600 }}
           >
             {isDraft ? "Save Draft Sprint" : "Launch Sprint"}
           </Button>

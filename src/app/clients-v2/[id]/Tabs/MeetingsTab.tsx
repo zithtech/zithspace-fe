@@ -190,6 +190,7 @@ export default function MeetingsTab({
   projects = [],
   contacts = [],
   onCountChange,
+  onRefresh,
 }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
@@ -270,6 +271,21 @@ export default function MeetingsTab({
       setLoading(false);
     }
   };
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -316,6 +332,8 @@ export default function MeetingsTab({
             icon={<Calendar size={20} color="#3b82f6" />}
             title="Meeting minutes"
             description="Capture decisions and action items from meetings with the client."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

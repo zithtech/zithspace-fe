@@ -6,7 +6,7 @@ import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typograph
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2, Menu } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -864,6 +864,14 @@ function TestRunsContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'runs' && (
                 <>
                   <div className="pp-segmented">

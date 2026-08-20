@@ -59,6 +59,7 @@ import {
   CheckSquare,
   Server,
   Receipt,
+  RotateCw,
 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -453,6 +454,17 @@ export default function ClientV2DetailsPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchClientDetails();
+    } catch (err) {
+      console.error("Refresh error:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [notify, contextHolder] = notification.useNotification();
   const [activeField, setActiveField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("1");
@@ -873,6 +885,14 @@ export default function ClientV2DetailsPage() {
             </div>
 
             <div className="cd-cmdbar-actions">
+              <Button
+                icon={<RotateCw size={14} className={refreshing ? "animate-spin" : ""} />}
+                className="cd-secondary-btn"
+                onClick={handleRefresh}
+                disabled={loading || refreshing}
+                title="Refresh"
+                style={{ width: 28, padding: 0, justifyContent: "center" }}
+              />
               {canReadActivityLog && (
                 <Button
                   icon={<History size={15} />}
@@ -1686,7 +1706,7 @@ export default function ClientV2DetailsPage() {
                   ),
                   children: (
                     <div className="cd-tab-pane">
-                      <PortalModulesTab clientId={params.id as string} />
+                      <PortalModulesTab clientId={params.id as string} onRefresh={fetchClientDetails} />
                     </div>
                   ),
                 },

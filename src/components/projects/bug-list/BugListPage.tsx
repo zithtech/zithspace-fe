@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   X,
   RotateCcw,
+  RotateCw,
   FolderTree,
   Bug as BugIcon,
   Ticket as TicketIcon,
@@ -341,7 +342,7 @@ export default function BugListPage() {
     [scope, selectedFolderId, selectedSheetId, selectedProjectId, filters, page, limit]
   );
 
-  const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
+  const { data: bugsResponse, isLoading, isFetching, refetch } = useBugs(queryFilters);
 
   const createBug = useCreateBug();
   const updateBug = useUpdateBug();
@@ -854,6 +855,17 @@ export default function BugListPage() {
                   <CalendarDays size={15} />
                 </button>
               </div>
+
+              <button
+                type="button"
+                className="hb-btn hb-btn-ghost hb-refresh-btn"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                title="Refresh"
+                style={{ width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 32 }}
+              >
+                <RotateCw size={14} className={isFetching ? "animate-spin" : ""} />
+              </button>
 
               <button
                 className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""

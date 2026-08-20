@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Row, Col, Space, Divider, Typography, Input, Button } from "antd";
+import { Row, Col, Space, Divider, Typography, Input } from "antd";
 import { SearchOutlined, SyncOutlined } from "@ant-design/icons";
+import { Button as AntdButton } from "antd";
 
 const { Title, Text } = Typography;
 
@@ -105,12 +106,13 @@ export function TimeTrackingHeader({
                 </div>
               )}
               {onRefresh && (
-                <Button
+                <AntdButton
+                  type="default"
                   icon={<SyncOutlined spin={refreshing} />}
                   onClick={onRefresh}
                   disabled={refreshing}
-                  style={{ height: 38, width: 38, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Refresh"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 38, width: 38, borderRadius: 10 }}
+                  title="Refresh data"
                 />
               )}
               {extra}

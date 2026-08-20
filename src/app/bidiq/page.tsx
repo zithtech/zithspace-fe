@@ -26,6 +26,7 @@ import {
   List as ListIcon,
   Snowflake,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import { Table, Input, Empty, Tooltip, Tag, DatePicker, Skeleton, Select, Button } from "antd";
 import dayjs, { Dayjs } from "dayjs";
@@ -119,6 +120,17 @@ export default function BidIqPage() {
 
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_prime');
   const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_bidiq_bidiq_page_grid');
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchLeads(),
+        fetchPaginatedBids(),
+      ]);
+    } catch (err) {
+      console.error("Failed to refresh:", err);
+    }
+  };
 
 
   // Route guard — gated by the dedicated BidIq read permission.
@@ -474,6 +486,14 @@ export default function BidIqPage() {
                   </div>
                 </div>
                 <div className="biq-topbar-actions">
+                  <Button
+                    type="default"
+                    icon={<RotateCw size={14} className={loading || paginatedLoading ? "animate-spin" : ""} />}
+                    onClick={handleRefresh}
+                    disabled={loading || paginatedLoading}
+                    title="Refresh data"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, padding: 0, borderRadius: 8 }}
+                  />
                   <RangePicker
                     value={dateRange as any}
                     onChange={(v) => setDateRange(v as [Dayjs | null, Dayjs | null] | null)}

@@ -3,8 +3,9 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Switch, message } from "antd";
+import { Switch, message, Button } from "antd";
 import {
+  RotateCw,
   Receipt,
   ClipboardList,
   FileText,
@@ -62,13 +63,28 @@ const palette = (mode: Mode) => {
   };
 };
 
-export default function PortalModulesTab({ clientId }: { clientId: string }) {
+export default function PortalModulesTab({ clientId, onRefresh }: { clientId: string; onRefresh?: () => void }) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
   const [modules, setModules] = useState<PortalModuleSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const load = async () => {
     try {
@@ -117,7 +133,8 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
   return (
     <div style={{ maxWidth: 760 }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div
           style={{
             width: 38,
@@ -140,9 +157,18 @@ export default function PortalModulesTab({ clientId }: { clientId: string }) {
           <div style={{ fontSize: 13, color: c.textMuted, marginTop: 2 }}>
             Choose which pages this client can see when they sign in to the
             portal. Disabled pages are hidden from their navigation. The Home
-            dashboard is always visible.
+            tab is always enabled.
           </div>
         </div>
+      </div>
+      <Button
+          type="default"
+          icon={<RotateCw size={14} className={refreshing ? "animate-spin" : ""} />}
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh"
+          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, padding: 0, borderRadius: 8, flexShrink: 0, marginTop: 2 }}
+        />
       </div>
 
       {/* Summary pill */}

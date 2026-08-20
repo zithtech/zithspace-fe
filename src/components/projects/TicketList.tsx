@@ -111,6 +111,7 @@ import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 import { SprintCompletionModal } from "./sprint-completion";
 import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
+import { commonDrawerProps, drawerFormStyles } from '@/components/common/DrawerSection';
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
@@ -5542,27 +5543,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onSuccess={handleSprintCompletionSuccess}
       />
 
-      <Modal
+      <Drawer
+        {...commonDrawerProps}
         open={createSprintModalOpen}
-        onCancel={() => setCreateSprintModalOpen(false)}
-        footer={null}
+        onClose={() => setCreateSprintModalOpen(false)}
+        placement="right"
         title={null}
-        closable={false}
-        width={680}
-        centered
-        destroyOnHidden
-        className="sprint-creation-modal"
-        styles={{
-          body: { padding: 0 },
-          content: {
-            padding: 0,
-            borderRadius: 14,
-            overflow: "hidden",
-            border: "1px solid var(--border-slate-200)",
-            boxShadow: "none",
-          },
-        }}
+        width={700}
       >
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
         <SprintCreationForm
           projectId={projectId}
           isDraft={!!activeSprint}
@@ -5570,7 +5559,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           onSubmit={handleCreateSprintFromBacklog}
           onCancel={() => setCreateSprintModalOpen(false)}
         />
-      </Modal>
+      </Drawer>
       <ManualCreateTicketModal
         open={manualModalOpen}
         onClose={() => {

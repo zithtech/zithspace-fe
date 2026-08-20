@@ -42,6 +42,7 @@ import {
   List,
   X,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
@@ -184,8 +185,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
   const { user } = useAuth();
   const baseFilters = approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id });
   
-  const { data: allTimesheets, isLoading: isAllLoading } = useTimesheets({ ...baseFilters, limit: 1000 });
-  const { data: paginatedTimesheetsRes, isLoading: isPaginatedLoading } = useTimesheets({
+  const { data: allTimesheets, isLoading: isAllLoading, refetch: refetchAll, isFetching: isAllFetching } = useTimesheets({ ...baseFilters, limit: 1000 });
+  const { data: paginatedTimesheetsRes, isLoading: isPaginatedLoading, refetch: refetchPaginated, isFetching: isPaginatedFetching } = useTimesheets({
     ...baseFilters,
     page: currentPage,
     limit: pageSize,
@@ -194,6 +195,12 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
   });
   
   const isLoading = isAllLoading || isPaginatedLoading;
+  const isRefreshing = isAllFetching || isPaginatedFetching;
+
+  const handleRefresh = () => {
+    refetchAll();
+    refetchPaginated();
+  };
 
   useEffect(() => {
     if (previewId) {
@@ -660,6 +667,16 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
               </div>
 
               <div className="ts-topbar-actions">
+                <button
+                  type="button"
+                  className="ts-refresh-btn"
+                  onClick={handleRefresh}
+                  title="Refresh timesheets"
+                  disabled={isLoading}
+                >
+                  <RotateCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                </button>
+
                 <div className="ts-segmented">
                   <button
                     className={displayMode === 'grid' ? 'is-active' : ''}
@@ -1351,6 +1368,19 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .ts-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        .ts-refresh-btn {
+          width: 32px; height: 32px; border: 1px solid var(--border-slate-200); border-radius: 9px;
+          background: transparent; color: var(--text-slate-500); cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .ts-refresh-btn:hover {
+          color: #3B82F6; border-color: #3b82f6; background: var(--bg-slate-50);
+        }
+        .ts-refresh-btn:disabled {
+          opacity: 0.5; cursor: not-allowed;
+        }
 
         .ts-backdrop {
           display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);

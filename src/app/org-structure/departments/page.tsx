@@ -71,7 +71,7 @@ export default function DepartmentsPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
-  const { allDepartments, paginatedDepartments, totalCount, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments({
+  const { allDepartments, paginatedDepartments, totalCount, loading, createDepartment, updateDepartment, deleteDepartment, refresh } = useDepartments({
     page: pagination.current,
     limit: pagination.pageSize,
     search: searchText,
@@ -376,6 +376,8 @@ export default function DepartmentsPage() {
             icon={<Building2 size={20} color="#3b82f6" />}
             title="Departments"
             description="Manage organizational units, reporting lines, and strategic divisions."
+            onRefresh={refresh}
+            refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",

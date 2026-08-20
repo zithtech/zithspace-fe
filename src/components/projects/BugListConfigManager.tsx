@@ -38,7 +38,7 @@ import {
   BugOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { Menu } from "lucide-react";
+import { Menu, RotateCw } from "lucide-react";
 import {
   useBugSeverityOptions,
   useBugTypeOptions,
@@ -151,6 +151,22 @@ export default function BugListConfigManager() {
     priority: priorities.isLoading,
   };
 
+  const isRefreshing = severities.isFetching || priorities.isFetching || types.isFetching;
+
+  const handleRefresh = async () => {
+    try {
+      if (activeKey === "severity") {
+        await severities.refetch();
+      } else if (activeKey === "priority") {
+        await priorities.refetch();
+      } else {
+        await types.refetch();
+      }
+    } catch (error) {
+      console.error("Failed to refresh configurations:", error);
+    }
+  };
+
   const activeSection = SECTIONS.find(s => s.key === activeKey)!;
 
   return (
@@ -202,6 +218,14 @@ export default function BugListConfigManager() {
               <span className="sc-topbar__sub">{activeSection.shortDescription}</span>
             </div>
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={isRefreshing ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {canManageBugs && (
                 <Button 
                   type="primary" 

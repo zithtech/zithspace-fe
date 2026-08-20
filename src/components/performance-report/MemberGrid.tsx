@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Avatar, Input, Pagination, message } from 'antd';
+import { Avatar, Button, Input, Pagination, message } from 'antd';
+import { SyncOutlined } from '@ant-design/icons';
 import {
   Briefcase,
   Building2,
@@ -270,6 +271,13 @@ export default function MemberGrid({
             className="mg-dd"
           />
         </div>
+        <Button
+          icon={<SyncOutlined />}
+          loading={loading}
+          onClick={load}
+          style={{ height: 38, width: 38, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          title="Refresh"
+        />
 
         <div className="mg-view-switch" role="group" aria-label="View mode">
           <button

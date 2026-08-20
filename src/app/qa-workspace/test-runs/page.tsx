@@ -6,7 +6,7 @@ import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typograph
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2, Menu } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -85,6 +85,7 @@ function TestRunsContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
   const [progressFilter, setProgressFilter] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -97,7 +98,7 @@ function TestRunsContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, suiteFilter, progressFilter]);
+  }, [debouncedSearch, suiteFilter, progressFilter, moduleFilter]);
   
   useEffect(() => {
     if (!debouncedSuiteSearch || debouncedSuiteSearch.trim().length < 2) return;
@@ -144,9 +145,10 @@ function TestRunsContent() {
           params: {
             page,
             pageSize,
-            search: debouncedSearch || undefined,
-            suite_id: suiteFilter || undefined,
-            progress: progressFilter || undefined
+            ...(debouncedSearch ? { search: debouncedSearch } : {}),
+            ...(suiteFilter ? { suite_id: suiteFilter } : {}),
+            ...(progressFilter ? { progress: progressFilter } : {}),
+            ...(moduleFilter ? { module_id: moduleFilter } : {})
           }
         }),
         axios.get("/api/v2/qa/suites/all?limit=1000"),
@@ -170,7 +172,7 @@ function TestRunsContent() {
     if (canReadRun) {
       fetchData();
     }
-  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter]);
+  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter]);
 
   const openCreateModal = () => {
     setFormData({});
@@ -225,12 +227,13 @@ function TestRunsContent() {
   const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSuiteFilter(undefined);
     setProgressFilter(undefined);
+    setModuleFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -861,6 +864,14 @@ function TestRunsContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'runs' && (
                 <>
                   <div className="pp-segmented">
@@ -940,6 +951,15 @@ function TestRunsContent() {
                     placeholder="Any progress"
                     hideAvatar
                     itemNoun="states"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                    value={moduleFilter}
+                    onChange={(v) => setModuleFilter(v)}
+                    placeholder="Any module"
+                    hideAvatar
+                    itemNoun="modules"
                     className="sc-filters__field"
                   />
                   {activeFilterCount > 0 && (

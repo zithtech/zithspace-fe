@@ -8,7 +8,7 @@ import type { MenuProps } from 'antd';
 import {
   PlusOutlined, SearchOutlined, EllipsisOutlined, EditOutlined, CopyOutlined,
   InboxOutlined, DeleteOutlined, RollbackOutlined, AppstoreOutlined, UnorderedListOutlined,
-  GlobalOutlined, BlockOutlined, FolderOpenOutlined, LayoutOutlined, MenuOutlined,
+  GlobalOutlined, BlockOutlined, FolderOpenOutlined, LayoutOutlined, MenuOutlined, ReloadOutlined,
 } from '@ant-design/icons';
 import { Blocks } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -92,6 +92,10 @@ function SectionsContent() {
   const fetchSections = useProposalLibraryStore((s) => s.fetchSections);
   const sectionsLoading = useProposalLibraryStore((s) => s.sectionsLoading);
   const sectionsLoaded = useProposalLibraryStore((s) => s.sectionsLoaded);
+
+  const handleRefresh = () => {
+    fetchSections(true);
+  };
 
   useEffect(() => { fetchSections(); }, [fetchSections]);
 
@@ -427,6 +431,11 @@ function SectionsContent() {
                 <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={sectionsLoading}>
+                  <ReloadOutlined spin={sectionsLoading} />
+                </button>
+              </Tooltip>
               <Tooltip title="Manage templates">
                 <button type="button" className="pp-ghost-btn" onClick={() => router.push('/proposals/templates')}><LayoutOutlined /></button>
               </Tooltip>

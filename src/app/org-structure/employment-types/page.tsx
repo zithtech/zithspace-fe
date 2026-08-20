@@ -66,6 +66,7 @@ export default function EmploymentTypesPage() {
   const {
     employmentTypes,
     loading,
+    fetchEmploymentTypes,
     createEmploymentType,
     updateEmploymentType,
     deleteEmploymentType,
@@ -340,6 +341,8 @@ export default function EmploymentTypesPage() {
             icon={<Briefcase size={20} color="#3b82f6" />}
             title="Employment Types"
             description="Define and manage workforce contract types and employment structures."
+            onRefresh={fetchEmploymentTypes}
+            refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               marginBottom: 8,

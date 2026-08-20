@@ -93,7 +93,7 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function ReleasesTab({ clientId, projects = [] }: Props) {
+export default function ReleasesTab({ clientId, projects = [], onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
@@ -118,6 +118,21 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
       setLoading(false);
     }
   };
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -359,6 +374,8 @@ export default function ReleasesTab({ clientId, projects = [] }: Props) {
             icon={<Rocket size={20} color="#3b82f6" />}
             title="Releases"
             description="Shipped versions, the milestone they belong to, and what changed."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

@@ -65,6 +65,17 @@ export default function IntegrationPage() {
   const [statuses, setStatuses] = useState<Record<string, CalendarStatus | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [searchText, setSearchText] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchStatuses();
+    } catch (error) {
+      console.error("Failed to refresh statuses:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [activeTab, setActiveTab] = useState("all");
 
   const userName = user?.name || "You";
@@ -211,6 +222,8 @@ export default function IntegrationPage() {
           icon={<Blocks size={20} color="#8b5cf6" />}
           title="Integrations"
           description="Connect your favorite tools to Zukvo to streamline your workflow and sync your schedule."
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
           extra={
             <Input
               placeholder="Search integrations..."

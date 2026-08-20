@@ -421,8 +421,11 @@ export default function BucketManagementPage() {
   const handleDelete = async (bucketId: string) => {
     try {
       await deleteBucket.mutateAsync(bucketId);
+      message.success("Deleted successfully");
+      loadTableData();
     } catch (e) {
       console.error("Error deleting bucket:", e);
+      message.error("Failed to delete bucket");
     }
   };
   const handleView = (bucketId: string) => router.push(`/tickets/buckets/${bucketId}`);
@@ -433,10 +436,11 @@ export default function BucketManagementPage() {
   const handleModalSuccess = () => {
     handleModalClose();
     refetch();
+    loadTableData();
   };
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), loadTableData()]);
     setTimeout(() => setIsRefreshing(false), 500);
     message.success("Success, buckets refreshed");
   };
@@ -1118,9 +1122,15 @@ export default function BucketManagementPage() {
 
             {/* List or Cards */}
             <div className="bh2-main-body">
-            {viewMode === "list" ? renderTable() : (
+            {viewMode === "list" ? (
+              (isLoading || isRefreshing) ? (
+                <div style={{ padding: "24px" }}>
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                </div>
+              ) : renderTable()
+            ) : (
               <div className="bh2-list">
-                {isLoading ? (
+                {(isLoading || isRefreshing) ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="bh2-list-card bh2-list-card-skel">
                       <Skeleton active avatar paragraph={{ rows: 2 }} />
@@ -1523,7 +1533,7 @@ export default function BucketManagementPage() {
             )}
             </div>
 
-            {!isLoading && tableBuckets.length > 0 && (
+            {!isLoading && !isRefreshing && tableBuckets.length > 0 && (
               <div className="bh2-main-foot">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>

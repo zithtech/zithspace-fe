@@ -1665,6 +1665,44 @@ export default function EditScopePage() {
 
   saveRef.current = handleSave;
 
+  const handleRequestApproval = async () => {
+    if (!formData.name?.trim()) {
+      setNameError("Test Scope Name is required");
+      message.error("Test Scope Name is required");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
+    setNameError(null);
+
+    try {
+      setSubmitting(true);
+      const payload = {
+        ...formData,
+        status: 'In Review',
+        details: {
+          ...(formData.details || {}),
+          approvalWorkflow: {
+            ...(formData.details?.approvalWorkflow || {}),
+            status: 'pending'
+          }
+        },
+        start_date: formData.start_date ? dayjs(formData.start_date).format('YYYY-MM-DD') : null,
+        end_date: formData.end_date ? dayjs(formData.end_date).format('YYYY-MM-DD') : null,
+      };
+
+      await axios.put(`/api/v2/qa/test-scopes/${id}`, payload);
+      setIsDirty(false);
+      message.success(`Scope updated and approval requested successfully`);
+      router.push("/qa-workspace/test-scope?tab=scopes");
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to request approval for Test Scope");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // ── Derived option lists ──────────────────────────────────────────────────────
   const scopeTypeOpts = scopeSettings.filter(s => s.category === 'scope_type').length > 0
     ? scopeSettings.filter(s => s.category === 'scope_type').map(s => ({ value: s.value, label: s.label }))
@@ -3551,7 +3589,7 @@ export default function EditScopePage() {
                     />
                   </Field>
                   <div>
-                    <Button type="primary" block icon={<ShieldCheck size={15} />} style={{ height: 40 }}>
+                    <Button type="primary" block icon={<ShieldCheck size={15} />} style={{ height: 40 }} onClick={handleRequestApproval} loading={submitting}>
                       Request Approval
                     </Button>
                   </div>

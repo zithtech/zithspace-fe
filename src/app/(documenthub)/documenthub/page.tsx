@@ -92,7 +92,7 @@ import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import ExternalDriveBrowserModal, { DriveProvider } from "@/components/documenthub/ExternalDriveBrowserModal";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
-import { Trash2, MonitorUp, HardDrive, Cloud } from "lucide-react";
+import { Trash2, MonitorUp, HardDrive, Cloud, Book } from "lucide-react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -2553,6 +2553,21 @@ const DocumentHubPage = () => {
                             </div>
                         ),
                         onClick: () => { setPendingUploadProvider('microsoft_onedrive'); setSelectHubModalVisible(true); } 
+                    },
+                    { 
+                        key: 'notion', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
+                                    <Book className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Notion</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Notion workspace</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('notion'); setSelectHubModalVisible(true); } 
                     },
                   ]
                 }}

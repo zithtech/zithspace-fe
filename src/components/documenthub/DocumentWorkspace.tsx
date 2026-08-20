@@ -26,7 +26,8 @@ import {
     CalendarDays,
     HardDrive,
     Cloud,
-    MonitorUp
+    MonitorUp,
+    Book
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
@@ -607,7 +608,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     
     // Upload Modal State
     const [uploadModalVisible, setUploadModalVisible] = useState(false);
-    const [uploadProvider, setUploadProvider] = useState<"google_drive" | "zoho_drive" | "my_computer" | "microsoft_onedrive">("my_computer");
+    const [uploadProvider, setUploadProvider] = useState<"google_drive" | "zoho_drive" | "my_computer" | "microsoft_onedrive" | "notion">("my_computer");
 
     const form = Form.useForm()[0];
     const queryClient = useQueryClient();
@@ -1836,6 +1837,21 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                 </div>
                                                             ),
                                                             onClick: () => { setUploadProvider('microsoft_onedrive'); setUploadModalVisible(true); } 
+                                                        },
+                                                        { 
+                                                            key: 'notion', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
+                                                                        <Book className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Notion</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Import from Notion</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('notion'); setUploadModalVisible(true); } 
                                                         },
                                                     ]
                                                 }}

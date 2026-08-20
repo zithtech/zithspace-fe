@@ -247,7 +247,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       try {
         setLoading(true);
         const data = await PositionService.getAll();
-        const mapData = data.map((pos) => ({
+        const mapData = (Array.isArray(data) ? data : (data as any)?.data || []).map((pos: any) => ({
           id: pos.id,
           name: pos.title,
         }));

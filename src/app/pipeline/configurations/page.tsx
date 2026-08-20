@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
-import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft } from 'lucide-react';
+import { Plus, X, GripVertical, Edit2, Trash2, Eye, LayoutGrid, List, MoreVertical, FileText, Settings, AlignLeft, RotateCw } from 'lucide-react';
 import { PositionService, Position } from '@/services/positionService';
 import { AutoComplete, Drawer, Table, Dropdown, Button, message } from 'antd';
 import '@/app/proposals/library.css';
@@ -73,6 +73,15 @@ export default function ConfigurationsPage() {
               <LayoutGrid size={14} />
             </button>
           </div>
+          <button
+            type="button"
+            className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md border border-slate-200 bg-white transition"
+            onClick={() => fetchConfigs(false)}
+            title="Refresh configurations"
+            disabled={loading}
+          >
+            <RotateCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
           <button
             onClick={() => { setEditConfig(null); setIsModalOpen(true); }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"

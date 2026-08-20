@@ -59,8 +59,9 @@ const initialsOf = (name?: string) => name ? name.split(' ').map((n) => n[0]).jo
 
 export default function TemplateManagementPage() {
   const router = useRouter();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const perms = usePermission() as unknown as Record<string, any>;
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
 
   useEffect(() => {
     if (perms.canReadLetterTemplate === false) {
@@ -101,23 +102,32 @@ export default function TemplateManagementPage() {
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<any>({ total: 0, globalCount: 0, activeCount: 0, recentCount: 0 });
 
-  const total = templates.length;
-  const pageCount = Math.ceil(total / tablePageSize) || 1;
-  const paginatedTemplates = templates.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paginatedTemplates = templates;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
+  
   useEffect(() => {
     setFilterPortalNode(document.getElementById('letters-docs-sidebar-filters'));
   }, []);
+  
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [tpls, cats] = await Promise.all([
-        LettersService.getTemplates({ categoryId: selectedCategoryId || undefined, search: searchQuery || undefined }),
+      const [res, cats] = await Promise.all([
+        LettersService.getTemplates({ 
+          categoryId: selectedCategoryId || undefined, 
+          search: searchQuery || undefined,
+          limit: tablePageSize,
+          offset: (tablePage - 1) * tablePageSize,
+        }),
         LettersService.getCategories(),
       ]);
-      setTemplates(tpls);
+      setTemplates(res.data || []);
+      setTotal(res.total || 0);
+      if (res.stats) setStats(res.stats);
       setCategories(cats);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load document templates');
@@ -127,29 +137,28 @@ export default function TemplateManagementPage() {
   };
 
   useEffect(() => {
+    setTablePage(1);
+  }, [searchQuery, selectedCategoryId, tablePageSize]);
+
+  const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
+
+  useEffect(() => {
+    if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount);
+  }, [total, tablePage, pageCount]);
+
+  useEffect(() => {
     fetchData();
-  }, [selectedCategoryId]);
+  }, [selectedCategoryId, tablePage, tablePageSize]);
 
   const statCells: StatCellData[] = useMemo(() => {
-    const total = templates.length;
-    const globalCount = templates.filter(t => t.tenantId === 'GLOBAL').length;
-    const activeCount = templates.filter(t => t.status === 'ACTIVE').length;
-    const recentCount = templates.filter(t => {
-      if (!t.createdAt && !t.updatedAt) return false;
-      const d = new Date(t.createdAt || t.updatedAt);
-      return (new Date().getTime() - d.getTime()) < 7 * 24 * 60 * 60 * 1000;
-    }).length;
-
-    // Use a generic trend line for visual consistency
     const genericTrend = [0, 2, 4, 3, 5, 4, 7];
-
     return [
-      { key: 'total', title: 'Total Templates', value: total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: total },
-      { key: 'active', title: 'Active Templates', value: activeCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: activeCount },
-      { key: 'global', title: 'Global Templates', value: globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: globalCount },
-      { key: 'recent', title: 'New This Week', value: recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: recentCount },
+      { key: 'total', title: 'Total Templates', value: stats.total, suffix: '', icon: <SnippetsOutlined />, color: '#3b82f6', tint: 'rgba(59,130,246,0.10)', trend: genericTrend, delta: stats.total },
+      { key: 'active', title: 'Active Templates', value: stats.activeCount, suffix: '', icon: <CheckCircleOutlined />, color: '#10b981', tint: 'rgba(16,185,129,0.10)', trend: genericTrend, delta: stats.activeCount },
+      { key: 'global', title: 'Global Templates', value: stats.globalCount, suffix: '', icon: <StarOutlined />, color: '#8b5cf6', tint: 'rgba(139,92,246,0.10)', trend: genericTrend, delta: stats.globalCount },
+      { key: 'recent', title: 'New This Week', value: stats.recentCount, suffix: '', icon: <FileTextOutlined />, color: '#f59e0b', tint: 'rgba(245,158,11,0.10)', trend: genericTrend, delta: stats.recentCount },
     ];
-  }, [templates]);
+  }, [stats]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,12 +502,12 @@ export default function TemplateManagementPage() {
                     label: 'Manual Creation',
                     onClick: () => router.push('/letters-docs/templates/builder')
                   },
-                  {
+                  ...(hasPrime ? [{
                     key: 'zai',
                     icon: <ThunderboltOutlined style={{ color: '#9333ea' }} />,
                     label: <span style={{ fontWeight: 600 }}>Create with Zai <span style={{ background: '#f3e8ff', color: '#9333ea', fontSize: '10px', padding: '1px 4px', borderRadius: '4px', marginLeft: '4px' }}>AI</span></span>,
                     onClick: () => setIsZaiModalOpen(true)
-                  }
+                  }] : [])
                 ]
               }}
               trigger={['click']}

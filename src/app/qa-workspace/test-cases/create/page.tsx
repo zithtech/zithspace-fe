@@ -63,7 +63,7 @@ export default function CreateTestCasePage() {
   const fetchDependencies = async () => {
     try {
       const [modRes] = await Promise.all([
-        axios.get("/api/v2/qa/modules")
+        axios.get("/api/v2/qa/modules?limit=1000")
       ]);
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
     } catch (e) {

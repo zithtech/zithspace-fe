@@ -74,7 +74,7 @@ export class ReimbursementConfigurationService {
 
   //     return [];
   //   } catch (error) {
-  //     if (error instanceof ApiError) throw new Error(error.message);
+  //     if (error instanceof ApiError) throw error;
   //     throw new Error("Failed to fetch configurations");
   //   }
   // }
@@ -105,7 +105,7 @@ static async getConfigurations(): Promise<ReimbursementConfiguration[]> {
     return [];
   } catch (error) {
     console.error('Error fetching configurations:', error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error("Failed to fetch configurations");
   }
 }
@@ -128,7 +128,7 @@ static async getConfigurations(): Promise<ReimbursementConfiguration[]> {
 
       throw new Error("Invalid response structure");
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch configuration");
     }
   }
@@ -157,7 +157,7 @@ static async getConfigurations(): Promise<ReimbursementConfiguration[]> {
   //   } catch (error) {
   //     console.error('Create configuration error:', error);
   //     if (error instanceof ApiError) {
-  //       throw new Error(error.message);
+  //       throw error;
   //     }
   //     throw new Error("Failed to create configuration");
   //   }
@@ -191,7 +191,7 @@ static async createConfiguration(
     throw new Error("Invalid response structure");
   } catch (error) {
     console.error('Create configuration error:', error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error("Failed to create configuration");
   }
 }
@@ -208,7 +208,7 @@ static async createConfiguration(
   //     return;
   //   } catch (error) {
   //     console.error('Update configuration error:', error);
-  //     if (error instanceof ApiError) throw new Error(error.message);
+  //     if (error instanceof ApiError) throw error;
   //     throw new Error("Failed to update configuration");
   //   }
   // }
@@ -223,7 +223,7 @@ static async updateConfiguration(
     return;
   } catch (error) {
     console.error('Update configuration error:', error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error("Failed to update configuration");
   }
 }
@@ -235,7 +235,7 @@ static async updateConfiguration(
   //     console.log('Delete response:', response.data); // Debug log
   //   } catch (error) {
   //     console.error('Delete configuration error:', error);
-  //     if (error instanceof ApiError) throw new Error(error.message);
+  //     if (error instanceof ApiError) throw error;
   //     throw new Error("Failed to delete configuration");
   //   }
   // }
@@ -246,7 +246,7 @@ static async updateConfiguration(
 //     console.log('Delete response:', response); // Debug log
 //   } catch (error) {
 //     console.error('Delete configuration error:', error);
-//     if (error instanceof ApiError) throw new Error(error.message);
+//     if (error instanceof ApiError) throw error;
 //     throw new Error("Failed to delete configuration");
 //   }
 // }
@@ -257,7 +257,7 @@ static async deleteConfiguration(id: string): Promise<void> {
     console.log('Delete response:', response); // Debug log
   } catch (error) {
     console.error('Delete configuration error:', error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error("Failed to delete configuration");
   }
 }

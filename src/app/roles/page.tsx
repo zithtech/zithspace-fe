@@ -383,6 +383,63 @@ const AVATAR_PALETTE: [string, string][] = [
   ['#3b82f6', '#6366f1'],
 ];
 
+/** Maps RBAC resource keys to backend subscription feature prefixes */
+const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
+  // Home
+  dashboard: ["home_home_general_dashboard"],
+  integration: ["home_home_general_integrations"],
+  mail: ["mail"],
+  calendar: ["calendar"],
+  chat: ["chat"],
+  skills: ["skills"],
+  notification: ["notification"],
+  bookmark: ["bookmark"],
+  time_tracking: ["work_time_tracking", "work_timesheet"],
+  activity_log: ["activity_log"],
+
+  // Work
+  project: ["work_projects"],
+  ticket: ["work_tickets"],
+  timesheet: ["work_timesheet", "work_time_tracking"],
+  daily_update: ["work_daily_updates"],
+  document: ["work_document_hub"],
+  squad: ["work_squad_management"],
+  escalation: ["work_escalations"],
+  lead: ["work_lead_management"],
+  bidiq: ["work_bidiq"],
+  proposal: ["work_proposals"],
+  pipeline: ["pipeline"],
+
+  // HRMS
+  attendance: ["hrms_attendance"],
+  leave: ["hrms_leaves_v2", "hrms_leaves", "hrms"],
+  shift: ["hrms_shift"],
+  onboarding: ["hrms_onboarding"],
+  exit: ["hrms_employee_exit"],
+  performance: ["hrms_performance"],
+  opening: ["hrms_opening_management"],
+  profile: ["hrms_profile", "hrms_new_profile"],
+
+  // Admin
+  client: ["admin_clients_v2", "admin_clients"],
+  settings: ["admin_settings"],
+  user: ["admin_members"],
+  role: ["admin_roles"],
+  report: ["admin_reports", "admin_report"],
+  org: ["admin_org_structure"],
+
+  // Finance
+  invoice: ["finance_invoice"],
+  account: ["finance_accounts"],
+  reimbursement: ["finance_reimbursement"],
+  payroll: ["finance_payroll"],
+  salary: ["finance_salary"],
+  vendor: ["finance_vendor"],
+
+  // My Hub
+  my_hub: ["my_hub"],
+};
+
 const gradientFor = (seed: string): string => {
   const idx =
     Math.abs(seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) %
@@ -626,7 +683,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
 
 export default function RolesPage() {
   useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
   console.log("Forcing HMR reload for roles page 2");
@@ -1870,11 +1927,14 @@ export default function RolesPage() {
                           ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
-                        const selectedCount = allPermsForRes.filter((p) =>
+                        const subFeatures = RESOURCE_TO_SUBSCRIPTION_FEATURE[resource] || [resource];
+                        const isFeatureEnabled = hasAnySubscriptionFeature(...subFeatures);
+                        const selectedCount = isFeatureEnabled ? allPermsForRes.filter((p) =>
                           selectedPermIds.includes(p.id),
-                        ).length;
+                        ).length : 0;
                         const allInGroup = selectedCount === allPermsForRes.length;
                         const someInGroup = selectedCount > 0 && !allInGroup;
+                        const canModifyResource = canUpdateRole && isFeatureEnabled;
 
                         // Sub-grouping logic (preserved)
                         const subGroups: Record<string, RBACPermission[]> = {};
@@ -1968,7 +2028,7 @@ export default function RolesPage() {
                                     checked={allInGroup}
                                     indeterminate={someInGroup}
                                     onChange={() => toggleResource(allPermsForRes)}
-                                    disabled={!canUpdateRole}
+                                    disabled={!canModifyResource}
                                     className="rp-acc-card__check"
                                   />
                                 </div>
@@ -1992,8 +2052,15 @@ export default function RolesPage() {
                               key: resource,
                               label: (
                                 <div className="rp-acc-card__text" style={{ marginLeft: 8 }}>
-                                  <div className="rp-acc-card__title">{label}</div>
-                                  <div className="rp-acc-card__sub">{resource}</div>
+                                  <div className="rp-acc-card__title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ color: !isFeatureEnabled ? 'var(--text-slate-400)' : 'inherit' }}>{label}</span>
+                                    {!isFeatureEnabled && (
+                                      <Tag color="default" style={{ fontSize: 10, lineHeight: '14px', border: 0, padding: '0 4px', margin: 0, background: 'var(--bg-secondary, #f1f5f9)' }}>
+                                        Not in Plan
+                                      </Tag>
+                                    )}
+                                  </div>
+                                  <div className="rp-acc-card__sub" style={{ color: !isFeatureEnabled ? 'var(--text-slate-300)' : 'var(--text-slate-500)' }}>{resource}</div>
                                 </div>
                               ),
                               extra: (
@@ -2019,16 +2086,16 @@ export default function RolesPage() {
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
                                       <Row gutter={[10, 10]}>
                                         {subPerms.map((perm) => {
-                                          const isSelected = selectedPermIds.includes(perm.id);
+                                          const isSelected = isFeatureEnabled && selectedPermIds.includes(perm.id);
                                           return (
                                             <Col key={perm.id} xs={24} sm={12} lg={8}>
                                               <div
-                                                onClick={() => canUpdateRole && togglePermission(perm.id)}
-                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canUpdateRole ? ' is-readonly' : ''}`}
+                                                onClick={() => canModifyResource && togglePermission(perm.id)}
+                                                className={`rp-acc-perm${isSelected ? ' is-selected' : ''}${!canModifyResource ? ' is-readonly' : ''}`}
                                               >
                                                 <Checkbox
                                                   checked={isSelected}
-                                                  disabled={!canUpdateRole}
+                                                  disabled={!canModifyResource}
                                                   className="rp-acc-perm__check"
                                                 />
                                                 <div className="rp-acc-perm__text">

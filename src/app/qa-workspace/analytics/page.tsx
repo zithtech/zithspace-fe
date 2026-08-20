@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Repeat2,
   Clock,
+  Menu,
+  RotateCw,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -98,6 +100,7 @@ function AnalyticsContent() {
   const dark = useDark();
 
   const [tab, setTab] = useState<TabKey>("overview");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("week");
   const [asTable, setAsTable] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -279,10 +282,69 @@ function AnalyticsContent() {
 
   return (
     <MainLayout noPadding>
-      <style dangerouslySetInnerHTML={{ __html: QA_SUBMISSION_STYLES + ANALYTICS_STYLES }} />
+      <style dangerouslySetInnerHTML={{
+        __html: QA_SUBMISSION_STYLES + ANALYTICS_STYLES + `
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats tiles grid → 2-col on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4,
+          .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, wrap other filters */
+          .an-filters { flex-wrap: wrap; gap: 6px; }
+          .an-filters .ant-picker { min-width: 0; flex: 1 1 160px; }
+
+          /* Charts: allow horizontal scroll on very small screens */
+          .an-chart-wrap { overflow-x: auto; }
+          .an-table-wrap { overflow-x: auto !important; }
+          .an-table .ant-table { min-width: 560px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4,
+          .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+        }
+      `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo">
@@ -311,7 +373,13 @@ function AnalyticsContent() {
 
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <span className="sc-topbar__h1">{TABS.find((t) => t.key === tab)?.label}</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">
@@ -319,6 +387,14 @@ function AnalyticsContent() {
               </span>
             </div>
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={load}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {(tab === "overview" || tab === "defects") && (
                 <div className="pp-segmented" style={{ marginLeft: 0 }}>
                   {(["day", "week", "month"] as const).map((g) => (

@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   ThumbsUp,
   Undo2,
+  Menu,
+  RotateCw,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
@@ -136,6 +138,7 @@ function ApprovalsContent() {
   const [members, setMembers] = useState<any[]>([]);
 
   const [bucketKey, setBucketKey] = useState<string>(searchParams.get("bucket") || "awaiting");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [scopeFilter, setScopeFilter] = useState<string | undefined>();
@@ -218,7 +221,7 @@ function ApprovalsContent() {
     (async () => {
       try {
         const [scopeRes, memberRes] = await Promise.all([
-          axios.get("/api/v2/qa/test-scopes"),
+          axios.get("/api/v2/qa/test-scopes?limit=1000"),
           MembersService.getMembers({ limit: 500 }),
         ]);
         setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
@@ -233,6 +236,17 @@ function ApprovalsContent() {
     if (!stats) return "—";
     if (key === "awaiting") return stats.submitted + stats.retesting + stats.ready_for_signoff;
     return (stats as any)[key] ?? 0;
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchList(),
+        fetchStats()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
   };
 
   const confirmApprove = async () => {
@@ -444,10 +458,72 @@ function ApprovalsContent() {
 
   return (
     <MainLayout noPadding>
-      <style dangerouslySetInnerHTML={{ __html: QA_SUBMISSION_STYLES }} />
+      <style dangerouslySetInnerHTML={{ __html: QA_SUBMISSION_STYLES + `
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats tiles grid → 2-col on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4,
+          .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, wrap other filters */
+          .pp-topbar { flex-wrap: wrap; gap: 6px; }
+          .sc-filters, .pp-topbar { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+
+          /* Table: horizontal scroll */
+          .pp-table-wrap { overflow-x: auto !important; }
+          .pp-table .ant-table { min-width: 680px; }
+
+          /* Topbar: compress buttons */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4,
+          .grid.grid-cols-2.lg\:grid-cols-5 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
+      `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo">
@@ -478,12 +554,28 @@ function ApprovalsContent() {
 
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <span className="sc-topbar__h1">Approvals</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">
                 Reported QA submissions waiting on a business decision — approve, or send back with a reason
               </span>
+            </div>
+            <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
             </div>
           </div>
 
@@ -632,7 +724,7 @@ function ApprovalsContent() {
                     setPageSize(v);
                     setPage(1);
                   }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

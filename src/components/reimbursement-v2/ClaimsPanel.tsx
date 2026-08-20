@@ -17,7 +17,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, {
   Claim, ClaimDetail, ExpenseCategory, Advance,
 } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -40,11 +40,15 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const canCreate = perms.canCreateReimbursement || perms.canManageReimbursements || perms.canReadMyHubClaims;
 
   const [rows, setRows] = useState<Claim[]>([]);
+  const [total, setTotal] = useState(0);
   const [cats, setCats] = useState<ExpenseCategory[]>([]);
   const [advances, setAdvances] = useState<Advance[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [current, setCurrent] = useState<ClaimDetail | null>(null);
   const [creating, setCreating] = useState(false);
@@ -61,6 +65,15 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const [multiCurrency, setMultiCurrency] = useState(false);
   const [limitError, setLimitError] = useState<string | null>(null);
 
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to page 1 on filter/search change
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter]);
+
   const catById = useCallback((id: string) => cats.find((c) => c.id === id), [cats]);
   const selectedCatId = Form.useWatch('categoryId', itemForm);
   const selectedCat = selectedCatId ? catById(selectedCatId) : undefined;
@@ -69,36 +82,34 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const previewAmount = (cat: ExpenseCategory | undefined, amount: number | null, distance: number | null) =>
     cat?.kind === 'mileage' ? (distance || 0) * (cat.mileageRate || 0) : (amount || 0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page = currentPage, limit = pageSize) => {
     setLoading(true);
     try {
-      const [c, cat] = await Promise.all([
-        ReimbursementV2Service.listMyClaims(),
-        ReimbursementV2Service.listCategories(false),
+      const [result, cat] = await Promise.all([
+        ReimbursementV2Service.listMyClaims({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          search: debouncedSearch || undefined,
+          page,
+          limit,
+        }),
+        ReimbursementV2Service.listCategories({ includeInactive: false, limit: 1000 }),
       ]);
-      setRows(c); setCats(cat);
+      setRows(result.data);
+      setTotal(result.pagination.total);
+      setCats(cat.data);
     } catch (e: any) {
       message.error(e?.response?.data?.error || 'Failed to load claims');
     } finally { setLoading(false); }
-  }, []);
+  }, [statusFilter, debouncedSearch, currentPage, pageSize]);
 
   useEffect(() => { if (canRead) load(); }, [canRead, load]);
 
   const stats = useMemo(() => ({
-    total: rows.length,
+    total,
     draft: rows.filter((r) => r.status === 'draft').length,
     pending: rows.filter((r) => r.status === 'pending').length,
     paidAmt: rows.filter((r) => r.status === 'paid').reduce((s, r) => s + r.baseAmount, 0),
-  }), [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      const matchSearch = !q || r.claimNo.toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q);
-      const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [rows, search, statusFilter]);
+  }), [rows, total]);
 
   const openCreate = async () => {
     setCurrent(null);
@@ -109,10 +120,9 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
     setNewFiles([]);
     setMultiCurrency(false);
     headerForm.setFieldsValue({ currency: 'INR', exchangeRate: 1 });
-    // Refresh reference data so newly-added categories/advances show up.
-    try { setCats(await ReimbursementV2Service.listCategories(false)); } catch { /* non-fatal */ }
+    try { setCats((await ReimbursementV2Service.listCategories({ includeInactive: false, limit: 1000 })).data); } catch { /* non-fatal */ }
     try {
-      setAdvances((await ReimbursementV2Service.listMyAdvances()).filter((a) => a.status === 'paid' || a.status === 'partially_reconciled'));
+      setAdvances((await ReimbursementV2Service.listMyAdvances({ limit: 100 })).data.filter((a) => a.status === 'paid' || a.status === 'partially_reconciled'));
     } catch { /* non-fatal */ }
     setDrawerOpen(true);
   };
@@ -383,8 +393,19 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
       <div className="rvp-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-            pagination={tablePaginationConfig} />
+          <Table rowKey="id" size="middle" loading={loading} columns={columns} dataSource={rows}
+            pagination={{
+              current: currentPage,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (t) => `${t} claims`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size ?? pageSize);
+              },
+            }} />
         </ZukvoLoadingOverlay>
       </div>
 

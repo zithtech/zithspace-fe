@@ -26,19 +26,34 @@ const transformApiToView = (grade: GradeAPIResponse): GradeViewData => ({
   isActive: grade.isActive,
 });
 
-export const useGrades = () => {
-  const [dataSource, setDataSource] = useState<GradeViewData[]>([]);
+export const useGrades = (filters?: { page?: number; limit?: number; search?: string }) => {
+  const [paginatedGrades, setPaginatedGrades] = useState<GradeViewData[]>([]);
+  const [allGrades, setAllGrades] = useState<GradeViewData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchGrades = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response: any = await GradeService.getAllGrades();
-      // Handle potential response wrapper { success: true, data: [...] } vs direct array
-      const data = Array.isArray(response) ? response : (response.data || []);
-      setDataSource(data.map(transformApiToView));
+      
+      const [allRes, paginatedRes]: any = await Promise.all([
+        GradeService.getAllGrades({ limit: 1000 }),
+        filters?.page ? GradeService.getAllGrades(filters) : Promise.resolve(null)
+      ]);
+
+      const allData = Array.isArray(allRes) ? allRes : (allRes.data || []);
+      setAllGrades(allData.map(transformApiToView));
+
+      if (paginatedRes) {
+        const paginatedData = Array.isArray(paginatedRes) ? paginatedRes : (paginatedRes.data || []);
+        setPaginatedGrades(paginatedData.map(transformApiToView));
+        setTotalCount(paginatedRes.pagination?.total || paginatedData.length);
+      } else {
+        setPaginatedGrades(allData.map(transformApiToView));
+        setTotalCount(allData.length);
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || "Failed to load grades.";
       setError(errorMessage);
@@ -46,7 +61,7 @@ export const useGrades = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters?.page, filters?.limit, filters?.search]);
 
   useEffect(() => {
     fetchGrades();
@@ -79,7 +94,8 @@ export const useGrades = () => {
   const deleteGrade = async (id: string) => {
     try {
       await GradeService.deleteGrade(id);
-      setDataSource((prev) => prev.filter((item) => item.id !== id));
+      setAllGrades((prev) => prev.filter((item) => item.id !== id));
+      setPaginatedGrades((prev) => prev.filter((item) => item.id !== id));
       notification.success({ message: "Grade deleted successfully" });
       return true;
     } catch (err: any) {
@@ -89,9 +105,12 @@ export const useGrades = () => {
   };
 
   return {
-    dataSource,
+    allGrades,
+    paginatedGrades,
     loading,
     error,
+    totalCount,
+    fetchGrades,
     addGrade,
     updateGrade,
     deleteGrade,

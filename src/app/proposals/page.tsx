@@ -45,7 +45,8 @@ import {
   CaretDownOutlined,
   MenuOutlined,
 } from '@ant-design/icons';
-import { Sparkles, Mail } from 'lucide-react';
+import { Sparkles, Mail, Wand2 } from 'lucide-react';
+import { EndToEndZaiModal } from '@/components/proposals/EndToEndZaiModal';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useProposalLibraryStore } from '@/store/proposalLibraryStore';
@@ -64,7 +65,7 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import dayjs from 'dayjs';
 import { formatDistanceToNow } from 'date-fns';
 import { useActivitySource } from '@/hooks/useActivitySource';
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { ZukvoLoadingOverlay } from '@/components/common/ZukvoLoader';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -162,6 +163,8 @@ export default function ProposalsListPage() {
   const router = useRouter();
 
   const [proposals, setProposals] = useState<any[]>([]);
+  const [paginatedProposals, setPaginatedProposals] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -173,6 +176,7 @@ export default function ProposalsListPage() {
   const [savedView, setSavedView] = useState<SavedView>('all');
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isZaiModalOpen, setIsZaiModalOpen] = useState(false);
 
   const [starred, setStarred] = useState<Record<string, boolean>>({});
   const [recents, setRecents] = useState<any[]>([]);
@@ -307,10 +311,34 @@ export default function ProposalsListPage() {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const data = await ProposalService.getProposals();
-      if (Array.isArray(data)) setProposals(data);
-      else if (data && Array.isArray(data.data)) setProposals(data.data);
-      else setProposals([]);
+
+      // 1) Fetch large set for stats, dropdowns, and rails
+      const allRes = await ProposalService.getProposals({ limit: 1000 });
+      const allData = allRes?.data || (Array.isArray(allRes) ? allRes : []);
+      setProposals(allData);
+
+      // 2) Fetch paginated list
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        view: savedView !== 'all' ? savedView : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        client: clientFilter || undefined,
+        creator: creatorFilter || undefined,
+      };
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        filters.startDate = dateRange[0].toISOString();
+        filters.endDate = dateRange[1].toISOString();
+      }
+      if (savedView === 'starred') {
+        const starredIds = Object.keys(starred).filter((id) => starred[id]);
+        if (starredIds.length > 0) filters.starredIds = starredIds.join(',');
+      }
+
+      const pRes = await ProposalService.getProposals(filters);
+      setPaginatedProposals(pRes?.data || []);
+      setTotalCount(pRes?.pagination?.total || 0);
     } catch (err: any) {
       console.error('Fetch error:', err);
       if (err.status !== 401) messageApi.error('Failed to load proposals');
@@ -335,6 +363,10 @@ export default function ProposalsListPage() {
 
   useEffect(() => {
     fetchProposals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tablePage, tablePageSize, searchText, savedView, statusFilter, clientFilter, creatorFilter, dateRange, starred]);
+
+  useEffect(() => {
     fetchUsers();
   }, []);
 
@@ -353,11 +385,13 @@ export default function ProposalsListPage() {
     if (!canUpdateProposal || record.status === status) return;
     const prev = record.status;
     setProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status } : p)));
+    setPaginatedProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status } : p)));
     try {
       await ProposalService.updateProposal(record.id, { status });
       messageApi.success(`Marked as ${STATUS_META[status].label}`);
     } catch (err) {
       setProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status: prev } : p)));
+      setPaginatedProposals((list) => list.map((p) => (p.id === record.id ? { ...p, status: prev } : p)));
       messageApi.error('Failed to update status');
     }
   };
@@ -492,37 +526,7 @@ export default function ProposalsListPage() {
   };
 
   // ─── Scope (saved views) + filtering ────────────────────────────────────────
-  const scopedProposals = useMemo(() => {
-    return proposals.filter((p) => {
-      switch (savedView) {
-        case 'mine': return p.createdBy?.id === user?.id;
-        case 'sent': return p.status === 'sent';
-        case 'starred': return !!starred[p.id];
-        default: return true;
-      }
-    });
-  }, [proposals, savedView, user?.id, starred]);
-
-  const filteredProposals = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    const from = dateRange?.[0] ? dayjs(dateRange[0]).startOf('day') : null;
-    const to = dateRange?.[1] ? dayjs(dateRange[1]).endOf('day') : null;
-    return scopedProposals.filter((p) => {
-      const matchesSearch =
-        !q ||
-        p.title?.toLowerCase().includes(q) ||
-        p.client_name?.toLowerCase().includes(q) ||
-        p.createdBy?.name?.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'all' || p.status?.toLowerCase() === statusFilter;
-      const matchesClient = !clientFilter || p.client_name === clientFilter;
-      const matchesCreator = !creatorFilter || p.createdBy?.id === creatorFilter;
-      const created = p.created_at ? dayjs(p.created_at) : null;
-      const matchesDate =
-        (!from || (created && !created.isBefore(from))) &&
-        (!to || (created && !created.isAfter(to)));
-      return matchesSearch && matchesStatus && matchesClient && matchesCreator && matchesDate;
-    });
-  }, [scopedProposals, searchText, statusFilter, clientFilter, creatorFilter, dateRange]);
+  // (Client-side filtering has been moved to the backend)
 
   // Reset to first page whenever the result set changes.
   useEffect(() => { setTablePage(1); }, [savedView, searchText, statusFilter, clientFilter, creatorFilter, dateRange]);
@@ -796,11 +800,42 @@ export default function ProposalsListPage() {
     },
   ];
 
-  const total = filteredProposals.length;
+  const total = totalCount;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedProposals = filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedProposals = paginatedProposals;
+
+  const createMenuItems = [
+    {
+      key: 'manual',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: 'rgba(59,130,246,0.12)', color: '#3b82f6', flexShrink: 0 }}>
+            <PlusOutlined style={{ fontSize: 13 }} />
+          </span>
+          <span>
+            <div style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' }}>Manual creation</div>
+            <div style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)', lineHeight: '15px' }}>Open the proposal builder</div>
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'zai',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 6, background: 'rgba(139,92,246,0.12)', color: '#8b5cf6', flexShrink: 0 }}>
+            <Wand2 size={13} />
+          </span>
+          <span>
+            <div style={{ fontWeight: 600, fontSize: 13, lineHeight: '18px' }}>Create with Zai</div>
+            <div style={{ fontSize: 11, color: 'var(--text-slate-400, #94a3b8)', lineHeight: '15px' }}>AI-powered proposal builder</div>
+          </span>
+        </div>
+      ),
+    },
+  ];
 
   const emptyState = (
     <div className="pp-empty">
@@ -808,9 +843,21 @@ export default function ProposalsListPage() {
       <div className="pp-empty-title">No proposals found</div>
       <div className="pp-empty-sub">Start by creating your first premium proposal.</div>
       {canCreateProposal && (
-        <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" onClick={() => router.push('/proposals/builder')} style={{ marginTop: 14 }}>
-          New Proposal
-        </Button>
+        <Dropdown
+          menu={{
+            items: createMenuItems,
+            onClick: ({ key }) => {
+              if (key === 'manual') router.push('/proposals/builder');
+              else if (key === 'zai') setIsZaiModalOpen(true);
+            },
+          }}
+          trigger={['click']}
+          placement="bottomCenter"
+        >
+          <Button type="primary" icon={<PlusOutlined />} className="pp-btn-primary" style={{ marginTop: 14 }}>
+            New Proposal
+          </Button>
+        </Dropdown>
       )}
     </div>
   );
@@ -834,15 +881,26 @@ export default function ProposalsListPage() {
             </div>
 
             {canCreateProposal && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="pp-create-btn"
-                onClick={() => router.push('/proposals/builder')}
-                block
+              <Dropdown
+                menu={{
+                  items: createMenuItems,
+                  onClick: ({ key }) => {
+                    if (key === 'manual') router.push('/proposals/builder');
+                    else if (key === 'zai') setIsZaiModalOpen(true);
+                  },
+                }}
+                trigger={['click']}
+                placement="bottomRight"
               >
-                Create Proposal
-              </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className="pp-create-btn"
+                  block
+                >
+                  Create Proposal
+                </Button>
+              </Dropdown>
             )}
 
             <div className="pp-side-scroll">
@@ -1032,10 +1090,10 @@ export default function ProposalsListPage() {
                   <div className="pp-grid">
                     {loading ? (
                       <div style={{ gridColumn: '1 / -1', minHeight: 400 }} />
-                    ) : filteredProposals.length === 0 ? (
+                    ) : paginatedProposals.length === 0 ? (
                       <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                     ) : (
-                      filteredProposals.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((p) => {
+                      paginatedProposals.map((p) => {
                         const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;
                         const meta = STATUS_META[sKey] || STATUS_META.draft;
                         const accent = accentFor(p.id || p.client_name || p.title || '');
@@ -1198,6 +1256,15 @@ export default function ProposalsListPage() {
           saving={tplSaving}
           onCancel={() => setTplProposal(null)}
           onSave={persistProposalAsTemplate}
+        />
+
+        <EndToEndZaiModal
+          visible={isZaiModalOpen}
+          onClose={() => setIsZaiModalOpen(false)}
+          onComplete={() => {
+            setIsZaiModalOpen(false);
+            fetchProposals();
+          }}
         />
 
         <style jsx global>{`

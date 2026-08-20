@@ -72,6 +72,8 @@ export default function AddHolidaysPanel() {
   console.log("Forcing HMR reload for AddHolidaysPanel");
 
   const [rows, setRows] = useState<Holiday[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, national: 0, state: 0, active: 0 });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -92,16 +94,26 @@ export default function AddHolidaysPanel() {
   const [rule, setRule] = useState<HolidayRule>('Fixed');
   const [isActive, setIsActive] = useState(true);
 
-  const load = useCallback(async (year: number) => {
+  const load = useCallback(async (year: number, p = tablePage, size = tablePageSize, q = search, t = typeFilter) => {
     setLoading(true);
     try {
-      setRows(await LeaveV2Service.listHolidays({ year, includeInactive: true }));
+      const res = await LeaveV2Service.listHolidays({ 
+        year, 
+        includeInactive: true,
+        search: q || undefined,
+        type: t === 'all' ? undefined : t,
+        page: p,
+        pageSize: size
+      });
+      setRows(res.data);
+      setTotalCount(res.total);
+      setApiStats(res.stats);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load holidays');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, typeFilter]);
 
   useEffect(() => {
     if (canReadLeaveHoliday) load(yearFilter);
@@ -110,17 +122,11 @@ export default function AddHolidaysPanel() {
   const years = useMemo(() => {
     const cur = dayjs().year();
     const set = new Set<number>([cur - 1, cur, cur + 1]);
-    rows.forEach((r) => set.add(dayjs(r.fromDate).year()));
     return Array.from(set).sort((a, b) => b - a);
-  }, [rows]);
+  }, []);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total: rows.length,
-    national: rows.filter((r) => r.type === 'National' || r.type === 'ALL').length,
-    state: rows.filter((r) => r.type === 'State').length,
-    active: rows.filter((r) => r.isActive).length,
-  }), [rows]);
+  const stats = useMemo(() => apiStats, [apiStats]);
 
   const statCells = [
     { key: 'total', title: 'Holidays', value: stats.total, period: `in ${yearFilter}`, icon: <CalendarOutlined />, color: PALETTE.blue, tint: TINT.blue },
@@ -129,22 +135,13 @@ export default function AddHolidaysPanel() {
     { key: 'active', title: 'Active', value: stats.active, period: `of ${stats.total}`, icon: <BankOutlined />, color: PALETTE.grey, tint: TINT.grey },
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q)) return false;
-      if (typeFilter !== 'all' && r.type !== typeFilter && !(typeFilter === 'National' && r.type === 'ALL')) return false;
-      return true;
-    });
-  }, [rows, search, typeFilter]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
-  useEffect(() => { setTablePage(1); }, [search, typeFilter, yearFilter, tablePageSize]);
-  useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
+  const paged = rows;
+  useEffect(() => { setTablePage(1); }, [search, typeFilter, yearFilter]);
+  useEffect(() => { if (tablePage > pageCount && pageCount > 0) setTablePage(pageCount); }, [pageCount, tablePage]);
   const hasFilters = !!search || typeFilter !== 'all';
 
   // ── Drawer ──────────────────────────────────────────────────────────────────
@@ -316,7 +313,7 @@ export default function AddHolidaysPanel() {
         <span className="lvh-filter-label"><FilterOutlined /> Filter</span>
         <SearchableDropdown className="lvh-filter-dd" placeholder="Year" itemNoun="years" allowClear={false} value={String(yearFilter)} onChange={(v) => setYearFilter(Number(v))} options={years.map((y) => ({ value: String(y), label: String(y) }))} style={{ width: 120 }} width={140} />
         <SearchableDropdown className="lvh-filter-dd" placeholder="Type" itemNoun="types" value={typeFilter === 'all' ? undefined : typeFilter} onChange={(v) => setTypeFilter((v as TypeFilter) ?? 'all')} options={TYPE_OPTIONS} style={{ width: 150 }} width={200} />
-        <span className="lvh-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="lvh-filter-count">{total} of {stats.total}</span>
         {hasFilters && <button type="button" className="lvh-clear" onClick={() => { setSearch(''); setTypeFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 

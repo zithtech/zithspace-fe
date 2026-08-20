@@ -65,7 +65,7 @@ export class ClientService {
       return await apiUtils.getPaginated<Client>('/api/clients', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch clients');
     }
@@ -79,7 +79,7 @@ export class ClientService {
       return await api.get<Client>(`/api/clients/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch client');
     }
@@ -93,7 +93,7 @@ export class ClientService {
       return await api.post<Client>('/api/clients', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create client');
     }
@@ -107,7 +107,7 @@ export class ClientService {
       return await api.put<Client>(`/api/clients/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update client');
     }
@@ -121,7 +121,7 @@ export class ClientService {
       await api.delete(`/api/clients/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to delete client');
     }
@@ -135,7 +135,7 @@ export class ClientService {
       return await api.get<ClientStats>('/api/clients/stats');
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch client statistics');
     }
@@ -149,7 +149,7 @@ export class ClientService {
       return await api.get<ClientSelectOption[]>('/api/clients-v2/select');
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch clients for selection');
     }
@@ -166,7 +166,7 @@ export class ClientService {
       });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update client status');
     }
@@ -180,7 +180,7 @@ export class ClientService {
       return await api.get<Client[]>(`/api/clients/search?q=${encodeURIComponent(query)}&limit=${limit}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to search clients');
     }

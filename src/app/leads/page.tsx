@@ -2,7 +2,7 @@
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -34,6 +34,7 @@ import {
   Eye,
   Filter,
   RefreshCw,
+  RotateCw,
   ShieldCheck,
   Zap,
   Sparkles,
@@ -118,7 +119,7 @@ import { TablePreferenceService } from "@/services/tablePreferenceService";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadSettings } from "@/hooks/useLeadSettings";
-import { Lead } from "@/services/leadService";
+import LeadService, { Lead } from "@/services/leadService";
 import { ProposalService } from "@/services/proposalService";
 import {
   ClockCircleOutlined,
@@ -666,6 +667,10 @@ export default function LeadsPage() {
     canCreateProposal
   } = usePermission();
 
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_lead_management_leads_prime');
+  const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_lead_management_leads_grid');
+
+
   const [form] = Form.useForm();
   // Watch the lead-kind picker once, at the top level — calling Form.useWatch
   // inside the render ternary would run the hook a variable number of times.
@@ -923,7 +928,11 @@ export default function LeadsPage() {
   const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
   const { statuses: configStatuses, actions: configActions, platforms: configPlatforms, fetchStatuses, fetchActions, fetchPlatforms, loading: settingsLoading } = useLeadSettings();
 
-  const loading = leadsLoading || settingsLoading;
+  const [paginatedLeads, setPaginatedLeads] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [paginatedLoading, setPaginatedLoading] = useState(false);
+
+  const loading = leadsLoading || settingsLoading || paginatedLoading;
 
   const handleView = (record: Lead) => {
     if (record.lead_source_kind === 'website') {
@@ -934,13 +943,67 @@ export default function LeadsPage() {
     router.push(`/leads/view/${record.id}`);
   };
 
-  // Load leads and settings on component mount
+  // Load settings on component mount
   useEffect(() => {
-    fetchLeads();
     fetchStatuses();
     fetchActions();
     fetchPlatforms();
-  }, [fetchLeads, fetchStatuses, fetchActions, fetchPlatforms]);
+  }, [fetchStatuses, fetchActions, fetchPlatforms]);
+
+  // Dual query pattern
+  // 1. Fetch large unfiltered set for stats & dropdowns
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
+
+  // 2. Fetch paginated/filtered list
+  const fetchPaginatedLeads = useCallback(async () => {
+    setPaginatedLoading(true);
+    try {
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize,
+        search: searchText.trim() || undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        action: filterAction !== 'all' ? filterAction : undefined,
+        platform: filterPlatform !== 'all' ? filterPlatform : undefined,
+        createdBy: filterCreatedBy !== 'all' ? filterCreatedBy : undefined,
+        mailStatus: filterMailStatus !== 'all' ? filterMailStatus : undefined,
+      };
+
+      if (activeSegment !== 'all') filters.status = activeSegment;
+      if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
+        filters.startDate = filterDateRange[0].toISOString();
+        filters.endDate = filterDateRange[1].toISOString();
+      }
+
+      const res = await LeadService.getAll(filters);
+      setPaginatedLeads(res?.data || []);
+      setTotalCount(res?.pagination?.total || 0);
+    } catch (err: any) {
+      console.error('Failed to fetch paginated leads:', err);
+    } finally {
+      setPaginatedLoading(false);
+    }
+  }, [tablePage, tablePageSize, searchText, filterStatus, filterAction, filterPlatform, filterCreatedBy, filterMailStatus, activeSegment, filterDateRange]);
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchLeads(),
+        fetchPaginatedLeads(),
+        fetchStatuses(),
+        fetchActions(),
+        fetchPlatforms(),
+      ]);
+    } catch (err) {
+      console.error('Failed to refresh:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaginatedLeads();
+  }, [fetchPaginatedLeads]);
 
   // Handle errors from the hook
   useEffect(() => {
@@ -1546,7 +1609,7 @@ export default function LeadsPage() {
           !!record.ai_summary;
 
         return (
-          canManageLeads && (
+          canManageLeads && hasPrime ? (
             <Button
               type="link"
               icon={hasBidiq ? <Eye size={13} /> : <Zap size={13} />}
@@ -1571,6 +1634,8 @@ export default function LeadsPage() {
             >
               {hasBidiq ? "View BidIq" : "BidIq"}
             </Button>
+          ) : (
+            <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>
           )
         );
       },
@@ -1599,7 +1664,7 @@ export default function LeadsPage() {
             >
               View Proposal
             </Button>
-          ) : (
+          ) : hasPrime ? (
             <Button
               type="link"
               icon={<Sparkles size={13} />}
@@ -1617,6 +1682,8 @@ export default function LeadsPage() {
             >
               Generate
             </Button>
+          ) : (
+            <Text style={{ color: "#cbd5e1", fontSize: 12 }}>—</Text>
           )
         )
       ),
@@ -1969,101 +2036,20 @@ export default function LeadsPage() {
     return Number.isFinite(num) ? num : 0;
   };
 
-  const filteredLeads = useMemo(() => {
-    const weekAgo = dayjs().subtract(7, 'day');
-    const filtered = leads.filter(item => {
-      // Search matching
-      const matchesSearch = !searchText ||
-        item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.client_name.toLowerCase().includes(searchText.toLowerCase());
-
-      // Status matching — "Converted Clients" also catches anything with a proposal,
-      // so the table reflects the same count shown in the sidebar.
-      const matchesStatus =
-        !filterStatus ||
-        item.status === filterStatus ||
-        (filterStatus === "Converted Clients" && !!item.proposal_id);
-
-      // Action matching
-      const matchesAction = !filterAction || item.actions_item === filterAction;
-
-      // Platform matching
-      const matchesPlatform = !filterPlatform || item.platform === filterPlatform;
-
-      // Date Range matching
-      let matchesDateRange = true;
-      if (filterDateRange && item.posted_on) {
-        const postedOn = dayjs(item.posted_on);
-        const [start, end] = filterDateRange;
-        matchesDateRange = postedOn.isAfter(start.startOf('day')) && postedOn.isBefore(end.endOf('day'));
-      }
-
-      // Created-by matching
-      const matchesCreatedBy =
-        !filterCreatedBy ||
-        getLeadCreator(item) === filterCreatedBy;
-
-      // Mail status matching
-      let matchesMailStatus = true;
-      if (filterMailStatus === 'sent') {
-        matchesMailStatus = !!item.last_mail_at || !!item.is_mail_sent;
-      } else if (filterMailStatus === 'not_sent') {
-        matchesMailStatus = !item.last_mail_at && !item.is_mail_sent;
-      }
-
-      // Segment matching
-      let matchesSegment = true;
-      if (activeSegment === "hot") {
-        matchesSegment = (item.ai_score || 0) >= 80;
-      } else if (activeSegment === "today") {
-        const startOfDay = dayjs().startOf('day');
-        const endOfDay = dayjs().endOf('day');
-        const dt = dayjs(item.created_at || item.posted_on);
-        matchesSegment = (dt.isAfter(startOfDay) || dt.isSame(startOfDay)) && (dt.isBefore(endOfDay) || dt.isSame(endOfDay));
-      } else if (activeSegment === "with_proposal") {
-        matchesSegment = !!item.proposal_id;
-      } else if (activeSegment === "my_leads") {
-        matchesSegment = (item as any).created_by === user?.id;
-      }
-
-      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange && matchesCreatedBy && matchesSegment && matchesMailStatus;
-    });
-
-    const sorted = [...filtered];
-    const tsOf = (l: Lead, field: "created_at" | "updated_at"): number =>
-      dayjs(l[field] || l.posted_on || 0).valueOf();
-    switch (sortKey) {
-      case "oldest":
-        sorted.sort((a, b) => tsOf(a, "created_at") - tsOf(b, "created_at"));
-        break;
-      case "value_high":
-        sorted.sort((a, b) => parseBudgetValue(b) - parseBudgetValue(a));
-        break;
-      case "value_low":
-        sorted.sort((a, b) => parseBudgetValue(a) - parseBudgetValue(b));
-        break;
-      case "score":
-        sorted.sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
-        break;
-      case "activity":
-        sorted.sort((a, b) => tsOf(b, "updated_at") - tsOf(a, "updated_at"));
-        break;
-      case "newest":
-      default:
-        sorted.sort((a, b) => tsOf(b, "created_at") - tsOf(a, "created_at"));
-        break;
-    }
-    return sorted;
-  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, user, filterMailStatus, sortKey]);
+  // --- Filtering (moved to backend) ---
+  useEffect(() => {
+    // Reset to first page on filter change
+    setTablePage(1);
+  }, [searchText, filterStatus, filterAction, filterPlatform, filterDateRange, filterCreatedBy, activeSegment, filterMailStatus]);
 
   useEffect(() => {
-    const totalPages = Math.ceil(filteredLeads.length / tablePageSize);
+    const totalPages = Math.ceil(totalCount / tablePageSize);
     if (totalPages > 0 && tablePage > totalPages) {
       setTablePage(totalPages);
     } else if (totalPages === 0 && tablePage > 1) {
       setTablePage(1);
     }
-  }, [filteredLeads.length, tablePage, tablePageSize]);
+  }, [totalCount, tablePage, tablePageSize]);
 
   const creatorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -2517,7 +2503,7 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
-                {canCreateLead && (
+                {canCreateLead && hasGrid && (
                   <Button
                     type="primary"
                     icon={<Plus size={16} />}
@@ -2651,6 +2637,14 @@ export default function LeadsPage() {
                   </div>
                 </div>
                 <div className="lm-topbar-actions" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Button
+                    type="default"
+                    icon={<RotateCw size={15} className={loading ? "animate-spin" : ""} />}
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    style={{ height: 38, width: 38, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    title="Refresh leads"
+                  />
                   <Space.Compact className="ticket-filter-group">
                     <Popover
                       trigger={["click"]}
@@ -2861,7 +2855,7 @@ export default function LeadsPage() {
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
                     onClick={() => {
                       const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
-                      const rows = filteredLeads.map(l => {
+                      const rows = paginatedLeads.map(l => {
                         const score = l.ai_score;
                         const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
                         return [
@@ -3056,7 +3050,7 @@ export default function LeadsPage() {
                     className="lm-filter-settings-btn lm-toolbar-filters-btn"
                     onClick={() => {
                       const headers = ["Lead", "Company", "Pipeline", "Source", "Value", "Owner", "Priority", "Last Activity", "Created"];
-                      const rows = filteredLeads.map(l => {
+                      const rows = paginatedLeads.map(l => {
                         const score = l.ai_score;
                         const priority = score == null ? "" : score >= 80 ? "High" : score >= 60 ? "Medium" : "Low";
                         return [
@@ -3223,7 +3217,7 @@ export default function LeadsPage() {
               {isFilterRowOpen && (
                 <div className="lm-table-toolbar">
                   <span className="lm-toolbar-count">
-                    <b>{filteredLeads.length}</b> of <b>{leads.length}</b> leads
+                    <b>{totalCount}</b> of <b>{leads.length}</b> leads
                   </span>
 
                   <span className="lm-toolbar-spacer" />
@@ -3463,7 +3457,7 @@ export default function LeadsPage() {
                     ) : (
                       <Table
                         columns={columns.filter((c: any) => !hiddenCols[c.key as string])}
-                        dataSource={filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize)}
+                        dataSource={paginatedLeads}
                         rowKey="id"
                         size="middle"
                         scroll={{ x: "max-content" }}
@@ -3570,7 +3564,7 @@ export default function LeadsPage() {
                           </div>
                         ))}
                       </div>
-                    ) : filteredLeads.length === 0 ? (
+                    ) : paginatedLeads.length === 0 ? (
                       <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
                         <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
                           <Layers size={28} />
@@ -3581,14 +3575,14 @@ export default function LeadsPage() {
                         <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
                           {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
                         </Typography.Text>
-                        {leads.length === 0 && (
-                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none" }}>Add First Lead</Button>
+                        {leads.length === 0 && canCreateLead && hasGrid && (
+                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}>Add First Lead</Button>
                         )}
                       </div>
                     ) : (
                       <>
                         <div className="lm-grid">
-                          {filteredLeads.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map(record => {
+                          {paginatedLeads.map(record => {
                             const r = record as any;
                             const name = record.title || record.client_name || r.first_name || 'Unnamed Lead';
                             const initials = getInitials(name);
@@ -3656,7 +3650,7 @@ export default function LeadsPage() {
                                   <div className="lm-card-footer-row">
                                     {canManageLeads && record.lead_source_kind !== "website" && (() => {
                                       const hasBidiq = (record.ai_score && record.ai_score > 0) || !!record.skill_analysis || !!record.ai_summary;
-                                      return (
+                                      return hasPrime ? (
                                         <>
                                           <button
                                             type="button"
@@ -3668,21 +3662,35 @@ export default function LeadsPage() {
                                           </button>
                                           <span className="lm-card-footer-div" />
                                         </>
-                                      );
+                                      ) : null;
                                     })()}
 
                                     {canCreateProposal && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); record.proposal_id ? router.push(`/proposals/builder?id=${record.proposal_id}`) : openProposalFlow(record); }}
-                                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: record.proposal_id ? '#10b981' : '#3B82F6' }}
-                                        >
-                                          {record.proposal_id ? <FileText size={12} /> : <Sparkles size={12} />}
-                                          {record.proposal_id ? 'View Proposal' : 'Generate'}
-                                        </button>
-                                        <span className="lm-card-footer-div" />
-                                      </>
+                                      record.proposal_id ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/proposals/builder?id=${record.proposal_id}`); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#10b981' }}
+                                          >
+                                            <FileText size={12} />
+                                            View Proposal
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      ) : hasPrime ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); openProposalFlow(record); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11.5px', fontWeight: 700, color: '#3B82F6' }}
+                                          >
+                                            <Sparkles size={12} />
+                                            Generate
+                                          </button>
+                                          <span className="lm-card-footer-div" />
+                                        </>
+                                      ) : null
                                     )}
 
                                     <button
@@ -3715,18 +3723,18 @@ export default function LeadsPage() {
                   </div>
                 )}
               </div>
-              {filteredLeads.length > 0 && (
+              {totalCount > 0 && (
                 <div className="lm-bottom-bar lm-bottom-bar--sticky">
                   <div className="lm-bottom-info">
-                    Showing <strong>{(tablePage - 1) * tablePageSize + 1}–{Math.min(tablePage * tablePageSize, filteredLeads.length)}</strong> of <strong>{filteredLeads.length}</strong>
-                    {selectedRowKeys.length > 0 && <span className="lm-bottom-sel"> · {selectedRowKeys.length} selected</span>}
+                    Showing <strong>{(tablePage - 1) * tablePageSize + 1}–{Math.min(tablePage * tablePageSize, totalCount)}</strong> of <strong>{totalCount}</strong>
+                    {selectedRowKeys.length > 0 && <span className="lm-bottom-sel"> • {selectedRowKeys.length} selected</span>}
                   </div>
                   <div className="lm-pager">
-                    <button type="button" className="lm-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
-                    {Array.from({ length: Math.ceil(filteredLeads.length / tablePageSize) }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
+                    <button type="button" className="lm-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>←</button>
+                    {Array.from({ length: Math.ceil(totalCount / tablePageSize) }, (_, i) => i + 1).slice(Math.max(0, tablePage - 3), Math.max(0, tablePage - 3) + 5).map((p) => (
                       <button key={p} type="button" className={`lm-pager-num ${p === tablePage ? 'is-active' : ''}`} onClick={() => setTablePage(p)}>{p}</button>
                     ))}
-                    <button type="button" className="lm-pager-btn" disabled={tablePage >= Math.ceil(filteredLeads.length / tablePageSize)} onClick={() => setTablePage((p) => Math.min(Math.ceil(filteredLeads.length / tablePageSize), p + 1))}>›</button>
+                    <button type="button" className="lm-pager-btn" disabled={tablePage >= Math.ceil(totalCount / tablePageSize)} onClick={() => setTablePage((p) => Math.min(Math.ceil(totalCount / tablePageSize), p + 1))}>→</button>
                     <Select
                       className="lm-pagesize"
                       value={tablePageSize}

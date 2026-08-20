@@ -7,9 +7,9 @@ import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOut
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink } from "lucide-react";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -17,6 +17,7 @@ import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoade
 import { useTheme } from "@/context/ThemeContext";
 import { Line } from "@ant-design/plots";
 import dayjs from "dayjs";
+import { ProjectService } from "@/services/projectService";
 
 const { Text, Paragraph } = Typography;
 
@@ -228,15 +229,37 @@ function TestScopeContent() {
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [stats, setStats] = useState<any>({
+    totalScopes: 0,
+    approved: 0,
+    inReview: 0,
+    inDraft: 0,
+    pendingApprovals: 0,
+    routedForApproval: 0,
+    draftNoDueDate: 0,
+    overdueCount: 0,
+    yearlyScopesData: [],
+  });
+  const [totalScopes, setTotalScopes] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
   const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [sortKey] = useState<string>('recent');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
+  // User's accessible projects — drives both dropdown options and visibility restriction
+  const [userProjects, setUserProjects] = useState<{ value: string; label: string }[]>([]);
 
   const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa, canApproveScope } = usePermission();
   const { user, isLoading } = useAuth();
@@ -248,7 +271,7 @@ function TestScopeContent() {
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter]);
+  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
 
   useEffect(() => {
     setMounted(true);
@@ -258,30 +281,56 @@ function TestScopeContent() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!isLoading && canReadScope) {
-      fetchScopes();
-      fetchScopeSettings();
-      axios.get("/api/release-plans").then((res: any) => {
-        const data = Array.isArray(res) ? res : (res.data || []);
-        const map: Record<string, string> = {};
-        data.forEach((s: any) => { if (s.id) map[s.id] = s.name; });
-        setSprintsMap(map);
-      }).catch(console.error);
+  const fetchStats = async () => {
+    try {
+      // api.get() auto-unwraps: returns response.data.data directly
+      // So `res` is already { totalScopes, approved, inReview, ... }
+      const res: any = await axios.get("/api/v2/qa/test-scopes/stats");
+      if (res && res.totalScopes !== undefined) {
+        setStats(res);
+      }
+    } catch (err) {
+      console.error('fetchStats error:', err);
     }
-  }, [isLoading, canReadScope]);
+  };
 
   const fetchScopes = async () => {
     try {
       setLoading(true);
-      const res: any = await axios.get("/api/v2/qa/test-scopes");
-      setScopes(res.data?.data || res.data || res || []);
+      // Use apiClient (raw axios) so we get the full response including pagination
+      const res: any = await apiClient.get("/api/v2/qa/test-scopes", {
+        params: {
+          page,
+          pageSize,
+          search: debouncedSearch || undefined,
+          status: statusFilter || undefined,
+          priority: priorityFilter || undefined,
+          qa_owner: ownerFilter || undefined,
+          ...(projectFilter ? { product: projectFilter } : {}),
+          // Pass the user's accessible project names so the backend restricts visibility
+          ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
+          sortBy: sortKey === 'endDate' ? 'endDate' : sortKey === 'name' ? 'name' : 'created_at',
+          sortOrder: 'desc',
+          isApproval: activeTab === 'approvals' ? 'true' : undefined
+        }
+      });
+      // Backend: { success: true, data: [...], pagination: { total, page, pageSize, totalPages } }
+      const body = res.data;
+      setScopes(body?.data || []);
+      setTotalScopes(body?.pagination?.total || 0);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLoading && canReadScope) {
+      fetchScopes();
+    }
+  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey, activeTab]);
+
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
   const handleDelete = async (id: string) => {
@@ -352,13 +401,47 @@ function TestScopeContent() {
       if (Array.isArray(res)) data = res;
       else if (Array.isArray(res?.data)) data = res.data;
       else if (Array.isArray(res?.data?.data)) data = res.data.data;
-
-      console.log('Final extracted data:', data);
       setScopeSettings(data);
     } catch (err) {
       console.error("Failed to fetch settings", err);
     } finally { setSettingsLoading(false); }
   };
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchScopes(),
+        fetchStats(),
+        fetchScopeSettings()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
+  };
+
+  // ── Initialisation effect: runs once auth is ready ────────────────────────
+  useEffect(() => {
+    if (!isLoading && canReadScope) {
+      fetchScopeSettings();
+      fetchStats();
+      // Fetch user's accessible projects for the visibility restriction + dropdown
+      ProjectService.getUserProjects(true)
+        .then((projects: any) => {
+          const list = Array.isArray(projects) ? projects : (projects?.data ?? []);
+          setUserProjects(
+            list.map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
+                .filter((p: any) => p.value)
+          );
+        })
+        .catch(console.error);
+      axios.get("/api/release-plans").then((res: any) => {
+        const data = Array.isArray(res) ? res : (res.data || []);
+        const map: Record<string, string> = {};
+        data.forEach((s: any) => { if (s.id) map[s.id] = s.name; });
+        setSprintsMap(map);
+      }).catch(console.error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, canReadScope]);
 
   const openCreateSetting = () => {
     setEditingSetting(null);
@@ -404,26 +487,11 @@ function TestScopeContent() {
   useEffect(() => {
     if (activeTab === 'settings' && scopeSettings.length === 0) fetchScopeSettings();
   }, [activeTab]);
-
   /* Dashboard Chart Data */
   const currentYear = dayjs().year();
-  const yearlyScopesMap: Record<string, number> = {};
-  scopes.forEach((inv) => {
-    if (!inv.created_at) return;
-    const d = dayjs(inv.created_at);
-    if (d.year() !== currentYear) return;
-    const month = d.format("MMM");
-    yearlyScopesMap[month] = (yearlyScopesMap[month] || 0) + 1;
-  });
-  const months = Array.from({ length: 12 }).map((_, i) => dayjs().month(i).format("MMM"));
-  const yearlyScopesData = months.map((month) => ({
-    month,
-    scopes: yearlyScopesMap[month] || 0,
-  }));
-
   const monthlyScopesConfig = useMemo(
     () => ({
-      data: yearlyScopesData,
+      data: stats.yearlyScopesData,
       xField: "month",
       yField: "scopes",
       smooth: true,
@@ -477,7 +545,7 @@ function TestScopeContent() {
         },
       },
     }),
-    [yearlyScopesData, isDark]
+    [stats.yearlyScopesData, isDark]
   );
 
   if (isLoading) return null;
@@ -677,7 +745,7 @@ function TestScopeContent() {
       key: "actions",
       render: (_: any, r: any) => {
         const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
-        
+
         return (
           <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
             {isProcessed ? (
@@ -713,44 +781,9 @@ function TestScopeContent() {
     }
   ];
 
-  const approvalScopes = scopes.filter(s => s.details?.approvalWorkflow?.user === user?.id && s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  // Search spans name, type and owner so the box behaves the way people expect
-  const filteredScopes = scopes
-    .filter(s => {
-      const q = searchTerm.trim().toLowerCase();
-      if (q) {
-        const haystack = [s.name, s.type, s.qa_owner, s.details?.reviewer, s.details?.product]
-          .filter(Boolean).join(' ').toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      if (statusFilter && s.status !== statusFilter) return false;
-      if (priorityFilter && s.priority !== priorityFilter) return false;
-      if (ownerFilter && (s.qa_owner || '') !== ownerFilter) return false;
-      if (timelineFilter && timelineBucket(s) !== timelineFilter) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortKey) {
-        case 'name': return (a.name || '').localeCompare(b.name || '');
-        case 'endDate': {
-          const av = a.end_date ? new Date(a.end_date).getTime() : Infinity;
-          const bv = b.end_date ? new Date(b.end_date).getTime() : Infinity;
-          return av - bv;
-        }
-        case 'priority':
-          return (PRIORITY_LEVEL[b.priority] || 0) - (PRIORITY_LEVEL[a.priority] || 0);
-        default: {
-          const av = new Date(a.created_at || a.start_date || 0).getTime();
-          const bv = new Date(b.created_at || b.start_date || 0).getTime();
-          return bv - av;
-        }
-      }
-    });
-
   const activeFilterCount =
     (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
-    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+    (timelineFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -758,27 +791,26 @@ function TestScopeContent() {
     setPriorityFilter(undefined);
     setOwnerFilter(undefined);
     setTimelineFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
     .sort((a, b) => String(a).localeCompare(String(b)))
     .map(v => ({ value: String(v), label: String(v) }));
 
-  const overdueCount = scopes.filter(s => timelineBucket(s) === 'overdue').length;
 
-  // Client-side pagination, matching the app-wide sticky pager
-  const pageCount = Math.max(1, Math.ceil(filteredScopes.length / pageSize));
-  const safePage = Math.min(page, pageCount);
-  const pageStart = filteredScopes.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredScopes.length);
-  const pagedScopes = filteredScopes.slice((safePage - 1) * pageSize, safePage * pageSize);
+  // Server-side pagination state already handles fetching
+  const pageStart = totalScopes === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, totalScopes);
+  const pageCount = Math.max(1, Math.ceil(totalScopes / pageSize));
+  const safePage = Math.min(page, pageCount || 1);
 
   const statusFilterOpts = (
     scopeSettings.filter(s => s.category === 'status').map(s => ({ value: s.value, label: s.label }))
   );
   const statusOptions = statusFilterOpts.length > 0
     ? statusFilterOpts
-    : Array.from(new Set(scopes.map(s => s.status).filter(Boolean))).map(v => ({ value: v, label: v }));
+    : ['Draft', 'In Review', 'Approved', 'Rejected', 'On Hold', 'Archived'].map(v => ({ value: v, label: v }));
 
   const priorityOptions = (() => {
     const fromSettings = scopeSettings.filter(s => s.category === 'priority').map(s => ({ value: s.value, label: s.label }));
@@ -1168,6 +1200,8 @@ function TestScopeContent() {
           border-radius: 0; overflow: hidden;
         }
         .sc-table .ant-table { background: transparent; }
+        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th {
           background: var(--bg-slate-50) !important;
           letter-spacing: .06em !important; padding: 8px 14px !important;
@@ -1367,6 +1401,61 @@ function TestScopeContent() {
         .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); }
         .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
         .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, other filters wrap */
+          .sc-filters { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
+
+          /* Table: horizontal scroll */
+          .sc-tablewrap { overflow-x: auto !important; }
+          .sc-table .ant-table { min-width: 640px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
       `}} />
       <div className="dh-shell">
         <div
@@ -1404,8 +1493,8 @@ function TestScopeContent() {
             <span className="pp-nav-caption">Workspace</span>
             {([] as any[]).concat(
               [{ key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }],
-              [{ key: 'scopes', label: 'Scopes', icon: Target, count: scopes.length }],
-              canApproveScope ? [{ key: 'approvals', label: 'Approvals', icon: CheckSquare, count: approvalScopes.filter(s => s.status === 'In Review').length }] : []
+              [{ key: 'scopes', label: 'Scopes', icon: Target, count: stats.totalScopes }],
+              canApproveScope ? [{ key: 'approvals', label: 'Approvals', icon: CheckSquare, count: stats.pendingApprovals }] : []
             ).map(item => {
               const Icon = item.icon;
               const count = 'count' in item ? item.count : undefined;
@@ -1417,7 +1506,7 @@ function TestScopeContent() {
                 >
                   <Icon size={15} className="pp-nav-icon" />
                   <span className="pp-nav-label">{item.label}</span>
-                  {count ? <span className="pp-nav-count">{count}</span> : null}
+                  {count !== undefined ? <span className="pp-nav-count">{count}</span> : null}
                 </button>
               );
             })}
@@ -1437,7 +1526,13 @@ function TestScopeContent() {
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
             {/* Title and subtitle share one line, split by a divider */}
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               {activeTab === 'scopes' && (
                 <>
                   <span className="sc-topbar__h1">All Scopes</span>
@@ -1465,6 +1560,14 @@ function TestScopeContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'settings' && canManageQa && (
                 <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
               )}
@@ -1492,10 +1595,10 @@ function TestScopeContent() {
                 {/* Stats — product-standard StatTile, clickable to filter by status */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   {[
-                    { key: undefined, label: "Total Scopes", value: scopes.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${scopes.filter(s => s.details?.approvalWorkflow?.user).length} routed for approval` },
-                    { key: 'Draft', label: "In Draft", value: scopes.filter(s => s.status === 'Draft').length, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${scopes.filter(s => s.status === 'Draft' && !s.end_date).length} without a due date` },
-                    { key: 'In Review', label: "In Review", value: scopes.filter(s => s.status === 'In Review').length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${overdueCount} past due date` },
-                    { key: 'Approved', label: "Approved", value: scopes.filter(s => s.status === 'Approved').length, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${scopes.length ? Math.round((scopes.filter(s => s.status === 'Approved').length / scopes.length) * 100) : 0}% of all scopes` }
+                    { key: undefined, label: "Total Scopes", value: stats.totalScopes, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${stats.routedForApproval} routed for approval` },
+                    { key: 'Draft', label: "In Draft", value: stats.inDraft, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${stats.draftNoDueDate} without a due date` },
+                    { key: 'In Review', label: "In Review", value: stats.inReview, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${stats.overdueCount} past due date` },
+                    { key: 'Approved', label: "Approved", value: stats.approved, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${stats.totalScopes ? Math.round((stats.approved / stats.totalScopes) * 100) : 0}% of all scopes` }
                   ].map((stat) => {
                     return (
                       <div key={stat.label}>
@@ -1548,6 +1651,15 @@ function TestScopeContent() {
                     itemNoun="ranges"
                     className="sc-filters__field"
                   />
+                  <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
+                  />
                   {activeFilterCount > 0 && (
                     <button type="button" className="sc-clear" onClick={clearFilters}>
                       Clear ({activeFilterCount})
@@ -1558,75 +1670,75 @@ function TestScopeContent() {
                 {/* Table or Grid — only the results blur, so the filters above
                     stay usable while a search refetches. */}
                 <ZukvoLoadingOverlay loading={loading} message="Loading test scopes…" minHeight={loading ? 320 : undefined}>
-                {viewMode === 'list' ? (
-                  <div className="sc-tablewrap">
-                    <Table
-                      className="ts-table sc-table"
-                      dataSource={pagedScopes}
-                      columns={columns}
-                      rowKey="id"
-                      pagination={false}
-                      expandable={{
-                        expandedRowRender: renderLinkedRow,
-                        rowExpandable: () => true,
-                        // The row itself navigates to the scope, so the chevron
-                        // has to swallow its click or expanding would leave the page.
-                        expandIcon: ({ expanded, onExpand, record }) => (
-                          <button
-                            type="button"
-                            className={`sc-expand${expanded ? ' is-open' : ''}`}
-                            aria-label={expanded ? 'Hide linked items' : 'Show linked items'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onExpand(record, e);
-                            }}
-                          >
-                            <RightOutlined />
-                          </button>
-                        ),
-                      }}
-                      locale={{
-                        /* Holding the height beats claiming "no scopes" mid-fetch. */
-                        emptyText: loading ? (
-                          <div style={{ minHeight: 240 }} />
-                        ) : (
-                          <div className="sc-empty">
-                            <SnippetsOutlined className="sc-empty__icon" />
-                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                            <p className="sc-empty__desc">
+                  {viewMode === 'list' ? (
+                    <div className="sc-tablewrap">
+                      <Table
+                        className="ts-table sc-table"
+                        dataSource={scopes}
+                        columns={columns}
+                        rowKey="id"
+                        pagination={false}
+                        expandable={{
+                          expandedRowRender: renderLinkedRow,
+                          rowExpandable: () => true,
+                          // The row itself navigates to the scope, so the chevron
+                          // has to swallow its click or expanding would leave the page.
+                          expandIcon: ({ expanded, onExpand, record }) => (
+                            <button
+                              type="button"
+                              className={`sc-expand${expanded ? ' is-open' : ''}`}
+                              aria-label={expanded ? 'Hide linked items' : 'Show linked items'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExpand(record, e);
+                              }}
+                            >
+                              <RightOutlined />
+                            </button>
+                          ),
+                        }}
+                        locale={{
+                          /* Holding the height beats claiming "no scopes" mid-fetch. */
+                          emptyText: loading ? (
+                            <div style={{ minHeight: 240 }} />
+                          ) : (
+                            <div className="sc-empty">
+                              <SnippetsOutlined className="sc-empty__icon" />
+                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                              <p className="sc-empty__desc">
+                                {activeFilterCount > 0
+                                  ? 'Try widening your search or clearing the filters.'
+                                  : 'Create your first scope to define what gets tested and when it\'s done.'}
+                              </p>
                               {activeFilterCount > 0
-                                ? 'Try widening your search or clearing the filters.'
-                                : 'Create your first scope to define what gets tested and when it\'s done.'}
-                            </p>
-                            {activeFilterCount > 0
-                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                              : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
-                          </div>
-                        )
-                      }}
-                      onRow={(record) => ({
-                        onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
-                      })}
-                    />
-                  </div>
-                ) : (
-                  <div className="pp-grid">
-                    {loading ? null : filteredScopes.length === 0 ? (
-                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                        <SnippetsOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
-                      </div>
-                    ) : (
-                      pagedScopes.map(r => renderScopeCard(r, false))
-                    )}
-                  </div>
-                )}
+                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                            </div>
+                          )
+                        }}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
+                        })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pp-grid">
+                      {loading ? null : scopes.length === 0 ? (
+                        <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                          <SnippetsOutlined className="sc-empty__icon" />
+                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
+                          </p>
+                          {activeFilterCount > 0
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                        </div>
+                      ) : (
+                        scopes.map(r => renderScopeCard(r, false))
+                      )}
+                    </div>
+                  )}
                 </ZukvoLoadingOverlay>
 
               </>
@@ -1636,9 +1748,9 @@ function TestScopeContent() {
               <>
                 {/* Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                  <StatTile label="Approved" value={approvalScopes.filter(s => s.status === 'Approved').length} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="signed off by you" />
-                  <StatTile label="Rejected" value={approvalScopes.filter(s => s.status === 'Rejected').length} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="sent back for rework" />
-                  <StatTile label="Pending" value={approvalScopes.filter(s => s.status === 'In Review').length} icon={SendOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="waiting on you" />
+                  <StatTile label="Approved" value={stats.approved} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="signed off by you" />
+                  <StatTile label="Rejected" value={0 /* need rejected stat if required, but leaving 0 for now or compute it */} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="sent back for rework" />
+                  <StatTile label="Pending" value={stats.pendingApprovals} icon={SendOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="waiting on you" />
                 </div>
 
                 <div className="sc-filters">
@@ -1653,32 +1765,32 @@ function TestScopeContent() {
                 </div>
 
                 <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>
-                {viewMode === 'list' ? (
-                  <div className="sc-tablewrap">
-                    <Table
-                      className="ts-table sc-table"
-                      dataSource={approvalScopes}
-                      columns={approvalColumns}
-                      rowKey="id"
-                      pagination={false}
-                      scroll={{ x: 'max-content' }}
-                      onRow={(record) => ({
-                        onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
-                      })}
-                    />
-                  </div>
-                ) : (
-                  <div className="pp-grid">
-                    {loading ? null : approvalScopes.length === 0 ? (
-                      <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
-                        <SendOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br/>
-                        No pending approvals
-                      </div>
-                    ) : (
-                      approvalScopes.map(r => renderScopeCard(r, true))
-                    )}
-                  </div>
-                )}
+                  {viewMode === 'list' ? (
+                    <div className="sc-tablewrap">
+                      <Table
+                        className="ts-table sc-table"
+                        dataSource={scopes}
+                        columns={approvalColumns}
+                        rowKey="id"
+                        pagination={false}
+                        scroll={{ x: 'max-content' }}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
+                        })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pp-grid">
+                      {loading ? null : stats.pendingApprovals === 0 ? (
+                        <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
+                          <SendOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br />
+                          No pending approvals
+                        </div>
+                      ) : (
+                        scopes.map(r => renderScopeCard(r, true))
+                      )}
+                    </div>
+                  )}
                 </ZukvoLoadingOverlay>
               </>
             )}
@@ -1687,10 +1799,10 @@ function TestScopeContent() {
               <>
                 {/* STATS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
-                  <StatTile label="Total Scopes" value={scopes.length} icon={FileTextOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="All-time" />
-                  <StatTile label="Approved" value={scopes.filter(s => s.status === 'Approved').length} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="Completed" />
-                  <StatTile label="In Review" value={scopes.filter(s => s.status === 'In Review').length} icon={SendOutlined} color="#f59e0b" bgColor="rgba(245,158,11,0.1)" sub="Pending approval" />
-                  <StatTile label="In Draft" value={scopes.filter(s => s.status === 'Draft').length} icon={FileTextOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="Currently drafting" />
+                  <StatTile label="Total Scopes" value={stats.totalScopes} icon={FileTextOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="All-time" />
+                  <StatTile label="Approved" value={stats.approved} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="Completed" />
+                  <StatTile label="In Review" value={stats.inReview} icon={SendOutlined} color="#f59e0b" bgColor="rgba(245,158,11,0.1)" sub="Pending approval" />
+                  <StatTile label="In Draft" value={stats.inDraft} icon={FileTextOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="Currently drafting" />
                 </div>
 
                 {/* CHART */}
@@ -1701,7 +1813,7 @@ function TestScopeContent() {
                       <div style={{ height: 220 }}>
                         {loading ? (
                           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ZukvoLoader size="md" message="Plotting the year…" /></div>
-                        ) : mounted && yearlyScopesData.length > 0 ? (
+                        ) : mounted && stats.yearlyScopesData.length > 0 ? (
                           <Line key={theme} {...monthlyScopesConfig} />
                         ) : (
                           <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--text-slate-500)" }}>No data</div>
@@ -1872,10 +1984,10 @@ function TestScopeContent() {
 
           {/* Pager sits outside the scroll area, so it stays pinned to the
               bottom of the pane whether or not the list overflows. */}
-          {activeTab === 'scopes' && filteredScopes.length > 0 && (
+          {['scopes', 'approvals'].includes(activeTab) && scopes.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredScopes.length}</strong>
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalScopes}</strong>
               </div>
               <div className="pp-pager">
                 <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
@@ -1889,7 +2001,7 @@ function TestScopeContent() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

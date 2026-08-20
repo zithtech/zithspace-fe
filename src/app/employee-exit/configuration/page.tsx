@@ -51,7 +51,7 @@ export default function EmployeeExitConfigurationPage() {
   const [positions, setPositions] = useState<Position[]>([]);
 
   React.useEffect(() => {
-    GradeService.getAllGrades().then(res => setGrades(res || [])).catch(() => { });
+    GradeService.getAllGrades().then(res => setGrades((Array.isArray(res) ? res : res?.data) || [])).catch(() => { });
     PositionService.getAll().then(res => setPositions(res || [])).catch(() => { });
   }, []);
 

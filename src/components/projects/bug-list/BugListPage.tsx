@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   X,
   RotateCcw,
+  RotateCw,
   FolderTree,
   Bug as BugIcon,
   Ticket as TicketIcon,
@@ -294,8 +295,8 @@ export default function BugListPage() {
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
-  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
-  const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
+  const showWorkspaceStats = !!selectedProjectId && scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
+  const isViewingBugs = !!selectedProjectId && (selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs"));
 
   const isSelectedFolderArchived = useMemo(() => {
     return !!selectedFolderId && !!archivedFolders?.some(f => f.id === selectedFolderId);
@@ -341,7 +342,7 @@ export default function BugListPage() {
     [scope, selectedFolderId, selectedSheetId, selectedProjectId, filters, page, limit]
   );
 
-  const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
+  const { data: bugsResponse, isLoading, isFetching, refetch } = useBugs(queryFilters);
 
   const createBug = useCreateBug();
   const updateBug = useUpdateBug();
@@ -753,7 +754,21 @@ export default function BugListPage() {
                   </div>
                   <div className="hb-project-trigger-header">
                     <span className="hb-project-trigger-hint">Switch Project</span>
-                    <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    {selectedProjectId ? (
+                      <X 
+                        size={12} 
+                        className="hb-project-hint-arrow" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProjectId(null);
+                          setSelectedFolderId(null);
+                          setSelectedSheetId(null);
+                        }}
+                        style={{ cursor: 'pointer', zIndex: 10 }}
+                      />
+                    ) : (
+                      <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    )}
                   </div>
                 </div>
               </Dropdown>
@@ -840,6 +855,17 @@ export default function BugListPage() {
                   <CalendarDays size={15} />
                 </button>
               </div>
+
+              <button
+                type="button"
+                className="hb-btn hb-btn-ghost hb-refresh-btn"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                title="Refresh"
+                style={{ width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 32 }}
+              >
+                <RotateCw size={14} className={isFetching ? "animate-spin" : ""} />
+              </button>
 
               <button
                 className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""

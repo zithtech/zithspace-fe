@@ -5,16 +5,17 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrumb, Row, Col, Typography, Form, Tooltip } from "antd";
-import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined } from "@ant-design/icons";
+import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
 
 const { TextArea } = Input;
@@ -78,6 +79,7 @@ export default function ParentTestCaseDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const parentId = params?.parentId as string;
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [parentData, setParentData] = useState<any>(null);
   const [childCases, setChildCases] = useState<any[]>([]);
@@ -91,17 +93,19 @@ export default function ParentTestCaseDetailsPage() {
 
   // Filters + pagination for the module case list
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 500);
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   /** Set by clicking the Active / Automated / High-priority stat tiles. */
   const [quickFilter, setQuickFilter] = useState<string | undefined>();
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter]);
+  }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter, sortOrder]);
 
   // Drawer state for Create / Edit Child Test Case
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -157,16 +161,33 @@ export default function ParentTestCaseDetailsPage() {
     return [];
   };
 
+  const [totalItems, setTotalItems] = useState(0);
+
   const fetchData = async () => {
     if (!parentId) return;
     try {
       setLoading(true);
       const [parentRes, childRes] = await Promise.all([
         axios.get(`/api/v2/qa/parents/${parentId}`),
-        axios.get(`/api/v2/qa?parent_id=${parentId}`)
+        apiClient.get(`/api/v2/qa`, {
+          params: { 
+            parent_id: parentId, 
+            page, 
+            pageSize,
+            search: debouncedSearch || undefined,
+            test_type: typeFilter || undefined,
+            priority: priorityFilter || undefined,
+            status: statusFilter || undefined,
+            quickFilter: quickFilter || undefined,
+            sort: sortOrder // if sortOrder exists
+          }
+        })
       ]);
       setParentData(parentRes?.data?.data || parentRes?.data || parentRes || null);
-      setChildCases(Array.isArray(childRes) ? childRes : (childRes?.data?.data || childRes?.data || []));
+      
+      const body = (childRes as any).data;
+      setChildCases(body?.data || []);
+      setTotalItems(body?.pagination?.total || 0);
     } catch (error) {
       message.error("Failed to load test scenario details");
       router.push("/qa-workspace/test-cases");
@@ -179,7 +200,7 @@ export default function ParentTestCaseDetailsPage() {
     if (canReadCase && parentId) {
       fetchData();
     }
-  }, [canReadCase, parentId]);
+  }, [canReadCase, parentId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, quickFilter, sortOrder]);
 
   /**
    * Draft the case from the tester's description. Only fills fields the user
@@ -437,21 +458,7 @@ export default function ParentTestCaseDetailsPage() {
   const automatedCount = childCases.filter(t => t.automation === 'Automated').length;
   const highPriorityCount = childCases.filter(t => t.priority === 'High' || t.priority === 'Critical').length;
 
-  const filteredCases = childCases.filter(c => {
-    if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      const hay = [c.name, c.test_case_id, c.expected_result, c.test_type, c.steps]
-        .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(s)) return false;
-    }
-    if (typeFilter && (c.test_type || 'Functional') !== typeFilter) return false;
-    if (priorityFilter && (c.priority || 'Medium') !== priorityFilter) return false;
-    if (statusFilter && (c.status || 'Active') !== statusFilter) return false;
-    if (quickFilter === 'active' && !(c.status === 'Active' || c.status === 'Ready')) return false;
-    if (quickFilter === 'automated' && c.automation !== 'Automated') return false;
-    if (quickFilter === 'highPriority' && !(c.priority === 'High' || c.priority === 'Critical')) return false;
-    return true;
-  });
+  const filteredCases = childCases;
 
   const uniqueSorted = (values: any[]) =>
     Array.from(new Set(values.filter(Boolean)))
@@ -464,20 +471,22 @@ export default function ParentTestCaseDetailsPage() {
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
     (statusFilter ? 1 : 0) + (quickFilter ? 1 : 0);
-
   const clearFilters = () => {
     setSearchTerm('');
     setTypeFilter(undefined);
     setPriorityFilter(undefined);
     setStatusFilter(undefined);
     setQuickFilter(undefined);
+    setSortOrder("asc");
   };
 
-  const pageCount = Math.max(1, Math.ceil(filteredCases.length / pageSize));
+
+
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageStart = filteredCases.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredCases.length);
-  const pagedCases = filteredCases.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageStart = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, totalItems);
+  const pagedCases = childCases;
 
   // Same gate the sibling QA pages use — the fetch above already sits behind
   // canReadCase, so without this an unpermitted user would get empty chrome.
@@ -537,24 +546,42 @@ export default function ParentTestCaseDetailsPage() {
 
         /* Scenario summary card in the rail */
         .cd-side {
-          margin: 2px 0 0; padding: 16px;
+          margin: 2px 0 0; padding: 12px;
           border: 1px solid var(--border-slate-200); border-radius: 12px;
           background: transparent;
           box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 8px; }
         .cd-meta__row { 
-          display: flex; flex-direction: column; align-items: flex-start; gap: 4px; 
-          margin: 0; width: 100%; 
+          display: flex; align-items: center; gap: 12px;
+          padding: 10px 12px; border-radius: 10px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          transition: all 0.2s ease;
+          width: 100%;
+        }
+        .cd-meta__row:hover {
+          background: var(--bg-pure-white);
+          border-color: var(--border-slate-200);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+          transform: translateY(-1px);
+        }
+        .cd-meta__icon-box {
+          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          border: 1px solid;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .cd-meta__content {
+          display: flex; flex-direction: column; min-width: 0; flex: 1;
         }
         .cd-meta__row dt { 
-          display: flex; align-items: center;
-          font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; 
-          color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; 
+          font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; 
+          color: var(--text-slate-400); font-weight: 700; margin-bottom: 2px;
         }
         .cd-meta__row dd {
-          margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
-          text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
+          margin: 0; font-size: 13px; font-weight: 600; color: var(--text-slate-800);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
         }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -604,7 +631,7 @@ export default function ParentTestCaseDetailsPage() {
         .sc-filters__search { width: 240px; }
         .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
         .sc-filters__field { min-width: 150px; }
-        .sc-filters .sd-trigger { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; }
+        .sc-filters .sd-trigger, .sc-filters .ant-select-selector { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; align-items: center; }
         .sc-clear {
           height: 32px; display: inline-flex; align-items: center;
           font-size: 12px; font-weight: 600; color: #3b82f6;
@@ -613,9 +640,17 @@ export default function ParentTestCaseDetailsPage() {
           cursor: pointer; transition: all .15s ease;
         }
         .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
+        .sc-sort-btn {
+          height: 32px; width: 32px; display: inline-flex; align-items: center; justify-content: center;
+          border-radius: 8px; border: 1px solid var(--border-slate-200); background: transparent;
+          color: var(--text-slate-600); cursor: pointer; transition: all .15s ease; font-size: 16px;
+        }
+        .sc-sort-btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
 
         /* ── Table cells ────────────────────────────────────────────── */
         .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
+        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
         .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
         .sc-table .ant-table-tbody > tr { cursor: pointer; }
@@ -908,10 +943,70 @@ export default function ParentTestCaseDetailsPage() {
           color: #64748b !important;
         }
         ${formStyles}
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, other filters wrap */
+          .sc-filters { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
+
+          /* Table: horizontal scroll */
+          .sc-tablewrap { overflow-x: auto !important; }
+          .sc-table .ant-table { min-width: 640px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
+          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
         `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo">
@@ -953,31 +1048,55 @@ export default function ParentTestCaseDetailsPage() {
             <div className="cd-side">
               <dl className="cd-meta">
                 <div className="cd-meta__row">
-                  <dt><Folder size={12} style={{ marginRight: 6 }} /> Module</dt>
-                  <dd>{parentData?.module_name || "Unassigned"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.2)' }}>
+                    <Folder size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Module</dt>
+                    <dd>{parentData?.module_name || "Unassigned"}</dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><Target size={12} style={{ marginRight: 6 }} /> Feature</dt>
-                  <dd>{parentData?.feature || "—"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.2)' }}>
+                    <Target size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Feature</dt>
+                    <dd>{parentData?.feature || "—"}</dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><Zap size={12} style={{ marginRight: 6 }} /> Automation</dt>
-                  <dd>{parentData?.automation || "Manual"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' }}>
+                    <Zap size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Automation</dt>
+                    <dd>{parentData?.automation || "Manual"}</dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><User size={12} style={{ marginRight: 6 }} /> Owner</dt>
-                  <dd>
-                    {parentData?.owner_name || parentData?.qa_owner ? (
-                      <span className="sc-person">
-                        <span className="sc-person__av">{initialsOf(parentData.owner_name || parentData.qa_owner)}</span>
-                        <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
-                      </span>
-                    ) : "—"}
-                  </dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' }}>
+                    <User size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Owner</dt>
+                    <dd>
+                      {parentData?.owner_name || parentData?.qa_owner ? (
+                        <span className="sc-person">
+                          <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
+                        </span>
+                      ) : "—"}
+                    </dd>
+                  </div>
                 </div>
                 <div className="cd-meta__row">
-                  <dt><User size={12} style={{ marginRight: 6 }} /> Created By</dt>
-                  <dd>{parentData?.creator_name || "—"}</dd>
+                  <div className="cd-meta__icon-box" style={{ color: '#64748b', background: 'rgba(100,116,139,0.1)', borderColor: 'rgba(100,116,139,0.2)' }}>
+                    <User size={14} />
+                  </div>
+                  <div className="cd-meta__content">
+                    <dt>Created By</dt>
+                    <dd>{parentData?.creator_name || "—"}</dd>
+                  </div>
                 </div>
               </dl>
             </div>
@@ -987,7 +1106,13 @@ export default function ParentTestCaseDetailsPage() {
         <main className="dh-main">
           {/* Back · breadcrumb · scenario name · status — one line */}
           <div className="dh-main-topbar sc-topbar">
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <Button
                 type="text"
                 size="small"
@@ -1013,6 +1138,14 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {canCreateCase && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
                   New Module Case
@@ -1087,6 +1220,15 @@ export default function ParentTestCaseDetailsPage() {
                 itemNoun="statuses"
                 className="sc-filters__field"
               />
+              <Tooltip title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}>
+                <button
+                  type="button"
+                  className="sc-sort-btn"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                </button>
+              </Tooltip>
               {activeFilterCount > 0 && (
                 <button type="button" className="sc-clear" onClick={clearFilters}>
                   Clear ({activeFilterCount})
@@ -1136,7 +1278,7 @@ export default function ParentTestCaseDetailsPage() {
           {filteredCases.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredCases.length}</strong>
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
               </div>
               <div className="pp-pager">
                 <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
@@ -1150,7 +1292,7 @@ export default function ParentTestCaseDetailsPage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

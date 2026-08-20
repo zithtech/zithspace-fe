@@ -68,6 +68,11 @@ export default function ApprovalWorkflowPanel() {
   const [users, setUsers] = useState<ApproverOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalWorkflows, setTotalWorkflows] = useState(0);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ApprovalWorkflowListItem | null>(null);
@@ -78,19 +83,26 @@ export default function ApprovalWorkflowPanel() {
   const [isDefault, setIsDefault] = useState(false);
   const [steps, setSteps] = useState<StepDraft[]>([]);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = pageSize, s = debouncedSearch) => {
     setLoading(true);
     try {
       const [wf, rl, us] = await Promise.all([
-        PayrollV2Service.listWorkflows(true),
+        PayrollV2Service.listWorkflows({ page: p, limit: l, search: s }),
         PayrollV2Service.getApproverRoles().catch(() => []),
         PayrollV2Service.getApproverUsers().catch(() => []),
       ]);
-      setRows(wf); setRoles(rl); setUsers(us);
+      setRows(wf.data);
+      setTotalWorkflows(wf.pagination.total);
+      setRoles(rl); setUsers(us);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load workflows');
     } finally { setLoading(false); }
-  }, []);
+  }, [page, pageSize, debouncedSearch]);
   useEffect(() => { if (canReadPayrollWorkflows) load(); }, [canReadPayrollWorkflows, load]);
 
   const roleName = (id: string | null) => roles.find((r) => r.value === id)?.label ?? (id ? 'Unknown role' : '—');
@@ -152,16 +164,12 @@ export default function ApprovalWorkflowPanel() {
     catch (err: any) { message.error(err?.response?.data?.error || 'Failed to delete workflow'); }
   };
 
-  const q = search.trim().toLowerCase();
-  const filtered = useMemo(() => rows.filter((r) => !q || r.name.toLowerCase().includes(q)), [rows, q]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setPage(1); }, [search, pageSize]);
-  const total = filtered.length;
+  const total = totalWorkflows;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(total, page * pageSize);
-  const pagedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const pagedRows = rows;
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
   const columns: ColumnsType<ApprovalWorkflowListItem> = [
@@ -218,7 +226,7 @@ export default function ApprovalWorkflowPanel() {
             <SearchOutlined className="pvw-search-icon" />
             <input className="pvw-search" placeholder="Search workflows…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvw-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvw-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollWorkflows && <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="pvw-add-btn">New Workflow</Button>}
         </div>
       </div>

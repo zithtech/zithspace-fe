@@ -145,7 +145,7 @@ function LetterGenerationContent() {
         search: searchQuery || undefined,
         categoryId: selectedCategory || undefined
       });
-      setTemplates(templatesData);
+      setTemplates(templatesData.data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to search templates');
     } finally {
@@ -196,7 +196,7 @@ function LetterGenerationContent() {
       const [positionsData, departmentsData, structuresData] = await Promise.all([
         PositionService.getAll().catch(() => []),
         DepartmentService.getAll().catch(() => []),
-        PayrollV2Service.listStructures(false).catch(() => []),
+        PayrollV2Service.listStructures({ includeInactive: false, limit: 1000 }).then(res => res.data).catch(() => []),
       ]);
       setPositions(positionsData || []);
       setDepartments(departmentsData || []);
@@ -216,7 +216,7 @@ function LetterGenerationContent() {
           LettersService.getTemplates({ status: 'ACTIVE' }),
           LettersService.getCategories(),
         ]);
-        setTemplates(templatesData);
+        setTemplates(templatesData.data || []);
         setCategories(categoriesData || []);
 
         if (editId) {

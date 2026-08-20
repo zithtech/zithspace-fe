@@ -11,6 +11,8 @@ import {
   Trash2,
   RotateCcw,
   CheckCircle,
+  History,
+  Repeat,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -19,6 +21,10 @@ import type {
 } from "@/services/bugListService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
+import TicketHistoryDrawer from "./TicketHistoryDrawer";
+import { useMarkBugRecurring } from "@/hooks/useBugList";
+import { useMembersSelect } from "@/hooks/useMembersSelect";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -151,6 +157,16 @@ export default function HivebugTable({
     canCreateTicket, 
     canManageBugs 
   } = usePermission();
+  const { users } = useMembersSelect();
+  const membersMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    users.forEach(u => {
+      if (u.value && u.avatarUrl) map.set(u.value, u.avatarUrl);
+    });
+    return map;
+  }, [users]);
+
+  const [historyDrawerBug, setHistoryDrawerBug] = useState<BugListItem | null>(null);
 
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
@@ -178,20 +194,21 @@ export default function HivebugTable({
             <th style={{ width: 120 }}>ASSIGNEE</th>
             <th style={{ width: 160 }}>CREATED</th>
             <th className="hb-col-ticket" style={{ width: 120 }}>TICKET</th>
+            <th style={{ width: 60, textAlign: 'center' }}>HISTORY</th>
             <th className="hb-col-actions" style={{ width: 40 }}></th>
           </tr>
         </thead>
         <tbody>
           {loading && bugs.length === 0 && (
             <tr>
-              <td colSpan={8} className="hb-empty">
+              <td colSpan={10} className="hb-empty">
                 Loading…
               </td>
             </tr>
           )}
           {!loading && bugs.length === 0 && (
             <tr>
-              <td colSpan={8} className="hb-empty">
+              <td colSpan={10} className="hb-empty">
                 No bugs in this view.
               </td>
             </tr>
@@ -215,10 +232,17 @@ export default function HivebugTable({
               isArchiveView={isArchiveView}
               isNestedInSheet={isNestedInSheet}
               isNestedInFolder={isNestedInFolder}
+              onOpenHistory={() => setHistoryDrawerBug(bug)}
+              creatorAvatarUrl={membersMap.get(bug.createdById)}
             />
           ))}
         </tbody>
       </table>
+      <TicketHistoryDrawer 
+        bug={historyDrawerBug} 
+        open={!!historyDrawerBug} 
+        onClose={() => setHistoryDrawerBug(null)} 
+      />
     </div>
   );
 }
@@ -240,6 +264,8 @@ interface BugRowProps {
   isArchiveView?: boolean;
   isNestedInSheet?: boolean;
   isNestedInFolder?: boolean;
+  onOpenHistory: () => void;
+  creatorAvatarUrl?: string;
 }
 
 function BugRow({
@@ -259,8 +285,10 @@ function BugRow({
   isArchiveView,
   isNestedInSheet,
   isNestedInFolder,
+  onOpenHistory,
+  creatorAvatarUrl,
 }: BugRowProps) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { open: openTicketDrawer } = useTicketDrawer();
   const { 
     canUpdateBug, 
@@ -268,11 +296,14 @@ function BugRow({
     canCreateTicket, 
     canManageBugs 
   } = usePermission();
+  const { mutateAsync: markRecurringAsync, isPending: isMarkingRecurring } = useMarkBugRecurring();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
   const creatorId = bug.createdBy?.id || bug.createdById;
   const ticketLinked = !!bug.ticketId;
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const menuLabel = (title: string, desc: string, icon: React.ReactNode, color: string, tint: string) => (
     <div className="pp-menu-item">
@@ -363,6 +394,7 @@ function BugRow({
               style={{
                 background: avatarColor(bug.assignee.id),
                 fontSize: 11,
+                flexShrink: 0,
               }}
             >
               {initials(bug.assignee.name)}
@@ -377,9 +409,11 @@ function BugRow({
         <div className="hb-meta-cell">
           <Avatar
             size={20}
+            src={bug.createdBy?.avatarUrl || creatorAvatarUrl}
             style={{
               background: avatarColor(creatorId || creatorName),
               fontSize: 10,
+              flexShrink: 0,
             }}
           >
             {initials(creatorName)}
@@ -423,62 +457,107 @@ function BugRow({
           </button>
         )}
       </td>
-      <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
-        <Dropdown
-          overlayClassName="pp-action-pop"
-          trigger={["click"]}
-          menu={{
-            items: isTrashView
-              ? [
-                  { 
-                    key: "restore", 
-                    label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
-                    disabled: isNestedInFolder || isNestedInSheet
-                  },
-                  { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
-                ]
-              : isArchiveView
-              ? [
-                  { 
-                    key: "restore", 
-                    label: (
-                      <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
-                        <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
-                      </Tooltip>
-                    ),
-                    disabled: isNestedInFolder || isNestedInSheet
-                  },
-                  { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
-                ]
-              : [
-                  { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
-                  ...(bug.status === "converted" || bug.status === "reopened"
-                    ? [
-                        { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
-                        { key: "reopen", label: menuLabel("Reopen", "Reopen bug", <RotateCcw size={15}/>, "#f59e0b", "rgba(245,158,11,0.12)"), disabled: !canUpdateBug },
-                      ]
-                    : []),
-                  { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
-                  { type: "divider" as const },
-                  { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
-                ],
-            onClick: ({ key }) => {
-              if (key === "edit") onEdit();
-              if (key === "verify") onVerify();
-              if (key === "reopen") onReopen();
-              /* if (key === "ignore") onIgnore(); */
-              if (key === "delete") onDelete();
-              if (key === "restore") onRestore();
-              if (key === "archive") onArchive();
-            },
-          }}
-        >
-          <button className="hb-icon-btn">
-            <MoreHorizontal size={14} />
+      <td style={{ textAlign: 'center' }} onClick={(e) => {
+        e.stopPropagation();
+        if (ticketLinked || (bug.ticketHistory && bug.ticketHistory.length > 0)) {
+          onOpenHistory();
+        }
+      }}>
+        <Tooltip title="View Ticket History">
+          <button
+            type="button"
+            disabled={!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: (!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)) ? 'not-allowed' : 'pointer',
+              color: (!ticketLinked && (!bug.ticketHistory || bug.ticketHistory.length === 0)) ? '#d1d5db' : '#6b7280',
+              padding: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 4
+            }}
+            className="hb-icon-btn"
+          >
+            <History size={16} />
           </button>
-        </Dropdown>
+        </Tooltip>
+      </td>
+      <td className="hb-col-actions" onClick={(e) => e.stopPropagation()}>
+        <ConfirmDialog
+          title="Mark Bug as Recurring"
+          description="Are you sure you want to mark this bug as recurring? A new ticket will be created and the previous ticket will be saved in history."
+          confirmText="Yes, mark as recurring"
+          tone="primary"
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          onConfirm={async () => {
+            await markRecurringAsync(bug.id);
+          }}
+          placement="bottomRight"
+        >
+          <Dropdown
+            overlayClassName="pp-action-pop"
+            trigger={["click"]}
+            menu={{
+              items: isTrashView
+                ? [
+                    { 
+                      key: "restore", 
+                      label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
+                      disabled: isNestedInFolder || isNestedInSheet
+                    },
+                    { type: "divider" as const },
+                    { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+                  ]
+                : isArchiveView
+                ? [
+                    { 
+                      key: "restore", 
+                      label: (
+                        <Tooltip title={isNestedInFolder ? "First restore folder" : isNestedInSheet ? "First restore sheet" : ""}>
+                          <div>{menuLabel("Restore", "Restore from archive", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)")}</div>
+                        </Tooltip>
+                      ),
+                      disabled: isNestedInFolder || isNestedInSheet
+                    },
+                    { type: "divider" as const },
+                    { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
+                  ]
+                : [
+                    { key: "edit", label: menuLabel("Edit", "Edit bug details", <Edit size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                    ...(bug.status === "converted" || bug.status === "reopened"
+                      ? [
+                          { key: "verify", label: menuLabel("Verify", "Mark as verified", <CheckCircle size={15}/>, "#10b981", "rgba(16,185,129,0.12)"), disabled: !canUpdateBug },
+                        ]
+                      : []),
+                    {
+                      key: "recurring",
+                      label: menuLabel("Recurring", "Convert to recurring bug", <Repeat size={15}/>, "#8b5cf6", "rgba(139,92,246,0.12)"),
+                      disabled: !ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug,
+                    },
+                    { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                    { type: "divider" as const },
+                    { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
+                  ],
+              onClick: ({ key }) => {
+                if (key === "edit") onEdit();
+                if (key === "verify") onVerify();
+
+                if (key === "recurring") setConfirmOpen(true);
+                /* if (key === "ignore") onIgnore(); */
+                if (key === "delete") onDelete();
+                if (key === "restore") onRestore();
+                if (key === "archive") onArchive();
+              },
+            }}
+          >
+            <button className="hb-icon-btn">
+              <MoreHorizontal size={14} />
+            </button>
+          </Dropdown>
+        </ConfirmDialog>
       </td>
     </tr>
   );

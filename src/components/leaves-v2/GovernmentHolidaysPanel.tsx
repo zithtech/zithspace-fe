@@ -44,6 +44,8 @@ export default function GovernmentHolidaysPanel() {
   const [countries, setCountries] = useState<string[]>([]);
   const [country, setCountry] = useState<string>('IN');
   const [catalog, setCatalog] = useState<CatalogHoliday[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, added: 0, available: 0 });
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<React.Key[]>([]);
@@ -60,26 +62,34 @@ export default function GovernmentHolidaysPanel() {
     }).catch(() => setCountries(['IN']));
   }, [canReadLeaveHoliday]);
 
-  const load = useCallback(async (c: string) => {
+  const load = useCallback(async (c: string, p = page, size = pageSize, q = search, t = typeFilter) => {
     setLoading(true);
     setSelected([]);
     try {
-      setCatalog(await LeaveV2Service.getHolidayCatalog(c));
+      const res = await LeaveV2Service.getHolidayCatalog({
+        country: c,
+        search: q || undefined,
+        type: t === 'all' ? undefined : t,
+        page: p,
+        pageSize: size,
+      });
+      setCatalog(res.data);
+      setTotalCount(res.total);
+      setApiStats(res.stats);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load catalog');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, pageSize, search, typeFilter]);
 
   useEffect(() => {
     if (canReadLeaveHoliday && country) load(country);
   }, [canReadLeaveHoliday, country, load]);
 
   const stats = useMemo(() => {
-    const added = catalog.filter((c) => c.added).length;
-    return { total: catalog.length, added, available: catalog.length - added, selected: selected.length };
-  }, [catalog, selected]);
+    return { ...apiStats, selected: selected.length };
+  }, [apiStats, selected]);
 
   const statCells = [
     { key: 'total', title: 'In Catalog', value: stats.total, period: countryLabel(country), icon: <CalendarOutlined />, color: PALETTE.blue, tint: TINT.blue },
@@ -88,23 +98,14 @@ export default function GovernmentHolidaysPanel() {
     { key: 'sel', title: 'Selected', value: stats.selected, period: 'to add now', icon: <PlusOutlined />, color: PALETTE.red, tint: TINT.red },
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return catalog.filter((c) => {
-      if (q && !c.name.toLowerCase().includes(q)) return false;
-      if (typeFilter !== 'all' && c.type !== typeFilter && !(typeFilter === 'National' && c.type === 'ALL')) return false;
-      return true;
-    });
-  }, [catalog, search, typeFilter]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.ceil(total / pageSize) || 1;
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(total, page * pageSize);
 
-  const paginatedData = useMemo(() => {
-    return filtered.slice((page - 1) * pageSize, page * pageSize);
-  }, [filtered, page, pageSize]);
+  const paginatedData = catalog;
+
+  useEffect(() => { setPage(1); }, [search, typeFilter]);
 
   const addSelected = async () => {
     if (selected.length === 0) return;
@@ -252,7 +253,7 @@ export default function GovernmentHolidaysPanel() {
         </ZukvoLoadingOverlay>
       </div>
 
-      {filtered.length > 0 && (
+      {total > 0 && (
         <div className="lvgh-footer lvgh-footer--sticky">
           <div className="lvgh-footer-info">
             Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>

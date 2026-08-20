@@ -160,6 +160,8 @@ export default function EscalationListPage() {
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [totalEscalations, setTotalEscalations] = useState(0);
+  const [totalTrash, setTotalTrash] = useState(0);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   // Create drawer
@@ -186,13 +188,20 @@ export default function EscalationListPage() {
   const fetchEscalations = async () => {
     setLoading(true);
     try {
+      const limit = tablePageSize;
+      const offset = (tablePage - 1) * tablePageSize;
+
       const [escData, trashData, statusData] = await Promise.all([
-        EscalationServiceV2.getAllEscalations(),
-        EscalationServiceV2.getTrashEscalations(),
+        EscalationServiceV2.getAllEscalations(limit, offset),
+        EscalationServiceV2.getTrashEscalations(limit, offset),
         EscalationSettingsService.getStatuses(),
       ]);
-      setEscalations(escData || []);
-      setTrashEscalations(trashData || []);
+      setEscalations(escData.data || []);
+      setTotalEscalations(escData.total || 0);
+
+      setTrashEscalations(trashData.data || []);
+      setTotalTrash(trashData.total || 0);
+
       setStatuses(statusData || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -214,7 +223,7 @@ export default function EscalationListPage() {
     if (canReadEscalation || (isMyHub && canReadMyHubEscalation)) {
       fetchEscalations();
     }
-  }, [canReadEscalation, canReadMyHubEscalation, isMyHub]);
+  }, [canReadEscalation, canReadMyHubEscalation, isMyHub, tablePage, tablePageSize]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -733,11 +742,13 @@ export default function EscalationListPage() {
     },
   ];
 
-  const total = filteredEscalations.length;
+  // Depending on the selected view, pick the right total count.
+  const isTrashView = savedView === 'trash';
+  const total = isTrashView ? (totalTrash || filteredEscalations.length) : (totalEscalations || filteredEscalations.length);
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedEscalations = filteredEscalations.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedEscalations = filteredEscalations;
 
   const emptyState = (
     <div className="es-empty">
@@ -855,7 +866,7 @@ export default function EscalationListPage() {
             </div>
 
             <div className="es-topbar-meta">
-              <span className="es-meta-item"><span className="es-pulse" /><strong>{escalations.length}</strong> total</span>
+              <span className="es-meta-item"><span className="es-pulse" /><strong>{totalEscalations}</strong> total</span>
               <span className="es-meta-dot">·</span>
               <span className="es-meta-item"><strong>{statsData.pending}</strong> pending</span>
             </div>
@@ -973,7 +984,7 @@ export default function EscalationListPage() {
                 ) : filteredEscalations.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
                 ) : (
-                  filteredEscalations.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize).map((record) => {
+                  filteredEscalations.map((record) => {
                     const title = record.subject || record.short_summary || 'No Subject';
                     const accent = accentFor(record.id || title);
                     const list = record.targetMembers || [];

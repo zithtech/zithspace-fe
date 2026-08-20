@@ -73,7 +73,7 @@ export class VendorService {
             return await apiUtils.getPaginated<Vendor>('/api/vendor', filters);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch vendors');
         }
@@ -88,7 +88,7 @@ export class VendorService {
             return response;
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch vendor');
         }
@@ -102,7 +102,7 @@ export class VendorService {
             return await api.post<Vendor>('/api/vendor/create', data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to create vendor');
         }
@@ -116,7 +116,7 @@ export class VendorService {
             await api.put(`/api/vendor/${id}`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to update vendor');
         }
@@ -130,7 +130,7 @@ export class VendorService {
             await api.delete(`/api/vendor/${id}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete vendor');
         }
@@ -145,7 +145,7 @@ export class VendorService {
             return response;
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to add contact');
         }
@@ -159,7 +159,7 @@ export class VendorService {
             await api.delete(`/api/vendor/contact/${contactId}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete contact');
         }
@@ -173,7 +173,7 @@ export class VendorService {
             await api.delete(`/api/vendor/document/${documentId}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete document');
         }
@@ -187,7 +187,7 @@ export class VendorService {
             return await api.post<VendorDocument>(`/api/vendor/${vendorId}/document`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to add document');
         }

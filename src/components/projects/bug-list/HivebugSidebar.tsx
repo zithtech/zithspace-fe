@@ -192,7 +192,7 @@ export default function HivebugSidebar({
                 </>
               )}
             </div>
-            {!isCollapsed && onCreateBug && canCreateBug && (
+            {!isCollapsed && onCreateBug && canCreateBug && selectedProjectId && (
               <button
                 className="hb-btn hb-btn-primary hb-sidebar-new-bug-btn"
                 onClick={onCreateBug}
@@ -203,7 +203,7 @@ export default function HivebugSidebar({
             )}
           </div>
 
-          {!isCollapsed && (<div className="hb-section">
+          {!isCollapsed && selectedProjectId && (<div className="hb-section">
             <div
               className="hb-section-title"
               style={{ cursor: "pointer" }}
@@ -284,7 +284,7 @@ export default function HivebugSidebar({
             )}
           </div>)}
 
-          {!isCollapsed && (<div className="hb-section hb-section-grow">
+          {!isCollapsed && selectedProjectId && (<div className="hb-section hb-section-grow">
             <div className="hb-section-title">
               <span className="hb-section-title-text">
                 <Library size={11} className="hb-section-title-icon" />

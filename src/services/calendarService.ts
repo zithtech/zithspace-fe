@@ -81,7 +81,7 @@ export class CalendarService {
         try {
             return await api.get<CalendarStatus>(`/api/calendar/${provider}/status`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error(`Failed to get ${provider} status`);
         }
     }
@@ -93,7 +93,7 @@ export class CalendarService {
         try {
             return await api.get<CalendarProvider[]>(`/api/calendar/providers`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error('Failed to get connected providers');
         }
     }
@@ -106,7 +106,7 @@ export class CalendarService {
             const data = await api.get<{ authUrl: string }>(`/api/calendar/${provider}/connect`);
             return data.authUrl;
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error(`Failed to get ${provider} connect URL`);
         }
     }
@@ -118,7 +118,7 @@ export class CalendarService {
         try {
             await api.post(`/api/calendar/${provider}/disconnect`, {});
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error(`Failed to disconnect ${provider} account`);
         }
     }
@@ -134,7 +134,7 @@ export class CalendarService {
                 excludeEventId
             });
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to check for event overlaps");
         }
     }
@@ -151,7 +151,7 @@ export class CalendarService {
             const query = params.toString() ? `?${params.toString()}` : "";
             return await api.get<CalendarEvent[]>(`/api/calendar/events${query}`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to fetch calendar events");
         }
     }
@@ -163,7 +163,7 @@ export class CalendarService {
         try {
             return await api.post<CalendarEvent>("/api/calendar/events", data);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error(`Failed to create event on ${data.provider}`);
         }
     }
@@ -175,7 +175,7 @@ export class CalendarService {
         try {
             return await api.put<CalendarEvent>(`/api/calendar/events/${id}`, data);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to update event");
         }
     }
@@ -191,7 +191,7 @@ export class CalendarService {
             const query = params.toString() ? `?${params.toString()}` : "";
             await api.delete(`/api/calendar/events/${id}${query}`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to delete event");
         }
     }
@@ -205,7 +205,7 @@ export class CalendarService {
             const data = await api.post<any[]>("/api/calendar/sync", { provider });
             return data;
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error(`Failed to sync ${provider || "all"} calendars`);
         }
     }

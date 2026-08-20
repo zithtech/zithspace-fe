@@ -196,7 +196,7 @@ interface Props {
   onCountChange?: (n: number) => void;
 }
 
-export default function EnvironmentsTab({ clientId, projects = [], onCountChange }: Props) {
+export default function EnvironmentsTab({ clientId, projects = [], onCountChange, onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => tonesOf(c), [c]);
@@ -295,6 +295,21 @@ export default function EnvironmentsTab({ clientId, projects = [], onCountChange
       setLoading(false);
     }
   };
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -520,6 +535,8 @@ export default function EnvironmentsTab({ clientId, projects = [], onCountChange
             icon={<Server size={20} color="#3b82f6" />}
             title="Environments"
             description="Track production, staging and UAT URLs, current versions, SSL certificates and backups."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

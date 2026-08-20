@@ -137,7 +137,7 @@ static async createReimbursement(
     throw new Error("Invalid response structure from server");
   } catch (error: any) {
     console.error("Create reimbursement error:", error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     
     // Better error message
     const errorMessage = error?.response?.data?.error || 
@@ -190,7 +190,7 @@ static async getAllReimbursements(): Promise<ReimbursementResponse[]> {
     
   } catch (error: any) {
     console.error("Get all reimbursements error:", error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error(error?.response?.data?.error || "Failed to fetch reimbursements");
   }
 }
@@ -265,7 +265,7 @@ static async getReimbursementById(id: string): Promise<ReimbursementResponse> {
     
   } catch (error: any) {
     console.error(`❌ Get reimbursement by ID (${id}) error:`, error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error(error?.response?.data?.error || "Failed to fetch reimbursement");
   }
 }
@@ -347,7 +347,7 @@ static async updateReimbursement(
     
   } catch (error: any) {
     console.error(`❌ Update reimbursement (${id}) error:`, error);
-    if (error instanceof ApiError) throw new Error(error.message);
+    if (error instanceof ApiError) throw error;
     throw new Error(
       error?.response?.data?.error || "Failed to update reimbursement"
     );
@@ -362,7 +362,7 @@ static async updateReimbursement(
       await api.delete(`/api/reimbursements/${id}`);
     } catch (error: any) {
       console.error(`Delete reimbursement (${id}) error:`, error);
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error(error?.response?.data?.error || "Failed to delete reimbursement");
     }
   }

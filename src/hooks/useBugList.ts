@@ -554,6 +554,19 @@ export const useReopenBug = () => {
   });
 };
 
+export const useMarkBugRecurring = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (bugId: string) => BugListService.markBugAsRecurring(bugId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugKeys.all });
+      message.success("Bug marked as recurring, new ticket created");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
 // ==================== Config: Severity options ====================
 export const severityKeys = {
   all: ["bug-list", "config", "severities"] as const,

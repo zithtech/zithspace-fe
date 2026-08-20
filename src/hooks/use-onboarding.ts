@@ -17,7 +17,8 @@ export function useEmployeeOnboarding() {
     try {
       setLoading(true);
       setError(null);
-      const employees = await EmployeeOnboardingService.getAllEmployees();
+      const payload = await EmployeeOnboardingService.getAllEmployees();
+      const employees = payload?.data?.success ? payload.data.data : (payload?.success ? payload.data : (Array.isArray(payload) ? payload : []));
       setOnboardedEmployees(employees);
       return employees;
     } catch (err: any) {

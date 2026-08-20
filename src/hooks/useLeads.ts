@@ -11,8 +11,8 @@ export const useLeads = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await LeadService.getAll();
-      setLeads(data);
+      const data = await LeadService.getAll({ limit: 1000 });
+      setLeads(data?.data || (Array.isArray(data) ? data : []));
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to fetch leads");
       console.error("Fetch leads error:", err);

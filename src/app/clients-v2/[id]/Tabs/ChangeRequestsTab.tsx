@@ -172,7 +172,7 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
+export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
   const tones = useMemo(() => toneMap(c), [c]);
@@ -225,6 +225,21 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
       load();
     } catch (err: any) {
       messageApi.error(`Delete failed: ${err?.message}`);
+    }
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -507,6 +522,8 @@ export default function ChangeRequestsTab({ clientId, projects = [] }: Props) {
             icon={<GitPullRequest size={20} color="#3b82f6" />}
             title="Change requests"
             description="Track every scope change with impact, time and cost estimates."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

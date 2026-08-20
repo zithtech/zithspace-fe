@@ -69,8 +69,8 @@ export default function ConfigurationPanel() {
     try {
       const [s, p, lt] = await Promise.all([
         LeaveV2Service.getAccrualSettings(),
-        LeaveV2Service.listPolicies(false),
-        LeaveV2Service.listLeaveTypes(true),
+        LeaveV2Service.listPolicies(false).then(res => res.data),
+        LeaveV2Service.listLeaveTypes(true).then(res => res.data),
       ]);
       setSettings(s);
       setPolicies(p);

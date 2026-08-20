@@ -98,7 +98,9 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
   const { message } = App.useApp(); // contextual toasts (static `message` ignores the <App> holder)
 
   const [balances, setBalances] = useState<LeaveBalanceItem[]>([]);
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]); // all for stats
+  const [paginatedRequests, setPaginatedRequests] = useState<LeaveRequest[]>([]); // table
+  const [totalCount, setTotalCount] = useState(0);
   const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
@@ -122,16 +124,28 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [b, r, h] = await Promise.all([LeaveV2Service.getMyBalances(), LeaveV2Service.getMyRequests(), LeaveV2Service.getLeaveHolidayDates()]);
+      const [b, allReq, pagedReq, h] = await Promise.all([
+        LeaveV2Service.getMyBalances(),
+        LeaveV2Service.getMyRequests(),
+        LeaveV2Service.getMyRequests({
+          page: tablePage,
+          limit: tablePageSize,
+          search,
+          status: statusFilter
+        }),
+        LeaveV2Service.getLeaveHolidayDates()
+      ]);
       setBalances(b);
-      setRequests(r);
+      setRequests(allReq);
+      setPaginatedRequests(pagedReq.data || []);
+      setTotalCount(pagedReq.pagination?.total ?? (Array.isArray(pagedReq.data) ? pagedReq.data.length : 0));
       setHolidaySet(new Set(h));
     } catch (err: any) {
       message.error(err?.response?.data?.error || err?.message || 'Failed to load leave data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, statusFilter, message]);
 
   useEffect(() => {
     if (canReadLeave || canReadMyHubApplyLeave) load();
@@ -164,20 +178,11 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
   ];
 
   // ── Filtering + paging ──────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return requests.filter((r) => {
-      if (q && !(r.leaveTypeName || '').toLowerCase().includes(q)) return false;
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-      return true;
-    });
-  }, [requests, search, statusFilter]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const paged = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paged = paginatedRequests;
   useEffect(() => { setTablePage(1); }, [search, statusFilter, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
 
@@ -460,7 +465,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
           style={{ width: 160 }}
           width={210}
         />
-        <span className="lva-filter-count">{filtered.length} of {requests.length}</span>
+        <span className="lva-filter-count">{totalCount} of {requests.length}</span>
         {hasFilters && <button type="button" className="lva-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 

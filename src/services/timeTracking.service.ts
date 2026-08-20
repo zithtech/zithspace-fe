@@ -80,7 +80,7 @@ export class TimeTrackingService {
       const res = await api.get<PerformanceResponse>(`/api/time-tracking/performance${query}`);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch performance data');
     }
   }
@@ -106,7 +106,7 @@ export class TimeTrackingService {
       const res = await api.get<TimeTrackingEntry[]>(`/api/time-tracking${query}`);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch time entries');
     }
   }
@@ -116,7 +116,7 @@ export class TimeTrackingService {
       const res = await api.post<TimeTrackingEntry>('/api/time-tracking/start', data);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to start timer');
     }
   }
@@ -126,7 +126,7 @@ export class TimeTrackingService {
       const res = await api.post<TimeTrackingEntry>(`/api/time-tracking/${id}/stop`);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to stop timer');
     }
   }
@@ -136,7 +136,7 @@ export class TimeTrackingService {
       const res = await api.post<TimeTrackingEntry>(`/api/time-tracking/${id}/pause`);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to pause timer');
     }
   }
@@ -146,7 +146,7 @@ export class TimeTrackingService {
       const res = await api.post<TimeTrackingEntry>(`/api/time-tracking/${id}/resume`);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to resume timer');
     }
   }
@@ -156,7 +156,7 @@ export class TimeTrackingService {
       const res = await api.put<TimeTrackingEntry>(`/api/time-tracking/${id}`, data);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to update entry');
     }
   }
@@ -165,7 +165,7 @@ export class TimeTrackingService {
     try {
       await api.delete(`/api/time-tracking/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to delete entry');
     }
   }
@@ -184,7 +184,7 @@ export class TimeTrackingService {
       const res = await api.post<TimeTrackingEntry>('/api/time-tracking/manual', data);
       return res;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error('Failed to add manual entry');
     }
   }

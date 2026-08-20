@@ -169,11 +169,13 @@ export interface FailedCase {
   notes?: string | null;
   bug_id?: string | null;
   bug_number?: string | null;
+  bug_title?: string | null;
   bug_status_key?: string | null;
   bug_progress?: string | null;
   bug_sheet_id?: string | null;
   ticket_id?: string | null;
   ticket_number?: string | null;
+  ticket_title?: string | null;
   ticket_status?: string | null;
 }
 

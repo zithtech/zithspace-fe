@@ -9,7 +9,7 @@ export class EmployeeOnboardingService {
       return await api.post<any>("/api/onboarding", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to complete employee onboarding");
     }
@@ -18,12 +18,22 @@ export class EmployeeOnboardingService {
   /**
    * Get all employees (list view)
    */
-  static async getAllEmployees(): Promise<any> {
+  static async getAllEmployees(opts?: { search?: string; limit?: number; offset?: number; status?: string }): Promise<any> {
     try {
-      return await api.get<any>("/api/onboarding");
+      const params = new URLSearchParams();
+      if (opts?.search) params.append('search', opts.search);
+      if (opts?.limit !== undefined) params.append('limit', opts.limit.toString());
+      if (opts?.offset !== undefined) params.append('offset', opts.offset.toString());
+      if (opts?.status !== undefined) params.append('status', opts.status);
+
+      const qs = params.toString();
+      const url = qs ? `/api/onboarding?${qs}` : "/api/onboarding";
+      
+      const res = await apiClient.get<any>(url);
+      return res.data;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employees");
     }
@@ -37,7 +47,7 @@ export class EmployeeOnboardingService {
       return await api.get<any>(`/api/onboarding/${employeeId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employee details");
     }
@@ -55,7 +65,7 @@ export class EmployeeOnboardingService {
       return await api.put<any>(`/api/onboarding/${employeeId}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update employee");
     }
@@ -69,7 +79,7 @@ export class EmployeeOnboardingService {
       return await api.delete<any>(`/api/onboarding/${employeeId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete employee");
     }
@@ -88,17 +98,27 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>("/api/onboarding/invite", data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to create invite");
     }
   }
 
   /** HR: list pending/draft onboarding invites. */
-  static async listInvites(): Promise<any> {
+  static async listInvites(opts?: { search?: string; limit?: number; offset?: number; status?: string }): Promise<any> {
     try {
-      return await api.get<any>("/api/onboarding/invites");
+      const params = new URLSearchParams();
+      if (opts?.search) params.append('search', opts.search);
+      if (opts?.limit !== undefined) params.append('limit', opts.limit.toString());
+      if (opts?.offset !== undefined) params.append('offset', opts.offset.toString());
+      if (opts?.status !== undefined) params.append('status', opts.status);
+
+      const qs = params.toString();
+      const url = qs ? `/api/onboarding/invites?${qs}` : "/api/onboarding/invites";
+      
+      const res = await apiClient.get<any>(url);
+      return res.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch invites");
     }
   }
@@ -111,7 +131,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.put<any>(`/api/onboarding/invite/${employeeId}`, data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to update invite");
     }
   }
@@ -131,7 +151,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>(`/api/onboarding/invite/${inviteId}/revoke`, {});
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to revoke invite");
     }
   }
@@ -141,7 +161,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>(`/api/onboarding/${employeeId}/activate`, {});
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to activate employee");
     }
   }
@@ -152,7 +172,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.get<any>("/api/onboarding/document-types");
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch document types");
     }
   }
@@ -161,7 +181,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.post<any>("/api/onboarding/document-types", data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to create document type");
     }
   }
@@ -173,7 +193,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.put<any>(`/api/onboarding/document-types/${id}`, data);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to update document type");
     }
   }
@@ -182,7 +202,7 @@ export class EmployeeOnboardingService {
     try {
       return await api.delete<any>(`/api/onboarding/document-types/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to delete document type");
     }
   }
@@ -219,18 +239,22 @@ export class EmployeeDocumentService {
     documentType?: string;
     status?: string;
     search?: string;
-  }): Promise<{ data: EmployeeDocument[]; stats: DocumentStats }> {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ data: EmployeeDocument[]; total?: number; stats?: DocumentStats }> {
     try {
       const params = new URLSearchParams();
       if (filters?.employeeId) params.set("employeeId", filters.employeeId);
       if (filters?.documentType) params.set("documentType", filters.documentType);
       if (filters?.status) params.set("status", filters.status);
       if (filters?.search) params.set("search", filters.search);
+      if (filters?.limit !== undefined) params.set("limit", filters.limit.toString());
+      if (filters?.offset !== undefined) params.set("offset", filters.offset.toString());
       const qs = params.toString();
       const response = await apiClient.get<any>(`/api/onboarding/employee-documents${qs ? `?${qs}` : ""}`);
       return response.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch documents");
     }
   }
@@ -250,7 +274,7 @@ export class EmployeeDocumentService {
       const response = await apiClient.get<any>(`/api/onboarding/my-documents${qs ? `?${qs}` : ""}`);
       return response.data;
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to fetch my documents");
     }
   }
@@ -278,7 +302,7 @@ export class EmployeeDocumentService {
         headers: { "Content-Type": "multipart/form-data" },
       });
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to upload document");
     }
   }
@@ -288,7 +312,7 @@ export class EmployeeDocumentService {
     try {
       await api.delete(`/api/onboarding/employee-documents/${id}`);
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to delete document");
     }
   }

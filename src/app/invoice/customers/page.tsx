@@ -92,8 +92,7 @@ export default function InvoiceproCustomerPage() {
   } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
-  const { data: customersData, isLoading, refetch, isFetching } = useCustomers();
-  const customers = customersData?.data || [];
+
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
@@ -123,6 +122,23 @@ export default function InvoiceproCustomerPage() {
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceCustomerList" });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const { data: customersData, isLoading, refetch, isFetching } = useCustomers({
+    page: currentPage,
+    limit: pageSize,
+    search: search || undefined,
+    isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
+  });
+  const customers = customersData?.data || [];
+  const totalCustomers = customersData?.pagination?.total ?? 0;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
   const counts = useMemo(() => {
     const all = customers.length;
     const active = customers.filter((c) => c.isActive).length;
@@ -130,33 +146,13 @@ export default function InvoiceproCustomerPage() {
     return { all, active, inactive };
   }, [customers]);
 
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
-      const matchesSearch = c.companyName
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
-      if (!matchesSearch) return false;
-      if (statusFilter === "active") return c.isActive;
-      if (statusFilter === "inactive") return !c.isActive;
-      return true;
-    });
-  }, [customers, search, statusFilter]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter]);
-
-  const total = filteredCustomers.length;
+  const total = totalCustomers || customers.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedCustomers = useMemo(() => {
-    return filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredCustomers, currentPage, pageSize]);
+    return customers;
+  }, [customers]);
 
   const creating = createCustomer.status === "pending";
   const updating = updateCustomer.status === "pending";
@@ -620,7 +616,7 @@ export default function InvoiceproCustomerPage() {
             </div>
 
             <div className="pp-topbar-meta">
-              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{filteredCustomers.length}</strong> customers</span>
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{total}</strong> customers</span>
             </div>
 
             <div className="pp-topbar-actions">
@@ -745,229 +741,230 @@ export default function InvoiceproCustomerPage() {
                       locale={{ emptyText: <div style={{ minHeight: 400 }} /> }}
                     />
                   </div>
-                )
-              ) : filteredCustomers.length === 0 ? (
-                <div className="pp-empty">
-                  <div className="pp-empty-orb"><Users size={26} /></div>
-                  <div className="pp-empty-title">
-                    {search || statusFilter !== "all"
-                      ? "No customers match your filters"
-                      : "No customers yet"}
-                  </div>
-                  <div className="pp-empty-sub">
-                    {search || statusFilter !== "all"
-                      ? "Try adjusting your search or filter"
-                      : "Get started by adding your first customer."}
-                  </div>
-                  {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
-                    <Button
-                      type="primary"
-                      icon={<Plus size={14} />}
-                      onClick={() => {
-                        setEditingCustomer(null);
-                        form.resetFields();
-                        setIsModalOpen(true);
-                      }}
-                      className="pp-btn-primary"
+                ))}
+          </div>
+          ) : customers.length === 0 ? (
+          <div className="pp-empty">
+            <div className="pp-empty-orb"><Users size={26} /></div>
+            <div className="pp-empty-title">
+              {search || statusFilter !== "all"
+                ? "No customers match your filters"
+                : "No customers yet"}
+            </div>
+            <div className="pp-empty-sub">
+              {search || statusFilter !== "all"
+                ? "Try adjusting your search or filter"
+                : "Get started by adding your first customer."}
+            </div>
+            {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
+              <Button
+                type="primary"
+                icon={<Plus size={14} />}
+                onClick={() => {
+                  setEditingCustomer(null);
+                  form.resetFields();
+                  setIsModalOpen(true);
+                }}
+                className="pp-btn-primary"
+                style={{
+                  marginTop: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                Add Customer
+              </Button>
+            )}
+          </div>
+          ) : viewMode === "card" ? (
+          <div className="pp-grid">
+            {pagedCustomers.map((customer) => {
+              const accent = accentFor(customer.companyName || '');
+              return (
+                <div
+                  key={customer.id}
+                  className="pc-card"
+                  onClick={() => {
+                    setSelectedCustomerForView(customer);
+                    setViewDrawerVisible(true);
+                  }}
+                >
+                  <div className="pc-top">
+                    <div
+                      className="pc-avatar"
                       style={{
-                        marginTop: 14,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
+                        background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
                       }}
                     >
-                      Add Customer
-                    </Button>
-                  )}
-                </div>
-              ) : viewMode === "card" ? (
-                <div className="pp-grid">
-                  {pagedCustomers.map((customer) => {
-                    const accent = accentFor(customer.companyName || '');
-                    return (
-                      <div
-                        key={customer.id}
-                        className="pc-card"
-                        onClick={() => {
+                      {initialsOf(customer.companyName)}
+                    </div>
+                    <div className="pc-identity-body">
+                      <div className="pc-title" style={{ fontSize: '13px' }}>{customer.companyName}</div>
+                      <div className="pc-client-line">
+                        <span className="pc-client-key">Tax ID:</span>
+                        <span className="pc-client-val">
+                          {customer.taxId || customer.gstin || "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <Dropdown
+                      menu={{ items: getMenuItems(customer) }}
+                      overlayClassName="pp-action-pop"
+                      trigger={["click"]}
+                      placement="bottomRight"
+                    >
+                      <button
+                        type="button"
+                        className="pc-actions"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    </Dropdown>
+                  </div>
+
+                  <div className="pc-foot">
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Email:</span>
+                        <span className="pc-foot-val">{customer.email || "—"}</span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Phone:</span>
+                        <span className="pc-foot-val">{customer.phone || "—"}</span>
+                      </span>
+                    </div>
+                    <div className="pc-foot-row">
+                      <span className="pc-foot-item">
+                        <span className="pc-foot-key">Status:</span>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: customer.isActive ? "#10b981" : "#94a3b8",
+                          }}
+                        >
+                          {customer.isActive ? "ACTIVE" : "INACTIVE"}
+                        </span>
+                      </span>
+                      <span className="pc-foot-div" />
+                      <button
+                        type="button"
+                        className="pc-foot-item pc-view-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedCustomerForView(customer);
                           setViewDrawerVisible(true);
                         }}
                       >
-                        <div className="pc-top">
-                          <div
-                            className="pc-avatar"
-                            style={{
-                              background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)`,
+                        Profile
+                      </button>
+                      {canUpdateInvoiceCustomer && (
+                        <>
+                          <span className="pc-foot-div" />
+                          <button
+                            type="button"
+                            className="pc-foot-item pc-view-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(customer);
                             }}
                           >
-                            {initialsOf(customer.companyName)}
-                          </div>
-                          <div className="pc-identity-body">
-                            <div className="pc-title" style={{ fontSize: '13px' }}>{customer.companyName}</div>
-                            <div className="pc-client-line">
-                              <span className="pc-client-key">Tax ID:</span>
-                              <span className="pc-client-val">
-                                {customer.taxId || customer.gstin || "—"}
-                              </span>
-                            </div>
-                          </div>
-                          <Dropdown
-                            menu={{ items: getMenuItems(customer) }}
-                            overlayClassName="pp-action-pop"
-                            trigger={["click"]}
-                            placement="bottomRight"
-                          >
-                            <button
-                              type="button"
-                              className="pc-actions"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-                          </Dropdown>
-                        </div>
-
-                        <div className="pc-foot">
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Email:</span>
-                              <span className="pc-foot-val">{customer.email || "—"}</span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Phone:</span>
-                              <span className="pc-foot-val">{customer.phone || "—"}</span>
-                            </span>
-                          </div>
-                          <div className="pc-foot-row">
-                            <span className="pc-foot-item">
-                              <span className="pc-foot-key">Status:</span>
-                              <span
-                                style={{
-                                  fontSize: "11px",
-                                  fontWeight: 700,
-                                  color: customer.isActive ? "#10b981" : "#94a3b8",
-                                }}
-                              >
-                                {customer.isActive ? "ACTIVE" : "INACTIVE"}
-                              </span>
-                            </span>
-                            <span className="pc-foot-div" />
-                            <button
-                              type="button"
-                              className="pc-foot-item pc-view-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedCustomerForView(customer);
-                                setViewDrawerVisible(true);
-                              }}
-                            >
-                              Profile
-                            </button>
-                            {canUpdateInvoiceCustomer && (
-                              <>
-                                <span className="pc-foot-div" />
-                                <button
-                                  type="button"
-                                  className="pc-foot-item pc-view-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(customer);
-                                  }}
-                                >
-                                  Edit
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div
-                  className="overflow-hidden"
-                  style={{
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-slate-200)",
-                  }}
-                >
-                  <Table
-                    rowKey="id"
-                    columns={columns}
-                    dataSource={pagedCustomers}
-                    pagination={false}
-                    size="middle"
-                    onRow={(record) => ({
-                      onClick: () => {
-                        setSelectedCustomerForView(record);
-                        setViewDrawerVisible(true);
-                      },
-                      className: "cursor-pointer",
-                    })}
-                    className="customers-table"
-                    scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
-                  />
-                </div>
-              )}
-            </ZukvoLoadingOverlay>
+              );
+            })}
           </div>
-
-          {/* Sticky footer pagination */}
-          {total > 0 && (
-            <div className="pp-footer pp-footer--sticky">
-              <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
-              </div>
-              <div className="pp-pager">
-                <button
-                  type="button"
-                  className="pp-pager-btn"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                >
-                  ‹
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1)
-                  .slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5)
-                  .map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      className={`pp-pager-num ${p === currentPage ? "is-active" : ""}`}
-                      onClick={() => setCurrentPage(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                <button
-                  type="button"
-                  className="pp-pager-btn"
-                  disabled={currentPage >= pageCount}
-                  onClick={() => setCurrentPage((p) => Math.min(pageCount, p + 1))}
-                >
-                  ›
-                </button>
-                <Select
-                  className="pp-pagesize"
-                  value={pageSize}
-                  onChange={(v) => {
-                    setPageSize(v);
-                    setCurrentPage(1);
-                  }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({
-                    value: n,
-                    label: `${n} / page`,
-                  }))}
-                  popupMatchSelectWidth={120}
-                />
-              </div>
-            </div>
-          )}
-        </main>
+          ) : (
+          <div
+            className="overflow-hidden"
+            style={{
+              background: "var(--bg-pure-white)",
+              border: "1px solid var(--border-slate-200)",
+            }}
+          >
+            <Table
+              rowKey="id"
+              columns={columns}
+              dataSource={pagedCustomers}
+              pagination={false}
+              size="middle"
+              onRow={(record) => ({
+                onClick: () => {
+                  setSelectedCustomerForView(record);
+                  setViewDrawerVisible(true);
+                },
+                className: "cursor-pointer",
+              })}
+              className="customers-table"
+              scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
+            />
+          </div>
+              )}
+        </ZukvoLoadingOverlay>
       </div>
+
+      {/* Sticky footer pagination */}
+      {total > 0 && (
+        <div className="pp-footer pp-footer--sticky">
+          <div className="pp-footer-info">
+            Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
+          </div>
+          <div className="pp-pager">
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .slice(Math.max(0, currentPage - 3), Math.max(0, currentPage - 3) + 5)
+              .map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pp-pager-num ${p === currentPage ? "is-active" : ""}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            <button
+              type="button"
+              className="pp-pager-btn"
+              disabled={currentPage >= pageCount}
+              onClick={() => setCurrentPage((p) => Math.min(pageCount, p + 1))}
+            >
+              ›
+            </button>
+            <Select
+              className="pp-pagesize"
+              value={pageSize}
+              onChange={(v) => {
+                setPageSize(v);
+                setCurrentPage(1);
+              }}
+              options={[10, 20, 25, 50, 100].map((n) => ({
+                value: n,
+                label: `${n} / page`,
+              }))}
+              popupMatchSelectWidth={120}
+            />
+          </div>
+        </div>
+      )}
+    </main>
+      </div >
 
       <CustomerDrawer
         open={isModalOpen}
@@ -1348,6 +1345,6 @@ export default function InvoiceproCustomerPage() {
         .pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
       `}</style>
-    </MainLayout>
+    </MainLayout >
   );
 }

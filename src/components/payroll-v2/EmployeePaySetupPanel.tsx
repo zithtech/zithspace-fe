@@ -73,7 +73,12 @@ export default function EmployeePaySetupPanel() {
   const [profiles, setProfiles] = useState<EmployeeProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalEmployees, setTotalEmployees] = useState(0);
 
   // profile drawer
   const [profileOpen, setProfileOpen] = useState(false);
@@ -94,20 +99,27 @@ export default function EmployeePaySetupPanel() {
   const [preview, setPreview] = useState<{ components: AssignmentComponent[]; totals: StructureTotals } | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = pageSize, s = debouncedSearch) => {
     setLoading(true);
     try {
       const [emps, asg, structs, profs] = await Promise.all([
-        PayrollV2Service.getEmployeesForSelect(),
+        PayrollV2Service.listEmployeesPaginated({ page: p, limit: l, search: s }),
         PayrollV2Service.listAssignments(),
-        PayrollV2Service.listStructures(false),
+        PayrollV2Service.listStructures({ includeInactive: false, limit: 1000 }),
         PayrollV2Service.listEmployeeProfiles(),
       ]);
-      setEmployees(emps); setAssignments(asg); setStructures(structs); setProfiles(profs);
+      setEmployees(emps.data);
+      setTotalEmployees(emps.pagination.total);
+      setAssignments(asg); setStructures(structs.data); setProfiles(profs);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load employees');
     } finally { setLoading(false); }
-  }, []);
+  }, [page, pageSize, debouncedSearch]);
   useEffect(() => { if (canReadPayrollEmployees) load(); }, [canReadPayrollEmployees, load]);
 
   const assignByEmployee = useMemo(() => {
@@ -149,21 +161,19 @@ export default function EmployeePaySetupPanel() {
 
   const q = search.trim().toLowerCase();
   const filtered = useMemo(() => rows.filter((r) => {
-    if (q && !r.employee.label.toLowerCase().includes(q) && !(r.employee.position ?? '').toLowerCase().includes(q)) return false;
     if (statusFilter === 'assigned' && !r.assignment) return false;
     if (statusFilter === 'unassigned' && r.assignment) return false;
     return true;
-  }), [rows, q, statusFilter]);
+  }), [rows, statusFilter]);
 
   const hasFilters = !!search || statusFilter !== 'all';
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setPage(1); }, [search, statusFilter, pageSize]);
-  const total = filtered.length;
+
+  const total = totalEmployees;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(total, page * pageSize);
-  const pagedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const pagedRows = filtered;
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
   // ── drawer ───────────────────────────────────────────────────────────────
@@ -298,7 +308,7 @@ export default function EmployeePaySetupPanel() {
             <SearchOutlined className="pvep-search-icon" />
             <input className="pvep-search" placeholder="Search name or role…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvep-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvep-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
         </div>
       </div>
 
@@ -316,7 +326,7 @@ export default function EmployeePaySetupPanel() {
         <SearchableDropdown className="pvep-dd" placeholder="Status" searchPlaceholder="Search" itemNoun="statuses"
           value={statusFilter === 'all' ? undefined : statusFilter} onChange={(v) => setStatusFilter((v as StatusFilter) ?? 'all')}
           options={[{ value: 'assigned', label: 'Assigned' }, { value: 'unassigned', label: 'Not set up' }]} style={{ width: 170 }} width={210} />
-        <span className="pvep-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="pvep-filter-count">{filtered.length}</span>
         {hasFilters && <button type="button" className="pvep-clear" onClick={() => { setSearch(''); setStatusFilter('all'); }}><CloseCircleOutlined /> Clear</button>}
       </div>
 

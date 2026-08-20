@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { getSyncedTime } from "@/utils/timeUtils";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { Table, Tag, Typography, Space, Card, Row, Col, Select, Input, Avatar, Tooltip, Button, DatePicker, Modal, TimePicker, notification } from "antd";
 import {
@@ -294,10 +295,16 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   });
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getSyncedTime());
 
   const { data: members = [] } = useMembers();
   const { data: projects = [] } = useUserProjects();
+
+  // Update current time for live calculations
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(getSyncedTime()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
   const [tablePage, setTablePage] = useState(1);
@@ -676,7 +683,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         render: (_: any, s: any) => {
           const start = new Date(s.start).getTime();
           const end = s.end ? new Date(s.end).getTime() : currentTime.getTime();
-          const diff = Math.floor((end - start) / 1000);
+          const diff = Math.max(0, Math.floor((end - start) / 1000));
           const h = Math.floor(diff / 3600);
           const m = Math.floor((diff % 3600) / 60);
           const sec = diff % 60;
@@ -811,10 +818,10 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                         border: '1px solid ' + (session.isLive ? 'var(--bg-holiday)' : session.endAction === 'PAUSED' ? '#e0f2fe' : 'var(--border-slate-100)')
                       }}>
                         {(() => {
-                          const start = new Date(session.start).getTime();
-                          const end = session.end ? new Date(session.end).getTime() : currentTime.getTime();
-                          const diff = Math.floor((end - start) / 1000);
-                          const h = Math.floor(diff / 3600);
+                            const start = new Date(session.start).getTime();
+                            const end = session.end ? new Date(session.end).getTime() : currentTime.getTime();
+                            const diff = Math.max(0, Math.floor((end - start) / 1000));
+                            const h = Math.floor(diff / 3600);
                           const m = Math.floor((diff % 3600) / 60);
                           const s = diff % 60;
                           return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;

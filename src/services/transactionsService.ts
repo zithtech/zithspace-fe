@@ -76,7 +76,7 @@ export class TransactionsService {
       return await apiUtils.getPaginated<Transaction>('/api/transactions', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch transactions');
     }
@@ -90,7 +90,7 @@ export class TransactionsService {
       return await api.get<Transaction>(`/api/transactions/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch transaction');
     }
@@ -104,7 +104,7 @@ export class TransactionsService {
       return await api.post<Transaction>('/api/transactions', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create transaction');
     }
@@ -118,7 +118,7 @@ export class TransactionsService {
       return await api.put<Transaction>(`/api/transactions/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update transaction');
     }
@@ -132,7 +132,7 @@ export class TransactionsService {
       await api.delete(`/api/transactions/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to delete transaction');
     }
@@ -153,7 +153,7 @@ export class TransactionsService {
       return await api.get<TransactionSummary>(url);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch transaction summary');
     }
@@ -167,7 +167,7 @@ export class TransactionsService {
       return await apiUtils.getPaginated<Transaction>('/api/transactions/trash/all', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch trash transactions');
     }
@@ -181,7 +181,7 @@ export class TransactionsService {
       await api.post(`/api/transactions/${id}/restore`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to restore transaction');
     }
@@ -195,7 +195,7 @@ export class TransactionsService {
       await api.delete(`/api/transactions/${id}/permanent`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to permanently delete transaction');
     }

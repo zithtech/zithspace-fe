@@ -24,7 +24,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, noPadding, hideSideNav }: MainLayoutProps) {
   const { token } = theme.useToken();
-  const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission } = useAuth();
+  const { user, logout, isLoading: authLoading, hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
   const { notification } = AntApp.useApp();
   const { socket } = useSocket();
 
@@ -48,31 +48,47 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
     );
 
     if (foundModule) {
-      // Check if user has permission for this module
-      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
+      // Check if user has permission and subscription for this module
+      const hasSubAccess = foundModule.requiredSubscriptionFeature
+        ? hasAnySubscriptionFeature(...foundModule.requiredSubscriptionFeature)
+        : true;
+
+      const hasPermAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
         ? true
         : foundModule.requiredPermission
           ? hasPermission(foundModule.requiredPermission)
           : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
+
+      const hasAccess = hasSubAccess && hasPermAccess;
 
       if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
         router.push("/dashboard");
         return;
       }
 
-      // Deep check for specific item permission
-      const checkItemAccess = (items: any[]): boolean => {
+      // Deep check for specific item permission, inheriting parent denial
+      const checkItemAccess = (items: any[], isParentDenied = false): boolean => {
         for (const item of items) {
-          if (item.path && pathname.startsWith(item.path)) {
-            const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
-              ? true
-              : item.requiredPermission
-                ? hasPermission(item.requiredPermission)
-                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+          const hasItemSubAccess = item.requiredSubscriptionFeature
+            ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+            : true;
 
-            if (!itemAccess) return false;
+          const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
+            ? true
+            : item.requiredPermission
+              ? hasPermission(item.requiredPermission)
+              : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+
+          const itemAccess = hasItemSubAccess && hasItemPermAccess;
+          const isCurrentlyDenied = isParentDenied || !itemAccess;
+
+          // If this is a routable leaf node and matches the current path
+          if (item.path && pathname.startsWith(item.path)) {
+            if (isCurrentlyDenied) return false;
           }
-          if (item.children && !checkItemAccess(item.children)) {
+
+          // Recurse into children
+          if (item.children && !checkItemAccess(item.children, isCurrentlyDenied)) {
             return false;
           }
         }
@@ -89,13 +105,22 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+          ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
+          : true;
+        const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
+          ? true
+          : foundStandalone.requiredPermission
+            ? hasPermission(foundStandalone.requiredPermission)
+            : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
+        
+        if (!hasSubAccess || !hasPermAccess) {
           router.push("/dashboard");
           return;
         }
       }
     }
-  }, [pathname, user, authLoading, hasPermission, hasAnyPermission]);
+  }, [pathname, user, authLoading, hasPermission, hasAnyPermission, hasAnySubscriptionFeature]);
 
   // Listen for service worker messages to play custom notification sounds in-tab
   useEffect(() => {
@@ -181,29 +206,45 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
     );
 
     if (foundModule) {
-      const hasAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
+      const hasSubAccess = foundModule.requiredSubscriptionFeature
+        ? hasAnySubscriptionFeature(...foundModule.requiredSubscriptionFeature)
+        : true;
+
+      const hasPermAccess = !foundModule.requiredPermission && !foundModule.requiredAnyPermission
         ? true
         : foundModule.requiredPermission
           ? hasPermission(foundModule.requiredPermission)
           : foundModule.requiredAnyPermission ? hasAnyPermission(...foundModule.requiredAnyPermission) : true;
 
+      const hasAccess = hasSubAccess && hasPermAccess;
+
       if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
         isAuthorized = false;
       }
 
-      // Deep check for specific item permission
-      const checkItemAccess = (items: any[]): boolean => {
+      // Deep check for specific item permission, inheriting parent denial
+      const checkItemAccess = (items: any[], isParentDenied = false): boolean => {
         for (const item of items) {
-          if (item.path && pathname.startsWith(item.path)) {
-            const itemAccess = !item.requiredPermission && !item.requiredAnyPermission
-              ? true
-              : item.requiredPermission
-                ? hasPermission(item.requiredPermission)
-                : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+          const hasItemSubAccess = item.requiredSubscriptionFeature
+            ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+            : true;
 
-            if (!itemAccess) return false;
+          const hasItemPermAccess = !item.requiredPermission && !item.requiredAnyPermission
+            ? true
+            : item.requiredPermission
+              ? hasPermission(item.requiredPermission)
+              : item.requiredAnyPermission ? hasAnyPermission(...item.requiredAnyPermission) : true;
+
+          const itemAccess = hasItemSubAccess && hasItemPermAccess;
+          const isCurrentlyDenied = isParentDenied || !itemAccess;
+
+          // If this is a routable leaf node and matches the current path
+          if (item.path && pathname.startsWith(item.path)) {
+            if (isCurrentlyDenied) return false;
           }
-          if (item.children && !checkItemAccess(item.children)) {
+
+          // Recurse into children
+          if (item.children && !checkItemAccess(item.children, isCurrentlyDenied)) {
             return false;
           }
         }
@@ -217,7 +258,16 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        if (!hasPermission(foundStandalone.requiredPermission)) {
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+          ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
+          : true;
+        const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
+          ? true
+          : foundStandalone.requiredPermission
+            ? hasPermission(foundStandalone.requiredPermission)
+            : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
+        
+        if (!hasSubAccess || !hasPermAccess) {
           isAuthorized = false;
         }
       }

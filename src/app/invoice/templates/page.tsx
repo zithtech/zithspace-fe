@@ -97,7 +97,16 @@ export default function InvoiceTemplatePage() {
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceTemplateList" });
 
-  const { data: templates, isLoading, refetch, isFetching } = useInvoiceTemplates();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const { data: response, isLoading, refetch, isFetching } = useInvoiceTemplates({
+    page: currentPage,
+    limit: pageSize
+  });
+  const templates = response?.data ?? [];
+  const totalTemplates = response?.total ?? 0;
+  
   const deleteMutation = useDeleteInvoiceTemplate();
 
   const handleEdit = (template: InvoiceTemplate) => {
@@ -133,21 +142,18 @@ export default function InvoiceTemplatePage() {
     });
   }, [templates, searchText, statusFilter]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchText, statusFilter]);
 
-  const total = filteredTemplates.length;
+  const total = totalTemplates || filteredTemplates.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedTemplates = useMemo(() => {
-    return filteredTemplates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredTemplates, currentPage, pageSize]);
+    return filteredTemplates;
+  }, [filteredTemplates]);
 
   // ─── Shared action menu (table + cards) ───────────────────────────────────
   const getMenuItems = (template: InvoiceTemplate): MenuProps["items"] => [

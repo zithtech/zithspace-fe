@@ -11,7 +11,7 @@ import {
 import { usePermission } from '@/hooks/usePermission';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import ReimbursementV2Service, { Advance } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, tablePaginationConfig, preventInvalidNumberKeys } from './ui';
+import { PALETTE, TINT, PanelHeader, StatCards, RmbStyles, money, fmtDate, StatusTag, CurrencySelect, currencySymbol, preventInvalidNumberKeys } from './ui';
 import { drawerFormStyles as formStyles, commonDrawerProps, SectionCard } from '@/components/common/DrawerSection';
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -21,33 +21,49 @@ export default function AdvancesPanel() {
   const canCreate = perms.canCreateReimbursement || perms.canManageReimbursements;
 
   const [rows, setRows] = useState<Advance[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
   const cur = Form.useWatch('currency', form);
 
-  const load = useCallback(async () => {
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to page 1 on search change
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch]);
+
+  const load = useCallback(async (page = currentPage, limit = pageSize) => {
     setLoading(true);
-    try { setRows(await ReimbursementV2Service.listMyAdvances()); }
+    try {
+      const result = await ReimbursementV2Service.listMyAdvances({
+        search: debouncedSearch || undefined,
+        page,
+        limit,
+      });
+      setRows(result.data);
+      setTotal(result.pagination.total);
+    }
     catch (e: any) { message.error(e?.response?.data?.error || 'Failed to load advances'); }
     finally { setLoading(false); }
-  }, []);
+  }, [debouncedSearch, currentPage, pageSize]);
 
   useEffect(() => { if (canRead) load(); }, [canRead, load]);
 
   const stats = useMemo(() => ({
-    total: rows.length,
+    total,
     outstanding: rows.reduce((s, r) => s + (r.status === 'paid' || r.status === 'partially_reconciled' ? r.outstanding : 0), 0),
     pending: rows.filter((r) => r.status === 'pending').length,
     reconciled: rows.filter((r) => r.status === 'reconciled').length,
-  }), [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.advanceNo.toLowerCase().includes(q) || (r.purpose || '').toLowerCase().includes(q));
-  }, [rows, search]);
+  }), [rows, total]);
 
   const openCreate = () => { form.resetFields(); form.setFieldsValue({ currency: 'INR' }); setDrawerOpen(true); };
 
@@ -116,8 +132,19 @@ export default function AdvancesPanel() {
 
       <div className="rvp-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="middle" columns={columns} dataSource={filtered}
-            pagination={tablePaginationConfig} />
+          <Table rowKey="id" size="middle" columns={columns} dataSource={rows}
+            pagination={{
+              current: currentPage,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              showTotal: (t) => `${t} advances`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size ?? pageSize);
+              },
+            }} />
         </ZukvoLoadingOverlay>
       </div>
 

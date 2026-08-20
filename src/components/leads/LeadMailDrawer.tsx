@@ -46,6 +46,7 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
   const [enhancing, setEnhancing] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_lead_management_leads_prime');
   const { message: messageApi } = App.useApp();
 
   useEffect(() => {
@@ -347,53 +348,57 @@ export const LeadMailDrawer: React.FC<LeadMailDrawerProps> = ({
                 <span className="lmd-section-num">02</span>
                 <span>Message</span>
               </div>
-              <div className="lmd-ai-badge">
-                <Sparkles size={11} />
-                <span>AI Template</span>
-              </div>
+              {hasPrime && (
+                <div className="lmd-ai-badge">
+                  <Sparkles size={11} />
+                  <span>AI Template</span>
+                </div>
+              )}
             </div>
 
-            <div className="lmd-ai-toolbar">
-              <div className="lmd-ai-toolbar-left">
-                <div className="lmd-ai-toolbar-glyph">
-                  <Sparkles size={13} />
-                </div>
-                <div className="lmd-ai-toolbar-copy">
-                  <div className="lmd-ai-toolbar-title">AI Writing Assistant</div>
-                  <div className="lmd-ai-toolbar-sub">
-                    Polish tone, expand detail, or fix grammar in one click.
+            {hasPrime && (
+              <div className="lmd-ai-toolbar">
+                <div className="lmd-ai-toolbar-left">
+                  <div className="lmd-ai-toolbar-glyph">
+                    <Sparkles size={13} />
+                  </div>
+                  <div className="lmd-ai-toolbar-copy">
+                    <div className="lmd-ai-toolbar-title">AI Writing Assistant</div>
+                    <div className="lmd-ai-toolbar-sub">
+                      Polish tone, expand detail, or fix grammar in one click.
+                    </div>
                   </div>
                 </div>
+                <div className="lmd-ai-toolbar-actions">
+                  <button
+                    type="button"
+                    onClick={handleEnhanceContent}
+                    disabled={enhancing || correcting}
+                    className="lmd-ai-action lmd-ai-action--primary"
+                  >
+                    {enhancing ? (
+                      <Loader2 size={13} className="lmd-spin" />
+                    ) : (
+                      <Wand2 size={13} />
+                    )}
+                    <span>{enhancing ? "Enhancing…" : "Enhance content"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCorrectGrammar}
+                    disabled={enhancing || correcting}
+                    className="lmd-ai-action"
+                  >
+                    {correcting ? (
+                      <Loader2 size={13} className="lmd-spin" />
+                    ) : (
+                      <SpellCheck2 size={13} />
+                    )}
+                    <span>{correcting ? "Correcting…" : "Correct grammar"}</span>
+                  </button>
+                </div>
               </div>
-              <div className="lmd-ai-toolbar-actions">
-                <button
-                  type="button"
-                  onClick={handleEnhanceContent}
-                  disabled={enhancing || correcting}
-                  className="lmd-ai-action lmd-ai-action--primary"
-                >
-                  {enhancing ? (
-                    <Loader2 size={13} className="lmd-spin" />
-                  ) : (
-                    <Wand2 size={13} />
-                  )}
-                  <span>{enhancing ? "Enhancing…" : "Enhance content"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCorrectGrammar}
-                  disabled={enhancing || correcting}
-                  className="lmd-ai-action"
-                >
-                  {correcting ? (
-                    <Loader2 size={13} className="lmd-spin" />
-                  ) : (
-                    <SpellCheck2 size={13} />
-                  )}
-                  <span>{correcting ? "Correcting…" : "Correct grammar"}</span>
-                </button>
-              </div>
-            </div>
+            )}
 
             <Form.Item
               name="body"

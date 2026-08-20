@@ -7,9 +7,11 @@ interface TimeTrackerState {
   isLoading: boolean;
   isPopoverOpen: boolean;
   refreshTrigger: number;
+  serverTimeOffset: number;
   
   // Actions
   setPopoverOpen: (open: boolean) => void;
+  setServerTimeOffset: (offset: number) => void;
   fetchActiveTimer: () => Promise<void>;
   startTimer: (data: Partial<TimeTrackingEntry>) => Promise<void>;
   startMultipleTimers: (dataArray: Partial<TimeTrackingEntry>[]) => Promise<void>;
@@ -31,8 +33,10 @@ export const useTimeTrackerStore = create<TimeTrackerState>((set, get) => ({
   isLoading: false,
   isPopoverOpen: false,
   refreshTrigger: 0,
+  serverTimeOffset: 0,
 
   setPopoverOpen: (open) => set({ isPopoverOpen: open }),
+  setServerTimeOffset: (offset) => set({ serverTimeOffset: offset }),
 
   fetchActiveTimer: async () => {
     try {

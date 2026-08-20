@@ -80,6 +80,12 @@ export default function StateStatutoryPanel() {
   const [lwf, setLwf] = useState<LwfState[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalPt, setTotalPt] = useState(0);
+  const [totalLwf, setTotalLwf] = useState(0);
 
   // PT drawer
   const [ptOpen, setPtOpen] = useState(false);
@@ -97,15 +103,26 @@ export default function StateStatutoryPanel() {
   const [lEe, setLEe] = useState(0); const [lEr, setLEr] = useState(0);
   const [lFreq, setLFreq] = useState<LwfFrequency>('half_yearly'); const [lActive, setLActive] = useState(true);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const load = useCallback(async (p = page, l = pageSize, s = debouncedSearch) => {
     setLoading(true);
     try {
-      const [pt, l] = await Promise.all([PayrollV2Service.listPtStates(true), PayrollV2Service.listLwf(true)]);
-      setPtStates(pt); setLwf(l);
+      const [ptRes, lwfRes] = await Promise.all([
+        PayrollV2Service.listPtStates({ page: p, limit: l, search: s }),
+        PayrollV2Service.listLwf({ page: p, limit: l, search: s })
+      ]);
+      setPtStates(ptRes.data);
+      setTotalPt(ptRes.pagination.total);
+      setLwf(lwfRes.data);
+      setTotalLwf(lwfRes.pagination.total);
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load state statutory config');
     } finally { setLoading(false); }
-  }, []);
+  }, [page, pageSize, debouncedSearch]);
   useEffect(() => { if (canReadPayrollStateStatutory) load(); }, [canReadPayrollStateStatutory, load]);
 
   // ── PT handlers ────────────────────────────────────────────────────────────
@@ -180,18 +197,13 @@ export default function StateStatutoryPanel() {
   };
 
   // ── filtering / paging ─────────────────────────────────────────────────────
-  const q = search.trim().toLowerCase();
-  const filteredPt = useMemo(() => ptStates.filter((r) => !q || r.state.toLowerCase().includes(q)), [ptStates, q]);
-  const filteredLwf = useMemo(() => lwf.filter((r) => !q || r.state.toLowerCase().includes(q)), [lwf, q]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setPage(1); }, [view, search, pageSize]);
-  const activeRows: any[] = view === 'pt' ? filteredPt : filteredLwf;
-  const total = activeRows.length;
+  const activeRows: any[] = view === 'pt' ? ptStates : lwf;
+  const total = view === 'pt' ? totalPt : totalLwf;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const pageEnd = Math.min(total, page * pageSize);
-  const pagedRows = activeRows.slice((page - 1) * pageSize, page * pageSize);
+  const pagedRows = activeRows;
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [pageCount, page]);
 
   const ptColumns: ColumnsType<PtStateListItem> = [
@@ -284,7 +296,7 @@ export default function StateStatutoryPanel() {
             <SearchOutlined className="pvss-search-icon" />
             <input className="pvss-search" placeholder="Search state…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="pvss-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="pvss-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreatePayrollStateStatutory && <Button type="primary" icon={<PlusOutlined />} onClick={onNew} className="pvss-add-btn">{view === 'pt' ? 'New PT State' : 'New LWF State'}</Button>}
         </div>
       </div>
@@ -292,10 +304,10 @@ export default function StateStatutoryPanel() {
       <div className="pvss-toolbar">
         <div className="pvss-tabs">
           <button type="button" className={`pvss-tab ${view === 'pt' ? 'is-active' : ''}`} onClick={() => setView('pt')}>
-            <ProfileOutlined /><span>Professional Tax ({ptStates.length})</span>
+            <ProfileOutlined /><span>Professional Tax ({totalPt})</span>
           </button>
           <button type="button" className={`pvss-tab ${view === 'lwf' ? 'is-active' : ''}`} onClick={() => setView('lwf')}>
-            <SafetyOutlined /><span>LWF ({lwf.length})</span>
+            <SafetyOutlined /><span>LWF ({totalLwf})</span>
           </button>
         </div>
         <span className="pvss-count">{total} shown</span>

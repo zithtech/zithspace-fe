@@ -1291,13 +1291,49 @@ const DocumentHubPage = () => {
 
   if (!canReadDocument) return null;
 
-  const totalDocCount = documentHubs.reduce(
-    (acc, h) => acc + (h.treeNodes?.filter((n) => n.type === 'file').length || 0),
+  const statsHubs = useMemo(() => {
+    let result = documentHubs;
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      result = result.filter(h => h.name.toLowerCase().includes(lower));
+    }
+    if (savedView === 'mine') {
+      result = result.filter(h => h.createdById === user?.id);
+    } else if (savedView === 'shared') {
+      result = result.filter(h => h.createdById !== user?.id);
+    } else if (savedView === 'public') {
+      result = result.filter(h => h.visibility === 'public');
+    } else if (savedView === 'starred') {
+      result = result.filter(h => isHubStarred(h));
+    }
+    if (filterProjectId) {
+      result = result.filter(h => h.projectId === filterProjectId);
+    }
+    if (filterTicketId) {
+      result = result.filter(h => h.ticketId === filterTicketId);
+    }
+    if (selectedUser) {
+      result = result.filter(h => h.createdById === selectedUser);
+    }
+    if (dateRange?.[0] && dateRange?.[1]) {
+      const start = dateRange[0].toDate().getTime();
+      const end = dateRange[1].toDate().getTime();
+      result = result.filter(h => {
+        const time = new Date(h.createdAt).getTime();
+        return time >= start && time <= end;
+      });
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentHubs, searchText, savedView, user?.id, optimisticStarred, filterProjectId, filterTicketId, selectedUser, dateRange]);
+
+  const totalDocCount = statsHubs.reduce(
+    (acc, h) => acc + (h.treeNodes?.filter((n: any) => n.type === 'file').length || 0),
     0,
   );
-  const lastUpdated = documentHubs.length
+  const lastUpdated = statsHubs.length
     ? formatDistanceToNow(
-      documentHubs.reduce(
+      statsHubs.reduce(
         (acc, h) => (new Date(h.updatedAt) > acc ? new Date(h.updatedAt) : acc),
         new Date(0),
       ),
@@ -2478,7 +2514,7 @@ const DocumentHubPage = () => {
             <div className="dh-main-stats">
               <span className="inline-flex items-center gap-1.5">
                 <span className="dh-pulse-dot" />
-                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
+                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{statsHubs.length}</span> hubs
               </span>
               <span style={{ color: 'var(--text-slate-300)' }}>·</span>
               <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs</span>
@@ -2653,7 +2689,7 @@ const DocumentHubPage = () => {
             {/* Compact stats strip */}
             <div className="dh-stats-wrap">
               <DocumentHubDashboard
-                documentHubs={documentHubs}
+                documentHubs={statsHubs}
                 isLoading={hubsLoading || hubsFetching}
                 onHubClick={openHub}
                 onShareHub={handleShareHub}

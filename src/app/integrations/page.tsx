@@ -2,7 +2,7 @@
 "use client";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Space, Typography, Card, Button, Badge, Row, Col, message, Modal, Input, Tabs, Tag, Dropdown, Avatar, Tooltip, App } from "antd";
 const { Title, Text, Paragraph } = Typography;
@@ -58,7 +58,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { AlertCircle } from "lucide-react";
 import ZukvoLoader from '@/components/common/ZukvoLoader';
 
-export default function IntegrationPage() {
+function IntegrationContent() {
   useActivitySource({ section: "HOME", module: "Integrations", page: "IntegrationPage" });
   const { modal, message: messageApi } = App.useApp();
   const { canReadMail, canReadCalendar } = usePermission();
@@ -542,5 +542,19 @@ export default function IntegrationPage() {
         `}} />
       </div>
     </MainLayout>
+  );
+}
+
+export default function IntegrationPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <ZukvoLoader size="lg" message="Loading..." />
+        </div>
+      </MainLayout>
+    }>
+      <IntegrationContent />
+    </Suspense>
   );
 }

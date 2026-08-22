@@ -367,6 +367,7 @@ export class ProjectService {
       position: string;
       workEmail: string;
       isProjectManager: boolean;
+      avatarUrl?: string | null;
     }>
   > {
     try {
@@ -377,6 +378,7 @@ export class ProjectService {
           position: string;
           workEmail: string;
           isProjectManager: boolean;
+          avatarUrl?: string | null;
         }>
       >(`/api/projects/${projectId}/members`);
     } catch (error) {

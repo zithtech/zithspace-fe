@@ -130,7 +130,7 @@ function TestRunsContent() {
 
   const filteredSuites = useMemo(() => {
     if (!formData?.module_id) return suites;
-    return suites.filter((s: any) => s.module_id === formData.module_id);
+    return suites.filter((s: any) => s.parent_test_case_id === formData.module_id);
   }, [suites, formData?.module_id]);
 
   /** The suite chosen in the create drawer, for the coverage preview. */
@@ -159,7 +159,7 @@ function TestRunsContent() {
           }
         }),
         axios.get("/api/v2/qa/suites/all?limit=1000"),
-        axios.get("/api/v2/qa/modules?limit=1000"),
+        axios.get("/api/v2/qa/test-cases/parents?limit=1000"),
         axios.get("/api/v2/qa/test-scopes?limit=1000"),
       ]);
       const body = (runsRes as any).data;
@@ -288,8 +288,8 @@ function TestRunsContent() {
 
   const moduleNameOf = (record: any) => {
     const suite = suites.find(s => s.id === record.suite_id);
-    const mod = modules.find(m => m.id === suite?.module_id);
-    return mod?.module_name || mod?.name || 'Unassigned';
+    const mod = modules.find(m => m.id === suite?.parent_test_case_id);
+    return mod?.name || mod?.title || 'Unassigned';
   };
 
   /** Executed vs total for a run, plus the derived percentage. */
@@ -441,8 +441,8 @@ function TestRunsContent() {
               <Tag color="purple" style={{ margin: 0 }}>
                 {(() => {
                   const s = suites.find(suite => suite.id === r.suite_id);
-                  const mod = modules.find(m => m.id === s?.module_id);
-                  return mod?.module_name || mod?.name || 'Unassigned';
+                  const mod = modules.find(m => m.id === s?.parent_test_case_id);
+                  return mod?.name || mod?.title || 'Unassigned';
                 })()}
               </Tag>
             </span>
@@ -1127,7 +1127,7 @@ function TestRunsContent() {
             <div className="rd__field">
               <label className="rd__label">Module</label>
               <SearchableDropdown
-                options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                options={modules.map(m => ({ value: m.id, label: m.name || m.title || "Unnamed Module" }))}
                 value={formData.module_id}
                 onChange={(val) => setFormData({ ...formData, module_id: val, suite_id: undefined })}
                 placeholder="All modules"

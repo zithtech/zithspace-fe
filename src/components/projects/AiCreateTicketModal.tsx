@@ -29,6 +29,7 @@ import {
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useCreateTicket } from "@/hooks/useTickets";
+import { useProjectMembers } from "@/hooks/useGlobalData";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
 import TiptapEditor from "@/components/common/TiptapEditor";
@@ -113,7 +114,7 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
   // Original AI hours estimate, kept around so "AI" mode can restore it.
   const [aiEstimatedHours, setAiEstimatedHours] = useState<number>(0);
   // Project member list for the assignee dropdown.
-  const [projectMembers, setProjectMembers] = useState<Array<{ value: string; label: string }>>([]);
+  const { data: projectMembers = [] } = useProjectMembers(projectId);
   // Selected assignee — kept separate from `draft` since the AI doesn't generate it.
   const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined);
   // Which estimation strategy the user picked. Defaults to "hybrid" — Zai's
@@ -145,24 +146,7 @@ export const AiCreateTicketModal: React.FC<AiCreateTicketModalProps> = ({
     }
   }, [open]);
 
-  // Fetch the project's members once when the modal opens, so the Assignee
-  // dropdown is populated by the time the user reaches the preview step.
-  useEffect(() => {
-    if (!open || !projectId) return;
-    let cancelled = false;
-    ProjectService.getProjectMembers(projectId)
-      .then((members) => {
-        if (cancelled) return;
-        setProjectMembers(Array.isArray(members) ? members : []);
-      })
-      .catch((err) => {
-        console.error("Failed to load project members:", err);
-        if (!cancelled) setProjectMembers([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, projectId]);
+  // Removed manual project members fetch
 
   const canGenerate = useMemo(() => description.trim().length >= 5, [description]);
 

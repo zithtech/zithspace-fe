@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 // StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
 import { useRouter } from "next/navigation";
+import JiraIntegrationCard from "@/components/jira/JiraIntegrationCard";
 
 interface ProviderConfig {
   key: CalendarProvider;
@@ -363,6 +364,13 @@ export default function IntegrationPage() {
                 );
               })}
             </Row>
+            <Title level={5} style={{ marginTop: 40, marginBottom: 20, color: "var(--text-primary)" }}>Project Management Integrations</Title>
+            <Row gutter={[16, 16]} justify="start">
+              <Col xs={24} sm={24} md={12} lg={8}>
+                <JiraIntegrationCard />
+              </Col>
+            </Row>
+
           </div>
         </div>
         <style dangerouslySetInnerHTML={{

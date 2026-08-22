@@ -301,7 +301,7 @@ function BugRow({
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
   const creatorId = bug.createdBy?.id || bug.createdById;
-  const ticketLinked = !!bug.ticketId;
+  const ticketLinked = !!bug.ticketId || !!bug.linearIssueIdentifier;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -430,7 +430,19 @@ function BugRow({
       </td>
 
       <td className="hb-col-ticket">
-        {bug.ticketNumber ? (
+        {bug.linearIssueUrl ? (
+          <a
+            href={bug.linearIssueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hb-ticket-link"
+            onClick={(e) => e.stopPropagation()}
+            style={{ color: '#5E6AD2', borderColor: '#5E6AD2', textDecoration: 'none' }}
+          >
+            <LinkIcon size={11} />
+            {bug.linearIssueIdentifier || "Linear Issue"}
+          </a>
+        ) : bug.ticketNumber ? (
           <button
             type="button"
             className={`hb-ticket-link ${bug.ticketStatus?.toLowerCase() === 'live' ? 'is-live' : ''}`}

@@ -19,7 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 
 // StatCard removed
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
-import { useRouter } from "next/navigation";
+import { LinearService } from "@/services/linearService";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface ProviderConfig {
   key: CalendarProvider;
@@ -104,6 +105,15 @@ export default function IntegrationPage() {
       }
     }
     setStatuses(newStatuses);
+    
+    // Fetch Linear status
+    try {
+      const linearStatus = await LinearService.getStatus();
+      setLinearConnected(linearStatus.connected);
+    } catch (error) {
+      console.error("Failed to fetch Linear status:", error);
+      setLinearConnected(false);
+    }
   };
 
   useEffect(() => {
@@ -113,6 +123,22 @@ export default function IntegrationPage() {
   }, [canReadMail, canReadCalendar]);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [linearConnected, setLinearConnected] = useState(false);
+  const [linearLoading, setLinearLoading] = useState(false);
+
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+    
+    if (success === "linear_connected") {
+      messageApi.success("Successfully connected to Linear!");
+      router.replace("/integrations");
+    } else if (error) {
+      messageApi.error(`Failed to connect to Linear: ${error}`);
+      router.replace("/integrations");
+    }
+  }, [searchParams, messageApi, router]);
 
   const hasShownError = React.useRef(false);
   useEffect(() => {
@@ -188,6 +214,30 @@ export default function IntegrationPage() {
       messageApi.error(error.message || `Failed to disconnect ${provider}`);
     } finally {
       setLoading(prev => ({ ...prev, [provider]: false }));
+    }
+  };
+
+  const handleLinearConnect = async () => {
+    setLinearLoading(true);
+    try {
+      const url = await LinearService.getConnectUrl();
+      window.location.href = url;
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to connect to Linear");
+      setLinearLoading(false);
+    }
+  };
+
+  const handleLinearDisconnect = async () => {
+    setLinearLoading(true);
+    try {
+      await LinearService.disconnect();
+      messageApi.success("Linear disconnected successfully");
+      await fetchStatuses();
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to disconnect Linear");
+    } finally {
+      setLinearLoading(false);
     }
   };
 
@@ -364,6 +414,125 @@ export default function IntegrationPage() {
               })}
             </Row>
           </div>
+          
+          {(() => {
+            const linearName = "Linear";
+            const linearDesc = "Connect Linear to sync and manage tickets in Zukvo";
+            const matchesSearch = linearName.toLowerCase().includes(searchText.toLowerCase()) || linearDesc.toLowerCase().includes(searchText.toLowerCase());
+            const shouldShow = (activeTab === "all" && matchesSearch) || (activeTab === "disconnected" && matchesSearch && !linearConnected) || (activeTab === "connected" && matchesSearch && linearConnected);
+            
+            if (!shouldShow) return null;
+
+            return (
+              <div style={{ marginTop: 40 }}>
+                <Title level={5} style={{ marginBottom: 20, color: "var(--text-primary)" }}>Ticket Integration</Title>
+                <Row gutter={[16, 16]} justify="start">
+                  <Col xs={24} sm={24} md={12} lg={8}>
+                    <Card
+                      hoverable
+                      style={{
+                        borderRadius: 12,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-pure-white)',
+                        height: '100%',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                      styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', height: '100%' } }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 24 }}>
+                        <div style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 24,
+                          marginRight: 16,
+                          color: '#5E6AD2'
+                        }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM8.97541 16.4813L15.6888 7.31826L14.498 6.45264L7.78457 15.6157L8.97541 16.4813Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <Title level={5} style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            Linear
+                          </Title>
+                          <Text style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                            Connect Linear to sync and manage tickets in Zukvo
+                          </Text>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px 8px', marginTop: 'auto' }}>
+                        {linearConnected ? (
+                          <Dropdown
+                            menu={{ items: mockConnectedUsers }}
+                            trigger={['click']}
+                            placement="bottomLeft"
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', padding: '4px', borderRadius: '4px', transition: 'background 0.2s' }} className="connected-users-hover">
+                              <Users size={16} />
+                              <span>1 Connected</span>
+                              <ChevronDown size={14} />
+                            </div>
+                          </Dropdown>
+                        ) : (
+                          <Tag color="warning" style={{ borderRadius: 12, padding: '4px 12px', fontWeight: 600, fontSize: 12, margin: 0, border: 'none' }}>
+                            No accounts
+                          </Tag>
+                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {linearConnected ? (
+                            <Button
+                              onClick={handleLinearDisconnect}
+                              loading={linearLoading}
+                              size="small"
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                height: 28,
+                                padding: '0 12px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                borderColor: 'transparent'
+                              }}
+                            >
+                              Disconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              type="primary"
+                              icon={<Plug size={14} />}
+                              size="small"
+                              onClick={handleLinearConnect}
+                              loading={linearLoading}
+                              style={{
+                                borderRadius: 6,
+                                fontWeight: 500,
+                                background: '#5E6AD2',
+                                color: '#fff',
+                                borderColor: 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: 28,
+                                padding: '0 12px'
+                              }}
+                            >
+                              Connect
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            );
+          })()}
         </div>
         <style dangerouslySetInnerHTML={{
           __html: `

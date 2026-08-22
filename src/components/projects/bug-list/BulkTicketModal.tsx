@@ -397,10 +397,11 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
 // Mode picker
 // ───────────────────────────────────────────────────────────────────────────
 
-function ModePicker({
+export function ModePicker({
   count,
   createdCount,
   onClose,
@@ -408,16 +409,18 @@ function ModePicker({
   onAi,
   onMap,
   hasPrime,
-  hasGrid
+  hasGrid,
+  hideMap
 }: {
   count: number;
   createdCount: number;
   onClose: () => void;
   onManual: () => void;
   onAi: () => void;
-  onMap: () => void;
+  onMap?: () => void;
   hasPrime?: boolean;
   hasGrid?: boolean;
+  hideMap?: boolean;
 }) {
   return (
     <>
@@ -495,7 +498,7 @@ function ModePicker({
           </button>
         )}
 
-        {hasGrid !== false && (
+        {!hideMap && hasGrid !== false && (
           <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
             <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
               background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',

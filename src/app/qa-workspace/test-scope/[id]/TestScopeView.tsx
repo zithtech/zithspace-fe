@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import ScopeApiFlowsPanel from "@/components/yapiez/ScopeApiFlowsPanel";
 import { useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
 import { MembersService } from "@/services/membersService";
@@ -27,6 +28,7 @@ import {
   ZoomIn,
   Link2,
   ExternalLink,
+  Zap,
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { Drawer, Button, Dropdown, MenuProps, message, Tag as AntTag } from "antd";
@@ -498,6 +500,7 @@ const SECTIONS = [
   { id: "acceptance", label: "Acceptance Criteria" },
   { id: "exit", label: "Exit Criteria" },
   { id: "linked-items", label: "Linked Items" },
+  { id: "api-flows", label: "API Flows" },
   { id: "approver", label: "Approver" },
 ];
 
@@ -1558,6 +1561,17 @@ export default function TestScopeView({ id }: { id: string }) {
                   </ul>
                 );
               })()}
+            </Panel>
+          </section>
+        </SectionAnchor>
+
+        {/* Yapiez results for this scope. Read-only: Yapiez is its own module,
+            and this is the window QA Space keeps onto it. */}
+        <SectionAnchor id="api-flows" offset={stickyH}>
+          <section className="space-y-4">
+            <SectionTitle title="API Flows" icon={<Zap size={18} />} hint="Executed by Yapiez" />
+            <Panel padded={false}>
+              <ScopeApiFlowsPanel scopeId={id} />
             </Panel>
           </section>
         </SectionAnchor>

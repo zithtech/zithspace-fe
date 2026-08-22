@@ -101,6 +101,24 @@ export const Permissions = {
   QA_ANALYTICS_READ:      'qa.analytics.read',
   QA_MANAGE:       'qa.manage',
 
+  // Yapiez — API definition + flow execution; a sibling of QA Space, not a page
+  // inside it. Developers own the catalog, QA owns the flows built from it, and
+  // EXECUTE is separate again because running a flow sends real requests.
+  YAPIEZ_API_CREATE:    'yapiez.api.create',
+  YAPIEZ_API_READ:      'yapiez.api.read',
+  YAPIEZ_API_UPDATE:    'yapiez.api.update',
+  YAPIEZ_API_DELETE:    'yapiez.api.delete',
+  YAPIEZ_FLOW_CREATE:   'yapiez.flow.create',
+  YAPIEZ_FLOW_READ:     'yapiez.flow.read',
+  YAPIEZ_FLOW_UPDATE:   'yapiez.flow.update',
+  YAPIEZ_FLOW_DELETE:   'yapiez.flow.delete',
+  YAPIEZ_FLOW_EXECUTE:  'yapiez.flow.execute',
+  YAPIEZ_RUN_READ:      'yapiez.run.read',
+  YAPIEZ_RUN_DELETE:    'yapiez.run.delete',
+  YAPIEZ_ENV_READ:      'yapiez.environment.read',
+  YAPIEZ_ENV_MANAGE:    'yapiez.environment.manage',
+  YAPIEZ_MANAGE:        'yapiez.manage',
+
   // Attendance
   ATTENDANCE_CREATE: 'attendance.create',
   ATTENDANCE_READ:   'attendance.read',

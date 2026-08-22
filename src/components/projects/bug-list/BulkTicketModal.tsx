@@ -21,8 +21,8 @@ import {
   Split,
 } from "lucide-react";
 import { useBulkConvertBugsToTickets, useBulkMapBugsToTicket } from "@/hooks/useBugList";
-import { useUserProjects } from "@/hooks/useGlobalData";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+import SearchableDropdown from "@/components/common/SearchableDropdown";
+import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
@@ -53,7 +53,6 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const { theme } = useTheme();
   const convert = useBulkConvertBugsToTickets();
   const { data: projects } = useUserProjects();
-  const { users: members } = useMembersSelect();
 
   const { message } = App.useApp();
 
@@ -108,6 +107,9 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
+  // `members` will only populate once projectId is selected.
+  const { data: members = [] } = useProjectMembers(projectId);
+  
   const [assigneeId, setAssigneeId] = useState<string | undefined>();
   const [isAssigneeManuallyChanged, setIsAssigneeManuallyChanged] = useState(false);
 
@@ -395,10 +397,11 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
 // Mode picker
 // ───────────────────────────────────────────────────────────────────────────
 
-function ModePicker({
+export function ModePicker({
   count,
   createdCount,
   onClose,
@@ -406,16 +409,18 @@ function ModePicker({
   onAi,
   onMap,
   hasPrime,
-  hasGrid
+  hasGrid,
+  hideMap
 }: {
   count: number;
   createdCount: number;
   onClose: () => void;
   onManual: () => void;
   onAi: () => void;
-  onMap: () => void;
+  onMap?: () => void;
   hasPrime?: boolean;
   hasGrid?: boolean;
+  hideMap?: boolean;
 }) {
   return (
     <>
@@ -493,7 +498,7 @@ function ModePicker({
           </button>
         )}
 
-        {hasGrid !== false && (
+        {!hideMap && hasGrid !== false && (
           <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
             <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
               background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
@@ -735,39 +740,28 @@ function ManualWorkspace(p: ManualWorkspaceProps) {
 
                 <div className="hb-btm-row2">
                   <Field label="Project" required>
-                    <Select
-                      showSearch
+                    <SearchableDropdown
                       placeholder="Pick a project"
                       value={p.projectId}
                       onChange={(v) => p.onProjectId(v)}
-                      popupClassName={popupCls}
-                      style={{ width: "100%" }}
                       options={p.projects.map((pr) => ({
                         value: pr.value,
                         label: pr.code ? `${pr.code} · ${pr.label}` : pr.label,
                       }))}
-                      filterOption={(input, option) =>
-                        (option?.label as string)
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
+                      itemNoun="projects"
+                      hideAvatar
+                      className="sc-filters__field"
                     />
                   </Field>
                   <Field label="Assignee" optional>
-                    <Select
-                      allowClear
-                      showSearch
+                    <SearchableDropdown
                       placeholder="Unassigned"
                       value={p.assigneeId}
                       onChange={(v) => p.onAssigneeId(v)}
-                      popupClassName={popupCls}
-                      style={{ width: "100%" }}
                       options={p.members}
-                      filterOption={(input, option) =>
-                        (option?.label as string)
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
+                      itemNoun="members"
+                      showSelectedAvatar
+                      className="sc-filters__field"
                     />
                   </Field>
                 </div>

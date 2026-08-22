@@ -53,6 +53,7 @@ import {
   MenuOutlined,
   DownOutlined,
   CloseCircleOutlined,
+  CloudUploadOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import VisibilityModal from "@/components/documenthub/VisibilityModal";
@@ -77,6 +78,7 @@ import {
   Switch,
   Grid,
   Checkbox,
+  Radio,
   Pagination,
 } from "antd";
 import type { MenuProps } from "antd";
@@ -88,8 +90,9 @@ import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
+import ExternalDriveBrowserModal, { DriveProvider } from "@/components/documenthub/ExternalDriveBrowserModal";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
-import { Trash2 } from "lucide-react";
+import { Trash2, MonitorUp, HardDrive, Cloud, Book } from "lucide-react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -236,14 +239,16 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         title={ticketTooltip}
         placement="topLeft"
         mouseEnterDelay={0.2}
-        overlayInnerStyle={{
-          background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
-          backdropFilter: 'blur(8px)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          boxShadow: isDark
-            ? '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)'
-            : '0 10px 32px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08)',
+        styles={{
+          body: {
+            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+            backdropFilter: 'blur(8px)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            boxShadow: isDark
+              ? '0 10px 32px rgba(15,23,42,0.28), 0 0 0 1px rgba(255,255,255,0.06)'
+              : '0 10px 32px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.08)',
+          }
         }}
       >
         <div
@@ -770,6 +775,13 @@ const DocumentHubPage = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
 
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [uploadHubId, setUploadHubId] = useState<string | null>(null);
+  const [uploadProvider, setUploadProvider] = useState<DriveProvider | null>(null);
+
+  const [selectHubModalVisible, setSelectHubModalVisible] = useState(false);
+  const [pendingUploadProvider, setPendingUploadProvider] = useState<DriveProvider | null>(null);
+
   // View / saved-view state — persisted to localStorage so it survives reloads.
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [savedView, setSavedView] = useState<SavedView>('all');
@@ -1002,7 +1014,15 @@ const DocumentHubPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
       setModalVisible(false);
       form.resetFields();
-      router.push(`/documenthub/${data?.id}`);
+      
+      if (pendingUploadProvider) {
+        setUploadHubId(data?.id);
+        setUploadProvider(pendingUploadProvider);
+        setUploadModalVisible(true);
+        setPendingUploadProvider(null);
+      } else {
+        router.push(`/documenthub/${data?.id}`);
+      }
     } catch (error: any) {
       console.error("Failed to create document hub", error);
       messageApi.error(error?.message || "This hub name already exists.");
@@ -1271,13 +1291,49 @@ const DocumentHubPage = () => {
 
   if (!canReadDocument) return null;
 
-  const totalDocCount = documentHubs.reduce(
-    (acc, h) => acc + (h.treeNodes?.filter((n) => n.type === 'file').length || 0),
+  const statsHubs = useMemo(() => {
+    let result = documentHubs;
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      result = result.filter(h => h.name.toLowerCase().includes(lower));
+    }
+    if (savedView === 'mine') {
+      result = result.filter(h => h.createdById === user?.id);
+    } else if (savedView === 'shared') {
+      result = result.filter(h => h.createdById !== user?.id);
+    } else if (savedView === 'public') {
+      result = result.filter(h => h.visibility === 'public');
+    } else if (savedView === 'starred') {
+      result = result.filter(h => isHubStarred(h));
+    }
+    if (filterProjectId) {
+      result = result.filter(h => h.projectId === filterProjectId);
+    }
+    if (filterTicketId) {
+      result = result.filter(h => h.ticketId === filterTicketId);
+    }
+    if (selectedUser) {
+      result = result.filter(h => h.createdById === selectedUser);
+    }
+    if (dateRange?.[0] && dateRange?.[1]) {
+      const start = dateRange[0].toDate().getTime();
+      const end = dateRange[1].toDate().getTime();
+      result = result.filter(h => {
+        const time = new Date(h.createdAt).getTime();
+        return time >= start && time <= end;
+      });
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentHubs, searchText, savedView, user?.id, optimisticStarred, filterProjectId, filterTicketId, selectedUser, dateRange]);
+
+  const totalDocCount = statsHubs.reduce(
+    (acc, h) => acc + (h.treeNodes?.filter((n: any) => n.type === 'file').length || 0),
     0,
   );
-  const lastUpdated = documentHubs.length
+  const lastUpdated = statsHubs.length
     ? formatDistanceToNow(
-      documentHubs.reduce(
+      statsHubs.reduce(
         (acc, h) => (new Date(h.updatedAt) > acc ? new Date(h.updatedAt) : acc),
         new Date(0),
       ),
@@ -1463,15 +1519,15 @@ const DocumentHubPage = () => {
       render: (date) => (
         <Tooltip
           title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
-          overlayInnerStyle={{
-            background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
-            color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
-            fontSize: '11.5px',
-            borderRadius: 8,
-            padding: '6px 10px',
-            boxShadow: isDark
-              ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
-              : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+          styles={{
+            body: {
+              background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+              color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+              fontSize: '11.5px',
+              padding: '6px 10px',
+              borderRadius: 8,
+              boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(15,23,42,0.08)',
+            }
           }}
         >
           <div className="flex flex-col">
@@ -1497,15 +1553,15 @@ const DocumentHubPage = () => {
     //   render: (date) => (
     //     <Tooltip
     //       title={format(new Date(date), "EEEE, MMM d, yyyy h:mm a")}
-    //       overlayInnerStyle={{
-    //         background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
-    //         color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
-    //         fontSize: '11.5px',
-    //         borderRadius: 8,
-    //         padding: '6px 10px',
-    //         boxShadow: isDark
-    //           ? '0 6px 20px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06)'
-    //           : '0 6px 20px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06)',
+    //       styles={{
+    //         body: {
+    //           background: isDark ? 'rgba(15, 23, 42, 0.96)' : '#ffffff',
+    //           color: isDark ? 'rgba(255,255,255,0.88)' : 'var(--text-slate-700, #334155)',
+    //           fontSize: '11.5px',
+    //           padding: '6px 10px',
+    //           borderRadius: 8,
+    //           boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(15,23,42,0.08)',
+    //         }
     //       }}
     //     >
     //       <div className="flex flex-col">
@@ -1771,7 +1827,7 @@ const DocumentHubPage = () => {
       >
         <ZukvoLoadingOverlay loading={hubsLoading || hubsFetching} message="">
           <Table
-            columns={visibleColumns}
+            columns={[Table.EXPAND_COLUMN as any, ...visibleColumns]}
             dataSource={pagedHubs}
             rowKey="id"
             pagination={false}
@@ -1812,7 +1868,6 @@ const DocumentHubPage = () => {
                   <RightOutlined style={{ fontSize: 10 }} />
                 </button>
               ),
-              expandIconColumnIndex: 1,
               rowExpandable: () => true,
               expandedRowClassName: () => 'dh-expanded-row',
             }}
@@ -2459,7 +2514,7 @@ const DocumentHubPage = () => {
             <div className="dh-main-stats">
               <span className="inline-flex items-center gap-1.5">
                 <span className="dh-pulse-dot" />
-                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{documentHubs.length}</span> hubs
+                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{statsHubs.length}</span> hubs
               </span>
               <span style={{ color: 'var(--text-slate-300)' }}>·</span>
               <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs</span>
@@ -2472,6 +2527,94 @@ const DocumentHubPage = () => {
             </div>
 
             <div className="dh-main-controls">
+              <Dropdown
+                menu={{
+                  items: [
+                    { 
+                        key: 'my_computer', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}>
+                                    <MonitorUp className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Upload from My Computer</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Upload a local file</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('my_computer'); setSelectHubModalVisible(true); } 
+                    },
+                    { 
+                        key: 'google_drive', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                                    <HardDrive className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Google Drive</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Workspace</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('google_drive'); setSelectHubModalVisible(true); } 
+                    },
+                    { 
+                        key: 'zoho_drive', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
+                                    <Cloud className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Zoho Drive</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from WorkDrive</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('zoho_drive'); setSelectHubModalVisible(true); } 
+                    },
+                    { 
+                        key: 'microsoft_onedrive', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0078d4', background: 'rgba(0,120,212,0.12)' }}>
+                                    <Cloud className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from OneDrive</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Microsoft</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('microsoft_onedrive'); setSelectHubModalVisible(true); } 
+                    },
+                    { 
+                        key: 'notion', 
+                        label: (
+                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
+                                    <Book className="w-4 h-4" />
+                                </span>
+                                <span className="flex flex-col min-w-0 leading-tight">
+                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Notion</span>
+                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Notion workspace</span>
+                                </span>
+                            </div>
+                        ),
+                        onClick: () => { setPendingUploadProvider('notion'); setSelectHubModalVisible(true); } 
+                    },
+                  ]
+                }}
+                trigger={['click']}
+                placement="bottomRight"
+                overlayClassName="dh-action-pop"
+              >
+                <Button icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
+                  Upload
+                </Button>
+              </Dropdown>
               <div className="dh-segmented">
                 <button type="button" className={viewMode === 'cards' ? 'is-active' : ''} onClick={() => setViewMode('cards')} aria-label="Cards view"><AppstoreOutlined /></button>
                 <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="Table view"><UnorderedListOutlined /></button>
@@ -2546,7 +2689,7 @@ const DocumentHubPage = () => {
             {/* Compact stats strip */}
             <div className="dh-stats-wrap">
               <DocumentHubDashboard
-                documentHubs={documentHubs}
+                documentHubs={statsHubs}
                 isLoading={hubsLoading || hubsFetching}
                 onHubClick={openHub}
                 onShareHub={handleShareHub}
@@ -2768,6 +2911,7 @@ const DocumentHubPage = () => {
                 they show up alongside it everywhere else in Zukvo.
               </span>
             </div>
+
           </Form>
         </div>
 
@@ -2846,6 +2990,63 @@ const DocumentHubPage = () => {
           router.push(`/documenthub/${hubId}`);
         }}
       />
+
+        {/* Select Hub Modal */}
+        <Modal
+          title="Select Destination Hub"
+          open={selectHubModalVisible}
+          onCancel={() => { setSelectHubModalVisible(false); setPendingUploadProvider(null); }}
+          footer={null}
+          destroyOnHidden
+          width={450}
+        >
+          <div className="mb-4 text-[13px]" style={{ color: 'var(--text-slate-500)' }}>
+            Please select an existing Document Hub to upload your files to, or create a new one.
+          </div>
+          <Form onFinish={(values) => {
+            setUploadHubId(values.hubId);
+            setUploadProvider(pendingUploadProvider);
+            setUploadModalVisible(true);
+            setSelectHubModalVisible(false);
+            setPendingUploadProvider(null);
+          }}>
+            <Form.Item name="hubId" rules={[{ required: true, message: 'Please select a hub' }]}>
+              <SearchableDropdown
+                options={documentHubs.map(h => ({ value: h.id, label: h.name }))}
+                placeholder="Select a Document Hub"
+                className="w-full"
+              />
+            </Form.Item>
+            <div className="flex flex-col gap-2 mt-6">
+              <Button type="primary" htmlType="submit" block>
+                Continue
+              </Button>
+              <Divider style={{ margin: '8px 0', fontSize: 12, color: 'var(--text-slate-400)' }} plain>OR</Divider>
+              <Button block onClick={() => {
+                setSelectHubModalVisible(false);
+                setModalVisible(true);
+              }}>
+                Create New Hub
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+
+        {uploadModalVisible && uploadHubId && uploadProvider && (
+        <ExternalDriveBrowserModal
+          open={uploadModalVisible}
+          onClose={() => {
+            setUploadModalVisible(false);
+            router.push(`/documenthub/${uploadHubId}`);
+          }}
+          hubId={uploadHubId}
+          provider={uploadProvider}
+          onImportComplete={() => {
+            setUploadModalVisible(false);
+            router.push(`/documenthub/${uploadHubId}`);
+          }}
+        />
+      )}
 
       {/* === #A Floating bulk actions bar === */}
       <div
@@ -4541,6 +4742,28 @@ const DocumentHubPage = () => {
         .create-document-menu .ant-dropdown-menu-item:hover {
           background: var(--bg-slate-50) !important;
         }
+
+        .dh-action-pop .ant-dropdown-menu {
+          padding: 6px; border-radius: 0 !important; min-width: 236px;
+          overflow: hidden !important;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-100);
+          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+        }
+        .dh-action-pop .ant-dropdown-menu-item {
+          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
+          transition: background .12s ease;
+        }
+        .dh-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+        [data-theme='dark'] .dh-action-pop .ant-dropdown-menu {
+          background: #0B0F1A !important;
+          border-radius: 0 !important;
+          overflow: hidden !important;
+          border: 1px solid #1E293B !important;
+        }
+        [data-theme='dark'] .dh-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+        [data-theme='dark'] .dh-action-pop .text-slate-900 { color: #cbd5e1 !important; }
+        [data-theme='dark'] .dh-action-pop .text-slate-400 { color: #64748b !important; }
       `}</style>
     </MainLayout>
   );

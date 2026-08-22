@@ -103,7 +103,7 @@ import {
 } from "@/utils/ticketUtils";
 import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket, useAllTicketTags } from "@/hooks/useTickets";
-import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
+import { useAllProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -481,7 +481,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Use cached global data hooks
   const { data: projects = [], isLoading: projectsLoading } = useAllProjects();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
 
   // Pagination state
   const [pagination, setPagination] = useState({

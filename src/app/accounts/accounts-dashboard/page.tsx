@@ -202,7 +202,8 @@ export default function AccountsPage() {
   const searchRef = useRef<any>(null);
 
   // Expense categories
-  const { data: expenseCategories = [], isLoading: categoriesLoading } = useExpenseCategories();
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useExpenseCategories();
+  const expenseCategories = categoriesResponse?.data || [];
 
   const memberOptions = useMemo(() => {
     return members.map((member) => ({
@@ -214,7 +215,7 @@ export default function AccountsPage() {
   }, [members]);
 
   const categoryOptions = useMemo(() => {
-    return expenseCategories.map((category) => ({
+    return expenseCategories.map((category: any) => ({
       value: category.name,
       label: category.name,
     }));
@@ -848,7 +849,7 @@ export default function AccountsPage() {
                 itemNoun="categories"
                 value={categoryFilter ?? undefined}
                 onChange={(v) => setCategoryFilter(v ?? undefined)}
-                options={expenseCategories.map((c) => ({ value: c.name, label: c.name }))}
+                options={expenseCategories.map((c: any) => ({ value: c.name, label: c.name }))}
                 width={212}
                 disabled={expenseCategories.length === 0}
               />

@@ -10,6 +10,7 @@ import OpeningV2Service, {
   type SuggestionGroup,
 } from '@/services/openingV2Service';
 import { PALETTE, TINT } from './ui';
+import { useAuth } from '@/context/AuthContext';
 
 // A textarea with two AI affordances, and a deliberate difference between them:
 //
@@ -44,6 +45,8 @@ export default function AiAssistTextArea({
   disabled,
 }: Props) {
   const { message } = App.useApp();
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_openings_dashboard_prime');
 
   const [grammarBusy, setGrammarBusy] = useState(false);
   const [enhanceBusy, setEnhanceBusy] = useState(false);
@@ -198,37 +201,39 @@ export default function AiAssistTextArea({
 
   return (
     <div className="omai">
-      <div className="omai-bar">
-        {previous !== null && (
-          <Tooltip title="Undo the AI change">
-            <Button size="small" type="text" icon={<Undo2 size={13} />} onClick={undo}>
-              Undo
+      {hasPrime && (
+        <div className="omai-bar">
+          {previous !== null && (
+            <Tooltip title="Undo the AI change">
+              <Button size="small" type="text" icon={<Undo2 size={13} />} onClick={undo}>
+                Undo
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title="Fix spelling and grammar only — your wording is kept">
+            <Button
+              size="small"
+              icon={<SpellCheck2 size={13} />}
+              loading={grammarBusy}
+              disabled={disabled}
+              onClick={runGrammar}
+            >
+              Grammar
             </Button>
           </Tooltip>
-        )}
-        <Tooltip title="Fix spelling and grammar only — your wording is kept">
-          <Button
-            size="small"
-            icon={<SpellCheck2 size={13} />}
-            loading={grammarBusy}
-            disabled={disabled}
-            onClick={runGrammar}
-          >
-            Grammar
-          </Button>
-        </Tooltip>
-        <Tooltip title="Pick suggested skills and themes, then write the content">
-          <Button
-            size="small"
-            icon={<Sparkles size={13} />}
-            disabled={disabled}
-            onClick={openPicker}
-            className="omai-enhance"
-          >
-            Enhance content
-          </Button>
-        </Tooltip>
-      </div>
+          <Tooltip title="Pick suggested skills and themes, then write the content">
+            <Button
+              size="small"
+              icon={<Sparkles size={13} />}
+              disabled={disabled}
+              onClick={openPicker}
+              className="omai-enhance"
+            >
+              Enhance content
+            </Button>
+          </Tooltip>
+        </div>
+      )}
 
       <Input.TextArea
         // Fixed rows hid most of a generated description behind a scrollbar.

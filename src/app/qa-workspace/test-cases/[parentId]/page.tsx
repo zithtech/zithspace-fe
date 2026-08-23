@@ -8,7 +8,7 @@ import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrum
 import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles, Menu } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -97,15 +97,13 @@ export default function ParentTestCaseDetailsPage() {
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  /** Set by clicking the Active / Automated / High-priority stat tiles. */
-  const [quickFilter, setQuickFilter] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter, sortOrder]);
+  }, [searchTerm, typeFilter, priorityFilter, statusFilter, sortOrder]);
 
   // Drawer state for Create / Edit Child Test Case
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -178,8 +176,7 @@ export default function ParentTestCaseDetailsPage() {
             test_type: typeFilter || undefined,
             priority: priorityFilter || undefined,
             status: statusFilter || undefined,
-            quickFilter: quickFilter || undefined,
-            sort: sortOrder // if sortOrder exists
+            sort: sortOrder || 'position_asc'
           }
         })
       ]);
@@ -200,7 +197,7 @@ export default function ParentTestCaseDetailsPage() {
     if (canReadCase && parentId) {
       fetchData();
     }
-  }, [canReadCase, parentId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, quickFilter, sortOrder]);
+  }, [canReadCase, parentId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, sortOrder]);
 
   /**
    * Draft the case from the tester's description. Only fills fields the user
@@ -468,15 +465,13 @@ export default function ParentTestCaseDetailsPage() {
   const typeFilterOptions = uniqueSorted(childCases.map(c => c.test_type || 'Functional'));
   const statusFilterOptions = uniqueSorted(childCases.map(c => c.status || 'Active'));
 
-  const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
-    (statusFilter ? 1 : 0) + (quickFilter ? 1 : 0);
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0);
   const clearFilters = () => {
     setSearchTerm('');
     setTypeFilter(undefined);
     setPriorityFilter(undefined);
     setStatusFilter(undefined);
-    setQuickFilter(undefined);
     setSortOrder("asc");
   };
 
@@ -985,8 +980,6 @@ export default function ParentTestCaseDetailsPage() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -1137,6 +1130,14 @@ export default function ParentTestCaseDetailsPage() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {canCreateCase && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
                   New Module Case
@@ -1154,22 +1155,8 @@ export default function ParentTestCaseDetailsPage() {
                 { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${childCases.length - automatedCount} still manual` },
                 { key: 'highPriority', label: "High / Critical", value: highPriorityCount, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Zap, sub: 'need the most attention' }
               ].map((stat, i) => {
-                const clickable = !!stat.key;
-                const isActive = stat.key ? quickFilter === stat.key : false;
                 return (
-                  <div
-                    key={`${stat.label}-${i}`}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={() => clickable && setQuickFilter(quickFilter === stat.key ? undefined : stat.key)}
-                    onKeyDown={(e) => {
-                      if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        setQuickFilter(quickFilter === stat.key ? undefined : stat.key);
-                      }
-                    }}
-                    className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
-                  >
+                  <div key={`${stat.label}-${i}`}>
                     <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
                 );

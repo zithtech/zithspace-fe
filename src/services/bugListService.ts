@@ -75,6 +75,9 @@ export interface BugListItem {
   ticketStatus?: string | null;
   isRecurring?: boolean;
   ticketHistory?: { ticketId: string; ticketNumber: string; status: string; timestamp: string }[];
+  linearIssueId?: string | null;
+  linearIssueUrl?: string | null;
+  linearIssueIdentifier?: string | null;
   /** Set when the bug was raised from a QA test run. */
   testCaseId?: string | null;
   testCaseRef?: string | null;
@@ -218,7 +221,10 @@ export interface BugConfigUpdateInput {
 export interface ConvertedTicket {
   ticketId: string;
   ticketNumber: string;
+  status: string;
+  timestamp: string;
   bugIds: string[];
+  url?: string;
 }
 
 class BugListService {

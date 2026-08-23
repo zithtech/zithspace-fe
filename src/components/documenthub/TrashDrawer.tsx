@@ -717,7 +717,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                                 showSearch
                                 optionFilterProp="label"
                                 style={{ borderRadius: 10 }}
-                                options={activeHubs.map((hub: DocumentHub) => ({
+                                options={(Array.isArray(activeHubs) ? activeHubs : (activeHubs as any)?.data || []).map((hub: DocumentHub) => ({
                                     value: hub.id,
                                     label: hub.name,
                                 }))}

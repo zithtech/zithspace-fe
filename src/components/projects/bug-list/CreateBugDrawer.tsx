@@ -32,6 +32,7 @@ import {
   History,
 } from "lucide-react";
 import TiptapEditor from "@/components/common/TiptapEditor";
+import { useAuth } from '@/context/AuthContext';
 
 const { Text } = Typography;
 import { useMembersSelect } from "@/hooks/useMembersSelect";
@@ -98,6 +99,8 @@ export default function CreateBugDrawer({
   submitting,
 }: Props) {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
   const { users: members } = useMembersSelect();
   const { canReadActivityLog } = usePermission();
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -525,18 +528,20 @@ export default function CreateBugDrawer({
                   />
                 </Form.Item>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
-                    <Button
-                      type="dashed"
-                      size="small"
-                      style={{ borderRadius: 8 }}
-                      icon={enhancingDescription ? <LoadingOutlined /> : <FormatPainterOutlined />}
-                      onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
-                      disabled={enhancingDescription || !description.trim()}
-                    >
-                      {enhancingDescription ? "Polishing…" : "Enhance grammar"}
-                    </Button>
-                  </div>
+                  {hasPrime && (
+                    <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}>
+                      <Button
+                        type="dashed"
+                        size="small"
+                        style={{ borderRadius: 8 }}
+                        icon={enhancingDescription ? <LoadingOutlined /> : <FormatPainterOutlined />}
+                        onClick={(e) => { e.preventDefault(); enhanceDescription(); }}
+                        disabled={enhancingDescription || !description.trim()}
+                      >
+                        {enhancingDescription ? "Polishing…" : "Enhance grammar"}
+                      </Button>
+                    </div>
+                  )}
                   <Form.Item labelCol={{ span: 24 }} wrapperCol={{ span: 24 }} label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Description</Text>} required validateStatus={description.trim().length === 0 && descriptionTouched ? 'error' : ''} help={description.trim().length === 0 && descriptionTouched ? 'Description is required' : ''}>
                     <div onBlur={() => setDescriptionTouched(true)}>
                       <TiptapEditor

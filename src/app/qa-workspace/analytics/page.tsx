@@ -29,6 +29,7 @@ import {
   Repeat2,
   Clock,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -327,8 +328,6 @@ function AnalyticsContent() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
         }
 
         @media (max-width: 480px) {
@@ -387,6 +386,14 @@ function AnalyticsContent() {
               </span>
             </div>
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={load}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {(tab === "overview" || tab === "defects") && (
                 <div className="pp-segmented" style={{ marginLeft: 0 }}>
                   {(["day", "week", "month"] as const).map((g) => (

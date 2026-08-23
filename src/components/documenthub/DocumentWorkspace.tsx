@@ -23,7 +23,11 @@ import {
     Info,
     User,
     Ticket,
-    CalendarDays
+    CalendarDays,
+    HardDrive,
+    Cloud,
+    MonitorUp,
+    Book
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
@@ -40,9 +44,11 @@ import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, Fullscreen
 import DocumentHistory from '@/components/common/DocumentHistory'
 import ShareModal from '@/components/documenthub/ShareModal'
 import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
+import ExternalDriveBrowserModal, { DriveProvider } from '@/components/documenthub/ExternalDriveBrowserModal'
 import { useAutosaveDocument } from '@/hooks/useAutosaveDocument'
 import { usePermission } from '@/hooks/usePermission'
 import { useActivitySource } from '@/hooks/useActivitySource'
+import { useAuth } from '@/context/AuthContext'
 import ConfirmDialog from '../common/ConfirmDialog'
 
 interface TreeItem extends DocumentTreeNode {
@@ -523,6 +529,9 @@ const SIDEBAR_DEFAULT_WIDTH = 260;
 const SIDEBAR_WIDTH_STORAGE_KEY = 'documenthub:sidebarWidth';
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
+    const { user } = useAuth();
+    const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+    const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_grid');
     const router = useRouter()
     const searchParams = useSearchParams()
     const { canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
@@ -587,7 +596,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [isAiEditOpen, setIsAiEditOpen] = useState(false);
     // AI toggle for the Create-Folder/File modal
-    const [useAiInAddModal, setUseAiInAddModal] = useState(false);
+    const [useAiInAddModal, setUseAiInAddModal] = useState(() => !hasGrid && hasPrime);
     const [isAiGenerating, setIsAiGenerating] = useState(false);
     const [selectedTreeNodeId, setSelectedTreeNodeId] = useState<string | null>(null);
 
@@ -596,6 +605,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [addNodeParentId, setAddNodeParentId] = useState<string | null>(null);
     const [addNodeType, setAddNodeType] = useState<'file' | 'folder'>('folder');
     const [isCreatingNode, setIsCreatingNode] = useState(false);
+    
+    // Upload Modal State
+    const [uploadModalVisible, setUploadModalVisible] = useState(false);
+    const [uploadProvider, setUploadProvider] = useState<"google_drive" | "zoho_drive" | "my_computer" | "microsoft_onedrive" | "notion">("my_computer");
+
     const form = Form.useForm()[0];
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
@@ -825,6 +839,41 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         //    newer than the server's last-known state, so overwriting would
         //    cause both cursor jumps AND data loss).
 
+        const sanitizeBlocks = (blocks: any[]): any[] => {
+            return blocks.map(block => {
+                if (block.type === 'file_attachment') {
+                    return {
+                        id: block.id,
+                        type: 'paragraph',
+                        props: {
+                            textColor: "default",
+                            backgroundColor: "default",
+                            textAlignment: "left"
+                        },
+                        content: [
+                            {
+                                type: 'link',
+                                href: block.props?.attachmentUrl || '#',
+                                content: [
+                                    {
+                                        type: 'text',
+                                        text: `📎 ${block.props?.fileName || 'Attached File'}`,
+                                        styles: { bold: true }
+                                    }
+                                ]
+                            }
+                        ],
+                        children: []
+                    };
+                }
+                return block;
+            });
+        };
+
+        if (contentToLoad.length > 0) {
+            contentToLoad = sanitizeBlocks(contentToLoad);
+        }
+
         try {
             const blocksToLoad =
                 contentToLoad.length > 0 ? contentToLoad : [{ type: 'paragraph', content: [] }];
@@ -1025,6 +1074,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     };
 
     const toggleExpand = (id: string) => {
+        setSelectedTreeNodeId(id);
         setExpandedIds(prev => {
             const next = new Set(prev)
             if (next.has(id)) {
@@ -1724,45 +1774,137 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 {/* New Document Button (Root Level) */}
                                 {canCreateDocument && (
                                     <div className="p-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
-                                        <Dropdown
-                                            menu={{
-                                                items: [
-                                                    {
-                                                        key: 'add-root-folder',
-                                                        label: 'New Folder',
-                                                        icon: <Folder className="w-4 h-4" />,
-                                                        onClick: () => handleAddNode(null, 'folder')
-                                                    },
-                                                    {
-                                                        key: 'add-root-file',
-                                                        label: 'New File',
-                                                        icon: <FileText className="w-4 h-4" />,
-                                                        onClick: () => handleAddNode(null, 'file')
-                                                    }
-                                                ]
-                                            }}
-                                            trigger={['click']}
-                                        >
-                                            <button
-                                                className="w-full flex items-center justify-center gap-2 px-4 py-[9px] text-[13px] font-medium rounded-lg transition-all duration-150"
-                                                style={{
-                                                    background: 'linear-gradient(135deg, var(--text-blue-700) 0%, rgba(99, 102, 241, 0.95) 100%)',
-                                                    color: '#ffffff',
-                                                    boxShadow: '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                                        <div className="flex gap-2">
+                                            <Dropdown
+                                                menu={{
+                                                    items: [
+                                                        { 
+                                                            key: 'my_computer', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}>
+                                                                        <MonitorUp className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">My Computer</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Upload a local file</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('my_computer'); setUploadModalVisible(true); } 
+                                                        },
+                                                        { 
+                                                            key: 'google_drive', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
+                                                                        <HardDrive className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Google Drive</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Import from Workspace</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('google_drive'); setUploadModalVisible(true); } 
+                                                        },
+                                                        { 
+                                                            key: 'zoho_drive', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
+                                                                        <Cloud className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Zoho Drive</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Import from WorkDrive</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('zoho_drive'); setUploadModalVisible(true); } 
+                                                        },
+                                                        { 
+                                                            key: 'microsoft_onedrive', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0078d4', background: 'rgba(0,120,212,0.12)' }}>
+                                                                        <Cloud className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">OneDrive</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Import from Microsoft</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('microsoft_onedrive'); setUploadModalVisible(true); } 
+                                                        },
+                                                        { 
+                                                            key: 'notion', 
+                                                            label: (
+                                                                <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
+                                                                    <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
+                                                                        <Book className="w-4 h-4" />
+                                                                    </span>
+                                                                    <span className="flex flex-col min-w-0 leading-tight">
+                                                                        <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Notion</span>
+                                                                        <span className="text-[11px] text-slate-400 mt-[1px]">Import from Notion</span>
+                                                                    </span>
+                                                                </div>
+                                                            ),
+                                                            onClick: () => { setUploadProvider('notion'); setUploadModalVisible(true); } 
+                                                        },
+                                                    ]
                                                 }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
-                                                    e.currentTarget.style.transform = 'translateY(0)';
-                                                }}
+                                                trigger={['click']}
+                                                placement="bottomRight"
+                                                overlayClassName="dh-action-pop"
                                             >
-                                                <Plus className="w-4 h-4" strokeWidth={2.5} />
-                                                New Item
-                                            </button>
-                                        </Dropdown>
+                                                <Button
+                                                    className="flex-1 flex items-center justify-center gap-1.5 font-medium border-slate-200"
+                                                >
+                                                    Upload
+                                                </Button>
+                                            </Dropdown>
+                                            <Dropdown
+                                                menu={{
+                                                    items: [
+                                                        {
+                                                            key: 'add-root-folder',
+                                                            label: 'New Folder',
+                                                            icon: <Folder className="w-4 h-4" />,
+                                                            onClick: () => handleAddNode(null, 'folder')
+                                                        },
+                                                        {
+                                                            key: 'add-root-file',
+                                                            label: 'New File',
+                                                            icon: <FileText className="w-4 h-4" />,
+                                                            onClick: () => handleAddNode(null, 'file')
+                                                        }
+                                                    ]
+                                                }}
+                                                trigger={['click']}
+                                            >
+                                                <button
+                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-[9px] text-[13px] font-medium rounded-lg transition-all duration-150"
+                                                    style={{
+                                                        background: 'linear-gradient(135deg, var(--text-blue-700) 0%, rgba(99, 102, 241, 0.95) 100%)',
+                                                        color: '#ffffff',
+                                                        boxShadow: '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                    }}
+                                                >
+                                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                                    New
+                                                </button>
+                                            </Dropdown>
+                                        </div>
                                     </div>
                                 )}
                             </>
@@ -1863,26 +2005,28 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 <>
                                     {canUpdateDocument && (
                                         <>
-                                            <Tooltip title="Generate or refine this page with Zai">
-                                                <Button
-                                                    onClick={() => setIsAiEditOpen(true)}
-                                                    style={{
-                                                        height: 32,
-                                                        borderRadius: 8,
-                                                        fontWeight: 600,
-                                                        paddingInline: 12,
-                                                        background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
-                                                        color: '#fff',
-                                                        border: 'none',
-                                                        boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
-                                                    }}
-                                                >
-                                                    <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
-                                                        <ThunderboltOutlined style={{ fontSize: 13 }} />
-                                                    </span>
-                                                    Create with Zai
-                                                </Button>
-                                            </Tooltip>
+                                            {hasPrime && (
+                                                <Tooltip title="Generate or refine this page with Zai">
+                                                    <Button
+                                                        onClick={() => setIsAiEditOpen(true)}
+                                                        style={{
+                                                            height: 32,
+                                                            borderRadius: 8,
+                                                            fontWeight: 600,
+                                                            paddingInline: 12,
+                                                            background: 'linear-gradient(135deg, #722ed1 0%, #391085 100%)',
+                                                            color: '#fff',
+                                                            border: 'none',
+                                                            boxShadow: '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)',
+                                                        }}
+                                                    >
+                                                        <span style={{ marginRight: 6, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <ThunderboltOutlined style={{ fontSize: 13 }} />
+                                                        </span>
+                                                        Create with Zai
+                                                    </Button>
+                                                </Tooltip>
+                                            )}
                                             <Button
                                                 type="primary"
                                                 icon={<SaveOutlined className="w-4 h-4" />}
@@ -2342,75 +2486,77 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Body */}
                 <div className="px-6 pt-4 pb-5">
                     {/* Mode switch */}
-                    <div
-                        className="flex items-center p-1 rounded-xl mb-5"
-                        style={{
-                            background: 'var(--bg-slate-50)',
-                            border: '1px solid var(--border-slate-200)',
-                        }}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setUseAiInAddModal(false);
-                                form.resetFields();
-                            }}
-                            disabled={isCreatingNode || isAiGenerating}
+                    {hasGrid && hasPrime && (
+                        <div
+                            className="flex items-center p-1 rounded-xl mb-5"
                             style={{
-                                flex: 1,
-                                padding: '7px 12px',
-                                borderRadius: 9,
-                                border: 'none',
-                                cursor:
-                                    isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                color: !useAiInAddModal
-                                    ? 'var(--text-slate-900)'
-                                    : 'var(--text-slate-600)',
-                                background: !useAiInAddModal ? 'var(--bg-pure-white)' : 'transparent',
-                                boxShadow: !useAiInAddModal
-                                    ? '0 1px 2px rgba(15, 23, 42, 0.06)'
-                                    : 'none',
-                                transition: 'all 0.15s',
+                                background: 'var(--bg-slate-50)',
+                                border: '1px solid var(--border-slate-200)',
                             }}
                         >
-                            Manual
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setUseAiInAddModal(true);
-                                form.resetFields();
-                            }}
-                            disabled={isCreatingNode || isAiGenerating}
-                            style={{
-                                flex: 1,
-                                padding: '7px 12px',
-                                borderRadius: 9,
-                                border: 'none',
-                                cursor:
-                                    isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
-                                fontSize: 12.5,
-                                fontWeight: 600,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6,
-                                color: useAiInAddModal ? '#fff' : 'var(--text-slate-600)',
-                                background: useAiInAddModal
-                                    ? 'linear-gradient(135deg, #722ed1 0%, #391085 100%)'
-                                    : 'transparent',
-                                boxShadow: useAiInAddModal
-                                    ? '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)'
-                                    : 'none',
-                                transition: 'all 0.15s',
-                            }}
-                        >
-                            <ThunderboltOutlined style={{ fontSize: 12 }} />
-                            Create with Zai
-                        </button>
-                    </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUseAiInAddModal(false);
+                                    form.resetFields();
+                                }}
+                                disabled={isCreatingNode || isAiGenerating}
+                                style={{
+                                    flex: 1,
+                                    padding: '7px 12px',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    cursor:
+                                        isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
+                                    fontSize: 12.5,
+                                    fontWeight: 600,
+                                    color: !useAiInAddModal
+                                        ? 'var(--text-slate-900)'
+                                        : 'var(--text-slate-600)',
+                                    background: !useAiInAddModal ? 'var(--bg-pure-white)' : 'transparent',
+                                    boxShadow: !useAiInAddModal
+                                        ? '0 1px 2px rgba(15, 23, 42, 0.06)'
+                                        : 'none',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                Manual
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUseAiInAddModal(true);
+                                    form.resetFields();
+                                }}
+                                disabled={isCreatingNode || isAiGenerating}
+                                style={{
+                                    flex: 1,
+                                    padding: '7px 12px',
+                                    borderRadius: 9,
+                                    border: 'none',
+                                    cursor:
+                                        isCreatingNode || isAiGenerating ? 'not-allowed' : 'pointer',
+                                    fontSize: 12.5,
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                    color: useAiInAddModal ? '#fff' : 'var(--text-slate-600)',
+                                    background: useAiInAddModal
+                                        ? 'linear-gradient(135deg, #722ed1 0%, #391085 100%)'
+                                        : 'transparent',
+                                    boxShadow: useAiInAddModal
+                                        ? '0 2px 8px rgba(114, 46, 209, 0.28), inset 0 1px 0 rgba(255,255,255,0.18)'
+                                        : 'none',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                <ThunderboltOutlined style={{ fontSize: 12 }} />
+                                Create with Zai
+                            </button>
+                        </div>
+                    )}
 
                     <Form form={form} layout="vertical" onFinish={handleCreateNode}>
                         {!useAiInAddModal ? (
@@ -2555,6 +2701,26 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </Button>
                 </div>
             </Modal>
+            
+            {uploadModalVisible && (
+                <ExternalDriveBrowserModal
+                    open={uploadModalVisible}
+                    onClose={() => setUploadModalVisible(false)}
+                    hubId={documentId as string}
+                    parentId={(() => {
+                        if (!selectedTreeNodeId) return null;
+                        const node = documentHub?.treeNodes?.find((n: any) => n.id === selectedTreeNodeId);
+                        if (!node) return null;
+                        if (node.type === 'folder' || node.type === 'section') return node.id;
+                        return node.parentId;
+                    })()}
+                    provider={uploadProvider}
+                    onImportComplete={() => {
+                        refetchHub();
+                    }}
+                />
+            )}
+            
             <style jsx global>{`
                 .dh-action-pop .ant-dropdown-menu {
                     padding: 6px; border-radius: 0 !important; min-width: 236px;

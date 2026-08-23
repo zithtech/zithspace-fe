@@ -7,6 +7,7 @@ import { Input, message } from "antd";
 import { ThunderboltOutlined, SendOutlined, CloseOutlined } from "@ant-design/icons";
 import { BlockNoteEditor } from "@blocknote/core";
 import { documentHubService as DocumentHubService } from "@/services/documentHub";
+import { useAuth } from "@/context/AuthContext";
 
 const PURPLE = "#722ed1";
 const PURPLE_DEEP = "#391085";
@@ -46,6 +47,9 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
   onChange,
   onRewrite,
 }) => {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -235,7 +239,7 @@ export const ZaiSelectionMenu: React.FC<ZaiSelectionMenuProps> = ({
     return { top, left };
   }, [anchor]);
 
-  if (!editor) return null;
+  if (!editor || !hasPrime) return null;
 
   return (
     <>

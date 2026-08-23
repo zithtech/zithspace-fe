@@ -7,7 +7,7 @@ import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOut
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink } from "lucide-react";
+import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
@@ -17,6 +17,7 @@ import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoade
 import { useTheme } from "@/context/ThemeContext";
 import { Line } from "@ant-design/plots";
 import dayjs from "dayjs";
+import { ProjectService } from "@/services/projectService";
 
 const { Text, Paragraph } = Typography;
 
@@ -251,11 +252,14 @@ function TestScopeContent() {
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
   const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [sortKey] = useState<string>('recent');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
+  // User's accessible projects — drives both dropdown options and visibility restriction
+  const [userProjects, setUserProjects] = useState<{ value: string; label: string }[]>([]);
 
   const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa, canApproveScope } = usePermission();
   const { user, isLoading } = useAuth();
@@ -264,10 +268,17 @@ function TestScopeContent() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
+  // Pre-fill the QA Owner filter with the current user's name once auth loads
+  useEffect(() => {
+    if (!isLoading && user?.name) {
+      setOwnerFilter(user.name);
+    }
+  }, [isLoading, user?.name]);
+
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter]);
+  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
 
   useEffect(() => {
     setMounted(true);
@@ -302,6 +313,9 @@ function TestScopeContent() {
           status: statusFilter || undefined,
           priority: priorityFilter || undefined,
           qa_owner: ownerFilter || undefined,
+          ...(projectFilter ? { product: projectFilter } : {}),
+          // Pass the user's accessible project names so the backend restricts visibility
+          ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
           sortBy: sortKey === 'endDate' ? 'endDate' : sortKey === 'name' ? 'name' : 'created_at',
           sortOrder: 'desc',
           isApproval: activeTab === 'approvals' ? 'true' : undefined
@@ -322,7 +336,7 @@ function TestScopeContent() {
     if (!isLoading && canReadScope) {
       fetchScopes();
     }
-  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, sortKey, activeTab]);
+  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey, activeTab]);
 
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
@@ -399,12 +413,33 @@ function TestScopeContent() {
       console.error("Failed to fetch settings", err);
     } finally { setSettingsLoading(false); }
   };
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchScopes(),
+        fetchStats(),
+        fetchScopeSettings()
+      ]);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
+  };
 
   // ── Initialisation effect: runs once auth is ready ────────────────────────
   useEffect(() => {
     if (!isLoading && canReadScope) {
       fetchScopeSettings();
       fetchStats();
+      // Fetch user's accessible projects for the visibility restriction + dropdown
+      ProjectService.getUserProjects(true)
+        .then((projects: any) => {
+          const list = Array.isArray(projects) ? projects : (projects?.data ?? []);
+          setUserProjects(
+            list.map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
+                .filter((p: any) => p.value)
+          );
+        })
+        .catch(console.error);
       axios.get("/api/release-plans").then((res: any) => {
         const data = Array.isArray(res) ? res : (res.data || []);
         const map: Record<string, string> = {};
@@ -755,19 +790,21 @@ function TestScopeContent() {
 
   const activeFilterCount =
     (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
-    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+    (timelineFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter(undefined);
     setPriorityFilter(undefined);
-    setOwnerFilter(undefined);
+    setOwnerFilter(user?.name || undefined);
     setTimelineFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
     .sort((a, b) => String(a).localeCompare(String(b)))
     .map(v => ({ value: String(v), label: String(v) }));
+
 
   // Server-side pagination state already handles fetching
   const pageStart = totalScopes === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -1414,8 +1451,6 @@ function TestScopeContent() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -1530,6 +1565,14 @@ function TestScopeContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={handleRefresh}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'settings' && canManageQa && (
                 <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
               )}
@@ -1579,6 +1622,15 @@ function TestScopeContent() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     allowClear
+                  />
+                  <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
                   />
                   <SearchableDropdown
                     options={statusOptions}
@@ -1715,6 +1767,28 @@ function TestScopeContent() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     allowClear
                   />
+                  <SearchableDropdown
+                    options={userProjects}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={statusOptions}
+                    value={statusFilter}
+                    onChange={(v) => setStatusFilter(v)}
+                    placeholder="All statuses"
+                    itemNoun="statuses"
+                    className="sc-filters__field"
+                  />
+                  {(searchTerm || projectFilter || statusFilter) && (
+                    <button type="button" className="sc-clear" onClick={() => { setSearchTerm(''); setProjectFilter(undefined); setStatusFilter(undefined); }}>
+                      Clear
+                    </button>
+                  )}
                 </div>
 
                 <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>

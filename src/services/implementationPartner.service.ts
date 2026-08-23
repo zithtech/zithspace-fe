@@ -73,7 +73,7 @@ export class ImplementationPartnerService {
             return await apiUtils.getPaginated<ImplementationPartner>('/api/implementation-partner', filters);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch implementation partners');
         }
@@ -88,7 +88,7 @@ export class ImplementationPartnerService {
             return response;
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch implementation partner');
         }
@@ -102,7 +102,7 @@ export class ImplementationPartnerService {
             return await api.post<ImplementationPartner>('/api/implementation-partner/create', data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to create implementation partner');
         }
@@ -116,7 +116,7 @@ export class ImplementationPartnerService {
             await api.put(`/api/implementation-partner/${id}`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to update implementation partner');
         }
@@ -130,7 +130,7 @@ export class ImplementationPartnerService {
             await api.delete(`/api/implementation-partner/${id}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete implementation partner');
         }
@@ -145,7 +145,7 @@ export class ImplementationPartnerService {
             return response;
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to add contact');
         }
@@ -159,7 +159,7 @@ export class ImplementationPartnerService {
             await api.delete(`/api/implementation-partner/contact/${contactId}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete contact');
         }
@@ -173,7 +173,7 @@ export class ImplementationPartnerService {
             await api.delete(`/api/implementation-partner/document/${documentId}`);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to delete document');
         }
@@ -187,7 +187,7 @@ export class ImplementationPartnerService {
             return await api.post<ImplementationDocument>(`/api/implementation-partner/${partnerId}/document`, data);
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to add document');
         }
@@ -202,7 +202,7 @@ export class ImplementationPartnerService {
             return response || [];
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch assigned clients');
         }
@@ -216,7 +216,7 @@ export class ImplementationPartnerService {
             await api.post(`/api/implementation-partner/${partnerId}/assign-client`, { clientId });
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to assign client');
         }
@@ -230,7 +230,7 @@ export class ImplementationPartnerService {
             await api.post(`/api/implementation-partner/${partnerId}/remove-client`, { clientId });
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to remove client');
         }
@@ -245,7 +245,7 @@ export class ImplementationPartnerService {
             return response || [];
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to fetch assigned vendors');
         }
@@ -259,7 +259,7 @@ export class ImplementationPartnerService {
             await api.post(`/api/implementation-partner/${partnerId}/assign-vendor`, { vendorId });
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to assign vendor');
         }
@@ -273,7 +273,7 @@ export class ImplementationPartnerService {
             await api.post(`/api/implementation-partner/${partnerId}/remove-vendor`, { vendorId });
         } catch (error) {
             if (error instanceof ApiError) {
-                throw new Error(error.message);
+                throw error;
             }
             throw new Error('Failed to remove vendor');
         }

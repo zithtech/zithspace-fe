@@ -228,6 +228,25 @@ export default function SettingsPage() {
   // State management
   const [activeTab, setActiveTab] = useState('system');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      if (activeTab === 'attendance') {
+        await fetchShifts();
+      } else if (activeTab === 'system') {
+        await fetchTenantProfile();
+      } else if (activeTab === 'company') {
+        await fetchCompanyDetails();
+      } else if (activeTab === 'mail') {
+        await fetchInvoiceMailSettings();
+      }
+    } catch (error) {
+      console.error("Refresh settings error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
 
 
@@ -2334,6 +2353,8 @@ export default function SettingsPage() {
           icon={<SettingOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />}
           title="System Settings"
           description="Configure your workspace, manage shifts, and customize branding."
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
           extra={
             canReadActivityLog && (
               <Button

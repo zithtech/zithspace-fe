@@ -59,6 +59,21 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        fetchInvoices(),
+        onRefresh(),
+      ]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
   }, [clientId]);
@@ -208,22 +223,8 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
             title="Invoices"
             description="View all sent, partially paid, and paid invoices associated with this client"
             style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
-            extra={
-              <Button 
-                icon={<RefreshCw size={16} />} 
-                onClick={fetchInvoices} 
-                loading={loading}
-                style={{
-                  borderRadius: 8,
-                  height: 32,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                Refresh
-              </Button>
-            }
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
           />
         </div>
   

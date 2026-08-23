@@ -6,7 +6,7 @@ import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typograph
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2, Menu } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -15,6 +15,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ProjectService } from "@/services/projectService";
 
 const { Text } = Typography;
 
@@ -85,9 +86,14 @@ function TestRunsContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
   const [progressFilter, setProgressFilter] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
+  const [stats, setStats] = useState<any>({});
 
   // For dynamic suite search beyond the initial 1000
   const [suiteSearchTerm, setSuiteSearchTerm] = useState("");
@@ -97,7 +103,7 @@ function TestRunsContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, suiteFilter, progressFilter]);
+  }, [debouncedSearch, suiteFilter, progressFilter, moduleFilter, projectFilter]);
   
   useEffect(() => {
     if (!debouncedSuiteSearch || debouncedSuiteSearch.trim().length < 2) return;
@@ -124,7 +130,7 @@ function TestRunsContent() {
 
   const filteredSuites = useMemo(() => {
     if (!formData?.module_id) return suites;
-    return suites.filter((s: any) => s.module_id === formData.module_id);
+    return suites.filter((s: any) => s.parent_test_case_id === formData.module_id);
   }, [suites, formData?.module_id]);
 
   /** The suite chosen in the create drawer, for the coverage preview. */
@@ -144,18 +150,22 @@ function TestRunsContent() {
           params: {
             page,
             pageSize,
-            search: debouncedSearch || undefined,
-            suite_id: suiteFilter || undefined,
-            progress: progressFilter || undefined
+            ...(debouncedSearch ? { search: debouncedSearch } : {}),
+            ...(suiteFilter ? { suite_id: suiteFilter } : {}),
+            ...(progressFilter ? { progress: progressFilter } : {}),
+            ...(moduleFilter ? { module_id: moduleFilter } : {}),
+            project_id: projectFilter || undefined,
+            allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
         }),
         axios.get("/api/v2/qa/suites/all?limit=1000"),
-        axios.get("/api/v2/qa/modules?limit=1000"),
+        axios.get("/api/v2/qa/test-cases/parents?limit=1000"),
         axios.get("/api/v2/qa/test-scopes?limit=1000"),
       ]);
       const body = (runsRes as any).data;
       setRuns(body?.data || []);
       setTotalItems(body?.pagination?.total || 0);
+      setStats(body?.stats || {});
       setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
       setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
@@ -168,9 +178,37 @@ function TestRunsContent() {
 
   useEffect(() => {
     if (canReadRun) {
+      fetchProjects();
+    }
+  }, [canReadRun]);
+
+  useEffect(() => {
+    if (canReadRun) {
       fetchData();
     }
-  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter]);
+  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter, projectFilter, projectOptions]);
+
+  /** Active projects the signed-in user belongs to. */
+  const fetchProjects = async () => {
+    try {
+      setLoadingProjects(true);
+      const res: any = await ProjectService.getUserProjects(true);
+      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      setProjectOptions(
+        list
+          .map((p: any) => ({
+            value: String(p.value ?? p.id ?? ''),
+            label: String(p.label ?? p.name ?? ''),
+            description: p.code || undefined,
+          }))
+          .filter(o => o.value && o.label)
+      );
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
 
   const openCreateModal = () => {
     setFormData({});
@@ -225,12 +263,14 @@ function TestRunsContent() {
   const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (projectFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSuiteFilter(undefined);
     setProgressFilter(undefined);
+    setModuleFilter(undefined);
+    setProjectFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -248,8 +288,8 @@ function TestRunsContent() {
 
   const moduleNameOf = (record: any) => {
     const suite = suites.find(s => s.id === record.suite_id);
-    const mod = modules.find(m => m.id === suite?.module_id);
-    return mod?.module_name || mod?.name || 'Unassigned';
+    const mod = modules.find(m => m.id === suite?.parent_test_case_id);
+    return mod?.name || mod?.title || 'Unassigned';
   };
 
   /** Executed vs total for a run, plus the derived percentage. */
@@ -401,8 +441,8 @@ function TestRunsContent() {
               <Tag color="purple" style={{ margin: 0 }}>
                 {(() => {
                   const s = suites.find(suite => suite.id === r.suite_id);
-                  const mod = modules.find(m => m.id === s?.module_id);
-                  return mod?.module_name || mod?.name || 'Unassigned';
+                  const mod = modules.find(m => m.id === s?.parent_test_case_id);
+                  return mod?.name || mod?.title || 'Unassigned';
                 })()}
               </Tag>
             </span>
@@ -415,20 +455,6 @@ function TestRunsContent() {
       </div>
     );
   };
-
-  // Calculate quick stats
-  const totalRuns = runs.length;
-  const activeRuns = runs.filter(r => {
-    const total = parseInt(r.total_cases) || 0;
-    const executed = total - (parseInt(r.not_executed_count) || 0);
-    return total === 0 || executed < total;
-  }).length;
-  const completedRuns = totalRuns - activeRuns;
-  const totalExecutedCases = runs.reduce((acc, r) => {
-    const total = parseInt(r.total_cases) || 0;
-    const unexec = parseInt(r.not_executed_count) || 0;
-    return acc + Math.max(0, total - unexec);
-  }, 0);
 
   return (
     <MainLayout noPadding>
@@ -786,8 +812,6 @@ function TestRunsContent() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -836,7 +860,7 @@ function TestRunsContent() {
             <button className={`pp-nav-item ${activeTab === 'runs' ? 'is-active' : ''}`} onClick={() => setActiveTab('runs')}>
               <PlayCircle size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">Runs</span>
-              {runs.length > 0 && <span className="pp-nav-count">{runs.length}</span>}
+              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
             </button>
           </div>
         </aside>
@@ -861,6 +885,14 @@ function TestRunsContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'runs' && (
                 <>
                   <div className="pp-segmented">
@@ -880,30 +912,15 @@ function TestRunsContent() {
           <div className="dh-main-scroll">
             {activeTab === 'runs' && (
               <>
-                {/* Stats — product-standard tiles, status filter on click */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   {[
-                    { key: undefined, label: "Total Runs", value: totalRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
-                    { key: 'active', label: "In Progress", value: activeRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
-                    { key: 'completed', label: "Completed", value: completedRuns, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalRuns ? Math.round((completedRuns / totalRuns) * 100) : 0}% of all runs` },
-                    { key: undefined, label: "Executed Cases", value: totalExecutedCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
+                    { key: undefined, label: "Total Runs", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
+                    { key: 'active', label: "In Progress", value: stats?.activeRuns || 0, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
+                    { key: 'completed', label: "Completed", value: stats?.completedRuns || 0, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round(((stats?.completedRuns || 0) / totalItems) * 100) : 0}% of all runs` },
+                    { key: undefined, label: "Executed Cases", value: stats?.totalExecutedCases || 0, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
                   ].map((stat, i) => {
-                    const clickable = !!stat.key;
-                    const isActive = stat.key ? progressFilter === stat.key : false;
                     return (
-                      <div
-                        key={`${stat.label}-${i}`}
-                        role={clickable ? 'button' : undefined}
-                        tabIndex={clickable ? 0 : undefined}
-                        onClick={() => clickable && setProgressFilter(progressFilter === stat.key ? undefined : stat.key)}
-                        onKeyDown={(e) => {
-                          if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                            e.preventDefault();
-                            setProgressFilter(progressFilter === stat.key ? undefined : stat.key);
-                          }
-                        }}
-                        className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
-                      >
+                      <div key={`${stat.label}-${i}`}>
                         <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
                     );
@@ -919,6 +936,15 @@ function TestRunsContent() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     allowClear
+                  />
+                                  <SearchableDropdown
+                    options={projectOptions}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
                   />
                   <SearchableDropdown
                     options={suiteFilterOptions}
@@ -942,6 +968,16 @@ function TestRunsContent() {
                     itemNoun="states"
                     className="sc-filters__field"
                   />
+                  <SearchableDropdown
+                    options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                    value={moduleFilter}
+                    onChange={(v) => setModuleFilter(v)}
+                    placeholder="Any module"
+                    hideAvatar
+                    itemNoun="modules"
+                    className="sc-filters__field"
+                  />
+  
                   {activeFilterCount > 0 && (
                     <button type="button" className="sc-clear" onClick={clearFilters}>
                       Clear ({activeFilterCount})
@@ -1091,7 +1127,7 @@ function TestRunsContent() {
             <div className="rd__field">
               <label className="rd__label">Module</label>
               <SearchableDropdown
-                options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                options={modules.map(m => ({ value: m.id, label: m.name || m.title || "Unnamed Module" }))}
                 value={formData.module_id}
                 onChange={(val) => setFormData({ ...formData, module_id: val, suite_id: undefined })}
                 placeholder="All modules"

@@ -42,6 +42,7 @@ import {
   List,
   X,
   Menu,
+  RotateCw,
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
@@ -182,7 +183,24 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
   );
 
   const { user } = useAuth();
-  const { data: allTimesheets, isLoading } = useTimesheets(approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id }));
+  const baseFilters = approvalMode ? { forApproval: true } : (teamMode ? {} : { userId: user?.id });
+  
+  const { data: allTimesheets, isLoading: isAllLoading, refetch: refetchAll, isFetching: isAllFetching } = useTimesheets({ ...baseFilters, limit: 1000 });
+  const { data: paginatedTimesheetsRes, isLoading: isPaginatedLoading, refetch: refetchPaginated, isFetching: isPaginatedFetching } = useTimesheets({
+    ...baseFilters,
+    page: currentPage,
+    limit: pageSize,
+    search: searchText || undefined,
+    status: activeView === "all" ? undefined : activeView.toUpperCase()
+  });
+  
+  const isLoading = isAllLoading || isPaginatedLoading;
+  const isRefreshing = isAllFetching || isPaginatedFetching;
+
+  const handleRefresh = () => {
+    refetchAll();
+    refetchPaginated();
+  };
 
   useEffect(() => {
     if (previewId) {
@@ -218,23 +236,21 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
     return counts;
   }, [tableData]);
 
-  const filteredData = useMemo(() => {
-    return tableData.filter((item) => {
-      const search = searchText.toLowerCase();
-      const matchesSearch =
-        item.employeeName?.toLowerCase().includes(search) ||
-        item.status?.toLowerCase().includes(search) ||
-        dayjs(item.weekStart).format("MMM DD").toLowerCase().includes(search);
+  const paginatedTableData = useMemo(() => {
+    if (!paginatedTimesheetsRes?.data) return [];
 
-      let matchesView = true;
-      if (activeView === "draft") matchesView = item.status === "DRAFT";
-      if (activeView === "submitted") matchesView = item.status === "SUBMITTED";
-      if (activeView === "approved") matchesView = item.status === "APPROVED";
-      if (activeView === "rejected") matchesView = item.status === "REJECTED";
-
-      return matchesSearch && matchesView;
-    });
-  }, [tableData, searchText, activeView]);
+    return paginatedTimesheetsRes.data.map((t) => ({
+      key: t.id,
+      weekStart: t.weekStart,
+      employeeName: t.user?.name || "-",
+      status: t.status,
+      approvedBy: t.approvedBy,
+      createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+      totalHours: `${t.totalHours}h`,
+      leave: t.leaveCount || 0,
+      rejectReason: t.rejectReason || "",
+    }));
+  }, [paginatedTimesheetsRes]);
 
   const previewColumns = [
     {
@@ -651,6 +667,16 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
               </div>
 
               <div className="ts-topbar-actions">
+                <button
+                  type="button"
+                  className="ts-refresh-btn"
+                  onClick={handleRefresh}
+                  title="Refresh timesheets"
+                  disabled={isLoading}
+                >
+                  <RotateCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                </button>
+
                 <div className="ts-segmented">
                   <button
                     className={displayMode === 'grid' ? 'is-active' : ''}
@@ -681,9 +707,9 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
           </div>
 
           {(() => {
-            const total = filteredData.length;
-            const pageCount = Math.ceil(total / pageSize);
-            const pagedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+            const total = paginatedTimesheetsRes?.pagination?.total || paginatedTableData.length;
+            const pageCount = paginatedTimesheetsRes?.pagination?.totalPages || 1;
+            const pagedData = paginatedTableData;
             const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
             const pageEnd = Math.min(currentPage * pageSize, total);
 
@@ -842,7 +868,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                         </div>
                       );
                     })}
-                    {filteredData.length === 0 && !isLoading && (
+                    {total === 0 && !isLoading && (
                       <div className="ts-grid-loading">No timesheets found.</div>
                     )}
                   </div>
@@ -1342,6 +1368,19 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .ts-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
+
+        .ts-refresh-btn {
+          width: 32px; height: 32px; border: 1px solid var(--border-slate-200); border-radius: 9px;
+          background: transparent; color: var(--text-slate-500); cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .ts-refresh-btn:hover {
+          color: #3B82F6; border-color: #3b82f6; background: var(--bg-slate-50);
+        }
+        .ts-refresh-btn:disabled {
+          opacity: 0.5; cursor: not-allowed;
+        }
 
         .ts-backdrop {
           display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);

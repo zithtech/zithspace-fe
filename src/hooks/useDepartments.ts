@@ -2,15 +2,31 @@ import { useState, useEffect, useCallback } from "react";
 import { Department, DepartmentService, CreateDepartmentData, UpdateDepartmentData } from "@/services/departmentService";
 import { notification } from "antd";
 
-export const useDepartments = () => {
-  const [departments, setDepartments] = useState<Department[]>([]);
+export const useDepartments = (filters?: { page?: number; limit?: number; search?: string }) => {
+  const [paginatedDepartments, setPaginatedDepartments] = useState<Department[]>([]);
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await DepartmentService.getAll();
-      setDepartments(data);
+      const [allRes, paginatedRes]: any = await Promise.all([
+        DepartmentService.getAll({ limit: 1000 }),
+        filters?.page ? DepartmentService.getAll(filters) : Promise.resolve(null)
+      ]);
+
+      const allData = Array.isArray(allRes) ? allRes : (allRes.data || []);
+      setAllDepartments(allData);
+
+      if (paginatedRes) {
+        const paginatedData = Array.isArray(paginatedRes) ? paginatedRes : (paginatedRes.data || []);
+        setPaginatedDepartments(paginatedData);
+        setTotalCount(paginatedRes.pagination?.total || paginatedData.length);
+      } else {
+        setPaginatedDepartments(allData);
+        setTotalCount(allData.length);
+      }
     } catch (error: any) {
       console.error(error);
       notification.error({
@@ -20,7 +36,7 @@ export const useDepartments = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters?.page, filters?.limit, filters?.search]);
 
   useEffect(() => {
     fetchDepartments();
@@ -57,7 +73,8 @@ export const useDepartments = () => {
   const deleteDepartment = async (id: string) => {
     try {
       await DepartmentService.delete(id);
-      await fetchDepartments();
+      setAllDepartments((prev) => prev.filter((d) => d.id !== id));
+      setPaginatedDepartments((prev) => prev.filter((d) => d.id !== id));
       return true;
     } catch (error: any) {
       notification.error({
@@ -69,7 +86,9 @@ export const useDepartments = () => {
   };
 
   return {
-    departments,
+    allDepartments,
+    paginatedDepartments,
+    totalCount,
     loading,
     createDepartment,
     updateDepartment,

@@ -9,7 +9,7 @@ export class ShortcutService {
       return await api.post<any>("/api/shortcuts", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create shortcut");
     }
@@ -28,7 +28,7 @@ export class ShortcutService {
     } catch (error) {
       console.log(error, "getShortcuts() error");
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch shortcuts");
     }
@@ -42,7 +42,7 @@ export class ShortcutService {
       return await api.delete<any>(`/api/shortcuts/${shortcutId}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete shortcut");
     }

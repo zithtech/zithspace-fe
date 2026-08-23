@@ -95,6 +95,7 @@ interface User {
    * The API enforces the real thing regardless.
    */
   capabilities: string[];
+  subscriptionFeatures?: string[];
 }
 
 interface AuthContextType {
@@ -119,6 +120,12 @@ interface AuthContextType {
    * enforces entitlement on every request via requireCapability().
    */
   hasCapability: (capability: string) => boolean;
+  /** Returns true if the tenant has the given subscription feature */
+  hasSubscriptionFeature: (feature: string) => boolean;
+  /** Returns true if the tenant has ANY of the given subscription features */
+  hasAnySubscriptionFeature: (...features: string[]) => boolean;
+  /** Returns true if there is at least one key that satisfies BOTH RBAC and Subscription */
+  hasAccessToAny: (...keys: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -191,6 +198,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
         capabilities: (response.user as any).capabilities ?? [],
+        subscriptionFeatures: (response.user as any).subscriptionFeatures ?? [],
       };
 
       setUser(userData);
@@ -384,7 +392,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         phone: userProfile.phone,
         reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
-        tenantId: userProfile.tenantId || userProfile.tenant?.id || "",
+        tenantId: (userProfile.tenantId || userProfile.tenant?.id) as string,
         avatarUrl: userProfile.avatarUrl,
         tenantName: userProfile.tenant?.name,
         tenantLogo: userProfile.tenant?.logoUrl,
@@ -398,9 +406,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         createdAt: userProfile.createdAt,
         permissions: (userProfile as any).permissions ?? [],
         capabilities: (userProfile as any).capabilities ?? [],
+        subscriptionFeatures: (userProfile as any).subscriptionFeatures ?? [],
       };
 
       setUser(userData);
+
+      // Phase X: Fetch Subscription State from Admin Backend
+      try {
+        const { api } = await import('@/lib/axios');
+        const resolvedTenantId = userProfile.tenantId || userProfile.tenant?.id;
+        const subRes = await api.get(`/api/subscriptions/tenant/${resolvedTenantId}`);
+        const subData = subRes; // api.get already unwraps response.data.data
+
+        if (typeof window !== 'undefined') {
+          const pathname = window.location.pathname;
+          
+          if (!subData) {
+            if (pathname !== '/subscription') router.push('/subscription?reason=new');
+          } else if (subData.status === 'EXPIRED' || subData.status === 'CANCELLED') {
+            if (pathname !== '/subscription') router.push(`/subscription?reason=expired&current_plan_id=${subData.plan_id}`);
+          } else if (subData.status === 'SUSPENDED') {
+            if (pathname !== '/access-denied') router.push('/access-denied');
+          } else if (subData.status === 'ACTIVE' || subData.status === 'TRIAL') {
+            if (pathname === '/subscription') router.push('/dashboard');
+          }
+        }
+      } catch (subErr) {
+        console.error("Failed to fetch subscription status:", subErr);
+      }
     } catch (error) {
       console.error("Auth check failed:", error);
 
@@ -469,6 +502,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return user.capabilities.includes(capability);
   };
 
+  const hasSubscriptionFeature = (feature: string): boolean => {
+    if (!user || !user.subscriptionFeatures) return true;
+    return user.subscriptionFeatures.includes(feature);
+  };
+
+  const hasAnySubscriptionFeature = (...features: string[]): boolean => {
+    if (!user || !user.subscriptionFeatures) return true;
+    return features.some(k => 
+      user.subscriptionFeatures!.some(feature => feature === k || feature.startsWith(k + "_") || k.startsWith(feature + "_"))
+    );
+  };
+
+  const hasAccessToAny = (...keys: string[]): boolean => {
+    if (!user) return false;
+    return keys.some(k => 
+      user.permissions.includes(k) && 
+      (!user.subscriptionFeatures || user.subscriptionFeatures.includes(k))
+    );
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -484,6 +537,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     hasAllPermissions,
     hasAnyPermission,
     hasCapability,
+    hasSubscriptionFeature,
+    hasAnySubscriptionFeature,
+    hasAccessToAny,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

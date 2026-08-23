@@ -81,7 +81,7 @@ export class ZohoCalendarService {
         try {
             return await api.get<ZohoStatus>("/api/zoho/status");
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to get Zoho status");
         }
     }
@@ -95,7 +95,7 @@ export class ZohoCalendarService {
             const data = await api.get<{ authUrl: string }>("/api/zoho/connect");
             return data.authUrl;
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to get Zoho connect URL");
         }
     }
@@ -107,7 +107,7 @@ export class ZohoCalendarService {
         try {
             await api.post("/api/zoho/disconnect", {});
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to disconnect Zoho account");
         }
     }
@@ -123,7 +123,7 @@ export class ZohoCalendarService {
             const query = params.toString() ? `?${params.toString()}` : "";
             return await api.get<ZohoEvent[]>(`/api/zoho/events${query}`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to fetch Zoho events");
         }
     }
@@ -135,7 +135,7 @@ export class ZohoCalendarService {
         try {
             return await api.post<ZohoEvent>("/api/zoho/events", data);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to create Zoho event");
         }
     }
@@ -147,7 +147,7 @@ export class ZohoCalendarService {
         try {
             return await api.put<ZohoEvent>(`/api/zoho/events/${id}`, data);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to update Zoho event");
         }
     }
@@ -164,7 +164,7 @@ export class ZohoCalendarService {
 
             await api.delete(`/api/zoho/events/${id}${query}`);
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to delete Zoho event");
         }
     }
@@ -176,7 +176,7 @@ export class ZohoCalendarService {
         try {
             return await api.post<{ synced: number }>("/api/zoho/sync", {});
         } catch (error) {
-            if (error instanceof ApiError) throw new Error(error.message);
+            if (error instanceof ApiError) throw error;
             throw new Error("Failed to sync Zoho events");
         }
     }

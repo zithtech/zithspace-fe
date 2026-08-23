@@ -1,5 +1,6 @@
 "use client";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import { getSyncedTime } from '@/utils/timeUtils';
 
 
 import React, { useEffect, useState } from "react";
@@ -108,7 +109,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
           : new Date(activeEntry.startTime).getTime();
 
         const updateTime = () => {
-          const sessionElapsed = Math.floor((new Date().getTime() - lastActiveTime) / 1000);
+          const sessionElapsed = Math.floor((getSyncedTime().getTime() - lastActiveTime) / 1000);
           const currentElapsed = baseDuration + sessionElapsed;
           if (sessionElapsed >= 6 * 60 * 60) {
             setElapsedTime(currentElapsed);

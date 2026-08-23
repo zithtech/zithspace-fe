@@ -24,6 +24,12 @@ export default function TicketHistoryDrawer({ bug, open, onClose }: TicketHistor
     ticketNumber: bug.ticketNumber,
     status: bug.ticketStatus || "Active",
     isCurrent: true,
+  } : bug.linearIssueIdentifier ? {
+    id: bug.linearIssueId || bug.linearIssueIdentifier,
+    ticketNumber: bug.linearIssueIdentifier,
+    status: "Linear Issue",
+    url: bug.linearIssueUrl,
+    isCurrent: true,
   } : null;
 
   const history = bug.ticketHistory || [];
@@ -127,8 +133,12 @@ export default function TicketHistoryDrawer({ bug, open, onClose }: TicketHistor
                     size="small" 
                     icon={<ExternalLink size={14} />}
                     onClick={() => {
-                      const idToOpen = (item as any).id || (item as any).ticketId;
-                      if (idToOpen) openTicketDrawer(idToOpen);
+                      if ((item as any).url) {
+                        window.open((item as any).url, '_blank');
+                      } else {
+                        const idToOpen = (item as any).id || (item as any).ticketId;
+                        if (idToOpen) openTicketDrawer(idToOpen);
+                      }
                     }}
                     style={{ width: '100%' }}
                   >

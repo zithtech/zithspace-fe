@@ -89,7 +89,7 @@ export default function TopNav({
   const pathname = usePathname();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
-  const { hasPermission, hasAnyPermission } = useAuth();
+  const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
   const {
     canReadMail,
     canReadCalendar,
@@ -271,6 +271,14 @@ export default function TopNav({
   // decides which of those this user sees a chip for.
   const { modules: navigation, capabilities } = useProductNavigation();
   const visibleModules = navigation.filter(module => {
+    // 1. If subscription is required for this module, check it FIRST
+    if (module.requiredSubscriptionFeature) {
+      if (!hasAnySubscriptionFeature(...module.requiredSubscriptionFeature)) {
+        return false;
+      }
+    }
+
+    // 2. Then check RBAC permissions
     if (module.requiredChipAnyPermission) return hasAnyPermission(...module.requiredChipAnyPermission);
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
     if (module.requiredPermission) return hasPermission(module.requiredPermission);
@@ -280,6 +288,12 @@ export default function TopNav({
 
   const getFirstAllowedPath = (items: NavItem[]): string | undefined => {
     for (const item of items) {
+      // 1. Subscription Check
+      if (item.requiredSubscriptionFeature && !hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)) {
+        continue;
+      }
+
+      // 2. RBAC Check
       let hasItemPermission = true;
       if (item.requiredPermission) {
         hasItemPermission = hasPermission(item.requiredPermission);
@@ -666,9 +680,9 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <ThemeToggle />
-            {canReadTimeTracking && canCreateTimeTracking && <TimeTrackerPopover />}
+            {canReadTimeTracking && canCreateTimeTracking && hasAnySubscriptionFeature("work_time_tracking") && <TimeTrackerPopover />}
 
-            {canReadHotspot && (
+            {canReadHotspot && hasAnySubscriptionFeature("home_home_general_hotspot") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -690,7 +704,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadMail && (
+            {canReadMail && hasAnySubscriptionFeature("home_home_general_mail") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -711,7 +725,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadCalendar && (
+            {canReadCalendar && hasAnySubscriptionFeature("home_home_general_calendar") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -732,7 +746,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadSkills && capabilities.has("skills") && (
+            {canReadSkills && hasAnySubscriptionFeature("home_home_general_skills") && capabilities.has("skills") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -754,7 +768,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadChat && capabilities.has("chat") && (
+            {canReadChat && hasAnySubscriptionFeature("home_home_general_team_chat") && capabilities.has("chat") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -775,7 +789,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadActivityLogAll && (
+            {canReadActivityLogAll && hasAnySubscriptionFeature("home_home_general_activity") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -819,7 +833,7 @@ export default function TopNav({
                 </div>
               </Tooltip>
             )} */}
-            {canReadBookmark && capabilities.has("bookmarks") && (
+            {canReadBookmark && hasAnySubscriptionFeature("home_home_general_bookmarks") && capabilities.has("bookmarks") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">

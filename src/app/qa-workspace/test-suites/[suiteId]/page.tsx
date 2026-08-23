@@ -8,7 +8,7 @@ import { Button, Table, Tag, Input, Select, Checkbox, Typography, message, Drawe
 import { PlusOutlined, ArrowLeftOutlined, SearchOutlined, SnippetsOutlined, FileTextOutlined, CheckCircleOutlined, BugOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Layers, Zap, Pencil, Trash2, Folder, Target, Link, User, Menu } from "lucide-react";
+import { Layers, Zap, Pencil, Trash2, Folder, Target, Link, User, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -94,8 +94,6 @@ export default function TestSuiteDetailsPage() {
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  /** Set by clicking the Active / Automated / High-priority stat tiles. */
-  const [quickFilter, setQuickFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -123,7 +121,7 @@ export default function TestSuiteDetailsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter, priorityFilter, statusFilter, quickFilter]);
+  }, [searchTerm, typeFilter, priorityFilter, statusFilter]);
 
   const { canReadSuite, canUpdateSuite } = usePermission();
   // Priority options come from QA Settings
@@ -144,8 +142,7 @@ export default function TestSuiteDetailsPage() {
             search: debouncedSearch || undefined,
             test_type: typeFilter || undefined,
             priority: priorityFilter || undefined,
-            status: statusFilter || undefined,
-            quickFilter: quickFilter || undefined
+            status: statusFilter || undefined
           }
         })
       ]);
@@ -170,7 +167,7 @@ export default function TestSuiteDetailsPage() {
     if (canReadSuite && suiteId) {
       fetchSuiteData();
     }
-  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, quickFilter]);
+  }, [canReadSuite, suiteId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter]);
 
   // Fetch child test cases when parent_test_case_id or module_id is selected inside modal
   useEffect(() => {
@@ -322,16 +319,14 @@ export default function TestSuiteDetailsPage() {
   const typeFilterOptions = uniqueSorted(linkedCases.map(c => c.test_type || 'Functional'));
   const statusFilterOptions = uniqueSorted(linkedCases.map(c => c.status || 'Active'));
 
-  const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
-    (statusFilter ? 1 : 0) + (quickFilter ? 1 : 0);
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (typeFilter ? 1 : 0) + (priorityFilter ? 1 : 0) +
+    (statusFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setTypeFilter(undefined);
     setPriorityFilter(undefined);
     setStatusFilter(undefined);
-    setQuickFilter(undefined);
   };
 
   const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -733,24 +728,26 @@ export default function TestSuiteDetailsPage() {
         .pp-pagesize { margin-left: 5px; }
         .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
 
-        .ts-table .ant-table {
+        .ts-table .ant-table-thead > tr > th {
+          background: transparent !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 11px !important; font-weight: 700 !important;
+          text-transform: uppercase !important; color: var(--text-slate-500) !important;
+          white-space: nowrap !important;
+          padding: 12px 16px !important;
+          border-radius: 0px !important;
+        }
+        .ts-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          padding: 12px 16px !important;
+        }
+        .ts-table, .ts-table .ant-table, .ts-table .ant-table-container {
           background: transparent !important;
           border-radius: 0px !important;
         }
-        .ts-table .ant-table-thead > tr > th {
-          background: rgba(248, 250, 252, 0.6) !important;
-          border-bottom: 1px solid var(--border-slate-200) !important;
-          font-weight: 700;
-          font-size: 11px;
-          text-transform: uppercase;
-          color: var(--text-slate-400);
-          letter-spacing: 0.04em;
-        .ts-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid var(--border-slate-200) !important;
-          padding: 12px 16px;
+        .ts-table .ant-table-tbody > tr:hover > td {
+          background: rgba(59, 130, 246, 0.04) !important;
         }
-        .ts-table, .ts-table .ant-table { background: transparent !important; }
-        .ts-table .ant-table-tbody > tr:hover > td { background: rgba(59, 130, 246, 0.04) !important; }
 
         .dh-mobile-menu-btn { display: none !important; }
 
@@ -794,8 +791,6 @@ export default function TestSuiteDetailsPage() {
 
           /* Topbar: compress controls */
           .sc-topbar { padding: 8px 14px !important; }
-          .dh-main-controls .ant-btn span:not(.anticon) { display: none; }
-          .dh-main-controls .ant-btn { padding: 0 8px !important; min-width: 32px; }
 
           /* Footer: wrap on small screens */
           .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
@@ -987,6 +982,14 @@ export default function TestSuiteDetailsPage() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchSuiteData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {canUpdateSuite && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>
                   Add Test Case
@@ -1004,22 +1007,8 @@ export default function TestSuiteDetailsPage() {
                 { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${linkedCases.length - automatedCount} still manual` },
                 { key: 'highPriority', label: "High / Critical", value: highPriorityCount, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Zap, sub: 'need the most attention' }
               ].map((stat, i) => {
-                const clickable = !!stat.key;
-                const isActive = stat.key ? quickFilter === stat.key : false;
                 return (
-                  <div
-                    key={`${stat.label}-${i}`}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={() => clickable && setQuickFilter(quickFilter === stat.key ? undefined : stat.key)}
-                    onKeyDown={(e) => {
-                      if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        setQuickFilter(quickFilter === stat.key ? undefined : stat.key);
-                      }
-                    }}
-                    className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
-                  >
+                  <div key={`${stat.label}-${i}`}>
                     <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
                 );

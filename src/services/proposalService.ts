@@ -1,8 +1,8 @@
-import { api } from '@/lib/axios';
+import { api, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export const ProposalService = {
-  getProposals: async () => {
-    return api.get('/api/proposals');
+  getProposals: async (filters?: any): Promise<PaginatedResponse<any>> => {
+    return apiUtils.getPaginated<any>('/api/proposals', filters);
   },
 
   getProposalById: async (id: string) => {
@@ -21,8 +21,8 @@ export const ProposalService = {
     return api.delete(`/api/proposals/${id}`);
   },
 
-  getTrashedProposals: async () => {
-    return api.get('/api/proposals/trash');
+  getTrashedProposals: async (filters?: any): Promise<PaginatedResponse<any>> => {
+    return apiUtils.getPaginated<any>('/api/proposals/trash', filters);
   },
 
   restoreProposal: async (id: string) => {

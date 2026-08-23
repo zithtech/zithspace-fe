@@ -92,8 +92,7 @@ export default function InvoiceproCustomerPage() {
   } = usePermission();
   const { isLoading: authLoading } = useAuth();
 
-  const { data: customersData, isLoading, refetch, isFetching } = useCustomers();
-  const customers = customersData?.data || [];
+
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
   const deleteCustomer = useDeleteCustomer();
@@ -123,6 +122,23 @@ export default function InvoiceproCustomerPage() {
   // Register UX context for activity logging
   useActivitySource({ section: "FINANCE", module: "Invoices", page: "InvoiceCustomerList" });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const { data: customersData, isLoading, refetch, isFetching } = useCustomers({
+    page: currentPage,
+    limit: pageSize,
+    search: search || undefined,
+    isActive: statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined,
+  });
+  const customers = customersData?.data || [];
+  const totalCustomers = customersData?.pagination?.total ?? 0;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
   const counts = useMemo(() => {
     const all = customers.length;
     const active = customers.filter((c) => c.isActive).length;
@@ -130,33 +146,13 @@ export default function InvoiceproCustomerPage() {
     return { all, active, inactive };
   }, [customers]);
 
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
-      const matchesSearch = c.companyName
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
-      if (!matchesSearch) return false;
-      if (statusFilter === "active") return c.isActive;
-      if (statusFilter === "inactive") return !c.isActive;
-      return true;
-    });
-  }, [customers, search, statusFilter]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter]);
-
-  const total = filteredCustomers.length;
+  const total = totalCustomers || customers.length;
   const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageEnd = Math.min(currentPage * pageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pagedCustomers = useMemo(() => {
-    return filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredCustomers, currentPage, pageSize]);
+    return customers;
+  }, [customers]);
 
   const creating = createCustomer.status === "pending";
   const updating = updateCustomer.status === "pending";
@@ -620,7 +616,7 @@ export default function InvoiceproCustomerPage() {
             </div>
 
             <div className="pp-topbar-meta">
-              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{filteredCustomers.length}</strong> customers</span>
+              <span className="pp-meta-item"><span className="pp-pulse" /><strong>{total}</strong> customers</span>
             </div>
 
             <div className="pp-topbar-actions">
@@ -736,7 +732,7 @@ export default function InvoiceproCustomerPage() {
                   </div>
                 ))}
               </div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : customers.length === 0 ? (
               <div className="pp-empty">
                 <div className="pp-empty-orb"><Users size={26} /></div>
                 <div className="pp-empty-title">

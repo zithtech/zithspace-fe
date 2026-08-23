@@ -12,10 +12,10 @@ export const templateKeys = {
   detail: (id: string) => [...templateKeys.details(), id] as const,
 };
 
-export const useInvoiceTemplates = () => {
+export const useInvoiceTemplates = (params?: { page?: number; limit?: number }) => {
   return useQuery({
-    queryKey: templateKeys.lists(),
-    queryFn: InvoiceTemplateService.getTemplates,
+    queryKey: [...templateKeys.lists(), params],
+    queryFn: () => InvoiceTemplateService.getTemplates(params),
     staleTime: 5 * 60 * 1000,
   });
 };

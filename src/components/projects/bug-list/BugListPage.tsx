@@ -12,6 +12,7 @@ import {
   Dropdown,
   App,
   Drawer,
+  Modal,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
@@ -25,6 +26,7 @@ import {
   SlidersHorizontal,
   X,
   RotateCcw,
+  RotateCw,
   FolderTree,
   Bug as BugIcon,
   Ticket as TicketIcon,
@@ -47,6 +49,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  LayoutList,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -56,8 +59,9 @@ import TrashView from "./TrashView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
 import AiReviewModal from "./AiReviewModal";
-import BulkTicketModal from "./BulkTicketModal";
+import BulkTicketModal, { ModePicker } from "./BulkTicketModal";
 import BugCalendarView from "./BugCalendarView";
+import { LinearTicketModal } from "./LinearTicketModal";
 import {
   useBugFolders,
   useBugSheets,
@@ -186,7 +190,11 @@ export default function BugListPage() {
   const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiIntegration, setAiIntegration] = useState<"zukvo" | "linear">("zukvo");
   const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
+  const [creationTargetOpen, setCreationTargetOpen] = useState(false);
+  const [linearChoiceOpen, setLinearChoiceOpen] = useState(false);
+  const [linearModalOpen, setLinearModalOpen] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
@@ -341,7 +349,7 @@ export default function BugListPage() {
     [scope, selectedFolderId, selectedSheetId, selectedProjectId, filters, page, limit]
   );
 
-  const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
+  const { data: bugsResponse, isLoading, isFetching, refetch } = useBugs(queryFilters);
 
   const createBug = useCreateBug();
   const updateBug = useUpdateBug();
@@ -856,6 +864,17 @@ export default function BugListPage() {
               </div>
 
               <button
+                type="button"
+                className="hb-btn hb-btn-ghost hb-refresh-btn"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                title="Refresh"
+                style={{ width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 32 }}
+              >
+                <RotateCw size={14} className={isFetching ? "animate-spin" : ""} />
+              </button>
+
+              <button
                 className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""
                   }`}
                 onClick={() => setFiltersVisible((v) => !v)}
@@ -1233,7 +1252,6 @@ export default function BugListPage() {
                     placeholder="Move to Sheet"
                     size="small"
                     className="hb-bulk-move-select"
-                    popupClassName="hb-bulk-move-popup"
                     suffixIcon={<ChevronDown size={12} />}
                     style={{ width: 160 }}
                     value={null}
@@ -1269,7 +1287,7 @@ export default function BugListPage() {
                   />
                   <button
                     className="hb-btn hb-btn-primary"
-                    onClick={() => setBulkTicketOpen(true)}
+                    onClick={() => setCreationTargetOpen(true)}
                   >
                     <Sparkles size={13} />
                     Create ticket{selectedIds.size === 1 ? "" : "s"}
@@ -1462,7 +1480,7 @@ export default function BugListPage() {
                     }}
                     onCreateTicket={(bug) => {
                       setSelectedIds(new Set([bug.id]));
-                      setBulkTicketOpen(true);
+                      setCreationTargetOpen(true);
                     }}
                     onVerify={(bug) => {
                       verifyBug.mutate(bug.id);
@@ -1583,16 +1601,158 @@ export default function BugListPage() {
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         bugs={selectedBugs}
+        integration={aiIntegration}
       />
 
       <BulkTicketModal
         open={bulkTicketOpen}
         bugs={selectedBugs}
-        prefilledProjectId={prefilledProjectId}
+        prefilledProjectId={selectedProjectId || undefined}
         onClose={() => setBulkTicketOpen(false)}
         onPickAi={() => {
           setBulkTicketOpen(false);
+          setAiIntegration("zukvo");
           setAiOpen(true);
+        }}
+      />
+
+      <Modal
+        open={creationTargetOpen}
+        onCancel={() => setCreationTargetOpen(false)}
+        footer={null}
+        closable={false}
+        destroyOnHidden
+        width={640}
+        centered
+        maskClosable={false}
+        wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
+        styles={{
+          mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
+          content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
+          body: { padding: 0 },
+        }}
+      >
+        <div className="hb-btm">
+          <div className="hb-btm-hero">
+            <div className="hb-btm-hero-bg" />
+            <div className="hb-btm-hero-row">
+              <div className="hb-btm-hero-orb">
+                <Box size={20} />
+              </div>
+              <div className="hb-btm-hero-text">
+                <div className="hb-btm-eyebrow">
+                  <Box size={11} />
+                  Integrations
+                </div>
+                <div className="hb-btm-title">Choose Destination</div>
+                <div className="hb-btm-sub">
+                  Select where you want to create tickets for these bugs.
+                </div>
+              </div>
+              <button className="hb-btm-close" onClick={() => setCreationTargetOpen(false)} aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="hb-btm-modegrid" style={{ paddingBottom: 32 }}>
+            <button
+              className="hb-btm-modecard hb-btm-modecard-manual"
+              onClick={() => {
+                setCreationTargetOpen(false);
+                setBulkTicketOpen(true);
+              }}
+            >
+              <div className="hb-btm-modecard-icon">
+                <BugIcon size={22} />
+              </div>
+              <div className="hb-btm-modecard-title">Zukvo Tickets</div>
+              <div className="hb-btm-modecard-sub">
+                Create native Zukvo tickets directly within your workspace.
+              </div>
+              <ul className="hb-btm-modecard-list">
+                <li><CheckCircle2 size={12} /> Fast, built-in tracking</li>
+                <li><CheckCircle2 size={12} /> AI auto-generation</li>
+                <li><CheckCircle2 size={12} /> Rich context linking</li>
+              </ul>
+              <div className="hb-btm-modecard-cta">
+                Continue to Zukvo <ChevronRight size={14} />
+              </div>
+            </button>
+
+            <button
+              className="hb-btm-modecard hb-btm-modecard-ai"
+              onClick={() => {
+                setCreationTargetOpen(false);
+                setLinearChoiceOpen(true);
+              }}
+            >
+              <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2' }}>
+                <LayoutList size={22} />
+              </div>
+              <div className="hb-btm-modecard-title">
+                Linear
+                <span className="hb-btm-modecard-pill" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2', border: '1px solid color-mix(in oklab, #5E6AD2 40%, transparent)' }}>Sync</span>
+              </div>
+              <div className="hb-btm-modecard-sub">
+                Create and sync issues directly to your connected Linear workspace.
+              </div>
+              <ul className="hb-btm-modecard-list">
+                <li><CheckCircle2 size={12} /> Map to Teams & Projects</li>
+                <li><CheckCircle2 size={12} /> Bi-directional status sync</li>
+                <li><CheckCircle2 size={12} /> Linear AI grouping</li>
+              </ul>
+              <div className="hb-btm-modecard-cta" style={{ color: '#5E6AD2' }}>
+                Continue to Linear <ChevronRight size={14} />
+              </div>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Linear Choice Modal */}
+      <Modal
+        open={linearChoiceOpen}
+        onCancel={() => setLinearChoiceOpen(false)}
+        footer={null}
+        closable={false}
+        destroyOnHidden
+        width={720}
+        centered
+        maskClosable={false}
+        wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
+        styles={{
+          mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
+          content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
+          body: { padding: 0 },
+        }}
+      >
+        <div className="hb-btm">
+            <ModePicker
+              count={selectedIds.size}
+              createdCount={0}
+              onClose={() => setLinearChoiceOpen(false)}
+              onManual={() => {
+                setLinearChoiceOpen(false);
+                setLinearModalOpen(true);
+              }}
+              onAi={() => {
+                setLinearChoiceOpen(false);
+                setAiIntegration("linear");
+                setAiOpen(true);
+              }}
+              hideMap={true}
+            />
+        </div>
+      </Modal>
+
+      <LinearTicketModal
+        open={linearModalOpen}
+        onCancel={() => setLinearModalOpen(false)}
+        bugIds={Array.from(selectedIds)}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          refetch();
         }}
       />
     </div>

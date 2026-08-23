@@ -172,9 +172,9 @@ export class LettersService {
   }
 
   // ─── Templates ───────────────────────────────────────────────────
-  static async getTemplates(params?: { categoryId?: string; designationId?: string; status?: string; search?: string }): Promise<DocumentTemplate[]> {
-    const res = await apiClient.get<ApiResponse<DocumentTemplate[]>>('/api/hrms/letters/templates', { params });
-    return res.data.data;
+  static async getTemplates(params?: { categoryId?: string; designationId?: string; status?: string; search?: string; limit?: number; offset?: number; }): Promise<{ data: DocumentTemplate[]; total?: number; stats?: any }> {
+    const res = await apiClient.get<any>('/api/hrms/letters/templates', { params });
+    return res.data;
   }
 
   static async getTemplateById(id: string): Promise<DocumentTemplate> {

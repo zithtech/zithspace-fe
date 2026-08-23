@@ -68,9 +68,14 @@ export default function DepartmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
 
   const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
-  const { departments, loading, createDepartment, updateDepartment, deleteDepartment } = useDepartments();
+  const { allDepartments, paginatedDepartments, totalCount, loading, createDepartment, updateDepartment, deleteDepartment, refresh } = useDepartments({
+    page: pagination.current,
+    limit: pagination.pageSize,
+    search: searchText,
+  });
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -91,20 +96,9 @@ export default function DepartmentsPage() {
     }
   }, [authLoading, canReadOrgDepartment, router]);
 
-  const filteredData = useMemo(() => {
-    return departments.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.code.toLowerCase().includes(q) ||
-        item.name.toLowerCase().includes(q) ||
-        (item.employmentType || "").toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      return matchesSearch && matchesStatus;
-    });
-  }, [departments, searchText, statusFilter]);
+  useEffect(() => {
+    setPagination((p) => ({ ...p, current: 1 }));
+  }, [searchText, statusFilter]);
 
   if (authLoading) {
     return (
@@ -116,10 +110,10 @@ export default function DepartmentsPage() {
 
   if (!canReadOrgDepartment) return null;
 
-  const totalDepartments = departments.length;
-  const activeDepartments = departments.filter((d) => d.isActive).length;
+  const totalDepartments = allDepartments.length;
+  const activeDepartments = allDepartments.filter((d) => d.isActive).length;
   const inactiveDepartments = totalDepartments - activeDepartments;
-  const withLeader = departments.filter((d: any) => d.head?.name || d.headId).length;
+  const withLeader = allDepartments.filter((d: any) => d.head?.name || d.headId).length;
   const withoutLeader = totalDepartments - withLeader;
 
   const generateCodeFromName = (name: string): string => {
@@ -382,6 +376,8 @@ export default function DepartmentsPage() {
             icon={<Building2 size={20} color="#3b82f6" />}
             title="Departments"
             description="Manage organizational units, reporting lines, and strategic divisions."
+            onRefresh={refresh}
+            refreshing={loading}
             style={{
               borderBottom: "1px solid var(--border-slate-200)",
               padding: "9.5px 32px",
@@ -419,15 +415,21 @@ export default function DepartmentsPage() {
           <OrgModuleScaffold<Department>
             search={searchText}
             onSearchChange={setSearchText}
-            searchPlaceholder="Search by name, code, or employment type…"
-            meta={<><strong>{filteredData.length}</strong> of {totalDepartments} departments</>}
+            searchPlaceholder="Search by name, code, or employment type..."
+            meta={<><strong>{paginatedDepartments.length}</strong> of {totalCount} departments</>}
             view={view}
             onViewChange={setView}
             loading={loading}
             stats={stats}
             columns={columns}
-            data={filteredData}
+            data={paginatedDepartments}
             rowKey="id"
+            serverPagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: totalCount,
+              onChange: (page, pageSize) => setPagination({ current: page, pageSize })
+            }}
             renderCard={renderDepartmentCard}
             emptyTitle="No departments found"
             emptySubtitle="Create your first department to organize your teams and reporting lines."
@@ -537,7 +539,7 @@ export default function DepartmentsPage() {
                 colon={false}
                 requiredMark="optional"
                 className="customer-drawer-form"
-                onValuesChange={(changed) => {
+                onValuesChange={(changed, values) => {
                   if (changed.departmentName !== undefined && !editingKey) {
                     form.setFieldsValue({ code: generateCodeFromName(changed.departmentName) });
                   }

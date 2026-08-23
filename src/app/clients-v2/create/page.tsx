@@ -247,11 +247,15 @@ function CreateClientV2Content() {
         message.success("Client successfully created!");
         router.push("/clients-v2");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      message.error(
-        `An error occurred while ${isEditMode ? "updating" : "creating"} the client`,
-      );
+      if (err.name === 'ApiError' || err.message) {
+        message.error(err.message || `An error occurred while ${isEditMode ? "updating" : "creating"} the client`);
+      } else {
+        message.error(
+          `An error occurred while ${isEditMode ? "updating" : "creating"} the client`,
+        );
+      }
     } finally {
       setLoading(false);
     }

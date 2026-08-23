@@ -1,4 +1,4 @@
-import { api, ApiError } from "@/lib/axios";
+import { api, apiClient, ApiError } from "@/lib/axios";
 
 /**
  * Sprint Reports v2 — generated report snapshots.
@@ -49,13 +49,29 @@ export interface SprintReportDetail {
 
 export const SprintReportsService = {
   /** List completed sprints + their generated report summary for a project. */
-  async list(projectId: string): Promise<SprintReportListItem[]> {
+  async list(projectId: string, extraParams?: Record<string, any>): Promise<any> {
     try {
-      return await api.get<SprintReportListItem[]>(
-        `/api/sprint-reports?projectId=${encodeURIComponent(projectId)}`
+      const params = new URLSearchParams();
+      params.append('projectId', projectId);
+      
+      if (extraParams) {
+        Object.entries(extraParams).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+      }
+
+      const response = await apiClient.get<any>(
+        `/api/sprint-reports?${params.toString()}`
       );
+      
+      if (response?.data?.pagination) {
+        return { data: response.data.data, pagination: response.data.pagination };
+      }
+      return response?.data?.data || [];
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to load sprint reports");
     }
   },
@@ -67,7 +83,7 @@ export const SprintReportsService = {
         `/api/sprint-reports/sprint/${sprintId}`
       );
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to load sprint report");
     }
   },
@@ -80,7 +96,7 @@ export const SprintReportsService = {
         {}
       );
     } catch (error) {
-      if (error instanceof ApiError) throw new Error(error.message);
+      if (error instanceof ApiError) throw error;
       throw new Error("Failed to generate sprint report");
     }
   },

@@ -91,6 +91,15 @@ export default function DocumentsTab({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -670,6 +679,8 @@ export default function DocumentsTab({
             icon={<FolderArchive size={20} color="#3b82f6" />}
             title="Document Repository"
             description="Centralized storage for all MSA, SOW, NDAs, and legal annexures"
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               canUpdateClient && (
                 <Button

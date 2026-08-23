@@ -61,7 +61,7 @@ export class EmployeeService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employees");
     }
@@ -76,7 +76,7 @@ export class EmployeeService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employee");
     }
@@ -91,7 +91,7 @@ export class EmployeeService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create employee");
     }
@@ -109,7 +109,7 @@ export class EmployeeService {
       return response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update employee");
     }
@@ -123,7 +123,7 @@ export class EmployeeService {
       await api.delete(`/api/employees/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete employee");
     }
@@ -138,7 +138,7 @@ export class EmployeeService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employees for select");
     }
@@ -159,7 +159,7 @@ export class EmployeeService {
       return await api.get("/api/onboarding/birthdays");
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch upcoming birthdays");
     }
@@ -174,7 +174,7 @@ export class EmployeeService {
       return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch employee work details");
     }

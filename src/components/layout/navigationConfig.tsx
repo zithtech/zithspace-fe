@@ -164,6 +164,12 @@ export interface StandalonePage {
 }
 
 export const STANDALONE_PAGES: StandalonePage[] = [
+  // Every user has a profile, whatever the tenant bought. It is reached from
+  // the avatar menu, not from the HRMS nav -- but /profile is one of HRMS's
+  // pathPrefixes, so without an entry here the route guard denies it to any
+  // tenant without the hrms feature and the avatar menu leads nowhere.
+  // No permission requirement: this is your own profile.
+  { path: "/profile" },
   { path: "/mail", requiredPermission: Permissions.MAIL_READ, requiredSubscriptionFeature: ["home_home_general_mail"] },
   { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ, requiredSubscriptionFeature: ["home_home_general_calendar"] },
   { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredSubscriptionFeature: ["home_home_general_team_chat"] },

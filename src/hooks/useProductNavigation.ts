@@ -1,50 +1,58 @@
 "use client";
 
 import { useMemo } from "react";
-import { useProduct } from "@/context/ProductContext";
 import { useAuth } from "@/context/AuthContext";
 import {
-  EXTRA_ROUTE_CAPABILITIES,
+  EXTRA_ROUTE_FEATURES,
   ModuleConfig,
   NavItem,
   NAVIGATION_CONFIG,
   STANDALONE_PAGES,
   StandalonePage,
-  standalonePagesFor,
 } from "@/components/layout/navigationConfig";
-import { Capability, effectiveCapabilities } from "@/lib/product";
 
 export interface ProductNavigation {
-  /** Modules and items reachable here, still subject to permission checks. */
+  /** Modules and items this tenant's plan includes, before permission checks. */
   modules: ModuleConfig[];
-  /** Standalone pages reachable here. */
+  /** Standalone pages this tenant's plan includes. */
   standalonePages: StandalonePage[];
-  /** The effective capability set: surface ∩ tenant. */
-  capabilities: ReadonlySet<Capability>;
   /**
-   * Path prefixes that exist in the app but are NOT reachable on this surface.
+   * Path prefixes that exist in the app but are NOT included in this plan.
    *
    * This is what makes URL access deny-by-default. Filtering a module out of
-   * the nav previously made things MORE permissive, not less: the route guard
-   * looked the path up in the filtered list, found nothing, and fell through as
-   * allowed — so hiding Payroll removed its guard instead of enforcing it.
-   * Listing the excluded prefixes explicitly means "not in the nav" can be
-   * distinguished from "not a route at all".
+   * the nav would otherwise make things MORE permissive, not less: the route
+   * guard looks the path up in the filtered list, finds nothing, and falls
+   * through as allowed — so hiding Payroll would remove its guard instead of
+   * enforcing it. Listing the excluded prefixes explicitly is what lets "not in
+   * the nav" be told apart from "not a route at all".
    */
   deniedPrefixes: string[];
 }
 
-function isAllowed(capability: Capability | undefined, held: ReadonlySet<Capability>): boolean {
-  return !capability || held.has(capability);
+/**
+ * Does the granted set satisfy this requirement?
+ *
+ * Mirrors hasAnySubscriptionFeature in AuthContext and satisfies() on the API:
+ * the catalogue ids are hierarchical, so holding `hrms_leaves_v2` satisfies a
+ * requirement of `hrms`, and holding `hrms` satisfies `hrms_leaves_v2`. Plans
+ * are written at whichever level is convenient, so an exact-match check would
+ * reject perfectly valid grants.
+ */
+function satisfies(granted: readonly string[], required: readonly string[]): boolean {
+  return required.some((r) =>
+    granted.some((f) => f === r || f.startsWith(`${r}_`) || r.startsWith(`${f}_`)),
+  );
 }
 
-/** Drop items this surface cannot reach, and any group left empty as a result. */
-function pruneItems(items: NavItem[], held: ReadonlySet<Capability>): NavItem[] {
+/** Drop items the plan does not include, and any group left empty as a result. */
+function pruneItems(items: NavItem[], granted: readonly string[]): NavItem[] {
   return items.reduce<NavItem[]>((kept, item) => {
-    if (!isAllowed(item.requiredCapability, held)) return kept;
+    if (item.requiredSubscriptionFeature && !satisfies(granted, item.requiredSubscriptionFeature)) {
+      return kept;
+    }
 
     if (item.children) {
-      const children = pruneItems(item.children, held);
+      const children = pruneItems(item.children, granted);
       // A group whose every child was removed would render as a heading that
       // expands to nothing.
       if (children.length === 0) return kept;
@@ -66,44 +74,55 @@ function collectPaths(items: NavItem[], into: string[]): void {
 }
 
 /**
- * The nav, narrowed to what this surface and this tenant can actually reach.
+ * The nav, narrowed to what this tenant's plan actually includes.
  *
  * Every consumer — MainLayout's route guard, TopNav's chips, SideNav's items —
  * MUST go through this rather than importing NAVIGATION_CONFIG directly. If one
  * reads the raw config, that surface silently regains what was removed.
  *
- * TWO dimensions, both must pass:
- *   SURFACE   what this brand's door offers  (ProductManifest.capabilities)
- *   TENANT    what the customer bought       (user.capabilities from /auth/me)
+ * ONE SOURCE, NOT TWO. Membership comes from `subscriptionFeatures`, resolved
+ * by the admin control plane and already scoped to the product this request
+ * came through. There is deliberately no second, hand-written product→feature
+ * map on the client: that is data somebody edits in the admin, not something
+ * to redeploy.
  *
- * Permission checks run afterwards, in the consumers, and are a separate
- * question: capability is "did this company buy it", permission is "may this
- * person use it".
+ * WHICH BRAND DOOR a tenant may enter is a separate question, answered earlier
+ * and elsewhere — the tenant-resolve endpoints 404 a tenant that does not hold
+ * the product for the host it arrived on, so the app never loads at all.
+ *
+ * NO FEATURES MEANS UNMANAGED, NOT ENTITLED TO NOTHING. A tenant with no
+ * subscription, or a session predating this, sees everything — the same rule
+ * the API applies, so the nav and the API cannot disagree. Permission checks
+ * still run afterwards in the consumers.
  */
 export function useProductNavigation(): ProductNavigation {
-  const { product } = useProduct();
   const { user } = useAuth();
 
   return useMemo(() => {
-    const held = effectiveCapabilities(product, user?.capabilities);
+    const granted = user?.subscriptionFeatures ?? [];
+    const unmanaged = granted.length === 0;
 
     const modules: ModuleConfig[] = [];
     const deniedPrefixes: string[] = [];
 
     for (const module of NAVIGATION_CONFIG) {
-      if (!isAllowed(module.requiredCapability, held)) {
-        // Whole module unreachable — every prefix it owns is denied.
+      const moduleAllowed =
+        unmanaged ||
+        !module.requiredSubscriptionFeature ||
+        satisfies(granted, module.requiredSubscriptionFeature);
+
+      if (!moduleAllowed) {
         deniedPrefixes.push(...module.pathPrefixes);
         continue;
       }
 
-      const items = pruneItems(module.items, held);
+      const items = unmanaged ? module.items : pruneItems(module.items, granted);
       if (items.length === 0) {
         deniedPrefixes.push(...module.pathPrefixes);
         continue;
       }
 
-      // Module is reachable, but some items inside it may not be. Deny exactly
+      // Module is included, but some items inside it may not be. Deny exactly
       // the paths that were pruned — not the module's prefixes, which the
       // surviving items still need.
       const allPaths: string[] = [];
@@ -116,23 +135,30 @@ export function useProductNavigation(): ProductNavigation {
       modules.push({ ...module, items });
     }
 
-    const standalone = standalonePagesFor(held);
-    const keptStandalone = new Set(standalone.map((p) => p.path));
+    const standalonePages = unmanaged
+      ? STANDALONE_PAGES
+      : STANDALONE_PAGES.filter(
+          (p) => !p.requiredSubscriptionFeature || satisfies(granted, p.requiredSubscriptionFeature),
+        );
+    const keptStandalone = new Set(standalonePages.map((p) => p.path));
     deniedPrefixes.push(
-      ...STANDALONE_PAGES.map((p) => p.path).filter((p) => !keptStandalone.has(p))
+      ...STANDALONE_PAGES.map((p) => p.path).filter((p) => !keptStandalone.has(p)),
     );
 
     // Routes with no nav entry — nothing above would ever deny them.
-    deniedPrefixes.push(
-      ...EXTRA_ROUTE_CAPABILITIES.filter(([, cap]) => !held.has(cap)).map(([path]) => path)
-    );
+    if (!unmanaged) {
+      deniedPrefixes.push(
+        ...EXTRA_ROUTE_FEATURES.filter(([, feature]) => !satisfies(granted, [feature])).map(
+          ([path]) => path,
+        ),
+      );
+    }
 
     return {
       modules,
-      standalonePages: standalone,
-      capabilities: held,
+      standalonePages,
       // Longest first so the most specific denial is reported when several match.
       deniedPrefixes: [...new Set(deniedPrefixes)].sort((a, b) => b.length - a.length),
     };
-  }, [product, user?.capabilities]);
+  }, [user?.subscriptionFeatures]);
 }

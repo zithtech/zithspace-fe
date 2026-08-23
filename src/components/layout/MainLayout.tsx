@@ -7,7 +7,7 @@ import { Layout, App as AntApp, theme } from "antd";
 import ZukvoLoader from "../common/ZukvoLoader";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
-import { ModuleType, standalonePagesFor } from "./navigationConfig";
+import { ModuleType } from "./navigationConfig";
 import { useProduct } from "@/context/ProductContext";
 import { useProductNavigation } from "@/hooks/useProductNavigation";
 import { useLayout } from "@/context/LayoutContext";

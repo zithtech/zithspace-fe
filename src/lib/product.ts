@@ -41,78 +41,18 @@ export type NavModuleKey =
   | "ADMIN"
   | "REC_SUITE";
 
-/**
- * THE single vocabulary for "what may this tenant reach".
- *
- * MUST STAY IN SYNC with `Capability` in
- * zukvo-be/src/modules/entitlements/entitlements.service.ts — the server is
- * authoritative, and a key that exists on only one side either hides something
- * the API still serves, or shows something the API will refuse.
- *
- * Two dimensions use this same list, and both have to pass:
- *   SURFACE   what this brand's front door offers — ProductManifest.capabilities
- *   TENANT    what the customer actually bought   — user.capabilities from /auth/me
- *
- * The effective set is the intersection. That is what keeps a full-suite tenant
- * from seeing Payroll just because they walked in through testiez.com.
- */
-export type Capability =
-  | "home"
-  | "my_hub"
-  | "work"
-  | "hrms"
-  | "finance"
-  | "admin"
-  | "rec_suite"
-  | "proposals"
-  | "leads"
-  | "squads"
-  | "timesheet"
-  | "daily_updates"
-  | "clients"
-  | "chrome_extension"
-  | "chat"
-  | "skills"
-  | "bookmarks";
-
-const ALL_CAPABILITIES: readonly Capability[] = [
-  "home",
-  "my_hub",
-  "work",
-  "hrms",
-  "finance",
-  "admin",
-  "rec_suite",
-  "proposals",
-  "leads",
-  "squads",
-  "timesheet",
-  "daily_updates",
-  "clients",
-  "chrome_extension",
-  "chat",
-  "skills",
-  "bookmarks",
-];
-
 export interface ProductManifest {
   key: ProductKey;
   /** Shown in the browser title, emails and the shell header. */
   name: string;
   /** Where a logged-in user lands, and where denied routes redirect to. */
   homeRoute: string;
-  /**
-   * What this SURFACE offers, before asking what the tenant bought. Intersected
-   * with the tenant's own capabilities to get the effective set.
-   */
-  capabilities: readonly Capability[];
 }
 
 const ZUKVO: ProductManifest = {
   key: "zukvo",
   name: "Zukvo",
   homeRoute: "/dashboard",
-  capabilities: ALL_CAPABILITIES,
 };
 
 /**
@@ -132,10 +72,6 @@ const TESTIEZ: ProductManifest = {
   key: "testiez",
   name: "Testiez",
   homeRoute: "/dashboard",
-  // Home, Work and Admin — and none of the Work/Admin features sold separately
-  // (Proposals, Leads, Squads, Timesheet, Daily Updates, Clients, Chrome
-  // Extension) nor the Zukvo-only standalone pages (Chat, Skills, Bookmarks).
-  capabilities: ["home", "work", "admin"],
 };
 
 export const PRODUCTS: Record<ProductKey, ProductManifest> = {
@@ -177,24 +113,6 @@ export function manifestForHostname(hostname: string | null | undefined): Produc
   return manifestFor(productFromHostname(hostname));
 }
 
-/**
- * The effective capability set: what this SURFACE offers, intersected with what
- * the TENANT bought.
- *
- * `tenantCapabilities` comes from /auth/me. An empty array means a session
- * issued before entitlements existed — treated as "unknown, allow" so a stale
- * token degrades to the surface's own list rather than an empty app. The API
- * enforces the real thing regardless, so the worst case is a visible link that
- * returns 403.
- */
-export function effectiveCapabilities(
-  product: ProductKey,
-  tenantCapabilities: readonly string[] | undefined
-): Set<Capability> {
-  const surface = manifestFor(product).capabilities;
-  if (!tenantCapabilities?.length) return new Set(surface);
-  return new Set(surface.filter((c) => tenantCapabilities.includes(c)));
-}
 
 /** Header the Edge middleware stamps so server components can read the product. */
 export const PRODUCT_HEADER = "x-zukvo-product";

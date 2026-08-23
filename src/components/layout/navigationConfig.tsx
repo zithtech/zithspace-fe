@@ -1,7 +1,6 @@
 import React from "react";
 export const NAV_MOBILE_BREAKPOINT = 720;
 import { Permissions } from "@/types/permissions";
-import type { Capability } from "@/lib/product";
 import {
   // Modules
   Home,
@@ -130,16 +129,6 @@ export interface NavItem {
   requiredSubscriptionFeature?: string[];
   /** Show if user has this exact role (e.g. 'super_admin') */
   requiredRole?: string;
-  /**
-   * Capability required to reach this item at all. Absent means "available
-   * wherever its module is" — only exclusions need naming.
-   *
-   * This is the SAME vocabulary the API gates on (see the entitlements module),
-   * which is the point: hiding an item here and blocking its API cannot drift
-   * apart, because both read this key. Applied once in useProductNavigation()
-   * so the nav, the route guard and the module chips always agree.
-   */
-  requiredCapability?: Capability;
 }
 
 export interface ModuleConfig {
@@ -161,8 +150,7 @@ export interface ModuleConfig {
    * visibility; if absent, chip visibility falls back to requiredAnyPermission.
    */
   requiredChipAnyPermission?: string[];
-  /** Capability required for this whole module. */
-  requiredCapability?: Capability;
+  /** Catalogue feature this module belongs to. Absent means always included. */
   requiredSubscriptionFeature?: string[];
 }
 
@@ -173,51 +161,46 @@ export interface StandalonePage {
   requiredAnyPermission?: string[];
   /** Plan feature — what the tenant pays for. */
   requiredSubscriptionFeature?: string[];
-  /** Surface capability — which brand door offers the page. Absent means all. */
-  requiredCapability?: Capability;
 }
 
 export const STANDALONE_PAGES: StandalonePage[] = [
   { path: "/mail", requiredPermission: Permissions.MAIL_READ, requiredSubscriptionFeature: ["home_home_general_mail"] },
   { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ, requiredSubscriptionFeature: ["home_home_general_calendar"] },
-  { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredSubscriptionFeature: ["home_home_general_team_chat"], requiredCapability: "chat" },
-  { path: "/skills", requiredPermission: Permissions.SKILLS_READ, requiredSubscriptionFeature: ["home_home_general_skills"], requiredCapability: "skills" },
+  { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredSubscriptionFeature: ["home_home_general_team_chat"] },
+  { path: "/skills", requiredPermission: Permissions.SKILLS_READ, requiredSubscriptionFeature: ["home_home_general_skills"] },
   { path: "/activity", requiredPermission: Permissions.ACTIVITY_LOG_READ_ALL, requiredSubscriptionFeature: ["home_home_general_activity"] },
   { path: "/bookmarks", requiredPermission: Permissions.BOOKMARK_READ, requiredSubscriptionFeature: ["home_home_general_bookmarks"] },
   { path: "/hotspot", requiredAnyPermission: [Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ], requiredSubscriptionFeature: ["home_home_general_hotspot"] },
 ];
 
 /**
- * Routes that have NO nav entry but still belong to a capability.
+ * Routes that have NO nav entry but still belong to a catalogue feature.
  *
- * Without these they would be reachable by URL on every surface: the denied
- * list is built from the nav config, so a page the nav has never heard of is a
- * page nothing can deny. REC_SUITE is the clearest case — a declared ModuleType
- * with no module entry at all, so none of its paths were registered anywhere.
+ * Without these they are reachable by URL on every surface: the denied list is
+ * built from the nav config, so a page the nav has never heard of is a page
+ * nothing can deny. Recruitment is the clearest case — REC_SUITE is a declared
+ * ModuleType with no module entry at all, so none of its paths were registered
+ * anywhere.
+ *
+ * Keys are admin_feature_catalog ids. Recruitment lives under hrms in the
+ * catalogue (hrms_candidate_pipeline, hrms_openings), so hrms covers it.
  *
  * Auth and public routes (/login, /onboard, /portal, /public, …) are absent on
- * purpose: they must stay reachable on every surface.
+ * purpose: they must stay reachable everywhere.
  */
-export const EXTRA_ROUTE_CAPABILITIES: ReadonlyArray<readonly [string, Capability]> = [
-  ["/recruitment", "rec_suite"],
-  ["/recruitment-client", "rec_suite"],
-  ["/recruitment-settings", "rec_suite"],
-  ["/position-configuration", "rec_suite"],
+export const EXTRA_ROUTE_FEATURES: ReadonlyArray<readonly [string, string]> = [
+  ["/recruitment", "hrms"],
+  ["/recruitment-client", "hrms"],
+  ["/recruitment-settings", "hrms"],
+  ["/position-configuration", "hrms"],
   // FINANCE prefixes cover /reimbursement and /reimbursement-v2 but not this.
   ["/reimburseCreate", "finance"],
 ];
 
-/** Standalone pages reachable with the given surface capability set. */
-export function standalonePagesFor(capabilities: ReadonlySet<Capability>): StandalonePage[] {
-  return STANDALONE_PAGES.filter(
-    (p) => !p.requiredCapability || capabilities.has(p.requiredCapability)
-  );
-}
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
   {
     key: "HOME",
-    requiredCapability: "home",
     label: "HOME",
     icon: I(Home),
     pathPrefixes: ["/dashboard", "/integrations"],
@@ -257,7 +240,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   },
   {
     key: "WORK",
-    requiredCapability: "work",
     label: "WORK",
     icon: I(Briefcase),
     pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/escalations"],
@@ -484,7 +466,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(CalendarClock),
         // Not sold with Testiez — Time Tracking covers what a QA engagement
         // needs; Timesheet is the HR-facing approval workflow.
-        requiredCapability: "timesheet",
         requiredSubscriptionFeature: ["work_timesheet"],
         requiredAnyPermission: [
           Permissions.TIMESHEET_READ,
@@ -559,7 +540,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: I(NotebookPen),
-        requiredCapability: "daily_updates",
         requiredSubscriptionFeature: ["work_daily_updates"],
         requiredAnyPermission: [
           Permissions.DAILY_UPDATE_READ,
@@ -594,7 +574,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "proposals-group",
         label: "Proposals",
         icon: I(FileSignature),
-        requiredCapability: "proposals",
         requiredSubscriptionFeature: ["work_proposals"],
         requiredPermission: Permissions.PROPOSAL_READ,
         children: [
@@ -647,7 +626,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Squads",
         icon: I(Users2),
         path: "/squad",
-        requiredCapability: "squads",
         requiredSubscriptionFeature: ["work_squad_management"],
         requiredPermission: Permissions.SQUAD_READ,
       },
@@ -703,7 +681,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),
-        requiredCapability: "leads",
         requiredSubscriptionFeature: ["work_lead_management"],
         requiredAnyPermission: [
           Permissions.LEAD_READ,
@@ -741,13 +718,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/bidiq",
         requiredSubscriptionFeature: ["work_bidiq"],
         requiredPermission: Permissions.BIDIQ_READ,
-        requiredCapability: "leads",
       },
     ],
   },
   {
     key: "ADMIN",
-    requiredCapability: "admin",
     label: "ADMIN",
     icon: I(ShieldCheck),
     pathPrefixes: [
@@ -776,7 +751,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Clients V2",
         icon: I(Building2),
         path: "/clients-v2",
-        requiredCapability: "clients",
         requiredSubscriptionFeature: ["admin_clients_v2"],
         requiredPermission: Permissions.CLIENT_READ,
       },
@@ -794,7 +768,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Chrome),
         path: "/settings/chrome-extension",
         // The Zukvo browser extension. Testiez ships no extension.
-        requiredCapability: "chrome_extension",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {
@@ -889,7 +862,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
 
   {
     key: "HRMS",
-    requiredCapability: "hrms",
     label: "HRMS",
     icon: I(UsersRound),
     pathPrefixes: [
@@ -1079,7 +1051,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   },
   {
     key: "FINANCE",
-    requiredCapability: "finance",
     label: "FINANCE",
     icon: I(Wallet),
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts", "/payroll-v2"],
@@ -1265,7 +1236,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   // navigate into a feature — that's expected; /my-hub is the home base.
   {
     key: "MY_HUB",
-    requiredCapability: "my_hub",
     label: "My Hub",
     icon: I(LayoutGrid),
     pathPrefixes: ["/my-hub"],

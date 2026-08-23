@@ -269,7 +269,7 @@ export default function TopNav({
   // Three filters in order: the surface and the tenant's plan decide which
   // modules exist at all (both inside useProductNavigation), then permission
   // decides which of those this user sees a chip for.
-  const { modules: navigation, capabilities } = useProductNavigation();
+  const { modules: navigation } = useProductNavigation();
   const visibleModules = navigation.filter(module => {
     // 1. If subscription is required for this module, check it FIRST
     if (module.requiredSubscriptionFeature) {
@@ -746,7 +746,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadSkills && hasAnySubscriptionFeature("home_home_general_skills") && capabilities.has("skills") && (
+            {canReadSkills && hasAnySubscriptionFeature("home_home_general_skills") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -768,7 +768,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadChat && hasAnySubscriptionFeature("home_home_general_team_chat") && capabilities.has("chat") && (
+            {canReadChat && hasAnySubscriptionFeature("home_home_general_team_chat") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -833,7 +833,7 @@ export default function TopNav({
                 </div>
               </Tooltip>
             )} */}
-            {canReadBookmark && hasAnySubscriptionFeature("home_home_general_bookmarks") && capabilities.has("bookmarks") && (
+            {canReadBookmark && hasAnySubscriptionFeature("home_home_general_bookmarks") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -959,7 +959,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/activity')
                   }] : []),
-                  ...(hasPermission(Permissions.BOOKMARK_READ) && capabilities.has("bookmarks") ? [{
+                  ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
                     key: 'bookmarks',
                     label: actionMenuLabel(
                       'Bookmarks',

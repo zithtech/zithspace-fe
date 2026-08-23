@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider, App } from "antd";
 import { AuthProvider } from "@/context/AuthContext";
 import { TenantProvider } from "@/context/TenantContext";
+import { ProductProvider } from "@/context/ProductContext";
+import { DEFAULT_PRODUCT, PRODUCT_HEADER, ProductKey } from "@/lib/product";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
 import "./globals.css";
@@ -16,26 +19,51 @@ import AppSetupGuard from "@/components/common/AppSetupGuard";
 import iconLight from "./icon-light.png";
 import iconDark from "./icon-dark.png";
 
-export const metadata: Metadata = {
-  icons: {
-    icon: [
-      {
-        url: iconLight.src,
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: iconDark.src,
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
-  },
-};
+/**
+ * Tab icon and title follow the product. A Testiez customer looking at a Zukvo
+ * favicon is as jarring as a Zukvo logo on the login screen — the tab is the
+ * most persistently visible piece of branding there is.
+ *
+ * Zukvo ships light/dark variants of its mark; Testiez uses the single favicon
+ * from its marketing site, which is cut to read on both.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const product =
+    ((await headers()).get(PRODUCT_HEADER) as ProductKey | null) ?? DEFAULT_PRODUCT;
 
-export default function RootLayout({
+  if (product === "testiez") {
+    return {
+      title: "Testiez",
+      icons: { icon: [{ url: "/testiez-favicon.png" }] },
+    };
+  }
+
+  return {
+    icons: {
+      icon: [
+        {
+          url: iconLight.src,
+          media: "(prefers-color-scheme: light)",
+        },
+        {
+          url: iconDark.src,
+          media: "(prefers-color-scheme: dark)",
+        },
+      ],
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Product is resolved from the Host by the Edge middleware and passed down
+  // here rather than sniffed on the client, so the very first painted frame is
+  // already the right brand. See src/lib/product.ts.
+  const product = ((await headers()).get(PRODUCT_HEADER) as ProductKey | null) ?? DEFAULT_PRODUCT;
+
   return (
     <html lang="en">
       <head>
@@ -55,25 +83,32 @@ export default function RootLayout({
           }
         ` }} />
         <AntdRegistry>
-          <ThemeProvider>
-            <ThemeConfigProvider>
-              <App>
-                <TenantProvider>
-                  <AuthProvider>
-                    <QueryProvider>
-                      <SocketProvider>
-                        <LayoutProvider>
-                          <TicketDrawerProvider>
-                            <AppSetupGuard>{children}</AppSetupGuard>
-                          </TicketDrawerProvider>
-                        </LayoutProvider>
-                      </SocketProvider>
-                    </QueryProvider>
-                  </AuthProvider>
-                </TenantProvider>
-              </App>
-            </ThemeConfigProvider>
-          </ThemeProvider>
+          {/* ProductProvider is outermost of the app providers on purpose. The
+              product is known from the request before anything else, and both
+              the Ant Design theme (accent colour) and ZukvoLoader (brand mark,
+              used as the global spin indicator) read from it — so it has to sit
+              above ThemeConfigProvider, not inside it. */}
+          <ProductProvider initialProduct={product}>
+            <ThemeProvider>
+              <ThemeConfigProvider>
+                <App>
+                  <TenantProvider>
+                    <AuthProvider>
+                      <QueryProvider>
+                        <SocketProvider>
+                          <LayoutProvider>
+                            <TicketDrawerProvider>
+                              <AppSetupGuard>{children}</AppSetupGuard>
+                            </TicketDrawerProvider>
+                          </LayoutProvider>
+                        </SocketProvider>
+                      </QueryProvider>
+                    </AuthProvider>
+                  </TenantProvider>
+                </App>
+              </ThemeConfigProvider>
+            </ThemeProvider>
+          </ProductProvider>
         </AntdRegistry>
       </body>
     </html>

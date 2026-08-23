@@ -1,6 +1,7 @@
 import React from "react";
 export const NAV_MOBILE_BREAKPOINT = 720;
 import { Permissions } from "@/types/permissions";
+import type { Capability } from "@/lib/product";
 import {
   // Modules
   Home,
@@ -128,6 +129,16 @@ export interface NavItem {
   requiredAnyPermission?: string[];
   /** Show if user has this exact role (e.g. 'super_admin') */
   requiredRole?: string;
+  /**
+   * Capability required to reach this item at all. Absent means "available
+   * wherever its module is" — only exclusions need naming.
+   *
+   * This is the SAME vocabulary the API gates on (see the entitlements module),
+   * which is the point: hiding an item here and blocking its API cannot drift
+   * apart, because both read this key. Applied once in useProductNavigation()
+   * so the nav, the route guard and the module chips always agree.
+   */
+  requiredCapability?: Capability;
 }
 
 export interface ModuleConfig {
@@ -149,25 +160,166 @@ export interface ModuleConfig {
    * visibility; if absent, chip visibility falls back to requiredAnyPermission.
    */
   requiredChipAnyPermission?: string[];
+  /** Capability required for this whole module. */
+  requiredCapability?: Capability;
 }
 
 /** Pages that aren't part of a specific module group but still need protection. */
 export interface StandalonePage {
   path: string;
   requiredPermission: string;
+  /** Capability required. Absent means available on every surface. */
+  requiredCapability?: Capability;
 }
 
 export const STANDALONE_PAGES: StandalonePage[] = [
   { path: "/mail", requiredPermission: Permissions.MAIL_READ },
   { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ },
-  { path: "/chat", requiredPermission: Permissions.CHAT_READ },
-  { path: "/skills", requiredPermission: Permissions.SKILLS_READ },
+  { path: "/activity", requiredPermission: Permissions.DASHBOARD_READ },
+  // Zukvo only — Testiez's standalone set is Mail, Calendar and Activity.
+  { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredCapability: "chat" },
+  { path: "/skills", requiredPermission: Permissions.SKILLS_READ, requiredCapability: "skills" },
 ];
+
+/**
+ * Routes that have NO nav entry but still belong to a capability.
+ *
+ * Without these they would be reachable by URL on every surface: the denied
+ * list is built from the nav config, so a page the nav has never heard of is a
+ * page nothing can deny. REC_SUITE is the clearest case — it is a declared
+ * ModuleType with no module entry at all, so none of its paths were registered
+ * anywhere.
+ *
+ * Auth and public routes (/login, /onboard, /portal, /public, …) are absent on
+ * purpose: they must stay reachable on every surface.
+ */
+export const EXTRA_ROUTE_CAPABILITIES: ReadonlyArray<readonly [string, Capability]> = [
+  // Recruitment suite — no module entry exists in NAVIGATION_CONFIG.
+  ["/recruitment", "rec_suite"],
+  ["/recruitment-client", "rec_suite"],
+  ["/recruitment-settings", "rec_suite"],
+  ["/position-configuration", "rec_suite"],
+  // Legacy reimbursement create screen; the FINANCE prefixes cover
+  // /reimbursement and /reimbursement-v2 but not this one.
+  ["/reimburseCreate", "finance"],
+];
+
+/** Standalone pages reachable with the given capability set. */
+export function standalonePagesFor(capabilities: ReadonlySet<Capability>): StandalonePage[] {
+  return STANDALONE_PAGES.filter(
+    (p) => !p.requiredCapability || capabilities.has(p.requiredCapability)
+  );
+}
+
+/**
+ * QA Space — a group inside WORK on BOTH products.
+ *
+ * Testiez ships the same Work module as Zukvo, minus the items it does not
+ * sell (Proposals, Leads, BidIq, Squads, Timesheet, Daily Updates). QA Space is
+ * not hoisted to top-level navigation on either surface: it sits beside
+ * Tickets and Projects, which is where a QA engineer expects it in a product
+ * that also carries the tickets those bugs get filed against.
+ *
+ * Extracted as a const purely for readability — inlining ninety lines inside
+ * the WORK module made that array hard to read.
+ */
+const QA_SPACE_ITEMS: NavItem[] = [
+  {
+    key: "/qa-workspace/test-scope",
+    label: "Scope",
+    icon: I(Target),
+    path: "/qa-workspace/test-scope",
+    requiredPermission: Permissions.QA_SCOPE_READ,
+  },
+  {
+    key: "/qa-workspace/test-cases",
+    label: "Cases",
+    icon: I(ClipboardList),
+    path: "/qa-workspace/test-cases",
+    requiredPermission: Permissions.QA_CASE_READ,
+  },
+  {
+    key: "/qa-workspace/test-suites",
+    label: "Suites",
+    icon: I(Boxes),
+    path: "/qa-workspace/test-suites",
+    requiredPermission: Permissions.QA_SUITE_READ,
+  },
+  {
+    key: "/qa-workspace/test-runs",
+    label: "Runs",
+    icon: I(PlayCircle),
+    path: "/qa-workspace/test-runs",
+    requiredPermission: Permissions.QA_RUN_READ,
+  },
+  {
+    key: "/qa-workspace/bug-list",
+    label: "Bug List",
+    icon: I(Bug),
+    path: "/qa-workspace/bug-list",
+    requiredPermission: Permissions.BUG_READ,
+  },
+  {
+    key: "/qa-workspace/qa-submissions",
+    label: "QA Submissions",
+    icon: I(FileCheck2),
+    path: "/qa-workspace/qa-submissions",
+    requiredPermission: Permissions.QA_SUBMISSION_READ,
+  },
+  {
+    key: "/qa-workspace/approvals",
+    label: "Approvals",
+    icon: I(ThumbsUp),
+    path: "/qa-workspace/approvals",
+    requiredAnyPermission: [
+      Permissions.QA_APPROVAL_READ,
+      Permissions.QA_APPROVAL_APPROVE,
+      Permissions.QA_MANAGE,
+    ],
+  },
+  {
+    key: "/qa-workspace/analytics",
+    label: "Analytics",
+    icon: I(BarChart3),
+    path: "/qa-workspace/analytics",
+    requiredPermission: Permissions.QA_ANALYTICS_READ,
+  },
+  {
+    key: "/qa-workspace/settings",
+    label: "Settings",
+    icon: I(Settings),
+    path: "/qa-workspace/settings",
+    requiredPermission: Permissions.BUG_MANAGE,
+  },
+];
+
+/** Any permission that should reveal QA Space at all. */
+const QA_ANY_PERMISSION: string[] = [
+  Permissions.QA_SCOPE_READ,
+  Permissions.QA_CASE_READ,
+  Permissions.QA_SUITE_READ,
+  Permissions.QA_RUN_READ,
+  Permissions.BUG_READ,
+  Permissions.QA_SUBMISSION_READ,
+  Permissions.QA_APPROVAL_READ,
+  Permissions.QA_APPROVAL_APPROVE,
+  Permissions.QA_ANALYTICS_READ,
+];
+
+/** QA Space as it appears under WORK, on both products. */
+export const QA_SPACE_GROUP: NavItem = {
+  key: "qa-workspace",
+  label: "QA Space",
+  icon: I(Bug),
+  requiredAnyPermission: QA_ANY_PERMISSION,
+  children: QA_SPACE_ITEMS,
+};
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
 
   {
     key: "HOME",
+    requiredCapability: "home",
     label: "HOME",
     icon: I(Home),
     pathPrefixes: ["/dashboard", "/integrations"],
@@ -202,6 +354,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   },
   {
     key: "WORK",
+    requiredCapability: "work",
     label: "WORK",
     icon: I(Briefcase),
     pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace"],
@@ -309,91 +462,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-      {
-        key: "qa-workspace",
-        label: "QA Space",
-        icon: I(Bug),
-        requiredAnyPermission: [
-          Permissions.QA_SCOPE_READ,
-          Permissions.QA_CASE_READ,
-          Permissions.QA_SUITE_READ,
-          Permissions.QA_RUN_READ,
-          Permissions.BUG_READ,
-          Permissions.QA_SUBMISSION_READ,
-          Permissions.QA_APPROVAL_READ,
-          Permissions.QA_APPROVAL_APPROVE,
-          Permissions.QA_ANALYTICS_READ,
-        ],
-        children: [
-          {
-            key: "/qa-workspace/test-scope",
-            label: "Scope",
-            icon: I(Target),
-            path: "/qa-workspace/test-scope",
-            requiredPermission: Permissions.QA_SCOPE_READ,
-          },
-          {
-            key: "/qa-workspace/test-cases",
-            label: "Cases",
-            icon: I(ClipboardList),
-            path: "/qa-workspace/test-cases",
-            requiredPermission: Permissions.QA_CASE_READ,
-          },
-          {
-            key: "/qa-workspace/test-suites",
-            label: "Suites",
-            icon: I(Boxes),
-            path: "/qa-workspace/test-suites",
-            requiredPermission: Permissions.QA_SUITE_READ,
-          },
-          {
-            key: "/qa-workspace/test-runs",
-            label: "Runs",
-            icon: I(PlayCircle),
-            path: "/qa-workspace/test-runs",
-            requiredPermission: Permissions.QA_RUN_READ,
-          },
-          {
-            key: "/qa-workspace/bug-list",
-            label: "Bug List",
-            icon: I(Bug),
-            path: "/qa-workspace/bug-list",
-            requiredPermission: Permissions.BUG_READ,
-          },
-          {
-            key: "/qa-workspace/qa-submissions",
-            label: "QA Submissions",
-            icon: I(FileCheck2),
-            path: "/qa-workspace/qa-submissions",
-            requiredPermission: Permissions.QA_SUBMISSION_READ,
-          },
-          {
-            key: "/qa-workspace/approvals",
-            label: "Approvals",
-            icon: I(ThumbsUp),
-            path: "/qa-workspace/approvals",
-            requiredAnyPermission: [
-              Permissions.QA_APPROVAL_READ,
-              Permissions.QA_APPROVAL_APPROVE,
-              Permissions.QA_MANAGE,
-            ],
-          },
-          {
-            key: "/qa-workspace/analytics",
-            label: "Analytics",
-            icon: I(BarChart3),
-            path: "/qa-workspace/analytics",
-            requiredPermission: Permissions.QA_ANALYTICS_READ,
-          },
-          {
-            key: "/qa-workspace/settings",
-            label: "Settings",
-            icon: I(Settings),
-            path: "/qa-workspace/settings",
-            requiredPermission: Permissions.BUG_MANAGE,
-          },
-        ],
-      },
+      // Shared with the top-level QA module — see QA_SPACE_GROUP above.
+      QA_SPACE_GROUP,
       {
         key: "projects-manage-group",
         label: "Projects",
@@ -419,6 +489,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "timesheet-group",
         label: "Timesheet",
         icon: I(CalendarClock),
+        // Not sold with Testiez — Time Tracking covers what a QA engagement
+        // needs; Timesheet is the HR-facing approval workflow.
+        requiredCapability: "timesheet",
         requiredAnyPermission: [
           Permissions.TIMESHEET_READ,
           Permissions.TIMESHEET_CREATE,
@@ -491,6 +564,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: I(NotebookPen),
+        requiredCapability: "daily_updates",
         requiredAnyPermission: [
           Permissions.DAILY_UPDATE_READ,
           Permissions.DAILY_UPDATE_CREATE,
@@ -523,6 +597,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "proposals-group",
         label: "Proposals",
         icon: I(FileSignature),
+        requiredCapability: "proposals",
         requiredPermission: Permissions.PROPOSAL_READ,
         children: [
           {
@@ -574,12 +649,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Squads",
         icon: I(Users2),
         path: "/squad",
+        requiredCapability: "squads",
         requiredPermission: Permissions.SQUAD_READ,
       },
       {
         key: "leads-group",
         label: "Lead Management",
         icon: I(Megaphone),
+        requiredCapability: "leads",
         requiredAnyPermission: [
           Permissions.LEAD_READ,
           Permissions.LEAD_SETTING_READ,
@@ -615,11 +692,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: I(Zap),
         path: "/bidiq",
         requiredPermission: Permissions.BIDIQ_READ,
+        requiredCapability: "leads",
       },
     ],
   },
   {
     key: "ADMIN",
+    requiredCapability: "admin",
     label: "ADMIN",
     icon: I(ShieldCheck),
     pathPrefixes: [
@@ -647,6 +726,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Clients V2",
         icon: I(Building2),
         path: "/clients-v2",
+        requiredCapability: "clients",
         requiredPermission: Permissions.CLIENT_READ,
       },
       {
@@ -661,6 +741,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Chrome Extension",
         icon: I(Chrome),
         path: "/settings/chrome-extension",
+        // The Zukvo browser extension. Testiez ships no extension.
+        requiredCapability: "chrome_extension",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {
@@ -752,6 +834,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
 
   {
     key: "HRMS",
+    requiredCapability: "hrms",
     label: "HRMS",
     icon: I(UsersRound),
     pathPrefixes: [
@@ -982,6 +1065,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   },
   {
     key: "FINANCE",
+    requiredCapability: "finance",
     label: "FINANCE",
     icon: I(Wallet),
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/reimbursement-v2", "/payouts", "/payroll-v2"],
@@ -1155,6 +1239,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
   },
   {
     key: "MY_HUB",
+    requiredCapability: "my_hub",
     label: "My Hub",
     icon: I(LayoutGrid),
     pathPrefixes: ["/my-hub"],

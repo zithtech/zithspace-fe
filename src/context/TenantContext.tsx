@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { ApiError, apiClient } from "@/lib/axios";
+import { manifestForHostname } from "@/lib/product";
 import "@/lib/devSetup"; // Load development helpers
 
 // Tenant interfaces
@@ -45,9 +46,13 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return savedTenant || null;
     }
 
-    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005)
+    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005, and
+    // kabs.testiez.localhost:3005 for the Testiez surface). Take the FIRST
+    // label: the tenant slug is always leftmost, and anything between it and
+    // `.localhost` is the brand, not part of the slug. Splitting on
+    // '.localhost' would resolve 'kabs.testiez' and 404.
     if (hostname.endsWith('.localhost')) {
-      const subdomain = hostname.split('.localhost')[0];
+      const subdomain = hostname.split('.')[0];
       if (subdomain && !['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
         return subdomain;
       }
@@ -176,7 +181,8 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         // resolve from the URL — localStorage may hold a stale tenant from a different session.
         const initHostname = window.location.hostname;
         if (initHostname.endsWith('.localhost') && initHostname !== 'localhost') {
-          const subdomain = initHostname.split('.localhost')[0];
+          // First label only — see detectTenantFromUrl above.
+          const subdomain = initHostname.split('.')[0];
           if (subdomain) {
             await resolveTenant(subdomain);
             return;
@@ -225,11 +231,13 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
    * Update page title based on tenant
    */
   useEffect(() => {
-    if (tenantInfo) {
-      document.title = `${tenantInfo.name} - Project Management`;
-    } else {
-      document.title = 'Project Management System';
-    }
+    // The suffix is the PRODUCT, not a generic description: a Testiez customer
+    // seeing "Project Management" in the browser tab is being shown the wrong
+    // product entirely. Read from the manifest rather than useProduct() so this
+    // provider stays usable outside ProductProvider.
+    const productName = manifestForHostname(window.location.hostname).name;
+
+    document.title = tenantInfo ? `${tenantInfo.name} · ${productName}` : productName;
   }, [tenantInfo]);
 
   const value: TenantContextType = {

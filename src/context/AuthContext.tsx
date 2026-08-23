@@ -83,6 +83,18 @@ interface User {
   createdAt?: string;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
+  /**
+   * Capabilities the TENANT is entitled to, from /api/auth/me.
+   *
+   * Distinct from `permissions`, which are what this PERSON may do. A tenant
+   * on the Testiez SKU has the 'qa' capability and nothing else, however
+   * generous their role is. Both have to pass.
+   *
+   * Older sessions predate this field — treat an empty array as "unknown, allow"
+   * rather than "entitled to nothing", or a stale token locks the UI down.
+   * The API enforces the real thing regardless.
+   */
+  capabilities: string[];
 }
 
 interface AuthContextType {
@@ -102,6 +114,11 @@ interface AuthContextType {
   hasAllPermissions: (...permissions: string[]) => boolean;
   /** Returns true if the user has ANY of the given permissions */
   hasAnyPermission: (...permissions: string[]) => boolean;
+  /**
+   * Is the tenant entitled to this capability? Presentation only — the API
+   * enforces entitlement on every request via requireCapability().
+   */
+  hasCapability: (capability: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -173,6 +190,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         createdAt: (response.user as any).createdAt,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
+        capabilities: (response.user as any).capabilities ?? [],
       };
 
       setUser(userData);
@@ -220,6 +238,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
+        capabilities: (response.user as any).capabilities ?? [],
       };
 
       setUser(userData);
@@ -265,6 +284,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
+        capabilities: (response.user as any).capabilities ?? [],
       };
 
       setUser(userData);
@@ -377,6 +397,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: userProfile.employee?.employee_code || userProfile.employee_code,
         createdAt: userProfile.createdAt,
         permissions: (userProfile as any).permissions ?? [],
+        capabilities: (userProfile as any).capabilities ?? [],
       };
 
       setUser(userData);
@@ -438,6 +459,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return permissions.some((p) => user.permissions.includes(p));
   };
 
+  const hasCapability = (capability: string): boolean => {
+    if (!user) return false;
+    // A session issued before entitlements existed carries no capabilities.
+    // Allow rather than hide the whole app — the API is the real gate, and a
+    // user with a stale token should see a 403 on the specific call, not an
+    // empty shell with no explanation.
+    if (!user.capabilities?.length) return true;
+    return user.capabilities.includes(capability);
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -452,6 +483,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     hasPermission,
     hasAllPermissions,
     hasAnyPermission,
+    hasCapability,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

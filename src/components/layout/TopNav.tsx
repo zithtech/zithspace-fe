@@ -54,7 +54,8 @@ interface ShortcutItem {
 }
 import { Inbox } from '@novu/nextjs';
 import { Permissions } from '@/types/permissions';
-import { NavItem, ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
+import { NavItem, ModuleType, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
+import { useProductNavigation } from '@/hooks/useProductNavigation';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -265,7 +266,11 @@ export default function TopNav({
   // — decoupled from route access (which stays on requiredAnyPermission). This
   // lets us hide HRMS/FINANCE chips from normal users while their routes remain
   // reachable via My Hub shortcuts.
-  const visibleModules = NAVIGATION_CONFIG.filter(module => {
+  // Three filters in order: the surface and the tenant's plan decide which
+  // modules exist at all (both inside useProductNavigation), then permission
+  // decides which of those this user sees a chip for.
+  const { modules: navigation, capabilities } = useProductNavigation();
+  const visibleModules = navigation.filter(module => {
     if (module.requiredChipAnyPermission) return hasAnyPermission(...module.requiredChipAnyPermission);
     if (!module.requiredPermission && !module.requiredAnyPermission) return true;
     if (module.requiredPermission) return hasPermission(module.requiredPermission);
@@ -298,7 +303,7 @@ export default function TopNav({
 
   const handleModuleClick = (moduleKey: ModuleType) => {
     onModuleChange(moduleKey);
-    const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
+    const moduleConfig = navigation.find(m => m.key === moduleKey);
     if (moduleConfig) {
       const firstAllowedPath = getFirstAllowedPath(moduleConfig.items);
       if (firstAllowedPath) {
@@ -727,7 +732,7 @@ export default function TopNav({
                 />
               </Tooltip>
             )}
-            {canReadSkills && (
+            {canReadSkills && capabilities.has("skills") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -749,7 +754,7 @@ export default function TopNav({
               </Tooltip>
             )}
 
-            {canReadChat && (
+            {canReadChat && capabilities.has("chat") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -814,7 +819,7 @@ export default function TopNav({
                 </div>
               </Tooltip>
             )} */}
-            {canReadBookmark && (
+            {canReadBookmark && capabilities.has("bookmarks") && (
               <Tooltip
                 title={
                   <div className="navbar-tooltip">
@@ -940,7 +945,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/activity')
                   }] : []),
-                  ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
+                  ...(hasPermission(Permissions.BOOKMARK_READ) && capabilities.has("bookmarks") ? [{
                     key: 'bookmarks',
                     label: actionMenuLabel(
                       'Bookmarks',

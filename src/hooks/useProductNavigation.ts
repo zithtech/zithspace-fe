@@ -32,15 +32,21 @@ export interface ProductNavigation {
 /**
  * Does the granted set satisfy this requirement?
  *
- * Mirrors hasAnySubscriptionFeature in AuthContext and satisfies() on the API:
- * the catalogue ids are hierarchical, so holding `hrms_leaves_v2` satisfies a
- * requirement of `hrms`, and holding `hrms` satisfies `hrms_leaves_v2`. Plans
- * are written at whichever level is convenient, so an exact-match check would
- * reject perfectly valid grants.
+ * UPWARD ONLY: an exact match, or a granted DESCENDANT. Holding
+ * hrms_leaves_v2 satisfies a requirement of hrms.
+ *
+ * Deliberately NOT the reverse. A product holds CORE rows (work, admin, home)
+ * purely as nav containers while selling only some modules beneath them, so
+ * treating a container as a grant showed Testiez every Work item it does not
+ * sell — Proposals, Leads, BidIq, Squads, Timesheet, Daily Updates.
+ *
+ * Mirrors satisfies() on the API. Safe for existing plans: Zukvo plans grant
+ * only leaf FEATURE rows, never parents, so this direction never fired for
+ * them — verified identical across all seven.
  */
 function satisfies(granted: readonly string[], required: readonly string[]): boolean {
   return required.some((r) =>
-    granted.some((f) => f === r || f.startsWith(`${r}_`) || r.startsWith(`${f}_`)),
+    granted.some((f) => f === r || f.startsWith(`${r}_`)),
   );
 }
 

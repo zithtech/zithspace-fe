@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, Select, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
+import { Modal, Tooltip, App, ConfigProvider, theme as antdTheme } from "antd";
 import {
   Sparkles,
   Wand2,
@@ -14,7 +14,6 @@ import {
   Paperclip,
   Link as LinkIcon,
   ChevronRight,
-  ArrowRight,
   Loader2,
   Filter,
   ListChecks,
@@ -27,6 +26,12 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
 import TicketService, { Ticket } from "@/services/ticketService";
+import {
+  ZukvoLogo,
+  LinearMark,
+  TicketFlowHeader,
+  TicketFlowCard,
+} from "./ticket-flow";
 
 type Mode = null | "manual" | "map";
 type GroupKey = "none" | "severity" | "type" | "module";
@@ -37,6 +42,12 @@ interface Props {
   onClose: () => void;
   onPickAi: () => void;
   prefilledProjectId?: string;
+  /** Render as a wizard step body — no Modal of its own. */
+  embedded?: boolean;
+  /** When embedded, the wizard owns method selection and passes it in. */
+  forcedMode?: "manual" | "map";
+  /** Step back to the method picker (embedded only). */
+  onBack?: () => void;
 }
 
 const SEVERITY_RANK: Record<string, number> = {
@@ -46,7 +57,7 @@ const SEVERITY_RANK: Record<string, number> = {
   minor: 3,
 };
 
-export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId }: Props) {
+export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId, embedded, forcedMode, onBack }: Props) {
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
   const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_grid');
@@ -56,7 +67,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 
   const { message } = App.useApp();
 
-  const [mode, setMode] = useState<Mode>(null);
+  const [mode, setMode] = useState<Mode>(forcedMode ?? null);
   const [pool, setPool] = useState<BugListItem[]>([]);
 
   const bulkMap = useBulkMapBugsToTicket();
@@ -122,7 +133,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
-    setMode(null);
+    setMode(forcedMode ?? null);
     setPool(bugs);
     setStaged(new Set());
     setGroupBy("none");
@@ -138,7 +149,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
     setIsAssigneeManuallyChanged(false);
 
     setCreatedCount(0);
-  }, [open, prefilledProjectId]); // Remove 'bugs' to prevent mode reset during ticket creation
+  }, [open, prefilledProjectId, forcedMode]); // Remove 'bugs' to prevent mode reset during ticket creation
 
   const stagedBugs = useMemo(
     () => pool.filter((b) => staged.has(b.id)),
@@ -300,23 +311,7 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
   const remaining = pool.length;
   const allDone = remaining === 0;
 
-  return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      closable={false}
-      destroyOnHidden
-      width={mode === "manual" || mode === "map" ? 1080 : 720}
-      centered
-      maskClosable={false}
-      wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
-      styles={{
-        mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
-        content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
-        body: { padding: 0 },
-      }}
-    >
+  const body = (
       <ConfigProvider
         theme={{
           algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -326,22 +321,24 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
           }
         }}
       >
-        <div className="hb-btm">
-          {mode === null && (
-            <ModePicker
-              count={pool.length}
-              createdCount={createdCount}
-              onClose={onClose}
-              onManual={() => setMode("manual")}
-              onAi={onPickAi}
-              onMap={() => setMode("map")}
-              hasPrime={hasPrime}
-              hasGrid={hasGrid}
-            />
-          )}
+        {!embedded && mode === null && (
+          <ModePicker
+            count={pool.length}
+            createdCount={createdCount}
+            onClose={onClose}
+            onManual={() => setMode("manual")}
+            onAi={onPickAi}
+            onMap={() => setMode("map")}
+            hasPrime={hasPrime}
+            hasGrid={hasGrid}
+          />
+        )}
 
+        <div className={`hb-btm ${embedded ? "hb-btm-flat" : ""}`} style={{ display: mode === null ? "none" : undefined }}>
           {mode === "manual" && (
             <ManualWorkspace
+              onBack={embedded ? onBack : () => setMode(null)}
+              hideClose={embedded}
               allDone={allDone}
               createdCount={createdCount}
               initialCount={bugs.length}
@@ -377,6 +374,8 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
 
           {mode === "map" && (
             <MapWorkspace
+              onBack={embedded ? onBack : () => setMode(null)}
+              hideClose={embedded}
               bugs={pool}
               ticketId={selectedTicketId}
               onTicketId={setSelectedTicketId}
@@ -392,6 +391,28 @@ export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefill
           )}
         </div>
       </ConfigProvider>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      closable={false}
+      destroyOnHidden
+      width={mode === "manual" || mode === "map" ? 1080 : 1040}
+      centered
+      maskClosable={false}
+      wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
+      styles={{
+        mask: { backdropFilter: "blur(10px)", background: "rgba(11,15,26,0.62)" },
+        content: { padding: 0, borderRadius: 20, overflow: "hidden", background: "transparent", boxShadow: "0 40px 100px rgba(8,12,24,0.5)" },
+        body: { padding: 0 },
+      }}
+    >
+      {body}
     </Modal>
   );
 }
@@ -410,7 +431,8 @@ export function ModePicker({
   onMap,
   hasPrime,
   hasGrid,
-  hideMap
+  hideMap,
+  brand = "zukvo",
 }: {
   count: number;
   createdCount: number;
@@ -421,113 +443,140 @@ export function ModePicker({
   hasPrime?: boolean;
   hasGrid?: boolean;
   hideMap?: boolean;
+  /** Which destination this batch is headed to — drives the logo and copy. */
+  brand?: "zukvo" | "linear";
 }) {
+  const isLinear = brand === "linear";
+
+  const showManual = hasGrid !== false;
+  const showAi = hasPrime !== false;
+  const showMap = !hideMap && hasGrid !== false;
+  const cols = [showManual, showAi, showMap].filter(Boolean).length || 1;
+
+  const bugLabel = `${count} bug${count === 1 ? "" : "s"}`;
+
   return (
     <>
-      <div className="hb-btm-hero">
-        <div className="hb-btm-hero-bg" />
-        <div className="hb-btm-hero-row">
-          <div className="hb-btm-hero-orb">
-            <Sparkles size={20} />
+      <TicketFlowHeader
+        mark={isLinear ? <LinearMark size={22} /> : <ZukvoLogo size={22} />}
+        title={
+          count === 0
+            ? "Every bug has been bundled"
+            : `How should ${count === 1 ? "this bug" : `these ${count} bugs`} become tickets?`
+        }
+        eyebrow={`Step 2 · ${isLinear ? "Linear" : "Zukvo"} method`}
+        chips={[
+          {
+            icon: <ListChecks size={12} />,
+            label: count === 0 ? "Nothing left in the queue" : `${bugLabel} in the queue`,
+            tone: count === 0 ? "default" : "accent",
+          },
+          ...(createdCount > 0
+            ? [
+                {
+                  icon: <CheckCircle2 size={12} />,
+                  label: `${createdCount} ticket${createdCount === 1 ? "" : "s"} created`,
+                  tone: "ok" as const,
+                },
+              ]
+            : []),
+          {
+            icon: <Split size={12} />,
+            label: "Mix & match across batches",
+          },
+        ]}
+      />
+
+      <div className="tf-body">
+        <div className="tf-section">
+          Methods
+          <span className="tf-section-count">{cols}</span>
+          <span className="tf-section-hint">Switch method any time</span>
+        </div>
+
+        <div className="tf-grid" style={{ ["--tf-cols" as string]: cols }}>
+          {showManual && (
+            <TicketFlowCard
+              mark={<Hand size={20} />}
+              tone="blue"
+              badge={{ label: "Full control", tone: "accent" }}
+              name="Hand-pick"
+              sub="Stage a few bugs, write the ticket, repeat — with group-by helpers and a per-ticket assignee."
+              feats={[
+                "Decide exactly what lands together",
+                "Select 5 of 20, then 5 more…",
+                "Group by severity, type or module",
+              ]}
+              cta="Continue manually"
+              onClick={onManual}
+            />
+          )}
+
+          {showAi && (
+            <TicketFlowCard
+              mark={<Wand2 size={20} />}
+              tone="blue"
+              badge={{ label: "Recommended", tone: "ok", dot: true }}
+              name="AI assist"
+              sub="Auto-cluster the bugs by context and polish every description before anything is created."
+              feats={[
+                "Smart grouping by feature area",
+                "Cleaned titles + repro steps",
+                "Review and edit before you ship",
+              ]}
+              cta="Continue with AI"
+              onClick={onAi}
+            />
+          )}
+
+          {showMap && (
+            <TicketFlowCard
+              mark={<LinkIcon size={20} />}
+              tone="green"
+              badge={{ label: "Link", tone: "muted" }}
+              name="Map to existing"
+              sub="Attach these bugs to a ticket that already exists in your workspace instead of creating a new one."
+              feats={[
+                "Search by ticket number or title",
+                "One-click quick link",
+                "Bugs flip to converted automatically",
+              ]}
+              cta="Continue mapping"
+              onClick={onMap ?? (() => {})}
+            />
+          )}
+        </div>
+
+        <div className="tf-quick">
+          <div className="tf-quick-label">
+            <Sparkles size={13} />
+            {createdCount > 0
+              ? `${createdCount} ticket${createdCount === 1 ? "" : "s"} created so far — pick a method for the next batch.`
+              : "Not sure? AI assist groups the batch for you and you still approve every ticket."}
           </div>
-          <div className="hb-btm-hero-text">
-            <div className="hb-btm-eyebrow">
-              <Sparkles size={11} />
-              {createdCount > 0 ? "Continue creating tickets" : "Create tickets"}
+          {showAi && createdCount === 0 && (
+            <div className="tf-quick-actions">
+              <button className="tf-quick-btn" onClick={onAi}>
+                <Wand2 size={13} />
+                Let AI group them
+              </button>
             </div>
-            <div className="hb-btm-title">
-              {count === 0
-                ? "All bugs bundled"
-                : `Bundle ${count} bug${count === 1 ? "" : "s"} into tickets`}
-            </div>
-            <div className="hb-btm-sub">
-              {createdCount > 0
-                ? `${createdCount} ticket${createdCount === 1 ? "" : "s"} created so far · pick a mode for the next batch.`
-                : "Pick how you'd like to group them. You can mix & match later."}
-            </div>
-          </div>
-          <button className="hb-btm-close" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
+          )}
         </div>
       </div>
 
-      <div className="hb-btm-modegrid">
-        {hasGrid !== false && (
-          <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onManual}>
-            <div className="hb-btm-modecard-icon">
-              <Hand size={22} />
-            </div>
-            <div className="hb-btm-modecard-title">Hand-pick</div>
-            <div className="hb-btm-modecard-sub">
-              Stage a few bugs, write the ticket, repeat. Group-by helpers and
-              per-ticket assignee.
-            </div>
-            <ul className="hb-btm-modecard-list">
-              <li><CheckCircle2 size={12} /> Full control over scope</li>
-              <li><CheckCircle2 size={12} /> Select 5 of 20, 5 more, …</li>
-              <li><CheckCircle2 size={12} /> Quick group-by severity / type / module</li>
-            </ul>
-            <div className="hb-btm-modecard-cta">
-              Continue manually <ArrowRight size={14} />
-            </div>
+      <footer className="tf-foot">
+        <span className="tf-foot-note">
+          {count === 0
+            ? "Close when you're done, or keep bundling."
+            : `${bugLabel} waiting · nothing is created until you confirm`}
+        </span>
+        <div className="tf-foot-right">
+          <button className="tf-secondary" onClick={onClose}>
+            {count === 0 ? "Done" : "Cancel"}
           </button>
-        )}
-
-        {hasPrime !== false && (
-          <button className="hb-btm-modecard hb-btm-modecard-ai" onClick={onAi}>
-            <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai">
-              <Wand2 size={22} />
-            </div>
-            <div className="hb-btm-modecard-title">
-              AI assist
-              <span className="hb-btm-modecard-pill">Smart</span>
-            </div>
-            <div className="hb-btm-modecard-sub">
-              Auto-cluster bugs by context and polish each description before
-              creating tickets.
-            </div>
-            <ul className="hb-btm-modecard-list">
-              <li><CheckCircle2 size={12} /> Smart grouping by feature</li>
-              <li><CheckCircle2 size={12} /> Cleaned titles + repro steps</li>
-              <li><CheckCircle2 size={12} /> Edit before you ship</li>
-            </ul>
-            <div className="hb-btm-modecard-cta">
-              Continue with AI <ArrowRight size={14} />
-            </div>
-          </button>
-        )}
-
-        {!hideMap && hasGrid !== false && (
-          <button className="hb-btm-modecard hb-btm-modecard-manual" onClick={onMap}>
-            <div className="hb-btm-modecard-icon hb-btm-modecard-icon-map" style={{
-              background: 'color-mix(in oklab, var(--btm-success) 18%, transparent)',
-              color: 'var(--btm-success)',
-              border: '1px solid color-mix(in oklab, var(--btm-success) 30%, transparent)'
-            }}>
-              <LinkIcon size={22} />
-            </div>
-            <div className="hb-btm-modecard-title">Mapping Tickets</div>
-            <div className="hb-btm-modecard-sub">
-              Link these bugs directly to an existing ticket from your workspace.
-            </div>
-            <ul className="hb-btm-modecard-list">
-              <li><CheckCircle2 size={12} /> Search by ticket number/title</li>
-              <li><CheckCircle2 size={12} /> Quick link option</li>
-              <li><CheckCircle2 size={12} /> Status updates to converted</li>
-            </ul>
-            <div className="hb-btm-modecard-cta" style={{ color: 'var(--btm-success)' }}>
-              Continue mapping <ArrowRight size={14} />
-            </div>
-          </button>
-        )}
-      </div>
-
-      <div className="hb-btm-footer">
-        <button className="hb-btm-secondary" onClick={onClose}>
-          Cancel
-        </button>
-      </div>
+        </div>
+      </footer>
     </>
   );
 }
@@ -537,6 +586,8 @@ export function ModePicker({
 // ───────────────────────────────────────────────────────────────────────────
 
 interface ManualWorkspaceProps {
+  onBack?: () => void;
+  hideClose?: boolean;
   allDone: boolean;
   createdCount: number;
   initialCount: number;
@@ -571,13 +622,17 @@ interface ManualWorkspaceProps {
 
 function ManualWorkspace(p: ManualWorkspaceProps) {
   const consumed = p.initialCount - p.remaining;
-  const popupCls = `hb-btm-popup ${p.theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`;
 
   return (
     <>
       <div className="hb-btm-hero hb-btm-hero-compact">
         <div className="hb-btm-hero-bg" />
         <div className="hb-btm-hero-row">
+          {p.onBack && (
+            <button className="hb-btm-back" onClick={p.onBack} aria-label="Back to method picker" title="Back to method picker">
+              <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />
+            </button>
+          )}
           <div className="hb-btm-hero-orb">
             <ListChecks size={20} />
           </div>
@@ -597,9 +652,11 @@ function ManualWorkspace(p: ManualWorkspaceProps) {
                 : `Created ${p.createdCount} so far · ${p.stagedCount} staged for the next ticket.`}
             </div>
           </div>
-          <button className="hb-btm-close" onClick={p.onClose} aria-label="Close">
-            <X size={16} />
-          </button>
+          {!p.hideClose && (
+            <button className="hb-btm-close" onClick={p.onClose} aria-label="Close">
+              <X size={16} />
+            </button>
+          )}
         </div>
         <ProgressBar consumed={consumed} total={p.initialCount} />
       </div>
@@ -621,20 +678,23 @@ function ManualWorkspace(p: ManualWorkspaceProps) {
                 />
               </div>
               <div className="hb-btm-groupby">
-                <Filter size={12} />
-                <Select
+                <Filter size={12} className="hb-btm-groupby-icon" />
+                <SearchableDropdown
                   value={p.groupBy}
-                  onChange={(v) => p.onGroupBy(v as GroupKey)}
-                  size="small"
-                  variant="borderless"
-                  popupClassName={popupCls}
-                  className="hb-btm-groupby-select"
+                  onChange={(v) => p.onGroupBy((v || "none") as GroupKey)}
                   options={[
                     { value: "none", label: "No grouping" },
                     { value: "severity", label: "Group by severity" },
                     { value: "type", label: "Group by type" },
                     { value: "module", label: "Group by module" },
                   ]}
+                  placeholder="No grouping"
+                  itemNoun="options"
+                  hideAvatar
+                  allowClear={false}
+                  width={200}
+                  searchPlaceholder="Search grouping…"
+                  className="hb-btm-groupby-sd"
                 />
               </div>
             </div>
@@ -1082,6 +1142,8 @@ function truncate(s: string, n: number) {
 }
 
 function MapWorkspace({
+  onBack,
+  hideClose,
   bugs,
   ticketId,
   onTicketId,
@@ -1094,6 +1156,8 @@ function MapWorkspace({
   theme,
   loading,
 }: {
+  onBack?: () => void;
+  hideClose?: boolean;
   bugs: BugListItem[];
   ticketId: string | undefined;
   onTicketId: (id: string | undefined) => void;
@@ -1111,6 +1175,11 @@ function MapWorkspace({
       <div className="hb-btm-hero hb-btm-hero-compact">
         <div className="hb-btm-hero-bg" />
         <div className="hb-btm-hero-row">
+          {onBack && (
+            <button className="hb-btm-back" onClick={onBack} aria-label="Back to method picker" title="Back to method picker">
+              <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />
+            </button>
+          )}
           <div className="hb-btm-hero-orb" style={{
             background: 'linear-gradient(135deg, var(--btm-success) 0%, #10b981 100%)',
             boxShadow: '0 6px 18px color-mix(in oklab, var(--btm-success) 35%, transparent)'
@@ -1133,9 +1202,11 @@ function MapWorkspace({
               Search and select a ticket from your workspace to link these bugs.
             </div>
           </div>
-          <button className="hb-btm-close" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
+          {!hideClose && (
+            <button className="hb-btm-close" onClick={onClose} aria-label="Close">
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 

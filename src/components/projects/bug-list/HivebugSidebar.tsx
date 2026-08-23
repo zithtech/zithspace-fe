@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import {
   Bug,
   Inbox,
@@ -392,6 +393,81 @@ function PulseCell({
   );
 }
 
+/**
+ * Hover card for a collection row — the full name never truncates here, and it
+ * carries the counts you'd otherwise have to open the collection to see.
+ */
+function CollectionTip({
+  folder,
+  trashCount = 0,
+}: {
+  folder: BugFolder;
+  trashCount?: number;
+}) {
+  const sheets = folder._count?.sheets ?? 0;
+  const completed = folder._count?.completedSheets ?? 0;
+  const bugs = Math.max(0, (folder._count?.bugs ?? 0) - trashCount);
+  const allDone = sheets > 0 && completed === sheets;
+  const progress = sheets > 0 ? Math.round((completed / sheets) * 100) : 0;
+  const accent = folder.color || "#7aa2f7";
+
+  return (
+    <div className="hb-ctip" style={{ ["--ctip-accent" as string]: accent }}>
+      <div className="hb-ctip-glow" aria-hidden />
+
+      <div className="hb-ctip-head">
+        <span className="hb-ctip-mark">
+          <Library size={14} />
+        </span>
+        <div className="hb-ctip-headtext">
+          <div className="hb-ctip-eyebrow">
+            Collection
+            {allDone && <span className="hb-ctip-pill">All complete</span>}
+          </div>
+          <div className="hb-ctip-name">{folder.name}</div>
+        </div>
+      </div>
+
+      {folder.description && (
+        <div className="hb-ctip-desc">{folder.description}</div>
+      )}
+
+      <div className="hb-ctip-stats">
+        <div className="hb-ctip-stat">
+          <div className="hb-ctip-stat-value">{sheets}</div>
+          <div className="hb-ctip-stat-label">Sheets</div>
+        </div>
+        <div className="hb-ctip-stat">
+          <div className="hb-ctip-stat-value">{completed}</div>
+          <div className="hb-ctip-stat-label">Completed</div>
+        </div>
+        <div className="hb-ctip-stat">
+          <div className="hb-ctip-stat-value">{bugs}</div>
+          <div className="hb-ctip-stat-label">Bugs</div>
+        </div>
+      </div>
+
+      {sheets > 0 && (
+        <div className="hb-ctip-progress">
+          <div className="hb-ctip-progress-track">
+            <span
+              className={`hb-ctip-progress-fill ${allDone ? "is-done" : ""}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="hb-ctip-progress-label">{progress}%</span>
+        </div>
+      )}
+
+      {folder.updatedAt && (
+        <div className="hb-ctip-foot">
+          Updated {dayjs(folder.updatedAt).format("MMM D, YYYY")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface FolderNodeProps {
   folder: BugFolder;
   isOpen: boolean;
@@ -464,9 +540,20 @@ function FolderNode({
         ) : (
           <Folder size={15} style={{ color: folder.color || "#7aa2f7" }} />
         )}
-        <span className="hb-row-label" style={{ color: folderCompleted ? "var(--hb-success)" : undefined }}>
-          {folder.name}
-        </span>
+        <Tooltip
+          title={<CollectionTip folder={folder} trashCount={trashCount} />}
+          placement="right"
+          mouseEnterDelay={0.35}
+          overlayClassName="hb-cardtip"
+          align={{ offset: [10, 0] }}
+        >
+          <span
+            className="hb-row-label"
+            style={{ color: folderCompleted ? "var(--hb-success)" : undefined }}
+          >
+            {folder.name}
+          </span>
+        </Tooltip>
         <span className="hb-row-count">
           {Math.max(0, (folder._count?.bugs ?? 0) - trashCount)}
         </span>

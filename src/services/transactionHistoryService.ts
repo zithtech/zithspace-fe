@@ -13,6 +13,7 @@ export interface TransactionRow {
   parentEntityType: string | null;
   parentEntityId: string | null;
   actor: {
+    avatarUrl: any;
     id: string;
     type: string;
     name: string | null;
@@ -77,7 +78,6 @@ export interface TransactionHistoryFilters {
   modules: { section: string; module: string }[];
   pages: { module: string; page: string }[];
   actions: string[];
-  pageActions: { page: string; action: string }[];
   entityTypes: string[];
 }
 

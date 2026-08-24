@@ -1270,27 +1270,6 @@ const DocumentHubPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredHubs, focusedRowId, viewMode, selectedKeys.length]);
 
-  // Loading & permission check
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <div style={{
-          margin: "0 -24px",
-          padding: "24px 32px",
-          background: "var(--bg-pure-white)",
-          minHeight: "calc(100vh - 54px)",
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <ZukvoLoader size="lg" message="Orchestrating technical repository..." />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (!canReadDocument) return null;
-
   const statsHubs = useMemo(() => {
     let result = documentHubs;
     if (searchText) {
@@ -2210,6 +2189,27 @@ const DocumentHubPage = () => {
       </div>
     );
   };
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
+          minHeight: "calc(100vh - 54px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <ZukvoLoader size="lg" message="Orchestrating technical repository..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadDocument) return null;
 
   return (
     <MainLayout noPadding>

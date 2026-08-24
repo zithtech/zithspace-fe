@@ -16,9 +16,12 @@ import { Modal } from "antd";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
+import { LinearService } from "@/services/linearService";
+import { JiraService } from "@/services/jiraService";
 import {
   ZukvoLogo,
   LinearMark,
+  JiraMark,
   TicketFlowBar,
   ticketFlowModalProps,
   ticketFlowStyles,
@@ -29,8 +32,9 @@ import DestinationStep from "./DestinationStep";
 import BulkTicketModal, { ModePicker } from "./BulkTicketModal";
 import AiReviewModal from "./AiReviewModal";
 import { LinearTicketModal } from "./LinearTicketModal";
+import { JiraTicketModal } from "./JiraTicketModal";
 
-type Destination = "zukvo" | "linear";
+type Destination = "zukvo" | "linear" | "jira";
 type Method = "manual" | "ai" | "map";
 
 export interface CreateTicketWizardProps {
@@ -73,12 +77,17 @@ export default function CreateTicketWizard({
   const [destination, setDestination] = useState<Destination>("zukvo");
   const [method, setMethod] = useState<Method | null>(null);
 
+  const [linearConnected, setLinearConnected] = useState(false);
+  const [jiraConnected, setJiraConnected] = useState(false);
+
   // Every fresh open starts at the beginning.
   useEffect(() => {
     if (open) {
       setStep(0);
       setDestination("zukvo");
       setMethod(null);
+      LinearService.getStatus().then(res => setLinearConnected(res.connected)).catch(() => setLinearConnected(false));
+      JiraService.getStatus().then(res => setJiraConnected(res.connected)).catch(() => setJiraConnected(false));
     }
   }, [open]);
 
@@ -98,6 +107,7 @@ export default function CreateTicketWizard({
   };
 
   const isLinear = destination === "linear";
+  const isJira = destination === "jira";
 
   // Step 3 is the widest — the hand-pick workspace is two-pane.
   const width = step === 2 && destination === "zukvo" && method !== "ai" ? 1060 : 940;
@@ -115,8 +125,8 @@ export default function CreateTicketWizard({
 
       <div className="tf">
         <TicketFlowBar
-          mark={isLinear ? <LinearMark size={18} /> : <ZukvoLogo size={18} />}
-          label={step === 0 ? "Create tickets" : isLinear ? "Linear" : "Zukvo Tickets"}
+          mark={isLinear ? <LinearMark size={18} /> : isJira ? <JiraMark size={18} /> : <ZukvoLogo size={18} />}
+          label={step === 0 ? "Create tickets" : isLinear ? "Linear" : isJira ? "Jira" : "Zukvo Tickets"}
           steps={TICKET_FLOW_STEPS}
           current={step}
           onStepClick={goToStep}
@@ -135,6 +145,8 @@ export default function CreateTicketWizard({
             }}
             onClose={onClose}
             onManageIntegrations={onManageIntegrations}
+            linearConnected={linearConnected}
+            jiraConnected={jiraConnected}
           />
         )}
 
@@ -147,9 +159,9 @@ export default function CreateTicketWizard({
             onManual={() => pickMethod("manual")}
             onAi={() => pickMethod("ai")}
             onMap={() => pickMethod("map")}
-            hideMap={isLinear}
-            hasPrime={isLinear ? undefined : hasPrime}
-            hasGrid={isLinear ? undefined : hasGrid}
+            hideMap={isLinear || isJira}
+            hasPrime={isLinear || isJira ? undefined : hasPrime}
+            hasGrid={isLinear || isJira ? undefined : hasGrid}
           />
         )}
 
@@ -178,6 +190,16 @@ export default function CreateTicketWizard({
 
         {step === 2 && method === "manual" && destination === "linear" && (
           <LinearTicketModal
+            embedded
+            open={open}
+            onCancel={onClose}
+            bugIds={bugIds}
+            onSuccess={onLinearSuccess}
+          />
+        )}
+
+        {step === 2 && method === "manual" && destination === "jira" && (
+          <JiraTicketModal
             embedded
             open={open}
             onCancel={onClose}

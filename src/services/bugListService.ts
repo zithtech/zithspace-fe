@@ -78,6 +78,9 @@ export interface BugListItem {
   linearIssueId?: string | null;
   linearIssueUrl?: string | null;
   linearIssueIdentifier?: string | null;
+  jiraIssueId?: string | null;
+  jiraIssueUrl?: string | null;
+  jiraIssueKey?: string | null;
   /** Set when the bug was raised from a QA test run. */
   testCaseId?: string | null;
   testCaseRef?: string | null;

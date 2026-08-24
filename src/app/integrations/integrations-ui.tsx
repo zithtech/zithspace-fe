@@ -68,6 +68,7 @@ export interface IntegrationCardProps {
   onDisconnect: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  onMigrate?: () => void;
 }
 
 export function IntegrationCard({
@@ -83,6 +84,7 @@ export function IntegrationCard({
   onDisconnect,
   disabled,
   disabledReason,
+  onMigrate,
 }: IntegrationCardProps) {
   const connected = state === "connected";
 
@@ -135,15 +137,28 @@ export function IntegrationCard({
               <Check size={12} />
               Active
             </span>
-            <button
-              className="intg-btn is-danger"
-              onClick={onDisconnect}
-              disabled={busy}
-              title={`Disconnect ${name}`}
-            >
-              <Unplug size={13} />
-              {busy ? "Working…" : "Disconnect"}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {onMigrate && (
+                <button
+                  className="intg-btn"
+                  onClick={onMigrate}
+                  disabled={busy}
+                  title="Start Migration"
+                  style={{ background: "var(--bg-accent)", color: "var(--text-accent)" }}
+                >
+                  Start Migration
+                </button>
+              )}
+              <button
+                className="intg-btn is-danger"
+                onClick={onDisconnect}
+                disabled={busy}
+                title={`Disconnect ${name}`}
+              >
+                <Unplug size={13} />
+                {busy ? "Working…" : "Disconnect"}
+              </button>
+            </div>
           </>
         ) : (
           <>

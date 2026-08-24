@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
+import { JiraService } from "@/services/jiraService";
 import { LinearService } from "@/services/linearService";
 import { NotionService, NotionStatus } from "@/services/notionService";
 import {
@@ -43,6 +44,7 @@ import {
   IntegrationCard,
   integrationStyles,
 } from "./integrations-ui";
+import JiraMigrationWizard from "@/components/jira/JiraMigrationWizard";
 
 /* ────────────────────────── Catalogue ────────────────────────── */
 
@@ -79,7 +81,6 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 const SOON = [
-  { key: "jira", name: "Jira", tagline: "Issues & epics", logo: <JiraMark /> },
   { key: "github", name: "GitHub", tagline: "Repo issues & PRs", logo: <GithubMark /> },
   { key: "slack", name: "Slack", tagline: "Channel notifications", logo: <SlackMark /> },
   { key: "azure", name: "Azure DevOps", tagline: "Work items", logo: <AzureMark /> },
@@ -116,6 +117,8 @@ function IntegrationContent() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [linearConnected, setLinearConnected] = useState(false);
   const [linearLoading, setLinearLoading] = useState(false);
+  const [jiraConnected, setJiraConnected] = useState(false);
+  const [jiraLoading, setJiraLoading] = useState(false);
   const [notion, setNotion] = useState<NotionStatus>({
     connected: false,
     workspaceName: null,
@@ -126,6 +129,7 @@ function IntegrationContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [loadedOnce, setLoadedOnce] = useState(false);
+  const [showJiraWizard, setShowJiraWizard] = useState(false);
 
   const userName = user?.name || "You";
   const canManage = canReadMail || canReadCalendar;
@@ -147,6 +151,14 @@ function IntegrationContent() {
     } catch (error) {
       console.error("Failed to fetch Linear status:", error);
       setLinearConnected(false);
+    }
+
+    try {
+      const jiraStatus = await JiraService.getStatus();
+      setJiraConnected(jiraStatus.connected);
+    } catch (error) {
+      console.error("Failed to fetch Jira status:", error);
+      setJiraConnected(false);
     }
 
     try {
@@ -188,7 +200,7 @@ function IntegrationContent() {
       router.replace("/integrations");
     } else if (error) {
       const label =
-        error.startsWith("notion") || provider === "notion" ? "Notion" : "Linear";
+        error.startsWith("notion") || provider === "notion" ? "Notion" : error.startsWith("jira") || provider === "jira" ? "Jira" : "Linear";
       messageApi.error(`Failed to connect to ${label}: ${error}`);
       router.replace("/integrations");
     }
@@ -295,6 +307,30 @@ function IntegrationContent() {
     }
   };
 
+  const handleJiraConnect = async () => {
+    setJiraLoading(true);
+    try {
+      const url = await JiraService.getConnectUrl();
+      window.location.href = url;
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to connect to Jira");
+      setJiraLoading(false);
+    }
+  };
+
+  const handleJiraDisconnect = async () => {
+    setJiraLoading(true);
+    try {
+      await JiraService.disconnect();
+      messageApi.success("Jira disconnected successfully");
+      await fetchStatuses();
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to disconnect Jira");
+    } finally {
+      setJiraLoading(false);
+    }
+  };
+
   const handleNotionConnect = async () => {
     setNotionLoading(true);
     try {
@@ -329,6 +365,7 @@ function IntegrationContent() {
   const connectedCount =
     Object.values(statuses).filter((s) => s?.connected).length +
     (linearConnected ? 1 : 0) +
+    (jiraConnected ? 1 : 0) +
     (notion.connected ? 1 : 0);
   const availableCount = totalCount - connectedCount;
   const pct = Math.round((connectedCount / totalCount) * 100);
@@ -349,6 +386,9 @@ function IntegrationContent() {
   const LINEAR_DESC = "Push bugs into Linear as issues and keep status in sync both ways.";
   const showLinear = matches("Linear", LINEAR_DESC, linearConnected);
 
+  const JIRA_DESC = "Push bugs into Jira as issues and keep status in sync both ways.";
+  const showJira = matches("Jira", JIRA_DESC, jiraConnected);
+
   const NOTION_DESC = "Import Notion pages and databases into a Document Hub, keeping the original structure.";
   const showNotion = matches("Notion", NOTION_DESC, notion.connected);
 
@@ -360,7 +400,7 @@ function IntegrationContent() {
     [q, activeTab]
   );
 
-  const nothing = mailProviders.length === 0 && !showLinear && !showNotion && visibleSoon.length === 0;
+  const nothing = mailProviders.length === 0 && !showLinear && !showJira && !showNotion && visibleSoon.length === 0;
 
   if (authLoading) {
     return (
@@ -444,6 +484,13 @@ function IntegrationContent() {
                   <LinearMark size={12} />
                 </span>
                 Linear {linearConnected ? "connected" : "not connected"}
+              </span>
+
+              <span className={`intg-chip ${jiraConnected ? "is-ok" : ""}`}>
+                <span className="intg-chip-logo">
+                  <JiraMark size={12} />
+                </span>
+                Jira {jiraConnected ? "connected" : "not connected"}
               </span>
 
               <span className={`intg-chip ${notion.connected ? "is-ok" : ""}`}>
@@ -569,30 +616,47 @@ function IntegrationContent() {
                 </>
               )}
 
-              {showLinear && (
+              {(showLinear || showJira) && (
                 <>
                   <div className="intg-section">
                     <span className="intg-section-icon">
                       <TicketIcon size={12} />
                     </span>
                     <span className="intg-section-title">Issue tracking</span>
-                    <span className="intg-section-count">1</span>
+                    <span className="intg-section-count">{(showLinear ? 1 : 0) + (showJira ? 1 : 0)}</span>
                     <span className="intg-section-hint">Powers ticket creation from the Bug List</span>
                   </div>
 
                   <div className="intg-grid">
-                    <IntegrationCard
-                      mark={<LinearMark size={20} />}
-                      name="Linear"
-                      category="Issue tracking"
-                      description={LINEAR_DESC}
-                      state={linearConnected ? "connected" : "available"}
-                      detail="Two-way status sync"
-                      accountName={userName}
-                      busy={linearLoading}
-                      onConnect={handleLinearConnect}
-                      onDisconnect={handleLinearDisconnect}
-                    />
+                    {showLinear && (
+                      <IntegrationCard
+                        mark={<LinearMark size={20} />}
+                        name="Linear"
+                        category="Issue tracking"
+                        description={LINEAR_DESC}
+                        state={linearConnected ? "connected" : "available"}
+                        detail="Two-way status sync"
+                        accountName={userName}
+                        busy={linearLoading}
+                        onConnect={handleLinearConnect}
+                        onDisconnect={handleLinearDisconnect}
+                      />
+                    )}
+                    {showJira && (
+                      <IntegrationCard
+                        mark={<JiraMark size={20} />}
+                        name="Jira"
+                        category="Issue tracking"
+                        description={JIRA_DESC}
+                        state={jiraConnected ? "connected" : "available"}
+                        detail="Two-way status sync"
+                        accountName={userName}
+                        busy={jiraLoading}
+                        onConnect={handleJiraConnect}
+                        onDisconnect={handleJiraDisconnect}
+                        onMigrate={() => setShowJiraWizard(true)}
+                      />
+                    )}
                   </div>
                 </>
               )}
@@ -683,6 +747,7 @@ function IntegrationContent() {
           )}
         </div>
       </div>
+      <JiraMigrationWizard visible={showJiraWizard} onClose={() => setShowJiraWizard(false)} />
     </MainLayout>
   );
 }

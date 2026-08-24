@@ -25,8 +25,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
+import JiraMigrationWizard from "@/components/jira/JiraMigrationWizard";
+import LinearMigrationWizard from "@/components/linear/LinearMigrationWizard";
 import { JiraService } from "@/services/jiraService";
 import { LinearService } from "@/services/linearService";
+import { api } from "@/lib/axios";
 import { NotionService, NotionStatus } from "@/services/notionService";
 import {
   LinearMark,
@@ -44,7 +47,7 @@ import {
   IntegrationCard,
   integrationStyles,
 } from "./integrations-ui";
-import JiraMigrationWizard from "@/components/jira/JiraMigrationWizard";
+
 
 /* ────────────────────────── Catalogue ────────────────────────── */
 
@@ -117,6 +120,7 @@ function IntegrationContent() {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [linearConnected, setLinearConnected] = useState(false);
   const [linearLoading, setLinearLoading] = useState(false);
+  const [showLinearWizard, setShowLinearWizard] = useState(false);
   const [jiraConnected, setJiraConnected] = useState(false);
   const [jiraLoading, setJiraLoading] = useState(false);
   const [notion, setNotion] = useState<NotionStatus>({
@@ -154,8 +158,8 @@ function IntegrationContent() {
     }
 
     try {
-      const jiraStatus = await JiraService.getStatus();
-      setJiraConnected(jiraStatus.connected);
+      const jiraRes: any = await api.get("/api/integrations/jira/status");
+      setJiraConnected(!!jiraRes?.connected);
     } catch (error) {
       console.error("Failed to fetch Jira status:", error);
       setJiraConnected(false);
@@ -310,8 +314,12 @@ function IntegrationContent() {
   const handleJiraConnect = async () => {
     setJiraLoading(true);
     try {
-      const url = await JiraService.getConnectUrl();
-      window.location.href = url;
+      const res: any = await api.get("/api/integrations/jira/connect");
+      if (res?.url) {
+        window.location.href = res.url;
+      } else {
+        throw new Error("Invalid response from server");
+      }
     } catch (error: any) {
       messageApi.error(error.message || "Failed to connect to Jira");
       setJiraLoading(false);
@@ -321,9 +329,9 @@ function IntegrationContent() {
   const handleJiraDisconnect = async () => {
     setJiraLoading(true);
     try {
-      await JiraService.disconnect();
+      await api.post("/api/integrations/jira/disconnect", {});
+      setJiraConnected(false);
       messageApi.success("Jira disconnected successfully");
-      await fetchStatuses();
     } catch (error: any) {
       messageApi.error(error.message || "Failed to disconnect Jira");
     } finally {
@@ -361,7 +369,7 @@ function IntegrationContent() {
   const anyProviderConnected = Object.values(statuses).some((s) => s?.connected);
   const activeProvider = PROVIDERS.find((p) => statuses[p.key]?.connected) || null;
 
-  const totalCount = PROVIDERS.length + 2;
+  const totalCount = PROVIDERS.length + 3; // +2 for Jira & Linear, +1 for Notion
   const connectedCount =
     Object.values(statuses).filter((s) => s?.connected).length +
     (linearConnected ? 1 : 0) +
@@ -383,11 +391,11 @@ function IntegrationContent() {
     [q, activeTab, statuses]
   );
 
-  const LINEAR_DESC = "Push bugs into Linear as issues and keep status in sync both ways.";
+  const LINEAR_DESC = "Import your existing Linear projects, tickets, into Zukvo and Push bugs into Linear as issues.";
   const showLinear = matches("Linear", LINEAR_DESC, linearConnected);
 
-  const JIRA_DESC = "Push bugs into Jira as issues and keep status in sync both ways.";
-  const showJira = matches("Jira", JIRA_DESC, jiraConnected);
+  const JIRA_DESC = "Import your existing Jira projects, tickets, into Zukvo and Push bugs into Jira as issues.";
+  const showJira = matches("Jira", JIRA_DESC, false);
 
   const NOTION_DESC = "Import Notion pages and databases into a Document Hub, keeping the original structure.";
   const showNotion = matches("Notion", NOTION_DESC, notion.connected);
@@ -622,39 +630,40 @@ function IntegrationContent() {
                     <span className="intg-section-icon">
                       <TicketIcon size={12} />
                     </span>
-                    <span className="intg-section-title">Issue tracking</span>
-                    <span className="intg-section-count">{(showLinear ? 1 : 0) + (showJira ? 1 : 0)}</span>
-                    <span className="intg-section-hint">Powers ticket creation from the Bug List</span>
+                    <span className="intg-section-title">Issue tracking &amp; Migration</span>
+                    <span className="intg-section-count">{[showLinear, showJira].filter(Boolean).length}</span>
+                    <span className="intg-section-hint">Connect and migrate your issues into Zukvo</span>
                   </div>
 
                   <div className="intg-grid">
-                    {showLinear && (
-                      <IntegrationCard
-                        mark={<LinearMark size={20} />}
-                        name="Linear"
-                        category="Issue tracking"
-                        description={LINEAR_DESC}
-                        state={linearConnected ? "connected" : "available"}
-                        detail="Two-way status sync"
-                        accountName={userName}
-                        busy={linearLoading}
-                        onConnect={handleLinearConnect}
-                        onDisconnect={handleLinearDisconnect}
-                      />
-                    )}
                     {showJira && (
                       <IntegrationCard
                         mark={<JiraMark size={20} />}
                         name="Jira"
-                        category="Issue tracking"
-                        description={JIRA_DESC}
+                        category="Issue tracking · Migration"
+                        description="Import your existing Jira projects, tickets,into Zukvo and Push bugs into Jira as issues.."
                         state={jiraConnected ? "connected" : "available"}
-                        detail="Two-way status sync"
-                        accountName={userName}
+                        detail="Projects, tickets & bugs"
+                        accountName={jiraConnected ? userName : null}
                         busy={jiraLoading}
                         onConnect={handleJiraConnect}
                         onDisconnect={handleJiraDisconnect}
-                        onMigrate={() => setShowJiraWizard(true)}
+                        onMigrate={jiraConnected ? () => setShowJiraWizard(true) : undefined}
+                      />
+                    )}
+                    {showLinear && (
+                      <IntegrationCard
+                        mark={<LinearMark size={20} />}
+                        name="Linear"
+                        category="Issue tracking · Migration"
+                        description="Import your existing Linear projects, issues, and cycles into Zukvo and Push bugs into Linear as issues."
+                        state={linearConnected ? "connected" : "available"}
+                        detail="Projects, issues & cycles"
+                        accountName={linearConnected ? userName : null}
+                        busy={linearLoading}
+                        onConnect={handleLinearConnect}
+                        onDisconnect={handleLinearDisconnect}
+                        onMigrate={linearConnected ? () => setShowLinearWizard(true) : undefined}
                       />
                     )}
                   </div>
@@ -747,7 +756,16 @@ function IntegrationContent() {
           )}
         </div>
       </div>
-      <JiraMigrationWizard visible={showJiraWizard} onClose={() => setShowJiraWizard(false)} />
+
+      {/* ── Migration Wizards ── */}
+      <JiraMigrationWizard
+        visible={showJiraWizard}
+        onClose={() => setShowJiraWizard(false)}
+      />
+      <LinearMigrationWizard
+        visible={showLinearWizard}
+        onClose={() => setShowLinearWizard(false)}
+      />
     </MainLayout>
   );
 }

@@ -12,7 +12,6 @@ import {
   Dropdown,
   App,
   Drawer,
-  Modal,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
@@ -34,22 +33,20 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   Folder,
   Layers,
   CircleDot,
   AlertTriangle,
   Tag,
-  Box,
   Calendar,
   CalendarDays,
   ChevronDown,
+  CornerUpRight,
   Briefcase,
   List,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  LayoutList,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -58,10 +55,8 @@ import ArchiveView from "./ArchiveView";
 import TrashView from "./TrashView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
-import AiReviewModal from "./AiReviewModal";
-import BulkTicketModal, { ModePicker } from "./BulkTicketModal";
+import CreateTicketWizard from "./CreateTicketWizard";
 import BugCalendarView from "./BugCalendarView";
-import { LinearTicketModal } from "./LinearTicketModal";
 import {
   useBugFolders,
   useBugSheets,
@@ -189,16 +184,12 @@ export default function BugListPage() {
 
   const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiIntegration, setAiIntegration] = useState<"zukvo" | "linear">("zukvo");
-  const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
   const [creationTargetOpen, setCreationTargetOpen] = useState(false);
-  const [linearChoiceOpen, setLinearChoiceOpen] = useState(false);
-  const [linearModalOpen, setLinearModalOpen] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: projects, isLoading: projectsLoading } = useAllProjects();
@@ -292,6 +283,42 @@ export default function BugListPage() {
     trashedSheets?.forEach(s => { if (!res.find(x => x.id === s.id)) res.push(s); });
     return res;
   }, [sheets, projectSheets, archivedSheets, trashedSheets]);
+
+  /** Rich rows for the bulk-bar "Move to sheet" picker: sheet, its folder,
+   *  how many bugs already live there and when it last changed. */
+  const moveSheetOptions = useMemo(
+    () =>
+      (projectSheets || [])
+        .filter((s) => s.id !== selectedSheetId)
+        .map((s) => {
+          const bugCount = s._count?.bugs ?? 0;
+          return {
+            value: s.id,
+            label: s.name,
+            description: s.folderName || "Ungrouped",
+            badge: (
+              <span className="hb-move-badge">
+                <Layers size={14} />
+              </span>
+            ),
+            meta: (
+              <span className="hb-move-meta">
+                {s.status && s.status !== "active" && (
+                  <span className={`hb-move-status is-${s.status}`}>{s.status}</span>
+                )}
+                <span className="hb-move-count">
+                  <BugIcon size={10} />
+                  {bugCount}
+                </span>
+                {s.updatedAt && (
+                  <span className="hb-move-when">{dayjs(s.updatedAt).format("MMM D")}</span>
+                )}
+              </span>
+            ),
+          };
+        }),
+    [projectSheets, selectedSheetId]
+  );
 
   const workspaceStats = {
     totalFolders: folders?.length || 0,
@@ -1248,42 +1275,50 @@ export default function BugListPage() {
                 </>
               ) : (
                 <>
-                  <Select
-                    placeholder="Move to Sheet"
-                    size="small"
-                    className="hb-bulk-move-select"
-                    suffixIcon={<ChevronDown size={12} />}
-                    style={{ width: 160 }}
+                  <SearchableDropdown
                     value={null}
-                    loading={bulkMoveBugs.isPending}
                     onChange={(targetSheetId) => {
                       if (!targetSheetId) return;
                       bulkMoveBugs.mutate(
                         {
                           bugIds: Array.from(selectedIds),
-                          targetSheetId
+                          targetSheetId,
                         },
                         {
                           onSuccess: () => {
                             setSelectedIds(new Set());
-                          }
+                          },
                         }
                       );
                     }}
-                    options={(projectSheets || [])
-                      .filter(s => s.id !== selectedSheetId)
-                      .map(s => ({
-                        value: s.id,
-                        label: (
-                          <div className="hb-move-option">
-                            <Box size={12} className="hb-move-icon" />
-                            <div className="hb-move-info">
-                              <div className="hb-move-name">{s.name}</div>
-                              <div className="hb-move-folder">{s.folderName}</div>
-                            </div>
-                          </div>
-                        )
-                      }))}
+                    options={moveSheetOptions}
+                    loading={bulkMoveBugs.isPending}
+                    disabled={bulkMoveBugs.isPending}
+                    searchPlaceholder="Search sheets or folders…"
+                    itemNoun="sheets"
+                    allowClear={false}
+                    overlayClassName="hb-move-pop"
+                    onOpenChange={setMoveMenuOpen}
+                    emptyComponent={
+                      <div className="hb-move-empty">
+                        <Layers size={18} />
+                        <div className="hb-move-empty-title">No other sheet to move into</div>
+                        <div className="hb-move-empty-sub">
+                          Create another sheet in this project first.
+                        </div>
+                      </div>
+                    }
+                    customTrigger={
+                      <button
+                        type="button"
+                        className={`hb-btn hb-move-trigger ${moveMenuOpen ? "is-open" : ""}`}
+                        disabled={bulkMoveBugs.isPending}
+                      >
+                        <CornerUpRight size={13} />
+                        {bulkMoveBugs.isPending ? "Moving…" : "Move to sheet"}
+                        <ChevronDown size={12} className="hb-move-trigger-caret" />
+                      </button>
+                    }
                   />
                   <button
                     className="hb-btn hb-btn-primary"
@@ -1597,164 +1632,24 @@ export default function BugListPage() {
         }}
       />
 
-      <AiReviewModal
-        open={aiOpen}
-        onClose={() => setAiOpen(false)}
-        bugs={selectedBugs}
-        integration={aiIntegration}
-      />
-
-      <BulkTicketModal
-        open={bulkTicketOpen}
-        bugs={selectedBugs}
-        prefilledProjectId={selectedProjectId || undefined}
-        onClose={() => setBulkTicketOpen(false)}
-        onPickAi={() => {
-          setBulkTicketOpen(false);
-          setAiIntegration("zukvo");
-          setAiOpen(true);
-        }}
-      />
-
-      <Modal
+      <CreateTicketWizard
         open={creationTargetOpen}
-        onCancel={() => setCreationTargetOpen(false)}
-        footer={null}
-        closable={false}
-        destroyOnHidden
-        width={640}
-        centered
-        maskClosable={false}
-        wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
-        styles={{
-          mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
-          content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
-          body: { padding: 0 },
-        }}
-      >
-        <div className="hb-btm">
-          <div className="hb-btm-hero">
-            <div className="hb-btm-hero-bg" />
-            <div className="hb-btm-hero-row">
-              <div className="hb-btm-hero-orb">
-                <Box size={20} />
-              </div>
-              <div className="hb-btm-hero-text">
-                <div className="hb-btm-eyebrow">
-                  <Box size={11} />
-                  Integrations
-                </div>
-                <div className="hb-btm-title">Choose Destination</div>
-                <div className="hb-btm-sub">
-                  Select where you want to create tickets for these bugs.
-                </div>
-              </div>
-              <button className="hb-btm-close" onClick={() => setCreationTargetOpen(false)} aria-label="Close">
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="hb-btm-modegrid" style={{ paddingBottom: 32 }}>
-            <button
-              className="hb-btm-modecard hb-btm-modecard-manual"
-              onClick={() => {
-                setCreationTargetOpen(false);
-                setBulkTicketOpen(true);
-              }}
-            >
-              <div className="hb-btm-modecard-icon">
-                <BugIcon size={22} />
-              </div>
-              <div className="hb-btm-modecard-title">Zukvo Tickets</div>
-              <div className="hb-btm-modecard-sub">
-                Create native Zukvo tickets directly within your workspace.
-              </div>
-              <ul className="hb-btm-modecard-list">
-                <li><CheckCircle2 size={12} /> Fast, built-in tracking</li>
-                <li><CheckCircle2 size={12} /> AI auto-generation</li>
-                <li><CheckCircle2 size={12} /> Rich context linking</li>
-              </ul>
-              <div className="hb-btm-modecard-cta">
-                Continue to Zukvo <ChevronRight size={14} />
-              </div>
-            </button>
-
-            <button
-              className="hb-btm-modecard hb-btm-modecard-ai"
-              onClick={() => {
-                setCreationTargetOpen(false);
-                setLinearChoiceOpen(true);
-              }}
-            >
-              <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2' }}>
-                <LayoutList size={22} />
-              </div>
-              <div className="hb-btm-modecard-title">
-                Linear
-                <span className="hb-btm-modecard-pill" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2', border: '1px solid color-mix(in oklab, #5E6AD2 40%, transparent)' }}>Sync</span>
-              </div>
-              <div className="hb-btm-modecard-sub">
-                Create and sync issues directly to your connected Linear workspace.
-              </div>
-              <ul className="hb-btm-modecard-list">
-                <li><CheckCircle2 size={12} /> Map to Teams & Projects</li>
-                <li><CheckCircle2 size={12} /> Bi-directional status sync</li>
-                <li><CheckCircle2 size={12} /> Linear AI grouping</li>
-              </ul>
-              <div className="hb-btm-modecard-cta" style={{ color: '#5E6AD2' }}>
-                Continue to Linear <ChevronRight size={14} />
-              </div>
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Linear Choice Modal */}
-      <Modal
-        open={linearChoiceOpen}
-        onCancel={() => setLinearChoiceOpen(false)}
-        footer={null}
-        closable={false}
-        destroyOnHidden
-        width={720}
-        centered
-        maskClosable={false}
-        wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
-        styles={{
-          mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
-          content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
-          body: { padding: 0 },
-        }}
-      >
-        <div className="hb-btm">
-            <ModePicker
-              count={selectedIds.size}
-              createdCount={0}
-              onClose={() => setLinearChoiceOpen(false)}
-              onManual={() => {
-                setLinearChoiceOpen(false);
-                setLinearModalOpen(true);
-              }}
-              onAi={() => {
-                setLinearChoiceOpen(false);
-                setAiIntegration("linear");
-                setAiOpen(true);
-              }}
-              hideMap={true}
-            />
-        </div>
-      </Modal>
-
-      <LinearTicketModal
-        open={linearModalOpen}
-        onCancel={() => setLinearModalOpen(false)}
+        onClose={() => setCreationTargetOpen(false)}
+        bugs={selectedBugs}
+        count={selectedIds.size}
         bugIds={Array.from(selectedIds)}
-        onSuccess={() => {
+        prefilledProjectId={selectedProjectId || undefined}
+        onManageIntegrations={() => {
+          setCreationTargetOpen(false);
+          router.push("/integrations");
+        }}
+        onLinearSuccess={() => {
+          setCreationTargetOpen(false);
           setSelectedIds(new Set());
           refetch();
         }}
       />
+
     </div>
   );
 }

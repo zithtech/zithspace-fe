@@ -83,8 +83,12 @@ export default function JiraMigrationWizard({ visible, onClose }: Props) {
 
       setJiraUsers((jUsers as any) || []);
       setZukvoUsers((zUsers as any) || []);
+      const zUsersArr = (zUsers as any) || [];
       const initialUserMap: Record<string, string> = {};
-      ((jUsers as any) || []).forEach((u: any) => { initialUserMap[u.accountId] = ""; });
+      ((jUsers as any) || []).forEach((u: any) => { 
+        const match = zUsersArr.find((zu: any) => zu.email && u.emailAddress && zu.email.toLowerCase() === u.emailAddress.toLowerCase());
+        initialUserMap[u.accountId] = match ? match.id : ""; 
+      });
       setUserMapping(initialUserMap);
       
       setSprints(Array.isArray(sRes) ? sRes : (sRes as any)?.data || []);

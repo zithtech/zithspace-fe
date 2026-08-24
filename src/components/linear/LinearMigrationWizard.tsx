@@ -86,8 +86,12 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
       setStatusMapping(initialStatusMap);
 
       setZukvoUsers(zUsers || []);
+      const zUsersArr = zUsers || [];
       const initialUserMap: Record<string, string> = {};
-      (linearUsers || []).forEach((u: any) => { initialUserMap[u.id] = ""; });
+      (linearUsers || []).forEach((u: any) => { 
+        const match = zUsersArr.find((zu: any) => zu.email && u.email && zu.email.toLowerCase() === u.email.toLowerCase());
+        initialUserMap[u.id] = match ? match.id : ""; 
+      });
       setUserMapping(initialUserMap);
       
     } catch (err) {
@@ -161,7 +165,6 @@ export default function LinearMigrationWizard({ visible, onClose }: Props) {
           setProgress(100);
           setTimeout(() => {
             onClose();
-            window.location.reload();
           }, 2000);
         }
       } catch (err) {

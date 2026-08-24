@@ -30,8 +30,8 @@ export default function LinearIntegrationCard() {
     try {
       const res: any = await api.get("/api/integrations/linear/connect");
       
-      if (res && res.url) {
-        window.location.href = res.url;
+      if (res && res.authUrl) {
+        window.location.href = res.authUrl;
       } else {
         throw new Error("Invalid response from server");
       }

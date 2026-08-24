@@ -4139,60 +4139,39 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   />
                 </Tooltip>
                 
-                {linearConnected && (
+                {(linearConnected || jiraConnected) && (
                   <Dropdown
                     menu={{
                       items: [
-                        {
-                          key: 'migrate',
-                          label: 'Start migrate with Linear',
-                          icon: <CloudSyncOutlined />,
+                        ...(linearConnected ? [{
+                          key: 'linear',
+                          label: 'Import from Linear',
+                          icon: <span style={{ fontSize: 13 }}>◆</span>,
                           onClick: () => setLinearWizardVisible(true)
-                        }
-                      ],
-                      style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
-                    }}
-                    trigger={['hover', 'click']}
-                    placement="bottomRight"
-                  >
-                    <Button
-                      icon={<CloudSyncOutlined />}
-                      style={{
-                        height: 32,
-                        borderRadius: 6,
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--bg-elevated)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                      }}
-                    />
-                  </Dropdown>
-                )}
-
-                {jiraConnected && (
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: 'migrate',
-                          label: 'Start migrate with Jira',
-                          icon: <CloudSyncOutlined />,
+                        }] : []),
+                        ...(jiraConnected ? [{
+                          key: 'jira',
+                          label: 'Import from Jira',
+                          icon: <span style={{ fontSize: 13 }}>⬡</span>,
                           onClick: () => setJiraWizardVisible(true)
-                        }
+                        }] : []),
                       ],
                       style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
                     }}
                     trigger={['hover', 'click']}
                     placement="bottomRight"
                   >
-                    <Button
-                      icon={<CloudSyncOutlined />}
-                      style={{
-                        width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                    />
+                    <Tooltip title="Import tickets">
+                      <Button
+                        icon={<CloudSyncOutlined />}
+                        style={{
+                          width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-elevated)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      />
+                    </Tooltip>
                   </Dropdown>
                 )}
                 {canCreateTicket && (

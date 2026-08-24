@@ -62,6 +62,9 @@ import AiReviewModal from "./AiReviewModal";
 import BulkTicketModal, { ModePicker } from "./BulkTicketModal";
 import BugCalendarView from "./BugCalendarView";
 import { LinearTicketModal } from "./LinearTicketModal";
+import { JiraTicketModal } from "./JiraTicketModal";
+import { LinearService } from "@/services/linearService";
+import { JiraService } from "@/services/jiraService";
 import {
   useBugFolders,
   useBugSheets,
@@ -195,6 +198,22 @@ export default function BugListPage() {
   const [creationTargetOpen, setCreationTargetOpen] = useState(false);
   const [linearChoiceOpen, setLinearChoiceOpen] = useState(false);
   const [linearModalOpen, setLinearModalOpen] = useState(false);
+  const [jiraChoiceOpen, setJiraChoiceOpen] = useState(false);
+  const [jiraModalOpen, setJiraModalOpen] = useState(false);
+
+  const [linearConnected, setLinearConnected] = useState(false);
+  const [jiraConnected, setJiraConnected] = useState(false);
+
+  useEffect(() => {
+    if (creationTargetOpen) {
+      LinearService.getStatus()
+        .then(res => setLinearConnected(res.connected))
+        .catch(() => setLinearConnected(false));
+      JiraService.getStatus()
+        .then(res => setJiraConnected(res.connected))
+        .catch(() => setJiraConnected(false));
+    }
+  }, [creationTargetOpen]);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
@@ -1680,32 +1699,71 @@ export default function BugListPage() {
               </div>
             </button>
 
-            <button
-              className="hb-btm-modecard hb-btm-modecard-ai"
-              onClick={() => {
-                setCreationTargetOpen(false);
-                setLinearChoiceOpen(true);
-              }}
-            >
-              <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2' }}>
-                <LayoutList size={22} />
-              </div>
-              <div className="hb-btm-modecard-title">
-                Linear
-                <span className="hb-btm-modecard-pill" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2', border: '1px solid color-mix(in oklab, #5E6AD2 40%, transparent)' }}>Sync</span>
-              </div>
-              <div className="hb-btm-modecard-sub">
-                Create and sync issues directly to your connected Linear workspace.
-              </div>
-              <ul className="hb-btm-modecard-list">
-                <li><CheckCircle2 size={12} /> Map to Teams & Projects</li>
-                <li><CheckCircle2 size={12} /> Bi-directional status sync</li>
-                <li><CheckCircle2 size={12} /> Linear AI grouping</li>
-              </ul>
-              <div className="hb-btm-modecard-cta" style={{ color: '#5E6AD2' }}>
-                Continue to Linear <ChevronRight size={14} />
-              </div>
-            </button>
+            <Tooltip title={!linearConnected ? "Please connect Linear first to create a ticket." : ""} color="#1e293b" overlayInnerStyle={{ fontSize: 13, padding: '8px 12px' }}>
+              <button
+                className={`hb-btm-modecard hb-btm-modecard-ai ${!linearConnected ? 'disabled' : ''}`}
+                disabled={!linearConnected}
+                style={{ opacity: !linearConnected ? 0.5 : 1, cursor: !linearConnected ? 'not-allowed' : 'pointer' }}
+                onClick={() => {
+                  if (linearConnected) {
+                    setCreationTargetOpen(false);
+                    setLinearChoiceOpen(true);
+                  }
+                }}
+              >
+                <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2' }}>
+                  <LayoutList size={22} />
+                </div>
+                <div className="hb-btm-modecard-title">
+                  Linear
+                  <span className="hb-btm-modecard-pill" style={{ background: 'color-mix(in oklab, #5E6AD2 20%, transparent)', color: '#5E6AD2', border: '1px solid color-mix(in oklab, #5E6AD2 40%, transparent)' }}>Sync</span>
+                </div>
+                <div className="hb-btm-modecard-sub">
+                  Create and sync issues directly to your connected Linear workspace.
+                </div>
+                <ul className="hb-btm-modecard-list">
+                  <li><CheckCircle2 size={12} /> Map to Teams & Projects</li>
+                  <li><CheckCircle2 size={12} /> Bi-directional status sync</li>
+                  <li><CheckCircle2 size={12} /> Linear AI grouping</li>
+                </ul>
+                <div className="hb-btm-modecard-cta" style={{ color: '#5E6AD2' }}>
+                  Continue to Linear <ChevronRight size={14} />
+                </div>
+              </button>
+            </Tooltip>
+
+            <Tooltip title={!jiraConnected ? "Please connect Jira first to create a ticket." : ""} color="#1e293b" overlayInnerStyle={{ fontSize: 13, padding: '8px 12px' }}>
+              <button
+                className={`hb-btm-modecard hb-btm-modecard-ai ${!jiraConnected ? 'disabled' : ''}`}
+                disabled={!jiraConnected}
+                style={{ opacity: !jiraConnected ? 0.5 : 1, cursor: !jiraConnected ? 'not-allowed' : 'pointer' }}
+                onClick={() => {
+                  if (jiraConnected) {
+                    setCreationTargetOpen(false);
+                    setJiraChoiceOpen(true);
+                  }
+                }}
+              >
+                <div className="hb-btm-modecard-icon hb-btm-modecard-icon-ai" style={{ background: 'color-mix(in oklab, #0052CC 20%, transparent)', color: '#0052CC' }}>
+                  <LayoutList size={22} />
+                </div>
+                <div className="hb-btm-modecard-title">
+                  Jira
+                  <span className="hb-btm-modecard-pill" style={{ background: 'color-mix(in oklab, #0052CC 20%, transparent)', color: '#0052CC', border: '1px solid color-mix(in oklab, #0052CC 40%, transparent)' }}>Sync</span>
+                </div>
+                <div className="hb-btm-modecard-sub">
+                  Create and sync issues directly to your connected Jira workspace.
+                </div>
+                <ul className="hb-btm-modecard-list">
+                  <li><CheckCircle2 size={12} /> Map to Projects & Issue Types</li>
+                  <li><CheckCircle2 size={12} /> Bi-directional status sync</li>
+                  <li><CheckCircle2 size={12} /> Jira AI grouping</li>
+                </ul>
+                <div className="hb-btm-modecard-cta" style={{ color: '#0052CC' }}>
+                  Continue to Jira <ChevronRight size={14} />
+                </div>
+              </button>
+            </Tooltip>
           </div>
         </div>
       </Modal>
@@ -1749,6 +1807,52 @@ export default function BugListPage() {
       <LinearTicketModal
         open={linearModalOpen}
         onCancel={() => setLinearModalOpen(false)}
+        bugIds={Array.from(selectedIds)}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          refetch();
+        }}
+      />
+
+      {/* Jira Choice Modal */}
+      <Modal
+        open={jiraChoiceOpen}
+        onCancel={() => setJiraChoiceOpen(false)}
+        footer={null}
+        closable={false}
+        destroyOnHidden
+        width={720}
+        centered
+        maskClosable={false}
+        wrapClassName={`hb-btm-wrap ${theme === "dark" ? "hb-btm-dark" : "hb-btm-light"}`}
+        styles={{
+          mask: { backdropFilter: "blur(8px)", background: "rgba(8,12,24,0.55)" },
+          content: { padding: 0, borderRadius: 18, overflow: "hidden", background: "transparent", boxShadow: "0 30px 80px rgba(8,12,24,0.45)" },
+          body: { padding: 0 },
+        }}
+      >
+        <div className="hb-btm">
+            <ModePicker
+              count={selectedIds.size}
+              createdCount={0}
+              onClose={() => setJiraChoiceOpen(false)}
+              onManual={() => {
+                setJiraChoiceOpen(false);
+                setJiraModalOpen(true);
+              }}
+              onAi={() => {
+                setJiraChoiceOpen(false);
+                setAiIntegration("linear"); // Keeping linear for AI fallback or adjust later if Jira AI exists
+                setAiOpen(true);
+              }}
+              hideMap={true}
+            />
+        </div>
+      </Modal>
+
+      <JiraTicketModal
+        open={jiraModalOpen}
+        onCancel={() => setJiraModalOpen(false)}
         bugIds={Array.from(selectedIds)}
         onSuccess={() => {
           setSelectedIds(new Set());

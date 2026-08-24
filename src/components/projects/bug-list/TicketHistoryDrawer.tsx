@@ -30,6 +30,12 @@ export default function TicketHistoryDrawer({ bug, open, onClose }: TicketHistor
     status: "Linear Issue",
     url: bug.linearIssueUrl,
     isCurrent: true,
+  } : bug.jiraIssueKey ? {
+    id: bug.jiraIssueId || bug.jiraIssueKey,
+    ticketNumber: bug.jiraIssueKey,
+    status: "Jira Issue",
+    url: bug.jiraIssueUrl,
+    isCurrent: true,
   } : null;
 
   const history = bug.ticketHistory || [];

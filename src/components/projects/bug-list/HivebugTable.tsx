@@ -317,7 +317,7 @@ function BugRow({
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
   const creatorId = bug.createdBy?.id || bug.createdById;
-  const ticketLinked = !!bug.ticketId || !!bug.linearIssueIdentifier;
+  const ticketLinked = !!bug.ticketId || !!bug.linearIssueIdentifier || !!bug.jiraIssueKey;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -457,6 +457,18 @@ function BugRow({
           >
             <LinkIcon size={11} />
             {bug.linearIssueIdentifier || "Linear Issue"}
+          </a>
+        ) : bug.jiraIssueUrl ? (
+          <a
+            href={bug.jiraIssueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hb-ticket-link"
+            onClick={(e) => e.stopPropagation()}
+            style={{ color: '#0052CC', borderColor: '#0052CC', textDecoration: 'none' }}
+          >
+            <LinkIcon size={11} />
+            {bug.jiraIssueKey || "Jira Issue"}
           </a>
         ) : bug.ticketNumber ? (
           <button

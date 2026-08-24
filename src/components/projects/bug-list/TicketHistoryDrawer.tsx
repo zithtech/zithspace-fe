@@ -40,7 +40,7 @@ type Entry = {
   status: string;
   timestamp?: string;
   isCurrent: boolean;
-  source: "zukvo" | "linear";
+  source: "zukvo" | "linear" | "jira";
   /** External link (Linear) — takes priority over the internal ticket drawer. */
   url?: string | null;
   /** Internal ticket id for the in-app drawer. */
@@ -118,6 +118,16 @@ export default function TicketHistoryDrawer({ bug, open, onClose }: TicketHistor
             isCurrent: true,
             source: "linear",
             url: bug.linearIssueUrl,
+          }
+      : bug.jiraIssueKey
+        ? {
+            key: `current-${bug.jiraIssueKey}`,
+            ticketNumber: bug.jiraIssueKey,
+            status: "Jira issue",
+            timestamp: bug.updatedAt,
+            isCurrent: true,
+            source: "jira" as const,
+            url: bug.jiraIssueUrl,
           }
         : null;
 

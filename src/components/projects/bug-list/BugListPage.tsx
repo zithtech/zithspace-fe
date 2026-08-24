@@ -57,6 +57,7 @@ import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
 import CreateTicketWizard from "./CreateTicketWizard";
 import BugCalendarView from "./BugCalendarView";
+
 import {
   useBugFolders,
   useBugSheets,
@@ -185,6 +186,7 @@ export default function BugListPage() {
   const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
   const [creationTargetOpen, setCreationTargetOpen] = useState(false);
+
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
@@ -1649,6 +1651,7 @@ export default function BugListPage() {
           refetch();
         }}
       />
+
 
     </div>
   );

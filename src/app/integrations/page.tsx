@@ -27,6 +27,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { CalendarService, CalendarProvider, CalendarStatus } from "@/services/calendarService";
 import JiraMigrationWizard from "@/components/jira/JiraMigrationWizard";
 import LinearMigrationWizard from "@/components/linear/LinearMigrationWizard";
+import { JiraService } from "@/services/jiraService";
 import { LinearService } from "@/services/linearService";
 import { api } from "@/lib/axios";
 import { NotionService, NotionStatus } from "@/services/notionService";
@@ -46,6 +47,7 @@ import {
   IntegrationCard,
   integrationStyles,
 } from "./integrations-ui";
+
 
 /* ────────────────────────── Catalogue ────────────────────────── */
 
@@ -121,7 +123,6 @@ function IntegrationContent() {
   const [showLinearWizard, setShowLinearWizard] = useState(false);
   const [jiraConnected, setJiraConnected] = useState(false);
   const [jiraLoading, setJiraLoading] = useState(false);
-  const [showJiraWizard, setShowJiraWizard] = useState(false);
   const [notion, setNotion] = useState<NotionStatus>({
     connected: false,
     workspaceName: null,
@@ -132,6 +133,7 @@ function IntegrationContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [refreshing, setRefreshing] = useState(false);
   const [loadedOnce, setLoadedOnce] = useState(false);
+  const [showJiraWizard, setShowJiraWizard] = useState(false);
 
   const userName = user?.name || "You";
   const canManage = canReadMail || canReadCalendar;
@@ -202,7 +204,7 @@ function IntegrationContent() {
       router.replace("/integrations");
     } else if (error) {
       const label =
-        error.startsWith("notion") || provider === "notion" ? "Notion" : "Linear";
+        error.startsWith("notion") || provider === "notion" ? "Notion" : error.startsWith("jira") || provider === "jira" ? "Jira" : "Linear";
       messageApi.error(`Failed to connect to ${label}: ${error}`);
       router.replace("/integrations");
     }
@@ -389,10 +391,10 @@ function IntegrationContent() {
     [q, activeTab, statuses]
   );
 
-  const LINEAR_DESC = "Push bugs into Linear as issues and keep status in sync both ways.";
+  const LINEAR_DESC = "Import your existing Linear projects, tickets, into Zukvo and Push bugs into Linear as issues.";
   const showLinear = matches("Linear", LINEAR_DESC, linearConnected);
 
-  const JIRA_DESC = "Import your existing Jira projects, tickets, into Zukvo.";
+  const JIRA_DESC = "Import your existing Jira projects, tickets, into Zukvo and Push bugs into Jira as issues.";
   const showJira = matches("Jira", JIRA_DESC, false);
 
   const NOTION_DESC = "Import Notion pages and databases into a Document Hub, keeping the original structure.";
@@ -490,6 +492,13 @@ function IntegrationContent() {
                   <LinearMark size={12} />
                 </span>
                 Linear {linearConnected ? "connected" : "not connected"}
+              </span>
+
+              <span className={`intg-chip ${jiraConnected ? "is-ok" : ""}`}>
+                <span className="intg-chip-logo">
+                  <JiraMark size={12} />
+                </span>
+                Jira {jiraConnected ? "connected" : "not connected"}
               </span>
 
               <span className={`intg-chip ${notion.connected ? "is-ok" : ""}`}>

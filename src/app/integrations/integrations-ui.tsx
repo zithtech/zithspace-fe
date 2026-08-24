@@ -70,6 +70,7 @@ export interface IntegrationCardProps {
   onMigrate?: () => void;
   disabled?: boolean;
   disabledReason?: string;
+ 
 }
 
 export function IntegrationCard({
@@ -86,6 +87,7 @@ export function IntegrationCard({
   onMigrate,
   disabled,
   disabledReason,
+
 }: IntegrationCardProps) {
   const connected = state === "connected";
 

@@ -159,8 +159,9 @@ function TestRunsContent() {
           }
         }),
         axios.get("/api/v2/qa/suites/all?limit=1000"),
-        axios.get("/api/v2/qa/test-cases/parents?limit=1000"),
-        axios.get("/api/v2/qa/test-scopes?limit=1000"),
+        axios.get("/api/v2/qa/parents?limit=1000"),
+        // The scopes endpoint paginates on pageSize, not limit — without it we'd only get 10.
+        axios.get("/api/v2/qa/test-scopes?pageSize=1000"),
       ]);
       const body = (runsRes as any).data;
       setRuns(body?.data || []);

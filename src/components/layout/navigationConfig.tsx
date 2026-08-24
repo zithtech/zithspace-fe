@@ -193,6 +193,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.DASHBOARD_READ,
       },
       {
+        key: "/dashboard/overview",
+        label: "Overview",
+        icon: I(Gauge),
+        path: "/dashboard/overview",
+        requiredSubscriptionFeature: ["home_home_general_dashboard"],
+        requiredPermission: Permissions.DASHBOARD_READ,
+      },
+      {
         key: "/integrations",
         label: "Integrations",
         icon: I(Plug2),

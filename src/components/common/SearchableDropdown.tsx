@@ -78,6 +78,8 @@ export interface SearchableDropdownProps {
   getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   /** Custom UI to show when there are no matches or options */
   emptyComponent?: React.ReactNode;
+  /** Extra class on the popup overlay, for per-consumer list styling. */
+  overlayClassName?: string;
 }
 
 export const initialsFor = (s: string): string => {
@@ -127,6 +129,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   getPopupContainer,
   emptyComponent,
   renderTags,
+  overlayClassName,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -356,7 +359,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         onOpenChange?.(v);
       }}
       placement="bottomLeft"
-      overlayClassName="sd-overlay-popover"
+      overlayClassName={`sd-overlay-popover ${overlayClassName || ""}`.trim()}
       destroyOnHidden
       getPopupContainer={getPopupContainer}
     >

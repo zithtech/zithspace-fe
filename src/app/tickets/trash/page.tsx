@@ -16,6 +16,7 @@ import {
   Popconfirm,
   Progress,
   Select,
+  Skeleton,
   Table,
   Tag,
   Tooltip,
@@ -86,12 +87,14 @@ export default function TicketsTrashPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
 
   const { data: trashData, isLoading, refetch, isFetching } = useTrashTickets({
     projectId: selectedProject || undefined,
     search: searchText,
     page,
     limit: pageSize,
+    enabled: !authLoading,
   });
 
   const { mutateAsync: bulkRestore, isPending: isRestoring } = useBulkRestoreFromTrash();
@@ -160,7 +163,7 @@ export default function TicketsTrashPage() {
 
   const handleEmptyTrash = async () => {
     try {
-      await emptyTrash({ projectId: selectedProject || undefined, force: false });
+      await emptyTrash({ projectId: selectedProject || undefined, force: true });
       message.success("Trash emptied");
       setSelectedRowKeys([]);
       refetch();
@@ -317,14 +320,18 @@ export default function TicketsTrashPage() {
     },
   ];
 
-  if (authLoading) {
+  if (authLoading || (isLoading && !trashData)) {
     return (
       <MainLayout>
-        <div style={{
-          minHeight: "calc(100vh - 64px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <ZukvoLoader size="lg" message="Loading trash repository..." />
+        <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto", marginTop: 40 }}>
+          <Skeleton active title={{ width: 250 }} paragraph={{ rows: 1, width: 400 }} />
+          <div style={{ marginTop: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Skeleton.Input active style={{ width: 200 }} size="large" />
+            <Skeleton.Button active style={{ width: 120 }} size="large" />
+          </div>
+          <div style={{ marginTop: 24, background: "var(--bg-panel)", padding: 24, borderRadius: 12, border: "1px solid var(--border-color)" }}>
+            <Skeleton active title={false} paragraph={{ rows: 8, width: "100%" }} />
+          </div>
         </div>
       </MainLayout>
     );
@@ -351,7 +358,14 @@ export default function TicketsTrashPage() {
             <Tooltip title="Refresh">
               <Button
                 icon={<ReloadOutlined spin={isFetching} />}
-                onClick={() => refetch()}
+                onClick={async () => {
+                  setIsManualRefresh(true);
+                  try {
+                    await refetch();
+                  } finally {
+                    setIsManualRefresh(false);
+                  }
+                }}
                 loading={isFetching}
                 style={{ height: 32, fontWeight: 600 }}
               />
@@ -441,9 +455,15 @@ export default function TicketsTrashPage() {
           </div>
         }
       >
-        <ZukvoLoadingOverlay loading={isLoading} message="">
-          <Table
-            columns={columns}
+        {isManualRefresh ? (
+          <div style={{ padding: 24, margin: "0 20px 20px 20px", background: "var(--bg-panel)", borderRadius: 12, border: "1px solid var(--border-slate-200)" }}>
+            <Skeleton active title={false} paragraph={{ rows: 15, width: "100%" }} />
+          </div>
+        ) : (
+          <>
+          <ZukvoLoadingOverlay loading={isLoading} message="">
+            <Table
+              columns={columns}
             dataSource={tickets}
             rowKey="id"
             size="small"
@@ -530,6 +550,8 @@ export default function TicketsTrashPage() {
               />
             </div>
           </div>
+        )}
+        </>
         )}
 
         <style jsx global>{`

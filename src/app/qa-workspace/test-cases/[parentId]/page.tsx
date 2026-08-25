@@ -8,7 +8,7 @@ import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrum
 import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, Zap, Activity, Layers, Sparkles, Menu, RotateCw } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -65,6 +65,32 @@ const PriorityMeter = ({ priority }: { priority?: string }) => {
     </Tooltip>
   );
 };
+
+const fmtDate = (d?: string) => {
+  if (!d) return null;
+  const parsed = new Date(d);
+  return Number.isNaN(parsed.getTime())
+    ? null
+    : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+/**
+ * One line of the scenario summary in the rail. `loading` swaps the value for a
+ * shimmer so the card keeps its shape while the scenario is being fetched.
+ */
+const Fact = ({ icon: Icon, label, accent, loading, title, children }: {
+  icon: any; label: string; accent?: boolean; loading?: boolean; title?: string; children?: React.ReactNode;
+}) => (
+  <div className={`cd-fact${accent ? ' cd-fact--accent' : ''}`}>
+    <span className="cd-fact__ic"><Icon size={13} /></span>
+    <div className="cd-fact__body">
+      <span className="cd-fact__label">{label}</span>
+      {loading
+        ? <span className="cd-skel" />
+        : <span className="cd-fact__val" title={title}>{children}</span>}
+    </div>
+  </div>
+);
 
 function initialsOf(name: string) {
   if (!name) return 'TC';
@@ -539,44 +565,60 @@ export default function ParentTestCaseDetailsPage() {
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
         }
 
-        /* Scenario summary card in the rail */
+        /* ── Scenario summary card in the rail ─────────────────────── */
+        .cd-side-caption { margin-top: 18px !important; }
         .cd-side {
-          margin: 2px 0 0; padding: 12px;
-          border: 1px solid var(--border-slate-200); border-radius: 12px;
+          margin: 0; overflow: hidden;
+          border: 1px solid var(--border-slate-200); border-radius: 10px;
           background: transparent;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
-        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 8px; }
-        .cd-meta__row { 
-          display: flex; align-items: center; gap: 12px;
-          padding: 10px 12px; border-radius: 10px;
-          background: var(--bg-slate-50);
+        .cd-fact {
+          display: flex; align-items: flex-start; gap: 9px;
+          padding: 9px 10px;
+          transition: background .15s ease;
+        }
+        .cd-fact + .cd-fact { border-top: 1px solid var(--border-slate-100); }
+        .cd-fact:hover { background: var(--bg-slate-50); }
+        .cd-fact__ic {
+          width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+          display: inline-flex; align-items: center; justify-content: center;
+          color: var(--text-slate-400); background: var(--bg-slate-50);
           border: 1px solid var(--border-slate-100);
-          transition: all 0.2s ease;
-          width: 100%;
+          transition: color .15s ease, background .15s ease, border-color .15s ease;
         }
-        .cd-meta__row:hover {
-          background: var(--bg-pure-white);
-          border-color: var(--border-slate-200);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-          transform: translateY(-1px);
+        .cd-fact--accent .cd-fact__ic {
+          color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.2);
         }
-        .cd-meta__icon-box {
-          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center;
-          border: 1px solid;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        .cd-fact:hover .cd-fact__ic { color: var(--text-slate-600); }
+        .cd-fact--accent:hover .cd-fact__ic { color: #2563eb; }
+        .cd-fact__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+        .cd-fact__label {
+          font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+          color: var(--text-slate-400); line-height: 1;
         }
-        .cd-meta__content {
-          display: flex; flex-direction: column; min-width: 0; flex: 1;
+        .cd-fact__val { display: block; min-width: 0; font-size: 12px; line-height: 1.35; }
+        /* Values wrap to a second line rather than being cut mid-word. */
+        .cd-fact__text {
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+          overflow: hidden; overflow-wrap: anywhere;
+          font-weight: 600; color: var(--text-slate-800);
         }
-        .cd-meta__row dt { 
-          font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; 
-          color: var(--text-slate-400); font-weight: 700; margin-bottom: 2px;
+        .cd-fact__text.is-muted { font-weight: 500; color: var(--text-slate-400); }
+        .cd-fact__unit { font-weight: 500; color: var(--text-slate-400); }
+        .cd-fact .sc-pill { font-size: 10.5px; padding: 2px 8px; }
+        .cd-fact .sc-person { max-width: 100%; }
+        .cd-fact .sc-person__av--ash { background: rgba(100,116,139,.12); color: #64748b; }
+
+        /* Placeholder line while the scenario loads */
+        .cd-skel {
+          display: block; height: 12px; width: 70%; border-radius: 4px;
+          background: linear-gradient(90deg, var(--bg-slate-50) 25%, var(--border-slate-100) 37%, var(--bg-slate-50) 63%);
+          background-size: 400% 100%; animation: cd-shimmer 1.4s ease infinite;
         }
-        .cd-meta__row dd {
-          margin: 0; font-size: 13px; font-weight: 600; color: var(--text-slate-800);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
+        .cd-fact:nth-child(even) .cd-skel { width: 55%; }
+        @keyframes cd-shimmer {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
         }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -1036,61 +1078,54 @@ export default function ParentTestCaseDetailsPage() {
             </button>
 
             {/* Scenario summary */}
-            <span className="pp-nav-caption" style={{ marginTop: 18 }}>Scenario</span>
+            <span className="pp-nav-caption cd-side-caption">Scenario</span>
             <div className="cd-side">
-              <dl className="cd-meta">
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#3b82f6', background: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.2)' }}>
-                    <Folder size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Module</dt>
-                    <dd>{parentData?.module_name || "Unassigned"}</dd>
-                  </div>
-                </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.2)' }}>
-                    <Target size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Feature</dt>
-                    <dd>{parentData?.feature || "—"}</dd>
-                  </div>
-                </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' }}>
-                    <Zap size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Automation</dt>
-                    <dd>{parentData?.automation || "Manual"}</dd>
-                  </div>
-                </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' }}>
-                    <User size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Owner</dt>
-                    <dd>
-                      {parentData?.owner_name || parentData?.qa_owner ? (
-                        <span className="sc-person">
-                          <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
-                        </span>
-                      ) : "—"}
-                    </dd>
-                  </div>
-                </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#64748b', background: 'rgba(100,116,139,0.1)', borderColor: 'rgba(100,116,139,0.2)' }}>
-                    <User size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Created By</dt>
-                    <dd>{parentData?.creator_name || "—"}</dd>
-                  </div>
-                </div>
-              </dl>
+              <Fact icon={Folder} label="Module" accent loading={!parentData} title={parentData?.module_name}>
+                {parentData?.module_name
+                  ? <span className="cd-fact__text">{parentData.module_name}</span>
+                  : <span className="cd-fact__text is-muted">Unassigned</span>}
+              </Fact>
+
+              <Fact icon={Target} label="Feature" loading={!parentData} title={parentData?.feature}>
+                {parentData?.feature
+                  ? <span className="cd-fact__text">{parentData.feature}</span>
+                  : <span className="cd-fact__text is-muted">Not set</span>}
+              </Fact>
+
+              <Fact icon={Zap} label="Automation" loading={!parentData}>
+                <span className={`sc-pill sc-pill--${parentData?.automation === 'Automated' ? 'green' : 'ash'}`}>
+                  <span className="sc-pill__dot" />{parentData?.automation || 'Manual'}
+                </span>
+              </Fact>
+
+              <Fact icon={Layers} label="Suites" loading={!parentData}>
+                <span className="cd-fact__text">
+                  {Number(parentData?.suite_count || 0)}
+                  <span className="cd-fact__unit">{Number(parentData?.suite_count) === 1 ? ' suite' : ' suites'}</span>
+                </span>
+              </Fact>
+
+              <Fact icon={User} label="Owner" loading={!parentData} title={parentData?.owner_name || parentData?.qa_owner}>
+                {parentData?.owner_name || (parentData?.qa_owner && parentData.qa_owner !== '—') ? (
+                  <span className="sc-person">
+                    <span className="sc-person__av">{initialsOf(parentData.owner_name || parentData.qa_owner)}</span>
+                    <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
+                  </span>
+                ) : <span className="cd-fact__text is-muted">Unassigned</span>}
+              </Fact>
+
+              <Fact icon={UserPlus} label="Created By" loading={!parentData} title={parentData?.creator_name}>
+                {parentData?.creator_name ? (
+                  <span className="sc-person">
+                    <span className="sc-person__av sc-person__av--ash">{initialsOf(parentData.creator_name)}</span>
+                    <span className="sc-person__name">{parentData.creator_name}</span>
+                  </span>
+                ) : <span className="cd-fact__text is-muted">Unknown</span>}
+              </Fact>
+
+              <Fact icon={CalendarDays} label="Created" loading={!parentData} title={parentData?.created_at}>
+                <span className="cd-fact__text">{fmtDate(parentData?.created_at) || '—'}</span>
+              </Fact>
             </div>
           </div>
         </aside>

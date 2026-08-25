@@ -2,16 +2,15 @@
 
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState } from "react";
 import {
   Button,
   ColorPicker,
   Drawer,
-  Empty,
   Form,
   Input,
   Popconfirm,
-  Skeleton,
   Switch,
   Table,
   Tag,
@@ -27,7 +26,6 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   ThunderboltFilled,
@@ -38,7 +36,24 @@ import {
   BugOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { Menu, RotateCw } from "lucide-react";
+import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2 } from "lucide-react";
+import {
+  ModuleModal,
+  ModulesTable,
+  useQaModules,
+  useScopeModuleNames,
+  type QaModule,
+} from "@/components/qa/ModuleSettingsSection";
+import {
+  SCOPE_CATEGORY_LABELS,
+  SCOPE_SETTINGS_STYLES,
+  SCOPE_SETTING_CATEGORIES,
+  ScopeOptionModal,
+  ScopeOptionsTable,
+  useScopeSettings,
+  useScopeUsage,
+  type ScopeCategory,
+} from "@/components/qa/ScopeSettingsSection";
 import {
   useBugSeverityOptions,
   useBugTypeOptions,
@@ -66,15 +81,26 @@ type EditState =
 
 type SectionKey = "severity" | "type" | "priority";
 
+/**
+ * The Test Scope option lists, moved here from the Test Scope page so a
+ * workspace curates every QA dropdown in one screen. They are keyed apart from
+ * the bug sections because "priority" exists on both sides and means different
+ * things.
+ */
+type ScopeNavKey = `scope:${ScopeCategory}`;
+/** The module list is neither a bug definition nor a scope option list. */
+const MODULES_KEY = "modules" as const;
+type NavKey = SectionKey | ScopeNavKey | typeof MODULES_KEY;
+
+const isScopeNav = (k: NavKey): k is ScopeNavKey => k.startsWith("scope:");
+const scopeCategoryOf = (k: ScopeNavKey) => k.slice("scope:".length) as ScopeCategory;
+
 const SECTIONS: {
   key: SectionKey;
   title: string;
   description: string;
   shortDescription: string;
   icon: React.ReactNode;
-  accent: string;
-  accentBg: string;
-  accentFg: string;
 }[] = [
     {
       key: "severity",
@@ -83,9 +109,6 @@ const SECTIONS: {
         "Tenant-scoped severity options. Shown in the Capture Bug dropdown and the bug table.",
       shortDescription: "Triage levels",
       icon: <ThunderboltFilled />,
-      accent: "#ef4444",
-      accentBg: "rgba(239,68,68,0.10)",
-      accentFg: "#ef4444",
     },
     {
       key: "type",
@@ -94,9 +117,6 @@ const SECTIONS: {
         "Bug type taxonomy (UI / Functional / API by default — extend as needed).",
       shortDescription: "Categorize bugs by area",
       icon: <AppstoreFilled />,
-      accent: "#8b5cf6",
-      accentBg: "rgba(139,92,246,0.12)",
-      accentFg: "#8b5cf6",
     },
     {
       key: "priority",
@@ -105,9 +125,6 @@ const SECTIONS: {
         "Priority levels shared across the QA workspace.",
       shortDescription: "How urgent the work is",
       icon: <StarFilled />,
-      accent: "#3b82f6",
-      accentBg: "rgba(59,130,246,0.12)",
-      accentFg: "#3b82f6",
     },
   ];
 
@@ -130,13 +147,41 @@ export default function BugListConfigManager() {
   const createPriority = useCreateBugPriority();
   const updatePriority = useUpdateBugPriority();
   const deletePriority = useDeleteBugPriority();
-  const { canManageBugs } = usePermission();
+  // Two separate grants meet on this screen: bug definitions are bug.manage,
+  // the test scope option lists are qa.manage. Each group is shown only to the
+  // grant that owns it rather than gating the whole page on one of them.
+  const { canManageBugs, canManageQa } = usePermission();
   const { useBreakpoint } = Grid;
   const screens = useBreakpoint();
 
   const [editing, setEditing] = useState<EditState>(null);
-  const [activeKey, setActiveKey] = useState<SectionKey>("severity");
+  const [activeKey, setActiveKey] = useState<NavKey>("severity");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // ── QA modules ───────────────────────────────────────────────────────────
+  const qaModules = useQaModules(canManageQa);
+  /** Module names already typed onto test scopes — offered as quick adds. */
+  const scopeModuleNames = useScopeModuleNames(canManageQa);
+  /** null while closed; { item: null } means "create a new module". */
+  const [moduleEditing, setModuleEditing] = useState<{ item: QaModule | null } | null>(null);
+
+  // ── Test Scope option lists ──────────────────────────────────────────────
+  const scopeSettings = useScopeSettings(canManageQa);
+  /**
+   * Permissions arrive with auth rather than on the first render, so the
+   * default lands on the bug sections and falls through to the scope lists only
+   * once we know the viewer cannot configure bugs.
+   */
+  const effectiveKey: NavKey =
+    !canManageBugs && !isScopeNav(activeKey) && activeKey !== MODULES_KEY ? "scope:scope_type" : activeKey;
+  const scopeNavActive = isScopeNav(effectiveKey);
+  const modulesNavActive = effectiveKey === MODULES_KEY;
+  const scopeCategory: ScopeCategory = scopeNavActive ? scopeCategoryOf(effectiveKey) : "scope_type";
+  // Only worth pulling the scope list once one of these panes is open — it is
+  // there purely to answer "how many scopes still use this option?".
+  const scopeRecords = useScopeUsage(scopeNavActive && canManageQa);
+  /** null while closed; { item: null } means "create a new option". */
+  const [scopeEditing, setScopeEditing] = useState<{ item: any | null } | null>(null);
 
   const closeEditor = () => setEditing(null);
 
@@ -151,13 +196,18 @@ export default function BugListConfigManager() {
     priority: priorities.isLoading,
   };
 
-  const isRefreshing = severities.isFetching || priorities.isFetching || types.isFetching;
+  const isRefreshing =
+    severities.isFetching || priorities.isFetching || types.isFetching || scopeSettings.loading || qaModules.loading;
 
   const handleRefresh = async () => {
     try {
-      if (activeKey === "severity") {
+      if (modulesNavActive) {
+        await qaModules.refetch();
+      } else if (scopeNavActive) {
+        await scopeSettings.refetch();
+      } else if (effectiveKey === "severity") {
         await severities.refetch();
-      } else if (activeKey === "priority") {
+      } else if (effectiveKey === "priority") {
         await priorities.refetch();
       } else {
         await types.refetch();
@@ -167,11 +217,19 @@ export default function BugListConfigManager() {
     }
   };
 
-  const activeSection = SECTIONS.find(s => s.key === activeKey)!;
+  const activeSection = SECTIONS.find(s => s.key === effectiveKey) ?? SECTIONS[0];
+  const activeScopeMeta = SCOPE_SETTING_CATEGORIES.find(c => c.key === scopeCategory)!;
+
+  /** What the topbar names, whichever side of the sidebar is selected. */
+  const paneTitle = modulesNavActive ? "Modules" : scopeNavActive ? activeScopeMeta.label : activeSection.title;
+  const paneSubtitle = modulesNavActive
+    ? "What everything is filed under"
+    : scopeNavActive ? activeScopeMeta.blurb : activeSection.shortDescription;
 
   return (
     <>
       <BcmStyles />
+      <style dangerouslySetInnerHTML={{ __html: SCOPE_SETTINGS_STYLES }} />
       <div className={`dh-shell bcm-root ${isDark ? 'bcm-dark' : 'bcm-light'}`}>
         <div
           className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
@@ -189,11 +247,11 @@ export default function BugListConfigManager() {
             </div>
           </div>
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Definitions</span>
-            {SECTIONS.map((s) => (
+            {canManageBugs && <span className="pp-nav-caption">Bug Definitions</span>}
+            {canManageBugs && SECTIONS.map((s) => (
               <button
                 key={s.key}
-                className={`pp-nav-item ${activeKey === s.key ? 'is-active' : ''}`}
+                className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
                 onClick={() => { setActiveKey(s.key as SectionKey); setMobileSidebarOpen(false); }}
               >
                 {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
@@ -201,6 +259,37 @@ export default function BugListConfigManager() {
                 <span className="pp-nav-count">{counts[s.key]}</span>
               </button>
             ))}
+
+            {canManageQa && <span className="pp-nav-caption">Test Cases</span>}
+            {canManageQa && (
+              <button
+                className={`pp-nav-item ${modulesNavActive ? 'is-active' : ''}`}
+                onClick={() => { setActiveKey(MODULES_KEY); setMobileSidebarOpen(false); }}
+              >
+                <Boxes size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">Modules</span>
+                <span className="pp-nav-count">{qaModules.items.length}</span>
+              </button>
+            )}
+
+            {canManageQa && <span className="pp-nav-caption">Test Scope</span>}
+            {canManageQa && SCOPE_SETTING_CATEGORIES.map((c) => {
+              const navKey = `scope:${c.key}` as ScopeNavKey;
+              const Icon = c.icon;
+              return (
+                <button
+                  key={navKey}
+                  className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
+                  onClick={() => { setActiveKey(navKey); setMobileSidebarOpen(false); }}
+                >
+                  <Icon size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">{c.label}</span>
+                  <span className="pp-nav-count">
+                    {scopeSettings.items.filter((i: any) => i.category === c.key).length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </aside>
 
@@ -213,9 +302,9 @@ export default function BugListConfigManager() {
                 icon={<Menu size={18} />}
                 onClick={() => setMobileSidebarOpen(true)}
               />
-              <span className="sc-topbar__h1">{activeSection.title}</span>
+              <span className="sc-topbar__h1">{paneTitle}</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">{activeSection.shortDescription}</span>
+              <span className="sc-topbar__sub">{paneSubtitle}</span>
             </div>
             <div className="dh-main-controls">
               <Button
@@ -226,26 +315,64 @@ export default function BugListConfigManager() {
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
-              {canManageBugs && (
-                <Button 
-                  type="primary" 
-                  size="small" 
-                  icon={<PlusOutlined />} 
-                  onClick={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
-                >
-                  New {activeSection.title}
-                </Button>
+              {(scopeNavActive || modulesNavActive ? canManageQa : canManageBugs) && (
+                modulesNavActive ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setModuleEditing({ item: null })}
+                  >
+                    New Module
+                  </Button>
+                ) : scopeNavActive ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setScopeEditing({ item: null })}
+                  >
+                    New {SCOPE_CATEGORY_LABELS[scopeCategory]}
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
+                  >
+                    New {activeSection.title}
+                  </Button>
+                )
               )}
             </div>
           </div>
           <div className="dh-main-scroll bcm-pane">
+            {modulesNavActive ? (
+              <ModulesTable
+                items={qaModules.items}
+                loading={qaModules.loading}
+                canManage={canManageQa}
+                scopeCounts={scopeModuleNames}
+                onCreate={() => setModuleEditing({ item: null })}
+                onEdit={(item) => setModuleEditing({ item })}
+                onChanged={qaModules.refetch}
+              />
+            ) : scopeNavActive ? (
+              <ScopeOptionsTable
+                key={scopeCategory}
+                category={scopeCategory}
+                items={scopeSettings.items}
+                loading={scopeSettings.loading}
+                scopes={scopeRecords}
+                canManage={canManageQa}
+                onCreate={() => setScopeEditing({ item: null })}
+                onEdit={(item) => setScopeEditing({ item })}
+                onChanged={scopeSettings.refetch}
+              />
+            ) : (
             <ConfigSection
               key={activeSection.key}
-              accent={activeSection.accent}
-              accentBg={activeSection.accentBg}
-              accentFg={activeSection.accentFg}
-              icon={activeSection.icon}
-              eyebrow="Configuration"
               title={activeSection.title}
               description={activeSection.description}
               loading={loadingMap[activeSection.key as SectionKey]}
@@ -291,9 +418,25 @@ export default function BugListConfigManager() {
                 }
               }}
             />
+            )}
           </div>
         </main>
       </div>
+
+      <ModuleModal
+        open={!!moduleEditing}
+        editing={moduleEditing?.item ?? null}
+        onClose={() => setModuleEditing(null)}
+        onSaved={qaModules.refetch}
+      />
+
+      <ScopeOptionModal
+        open={!!scopeEditing}
+        category={scopeCategory}
+        editing={scopeEditing?.item ?? null}
+        onClose={() => setScopeEditing(null)}
+        onSaved={scopeSettings.refetch}
+      />
 
       <OptionEditor
         editing={editing}
@@ -352,11 +495,6 @@ export default function BugListConfigManager() {
 // ─────────────────────────────────────────────────────────────────────────
 
 interface ConfigSectionProps {
-  accent: string;
-  accentBg: string;
-  accentFg: string;
-  icon: React.ReactNode;
-  eyebrow: string;
   title: string;
   description: string;
   loading: boolean;
@@ -369,11 +507,6 @@ interface ConfigSectionProps {
 }
 
 function ConfigSection({
-  accent,
-  accentBg,
-  accentFg,
-  icon,
-  eyebrow,
   title,
   description,
   loading,
@@ -385,41 +518,39 @@ function ConfigSection({
   onToggleActive,
 }: ConfigSectionProps) {
   const { canManageBugs } = usePermission();
+  const lowerTitle = title.toLowerCase();
+
   const columns: ColumnsType<BugConfigOption> = [
     {
-      title: "Label",
+      title: "Option",
       dataIndex: "label",
-      width: 180,
       render: (_, row) => (
-        <div className="bcm-label-row">
-          {showColor && (
-            <span
-              className="bcm-color-swatch"
-              style={
-                {
-                  background: row.color || "var(--bcm-muted-bg)",
-                  ["--bcm-swatch-glow" as string]: row.color
-                    ? `${row.color}1a`
-                    : "transparent",
-                } as React.CSSProperties
-              }
-            />
-          )}
-          <span className="bcm-label-text">{row.label}</span>
-          {row.isDefault && (
-            <span className="bcm-default-tag">
-              <StarFilled />
-              default
-            </span>
+        <div className="st-option">
+          {/* Tinted from the option's own colour, so it reads like the badge it
+              becomes in the bug table rather than a solid block of it. */}
+          <span
+            className="st-tag"
+            style={showColor && row.color ? {
+              color: row.color,
+              background: `${row.color}1a`,
+              borderColor: `${row.color}33`,
+            } : undefined}
+          >
+            {row.label}
+          </span>
+          {row.isDefault ? (
+            <span className="bcm-default-tag"><StarFilled />default</span>
+          ) : (
+            <span className="st-option__hint">as it appears in dropdowns</span>
           )}
         </div>
       ),
     },
     {
-      title: "Key",
+      title: "Value key",
       dataIndex: "key",
-      width: 140,
-      render: (v: string) => <span className="bcm-key-chip">{v}</span>,
+      width: 200,
+      render: (v: string) => <code className="st-code">{v}</code>,
     },
     {
       title: "Description",
@@ -427,19 +558,15 @@ function ConfigSection({
       ellipsis: true,
       render: (v: string | null) =>
         v ? (
-          <Tooltip title={v}>
-            <Text className="bcm-desc-text">{v}</Text>
-          </Tooltip>
+          <Tooltip title={v}><span className="st-desc">{v}</span></Tooltip>
         ) : (
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            —
-          </Text>
+          <span className="st-usage is-empty">No description</span>
         ),
     },
     {
       title: "Active",
       dataIndex: "isActive",
-      width: 70,
+      width: 80,
       align: "center",
       render: (val: boolean, row) => (
         <Switch checked={val} size="small" onChange={() => onToggleActive(row)} disabled={!canManageBugs} />
@@ -448,70 +575,70 @@ function ConfigSection({
     {
       title: "Actions",
       key: "actions",
-      width: 96,
+      width: 100,
       align: "right",
-      fixed: 'right',
-      render: (_, row) => (
-        <div
-          className="ant-table-row-actions"
-          style={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
-        >
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => onEdit(row)}
-              disabled={!canManageBugs}
-            />
-          </Tooltip>
-          <ConfirmDialog
-            tone="danger"
-            title="Delete this option?"
-            description={
-              row.isDefault
-                ? "This is the current default for new bugs."
-                : undefined
-            }
-            confirmText="Delete"
-            onConfirm={() => onDelete(row.id)}
-            disabled={!canManageBugs}
-          >
-            <Tooltip title="Delete">
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={!canManageBugs} />
+      render: (_, row) => {
+        // Bug definitions are a bug.manage action
+        if (!canManageBugs) return <span className="sc-muted">—</span>;
+        return (
+          <div className="sc-rowactions">
+            <Tooltip title="Edit">
+              <button onClick={() => onEdit(row)} aria-label="Edit"><Pencil size={15} /></button>
             </Tooltip>
-          </ConfirmDialog>
-        </div>
-      ),
+            <ConfirmDialog
+              tone="danger"
+              title="Delete this option?"
+              description={row.isDefault
+                ? "This is the current default for new bugs — they'll fall back to the next option."
+                : `It will no longer be selectable as a bug ${lowerTitle}.`}
+              confirmText="Delete"
+              onConfirm={() => onDelete(row.id)}
+            >
+              <Tooltip title="Delete">
+                <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
+              </Tooltip>
+            </ConfirmDialog>
+          </div>
+        );
+      },
     },
   ];
 
   return (
-    <div style={{ marginTop: 12 }}>
-      {loading ? (
-        <div style={{ padding: 16 }}>
-          <Skeleton active paragraph={{ rows: 3 }} />
+    <div className="sc-tablewrap">
+      <div className="st-head">
+        <div className="min-w-0">
+          <div className="st-head__title">{title} options</div>
+          <div className="st-head__desc">{description}</div>
         </div>
-      ) : options.length === 0 ? (
-        <div className="sc-empty">
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={`No ${title.toLowerCase()} options yet`}
-          />
-        </div>
-      ) : (
-        <div className="sc-tablewrap">
-          <Table
-            className="ts-table sc-table"
-            rowKey="id"
-            size="middle"
-            columns={columns}
-            dataSource={options}
-            pagination={false}
-            scroll={{ x: 'max-content' }}
-          />
-        </div>
-      )}
+        {canManageBugs && (
+          <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
+        )}
+      </div>
+
+      <Table
+        className="ts-table sc-table"
+        rowKey="id"
+        size="middle"
+        columns={columns}
+        dataSource={options}
+        pagination={false}
+        scroll={{ x: "max-content" }}
+        locale={{
+          emptyText: loading ? (
+            <ZukvoLoader size="md" message="Loading options…" />
+          ) : (
+            <div className="sc-empty">
+              <Settings size={26} className="sc-empty__icon" />
+              <p className="sc-empty__title">No {lowerTitle} options yet</p>
+              <p className="sc-empty__desc">{description}</p>
+              {canManageBugs && (
+                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add the first option</Button>
+              )}
+            </div>
+          ),
+        }}
+      />
     </div>
   );
 }

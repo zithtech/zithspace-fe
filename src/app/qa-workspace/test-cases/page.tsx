@@ -7,8 +7,9 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Modal, List, Typography, Input, Select, Form, Drawer, Tooltip } from "antd";
 import { BugOutlined, PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, ClockCircleOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Target, Trash2, Pencil, Layers, Folder, Menu, RotateCw } from "lucide-react";
+import { Target, Trash2, Pencil, Layers, Folder, FolderOpen, Boxes, User, Users, ChevronDown, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -19,7 +20,20 @@ import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { ProjectService } from "@/services/projectService";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type TabKey = "cases";
+/** How many entries each sidebar section shows before "Show more". */
+const PROJECTS_PREVIEW = 3;
+const MODULES_PREVIEW = 5;
+
+/** Collapses a list to its preview window, keeping the selected entry visible. */
+function previewList<T extends { value: string }>(items: T[], limit: number, expanded: boolean, selected?: string) {
+  if (expanded) return items;
+  const head = items.slice(0, limit);
+  if (selected && !head.some(i => i.value === selected)) {
+    const active = items.find(i => i.value === selected);
+    if (active) return [...head, active];
+  }
+  return head;
+}
 
 function hashCode(str: string) {
   let hash = 0;
@@ -72,9 +86,10 @@ export default function TestCasesPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestCases" });
 
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("cases");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  const [showAllModules, setShowAllModules] = useState(false);
 
   const [parentCases, setParentCases] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
@@ -115,6 +130,7 @@ export default function TestCasesPage() {
   const [loadingProjects, setLoadingProjects] = useState(false);
 
   const { canReadCase, canCreateCase, canUpdateCase, canDeleteCase } = usePermission();
+  const { user } = useAuth();
 
   const fetchData = async () => {
     try {
@@ -279,11 +295,6 @@ export default function TestCasesPage() {
       .sort((a, b) => String(a).localeCompare(String(b)))
       .map(v => ({ value: String(v), label: String(v) }));
 
-  const moduleFilterOptions = [
-    { value: 'Unassigned', label: 'Unassigned' },
-    ...modules.map(m => ({ value: m.module_name, label: m.module_name }))
-  ];
-  
   const statusFilterOptions = [
     { value: 'Draft', label: 'Draft' },
     { value: 'Ready', label: 'Ready' },
@@ -297,6 +308,19 @@ export default function TestCasesPage() {
   ];
 
   const ownerFilterOptions = usersList.map(u => ({ value: u.name, label: u.name }));
+
+  /* Sidebar sections — same option lists the filter row used to own. */
+  const visibleProjects = previewList(projectOptions, PROJECTS_PREVIEW, showAllProjects, projectFilter);
+  const moduleNavOptions = modules.map(m => ({ value: String(m.module_name), label: String(m.module_name) }));
+  const moduleFilterOptions = [{ value: 'Unassigned', label: 'Unassigned' }, ...moduleNavOptions];
+  const visibleModules = previewList(moduleNavOptions, MODULES_PREVIEW, showAllModules, moduleFilter);
+  const hiddenProjectCount = Math.max(0, projectOptions.length - PROJECTS_PREVIEW);
+  const hiddenModuleCount = Math.max(0, moduleNavOptions.length - MODULES_PREVIEW);
+
+  const selectedProjectLabel = projectOptions.find(p => p.value === projectFilter)?.label;
+
+  /* The rail offers mine-vs-all; the filter row still narrows to any other owner. */
+  const isMyCases = !!user?.name && ownerFilter === user.name;
 
   const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) + 
     (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0) + (projectFilter ? 1 : 0);
@@ -590,6 +614,23 @@ export default function TestCasesPage() {
           content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
         }
+        .pp-nav-item:disabled { opacity: .45; cursor: not-allowed; }
+        .pp-nav-item:disabled:hover { background: transparent; color: var(--text-slate-600); }
+        .pp-nav-caption + .pp-nav-item { margin-top: 0; }
+        .pp-nav-item ~ .pp-nav-caption, .pp-nav-more + .pp-nav-caption { margin-top: 16px; }
+
+        /* "Show N more" toggle under a section */
+        .pp-nav-more {
+          display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
+          margin-top: 2px; border: none; background: transparent; border-radius: 7px;
+          color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease;
+        }
+        .pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
+        .pp-nav-more-icon { transition: transform .18s ease; }
+        .pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
+
+        .pp-nav-empty { display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400); }
         
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar { height: 56px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; padding: 0 18px; justify-content: space-between; }
@@ -939,12 +980,99 @@ export default function TestCasesPage() {
             )}
           </div>
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Workspace</span>
-            <button className="pp-nav-item is-active" onClick={() => setActiveTab("cases")}>
-              <Target size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Cases</span>
-              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
+            <span className="pp-nav-caption">Projects</span>
+            <button
+              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
+              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Boxes size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Projects</span>
+              {projectOptions.length > 0 ? <span className="pp-nav-count">{projectOptions.length}</span> : null}
             </button>
+            {visibleProjects.map(pj => (
+              <button
+                key={pj.value}
+                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
+                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
+                title={pj.label}
+              >
+                {projectFilter === pj.value
+                  ? <FolderOpen size={15} className="pp-nav-icon" />
+                  : <Folder size={15} className="pp-nav-icon" />}
+                <span className="pp-nav-label">{pj.label}</span>
+              </button>
+            ))}
+            {!loadingProjects && projectOptions.length === 0 && (
+              <span className="pp-nav-empty">No projects assigned</span>
+            )}
+            {hiddenProjectCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
+                onClick={() => setShowAllProjects(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
+              </button>
+            )}
+
+            <span className="pp-nav-caption">QA Owner</span>
+            <button
+              className={`pp-nav-item ${isMyCases ? 'is-active' : ''}`}
+              onClick={() => { setOwnerFilter(user?.name); setMobileSidebarOpen(false); }}
+              disabled={!user?.name}
+            >
+              <User size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">My Cases</span>
+            </button>
+            <button
+              className={`pp-nav-item ${!ownerFilter ? 'is-active' : ''}`}
+              onClick={() => { setOwnerFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Users size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Cases</span>
+            </button>
+
+            <span className="pp-nav-caption">Modules</span>
+            <button
+              className={`pp-nav-item ${!moduleFilter ? 'is-active' : ''}`}
+              onClick={() => { setModuleFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Layers size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Modules</span>
+              {modules.length > 0 ? <span className="pp-nav-count">{modules.length}</span> : null}
+            </button>
+            <button
+              className={`pp-nav-item ${moduleFilter === 'Unassigned' ? 'is-active' : ''}`}
+              onClick={() => { setModuleFilter('Unassigned'); setMobileSidebarOpen(false); }}
+            >
+              <Target size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Unassigned</span>
+            </button>
+            {visibleModules.map(m => (
+              <button
+                key={m.value}
+                className={`pp-nav-item ${moduleFilter === m.value ? 'is-active' : ''}`}
+                onClick={() => { setModuleFilter(m.value); setMobileSidebarOpen(false); }}
+                title={m.label}
+              >
+                <Target size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">{m.label}</span>
+              </button>
+            ))}
+            {moduleNavOptions.length === 0 && (
+              <span className="pp-nav-empty">No modules yet</span>
+            )}
+            {hiddenModuleCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllModules ? 'is-open' : ''}`}
+                onClick={() => setShowAllModules(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllModules ? 'Show less' : `Show ${hiddenModuleCount} more`}
+              </button>
+            )}
           </div>
         </aside>
 
@@ -960,7 +1088,9 @@ export default function TestCasesPage() {
               />
               <span className="sc-topbar__h1">Cases</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">High-level testing scenarios and test cases for your QA Space</span>
+              <span className="sc-topbar__sub">
+                {[selectedProjectLabel || 'All projects', ownerFilter, moduleFilter].filter(Boolean).join(' · ')}
+              </span>
             </div>
 
             <div className="dh-main-controls">
@@ -1012,20 +1142,19 @@ export default function TestCasesPage() {
                 allowClear
               />
               <SearchableDropdown
-                options={projectOptions}
-                value={projectFilter}
-                onChange={(v) => setProjectFilter(v)}
-                placeholder="Any project"
-                hideAvatar
-                itemNoun="projects"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
                 options={moduleFilterOptions}
                 value={moduleFilter}
                 onChange={(v) => setModuleFilter(v)}
                 placeholder="All modules"
                 itemNoun="modules"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={ownerFilterOptions}
+                value={ownerFilter}
+                onChange={(v) => setOwnerFilter(v)}
+                placeholder="All owners"
+                itemNoun="owners"
                 className="sc-filters__field"
               />
               <SearchableDropdown
@@ -1043,14 +1172,6 @@ export default function TestCasesPage() {
                 placeholder="Any automation"
                 hideAvatar
                 itemNoun="types"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={ownerFilterOptions}
-                value={ownerFilter}
-                onChange={(v) => setOwnerFilter(v)}
-                placeholder="All owners"
-                itemNoun="owners"
                 className="sc-filters__field"
               />
               {activeFilterCount > 0 && (

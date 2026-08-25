@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function SettingsRedirect() {
-  // If the user navigates directly to this old route, 
-  // automatically redirect them to the native settings tab
-  redirect("/qa-workspace/test-scope?tab=settings");
+  // Scope option lists moved to QA Space → Settings, alongside the bug
+  // definitions. Anyone landing on the old route is taken there.
+  redirect("/qa-workspace/settings");
 }

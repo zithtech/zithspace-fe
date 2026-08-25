@@ -12,14 +12,14 @@
  * front to build the hotspot panel, and the rest load when opened.
  */
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip } from "antd";
 import { BugOutlined } from "@ant-design/icons";
 import {
   ArrowLeft, ArrowUpRight, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
-  ChevronDown, ChevronRight, ClipboardList, Clock, FileText, Flame, Layers, Lightbulb,
-  PlayCircle, Repeat, RotateCw, Target, TrendingDown, TrendingUp, X,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
+  PlayCircle, Repeat, RotateCw, Search, Target, TrendingDown, TrendingUp, X,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -28,6 +28,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { apiClient } from "@/lib/axios";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
   ResultBar, fmtAgo, fmtDate, fmtDateTime, initialsOf, statusTone,
   useCoverageData, useUserProjects, type ModuleNode,
@@ -35,6 +36,9 @@ import {
 
 /** Failing runs whose failures are fetched without being asked. */
 const EAGER_FAILURE_RUNS = 8;
+
+/** Suites shown as chips in the execution-history switcher; the rest live in the search dropdown. */
+const VISIBLE_SUITE_TABS = 2;
 
 const SECTIONS = [
   { key: "suites", label: "Suites & runs", icon: Layers },
@@ -308,6 +312,22 @@ function ExecutionChart({ suites, runs, selectedKey, onPick }: {
     return counted.sort((a, b) => b.n - a.n);
   }, [suites, runs]);
 
+  /**
+   * Only the two busiest suites get a chip. Everything else is reachable from
+   * the search dropdown beside them — and whichever suite is picked there takes
+   * the second chip slot so the current selection is always visible.
+   */
+  const visibleTabs = useMemo(() => {
+    const top = tabs.slice(0, VISIBLE_SUITE_TABS);
+    if (suiteId !== "all" && !top.some(t => t.id === suiteId)) {
+      const picked = tabs.find(t => t.id === suiteId);
+      if (picked) return [...top.slice(0, VISIBLE_SUITE_TABS - 1), picked];
+    }
+    return top;
+  }, [tabs, suiteId]);
+
+  const hiddenCount = tabs.length - visibleTabs.length;
+
   const scoped = useMemo(() => {
     if (suiteId === "all") return runs;
     if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
@@ -361,7 +381,7 @@ function ExecutionChart({ suites, runs, selectedKey, onPick }: {
           All suites
           <span className="mx-suite__n">{runs.length}</span>
         </button>
-        {tabs.map(t => (
+        {visibleTabs.map(t => (
           <button
             key={t.id}
             type="button"
@@ -374,6 +394,34 @@ function ExecutionChart({ suites, runs, selectedKey, onPick }: {
             <span className="mx-suite__n">{t.n}</span>
           </button>
         ))}
+
+        {hiddenCount > 0 && (
+          <div className="mx-suites__find">
+            <SearchableDropdown
+              value={suiteId === "all" ? null : suiteId}
+              onChange={(v: any) => setSuiteId(v || "all")}
+              options={tabs.map(t => ({
+                value: t.id,
+                label: t.name,
+                meta: `${t.n} run${t.n === 1 ? "" : "s"}`,
+                disabled: t.n === 0,
+              }))}
+              searchPlaceholder="Search suites"
+              itemNoun="suites"
+              hideAvatar
+              allowClear={false}
+              width={280}
+              customTrigger={
+                <button type="button" className="mx-suite mx-suite--find" title="Search every suite">
+                  <Search size={12} />
+                  Find a suite
+                  <span className="mx-suite__n">+{hiddenCount}</span>
+                  <ChevronDown size={12} className="mx-suite__caret" />
+                </button>
+              }
+            />
+          </div>
+        )}
       </div>
 
       {buckets.length === 0 ? (
@@ -434,6 +482,576 @@ function ExecutionChart({ suites, runs, selectedKey, onPick }: {
         <span className="mx-legend__hint">Click a bar to inspect that run</span>
       </div>
     </div>
+  );
+}
+
+/** Weekday header for the calendar, Monday-first the way a sprint reads. */
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/**
+ * Run calendar — the same execution history laid out by date instead of by
+ * bar. Pick a suite, walk the months, and every day carries the runs that
+ * executed on it; clicking a day (or a single run beside it) sends it to the
+ * inspector exactly like clicking a bar does.
+ */
+function RunCalendar({ suites, runs, selectedKey, onPick }: {
+  suites: any[];
+  runs: any[];
+  /** Bucket currently shown in the inspector, so the calendar can mark it. */
+  selectedKey: string | null;
+  onPick: (label: string, runs: any[]) => void;
+}) {
+  const [suiteId, setSuiteId] = useState<string>("all");
+  const [cursor, setCursor] = useState(() => dayjs().startOf("month"));
+  const [day, setDay] = useState<string | null>(null);
+
+  /** Every suite plus a catch-all, with how many runs each one carries. */
+  const options = useMemo(() => {
+    const counted = suites.map(su => ({
+      id: String(su.id),
+      name: su.suite_name || "Untitled suite",
+      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
+    }));
+    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
+    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
+    return counted.sort((a, b) => b.n - a.n);
+  }, [suites, runs]);
+
+  const scoped = useMemo(() => {
+    if (suiteId === "all") return runs;
+    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
+    return runs.filter(r => String(r.suite_id) === suiteId);
+  }, [runs, suites, suiteId]);
+
+  /** Runs keyed by the day they ran, so painting a cell is one lookup. */
+  const byDay = useMemo(() => {
+    const m = new Map<string, any[]>();
+    scoped.forEach(r => {
+      const d = dayjs(runDate(r));
+      if (!d.isValid()) return;
+      const k = d.format("YYYY-MM-DD");
+      m.set(k, [...(m.get(k) ?? []), r]);
+    });
+    return m;
+  }, [scoped]);
+
+  /** Land on the month of the newest run so an empty page is never the first view. */
+  useEffect(() => {
+    const newest = chronological(scoped)[scoped.length - 1];
+    const d = newest ? dayjs(runDate(newest)) : null;
+    setCursor(d?.isValid() ? d.startOf("month") : dayjs().startOf("month"));
+    setDay(null);
+  }, [suiteId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Six weeks from the Monday on or before the 1st — a stable grid every month. */
+  const cells = useMemo(() => {
+    const first = cursor.startOf("month");
+    const start = first.subtract((first.day() + 6) % 7, "day");
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = start.add(i, "day");
+      const key = d.format("YYYY-MM-DD");
+      const dayRuns = byDay.get(key) ?? [];
+      const c = dayRuns.reduce(
+        (a, r) => { const x = countsOf(r); return { passed: a.passed + x.passed, failed: a.failed + x.failed }; },
+        { passed: 0, failed: 0 },
+      );
+      return { d, key, runs: dayRuns, ...c, outside: d.month() !== cursor.month() };
+    });
+  }, [cursor, byDay]);
+
+  const monthRuns = cells.filter(c => !c.outside).flatMap(c => c.runs);
+  const monthTotals = monthRuns.reduce(
+    (a, r) => { const x = countsOf(r); return { passed: a.passed + x.passed, failed: a.failed + x.failed }; },
+    { passed: 0, failed: 0 },
+  );
+  /** Years the picker offers — whatever ran, plus this year and wherever the cursor sits. */
+  const years = useMemo(() => {
+    const counted = new Map<string, number>();
+    scoped.forEach(r => {
+      const d = dayjs(runDate(r));
+      if (d.isValid()) counted.set(d.format("YYYY"), (counted.get(d.format("YYYY")) ?? 0) + 1);
+    });
+    [dayjs().format("YYYY"), cursor.format("YYYY")].forEach(y => {
+      if (!counted.has(y)) counted.set(y, 0);
+    });
+    return Array.from(counted.entries())
+      .map(([year, n]) => ({ year, n }))
+      .sort((a, b) => b.year.localeCompare(a.year));
+  }, [scoped, cursor]);
+
+  /**
+   * The rail never opens empty: until a day is clicked (or after the month
+   * moves away from the clicked one) it reads the month's first run date.
+   */
+  const firstRunDay = useMemo(() => cells.find(c => !c.outside && c.runs.length)?.key ?? null, [cells]);
+  const activeDay = day && cells.some(c => c.key === day && c.runs.length) ? day : firstRunDay;
+  const selected = activeDay ? cells.find(c => c.key === activeDay) : null;
+  const labelOf = (d: any) => d.format("D MMM YYYY");
+
+  const pick = (cell: { key: string; d: any; runs: any[]; outside: boolean }) => {
+    setDay(cell.key);
+    if (cell.outside) setCursor(cell.d.startOf("month"));
+    if (cell.runs.length) onPick(labelOf(cell.d), chronological(cell.runs));
+  };
+
+  return (
+    <section className="cal">
+      <div className="cal__head">
+        <div>
+          <div className="cal__title"><CalendarDays size={14} />Run calendar</div>
+          <div className="cal__sub">
+            <b>{monthRuns.length}</b> run{monthRuns.length === 1 ? "" : "s"} in {cursor.format("MMMM YYYY")} ·{" "}
+            <b>{monthTotals.passed}</b> passed, <b>{monthTotals.failed}</b> failed
+          </div>
+        </div>
+
+        <div className="cal__tools">
+          <SearchableDropdown
+            value={suiteId}
+            onChange={(v: any) => setSuiteId(v || "all")}
+            options={[
+              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
+              ...options.map(o => ({
+                value: o.id,
+                label: o.name,
+                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
+                disabled: o.n === 0,
+              })),
+            ]}
+            searchPlaceholder="Search suites"
+            itemNoun="suites"
+            hideAvatar
+            allowClear={false}
+            width={280}
+            style={{ width: 230 }}
+          />
+          <div className="cal__nav">
+            <button type="button" onClick={() => setCursor(c => c.subtract(1, "month"))} title="Previous month">
+              <ChevronLeft size={14} />
+            </button>
+            <span>{cursor.format("MMMM")}</span>
+            <button type="button" onClick={() => setCursor(c => c.add(1, "month"))} title="Next month">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+          <SearchableDropdown
+            value={cursor.format("YYYY")}
+            onChange={(v: any) => v && setCursor(c => c.year(Number(v)).startOf("month"))}
+            options={years.map(y => ({
+              value: y.year,
+              label: y.year,
+              meta: `${y.n} run${y.n === 1 ? "" : "s"}`,
+            }))}
+            searchPlaceholder="Search year"
+            itemNoun="years"
+            hideAvatar
+            allowClear={false}
+            width={180}
+            style={{ width: 116 }}
+          />
+          <button
+            type="button"
+            className="cal__today"
+            onClick={() => setCursor(dayjs().startOf("month"))}
+          >
+            Today
+          </button>
+        </div>
+      </div>
+
+      <div className="cal__body">
+        <div className="cal__grid">
+          {WEEKDAYS.map(w => <div key={w} className="cal__wd">{w}</div>)}
+          {cells.map(c => {
+            const isToday = c.d.isSame(dayjs(), "day");
+            const picked = activeDay === c.key || (!!selectedKey && selectedKey === labelOf(c.d));
+            return (
+              <button
+                key={c.key}
+                type="button"
+                className={`cal__cell${c.outside ? " is-outside" : ""}${c.runs.length ? " has-runs" : ""}`
+                  + `${c.failed > 0 ? " has-fail" : ""}${picked ? " is-picked" : ""}${isToday ? " is-today" : ""}`}
+                onClick={() => pick(c)}
+                disabled={!c.runs.length}
+                title={c.runs.length
+                  ? `${labelOf(c.d)} — ${c.runs.length} run${c.runs.length === 1 ? "" : "s"}, ${c.passed} passed, ${c.failed} failed`
+                  : labelOf(c.d)}
+              >
+                <span className="cal__date">{c.d.date()}</span>
+                {c.runs.length > 0 && (
+                  <>
+                    <span className="cal__bar">
+                      <i className="is-pass" style={{ flexGrow: c.passed || 0 }} />
+                      <i className="is-fail" style={{ flexGrow: c.failed || 0 }} />
+                    </span>
+                    <span className="cal__counts">
+                      <em className={`is-pass${c.passed === 0 ? " is-zero" : ""}`}>{c.passed}</em>
+                      <em className={`is-fail${c.failed === 0 ? " is-zero" : ""}`}>{c.failed}</em>
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <aside className="cal__side">
+          {!selected || !selected.runs.length ? (
+            <div className="cal__side-empty">
+              <CalendarDays size={18} />
+              <div>Pick a day with runs to list what executed on it.</div>
+            </div>
+          ) : (
+            <>
+              <div className="cal__side-head">
+                <div className="cal__side-title">{selected.d.format("dddd, D MMM YYYY")}</div>
+                <div className="cal__side-sub">
+                  {selected.runs.length} run{selected.runs.length === 1 ? "" : "s"} · {selected.passed} passed, {selected.failed} failed
+                </div>
+              </div>
+              <ul className="cal__runs">
+                {chronological(selected.runs).map((r: any) => {
+                  const c = countsOf(r);
+                  const rate = rateOf(r);
+                  const suite = suites.find(su => String(su.id) === String(r.suite_id));
+                  return (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        className="cal__run"
+                        onClick={() => onPick(labelOf(selected.d), [r])}
+                      >
+                        <span className="cal__run-top">
+                          <span className="cal__run-name">{r.run_name || "Untitled run"}</span>
+                          {rate !== null && (
+                            <span className={`cal__run-rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>
+                          )}
+                        </span>
+                        <span className="cal__run-meta">
+                          {[suite?.suite_name, fmtDateTime(runDate(r))].filter(Boolean).join(" · ")}
+                        </span>
+                        <span className="cal__run-counts">
+                          <em className="is-pass">{c.passed} passed</em>
+                          <em className="is-fail">{c.failed} failed</em>
+                          {c.blocked > 0 && <em>{c.blocked} blocked</em>}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+/** One case's result on one run, as the matrix needs it. */
+interface ResultCell {
+  caseKey: string;
+  ref?: string;
+  name: string;
+  status: string;
+  bugLogged: boolean;
+  bugNumber?: string | null;
+}
+
+type Shape = "flaky" | "regressed" | "failing" | "fixed" | "never" | "stable";
+
+const SHAPES: Record<Shape, { label: string; hint: string; rank: number }> = {
+  flaky:     { label: "Flaky",     hint: "Passes and fails alternate — suspect the test, not only the build", rank: 0 },
+  regressed: { label: "Regressed", hint: "Passed before, fails on the latest run", rank: 1 },
+  failing:   { label: "Failing",   hint: "Failing, with no passing run to compare against", rank: 2 },
+  fixed:     { label: "Fixed",     hint: "Failed earlier, passing on the latest run", rank: 3 },
+  never:     { label: "Never run", hint: "Sits in a suite but no run has executed it", rank: 4 },
+  stable:    { label: "Stable",    hint: "Passed on every run that touched it", rank: 5 },
+};
+
+const WINDOWS = [10, 20, 40] as const;
+
+const FILTERS = [
+  { key: "all", label: "All cases" },
+  { key: "unstable", label: "Flaky & regressed" },
+  { key: "failing", label: "Ever failed" },
+  { key: "never", label: "Never run" },
+] as const;
+type MatrixFilter = (typeof FILTERS)[number]["key"];
+
+/** Pass / Fail / Blocked / Not executed / not part of that run's suite. */
+const cellTone = (status?: string) => {
+  if (!status) return "none";
+  const v = status.toLowerCase();
+  if (v === "pass") return "pass";
+  if (v === "fail") return "fail";
+  if (v === "blocked") return "block";
+  return "idle";
+};
+
+/**
+ * Stability matrix — the module read case by case instead of run by run.
+ *
+ * Every other panel on this page answers "what happened in this execution".
+ * This one answers "which case is the problem", which is the question that
+ * decides where the next fix goes: a solid red streak is a regression somebody
+ * owns, a red/green barcode is a flaky test, and an all-ash row is a case that
+ * lives in a suite nobody ever executes.
+ */
+function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
+  suites: any[];
+  /** Every run this module has, oldest first. */
+  runs: any[];
+  results: Record<string, ResultCell[]>;
+  /** Asks the page to load a run's full result list, once. */
+  onNeed: (runId: string) => void;
+  onPick: (label: string, runs: any[]) => void;
+}) {
+  const [suiteId, setSuiteId] = useState<string>("all");
+  const [windowSize, setWindowSize] = useState<number>(10);
+  const [filter, setFilter] = useState<MatrixFilter>("all");
+  const [query, setQuery] = useState("");
+
+  const options = useMemo(() => {
+    const counted = suites.map(su => ({
+      id: String(su.id),
+      name: su.suite_name || "Untitled suite",
+      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
+    }));
+    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
+    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
+    return counted.sort((a, b) => b.n - a.n);
+  }, [suites, runs]);
+
+  const scoped = useMemo(() => {
+    if (suiteId === "all") return runs;
+    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
+    return runs.filter(r => String(r.suite_id) === suiteId);
+  }, [runs, suites, suiteId]);
+
+  /** The newest N runs, still read left to right in execution order. */
+  const columns = useMemo(() => scoped.slice(-windowSize), [scoped, windowSize]);
+
+  /** Only the runs on screen are fetched, and only once each. */
+  useEffect(() => {
+    columns.forEach(r => onNeed(String(r.id)));
+  }, [columns]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pending = columns.filter(r => !results[String(r.id)]).length;
+  const ready = columns.length - pending;
+
+  /** One row per case, with its result on every column it appears in. */
+  const rows = useMemo(() => {
+    const byCase = new Map<string, {
+      key: string; ref?: string; name: string;
+      cells: Map<string, ResultCell>;
+    }>();
+    columns.forEach(run => {
+      (results[String(run.id)] ?? []).forEach(cell => {
+        if (!byCase.has(cell.caseKey)) {
+          byCase.set(cell.caseKey, { key: cell.caseKey, ref: cell.ref, name: cell.name, cells: new Map() });
+        }
+        byCase.get(cell.caseKey)!.cells.set(String(run.id), cell);
+      });
+    });
+
+    return Array.from(byCase.values()).map(row => {
+      /** The pass/fail sequence in execution order — blocked and not-run don't count as a verdict. */
+      const seq = columns
+        .map(run => row.cells.get(String(run.id))?.status?.toLowerCase())
+        .filter(v => v === "pass" || v === "fail") as string[];
+      const fails = seq.filter(v => v === "fail").length;
+      const flips = seq.reduce((a, v, i) => (i > 0 && v !== seq[i - 1] ? a + 1 : a), 0);
+      const last = seq[seq.length - 1];
+      const unfiled = Array.from(row.cells.values()).filter(c => c.status === "Fail" && !c.bugLogged).length;
+
+      const shape: Shape = seq.length === 0 ? "never"
+        : flips >= 2 ? "flaky"
+          : last === "fail" ? (fails === seq.length ? "failing" : "regressed")
+            : fails > 0 ? "fixed"
+              : "stable";
+
+      return { ...row, seq, fails, flips, executed: seq.length, shape, unfiled };
+    }).sort((a, b) => {
+      const r = SHAPES[a.shape].rank - SHAPES[b.shape].rank;
+      if (r !== 0) return r;
+      if (b.flips !== a.flips) return b.flips - a.flips;
+      if (b.fails !== a.fails) return b.fails - a.fails;
+      return a.name.localeCompare(b.name);
+    });
+  }, [columns, results]);
+
+  const tally = useMemo(() => {
+    const t: Record<Shape, number> = { flaky: 0, regressed: 0, failing: 0, fixed: 0, never: 0, stable: 0 };
+    rows.forEach(r => { t[r.shape] += 1; });
+    return t;
+  }, [rows]);
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter(r => {
+      if (filter === "unstable" && r.shape !== "flaky" && r.shape !== "regressed") return false;
+      if (filter === "failing" && r.fails === 0) return false;
+      if (filter === "never" && r.shape !== "never") return false;
+      if (q && !`${r.ref ?? ""} ${r.name}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [rows, filter, query]);
+
+  return (
+    <section className="sm">
+      <div className="sm__head">
+        <div>
+          <div className="sm__title"><Grid3x3 size={14} />Case stability</div>
+          <div className="sm__sub">
+            {columns.length === 0
+              ? "No run to compare yet."
+              : <>Last <b>{columns.length}</b> run{columns.length === 1 ? "" : "s"} · <b>{rows.length}</b> case{rows.length === 1 ? "" : "s"}
+                {pending > 0 && <> · loading {ready}/{columns.length}</>}</>}
+          </div>
+        </div>
+
+        <div className="sm__tools">
+          <SearchableDropdown
+            value={suiteId}
+            onChange={(v: any) => setSuiteId(v || "all")}
+            options={[
+              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
+              ...options.map(o => ({
+                value: o.id, label: o.name,
+                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
+                disabled: o.n === 0,
+              })),
+            ]}
+            searchPlaceholder="Search suites"
+            itemNoun="suites"
+            hideAvatar
+            allowClear={false}
+            width={280}
+            style={{ width: 216 }}
+          />
+          <div className="sm__windows">
+            {WINDOWS.map(w => (
+              <button
+                key={w}
+                type="button"
+                className={windowSize === w ? "is-active" : ""}
+                onClick={() => setWindowSize(w)}
+                title={`Compare the last ${w} runs`}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {columns.length === 0 ? (
+        <div className="sm__empty">Nothing has been executed for this suite yet.</div>
+      ) : (
+        <>
+          <div className="sm__filters">
+            {FILTERS.map(f => {
+              const n = f.key === "all" ? rows.length
+                : f.key === "unstable" ? tally.flaky + tally.regressed
+                  : f.key === "failing" ? rows.filter(r => r.fails > 0).length
+                    : tally.never;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  className={`sm__filter${filter === f.key ? " is-active" : ""}`}
+                  onClick={() => setFilter(f.key)}
+                  disabled={n === 0 && f.key !== "all"}
+                >
+                  {f.label}
+                  <span className="sm__filter-n">{n}</span>
+                </button>
+              );
+            })}
+            <div className="sm__search">
+              <Search size={12} />
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Find a case"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} title="Clear"><X size={12} /></button>
+              )}
+            </div>
+          </div>
+
+          {pending > 0 && rows.length === 0 ? (
+            <div className="sm__loading"><ZukvoLoader size="sm" message="Reading run results…" /></div>
+          ) : shown.length === 0 ? (
+            <div className="sm__empty">No case matches this filter.</div>
+          ) : (
+            <div className="sm__scroll">
+              <div
+                className="sm__grid"
+                style={{ gridTemplateColumns: `minmax(240px, 1fr) repeat(${columns.length}, 26px) 96px` }}
+              >
+                <div className="sm__corner">Test case</div>
+                {columns.map((run, i) => (
+                  <div
+                    key={run.id}
+                    className={`sm__colhead${Number(run.failed_count || 0) > 0 ? " has-fail" : ""}`}
+                    title={`${run.run_name || "Untitled run"} · ${fmtDateTime(runDate(run)) || "no date"}`}
+                  >
+                    {scoped.length - columns.length + i + 1}
+                  </div>
+                ))}
+                <div className="sm__colhead sm__colhead--shape">Shape</div>
+
+                {shown.map(row => (
+                  <React.Fragment key={row.key}>
+                    <div className="sm__case" title={row.name}>
+                      {row.ref && <code className="sm__ref">{row.ref}</code>}
+                      <span className="sm__case-name">{row.name}</span>
+                      {row.unfiled > 0 && (
+                        <Tooltip title={`${row.unfiled} failure${row.unfiled === 1 ? "" : "s"} with no bug filed`}>
+                          <span className="sm__nobug">no bug</span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    {columns.map(run => {
+                      const cell = row.cells.get(String(run.id));
+                      const tone = cellTone(cell?.status);
+                      return (
+                        <button
+                          key={run.id}
+                          type="button"
+                          className={`sm__cell is-${tone}`}
+                          disabled={!cell}
+                          onClick={() => onPick(`Run ${run.run_name || ""}`.trim(), [run])}
+                          title={`${row.ref ? `${row.ref} · ` : ""}${cell?.status || "not in this run"}\n${run.run_name || "Untitled run"} · ${fmtDateTime(runDate(run)) || "no date"}`}
+                        />
+                      );
+                    })}
+                    <Tooltip title={SHAPES[row.shape].hint}>
+                      <div className={`sm__shape is-${row.shape}`}>
+                        {SHAPES[row.shape].label}
+                        {row.executed > 0 && <span>{row.fails}/{row.executed}</span>}
+                      </div>
+                    </Tooltip>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="sm__legend">
+            <span><i className="is-pass" />Passed</span>
+            <span><i className="is-fail" />Failed</span>
+            <span><i className="is-block" />Blocked</span>
+            <span><i className="is-idle" />Not executed</span>
+            <span><i className="is-none" />Not in that run</span>
+            <span className="sm__legend-hint">Click a square to inspect that run · rows sorted by how unstable they are</span>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -653,6 +1271,10 @@ function ModuleDetail() {
   const [focusRunId, setFocusRunId] = useState<string | null>(null);
   const [failures, setFailures] = useState<Record<string, FailureRow[]>>({});
   const [loadingRun, setLoadingRun] = useState<Record<string, boolean>>({});
+  /** Every case result of a run — what the stability matrix reads, unlike the failures-only list. */
+  const [runResults, setRunResults] = useState<Record<string, ResultCell[]>>({});
+  /** Guards against the matrix asking for the same run twice before state settles. */
+  const resultsAsked = useRef<Set<string>>(new Set());
 
   /** Failing runs, newest first — the ones worth pulling detail for. */
   const failingRuns = useMemo(
@@ -661,6 +1283,29 @@ function ModuleDetail() {
       .sort((a: any, b: any) => dayjs(runDate(b) || 0).valueOf() - dayjs(runDate(a) || 0).valueOf()),
     [node],
   );
+
+  /** The whole result list of a run, cached per run and pulled only when the matrix shows it. */
+  const fetchRunResults = async (runId: string) => {
+    if (resultsAsked.current.has(runId)) return;
+    resultsAsked.current.add(runId);
+    try {
+      const res: any = await apiClient.get(`/api/v2/qa/runs/${runId}`, { params: { pageSize: 500 } });
+      const rows: any[] = res?.data?.data?.results ?? [];
+      setRunResults(prev => ({
+        ...prev,
+        [runId]: rows.map(r => ({
+          caseKey: String(r.test_case_id ?? r.tc_ref_id ?? r.id),
+          ref: r.tc_ref_id,
+          name: r.name || "Untitled case",
+          status: String(r.status || "Not Executed"),
+          bugLogged: !!r.bug_logged,
+          bugNumber: r.bug_number ?? null,
+        })),
+      }));
+    } catch {
+      setRunResults(prev => ({ ...prev, [runId]: [] }));
+    }
+  };
 
   const fetchFailures = async (runId: string) => {
     if (failures[runId] || loadingRun[runId]) return;
@@ -945,6 +1590,35 @@ function ModuleDetail() {
                       <KindBreakdown runs={allRuns} />
                     )}
                   </div>
+                )}
+
+                {allRuns.length > 0 && (
+                  <RunCalendar
+                    suites={node.suites}
+                    runs={allRuns}
+                    selectedKey={focus?.key ?? null}
+                    onPick={(label, picked) => {
+                      const last = picked[picked.length - 1];
+                      setFocus({ key: label, label, runs: picked });
+                      setFocusRunId(String(last.id));
+                      fetchFailures(String(last.id));
+                    }}
+                  />
+                )}
+
+                {allRuns.length > 0 && (
+                  <StabilityMatrix
+                    suites={node.suites}
+                    runs={allRuns}
+                    results={runResults}
+                    onNeed={fetchRunResults}
+                    onPick={(label, picked) => {
+                      const last = picked[picked.length - 1];
+                      setFocus({ key: label, label, runs: picked });
+                      setFocusRunId(String(last.id));
+                      fetchFailures(String(last.id));
+                    }}
+                  />
                 )}
 
                 <div className="md-tabs">
@@ -1304,6 +1978,244 @@ const STYLES = `
 .mx-legend i.is-pass { background: #10b981; }
 .mx-legend i.is-fail { background: #ef4444; }
 
+/* ── Run calendar ──────────────────────────────────────────────────────── */
+.cal {
+  border: 1px solid var(--border-slate-200); border-radius: 14px;
+  background: var(--bg-pure-white); padding: 14px 16px 16px; margin-bottom: 16px;
+}
+.cal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.cal__title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900);
+}
+.cal__title svg { color: #2563eb; }
+.cal__sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
+.cal__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal__nav {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+  border: 1px solid var(--border-slate-200); border-radius: 9px; background: var(--bg-slate-50);
+}
+.cal__nav span {
+  min-width: 82px; text-align: center; font-size: 11.5px; font-weight: 700; color: var(--text-slate-700);
+}
+.cal__nav button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border: none; border-radius: 7px; background: transparent; cursor: pointer;
+  color: var(--text-slate-500); transition: background .15s ease, color .15s ease;
+}
+.cal__nav button:hover { background: var(--bg-pure-white); color: #2563eb; }
+.cal__today {
+  height: 28px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+  font-size: 11.5px; font-weight: 650; color: var(--text-slate-600);
+}
+.cal__today:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+
+.cal__body { display: grid; grid-template-columns: minmax(0, 1fr) 268px; gap: 12px; margin-top: 14px; }
+.cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal__wd {
+  padding: 2px 0 4px; text-align: center;
+  font-size: 10px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; color: var(--text-slate-400);
+}
+.cal__cell {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-height: 70px; padding: 6px 7px; cursor: pointer; text-align: left;
+  border: 1px solid var(--border-slate-100); border-radius: 10px; background: var(--bg-pure-white);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.cal__cell:disabled { cursor: default; }
+.cal__cell.is-outside { opacity: .4; }
+.cal__date { font-size: 11.5px; font-weight: 700; color: var(--text-slate-500); font-variant-numeric: tabular-nums; }
+.cal__cell.has-runs { background: rgba(16,185,129,.06); border-color: rgba(16,185,129,.22); }
+.cal__cell.has-runs .cal__date { color: var(--text-slate-900); }
+.cal__cell.has-fail { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.22); }
+.cal__cell.has-runs:hover { box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+.cal__cell.is-today .cal__date { color: #2563eb; }
+.cal__cell.is-today { border-color: rgba(59,130,246,.35); }
+.cal__cell.is-picked { border-color: rgba(59,130,246,.55); box-shadow: 0 0 0 2px rgba(59,130,246,.14); }
+/* Under the line: passed in green on the left, failed in red on the right. */
+.cal__counts { display: flex; align-items: baseline; justify-content: space-between; width: 100%; gap: 8px; }
+.cal__counts em {
+  font-style: normal; font-size: 13px; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cal__counts em.is-pass { color: #059669; }
+.cal__counts em.is-fail { color: #dc2626; }
+.cal__counts em.is-zero { opacity: .35; }
+/* The split line under them: how much of that day was green versus red. */
+.cal__bar { display: flex; width: 100%; height: 4px; border-radius: 999px; overflow: hidden; background: var(--bg-slate-50); }
+.cal__bar i { display: block; min-width: 0; }
+.cal__bar i.is-pass { background: #10b981; }
+.cal__bar i.is-fail { background: #ef4444; }
+
+.cal__side {
+  border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-slate-50);
+  padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+.cal__side-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  text-align: center; font-size: 11.5px; color: var(--text-slate-400);
+}
+.cal__side-empty svg { color: var(--text-slate-300); }
+.cal__side-title { font-size: 12px; font-weight: 750; color: var(--text-slate-900); }
+.cal__side-sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
+.cal__runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 264px; overflow-y: auto; }
+.cal__run {
+  width: 100%; display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer;
+  padding: 8px 9px; border: 1px solid var(--border-slate-200); border-radius: 10px; background: var(--bg-pure-white);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.cal__run:hover { border-color: rgba(59,130,246,.4); box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+.cal__run-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cal__run-name {
+  font-size: 11.5px; font-weight: 700; color: var(--text-slate-900);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal__run-rate { font-size: 10.5px; font-weight: 750; color: #059669; flex-shrink: 0; }
+.cal__run-rate.is-low { color: #dc2626; }
+.cal__run-meta { font-size: 10.5px; color: var(--text-slate-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal__run-counts { display: flex; gap: 8px; }
+.cal__run-counts em { font-style: normal; font-size: 10px; font-weight: 650; color: var(--text-slate-500); }
+.cal__run-counts em.is-pass { color: #059669; }
+.cal__run-counts em.is-fail { color: #dc2626; }
+
+@media (max-width: 1080px) {
+  .cal__body { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Case stability matrix ─────────────────────────────────────────────── */
+.sm {
+  border: 1px solid var(--border-slate-200); border-radius: 14px;
+  background: var(--bg-pure-white); padding: 14px 16px 14px; margin-bottom: 16px;
+}
+.sm__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.sm__title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900);
+}
+.sm__title svg { color: #2563eb; }
+.sm__sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
+.sm__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sm__windows {
+  display: inline-flex; padding: 2px; gap: 2px;
+  border: 1px solid var(--border-slate-200); border-radius: 9px; background: var(--bg-slate-50);
+}
+.sm__windows button {
+  height: 24px; min-width: 34px; padding: 0 8px; border: none; border-radius: 7px; background: transparent;
+  cursor: pointer; font-size: 11px; font-weight: 650; color: var(--text-slate-500);
+}
+.sm__windows button:hover { color: var(--text-slate-800); }
+.sm__windows button.is-active { background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+
+.sm__filters {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-slate-100);
+}
+.sm__filter {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-pure-white);
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-600); cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.sm__filter:hover:not(:disabled) { background: var(--bg-slate-50); color: var(--text-slate-900); }
+.sm__filter.is-active { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.28); }
+.sm__filter:disabled { opacity: .45; cursor: default; }
+.sm__filter-n {
+  min-width: 17px; padding: 0 5px; border-radius: 999px; text-align: center;
+  font-size: 10px; font-weight: 700;
+  background: var(--bg-slate-50); color: var(--text-slate-500); border: 1px solid var(--border-slate-100);
+}
+.sm__filter.is-active .sm__filter-n { background: rgba(59,130,246,.16); color: #2563eb; border-color: transparent; }
+.sm__search {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; margin-left: auto;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-pure-white);
+  color: var(--text-slate-400);
+}
+.sm__search input {
+  border: none; outline: none; background: transparent; width: 150px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-800);
+}
+.sm__search button {
+  display: inline-flex; border: none; background: transparent; cursor: pointer; color: var(--text-slate-400); padding: 0;
+}
+.sm__search button:hover { color: var(--text-slate-700); }
+
+.sm__scroll { margin-top: 12px; overflow-x: auto; }
+.sm__scroll::-webkit-scrollbar { height: 6px; }
+.sm__scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
+.sm__grid { display: grid; gap: 3px; align-items: center; min-width: max-content; }
+.sm__corner, .sm__colhead {
+  position: sticky; top: 0; z-index: 2; background: var(--bg-pure-white);
+  font-size: 10px; font-weight: 750; letter-spacing: .03em; text-transform: uppercase; color: var(--text-slate-400);
+  padding-bottom: 6px;
+}
+.sm__corner { left: 0; z-index: 3; text-align: left; }
+.sm__colhead { text-align: center; font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: 0; }
+.sm__colhead.has-fail { color: #dc2626; }
+.sm__colhead--shape { text-align: left; padding-left: 8px; }
+
+.sm__case {
+  position: sticky; left: 0; z-index: 1; background: var(--bg-pure-white);
+  display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 0; min-width: 0;
+}
+.sm__ref {
+  flex-shrink: 0; padding: 1px 5px; border-radius: 5px;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+  font-size: 9.5px; font-weight: 700; color: var(--text-slate-500);
+}
+.sm__case-name {
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-800);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sm__nobug {
+  flex-shrink: 0; padding: 1px 6px; border-radius: 999px;
+  background: rgba(239,68,68,.08); color: #dc2626; border: 1px solid rgba(239,68,68,.18);
+  font-size: 9.5px; font-weight: 700;
+}
+
+.sm__cell {
+  width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent; cursor: pointer; padding: 0;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.sm__cell:hover:not(:disabled) { transform: scale(1.14); box-shadow: 0 1px 4px rgba(15,23,42,.16); }
+.sm__cell:disabled { cursor: default; }
+.sm__cell.is-pass { background: #10b981; }
+.sm__cell.is-fail { background: #ef4444; }
+.sm__cell.is-block { background: #f59e0b; }
+.sm__cell.is-idle { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+.sm__cell.is-none { background: transparent; border-color: var(--border-slate-100); border-style: dashed; }
+
+.sm__shape {
+  display: flex; align-items: center; gap: 6px; padding-left: 8px;
+  font-size: 10.5px; font-weight: 700; color: var(--text-slate-500); white-space: nowrap;
+}
+.sm__shape span {
+  padding: 0 5px; border-radius: 999px; font-size: 9.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); color: var(--text-slate-500);
+}
+.sm__shape.is-flaky { color: #b45309; }
+.sm__shape.is-regressed, .sm__shape.is-failing { color: #dc2626; }
+.sm__shape.is-fixed { color: #059669; }
+.sm__shape.is-stable { color: var(--text-slate-400); }
+.sm__shape.is-never { color: var(--text-slate-400); }
+
+.sm__legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.sm__legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--text-slate-500); }
+.sm__legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.sm__legend i.is-pass { background: #10b981; }
+.sm__legend i.is-fail { background: #ef4444; }
+.sm__legend i.is-block { background: #f59e0b; }
+.sm__legend i.is-idle { background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); }
+.sm__legend i.is-none { border: 1px dashed var(--border-slate-200); }
+.sm__legend-hint { margin-left: auto; color: var(--text-slate-400); font-weight: 500; }
+
+.sm__empty {
+  margin-top: 12px; padding: 28px 16px; text-align: center;
+  font-size: 12px; color: var(--text-slate-400);
+  border: 1px dashed var(--border-slate-200); border-radius: 10px;
+}
+.sm__loading { padding: 28px 0; display: flex; justify-content: center; }
+
 /* Suite switcher */
 .mx-suites {
   display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
@@ -1326,6 +2238,9 @@ const STYLES = `
   background: var(--bg-slate-50); color: var(--text-slate-500); border: 1px solid var(--border-slate-100);
 }
 .mx-suite.is-active .mx-suite__n { background: rgba(59,130,246,.16); color: #2563eb; border-color: transparent; }
+.mx-suites__find { display: inline-flex; }
+.mx-suite--find { border-style: dashed; color: var(--text-slate-500); }
+.mx-suite--find .mx-suite__caret { color: var(--text-slate-400); margin-left: -2px; }
 
 /* Grain switch */
 .mx-grains {
@@ -1341,7 +2256,9 @@ const STYLES = `
 .mx-grains button.is-active { background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
 
 /* ── Plot: grouped pass / fail columns ─────────────────────────────────── */
-.mx-plot { position: relative; display: flex; gap: 10px; margin-top: 16px; flex: 1; min-height: 208px; }
+/* --mx-headroom keeps the tallest bar (and its value label) inside the card:
+   bar heights are a % of the area below it, so 1 run or 1000 draw the same. */
+.mx-plot { position: relative; display: flex; gap: 10px; margin-top: 16px; flex: 1; min-height: 208px; --mx-headroom: 20px; }
 .mx-chart__empty {
   margin-top: 16px; padding: 34px 16px; text-align: center;
   font-size: 12px; color: var(--text-slate-400);
@@ -1349,7 +2266,7 @@ const STYLES = `
 }
 .mx-axis {
   display: flex; flex-direction: column; justify-content: space-between;
-  flex-shrink: 0; padding-bottom: 34px;
+  flex-shrink: 0; padding-bottom: 34px; padding-top: var(--mx-headroom);
   font-size: 9.5px; font-weight: 700; color: var(--text-slate-300); font-variant-numeric: tabular-nums;
 }
 /* Long month and year labels get room; many buckets scroll rather than clip. */
@@ -1358,7 +2275,7 @@ const STYLES = `
 .mx-canvas::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
 .mx-inner { position: relative; width: max-content; min-width: 100%; height: 100%; }
 .mx-rules {
-  position: absolute; left: 0; right: 0; top: 0; bottom: 34px;
+  position: absolute; left: 0; right: 0; top: var(--mx-headroom); bottom: 34px;
   display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;
 }
 .mx-rules span { display: block; height: 1px; background: var(--border-slate-100); }
@@ -1373,7 +2290,7 @@ const STYLES = `
 .mx-col:hover, .mx-col.is-hot { background: rgba(59,130,246,.05); }
 .mx-col__bars {
   display: flex; align-items: flex-end; justify-content: center; gap: 3px;
-  width: 100%; flex: 1; min-height: 0;
+  width: 100%; flex: 1; min-height: 0; padding-top: var(--mx-headroom); box-sizing: border-box;
 }
 /* Fixed footer height keeps the grid lines and the bar baseline aligned. */
 .mx-col__foot {

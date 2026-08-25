@@ -241,6 +241,12 @@ const createApiClient = (): AxiosInstance => {
         });
       }
 
+      if (response.data && response.data.serverTime) {
+        import('@/utils/timeUtils').then(({ setServerTimeOffset }) => {
+          setServerTimeOffset(new Date(response.data.serverTime).getTime() - Date.now());
+        });
+      }
+
       return response;
     },
     async (error: AxiosError) => {
@@ -289,6 +295,41 @@ const createApiClient = (): AxiosInstance => {
           TokenManager.clearAccessToken();
 
           return Promise.reject(new ApiError('Session expired. Please login again.', 401, 'TOKEN_EXPIRED'));
+        }
+      }
+
+      // Phase 7B: Handle 403 Forbidden - Subscription errors
+      if (error.response?.status === 403) {
+        const errorData = error.response?.data as any;
+        const code = errorData?.error?.code || errorData?.code;
+        const subCodes = ['TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED', 'SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_CANCELLED'];
+        if (code && subCodes.includes(code)) {
+          // Redirect to subscription paywall page
+          if (typeof window !== 'undefined' && window.location.pathname !== '/subscription') {
+            const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            const currentPlanId = errorData?.error?.currentPlanId;
+            let targetUrl = `/subscription?redirect_to=${redirectUrl}`;
+            if (currentPlanId) {
+              targetUrl += `&current_plan_id=${currentPlanId}`;
+            }
+            window.location.href = targetUrl;
+          }
+          const msg = errorData?.error?.message || errorData?.message || 'Subscription invalid';
+          return Promise.reject(new ApiError(msg, 403, code, errorData));
+        }
+
+        // Check for limit reached (EntitlementError)
+        if (errorData?.details?.current !== undefined && errorData?.details?.allowed !== undefined) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('zukvo:limit-reached', { 
+              detail: { 
+                current: errorData.details.current, 
+                allowed: errorData.details.allowed,
+                message: errorData.error
+              }
+            }));
+          }
+          return Promise.reject(new ApiError(errorData.error || 'Limit reached', 403, 'LIMIT_REACHED', errorData));
         }
       }
 
@@ -419,14 +460,31 @@ export const apiUtils = {
     // Backend returns: { success: true, data: [...], pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...} }
     // We need to transform it to: { data: [...], pagination: { pageSizeOptions: [10, 20, 25, 50, 100], ...} }
     if (response.data.success) {
-      return {
-        data: response.data.data,
-        pagination: { pageSizeOptions: [10, 20, 25, 50, 100], current: response.data.pagination.page,
-          pageSize: response.data.pagination.limit,
-          total: response.data.pagination.total,
-          totalPages: response.data.pagination.pages,
-        }
-      };
+      if (response.data.pagination) {
+        return {
+          data: response.data.data,
+          pagination: { 
+            pageSizeOptions: [10, 20, 25, 50, 100], 
+            current: response.data.pagination.page,
+            pageSize: response.data.pagination.limit,
+            total: response.data.pagination.total,
+            totalPages: response.data.pagination.pages,
+          }
+        };
+      } else {
+        // Fallback for endpoints that haven't been updated to return pagination
+        const rawData = Array.isArray(response.data.data) ? response.data.data : [];
+        return {
+          data: rawData,
+          pagination: {
+            pageSizeOptions: [10, 20, 25, 50, 100],
+            current: 1,
+            pageSize: rawData.length || 20,
+            total: rawData.length,
+            totalPages: 1
+          }
+        } as any; // Cast as any because PaginatedResponse expects these fields
+      }
     }
 
     throw new ApiError(response.data.error || 'Failed to fetch data', response.status);

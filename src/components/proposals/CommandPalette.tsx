@@ -30,7 +30,7 @@ interface CommandPaletteProps {
   onSave: () => void;
   onTogglePreview: () => void;
   onExport: () => void;
-  onOpenZai: () => void;
+  onOpenZai?: () => void;
   onJumpToBlock: (id: string) => void;
 }
 
@@ -53,7 +53,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const commands = useMemo<Command[]>(() => {
     const base: Command[] = [
-      {
+      ...(onOpenZai ? [{
         id: 'zai',
         group: 'Actions',
         label: 'Generate with Zai',
@@ -61,7 +61,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: <Sparkles size={14} />,
         keywords: ['ai', 'zai', 'generate', 'write'],
         run: onOpenZai,
-      },
+      }] as Command[] : []),
       {
         id: 'save',
         group: 'Actions',

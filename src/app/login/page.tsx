@@ -43,22 +43,22 @@ function resolveHostInfo() {
   let subdomain = "";
   let rootHost = window.location.host;
 
-  // Prefer environment variable if configured
+  // Prefer environment variable if configured, but ONLY if we are NOT on localhost.
+  // Otherwise local dev will get redirected to prod.
   const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
   let hasValidEnvRoot = false;
-  if (envAppUrl) {
+  if (envAppUrl && !isLocalhost) {
     try {
       rootHost = new URL(envAppUrl).host;
       hasValidEnvRoot = true;
     } catch (e) {}
   }
 
-
   if (isLocalhost) {
+    rootHost = `localhost:${window.location.port || "3005"}`;
     const parts = hostname.split('.');
     if (parts.length > 1 && parts[0] !== "localhost" && parts[0] !== "127") {
       if (parts[0] !== "app") subdomain = parts[0];
-      if (!hasValidEnvRoot) rootHost = `localhost:${window.location.port || "3005"}`;
     }
   } else {
     const parts = hostname.split('.');
@@ -156,7 +156,8 @@ function LoginFormWithParams() {
             setLoading(true);
             AuthService.googleLogin(token, targetSubdomain).then((response) => {
               const protocol = window.location.protocol;
-              const targetHost = `${targetSubdomain}.${tenantBaseHost}`;
+              const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+              const targetHost = isLocalhost ? rootHost : `${targetSubdomain}.${tenantBaseHost}`;
 
               // If we're already on the tenant domain, finalize login in-place
               if (window.location.host === targetHost) {
@@ -170,7 +171,10 @@ function LoginFormWithParams() {
                 });
               } else {
                 // Redirect to the tenant with the proper app JWT (not the raw Google token)
-                window.location.href = `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+                const finalUrl = isLocalhost 
+                  ? `${protocol}//${targetHost}/login?subdomain=${targetSubdomain}&token=${response.accessToken}`
+                  : `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+                window.location.href = finalUrl;
               }
             }).catch((err: any) => {
               setError(err.message || "Google sign-in failed");
@@ -232,7 +236,9 @@ function LoginFormWithParams() {
               const response = await AuthService.googleLogin(tokenResponse.access_token, effectiveSubdomain || undefined);
               
               if (effectiveSubdomain) {
-                const targetHost = `${effectiveSubdomain}.${tenantBaseHost}`;
+                const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                const targetHost = isLocalhost ? currentRootHost : `${effectiveSubdomain}.${tenantBaseHost}`;
+                
                 if (window.location.host === targetHost) {
                   // Already on the tenant domain — finalize in-place
                   localStorage.removeItem('currentTenant');
@@ -241,7 +247,10 @@ function LoginFormWithParams() {
                   await checkAuth();
                 } else {
                   const protocol = window.location.protocol;
-                  window.location.href = `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+                  const finalUrl = isLocalhost 
+                    ? `${protocol}//${targetHost}/login?subdomain=${effectiveSubdomain}&token=${response.accessToken}`
+                    : `${protocol}//${targetHost}/login?token=${response.accessToken}`;
+                  window.location.href = finalUrl;
                 }
                 return;
               }
@@ -278,7 +287,9 @@ function LoginFormWithParams() {
     const clientId = "2de414d6-6eff-4c4a-9480-f124cc8d4796";
     // Always use the registered Azure redirect URI (app.zukvo.com/login).
     // Using window.location.origin would produce sl.zukvo.com which is NOT registered.
-    const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const registeredRedirectBase = (isLocalhost ? window.location.origin : envAppUrl) || window.location.origin;
     const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
     const scope = encodeURIComponent("openid profile email User.Read");
     
@@ -320,7 +331,10 @@ function LoginFormWithParams() {
           const subdomainParam = searchParams.get('subdomain');
           if (subdomainParam) {
             const protocol = window.location.protocol;
-            window.location.href = `${protocol}//${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+            const targetHost = isLocalhost 
+              ? `${rootHost}/login?subdomain=${subdomainParam}&token=${response.accessToken}`
+              : `${subdomainParam}.${rootHost}/login?token=${response.accessToken}`;
+            window.location.href = `${protocol}//${targetHost}`;
             return;
           }
           await microsoftLogin(token);

@@ -79,7 +79,7 @@ import {
   PlayCircleOutlined,
   MessageOutlined,
   PaperClipOutlined,
-  WarningOutlined,
+  WarningOutlined, CloudSyncOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -103,7 +103,7 @@ import {
 } from "@/utils/ticketUtils";
 import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket, useAllTicketTags } from "@/hooks/useTickets";
-import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
+import { useAllProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -111,14 +111,17 @@ import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 import { SprintCompletionModal } from "./sprint-completion";
 import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
+import { commonDrawerProps, drawerFormStyles } from '@/components/common/DrawerSection';
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
+import JiraMigrationWizard from "../jira/JiraMigrationWizard";
+import LinearMigrationWizard from "../linear/LinearMigrationWizard";
+import { api } from "@/lib/axios";
 import TicketSidebar from "./TicketSidebar";
 import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
 const { Title, Text } = Typography;
 
@@ -246,6 +249,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(TICKETS_DEFAULT_HIDDEN_COLS);
   const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
   const tablePrefsSaveTimer = useRef<number | null>(null);
+
+  const [jiraWizardVisible, setJiraWizardVisible] = useState(false);
+  const [linearWizardVisible, setLinearWizardVisible] = useState(false);
+  const { data: jiraStatus } = useQuery({
+    queryKey: ["jiraStatus"],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/integrations/jira/status');
+        return res; // api.get already unwraps response.data.data
+      } catch (err) {
+        return null;
+      }
+    }
+  });
+  const jiraConnected = !!jiraStatus?.connected;
+  const { data: linearStatus } = useQuery({
+    queryKey: ["linearStatus"],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/integrations/linear/status');
+        return res; 
+      } catch (err) {
+        return null;
+      }
+    }
+  });
+  const linearConnected = !!linearStatus?.connected;
 
   useEffect(() => {
     let cancelled = false;
@@ -465,7 +495,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // Use cached global data hooks
   const { data: projects = [], isLoading: projectsLoading } = useAllProjects();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -620,11 +650,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     }
   }, [projectId]);
 
-  // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
+  // Query Params for Active Sprint List (WITH PAGINATION)
   const activeSprintParams = {
     ...baseQueryParams,
     sprintId: 'active',
-    limit: 9999 // Fetch all tickets in active sprint (no pagination)
+    page: activePagination.current,
+    limit: activePagination.pageSize,
   };
 
   // Combine global and local backlog search
@@ -683,11 +714,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // User asked for specific split. We will use these two data sources.)
 
   const activeTickets = activeSprintData?.data || [];
-  const pagedActiveTickets = useMemo(() => {
-    const start = (activePagination.current - 1) * activePagination.pageSize;
-    const end = start + activePagination.pageSize;
-    return activeTickets.slice(start, end);
-  }, [activeTickets, activePagination]);
+  const totalActiveTickets = activeSprintData?.pagination?.total || 0;
 
   const backlogTickets = backlogData?.data || [];
   const totalBacklog = backlogData?.pagination?.total || 0;
@@ -4111,6 +4138,42 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   />
                 </Tooltip>
+                
+                {(linearConnected || jiraConnected) && (
+                  <Dropdown
+                    menu={{
+                      items: [
+                        ...(linearConnected ? [{
+                          key: 'linear',
+                          label: 'Import from Linear',
+                          icon: <span style={{ fontSize: 13 }}>◆</span>,
+                          onClick: () => setLinearWizardVisible(true)
+                        }] : []),
+                        ...(jiraConnected ? [{
+                          key: 'jira',
+                          label: 'Import from Jira',
+                          icon: <span style={{ fontSize: 13 }}>⬡</span>,
+                          onClick: () => setJiraWizardVisible(true)
+                        }] : []),
+                      ],
+                      style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+                    }}
+                    trigger={['hover', 'click']}
+                    placement="bottomRight"
+                  >
+                    <Tooltip title="Import tickets">
+                      <Button
+                        icon={<CloudSyncOutlined />}
+                        style={{
+                          width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-elevated)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      />
+                    </Tooltip>
+                  </Dropdown>
+                )}
                 {canCreateTicket && (
                   <Dropdown
                     menu={{
@@ -4588,7 +4651,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                                 }}
                               >
                                 {activeSelectedRowKeys.length === 1 &&
-                                  pagedActiveTickets.find(t => t.id === activeSelectedRowKeys[0])?.assignee
+                                  activeTickets.find((t: any) => t.id === activeSelectedRowKeys[0])?.assignee
                                   ? 'Reassign' : 'Assignee'}
                               </Button>
                             </Dropdown>
@@ -4859,33 +4922,32 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       )}
 
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={activeSprintFetching} message="">
-                                                      <Table
-                                                                                rowSelection={activeRowSelection}
-                                                                                columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={pagedActiveTickets}
-                                                                                rowKey="id"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
-                                                                                tableLayout="fixed"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
+                        <Table
+                          rowSelection={activeRowSelection}
+                          columns={(getColumns('active') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={activeTickets}
+                          loading={activeSprintFetching}
+                          rowKey="id"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
+                          tableLayout="fixed"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         activePagination.current,
                         activePagination.pageSize,
-                        activeTickets.length,
+                        totalActiveTickets,
                         activeSelectedRowKeys.length,
                         (page) => setActivePagination((prev) => ({ ...prev, current: page })),
                         (size) => setActivePagination((prev) => ({ ...prev, current: 1, pageSize: size }))
@@ -5363,27 +5425,26 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       )}
 
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={backlogFetching} message="">
-                                                      <Table
-                                                                                rowSelection={backlogRowSelection}
-                                                                                columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={backlogTickets}
-                                                                                rowKey="id"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
+                        <Table
+                          rowSelection={backlogRowSelection}
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          loading={backlogFetching}
+                          dataSource={backlogTickets}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         pagination.current,
@@ -5463,26 +5524,25 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     </div>
                     <div className="tl-section-body">
                       <div className="pp-table-wrap">
-                        <ZukvoLoadingOverlay loading={filteredViewFetching} message="">
-                                                      <Table
-                                                                                columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
-                                                                                dataSource={filteredViewTickets}
-                                                                                rowKey="id"
-                                                                                className="saas-table tl-table tl-table-sticky-pagination pp-table"
-                                                                                size="small"
-                                                                                pagination={false}
-                                                                                scroll={{ x: 'max-content' }}
+                        <Table
+                          columns={(getColumns('backlog') || []).filter((c: any) => !hiddenCols[c.key as string])}
+                          dataSource={filteredViewTickets}
+                          loading={filteredViewFetching}
+                          rowKey="id"
+                          className="saas-table tl-table tl-table-sticky-pagination pp-table"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
 
-                                                                                onRow={(record) => ({
-                                                                                  onClick: (e) => {
-                                                                                    const t = e.target as HTMLElement;
-                                                                                    if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
-                                                                                    handleViewTicket(record);
-                                                                                  },
-                                                                                  className: 'pp-row',
-                                                                                })}
-                                                                              />
-                                                      </ZukvoLoadingOverlay>
+                          onRow={(record) => ({
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('.ant-checkbox-wrapper, .ant-table-selection-column, button, input, .ant-select, .ant-dropdown-trigger, .premium-input-field, .ant-input-number, .ant-input, .saas-select-minimal, .saas-button-item, a')) return;
+                              handleViewTicket(record);
+                            },
+                            className: 'pp-row',
+                          })}
+                        />
                       </div>
                       {renderCustomPagination(
                         pagination.current,
@@ -5549,27 +5609,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onSuccess={handleSprintCompletionSuccess}
       />
 
-      <Modal
+      <Drawer
+        {...commonDrawerProps}
         open={createSprintModalOpen}
-        onCancel={() => setCreateSprintModalOpen(false)}
-        footer={null}
+        onClose={() => setCreateSprintModalOpen(false)}
+        placement="right"
         title={null}
-        closable={false}
-        width={680}
-        centered
-        destroyOnHidden
-        className="sprint-creation-modal"
-        styles={{
-          body: { padding: 0 },
-          content: {
-            padding: 0,
-            borderRadius: 14,
-            overflow: "hidden",
-            border: "1px solid var(--border-slate-200)",
-            boxShadow: "none",
-          },
-        }}
+        width={700}
       >
+        <style dangerouslySetInnerHTML={{ __html: drawerFormStyles }} />
         <SprintCreationForm
           projectId={projectId}
           isDraft={!!activeSprint}
@@ -5577,7 +5625,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           onSubmit={handleCreateSprintFromBacklog}
           onCancel={() => setCreateSprintModalOpen(false)}
         />
-      </Modal>
+      </Drawer>
       <ManualCreateTicketModal
         open={manualModalOpen}
         onClose={() => {
@@ -6218,6 +6266,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tl-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .tl-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
       `}</style>
+      
+      {/* Jira Migration Wizard Drawer */}
+      <JiraMigrationWizard visible={jiraWizardVisible} onClose={() => setJiraWizardVisible(false)} />
+      <LinearMigrationWizard visible={linearWizardVisible} onClose={() => setLinearWizardVisible(false)} />
     </div>
   );
 }

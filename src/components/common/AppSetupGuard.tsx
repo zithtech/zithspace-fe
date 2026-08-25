@@ -4,6 +4,7 @@ import React from 'react';
 import { useTenant } from '@/context/TenantContext';
 import { useAuth } from '@/context/AuthContext';
 import SetupWorkspaceModal from './SetupWorkspaceModal';
+import UpgradeModal from './UpgradeModal';
 
 export default function AppSetupGuard({ children }: { children: React.ReactNode }) {
   const { tenantInfo } = useTenant();
@@ -19,6 +20,7 @@ export default function AppSetupGuard({ children }: { children: React.ReactNode 
     <>
       {children}
       {showSetup && <SetupWorkspaceModal />}
+      <UpgradeModal />
     </>
   );
 }

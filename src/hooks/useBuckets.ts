@@ -22,7 +22,8 @@ export const bucketKeys = {
   list: (projectId?: string) => [...bucketKeys.lists(), { projectId }] as const,
   details: () => [...bucketKeys.all, "detail"] as const,
   detail: (id: string) => [...bucketKeys.details(), id] as const,
-  tickets: (id: string, page: number) => [...bucketKeys.all, "tickets", id, page] as const,
+  ticketsBase: (id: string) => [...bucketKeys.all, "tickets", id] as const,
+  tickets: (id: string, page?: number, limit?: number) => [...bucketKeys.ticketsBase(id), page, limit] as const,
 };
 
 // ==================== Queries ====================
@@ -70,7 +71,7 @@ export const useBucketTickets = (
   limit: number = 20
 ) => {
   return useQuery({
-    queryKey: bucketKeys.tickets(bucketId, page),
+    queryKey: bucketKeys.tickets(bucketId, page, limit),
     queryFn: () => BucketService.getBucketTickets(bucketId, page, limit),
     staleTime: 2 * 60 * 1000, // 2 minutes
     enabled: !!bucketId,
@@ -325,7 +326,7 @@ export const useAssignTicketsToBucket = () => {
     onSuccess: (result, variables) => {
       // Invalidate bucket detail and tickets
       queryClient.invalidateQueries({ queryKey: bucketKeys.detail(variables.bucketId) });
-      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(variables.bucketId, 1) });
+      queryClient.invalidateQueries({ queryKey: bucketKeys.ticketsBase(variables.bucketId) });
 
       // Invalidate ticket queries as bucketId has changed
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
@@ -349,7 +350,7 @@ export const useUnassignTicketsFromBucket = () => {
       BucketService.unassignTicketsFromBucket(bucketId, ticketIds),
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.detail(variables.bucketId) });
-      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(variables.bucketId, 1) });
+      queryClient.invalidateQueries({ queryKey: bucketKeys.ticketsBase(variables.bucketId) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     },
     onError: () => {

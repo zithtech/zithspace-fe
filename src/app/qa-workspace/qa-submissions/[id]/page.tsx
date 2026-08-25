@@ -38,6 +38,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import TiptapViewer from "@/components/common/TiptapViewer";
@@ -138,6 +139,7 @@ export default function QaSubmissionDetailPage() {
     canApproveSubmission,
     canSendBackSubmission,
   } = usePermission();
+  const { user } = useAuth();
 
   const [data, setData] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -361,7 +363,10 @@ export default function QaSubmissionDetailPage() {
    * to accept yet, and an approved submission is already accepted.
    */
   const canApprove =
-    canApproveSubmission && !["Draft", "Approved"].includes(data.status);
+    canApproveSubmission &&
+    data &&
+    !["Draft", "Approved"].includes(data.status) &&
+    user?.id === data.owner_reports_to_id;
 
   /**
    * QA Sign-off is the last step, not the middle one: it only opens once the
@@ -785,12 +790,15 @@ export default function QaSubmissionDetailPage() {
                     {
                       title: "Bug",
                       key: "bug",
-                      width: 120,
+                      width: 200,
                       render: (_: any, r: FailedCase) =>
                         r.bug_number ? (
-                          <button className="qs-linkbtn" onClick={() => router.push(`/qa-workspace/bug-list?bugId=${r.bug_id}`)}>
-                            {r.bug_number}
-                          </button>
+                          <div className="sc-name__text">
+                            <button className="qs-linkbtn" onClick={() => router.push(`/qa-workspace/bug-list?bugId=${r.bug_id}`)}>
+                              {r.bug_number}
+                            </button>
+                            {r.bug_title && <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.bug_title}</span>}
+                          </div>
                         ) : (
                           <span className="qs-muted">Not filed</span>
                         ),
@@ -798,12 +806,15 @@ export default function QaSubmissionDetailPage() {
                     {
                       title: "Ticket",
                       key: "ticket",
-                      width: 130,
+                      width: 200,
                       render: (_: any, r: FailedCase) =>
                         r.ticket_number ? (
-                          <button className="qs-linkbtn" onClick={() => router.push(`/tickets/${r.ticket_id}`)}>
-                            {r.ticket_number}
-                          </button>
+                          <div className="sc-name__text">
+                            <button className="qs-linkbtn" onClick={() => router.push(`/tickets/${r.ticket_id}`)}>
+                              {r.ticket_number}
+                            </button>
+                            {r.ticket_title && <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.ticket_title}</span>}
+                          </div>
                         ) : (
                           <span className="qs-muted">—</span>
                         ),

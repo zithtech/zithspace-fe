@@ -41,8 +41,10 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
             >
                 {/* Table Label Column */}
                 <div style={{
-                    flex: '0 0 110px',
-                    background: 'var(--bg-pure-white)', // Exact white as requested
+                    flex: '0 0 38%',
+                    minWidth: '85px',
+                    maxWidth: '110px',
+                    background: 'transparent',
                     padding: '6px 10px',
                     borderRight: '1px solid var(--border-color)',
                     display: 'flex',
@@ -83,6 +85,9 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                     }
                     :global(.drawer-field.table-variant .ant-typography) {
                         margin-bottom: 0 !important;
+                    }
+                    :global(.ant-col:last-child > .drawer-field.table-variant) {
+                        border-bottom: none !important;
                     }
                 `}</style>
             </div>

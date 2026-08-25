@@ -150,6 +150,8 @@ export default function LeavePolicyPanel() {
   console.log("Forcing HMR reload for LeavePolicyPanel");
 
   const [rows, setRows] = useState<LeavePolicyListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [apiStats, setApiStats] = useState({ total: 0, active: 0, allocations: 0, targets: 0 });
   const [loading, setLoading] = useState(false);
 
   // filters
@@ -190,17 +192,25 @@ export default function LeavePolicyPanel() {
   const [expandedCache, setExpandedCache] = useState<Record<string, LeavePolicyDetail>>({});
   const [expandLoading, setExpandLoading] = useState<Record<string, boolean>>({});
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = tablePage, size = tablePageSize, q = search, stat = statusFilter) => {
     setLoading(true);
     try {
-      setRows(await LeaveV2Service.listPolicies(true));
+      const res = await LeaveV2Service.listPolicies(true, {
+        page: p,
+        pageSize: size,
+        search: q || undefined,
+        status: stat === 'all' ? undefined : stat,
+      });
+      setRows(res.data);
+      setTotalCount(res.total);
+      setApiStats(res.stats);
       setExpandedCache({}); // invalidate child-row cache on refresh
     } catch (err: any) {
       message.error(err?.response?.data?.error || 'Failed to load policies');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tablePage, tablePageSize, search, statusFilter]);
 
   useEffect(() => {
     if (canReadLeavePolicy) load();
@@ -208,7 +218,7 @@ export default function LeavePolicyPanel() {
 
   // Load all leave types once (active ones drive the dropdown; all resolve names).
   useEffect(() => {
-    LeaveV2Service.listLeaveTypes(true).then(setLeaveTypes).catch(() => { });
+    LeaveV2Service.listLeaveTypes(true).then(res => setLeaveTypes(res.data)).catch(() => {});
   }, []);
 
   const onExpandRow = async (expanded: boolean, record: LeavePolicyListItem) => {
@@ -247,12 +257,7 @@ export default function LeavePolicyPanel() {
   };
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total: rows.length,
-    active: rows.filter((r) => r.isActive).length,
-    allocations: rows.reduce((s, r) => s + r.lineCount, 0),
-    targets: rows.reduce((s, r) => s + r.assignmentCount, 0),
-  }), [rows]);
+  const stats = useMemo(() => apiStats, [apiStats]);
 
   const statCells = [
     { key: 'total', title: 'Total Policies', value: stats.total, period: 'configured', icon: <ProfileOutlined />, color: PALETTE.blue, tint: TINT.blue, trend: TRENDS.a },
@@ -262,21 +267,11 @@ export default function LeavePolicyPanel() {
   ];
 
   // ── Filtering + paging ──────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q) && !r.code.toLowerCase().includes(q)) return false;
-      if (statusFilter === 'active' && !r.isActive) return false;
-      if (statusFilter === 'inactive' && r.isActive) return false;
-      return true;
-    });
-  }, [rows, search, statusFilter]);
-
-  const total = filtered.length;
+  const total = totalCount;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
-  const pagedRows = filtered.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedRows = rows;
 
   useEffect(() => { setTablePage(1); }, [search, statusFilter, tablePageSize]);
   useEffect(() => { if (tablePage > pageCount) setTablePage(pageCount); }, [pageCount, tablePage]);
@@ -565,7 +560,7 @@ export default function LeavePolicyPanel() {
             <SearchOutlined className="lvp-search-icon" />
             <input className="lvp-search" placeholder="Search name or code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Tooltip title="Refresh"><button type="button" className="lvp-ghost-btn" onClick={load}><ReloadOutlined spin={loading} /></button></Tooltip>
+          <Tooltip title="Refresh"><button type="button" className="lvp-ghost-btn" onClick={() => load()}><ReloadOutlined spin={loading} /></button></Tooltip>
           {canCreateLeavePolicy && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="lvp-add-btn">New Policy</Button>
           )}
@@ -607,7 +602,7 @@ export default function LeavePolicyPanel() {
           style={{ width: 160 }}
           width={210}
         />
-        <span className="lvp-filter-count">{filtered.length} of {rows.length}</span>
+        <span className="lvp-filter-count">{total} of {stats.total}</span>
         {hasActiveFilters && (
           <button type="button" className="lvp-clear" onClick={clearFilters}><CloseCircleOutlined /> Clear</button>
         )}

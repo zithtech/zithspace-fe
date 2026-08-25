@@ -112,11 +112,12 @@ export const PayrollV2Service = {
   },
 
   // ── Salary Components ──────────────────────────────────────────────────────
-  async listComponents(includeInactive = false): Promise<PayComponent[]> {
-    const res = await apiClient.get(`${BASE}/components`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<PayComponent[]>(res.data) ?? [];
+  async listComponents(params?: { includeInactive?: boolean; status?: 'all' | 'active' | 'inactive'; search?: string; page?: number; limit?: number; category?: ComponentCategory }): Promise<{ data: PayComponent[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/components`, { params });
+    return {
+      data: (res.data?.data as PayComponent[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
 
   async getComponent(id: string): Promise<PayComponent> {
@@ -139,11 +140,12 @@ export const PayrollV2Service = {
   },
 
   // ── Salary Structures ──────────────────────────────────────────────────────
-  async listStructures(includeInactive = false): Promise<PayStructureListItem[]> {
-    const res = await apiClient.get(`${BASE}/structures`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<PayStructureListItem[]>(res.data) ?? [];
+  async listStructures(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: PayStructureListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/structures`, { params });
+    return {
+      data: (res.data?.data as PayStructureListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
 
   async getStructure(id: string): Promise<PayStructureDetail> {
@@ -171,11 +173,12 @@ export const PayrollV2Service = {
   },
 
   // ── Pay Schedules ──────────────────────────────────────────────────────────
-  async listSchedules(includeInactive = false): Promise<PayScheduleListItem[]> {
-    const res = await apiClient.get(`${BASE}/schedules`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<PayScheduleListItem[]>(res.data) ?? [];
+  async listSchedules(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: PayScheduleListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/schedules`, { params });
+    return {
+      data: (res.data?.data as PayScheduleListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async createSchedule(input: SaveScheduleInput): Promise<PaySchedule> {
     const res = await apiClient.post(`${BASE}/schedules`, input);
@@ -190,11 +193,12 @@ export const PayrollV2Service = {
   },
 
   // ── Pay Groups ─────────────────────────────────────────────────────────────
-  async listGroups(includeInactive = false): Promise<PayGroupListItem[]> {
-    const res = await apiClient.get(`${BASE}/groups`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
-    });
-    return unwrap<PayGroupListItem[]>(res.data) ?? [];
+  async listGroups(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: PayGroupListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/groups`, { params });
+    return {
+      data: (res.data?.data as PayGroupListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async createGroup(input: SaveGroupInput): Promise<PayGroup> {
     const res = await apiClient.post(`${BASE}/groups`, input);
@@ -227,9 +231,12 @@ export const PayrollV2Service = {
   },
 
   // ── Professional Tax (state slabs) ─────────────────────────────────────────
-  async listPtStates(includeInactive = false): Promise<PtStateListItem[]> {
-    const res = await apiClient.get(`${BASE}/statutory/pt`, { params: includeInactive ? { includeInactive: true } : undefined });
-    return unwrap<PtStateListItem[]>(res.data) ?? [];
+  async listPtStates(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: PtStateListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/statutory/pt`, { params });
+    return {
+      data: (res.data?.data as PtStateListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getPtState(id: string): Promise<PtStateDetail> {
     const res = await apiClient.get(`${BASE}/statutory/pt/${id}`);
@@ -248,9 +255,12 @@ export const PayrollV2Service = {
   },
 
   // ── LWF (per state) ────────────────────────────────────────────────────────
-  async listLwf(includeInactive = false): Promise<LwfState[]> {
-    const res = await apiClient.get(`${BASE}/statutory/lwf`, { params: includeInactive ? { includeInactive: true } : undefined });
-    return unwrap<LwfState[]>(res.data) ?? [];
+  async listLwf(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: LwfState[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/statutory/lwf`, { params });
+    return {
+      data: (res.data?.data as LwfState[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async createLwf(input: SaveLwfInput): Promise<LwfState> {
     const res = await apiClient.post(`${BASE}/statutory/lwf`, input);
@@ -265,9 +275,12 @@ export const PayrollV2Service = {
   },
 
   // ── Approval Workflows ─────────────────────────────────────────────────────
-  async listWorkflows(includeInactive = false): Promise<ApprovalWorkflowListItem[]> {
-    const res = await apiClient.get(`${BASE}/workflows`, { params: includeInactive ? { includeInactive: true } : undefined });
-    return unwrap<ApprovalWorkflowListItem[]>(res.data) ?? [];
+  async listWorkflows(params?: { includeInactive?: boolean; page?: number; limit?: number; search?: string }): Promise<{ data: ApprovalWorkflowListItem[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`${BASE}/workflows`, { params });
+    return {
+      data: (res.data?.data as ApprovalWorkflowListItem[]) ?? [],
+      pagination: res.data?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async getWorkflow(id: string): Promise<ApprovalWorkflowDetail> {
     const res = await apiClient.get(`${BASE}/workflows/${id}`);
@@ -338,6 +351,21 @@ export const PayrollV2Service = {
       email: m.email ?? m.workEmail ?? null,
       avatarUrl: m.avatarUrl ?? null,
     }));
+  },
+  async listEmployeesPaginated(params?: { page?: number; limit?: number; search?: string }): Promise<{ data: MemberOption[]; pagination: { total: number; page: number; limit: number } }> {
+    const res = await apiClient.get(`/api/members`, { params });
+    const raw: any = res.data;
+    const arr: any[] = raw?.data ?? [];
+    return {
+      data: arr.map((m) => ({
+        value: m.id,
+        label: m.name ?? m.fullName,
+        position: m.position?.title ?? (typeof m.position === 'string' ? m.position : null),
+        email: m.workEmail ?? m.personalEmail ?? null,
+        avatarUrl: m.avatarUrl ?? null,
+      })),
+      pagination: raw?.pagination ?? { total: 0, page: 1, limit: 20 },
+    };
   },
   async listAssignments(): Promise<EmployeeAssignmentListItem[]> {
     const res = await apiClient.get(`${BASE}/employees/assignments`);

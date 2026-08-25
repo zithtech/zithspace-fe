@@ -6,8 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { BankOutlined, DollarOutlined } from '@ant-design/icons';
 import { usePermission } from '@/hooks/usePermission';
 import ReimbursementV2Service, { ApprovalInboxItem, AdvanceInboxItem } from '@/services/reimbursementV2Service';
-import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate, tablePaginationConfig } from './ui';
-import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { PALETTE, TINT, PanelHeader, RmbStyles, money, fmtDate } from './ui';
 
 type PayTarget = { kind: 'claim' | 'advance'; id: string; label: string } | null;
 
@@ -16,23 +15,34 @@ export default function FinancePanel() {
   const canPay = perms.canPayReimbursement || perms.canManageReimbursements;
 
   const [claims, setClaims] = useState<ApprovalInboxItem[]>([]);
+  const [claimsTotal, setClaimsTotal] = useState(0);
+  const [claimsPage, setClaimsPage] = useState(1);
+  const [claimsSize, setClaimsSize] = useState(20);
+
   const [advances, setAdvances] = useState<AdvanceInboxItem[]>([]);
+  const [advancesTotal, setAdvancesTotal] = useState(0);
+  const [advancesPage, setAdvancesPage] = useState(1);
+  const [advancesSize, setAdvancesSize] = useState(20);
+
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<PayTarget>(null);
   const [busy, setBusy] = useState(false);
   const [form] = Form.useForm();
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cPage = claimsPage, cSize = claimsSize, aPage = advancesPage, aSize = advancesSize) => {
     setLoading(true);
     try {
       const [c, a] = await Promise.all([
-        ReimbursementV2Service.listPayableClaims(),
-        ReimbursementV2Service.listPayableAdvances(),
+        ReimbursementV2Service.listPayableClaims({ page: cPage, limit: cSize }),
+        ReimbursementV2Service.listPayableAdvances({ page: aPage, limit: aSize }),
       ]);
-      setClaims(c); setAdvances(a);
+      setClaims(c.data);
+      setClaimsTotal(c.pagination.total);
+      setAdvances(a.data);
+      setAdvancesTotal(a.pagination.total);
     } catch (e: any) { message.error(e?.response?.data?.error || 'Failed to load payables'); }
     finally { setLoading(false); }
-  }, []);
+  }, [claimsPage, claimsSize, advancesPage, advancesSize]);
 
   useEffect(() => { if (canPay) load(); }, [canPay, load]);
 
@@ -94,24 +104,46 @@ export default function FinancePanel() {
       <Tabs
         items={[
           {
-            key: 'claims', label: `Claims (${claims.length})`,
+            key: 'claims', label: `Claims (${claimsTotal})`,
             children: (
               <div className="rvp-table-wrap">
-                <ZukvoLoadingOverlay loading={loading} message="">
-                    <Table rowKey="id" size="middle" columns={claimCols} dataSource={claims}
-                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
-                    </ZukvoLoadingOverlay>
+                <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
+                  locale={{ emptyText: <Empty description="Nothing to pay" /> }}
+                  pagination={{
+                    current: claimsPage,
+                    pageSize: claimsSize,
+                    total: claimsTotal,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50', '100'],
+                    showTotal: (t) => `${t} claims`,
+                    onChange: (page, size) => {
+                      setClaimsPage(page);
+                      setClaimsSize(size ?? claimsSize);
+                      load(page, size ?? claimsSize, advancesPage, advancesSize);
+                    },
+                  }} />
               </div>
             ),
           },
           {
-            key: 'advances', label: `Advances (${advances.length})`,
+            key: 'advances', label: `Advances (${advancesTotal})`,
             children: (
               <div className="rvp-table-wrap">
-                <ZukvoLoadingOverlay loading={loading} message="">
-                    <Table rowKey="id" size="middle" columns={advanceCols} dataSource={advances}
-                                      locale={{ emptyText: <Empty description="Nothing to pay" /> }} pagination={tablePaginationConfig} />
-                    </ZukvoLoadingOverlay>
+                <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
+                  locale={{ emptyText: <Empty description="Nothing to pay" /> }}
+                  pagination={{
+                    current: advancesPage,
+                    pageSize: advancesSize,
+                    total: advancesTotal,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50', '100'],
+                    showTotal: (t) => `${t} advances`,
+                    onChange: (page, size) => {
+                      setAdvancesPage(page);
+                      setAdvancesSize(size ?? advancesSize);
+                      load(claimsPage, claimsSize, page, size ?? advancesSize);
+                    },
+                  }} />
               </div>
             ),
           },

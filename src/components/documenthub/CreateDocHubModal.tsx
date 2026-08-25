@@ -21,8 +21,8 @@ const { Option } = Select;
 interface CreateDocHubModalProps {
     open: boolean;
     onClose: () => void;
-    /** Called with the target hub id (existing or newly created) so the host can navigate. */
-    onCreated?: (hubId: string) => void;
+    /** Called with the target hub id (existing or newly created) so the host can navigate or show upload. */
+    onCreated?: (hubId: string, provider?: 'empty' | 'google_drive' | 'zoho_drive' | 'my_computer') => void;
     /** Pre-fills the project select. */
     defaultProjectId?: string;
     /** Pre-fills the ticket select (requires defaultProjectId). */
@@ -81,6 +81,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
     const [selectedHubId, setSelectedHubId] = React.useState<string | undefined>(
         sortedExistingHubs[0]?.id,
     );
+    const [initialContent, setInitialContent] = React.useState<'empty' | 'google_drive' | 'zoho_drive' | 'my_computer'>('empty');
 
     // Reset / pre-fill whenever the modal opens or the defaults change.
     useEffect(() => {
@@ -127,7 +128,7 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
             form.resetFields();
             setSelectedProjectId(undefined);
             onClose();
-            if (data?.id) onCreated?.(data.id);
+            if (data?.id) onCreated?.(data.id, initialContent);
         } catch (err: any) {
             console.error(err);
             messageApi.error(err?.message || 'Failed to create document hub');
@@ -524,6 +525,27 @@ const CreateDocHubModal: React.FC<CreateDocHubModalProps> = ({
                                     </div>
                                 )}
                             </>
+                        )}
+                        
+                        {!addingToExisting && (
+                            <div className="mt-4">
+                                <div
+                                    className="text-[11.5px] font-semibold uppercase tracking-[0.06em] mb-2"
+                                    style={{ color: 'var(--text-slate-400)' }}
+                                >
+                                    Initial Content
+                                </div>
+                                <Radio.Group
+                                    value={initialContent}
+                                    onChange={(e) => setInitialContent(e.target.value)}
+                                    style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}
+                                >
+                                    <Radio value="empty" style={{ margin: 0 }}>Start empty</Radio>
+                                    <Radio value="my_computer" style={{ margin: 0 }}>Upload from My Computer</Radio>
+                                    <Radio value="google_drive" style={{ margin: 0 }}>Import from Google Drive</Radio>
+                                    <Radio value="zoho_drive" style={{ margin: 0 }}>Import from Zoho Drive</Radio>
+                                </Radio.Group>
+                            </div>
                         )}
                     </Form>
                 </div>

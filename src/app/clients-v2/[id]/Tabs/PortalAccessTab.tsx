@@ -129,7 +129,7 @@ const formatRelative = (iso: string | null) => {
   return new Date(iso).toLocaleDateString();
 };
 
-export default function PortalAccessTab({ clientId, contacts, onCountChange }: Props) {
+export default function PortalAccessTab({ clientId, contacts, onCountChange, onRefresh }: Props) {
   const { theme } = useTheme();
   const c = useMemo(() => palette(theme as Mode), [theme]);
 
@@ -190,6 +190,21 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
       messageApi.error(`Failed to load portal users: ${err?.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        load(),
+        onRefresh ? onRefresh() : Promise.resolve(),
+      ]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -538,6 +553,8 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange }: P
             icon={<KeyRound size={20} color="#3b82f6" />}
             title="Portal Access"
             description="Create logins for client contacts to view their portal workspace."
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <Button
                 type="primary"

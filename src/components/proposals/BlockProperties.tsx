@@ -133,27 +133,7 @@ export const BlockProperties = () => {
                 <Building2 size={14} />
                 <span>Branding &amp; Identity</span>
               </div>
-              <AIEnhanceButton
-                originalData={{
-                  company: coverBlock?.data?.senderCompany,
-                  name: coverBlock?.data?.senderName,
-                  contact: coverBlock?.data?.senderContact,
-                  email: coverBlock?.data?.senderEmail,
-                  website: coverBlock?.data?.senderWebsite,
-                  position: coverBlock?.data?.senderPosition,
-                }}
-                blockType="branding (agency details)"
-                onApply={(newBrand) =>
-                  handleUpdateBranding({
-                    senderCompany: newBrand.company || coverBlock?.data?.senderCompany,
-                    senderName: newBrand.name || coverBlock?.data?.senderName,
-                    senderContact: newBrand.contact || coverBlock?.data?.senderContact,
-                    senderEmail: newBrand.email || coverBlock?.data?.senderEmail,
-                    senderWebsite: newBrand.website || coverBlock?.data?.senderWebsite,
-                    senderPosition: newBrand.position || coverBlock?.data?.senderPosition,
-                  })
-                }
-              />
+
             </div>
 
             <div className="pb-props__brand-row">

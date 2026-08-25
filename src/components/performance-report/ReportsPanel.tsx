@@ -11,6 +11,7 @@ import {
   DownloadOutlined,
   FilePdfOutlined,
   InboxOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import {
   Ticket,
@@ -495,6 +496,14 @@ export default function ReportsPanel() {
         )}
 
         <div className="prr-actions">
+          <Button
+            icon={<SyncOutlined />}
+            loading={loading}
+            disabled={!hasRun || !!downloading}
+            onClick={() => fetchReport(range, projectId, memberId)}
+            title="Refresh"
+          />
+
           {canUpdatePerformanceReportSetting && (
             <Button
               icon={<InboxOutlined />}

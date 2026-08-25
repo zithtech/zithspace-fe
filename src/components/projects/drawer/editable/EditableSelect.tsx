@@ -147,16 +147,18 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
 
         if (mode === 'user') {
             return (
-                <Space size={4}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', minWidth: 0 }}>
                     <Avatar
                         size="small"
                         src={opt.avatarUrl}
-                        style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff' }}
+                        style={{ width: 20, height: 20, fontSize: 12, lineHeight: '20px', backgroundColor: '#1677ff', flexShrink: 0 }}
                     >
                         {opt.label.charAt(0)}
                     </Avatar>
-                    <Text style={textStyle}>{showFirstNameOnly ? opt.label.split(" ")[0] : opt.label}</Text>
-                </Space>
+                    <Text ellipsis={{ tooltip: true }} style={{ ...textStyle, flex: '0 1 auto' }}>
+                        {showFirstNameOnly ? opt.label.split(" ")[0] : opt.label}
+                    </Text>
+                </div>
             );
         }
 

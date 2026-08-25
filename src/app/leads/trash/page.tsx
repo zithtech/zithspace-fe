@@ -204,8 +204,8 @@ export default function LeadsTrashPage() {
 
   const fetchActiveLeads = useCallback(async () => {
     try {
-      const data = await LeadService.getAll();
-      setActiveLeads(data || []);
+      const data = await LeadService.getAll({ limit: 1000 });
+      setActiveLeads(data?.data || (Array.isArray(data) ? data : []));
     } catch (err) {
       console.warn("Failed to fetch active leads", err);
     }

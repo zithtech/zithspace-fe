@@ -6,14 +6,16 @@ import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typograph
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2 } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
-import { api as axios } from "@/lib/axios";
+import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
+import { useDebounce } from "@/hooks/useDebounce";
+import { ProjectService } from "@/services/projectService";
 
 const { Text } = Typography;
 
@@ -73,6 +75,7 @@ function TestRunsContent() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>((searchParams.get("tab") as TabKey) || "runs");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
   const [runs, setRuns] = useState<any[]>([]);
   const [suites, setSuites] = useState<any[]>([]);
@@ -83,12 +86,42 @@ function TestRunsContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
   const [progressFilter, setProgressFilter] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
+  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [stats, setStats] = useState<any>({});
+
+  // For dynamic suite search beyond the initial 1000
+  const [suiteSearchTerm, setSuiteSearchTerm] = useState("");
+  const debouncedSuiteSearch = useDebounce(suiteSearchTerm, 500);
+
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, suiteFilter, progressFilter]);
+  }, [debouncedSearch, suiteFilter, progressFilter, moduleFilter, projectFilter]);
+  
+  useEffect(() => {
+    if (!debouncedSuiteSearch || debouncedSuiteSearch.trim().length < 2) return;
+    const searchSuites = async () => {
+      try {
+        const res = await axios.get("/api/v2/qa/suites/all", {
+          params: { search: debouncedSuiteSearch, limit: 50 }
+        });
+        const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setSuites((prev: any[]) => {
+          const map = new Map(prev.map(s => [s.id, s]));
+          fetched.forEach((s: any) => map.set(s.id, s));
+          return Array.from(map.values());
+        });
+      } catch (e) {}
+    };
+    searchSuites();
+  }, [debouncedSuiteSearch]);
   
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -97,7 +130,7 @@ function TestRunsContent() {
 
   const filteredSuites = useMemo(() => {
     if (!formData?.module_id) return suites;
-    return suites.filter((s: any) => s.module_id === formData.module_id);
+    return suites.filter((s: any) => s.parent_test_case_id === formData.module_id);
   }, [suites, formData?.module_id]);
 
   /** The suite chosen in the create drawer, for the coverage preview. */
@@ -113,12 +146,27 @@ function TestRunsContent() {
     try {
       setLoading(true);
       const [runsRes, suitesRes, modRes, scopeRes] = await Promise.all([
-        axios.get("/api/v2/qa/runs/all"),
-        axios.get("/api/v2/qa/suites/all"),
-        axios.get("/api/v2/qa/modules"),
-        axios.get("/api/v2/qa/test-scopes"),
+        apiClient.get("/api/v2/qa/runs/all", {
+          params: {
+            page,
+            pageSize,
+            ...(debouncedSearch ? { search: debouncedSearch } : {}),
+            ...(suiteFilter ? { suite_id: suiteFilter } : {}),
+            ...(progressFilter ? { progress: progressFilter } : {}),
+            ...(moduleFilter ? { module_id: moduleFilter } : {}),
+            project_id: projectFilter || undefined,
+            allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
+          }
+        }),
+        axios.get("/api/v2/qa/suites/all?limit=1000"),
+        axios.get("/api/v2/qa/parents?limit=1000"),
+        // The scopes endpoint paginates on pageSize, not limit — without it we'd only get 10.
+        axios.get("/api/v2/qa/test-scopes?pageSize=1000"),
       ]);
-      setRuns(Array.isArray(runsRes) ? runsRes : (runsRes?.data?.data || runsRes?.data || []));
+      const body = (runsRes as any).data;
+      setRuns(body?.data || []);
+      setTotalItems(body?.pagination?.total || 0);
+      setStats(body?.stats || {});
       setSuites(Array.isArray(suitesRes) ? suitesRes : (suitesRes?.data?.data || suitesRes?.data || []));
       setModules(Array.isArray(modRes) ? modRes : (modRes?.data?.data || modRes?.data || []));
       setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes?.data?.data || scopeRes?.data || []));
@@ -131,9 +179,37 @@ function TestRunsContent() {
 
   useEffect(() => {
     if (canReadRun) {
-      fetchData();
+      fetchProjects();
     }
   }, [canReadRun]);
+
+  useEffect(() => {
+    if (canReadRun) {
+      fetchData();
+    }
+  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter, projectFilter, projectOptions]);
+
+  /** Active projects the signed-in user belongs to. */
+  const fetchProjects = async () => {
+    try {
+      setLoadingProjects(true);
+      const res: any = await ProjectService.getUserProjects(true);
+      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      setProjectOptions(
+        list
+          .map((p: any) => ({
+            value: String(p.value ?? p.id ?? ''),
+            label: String(p.label ?? p.name ?? ''),
+            description: p.code || undefined,
+          }))
+          .filter(o => o.value && o.label)
+      );
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
 
   const openCreateModal = () => {
     setFormData({});
@@ -183,36 +259,27 @@ function TestRunsContent() {
     return executed >= total ? 'completed' : 'active';
   };
 
-  const filteredRuns = runs.filter(r => {
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      const hay = [r.run_name, r.suite_name].filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (suiteFilter && (r.suite_name || 'Unassigned') !== suiteFilter) return false;
-    if (progressFilter && runState(r) !== progressFilter) return false;
-    return true;
-  });
+  const filteredRuns = runs; // Data is already filtered by backend
 
-  const suiteFilterOptions = Array.from(new Set(runs.map(r => r.suite_name).filter(Boolean)))
-    .sort((a, b) => String(a).localeCompare(String(b)))
-    .map(v => ({ value: String(v), label: String(v) }));
+  const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (projectFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSuiteFilter(undefined);
     setProgressFilter(undefined);
+    setModuleFilter(undefined);
+    setProjectFilter(undefined);
   };
 
-  // Client-side pagination, matching the app-wide sticky pager
-  const pageCount = Math.max(1, Math.ceil(filteredRuns.length / pageSize));
+  // Client-side pagination variables are now derived from totalItems for the footer
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pageStart = filteredRuns.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
-  const pageEnd = Math.min(safePage * pageSize, filteredRuns.length);
-  const pagedRuns = filteredRuns.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const pageStart = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const pageEnd = Math.min(safePage * pageSize, totalItems);
+  const pagedRuns = runs;
 
 
   const suiteNameOf = (record: any) => {
@@ -222,8 +289,8 @@ function TestRunsContent() {
 
   const moduleNameOf = (record: any) => {
     const suite = suites.find(s => s.id === record.suite_id);
-    const mod = modules.find(m => m.id === suite?.module_id);
-    return mod?.module_name || mod?.name || 'Unassigned';
+    const mod = modules.find(m => m.id === suite?.parent_test_case_id);
+    return mod?.name || mod?.title || 'Unassigned';
   };
 
   /** Executed vs total for a run, plus the derived percentage. */
@@ -375,8 +442,8 @@ function TestRunsContent() {
               <Tag color="purple" style={{ margin: 0 }}>
                 {(() => {
                   const s = suites.find(suite => suite.id === r.suite_id);
-                  const mod = modules.find(m => m.id === s?.module_id);
-                  return mod?.module_name || mod?.name || 'Unassigned';
+                  const mod = modules.find(m => m.id === s?.parent_test_case_id);
+                  return mod?.name || mod?.title || 'Unassigned';
                 })()}
               </Tag>
             </span>
@@ -389,20 +456,6 @@ function TestRunsContent() {
       </div>
     );
   };
-
-  // Calculate quick stats
-  const totalRuns = runs.length;
-  const activeRuns = runs.filter(r => {
-    const total = parseInt(r.total_cases) || 0;
-    const executed = total - (parseInt(r.not_executed_count) || 0);
-    return total === 0 || executed < total;
-  }).length;
-  const completedRuns = totalRuns - activeRuns;
-  const totalExecutedCases = runs.reduce((acc, r) => {
-    const total = parseInt(r.total_cases) || 0;
-    const unexec = parseInt(r.not_executed_count) || 0;
-    return acc + Math.max(0, total - unexec);
-  }, 0);
 
   return (
     <MainLayout noPadding>
@@ -510,6 +563,8 @@ function TestRunsContent() {
         /* ── Table ──────────────────────────────────────────────────── */
         .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
         .sc-table .ant-table { background: transparent; }
+        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
         .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
         .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
         .sc-table .ant-table-tbody > tr { cursor: pointer; }
@@ -715,10 +770,68 @@ function TestRunsContent() {
         .ts-table, .ts-table .ant-table { background: transparent !important; }
         .ts-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; }
         .ts-table .ant-table-tbody > tr:hover > td { background: rgba(255, 255, 255, 0.05) !important; }
+
+        .dh-mobile-menu-btn { display: none !important; }
+
+        @media (max-width: 820px) {
+          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+          .dh-main { height: auto; overflow: visible; width: 100%; }
+          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
+          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
+
+          .dh-sidebar-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            display: block !important;
+          }
+          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+          .dh-sidebar {
+            position: fixed; top: 0; left: -320px; bottom: 0;
+            z-index: 1100; height: 100%; max-height: none;
+            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
+            display: flex; flex-direction: column; align-items: stretch;
+            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
+          }
+          .dh-sidebar.is-mobile-open { left: 0; }
+
+          /* Stats grid → 2 columns on mobile */
+          .dh-main-scroll { padding: 12px 14px !important; }
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+
+          /* Filter bar: full-width search, other filters wrap */
+          .sc-filters { gap: 6px; }
+          .sc-filters__search { width: 100% !important; min-width: 0; }
+          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
+
+          /* Table: horizontal scroll */
+          .sc-tablewrap { overflow-x: auto !important; }
+          .sc-table .ant-table { min-width: 640px; }
+
+          /* Topbar: compress controls */
+          .sc-topbar { padding: 8px 14px !important; }
+
+          /* Footer: wrap on small screens */
+          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+        }
+
+        @media (max-width: 480px) {
+          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
+          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
+          .pp-footer-info { font-size: 11px; }
+        }
         `}} />
 
       <div className="dh-shell">
-        <aside className="dh-sidebar">
+        <div
+          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden
+        />
+        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
           <div className="dh-sidebar-top">
             <div className="pp-side-head">
               <div className="pp-side-logo">
@@ -748,7 +861,7 @@ function TestRunsContent() {
             <button className={`pp-nav-item ${activeTab === 'runs' ? 'is-active' : ''}`} onClick={() => setActiveTab('runs')}>
               <PlayCircle size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">Runs</span>
-              {runs.length > 0 && <span className="pp-nav-count">{runs.length}</span>}
+              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
             </button>
           </div>
         </aside>
@@ -756,7 +869,13 @@ function TestRunsContent() {
         <main className="dh-main">
           <div className="dh-main-topbar sc-topbar">
             {/* Title and subtitle share one line, split by a divider */}
-            <div className="sc-topbar__title">
+            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
+              <Button
+                className="dh-mobile-menu-btn"
+                type="text"
+                icon={<Menu size={18} />}
+                onClick={() => setMobileSidebarOpen(true)}
+              />
               <span className="sc-topbar__h1">{activeTab === 'runs' ? 'All Test Runs' : 'Dashboard'}</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">
@@ -767,6 +886,14 @@ function TestRunsContent() {
             </div>
 
             <div className="dh-main-controls">
+              <Button
+                type="default"
+                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                onClick={fetchData}
+                disabled={loading}
+                title="Refresh"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
+              />
               {activeTab === 'runs' && (
                 <>
                   <div className="pp-segmented">
@@ -786,30 +913,15 @@ function TestRunsContent() {
           <div className="dh-main-scroll">
             {activeTab === 'runs' && (
               <>
-                {/* Stats — product-standard tiles, status filter on click */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                   {[
-                    { key: undefined, label: "Total Runs", value: totalRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
-                    { key: 'active', label: "In Progress", value: activeRuns, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
-                    { key: 'completed', label: "Completed", value: completedRuns, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalRuns ? Math.round((completedRuns / totalRuns) * 100) : 0}% of all runs` },
-                    { key: undefined, label: "Executed Cases", value: totalExecutedCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
+                    { key: undefined, label: "Total Runs", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
+                    { key: 'active', label: "In Progress", value: stats?.activeRuns || 0, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
+                    { key: 'completed', label: "Completed", value: stats?.completedRuns || 0, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round(((stats?.completedRuns || 0) / totalItems) * 100) : 0}% of all runs` },
+                    { key: undefined, label: "Executed Cases", value: stats?.totalExecutedCases || 0, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
                   ].map((stat, i) => {
-                    const clickable = !!stat.key;
-                    const isActive = stat.key ? progressFilter === stat.key : false;
                     return (
-                      <div
-                        key={`${stat.label}-${i}`}
-                        role={clickable ? 'button' : undefined}
-                        tabIndex={clickable ? 0 : undefined}
-                        onClick={() => clickable && setProgressFilter(progressFilter === stat.key ? undefined : stat.key)}
-                        onKeyDown={(e) => {
-                          if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                            e.preventDefault();
-                            setProgressFilter(progressFilter === stat.key ? undefined : stat.key);
-                          }
-                        }}
-                        className={clickable ? `sc-stat-hit${isActive ? ' is-active' : ''}` : undefined}
-                      >
+                      <div key={`${stat.label}-${i}`}>
                         <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                       </div>
                     );
@@ -826,10 +938,20 @@ function TestRunsContent() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     allowClear
                   />
+                                  <SearchableDropdown
+                    options={projectOptions}
+                    value={projectFilter}
+                    onChange={(v) => setProjectFilter(v)}
+                    placeholder="Any project"
+                    hideAvatar
+                    itemNoun="projects"
+                    className="sc-filters__field"
+                  />
                   <SearchableDropdown
                     options={suiteFilterOptions}
                     value={suiteFilter}
                     onChange={(v) => setSuiteFilter(v)}
+                    onSearch={(v) => setSuiteSearchTerm(v)}
                     placeholder="All suites"
                     itemNoun="suites"
                     className="sc-filters__field"
@@ -847,6 +969,16 @@ function TestRunsContent() {
                     itemNoun="states"
                     className="sc-filters__field"
                   />
+                  <SearchableDropdown
+                    options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                    value={moduleFilter}
+                    onChange={(v) => setModuleFilter(v)}
+                    placeholder="Any module"
+                    hideAvatar
+                    itemNoun="modules"
+                    className="sc-filters__field"
+                  />
+  
                   {activeFilterCount > 0 && (
                     <button type="button" className="sc-clear" onClick={clearFilters}>
                       Clear ({activeFilterCount})
@@ -922,7 +1054,7 @@ function TestRunsContent() {
           {activeTab === 'runs' && filteredRuns.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{filteredRuns.length}</strong>
+                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
               </div>
               <div className="pp-pager">
                 <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
@@ -936,7 +1068,7 @@ function TestRunsContent() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 50].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>
@@ -996,7 +1128,7 @@ function TestRunsContent() {
             <div className="rd__field">
               <label className="rd__label">Module</label>
               <SearchableDropdown
-                options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                options={modules.map(m => ({ value: m.id, label: m.name || m.title || "Unnamed Module" }))}
                 value={formData.module_id}
                 onChange={(val) => setFormData({ ...formData, module_id: val, suite_id: undefined })}
                 placeholder="All modules"
@@ -1016,6 +1148,7 @@ function TestRunsContent() {
                 }))}
                 value={formData.suite_id}
                 onChange={(val) => setFormData({ ...formData, suite_id: val })}
+                onSearch={(val) => setSuiteSearchTerm(val)}
                 placeholder={filteredSuites.length ? "Select a suite to execute" : "No suites in this module"}
                 itemNoun="suites"
                 className="rd__control"

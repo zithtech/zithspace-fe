@@ -127,15 +127,28 @@ class BucketService {
    * @param projectId - Optional filter by project
    * @returns List of buckets with access control applied
    */
-  static async getBuckets(projectId?: string): Promise<Bucket[]> {
+  static async getBuckets(projectId?: string, extraParams?: Record<string, any>): Promise<any> {
     try {
       const params = new URLSearchParams();
       if (projectId) params.append('projectId', projectId);
+      
+      if (extraParams) {
+        Object.entries(extraParams).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            params.append(key, String(value));
+          }
+        });
+      }
 
-      const response = await apiClient.get<BucketListResponse>(
-        `/api/buckets${params.toString() ? `?${params.toString()}` : ''}`
+      const response = await apiClient.get<any>(
+        `/api/buckets?${params.toString()}`
       );
-      return response.data.data;
+      
+      // If the backend returns paginated data (has pagination object), return the whole data object
+      if (response?.data?.pagination) {
+        return { data: response.data.data, pagination: response.data.pagination };
+      }
+      return response?.data?.data || [];
     } catch (error: any) {
       console.error('Error fetching buckets:', error);
       const errorMessage = error.response?.data?.error || 'Failed to fetch buckets';

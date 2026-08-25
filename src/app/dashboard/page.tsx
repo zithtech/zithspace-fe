@@ -93,7 +93,7 @@ const { Title, Text } = Typography;
 
 function DashboardContent() {
   const { token } = theme.useToken();
-  const { user } = useAuth();
+  const { user, hasAnySubscriptionFeature } = useAuth();
   const { canUpdateSettings } = usePermission();
   const { socket } = useSocket();
   const router = useRouter();
@@ -790,19 +790,19 @@ function DashboardContent() {
 
   const isHeroVisible = dashboardSettings?.heroSection !== false;
   const isQuickActionsVisible = dashboardSettings?.quickActions !== false;
-  const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false;
-  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false;
-  const isRecentTicketsVisible = dashboardSettings?.recentTickets !== false;
-  const isFreelancerStatsVisible = dashboardSettings?.freelancerStats !== false;
-  const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false;
-  const isRecentInvoicesVisible = dashboardSettings?.recentInvoices !== false;
-  const isCalendarVisible = dashboardSettings?.calendar !== false;
-  const isCardSalarySlipVisible = dashboardSettings?.cardSalarySlip !== false;
-  const isDailyAttendanceVisible = dashboardSettings?.dailyAttendanceCard !== false;
-  const isMetricDailyUpdatesVisible = dashboardSettings?.metricDailyUpdates !== false;
-  const isMetricAvgHoursVisible = dashboardSettings?.metricAvgHours !== false;
-  const isMetricMyTicketsVisible = dashboardSettings?.metricMyTickets !== false;
-  const isMetricTeamTodayVisible = dashboardSettings?.metricTeamToday !== false;
+  const isAttendanceStatsVisible = dashboardSettings?.attendanceStats !== false && hasAnySubscriptionFeature("my_hub_my_hub_general_attendance", "hrms_attendance");
+  const isMyTicketsVisible = dashboardSettings?.myTicketsProgress !== false && hasAnySubscriptionFeature("work_projects");
+  const isRecentTicketsVisible = dashboardSettings?.recentTickets !== false && hasAnySubscriptionFeature("work_projects");
+  const isFreelancerStatsVisible = dashboardSettings?.freelancerStats !== false && hasAnySubscriptionFeature("work_squad");
+  const isRecentLeadsVisible = dashboardSettings?.recentLeads !== false && hasAnySubscriptionFeature("crm_leads");
+  const isRecentInvoicesVisible = dashboardSettings?.recentInvoices !== false && hasAnySubscriptionFeature("finance_invoice");
+  const isCalendarVisible = dashboardSettings?.calendar !== false && hasAnySubscriptionFeature("home_home_general_calendar");
+  const isCardSalarySlipVisible = dashboardSettings?.cardSalarySlip !== false && hasAnySubscriptionFeature("hrms_payroll_v2", "hrms_payroll");
+  const isDailyAttendanceVisible = dashboardSettings?.dailyAttendanceCard !== false && hasAnySubscriptionFeature("my_hub_my_hub_general_attendance", "hrms_attendance");
+  const isMetricDailyUpdatesVisible = dashboardSettings?.metricDailyUpdates !== false && hasAnySubscriptionFeature("work_daily_updates");
+  const isMetricAvgHoursVisible = dashboardSettings?.metricAvgHours !== false && hasAnySubscriptionFeature("work_time_tracking");
+  const isMetricMyTicketsVisible = dashboardSettings?.metricMyTickets !== false && hasAnySubscriptionFeature("work_projects");
+  const isMetricTeamTodayVisible = dashboardSettings?.metricTeamToday !== false && hasAnySubscriptionFeature("hrms_attendance", "my_hub_my_hub_general_attendance");
 
   // ─── Today Leaves render ──────────────────────────────────────────
 

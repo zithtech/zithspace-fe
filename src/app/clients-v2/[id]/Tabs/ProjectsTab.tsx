@@ -269,6 +269,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        fetchProjects(),
+        fetchEmployees(),
+        onRefresh(),
+      ]);
+    } catch (error) {
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchProjects();
     fetchEmployees();
@@ -552,6 +568,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             title="Projects"
             description="Monitor project lifecycles, budget utilization, and leadership assignments"
             style={{ background: "transparent", borderBottom: "1px solid var(--border-slate-100)", padding: "4px 32px", marginBottom: "8px" }}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             extra={
               <div style={{ display: "flex", gap: "12px", flexWrap: "nowrap", alignItems: "center" }}>
                 {canUpdateClient && (

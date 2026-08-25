@@ -9,7 +9,7 @@ import {
   PlusOutlined, SearchOutlined, EllipsisOutlined, EditOutlined, CopyOutlined,
   InboxOutlined, DeleteOutlined, RollbackOutlined, EyeOutlined, ArrowRightOutlined,
   AppstoreOutlined, UnorderedListOutlined, MenuOutlined,
-  BlockOutlined, FolderOpenOutlined, FileDoneOutlined, FileTextOutlined,
+  BlockOutlined, FolderOpenOutlined, FileDoneOutlined, FileTextOutlined, ReloadOutlined,
 } from '@ant-design/icons';
 import { LayoutTemplate } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -86,6 +86,13 @@ function TemplatesContent() {
   const duplicateTemplate = useProposalLibraryStore((s) => s.duplicateTemplate);
   const archiveTemplate = useProposalLibraryStore((s) => s.archiveTemplate);
   const deleteTemplate = useProposalLibraryStore((s) => s.deleteTemplate);
+  const sectionsLoading = useProposalLibraryStore((s) => s.sectionsLoading);
+  const templatesLoading = useProposalLibraryStore((s) => s.templatesLoading);
+  const loading = sectionsLoading || templatesLoading;
+  const handleRefresh = () => {
+    fetchSections(true);
+    fetchTemplates(true);
+  };
 
   const sectionById = useMemo(() => {
     const m = new Map<string, LibrarySection>();
@@ -293,6 +300,11 @@ function TemplatesContent() {
                 <button type="button" className={view === 'grid' ? 'is-active' : ''} onClick={() => setView('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                 <button type="button" className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
+              <Tooltip title="Refresh">
+                <button type="button" className="pp-ghost-btn" onClick={handleRefresh} disabled={loading}>
+                  <ReloadOutlined spin={loading} />
+                </button>
+              </Tooltip>
               <Tooltip title="Section library">
                 <button type="button" className="pp-ghost-btn" onClick={() => router.push('/proposals/sections')}><BlockOutlined /></button>
               </Tooltip>

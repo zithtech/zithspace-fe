@@ -11,6 +11,7 @@ export const globalDataKeys = {
   projects: ["global", "projects"] as const,
   allProjects: ["global", "allProjects"] as const,
   members: ["global", "members"] as const,
+  projectMembers: ["global", "projectMembers"] as const,
   ticketConfig: ["global", "ticketConfig"] as const,
   tickets: ["global", "userTicketsByProject"],
   documentHub: ["documentHub"],
@@ -104,6 +105,22 @@ export const useTicketConfig = (options?: { enabled?: boolean }) => {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
     enabled: !!user && options?.enabled !== false,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch and cache project members
+ * Cached for 5 minutes
+ */
+export const useProjectMembers = (projectId: string | undefined, options?: { enabled?: boolean }) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...globalDataKeys.projectMembers, user?.tenantId, projectId],
+    queryFn: () => ProjectService.getProjectMembers(projectId as string),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: Boolean(projectId) && !!user && options?.enabled !== false,
     ...options,
   });
 };

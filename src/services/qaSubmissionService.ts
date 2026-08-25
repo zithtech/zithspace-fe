@@ -169,11 +169,13 @@ export interface FailedCase {
   notes?: string | null;
   bug_id?: string | null;
   bug_number?: string | null;
+  bug_title?: string | null;
   bug_status_key?: string | null;
   bug_progress?: string | null;
   bug_sheet_id?: string | null;
   ticket_id?: string | null;
   ticket_number?: string | null;
+  ticket_title?: string | null;
   ticket_status?: string | null;
 }
 
@@ -271,6 +273,7 @@ export interface SubmissionListItem {
 export interface SubmissionDetail extends SubmissionListItem {
   description?: string | null;
   qa_summary?: string | null;
+  owner_reports_to_id?: string | null;
   recommendation_ack: boolean;
   recommendation_ack_note?: string | null;
   reviewer_id?: string | null;
@@ -328,6 +331,8 @@ export interface SubmissionFilters {
   to?: string;
   sortBy?: string;
   sortDir?: "asc" | "desc";
+  /** Project name (label) to filter submissions via their linked scope's product. */
+  projectName?: string;
 }
 
 export interface SaveSubmissionInput {

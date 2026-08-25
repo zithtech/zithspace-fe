@@ -98,7 +98,7 @@ export class SettingsService {
       return await apiUtils.getPaginated<Shift>('/api/shifts', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch shifts');
     }
@@ -113,7 +113,7 @@ export class SettingsService {
       return response.data;
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch all shifts');
     }
@@ -127,7 +127,7 @@ export class SettingsService {
       return await api.get<Shift>(`/api/shifts/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch shift');
     }
@@ -141,7 +141,7 @@ export class SettingsService {
       return await api.post<Shift>('/api/shifts', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create shift');
     }
@@ -155,7 +155,7 @@ export class SettingsService {
       return await api.put<Shift>(`/api/shifts/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update shift');
     }
@@ -169,7 +169,7 @@ export class SettingsService {
       await api.delete(`/api/shifts/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to delete shift');
     }
@@ -190,7 +190,7 @@ export class SettingsService {
         }));
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch shifts for selection');
     }
@@ -204,7 +204,7 @@ export class SettingsService {
       return await api.patch<Shift>(`/api/shifts/${id}`, { isActive });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to toggle shift status');
     }
@@ -220,7 +220,7 @@ export class SettingsService {
       return await api.get<TicketConfigurations>('/api/settings/ticket-configurations');
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch ticket configurations');
     }
@@ -234,7 +234,7 @@ export class SettingsService {
       return await api.get<Record<string, DropdownOption[]>>('/api/settings/dropdown-options?includeInactive=true');
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch dropdown options');
     }
@@ -248,7 +248,7 @@ export class SettingsService {
       return await api.post<DropdownOption>('/api/settings/dropdown-options', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create dropdown option');
     }
@@ -263,7 +263,7 @@ export class SettingsService {
       return await api.put<DropdownOption>(`/api/settings/dropdown-options/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update dropdown option');
     }
@@ -277,7 +277,7 @@ export class SettingsService {
       await api.delete(`/api/settings/dropdown-options/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to delete dropdown option');
     }
@@ -291,7 +291,7 @@ export class SettingsService {
       await api.put('/api/settings/dropdown-options/reorder', { items: reorderData });
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to reorder dropdown options');
     }

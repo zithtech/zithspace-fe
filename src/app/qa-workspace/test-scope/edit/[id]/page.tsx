@@ -612,6 +612,7 @@ export default function EditScopePage() {
   const id = params?.id as string;
   const { canUpdateScope } = usePermission();
   const { user, isLoading } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_scope_prime');
 
   /** Flips once the saved scope has been merged into the form. */
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -972,12 +973,12 @@ export default function EditScopePage() {
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all'),
-          axios.get('/api/v2/qa/runs/all'),
-          axios.get('/api/v2/qa/test-scopes/documents'),
+          axios.get('/api/v2/qa/suites/all?limit=1000'),
+          axios.get('/api/v2/qa/runs/all?limit=1000'),
+          axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents'),
+          axios.get('/api/v2/qa/parents?limit=1000'),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -1009,6 +1010,40 @@ export default function EditScopePage() {
         console.error("Failed to fetch parent test cases:", err);
       } finally {
         setLoadingTestCases(false);
+      }
+    }, 400),
+    []
+  );
+
+  const fetchTestSuitesSearch = React.useCallback(
+    debounce(async (search: string) => {
+      try {
+        setLoadingTestSuites(true);
+        const res: any = await axios.get('/api/v2/qa/suites/all', {
+          params: search ? { search, limit: 50 } : { limit: 1000 },
+        });
+        setTestSuites(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+      } catch (err) {
+        console.error("Failed to fetch test suites:", err);
+      } finally {
+        setLoadingTestSuites(false);
+      }
+    }, 400),
+    []
+  );
+
+  const fetchTestRunsSearch = React.useCallback(
+    debounce(async (search: string) => {
+      try {
+        setLoadingTestRuns(true);
+        const res: any = await axios.get('/api/v2/qa/runs/all', {
+          params: search ? { search, limit: 50 } : { limit: 1000 },
+        });
+        setTestRuns(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
+      } catch (err) {
+        console.error("Failed to fetch test runs:", err);
+      } finally {
+        setLoadingTestRuns(false);
       }
     }, 400),
     []
@@ -1629,6 +1664,44 @@ export default function EditScopePage() {
   };
 
   saveRef.current = handleSave;
+
+  const handleRequestApproval = async () => {
+    if (!formData.name?.trim()) {
+      setNameError("Test Scope Name is required");
+      message.error("Test Scope Name is required");
+      scrollToSection('sec-basics');
+      setTimeout(() => nameInputRef.current?.focus?.(), 350);
+      return;
+    }
+    setNameError(null);
+
+    try {
+      setSubmitting(true);
+      const payload = {
+        ...formData,
+        status: 'In Review',
+        details: {
+          ...(formData.details || {}),
+          approvalWorkflow: {
+            ...(formData.details?.approvalWorkflow || {}),
+            status: 'pending'
+          }
+        },
+        start_date: formData.start_date ? dayjs(formData.start_date).format('YYYY-MM-DD') : null,
+        end_date: formData.end_date ? dayjs(formData.end_date).format('YYYY-MM-DD') : null,
+      };
+
+      await axios.put(`/api/v2/qa/test-scopes/${id}`, payload);
+      setIsDirty(false);
+      message.success(`Scope updated and approval requested successfully`);
+      router.push("/qa-workspace/test-scope?tab=scopes");
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to request approval for Test Scope");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ── Derived option lists ──────────────────────────────────────────────────────
   const scopeTypeOpts = scopeSettings.filter(s => s.category === 'scope_type').length > 0
@@ -2370,14 +2443,16 @@ export default function EditScopePage() {
                   <div className="ts-editorhead">
                     <label className="ts-label" style={{ margin: 0 }}>Description</label>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="ts-minibtn ts-minibtn--ai"
-                        disabled={generatingDescription}
-                        onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
-                      >
-                        <Sparkles size={12} /> {generatingDescription ? 'Generating\u2026' : (prdDocumentId ? 'Create with Zai using PRD' : 'Create with Zai')}
-                      </button>
+                      {hasPrime && (
+                        <button
+                          type="button"
+                          className="ts-minibtn ts-minibtn--ai"
+                          disabled={generatingDescription}
+                          onClick={(e) => { e.preventDefault(); handleGenerateScopeWithAI('description'); }}
+                        >
+                          <Sparkles size={12} /> {generatingDescription ? 'Generating\u2026' : (prdDocumentId ? 'Create with Zai using PRD' : 'Create with Zai')}
+                        </button>
+                      )}
                       <Tooltip title={!(formData.details.description || '').trim() ? 'Write something first' : 'Fix grammar & typos — keeps your wording'}>
                         <button
                           type="button"
@@ -2664,7 +2739,8 @@ export default function EditScopePage() {
                         composer; without one it stays visible but disabled, since
                         a disabled control with a reason is how the option gets
                         discovered in the first place. */}
-                    {prdDocumentId ? (
+                    {hasPrime && (
+                      prdDocumentId ? (
                       <Popover
                         open={prdPopoverOpen}
                         onOpenChange={(o) => {
@@ -2765,9 +2841,9 @@ export default function EditScopePage() {
                           </button>
                         </span>
                       </Tooltip>
-                    )}
+                    ))}
 
-                    {(() => {
+                    {hasPrime && (() => {
                       const scopeVal = formData.details.inScope || '';
                       const hasContent = scopeVal.trim() !== '' && scopeVal !== '<p></p>';
                       return hasContent ? (
@@ -3319,6 +3395,7 @@ export default function EditScopePage() {
                           }),
                         )
                       }
+                      onSearch={fetchTestSuitesSearch}
                       loading={loadingTestSuites}
                       placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
                       itemNoun="suites"
@@ -3357,6 +3434,7 @@ export default function EditScopePage() {
                           }),
                         )
                       }
+                      onSearch={fetchTestRunsSearch}
                       loading={loadingTestRuns}
                       placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
                       itemNoun="runs"
@@ -3511,7 +3589,7 @@ export default function EditScopePage() {
                     />
                   </Field>
                   <div>
-                    <Button type="primary" block icon={<ShieldCheck size={15} />} style={{ height: 40 }}>
+                    <Button type="primary" block icon={<ShieldCheck size={15} />} style={{ height: 40 }} onClick={handleRequestApproval} loading={submitting}>
                       Request Approval
                     </Button>
                   </div>

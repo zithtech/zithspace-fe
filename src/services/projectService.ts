@@ -117,7 +117,7 @@ export class ProjectService {
       return await apiUtils.getPaginated<Project>("/api/projects", filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch projects");
     }
@@ -144,7 +144,7 @@ export class ProjectService {
       return await api.get<Project>(`/api/projects/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project");
     }
@@ -158,7 +158,7 @@ export class ProjectService {
       return await api.post<Project>("/api/projects", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create project");
     }
@@ -175,7 +175,7 @@ export class ProjectService {
       return await api.put<Project>(`/api/projects/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update project");
     }
@@ -189,7 +189,7 @@ export class ProjectService {
       await api.delete(`/api/projects/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to delete project");
     }
@@ -215,7 +215,7 @@ export class ProjectService {
       >("/api/projects/select", config);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch projects for selection");
     }
@@ -234,17 +234,17 @@ export class ProjectService {
       return await api.get("/api/projects/selection");
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch selection projects");
     }
   }
 
   /**
-   * Get projects where user is a member (for ticket creation)
+   * Get projects where user is a member (for ticket creation and QA)
    */
-  static async getUserProjects(): Promise<
-    Array<{ value: string; label: string; code: string }>
+  static async getUserProjects(explicitOnly: boolean = false): Promise<
+    Array<{ value: string; label: string; code: string; description?: string }>
   > {
     try {
       return await api.get<
@@ -254,10 +254,10 @@ export class ProjectService {
           code: string;
           description: string;
         }>
-      >("/api/projects/user-projects");
+      >(`/api/projects/user-projects${explicitOnly ? '?explicitOnly=true' : ''}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch user projects");
     }
@@ -280,7 +280,7 @@ export class ProjectService {
       >("/api/projects/user-projects-for-tickets");
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch user projects for tickets");
     }
@@ -294,7 +294,7 @@ export class ProjectService {
       return await api.get<ProjectStats>("/api/projects/stats");
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project statistics");
     }
@@ -315,7 +315,7 @@ export class ProjectService {
       ); // Changed from memberId to userId
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to add team member");
     }
@@ -335,7 +335,7 @@ export class ProjectService {
       ); // Changed from members to team-members
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to remove team member");
     }
@@ -349,7 +349,7 @@ export class ProjectService {
       return await api.get(`/api/projects/${id}/stats`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project statistics");
     }
@@ -367,6 +367,7 @@ export class ProjectService {
       position: string;
       workEmail: string;
       isProjectManager: boolean;
+      avatarUrl?: string | null;
     }>
   > {
     try {
@@ -377,11 +378,12 @@ export class ProjectService {
           position: string;
           workEmail: string;
           isProjectManager: boolean;
+          avatarUrl?: string | null;
         }>
       >(`/api/projects/${projectId}/members`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project members");
     }
@@ -394,7 +396,7 @@ export class ProjectService {
       return await api.get(`/api/projects/${projectId}/overview`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project overview");
     }
@@ -409,7 +411,7 @@ export class ProjectService {
       return await api.get(`/api/projects/${projectId}/timeline`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch project timeline");
     }

@@ -20,15 +20,20 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
-    const { hasPermission, hasAnyPermission, user } = useAuth();
+    const { hasPermission, hasAnyPermission,user, hasAnySubscriptionFeature } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
 
-    // Filter nav items recursively based on requiredPermission / requiredAnyPermission
     const filterItemsByPermission = (navItems: NavItem[]): NavItem[] => {
         return navItems
             .filter(item => {
+                // 1. Subscription check
+                if (item.requiredSubscriptionFeature && !hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)) {
+                    return false;
+                }
+
+                // 2. RBAC check
                 // Check exact role requirement
                 if (item.requiredRole && user?.role !== item.requiredRole) {
                     return false;
@@ -37,12 +42,10 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 // No permission requirement = always visible
                 if (!item.requiredPermission && !item.requiredAnyPermission) return true;
 
-                // Check single permission
                 if (item.requiredPermission) {
                     return hasPermission(item.requiredPermission);
                 }
 
-                // Check any of multiple permissions
                 if (item.requiredAnyPermission) {
                     return hasAnyPermission(...item.requiredAnyPermission);
                 }

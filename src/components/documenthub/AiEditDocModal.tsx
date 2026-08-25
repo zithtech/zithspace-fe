@@ -12,6 +12,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { documentHubService as DocumentHubService } from "@/services/documentHub";
+import { useAuth } from "@/context/AuthContext";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -251,6 +252,9 @@ export const AiEditDocModal: React.FC<AiEditDocModalProps> = ({
   editor,
   onApplied,
 }) => {
+  const { user } = useAuth();
+  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_document_hub_documenthub_prime');
+
   const [step, setStep] = useState<Step>("input");
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<ApplyMode>("replace");
@@ -355,6 +359,8 @@ export const AiEditDocModal: React.FC<AiEditDocModalProps> = ({
     }
   };
 
+  if (!hasPrime) return null;
+
   return (
     <>
       {contextHolder}
@@ -369,7 +375,7 @@ export const AiEditDocModal: React.FC<AiEditDocModalProps> = ({
         centered
         closable={step !== "generating"}
         maskClosable={step !== "generating"}
-        destroyOnClose
+        destroyOnHidden
         styles={{
           mask: { backdropFilter: "blur(6px)", background: "rgba(15, 23, 42, 0.45)" },
           content: { borderRadius: 18, padding: 0, overflow: "hidden" },

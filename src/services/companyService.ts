@@ -19,7 +19,7 @@ export class CompanyService {
       );
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch companies");
     }
@@ -33,7 +33,7 @@ export class CompanyService {
       return await api.get<Company>(`/api/companies/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to fetch company");
     }
@@ -62,7 +62,7 @@ export class CompanyService {
       return await api.post<Company>("/api/companies", data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to create company");
     }
@@ -76,7 +76,7 @@ export class CompanyService {
       return await api.put<Company>(`/api/companies/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to update company");
     }
@@ -90,7 +90,7 @@ export class CompanyService {
       await api.patch(`/api/companies/${id}/active`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error("Failed to set company as active");
     }
@@ -105,7 +105,7 @@ static async delete(id: number): Promise<void> {
     await api.delete(`/api/companies/${id}`);
   } catch (error) {
     if (error instanceof ApiError) {
-      throw new Error(error.message);
+      throw error;
     }
     throw new Error("Failed to delete company");
   }

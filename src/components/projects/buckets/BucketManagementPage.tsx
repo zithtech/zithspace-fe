@@ -67,7 +67,7 @@ import {
 import { CreateBucketModal } from "./CreateBucketModal";
 import { MoveToSprintAction } from "./MoveToSprintAction";
 import { BucketManageInlinePanel } from "./BucketManageInlinePanel";
-import type { Bucket } from "@/services/bucketService";
+import BucketService, { type Bucket } from "@/services/bucketService";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
@@ -214,13 +214,15 @@ export default function BucketManagementPage() {
   const [expandedBucketId, setExpandedBucketId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [tableBuckets, setTableBuckets] = useState<Bucket[]>([]);
+  const [totalTableBuckets, setTotalTableBuckets] = useState(0);
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // ── Data ─────────────────────────────────────────────────────────
   const { data: projects } = useUserProjects();
   const { data: bucketsData, isLoading, refetch } = useBuckets(undefined);
-  const allBuckets = bucketsData || [];
+  const allBuckets: Bucket[] = bucketsData || [];
 
   const deleteBucket = useDeleteBucket();
   const moveBucketToSprint = useMoveBucketToSprint();
@@ -318,10 +320,29 @@ export default function BucketManagementPage() {
     setCurrentPage(1);
   }, [visibilityFilter, selectedProjectKey, sizeFilter, searchQuery, ownerFilter, dateRange]);
 
-  const pagedBuckets = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredBuckets.slice(start, start + pageSize);
-  }, [filteredBuckets, currentPage, pageSize]);
+  const loadTableData = async () => {
+    try {
+      const pId = selectedProjectKey === "all" ? undefined : selectedProjectKey === "cross-project" ? "null" : (selectedProjectKey || undefined);
+      const data = await BucketService.getBuckets(pId, {
+        page: currentPage,
+        limit: pageSize,
+        search: searchQuery || undefined,
+        visibility: visibilityFilter !== "all" ? visibilityFilter : undefined,
+        size: sizeFilter !== "all" ? sizeFilter : undefined,
+        owner: ownerFilter !== "all" ? ownerFilter : undefined,
+        startDate: dateRange?.[0] ? dateRange[0].toISOString() : undefined,
+        endDate: dateRange?.[1] ? dateRange[1].toISOString() : undefined
+      });
+      setTableBuckets(data?.data || []);
+      setTotalTableBuckets(data?.pagination?.total || 0);
+    } catch (error) {
+      console.error("Failed to load table buckets", error);
+    }
+  };
+
+  useEffect(() => {
+    loadTableData();
+  }, [currentPage, pageSize, visibilityFilter, selectedProjectKey, sizeFilter, searchQuery, ownerFilter, dateRange]);
 
   const metrics = useMemo(() => {
     return {
@@ -400,8 +421,11 @@ export default function BucketManagementPage() {
   const handleDelete = async (bucketId: string) => {
     try {
       await deleteBucket.mutateAsync(bucketId);
+      message.success("Deleted successfully");
+      loadTableData();
     } catch (e) {
       console.error("Error deleting bucket:", e);
+      message.error("Failed to delete bucket");
     }
   };
   const handleView = (bucketId: string) => router.push(`/tickets/buckets/${bucketId}`);
@@ -412,10 +436,11 @@ export default function BucketManagementPage() {
   const handleModalSuccess = () => {
     handleModalClose();
     refetch();
+    loadTableData();
   };
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), loadTableData()]);
     setTimeout(() => setIsRefreshing(false), 500);
     message.success("Success, buckets refreshed");
   };
@@ -684,7 +709,7 @@ export default function BucketManagementPage() {
       <div className="bh2-table-shell">
         <Table
           columns={columns}
-          dataSource={pagedBuckets}
+          dataSource={tableBuckets}
           rowKey="id"
           pagination={false}
           scroll={{ x: 800 }}
@@ -1097,9 +1122,15 @@ export default function BucketManagementPage() {
 
             {/* List or Cards */}
             <div className="bh2-main-body">
-            {viewMode === "list" ? renderTable() : (
+            {viewMode === "list" ? (
+              (isLoading || isRefreshing) ? (
+                <div style={{ padding: "24px" }}>
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                </div>
+              ) : renderTable()
+            ) : (
               <div className="bh2-list">
-                {isLoading ? (
+                {(isLoading || isRefreshing) ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="bh2-list-card bh2-list-card-skel">
                       <Skeleton active avatar paragraph={{ rows: 2 }} />
@@ -1147,7 +1178,7 @@ export default function BucketManagementPage() {
                     )}
                   </div>
                 ) : (
-                  pagedBuckets.map((bucket) => {
+                  tableBuckets.map((bucket) => {
                     const accent = bucket.color || PALETTE_FALLBACK;
                     const ticketCount = bucket._count?.tickets || 0;
                     const memberCount = bucket._count?.members || bucket.members?.length || 0;
@@ -1502,17 +1533,17 @@ export default function BucketManagementPage() {
             )}
             </div>
 
-            {!isLoading && filteredBuckets.length > 0 && (
+            {!isLoading && !isRefreshing && tableBuckets.length > 0 && (
               <div className="bh2-main-foot">
                 <Text style={{ fontSize: 13, color: 'var(--text-slate-500)' }}>
                   Showing <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>
-                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredBuckets.length)}
-                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{filteredBuckets.length}</span> bucket{filteredBuckets.length !== 1 ? 's' : ''}
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalTableBuckets)}
+                  </span> of <span style={{ color: 'var(--text-slate-700)', fontWeight: 700 }}>{totalTableBuckets}</span> bucket{totalTableBuckets !== 1 ? 's' : ''}
                 </Text>
                 <Pagination
                   current={currentPage}
                   pageSize={pageSize}
-                  total={filteredBuckets.length}
+                  total={totalTableBuckets}
                   onChange={(p, s) => {
                     setCurrentPage(p);
                     setPageSize(s);

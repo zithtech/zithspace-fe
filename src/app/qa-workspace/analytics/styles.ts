@@ -61,7 +61,8 @@ export const ANALYTICS_STYLES = `
 .qa-tip__value { color: var(--text-slate-900); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* Key/value panel, for figures that are numbers rather than a shape. */
-.qa-kv { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+.qa-kv { display: flex; flex-direction: column; height: 100%; overflow-y: auto; scrollbar-width: none; }
+.qa-kv::-webkit-scrollbar { display: none; }
 .qa-kv__row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 7px 0; border-bottom: 1px solid var(--border-slate-100); font-size: 12.5px;
@@ -70,5 +71,7 @@ export const ANALYTICS_STYLES = `
 .qa-kv__row span { color: var(--text-slate-600); }
 .qa-kv__row strong { color: var(--text-slate-900); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.qa-chart .sc-table .ant-table-thead > tr > th { background: transparent !important; }
+.qa-chart .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
+        .sc-table .ant-table-thead > tr > th { background: transparent !important; }
 `;

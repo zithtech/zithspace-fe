@@ -75,13 +75,19 @@ export interface BugListItem {
   ticketStatus?: string | null;
   isRecurring?: boolean;
   ticketHistory?: { ticketId: string; ticketNumber: string; status: string; timestamp: string }[];
+  linearIssueId?: string | null;
+  linearIssueUrl?: string | null;
+  linearIssueIdentifier?: string | null;
+  jiraIssueId?: string | null;
+  jiraIssueUrl?: string | null;
+  jiraIssueKey?: string | null;
   /** Set when the bug was raised from a QA test run. */
   testCaseId?: string | null;
   testCaseRef?: string | null;
   assigneeId?: string | null;
   assignee?: { id: string; name: string; workEmail: string; avatarUrl?: string } | null;
   createdById: string;
-  createdBy?: { id: string; name: string; workEmail: string };
+  createdBy?: { id: string; name: string; workEmail: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -218,7 +224,10 @@ export interface BugConfigUpdateInput {
 export interface ConvertedTicket {
   ticketId: string;
   ticketNumber: string;
+  status: string;
+  timestamp: string;
   bugIds: string[];
+  url?: string;
 }
 
 class BugListService {

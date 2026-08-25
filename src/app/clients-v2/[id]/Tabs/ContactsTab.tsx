@@ -407,6 +407,8 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
             icon={<Users size={20} color="#3b82f6" />}
             title="Points of Contact"
             description="Manage multiple client representatives and communication details"
+            onRefresh={onRefresh}
+            refreshing={loading}
             extra={
               canUpdateClient && (
                 <Button

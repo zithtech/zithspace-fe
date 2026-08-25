@@ -118,7 +118,7 @@ export default function DashboardTab() {
   };
 
   const { fromDate, toDate } = getWeekRange();
-  const { data, isLoading } = useTimesheets({
+  const { data, isLoading, refetch, isFetching } = useTimesheets({
     page: 1,
     limit: 1000,
     fromDate,
@@ -192,6 +192,8 @@ export default function DashboardTab() {
         icon={<LayoutDashboard size={20} color="#0ea5e9" />}
         title="Timesheet Dashboard"
         description="Weekly activity and timesheet status overview"
+        onRefresh={refetch}
+        refreshing={isFetching}
         extra={
           <Space size={12}>
             <Select
@@ -205,13 +207,6 @@ export default function DashboardTab() {
                 { label: "Last Week", value: "lastWeek" },
               ]}
             />
-            <Tooltip title="Refresh">
-              <Button
-                style={{ borderRadius: 8, height: 38, display: "flex", alignItems: "center", justifyContent: "center" }}
-                icon={<RefreshCw size={18} />}
-                onClick={() => window.location.reload()}
-              />
-            </Tooltip>
           </Space>
         }
       />

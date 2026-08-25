@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export interface Department {
   id: string;
@@ -30,8 +30,11 @@ export interface UpdateDepartmentData extends Partial<CreateDepartmentData> {}
 const API_URL = "/api/departments";
 
 export const DepartmentService = {
-  getAll: async (): Promise<Department[]> => {
-    const response = await api.get<any>(API_URL);
+  getAll: async (filters?: any): Promise<any> => {
+    if (filters?.limit) {
+      return await apiUtils.getPaginated<Department>(API_URL, filters);
+    }
+    const response = await api.get<any>(API_URL, { params: filters });
     return response.data?.data || response.data || response;
   },
 

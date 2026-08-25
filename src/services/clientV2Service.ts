@@ -86,7 +86,7 @@ export class ClientV2Service {
       return await apiUtils.getPaginated<ClientV2>('/api/clients-v2', filters);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch clients');
     }
@@ -100,7 +100,7 @@ export class ClientV2Service {
       return await api.get<ClientV2>(`/api/clients-v2/${id}`);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to fetch client');
     }
@@ -114,7 +114,7 @@ export class ClientV2Service {
       return await api.post<ClientV2>('/api/clients-v2', data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to create client');
     }
@@ -128,7 +128,7 @@ export class ClientV2Service {
       return await api.put<ClientV2>(`/api/clients-v2/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
-        throw new Error(error.message);
+        throw error;
       }
       throw new Error('Failed to update client');
     }

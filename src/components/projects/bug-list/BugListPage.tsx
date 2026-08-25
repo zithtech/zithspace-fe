@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   X,
   RotateCcw,
+  RotateCw,
   FolderTree,
   Bug as BugIcon,
   Ticket as TicketIcon,
@@ -32,16 +33,15 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   Folder,
   Layers,
   CircleDot,
   AlertTriangle,
   Tag,
-  Box,
   Calendar,
   CalendarDays,
   ChevronDown,
+  CornerUpRight,
   Briefcase,
   List,
   Menu,
@@ -55,9 +55,9 @@ import ArchiveView from "./ArchiveView";
 import TrashView from "./TrashView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
-import AiReviewModal from "./AiReviewModal";
-import BulkTicketModal from "./BulkTicketModal";
+import CreateTicketWizard from "./CreateTicketWizard";
 import BugCalendarView from "./BugCalendarView";
+
 import {
   useBugFolders,
   useBugSheets,
@@ -185,12 +185,13 @@ export default function BugListPage() {
 
   const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
+  const [creationTargetOpen, setCreationTargetOpen] = useState(false);
+
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: projects, isLoading: projectsLoading } = useAllProjects();
@@ -285,6 +286,42 @@ export default function BugListPage() {
     return res;
   }, [sheets, projectSheets, archivedSheets, trashedSheets]);
 
+  /** Rich rows for the bulk-bar "Move to sheet" picker: sheet, its folder,
+   *  how many bugs already live there and when it last changed. */
+  const moveSheetOptions = useMemo(
+    () =>
+      (projectSheets || [])
+        .filter((s) => s.id !== selectedSheetId)
+        .map((s) => {
+          const bugCount = s._count?.bugs ?? 0;
+          return {
+            value: s.id,
+            label: s.name,
+            description: s.folderName || "Ungrouped",
+            badge: (
+              <span className="hb-move-badge">
+                <Layers size={14} />
+              </span>
+            ),
+            meta: (
+              <span className="hb-move-meta">
+                {s.status && s.status !== "active" && (
+                  <span className={`hb-move-status is-${s.status}`}>{s.status}</span>
+                )}
+                <span className="hb-move-count">
+                  <BugIcon size={10} />
+                  {bugCount}
+                </span>
+                {s.updatedAt && (
+                  <span className="hb-move-when">{dayjs(s.updatedAt).format("MMM D")}</span>
+                )}
+              </span>
+            ),
+          };
+        }),
+    [projectSheets, selectedSheetId]
+  );
+
   const workspaceStats = {
     totalFolders: folders?.length || 0,
     totalSheets: projectSheets?.length || 0,
@@ -294,8 +331,8 @@ export default function BugListPage() {
     linked: stats?.linked || 0,
   };
   const filterSheets = sheets?.filter(s => s.name.toLowerCase().includes(filters.search.toLowerCase())) || [];
-  const showWorkspaceStats = scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
-  const isViewingBugs = selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs");
+  const showWorkspaceStats = !!selectedProjectId && scope !== "archived" && scope !== "trash" && (folders?.length || 0) > 0;
+  const isViewingBugs = !!selectedProjectId && (selectedSheetId || (scope !== "archived" && scope !== "trash") || (subScope === "bugs"));
 
   const isSelectedFolderArchived = useMemo(() => {
     return !!selectedFolderId && !!archivedFolders?.some(f => f.id === selectedFolderId);
@@ -341,7 +378,7 @@ export default function BugListPage() {
     [scope, selectedFolderId, selectedSheetId, selectedProjectId, filters, page, limit]
   );
 
-  const { data: bugsResponse, isLoading, isFetching } = useBugs(queryFilters);
+  const { data: bugsResponse, isLoading, isFetching, refetch } = useBugs(queryFilters);
 
   const createBug = useCreateBug();
   const updateBug = useUpdateBug();
@@ -753,7 +790,21 @@ export default function BugListPage() {
                   </div>
                   <div className="hb-project-trigger-header">
                     <span className="hb-project-trigger-hint">Switch Project</span>
-                    <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    {selectedProjectId ? (
+                      <X 
+                        size={12} 
+                        className="hb-project-hint-arrow" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProjectId(null);
+                          setSelectedFolderId(null);
+                          setSelectedSheetId(null);
+                        }}
+                        style={{ cursor: 'pointer', zIndex: 10 }}
+                      />
+                    ) : (
+                      <ChevronRight size={8} className="hb-project-hint-arrow" />
+                    )}
                   </div>
                 </div>
               </Dropdown>
@@ -840,6 +891,17 @@ export default function BugListPage() {
                   <CalendarDays size={15} />
                 </button>
               </div>
+
+              <button
+                type="button"
+                className="hb-btn hb-btn-ghost hb-refresh-btn"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                title="Refresh"
+                style={{ width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 32 }}
+              >
+                <RotateCw size={14} className={isFetching ? "animate-spin" : ""} />
+              </button>
 
               <button
                 className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""
@@ -1215,47 +1277,54 @@ export default function BugListPage() {
                 </>
               ) : (
                 <>
-                  <Select
-                    placeholder="Move to Sheet"
-                    size="small"
-                    className="hb-bulk-move-select"
-                    popupClassName="hb-bulk-move-popup"
-                    suffixIcon={<ChevronDown size={12} />}
-                    style={{ width: 160 }}
+                  <SearchableDropdown
                     value={null}
-                    loading={bulkMoveBugs.isPending}
                     onChange={(targetSheetId) => {
                       if (!targetSheetId) return;
                       bulkMoveBugs.mutate(
                         {
                           bugIds: Array.from(selectedIds),
-                          targetSheetId
+                          targetSheetId,
                         },
                         {
                           onSuccess: () => {
                             setSelectedIds(new Set());
-                          }
+                          },
                         }
                       );
                     }}
-                    options={(projectSheets || [])
-                      .filter(s => s.id !== selectedSheetId)
-                      .map(s => ({
-                        value: s.id,
-                        label: (
-                          <div className="hb-move-option">
-                            <Box size={12} className="hb-move-icon" />
-                            <div className="hb-move-info">
-                              <div className="hb-move-name">{s.name}</div>
-                              <div className="hb-move-folder">{s.folderName}</div>
-                            </div>
-                          </div>
-                        )
-                      }))}
+                    options={moveSheetOptions}
+                    loading={bulkMoveBugs.isPending}
+                    disabled={bulkMoveBugs.isPending}
+                    searchPlaceholder="Search sheets or folders…"
+                    itemNoun="sheets"
+                    allowClear={false}
+                    overlayClassName="hb-move-pop"
+                    onOpenChange={setMoveMenuOpen}
+                    emptyComponent={
+                      <div className="hb-move-empty">
+                        <Layers size={18} />
+                        <div className="hb-move-empty-title">No other sheet to move into</div>
+                        <div className="hb-move-empty-sub">
+                          Create another sheet in this project first.
+                        </div>
+                      </div>
+                    }
+                    customTrigger={
+                      <button
+                        type="button"
+                        className={`hb-btn hb-move-trigger ${moveMenuOpen ? "is-open" : ""}`}
+                        disabled={bulkMoveBugs.isPending}
+                      >
+                        <CornerUpRight size={13} />
+                        {bulkMoveBugs.isPending ? "Moving…" : "Move to sheet"}
+                        <ChevronDown size={12} className="hb-move-trigger-caret" />
+                      </button>
+                    }
                   />
                   <button
                     className="hb-btn hb-btn-primary"
-                    onClick={() => setBulkTicketOpen(true)}
+                    onClick={() => setCreationTargetOpen(true)}
                   >
                     <Sparkles size={13} />
                     Create ticket{selectedIds.size === 1 ? "" : "s"}
@@ -1448,7 +1517,7 @@ export default function BugListPage() {
                     }}
                     onCreateTicket={(bug) => {
                       setSelectedIds(new Set([bug.id]));
-                      setBulkTicketOpen(true);
+                      setCreationTargetOpen(true);
                     }}
                     onVerify={(bug) => {
                       verifyBug.mutate(bug.id);
@@ -1565,22 +1634,25 @@ export default function BugListPage() {
         }}
       />
 
-      <AiReviewModal
-        open={aiOpen}
-        onClose={() => setAiOpen(false)}
+      <CreateTicketWizard
+        open={creationTargetOpen}
+        onClose={() => setCreationTargetOpen(false)}
         bugs={selectedBugs}
-      />
-
-      <BulkTicketModal
-        open={bulkTicketOpen}
-        bugs={selectedBugs}
-        prefilledProjectId={prefilledProjectId}
-        onClose={() => setBulkTicketOpen(false)}
-        onPickAi={() => {
-          setBulkTicketOpen(false);
-          setAiOpen(true);
+        count={selectedIds.size}
+        bugIds={Array.from(selectedIds)}
+        prefilledProjectId={selectedProjectId || undefined}
+        onManageIntegrations={() => {
+          setCreationTargetOpen(false);
+          router.push("/integrations");
+        }}
+        onLinearSuccess={() => {
+          setCreationTargetOpen(false);
+          setSelectedIds(new Set());
+          refetch();
         }}
       />
+
+
     </div>
   );
 }

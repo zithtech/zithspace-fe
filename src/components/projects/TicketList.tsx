@@ -79,7 +79,7 @@ import {
   PlayCircleOutlined,
   MessageOutlined,
   PaperClipOutlined,
-  WarningOutlined,
+  WarningOutlined, CloudSyncOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -115,6 +115,9 @@ import { commonDrawerProps, drawerFormStyles } from '@/components/common/DrawerS
 import { ManualCreateTicketModal } from "./ManualCreateTicketModal";
 import { AiCreateTicketModal } from "./AiCreateTicketModal";
 import TicketSkeleton from "./TicketSkeleton";
+import JiraMigrationWizard from "../jira/JiraMigrationWizard";
+import LinearMigrationWizard from "../linear/LinearMigrationWizard";
+import { api } from "@/lib/axios";
 import TicketSidebar from "./TicketSidebar";
 import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
@@ -246,6 +249,33 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(TICKETS_DEFAULT_HIDDEN_COLS);
   const [tablePrefsLoaded, setTablePrefsLoaded] = useState(false);
   const tablePrefsSaveTimer = useRef<number | null>(null);
+
+  const [jiraWizardVisible, setJiraWizardVisible] = useState(false);
+  const [linearWizardVisible, setLinearWizardVisible] = useState(false);
+  const { data: jiraStatus } = useQuery({
+    queryKey: ["jiraStatus"],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/integrations/jira/status');
+        return res; // api.get already unwraps response.data.data
+      } catch (err) {
+        return null;
+      }
+    }
+  });
+  const jiraConnected = !!jiraStatus?.connected;
+  const { data: linearStatus } = useQuery({
+    queryKey: ["linearStatus"],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/integrations/linear/status');
+        return res; 
+      } catch (err) {
+        return null;
+      }
+    }
+  });
+  const linearConnected = !!linearStatus?.connected;
 
   useEffect(() => {
     let cancelled = false;
@@ -4108,6 +4138,42 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   />
                 </Tooltip>
+                
+                {(linearConnected || jiraConnected) && (
+                  <Dropdown
+                    menu={{
+                      items: [
+                        ...(linearConnected ? [{
+                          key: 'linear',
+                          label: 'Import from Linear',
+                          icon: <span style={{ fontSize: 13 }}>◆</span>,
+                          onClick: () => setLinearWizardVisible(true)
+                        }] : []),
+                        ...(jiraConnected ? [{
+                          key: 'jira',
+                          label: 'Import from Jira',
+                          icon: <span style={{ fontSize: 13 }}>⬡</span>,
+                          onClick: () => setJiraWizardVisible(true)
+                        }] : []),
+                      ],
+                      style: { padding: 4, borderRadius: 10, border: '1px solid var(--border-color)', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }
+                    }}
+                    trigger={['hover', 'click']}
+                    placement="bottomRight"
+                  >
+                    <Tooltip title="Import tickets">
+                      <Button
+                        icon={<CloudSyncOutlined />}
+                        style={{
+                          width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-elevated)',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      />
+                    </Tooltip>
+                  </Dropdown>
+                )}
                 {canCreateTicket && (
                   <Dropdown
                     menu={{
@@ -6200,6 +6266,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         .tl-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
         .tl-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
       `}</style>
+      
+      {/* Jira Migration Wizard Drawer */}
+      <JiraMigrationWizard visible={jiraWizardVisible} onClose={() => setJiraWizardVisible(false)} />
+      <LinearMigrationWizard visible={linearWizardVisible} onClose={() => setLinearWizardVisible(false)} />
     </div>
   );
 }

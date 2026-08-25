@@ -44,7 +44,7 @@ interface Props {
   /** Render as a wizard step body — no Modal of its own. */
   embedded?: boolean;
   bugs: BugListItem[];
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
 }
 
 interface EditableGroup {
@@ -587,7 +587,7 @@ function GroupStep({
   members: { value: string; label: string }[];
   onUpdate: (idx: number, p: Partial<EditableGroup>) => void;
   onRemove: (idx: number) => void;
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
   linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
   linearUsers?: { id: string; name: string; email: string }[];
   linearLabels?: { id: string; name: string; color: string }[];
@@ -647,7 +647,7 @@ function GroupCard({
   members: { value: string; label: string }[];
   onUpdate: (patch: Partial<EditableGroup>) => void;
   onRemove: () => void;
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
   linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
   linearUsers?: { id: string; name: string; email: string }[];
   linearLabels?: { id: string; name: string; color: string }[];

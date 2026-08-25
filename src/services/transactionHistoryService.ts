@@ -79,6 +79,7 @@ export interface TransactionHistoryFilters {
   pages: { module: string; page: string }[];
   actions: string[];
   entityTypes: string[];
+  pageActions?: { page: string; action: string }[];
 }
 
 export const TransactionHistoryService = {

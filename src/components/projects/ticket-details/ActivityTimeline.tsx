@@ -184,10 +184,45 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                     {Object.entries(details).map(([key, value]: [string, any], idx) => {
                         if (key === 'changes') return null;
                         if (key === 'status' && action === 'Ticket Created') return null;
+                        // Format Jira changelog items beautifully
+                        if (key === 'items' && Array.isArray(value)) {
+                            return (
+                                <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                    {value.map((item: any, i: number) => {
+                                        // Hide bulky text for description changes
+                                        if (item.field?.toLowerCase() === 'description') {
+                                            return (
+                                                <div key={i} style={{ marginBottom: 4 }}>
+                                                    Updated <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{item.field}</span>
+                                                </div>
+                                            );
+                                        }
+
+                                        const cleanStr = (str: any) => typeof str === 'string' ? str.replace(/\\n|\n|\r/g, ' ').trim() : String(str || '');
+                                        const fromStr = item.fromString ? cleanStr(item.fromString) : '';
+                                        const toStr = item.toString ? cleanStr(item.toString) : '';
+
+                                        const fromText = fromStr ? ` from "${fromStr.length > 50 ? fromStr.substring(0, 50) + '...' : fromStr}"` : '';
+                                        const toText = toStr ? ` to "${toStr.length > 50 ? toStr.substring(0, 50) + '...' : toStr}"` : ' (cleared)';
+                                        
+                                        return (
+                                            <div key={i} style={{ marginBottom: 4 }}>
+                                                Updated <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{item.field}</span>
+                                                {fromText}
+                                                {toText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        }
+
                         return (
                             <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                                 <span style={{ textTransform: 'capitalize' }}>{key}</span>:{' '}
-                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{String(value)}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                    {typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}
+                                </span>
                             </div>
                         );
                     })}

@@ -33,7 +33,6 @@ import {
 type SoonDest = { key: string; name: string; tagline: string; logo: React.ReactNode };
 
 const SOON_DESTINATIONS: SoonDest[] = [
-  { key: "jira", name: "Jira", tagline: "Issues & epics", logo: <JiraMark /> },
   { key: "github", name: "GitHub", tagline: "Repo issues", logo: <GithubMark /> },
   { key: "slack", name: "Slack", tagline: "Channel digest", logo: <SlackMark /> },
   { key: "azure", name: "Azure DevOps", tagline: "Work items", logo: <AzureMark /> },
@@ -47,9 +46,11 @@ export interface DestinationStepProps {
   /** How many bugs are queued up. */
   count: number;
   /** Advance to the method step with the chosen destination. */
-  onPick: (destination: "zukvo" | "linear") => void;
+  onPick: (destination: "zukvo" | "linear" | "jira") => void;
   /** Jump straight to AI drafting for a destination. */
-  onPickAi: (destination: "zukvo" | "linear") => void;
+  onPickAi: (destination: "zukvo" | "linear" | "jira") => void;
+  linearConnected?: boolean;
+  jiraConnected?: boolean;
   onClose: () => void;
   onManageIntegrations?: () => void;
 }
@@ -60,6 +61,8 @@ export default function DestinationStep({
   onPickAi,
   onClose,
   onManageIntegrations,
+  linearConnected,
+  jiraConnected,
 }: DestinationStepProps) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -72,6 +75,7 @@ export default function DestinationStep({
     const all = [
       { key: "zukvo", hay: "zukvo tickets native workspace" },
       { key: "linear", hay: "linear issues sync team project" },
+      { key: "jira", hay: "jira issues sync epics team project" },
     ];
     return new Set(all.filter((d) => !q || d.hay.includes(q)).map((d) => d.key));
   }, [q]);
@@ -86,9 +90,10 @@ export default function DestinationStep({
 
   const zukvoVisible = showConnected && connected.has("zukvo");
   const linearVisible = showConnected && connected.has("linear");
+  const jiraVisible = showConnected && connected.has("jira");
   const soonVisible = showSoon && soon.length > 0;
-  const nothing = !zukvoVisible && !linearVisible && !soonVisible;
-  const connectedCount = (zukvoVisible ? 1 : 0) + (linearVisible ? 1 : 0);
+  const nothing = !zukvoVisible && !linearVisible && !jiraVisible && !soonVisible;
+  const connectedCount = (zukvoVisible ? 1 : 0) + (linearVisible ? 1 : 0) + (jiraVisible ? 1 : 0);
 
   const bugLabel = `${count} bug${count === 1 ? "" : "s"}`;
 
@@ -173,21 +178,43 @@ export default function DestinationStep({
               )}
 
               {linearVisible && (
-                <TicketFlowCard
-                  mark={<LinearMark size={22} />}
-                  plate
-                  tone="blue"
-                  badge={{ label: "Connected", tone: "ok", dot: true }}
-                  name="Linear"
-                  sub="Push issues straight into your connected Linear workspace and keep both sides in step."
-                  feats={[
-                    "Map to Teams & Projects",
-                    "Two-way status sync",
-                    "Labels & priority mapping",
-                  ]}
-                  cta="Continue to Linear"
-                  onClick={() => onPick("linear")}
-                />
+                <div title={linearConnected ? undefined : "Please connect Linear first to create a ticket."}>
+                  <TicketFlowCard
+                    mark={<LinearMark size={22} />}
+                    plate
+                    tone="blue"
+                    badge={linearConnected ? { label: "Connected", tone: "ok", dot: true } : { label: "Not Connected", tone: "muted" }}
+                    name="Linear"
+                    sub="Push issues straight into your connected Linear workspace and keep both sides in step."
+                    feats={[
+                      "Map to Teams & Projects",
+                      "Two-way status sync",
+                      "Labels & priority mapping",
+                    ]}
+                    cta={linearConnected ? "Continue to Linear" : "Connect Linear"}
+                    onClick={() => linearConnected ? onPick("linear") : onManageIntegrations?.()}
+                  />
+                </div>
+              )}
+
+              {jiraVisible && (
+                <div title={jiraConnected ? undefined : "Please connect Jira first to create a ticket."}>
+                  <TicketFlowCard
+                    mark={<JiraMark size={22} />}
+                    plate
+                    tone="blue"
+                    badge={jiraConnected ? { label: "Connected", tone: "ok", dot: true } : { label: "Not Connected", tone: "muted" }}
+                    name="Jira"
+                    sub="Push issues straight into your connected Jira workspace and keep both sides in step."
+                    feats={[
+                      "Map to Projects & Issues",
+                      "Two-way status sync",
+                      "Attachments & priority mapping",
+                    ]}
+                    cta={jiraConnected ? "Continue to Jira" : "Connect Jira"}
+                    onClick={() => jiraConnected ? onPick("jira") : onManageIntegrations?.()}
+                  />
+                </div>
               )}
             </div>
 
@@ -202,9 +229,13 @@ export default function DestinationStep({
                     <ZukvoLogo size={13} />
                     Draft in Zukvo
                   </button>
-                  <button className="tf-quick-btn" onClick={() => onPickAi("linear")}>
+                  <button className="tf-quick-btn" onClick={() => { if(linearConnected) onPickAi("linear"); }} disabled={!linearConnected} title={linearConnected ? undefined : "Connect Linear first"}>
                     <LinearMark size={13} />
                     Draft in Linear
+                  </button>
+                  <button className="tf-quick-btn" onClick={() => { if(jiraConnected) onPickAi("jira"); }} disabled={!jiraConnected} title={jiraConnected ? undefined : "Connect Jira first"}>
+                    <JiraMark size={13} />
+                    Draft in Jira
                   </button>
                 </div>
               </div>

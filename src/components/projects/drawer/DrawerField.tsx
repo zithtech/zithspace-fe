@@ -86,6 +86,9 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                     :global(.drawer-field.table-variant .ant-typography) {
                         margin-bottom: 0 !important;
                     }
+                    :global(.ant-col:last-child > .drawer-field.table-variant) {
+                        border-bottom: none !important;
+                    }
                 `}</style>
             </div>
         );

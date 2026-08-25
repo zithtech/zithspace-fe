@@ -444,7 +444,7 @@ export function ModePicker({
   hasGrid?: boolean;
   hideMap?: boolean;
   /** Which destination this batch is headed to — drives the logo and copy. */
-  brand?: "zukvo" | "linear";
+  brand?: "zukvo" | "linear" | "jira";
 }) {
   const isLinear = brand === "linear";
 

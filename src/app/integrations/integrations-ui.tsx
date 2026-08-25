@@ -9,7 +9,7 @@
  */
 
 import React from "react";
-import { Check, Plug, RefreshCw, Repeat2, Unplug, Users } from "lucide-react";
+import { Check, Plug, RefreshCw, Repeat2, Unplug, Users, ArrowRightLeft } from "lucide-react";
 
 /* ────────────────────────── Brand marks ────────────────────────── */
 
@@ -66,8 +66,11 @@ export interface IntegrationCardProps {
   busy?: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
+  /** Optional migration action shown when connected */
+  onMigrate?: () => void;
   disabled?: boolean;
   disabledReason?: string;
+ 
 }
 
 export function IntegrationCard({
@@ -81,8 +84,10 @@ export function IntegrationCard({
   busy,
   onConnect,
   onDisconnect,
+  onMigrate,
   disabled,
   disabledReason,
+
 }: IntegrationCardProps) {
   const connected = state === "connected";
 
@@ -135,15 +140,28 @@ export function IntegrationCard({
               <Check size={12} />
               Active
             </span>
-            <button
-              className="intg-btn is-danger"
-              onClick={onDisconnect}
-              disabled={busy}
-              title={`Disconnect ${name}`}
-            >
-              <Unplug size={13} />
-              {busy ? "Working…" : "Disconnect"}
-            </button>
+            <span style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>
+              {onMigrate && (
+                <button
+                  className="intg-btn is-migrate"
+                  onClick={onMigrate}
+                  disabled={busy}
+                  title={`Start ${name} migration`}
+                >
+                  <ArrowRightLeft size={13} />
+                  Start Migration
+                </button>
+              )}
+              <button
+                className="intg-btn is-danger"
+                onClick={onDisconnect}
+                disabled={busy}
+                title={`Disconnect ${name}`}
+              >
+                <Unplug size={13} />
+                {busy ? "Working…" : "Disconnect"}
+              </button>
+            </span>
           </>
         ) : (
           <>
@@ -543,7 +561,8 @@ export const integrationStyles = `
 
 .intg-card-foot {
   position: relative;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex-wrap: wrap; row-gap: 6px;
   margin-top: auto; padding-top: 9px;
   border-top: 1px solid var(--i-border);
 }
@@ -554,8 +573,8 @@ export const integrationStyles = `
 .intg-hint { font-size: 11px; color: var(--i-text-muted); }
 
 .intg-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 28px; padding: 0 11px;
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 28px; padding: 0 9px;
   border-radius: 8px;
   border: 1px solid var(--i-border-strong);
   background: var(--i-soft);
@@ -571,6 +590,12 @@ export const integrationStyles = `
   background: var(--i-accent); border-color: var(--i-accent); color: #FFFFFF;
 }
 .intg-btn.is-primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--i-accent); }
+.intg-btn.is-migrate {
+  background: rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.35);
+  color: #818cf8;
+}
+.intg-btn.is-migrate:hover:not(:disabled) { background: rgba(99,102,241,0.20); }
 .intg-btn.is-danger {
   background: rgba(239,68,68,0.10);
   border-color: rgba(239,68,68,0.30);

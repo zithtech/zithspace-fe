@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Table, Tag, Drawer, Input, InputNumber, Select, message, Tooltip, Space, Avatar } from 'antd';
@@ -332,7 +333,7 @@ export default function EmployeePaySetupPanel() {
 
       <div className="pvep-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} />
+          <Table rowKey={(r) => r.employee.value} size="small" className="pvep-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvep-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 

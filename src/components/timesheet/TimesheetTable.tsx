@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import {
   Card,
   Typography,
@@ -726,7 +727,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                                                   rowKey="key"
                                                   size="middle"
                                                   pagination={false}
-                                                  scroll={{ x: 'max-content' }}
+                                                  scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
                                                 />
                             </ZukvoLoadingOverlay>
                   </div>
@@ -1032,7 +1033,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet, teamMode, approvalM
                                           pagination={false}
                                           rowKey="id"
                                           size="small"
-                                          bordered={false}
+                                          bordered={false} locale={{ emptyText: <NoData /> }}
                                         />
                           </ZukvoLoadingOverlay>
             </div>

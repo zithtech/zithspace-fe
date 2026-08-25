@@ -815,7 +815,7 @@ export default function InvoiceTemplatePage() {
                     onClick: () =>
                       router.push(`/invoice/newinvoice?templateId=${record.id}`),
                     className: "pp-row",
-                  })}
+                  })} locale={{ emptyText: <NoData /> }}
                 />
               </div>
             )}

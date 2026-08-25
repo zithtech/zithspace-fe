@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import {
   Form,
   Input,
@@ -1079,7 +1081,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             day,
           }))}
           pagination={false}
-          size="small"
+          size="small" locale={{ emptyText: <NoData /> }}
         />
       </Modal>
     </div>

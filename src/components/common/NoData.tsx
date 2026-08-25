@@ -19,11 +19,17 @@ export interface NoDataProps {
  * playfully escaping along a dotted flight path, set against concentric ripples.
  */
 export default function NoData({
-  title = "No Data Found",
-  description = "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+  title,
+  description = "No records available to display at this time.",
   accent = "#6366F1", // A rich indigo/blue that adapts well
   className = "",
 }: NoDataProps) {
+  
+  // If description is a complex React element (from a custom empty state), 
+  // we assume it contains its own title. We omit the default "No Data Found" title.
+  const isComplex = React.isValidElement(description);
+  const displayTitle = title !== undefined ? title : (isComplex ? null : "No Data Found");
+
   return (
     <div className={`nd-wrap ${className}`} style={{ ['--nd-accent' as any]: accent }}>
       <div className="nd-stage">
@@ -117,7 +123,7 @@ export default function NoData({
         </svg>
       </div>
 
-      <div className="nd-title">{title}</div>
+      {displayTitle && <div className="nd-title">{displayTitle}</div>}
       <div className="nd-desc">{description}</div>
 
       <style>{`
@@ -139,6 +145,76 @@ export default function NoData({
         [data-theme='dark'] .nd-wrap,
         html.dark .nd-wrap {
           --nd-border-tint: color-mix(in srgb, var(--text-slate-400) 40%, transparent);
+        }
+
+        /* ── Custom Empty State Overrides ───────────────────────────────── */
+        
+        /* Hide old custom icons (orbs, big svgs, antd empty images) */
+        .nd-desc [class*="empty-orb"],
+        .nd-desc [class*="empty-image"],
+        .nd-desc [class*="empty-icon"],
+        .nd-desc [class*="empty__icon"],
+        .nd-desc .mx-auto > svg,
+        .nd-desc .text-center > svg {
+          display: none !important;
+        }
+
+        /* Reset padding/margins for injected empty state wrappers */
+        .nd-desc [class*="-empty"],
+        .nd-desc .py-10 {
+          padding: 0 !important;
+          margin: 0 !important;
+          background: transparent !important;
+          border: none !important;
+          min-height: auto !important;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Style the injected titles to match nd-title perfectly */
+        .nd-desc [class*="empty-title"],
+        .nd-desc [class*="empty__title"],
+        .nd-desc .text-\\[13px\\].font-semibold {
+          font-size: 20px !important;
+          font-weight: 700 !important;
+          color: var(--text-slate-900, #0f172a) !important;
+          margin: 0 0 12px 0 !important;
+          letter-spacing: -0.01em !important;
+          display: block;
+        }
+        
+        [data-theme='dark'] .nd-desc [class*="empty-title"],
+        html.dark .nd-desc [class*="empty-title"],
+        [data-theme='dark'] .nd-desc [class*="empty__title"],
+        html.dark .nd-desc [class*="empty__title"],
+        [data-theme='dark'] .nd-desc .text-\\[13px\\].font-semibold,
+        html.dark .nd-desc .text-\\[13px\\].font-semibold {
+          color: var(--text-slate-200) !important;
+        }
+
+        /* Style the injected descriptions to match nd-desc perfectly */
+        .nd-desc [class*="empty-sub"],
+        .nd-desc [class*="empty-desc"],
+        .nd-desc [class*="empty__desc"],
+        .nd-desc .text-\\[11\\.5px\\] {
+          font-size: 14px !important;
+          color: var(--text-slate-500, #64748b) !important;
+          max-width: 320px !important;
+          margin: 0 auto 16px auto !important;
+          line-height: 1.5 !important;
+        }
+        
+        [data-theme='dark'] .nd-desc [class*="empty-sub"],
+        html.dark .nd-desc [class*="empty-sub"],
+        [data-theme='dark'] .nd-desc [class*="empty-desc"],
+        html.dark .nd-desc [class*="empty-desc"],
+        [data-theme='dark'] .nd-desc [class*="empty__desc"],
+        html.dark .nd-desc [class*="empty__desc"],
+        [data-theme='dark'] .nd-desc .text-\\[11\\.5px\\],
+        html.dark .nd-desc .text-\\[11\\.5px\\] {
+          color: var(--text-slate-400) !important;
         }
 
         /* ── Ripples ──────────────────────────────────────────────────────── */

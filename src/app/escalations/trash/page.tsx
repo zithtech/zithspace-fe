@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -793,7 +795,7 @@ export default function EscalationTrashPage() {
                                                 pagination={false}
                                                 className="es-table"
                                                 scroll={{ x: 'max-content' }}
-                                                locale={{ emptyText: emptyState }}
+                                                locale={{ emptyText: <NoData description={emptyState} /> }}
                                               />
                               </ZukvoLoadingOverlay>
               </div>
@@ -802,7 +804,7 @@ export default function EscalationTrashPage() {
                 {isViewLoading ? (
                   <div className="es-grid-loading">Loading…</div>
                 ) : filteredEscalations.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                 ) : (
                   pagedEscalations.map((record) => {
                     const title = record.subject || record.short_summary || 'No Subject';

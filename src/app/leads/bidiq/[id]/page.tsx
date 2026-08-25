@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLeads } from "@/hooks/useLeads";
@@ -205,11 +206,7 @@ export default function BidiqIntelligencePage() {
       <ProtectedRoute>
         <MainLayout>
           <div className="biq-page biq-empty">
-            <Empty description="Lead intelligence not found">
-              <Button type="primary" className="biq-primary-btn" onClick={() => router.push("/leads")}>
-                Back to leads
-              </Button>
-            </Empty>
+            <NoData description="Lead intelligence not found" />
             {bidiqStyles}
           </div>
         </MainLayout>
@@ -1319,7 +1316,7 @@ export default function BidiqIntelligencePage() {
                         <Skeleton active paragraph={{ rows: 4 }} />
                       </div>
                     ) : !proposalDetail ? (
-                      <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Proposal not found.</span>} />
+                      <NoData description={<span style={{ color: "var(--text-slate-500)" }}>Proposal not found.</span>} />
                     ) : (
                       <>
                         {/* Summary card */}
@@ -1363,9 +1360,7 @@ export default function BidiqIntelligencePage() {
                               <FileText size={11} /> Sections in this proposal
                             </div>
                             {blocks.length === 0 ? (
-                              <Empty
-                                description={<span style={{ color: "var(--text-slate-500)" }}>No sections yet.</span>}
-                              />
+                              <NoData description={<span style={{ color: "var(--text-slate-500)" }}>No sections yet.</span>} />
                             ) : (
                               <div className="biq-prop-sections-list">
                                 {blocks.map((block: any, idx: number) => {

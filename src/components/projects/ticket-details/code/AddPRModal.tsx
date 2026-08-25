@@ -1,6 +1,4 @@
-
 "use client";
-
 import React from "react";
 import { Modal, Form, Input, Select, Button, message, InputNumber, Space, Row, Col } from "antd";
 import { PlusOutlined } from "@ant-design/icons";

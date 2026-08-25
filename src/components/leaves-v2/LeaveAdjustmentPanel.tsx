@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Form, Input, InputNumber, DatePicker, message, Tooltip, Row, Col, Space, Avatar } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -317,7 +318,7 @@ export default function LeaveAdjustmentPanel() {
 
       <div className="lvadj-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} />
+          <Table rowKey="id" size="small" className="lvadj-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvadj-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 

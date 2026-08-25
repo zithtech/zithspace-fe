@@ -1,5 +1,5 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Form, Select, Tabs, Dropdown } from "antd";
@@ -1704,22 +1704,22 @@ function TestScopeContent() {
                         }}
                         locale={{
                           /* Holding the height beats claiming "no scopes" mid-fetch. */
-                          emptyText: loading ? (
-                            <div style={{ minHeight: 240 }} />
-                          ) : (
-                            <div className="sc-empty">
-                              <SnippetsOutlined className="sc-empty__icon" />
-                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                              <p className="sc-empty__desc">
-                                {activeFilterCount > 0
-                                  ? 'Try widening your search or clearing the filters.'
-                                  : 'Create your first scope to define what gets tested and when it\'s done.'}
-                              </p>
-                              {activeFilterCount > 0
-                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
-                            </div>
-                          )
+                          emptyText: <NoData description={loading ? (
+                                                            <div style={{ minHeight: 240 }} />
+                                                          ) : (
+                                                            <div className="sc-empty">
+                                                              <SnippetsOutlined className="sc-empty__icon" />
+                                                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                                                              <p className="sc-empty__desc">
+                                                                {activeFilterCount > 0
+                                                                  ? 'Try widening your search or clearing the filters.'
+                                                                  : 'Create your first scope to define what gets tested and when it\'s done.'}
+                                                              </p>
+                                                              {activeFilterCount > 0
+                                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                                                            </div>
+                                                          )} />
                         }}
                         onRow={(record) => ({
                           onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
@@ -1729,15 +1729,19 @@ function TestScopeContent() {
                   ) : (
                     <div className="pp-grid">
                       {loading ? null : scopes.length === 0 ? (
-                        <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                          <SnippetsOutlined className="sc-empty__icon" />
-                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                          <p className="sc-empty__desc">
-                            {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
-                          </p>
-                          {activeFilterCount > 0
-                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                            : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <NoData description={
+                            <div className="sc-empty pp-empty">
+                              <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
+                              <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                              <p className="sc-empty__desc pp-empty-sub">
+                                {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
+                              </p>
+                              {activeFilterCount > 0
+                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                            </div>
+                          } />
                         </div>
                       ) : (
                         scopes.map(r => renderScopeCard(r, false))
@@ -1803,7 +1807,7 @@ function TestScopeContent() {
                         scroll={{ x: 'max-content' }}
                         onRow={(record) => ({
                           onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
-                        })}
+                        })} locale={{ emptyText: <NoData /> }}
                       />
                     </div>
                   ) : (
@@ -1867,13 +1871,13 @@ function TestScopeContent() {
                     scroll={{ x: "max-content" }}
                     onRow={(record) => ({ onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`), style: { cursor: "pointer" } })}
                     locale={{
-                      emptyText: (
-                        <div className="py-10 text-center">
-                          <FileText size={28} className="mx-auto mb-2" style={{ color: "var(--text-slate-400)" }} />
-                          <div className="text-[13px] font-semibold" style={{ color: "var(--text-slate-900)" }}>No test scopes yet</div>
-                          <div className="text-[11.5px] mt-1" style={{ color: "var(--text-slate-500)" }}>Create your first test scope to see it here</div>
-                        </div>
-                      )
+                      emptyText: <NoData description={(
+                                                    <div className="py-10 text-center">
+                                                      <FileText size={28} className="mx-auto mb-2" style={{ color: "var(--text-slate-400)" }} />
+                                                      <div className="text-[13px] font-semibold" style={{ color: "var(--text-slate-900)" }}>No test scopes yet</div>
+                                                      <div className="text-[11.5px] mt-1" style={{ color: "var(--text-slate-500)" }}>Create your first test scope to see it here</div>
+                                                    </div>
+                                                  )} />
                     }}
                   />
                 </div>
@@ -1922,18 +1926,18 @@ function TestScopeContent() {
                     rowKey="id"
                     pagination={false}
                     locale={{
-                      emptyText: settingsLoading ? (
-                        <ZukvoLoader size="md" message="Loading options…" />
-                      ) : (
-                        <div className="sc-empty">
-                          <Settings size={26} className="sc-empty__icon" />
-                          <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
-                          <p className="sc-empty__desc">{activeCategoryMeta?.help}</p>
-                          {canManageQa && (
-                            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
-                          )}
-                        </div>
-                      )
+                      emptyText: <NoData description={settingsLoading ? (
+                                                    <ZukvoLoader size="md" message="Loading options…" />
+                                                  ) : (
+                                                    <div className="sc-empty">
+                                                      <Settings size={26} className="sc-empty__icon" />
+                                                      <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
+                                                      <p className="sc-empty__desc">{activeCategoryMeta?.help}</p>
+                                                      {canManageQa && (
+                                                        <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
+                                                      )}
+                                                    </div>
+                                                  )} />
                     }}
                     columns={[
                       {
@@ -2004,7 +2008,7 @@ function TestScopeContent() {
 
             {!['dashboard', 'scopes', 'approvals', 'settings'].includes(activeTab) && (
               <div style={{ padding: 40, background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 8, textAlign: 'center' }}>
-                <Empty description={`${activeTab} view coming soon`} />
+                <NoData description={`${activeTab} view coming soon`} />
               </div>
             )}
           </div>

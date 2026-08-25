@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -618,101 +620,109 @@ export default function InvoiceSettingPage() {
                     ))}
                   </div>
                 ) : settingsList.length === 0 ? (
-                  <div
-                    onClick={() => setMode("create")}
-                    className="flex flex-col items-center justify-center py-20 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--bg-slate-50)]"
-                    style={{
-                      background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
-                    }}
-                  >
+                  <NoData description={
                     <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                      onClick={() => setMode("create")}
+                      className="pp-empty flex flex-col items-center justify-center py-20 rounded-2xl cursor-pointer transition-colors hover:bg-[var(--bg-slate-50)]"
                       style={{
-                        background: "var(--bg-blue-50)",
-                        color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
+                        background: "var(--bg-secondary)",
+                        border: "1.5px dashed var(--border-color)",
                       }}
                     >
-                      <Sparkles size={24} strokeWidth={2} />
-                    </div>
-                    <Title
-                      level={5}
-                      style={{
-                        color: "var(--text-primary)",
-                        margin: 0,
-                        fontWeight: 700,
-                      }}
-                    >
-                      No settings profiles yet
-                    </Title>
-                    <Typography.Text
-                      style={{
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                        marginTop: 6,
-                        marginBottom: 20,
-                      }}
-                    >
-                      Create a profile to start generating invoices.
-                    </Typography.Text>
-                    {canCreateInvoiceSetting && (
-                      <Button
-                        type="primary"
-                        icon={<Plus size={14} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMode("create");
-                        }}
+                      <div
+                        className="pp-empty-orb w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
                         style={{
-                          borderRadius: 8,
-                          height: 38,
-                          fontWeight: 600,
-                          background: "#2563eb",
+                          background: "var(--bg-blue-50)",
+                          color: "var(--text-blue-700)",
+                          border: "1px solid var(--border-blue-200)",
                         }}
                       >
-                        Create profile
-                      </Button>
-                    )}
-                  </div>
-                ) : settingsList.length === 0 ? (
-                  <div
-                    className="flex flex-col items-center justify-center py-16 rounded-2xl"
-                    style={{
-                      background: "var(--bg-secondary)",
-                      border: "1.5px dashed var(--border-color)",
-                    }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-                      style={{
-                        background: "var(--bg-blue-50)",
-                        color: "var(--text-blue-700)",
-                        border: "1px solid var(--border-blue-200)",
-                      }}
-                    >
-                      <Search size={20} strokeWidth={2} />
+                        <Sparkles size={24} strokeWidth={2} />
+                      </div>
+                      <Title
+                        level={5}
+                        className="pp-empty-title"
+                        style={{
+                          color: "var(--text-primary)",
+                          margin: 0,
+                          fontWeight: 700,
+                        }}
+                      >
+                        No settings profiles yet
+                      </Title>
+                      <Typography.Text
+                        className="pp-empty-sub"
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 13,
+                          marginTop: 6,
+                          marginBottom: 20,
+                        }}
+                      >
+                        Create a profile to start generating invoices.
+                      </Typography.Text>
+                      {canCreateInvoiceSetting && (
+                        <Button
+                          type="primary"
+                          icon={<Plus size={14} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMode("create");
+                          }}
+                          style={{
+                            borderRadius: 8,
+                            height: 38,
+                            fontWeight: 600,
+                            background: "#2563eb",
+                          }}
+                        >
+                          Create profile
+                        </Button>
+                      )}
                     </div>
-                    <Title
-                      level={5}
+                  } />
+                ) : settingsList.length === 0 ? (
+                  <NoData description={
+                    <div
+                      className="pp-empty flex flex-col items-center justify-center py-16 rounded-2xl"
                       style={{
-                        color: "var(--text-primary)",
-                        margin: 0,
-                        fontWeight: 700,
+                        background: "var(--bg-secondary)",
+                        border: "1.5px dashed var(--border-color)",
                       }}
                     >
-                      No profiles match your filters
-                    </Title>
-                    <Typography.Text
-                      style={{
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                        marginTop: 6,
-                      }}
-                    >
-                      Try adjusting your search or filter
-                    </Typography.Text>
-                  </div>
+                      <div
+                        className="pp-empty-orb w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+                        style={{
+                          background: "var(--bg-blue-50)",
+                          color: "var(--text-blue-700)",
+                          border: "1px solid var(--border-blue-200)",
+                        }}
+                      >
+                        <Search size={20} strokeWidth={2} />
+                      </div>
+                      <Title
+                        level={5}
+                        className="pp-empty-title"
+                        style={{
+                          color: "var(--text-primary)",
+                          margin: 0,
+                          fontWeight: 700,
+                        }}
+                      >
+                        No profiles match your filters
+                      </Title>
+                      <Typography.Text
+                        className="pp-empty-sub"
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontSize: 13,
+                          marginTop: 6,
+                        }}
+                      >
+                        Try adjusting your search or filter
+                      </Typography.Text>
+                    </div>
+                  } />
                 ) : viewMode === "table" ? (
                   <div
                     className="overflow-hidden"
@@ -921,7 +931,7 @@ export default function InvoiceSettingPage() {
                             </div>
                           ),
                         },
-                      ]}
+                      ]} locale={{ emptyText: <NoData /> }}
                     />
                   </div>
                 ) : (

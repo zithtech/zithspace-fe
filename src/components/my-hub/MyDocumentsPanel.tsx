@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo } from "react";
 import { Table, Typography, Button, Spin, Empty, Input } from "antd";
 import { DownloadOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
@@ -161,10 +163,7 @@ export default function MyDocumentsPanel() {
           pagination={false}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No documents found."
-              />
+              <NoData description="No documents found." />
             ),
           }}
           style={{ border: "1px solid var(--border-slate-200)", borderRadius: 0, overflow: "hidden" }}

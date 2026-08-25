@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -507,7 +509,7 @@ export default function ClockInOutPanel() {
             expandable={{
               expandedRowRender: renderSessions,
               rowExpandable: (record) => (record.sessions?.length || 0) > 0,
-            }}
+            }} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

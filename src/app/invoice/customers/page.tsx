@@ -733,40 +733,42 @@ export default function InvoiceproCustomerPage() {
                 ))}
               </div>
             ) : customers.length === 0 ? (
-              <div className="pp-empty">
-                <div className="pp-empty-orb"><Users size={26} /></div>
-                <div className="pp-empty-title">
-                  {search || statusFilter !== "all"
-                    ? "No customers match your filters"
-                    : "No customers yet"}
+              <NoData description={
+                <div className="pp-empty">
+                  <div className="pp-empty-orb"><Users size={26} /></div>
+                  <div className="pp-empty-title">
+                    {search || statusFilter !== "all"
+                      ? "No customers match your filters"
+                      : "No customers yet"}
+                  </div>
+                  <div className="pp-empty-sub">
+                    {search || statusFilter !== "all"
+                      ? "Try adjusting your search or filter"
+                      : "Get started by adding your first customer."}
+                  </div>
+                  {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
+                    <Button
+                      type="primary"
+                      icon={<Plus size={14} />}
+                      onClick={() => {
+                        setEditingCustomer(null);
+                        form.resetFields();
+                        setIsModalOpen(true);
+                      }}
+                      className="pp-btn-primary"
+                      style={{
+                        marginTop: 14,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      Add Customer
+                    </Button>
+                  )}
                 </div>
-                <div className="pp-empty-sub">
-                  {search || statusFilter !== "all"
-                    ? "Try adjusting your search or filter"
-                    : "Get started by adding your first customer."}
-                </div>
-                {!search && statusFilter === "all" && canCreateInvoiceCustomer && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={() => {
-                      setEditingCustomer(null);
-                      form.resetFields();
-                      setIsModalOpen(true);
-                    }}
-                    className="pp-btn-primary"
-                    style={{
-                      marginTop: 14,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    Add Customer
-                  </Button>
-                )}
-              </div>
+              } />
             ) : viewMode === "card" ? (
               <div className="pp-grid">
                 {pagedCustomers.map((customer) => {
@@ -894,7 +896,7 @@ export default function InvoiceproCustomerPage() {
                     className: "cursor-pointer",
                   })}
                   className="customers-table"
-                  scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }}
+                  scroll={{ x: 'max-content', y: 'calc(100vh - 325px)' }} locale={{ emptyText: <NoData /> }}
                 />
               </div>
             )}

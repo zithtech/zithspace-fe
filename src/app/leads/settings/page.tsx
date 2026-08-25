@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -1652,7 +1653,7 @@ export default function LeadSettingsPage() {
                                             scroll={{ x: "max-content" }}
                                             className="pp-table"
                                             rowClassName="pp-row"
-                                            locale={{ emptyText: emptyState }}
+                                            locale={{ emptyText: <NoData description={emptyState} /> }}
                                             onRow={(record) => ({
                                                 onClick: (e) => {
                                                     const t = e.target as HTMLElement;
@@ -1670,7 +1671,7 @@ export default function LeadSettingsPage() {
                                         {loading ? (
                                             <div className="pp-grid-loading">Loading…</div>
                                         ) : (activeTab === "1" ? pagedStatuses : activeTab === "2" ? pagedActions : pagedPlatforms).length === 0 ? (
-                                            <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                                            <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                                         ) : (
                                             activeTab === "1" ? (
                                                 pagedStatuses.map((item, idx) => {

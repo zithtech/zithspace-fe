@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React from "react";
 import { Typography, Empty } from "antd";
 import { HistoryOutlined } from "@ant-design/icons";
@@ -92,10 +93,7 @@ export const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ ac
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {activities.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No recent activity</Text>}
-            />
+            <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No recent activity</Text>} />
           </div>
         ) : (
           <div style={{ position: "relative", paddingLeft: 16 }}>

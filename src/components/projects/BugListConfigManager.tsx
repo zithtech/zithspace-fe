@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState } from "react";
@@ -494,10 +495,7 @@ function ConfigSection({
         </div>
       ) : options.length === 0 ? (
         <div className="sc-empty">
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={`No ${title.toLowerCase()} options yet`}
-          />
+          <NoData description={`No ${title.toLowerCase()} options yet`} />
         </div>
       ) : (
         <div className="sc-tablewrap">
@@ -508,7 +506,7 @@ function ConfigSection({
             columns={columns}
             dataSource={options}
             pagination={false}
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
           />
         </div>
       )}

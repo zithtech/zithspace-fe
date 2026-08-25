@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Drawer,
@@ -720,14 +721,11 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                 <div className="squad-member-list" style={{ marginTop: 16 }}>
                   {sortedLocalMembers.length === 0 ? (
                     <div style={{ padding: '40px 16px' }}>
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={
-                          <span style={{ color: 'var(--text-slate-400)' }}>
-                            No members in this squad yet
-                          </span>
-                        }
-                      />
+                      <NoData description={
+                                                                            <span style={{ color: 'var(--text-slate-400)' }}>
+                                                                              No members in this squad yet
+                                                                            </span>
+                                                                          } />
                     </div>
                   ) : (
                     sortedLocalMembers.map(renderMemberRow)

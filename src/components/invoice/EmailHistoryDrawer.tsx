@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState } from 'react';
 import {
   Drawer,
@@ -192,11 +193,7 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
           }}
           locale={{
             emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No email history found"
-                style={{ padding: '60px 0' }}
-              />
+              <NoData description="No email history found" />
             )
           }}
           className="email-history-table"

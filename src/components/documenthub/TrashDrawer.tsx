@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useMemo, useState } from "react";
 import {
     Drawer,
@@ -435,12 +436,9 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                 background: "var(--bg-pure-white)",
             }}
         >
-            <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                    <span style={{ color: "var(--text-slate-400)", fontSize: 13 }}>{label}</span>
-                }
-            />
+            <NoData description={
+                                <span style={{ color: "var(--text-slate-400)", fontSize: 13 }}>{label}</span>
+                            } />
         </div>
     );
 

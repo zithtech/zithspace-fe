@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Button, Empty, Input, Modal, Segmented, Skeleton, Table } from 'antd';
@@ -208,17 +209,14 @@ export default function ApprovalsQueuePanel() {
             locale={{
               emptyText: (
                 <div className="omp-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <>
-                        <div className="omp-empty-title">Nothing waiting on you</div>
-                        <div className="omp-empty-sub">
-                          Openings appear here when they reach a step you can decide.
-                        </div>
-                      </>
-                    }
-                  />
+                  <NoData description={
+                                              <>
+                                                <div className="omp-empty-title">Nothing waiting on you</div>
+                                                <div className="omp-empty-sub">
+                                                  Openings appear here when they reach a step you can decide.
+                                                </div>
+                                              </>
+                                            } />
                 </div>
               ),
             }}

@@ -1,5 +1,5 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip } from "antd";
@@ -1002,37 +1002,41 @@ function TestRunsContent() {
                       })}
                       locale={{
                         /* Holding the height beats claiming "no runs" mid-fetch. */
-                        emptyText: loading ? (
-                          <div style={{ minHeight: 240 }} />
-                        ) : (
-                          <div className="sc-empty">
-                            <SnippetsOutlined className="sc-empty__icon" />
-                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
-                            <p className="sc-empty__desc">
-                              {activeFilterCount > 0
-                                ? 'Try widening your search or clearing the filters.'
-                                : 'Create a run to execute a suite and record pass/fail results.'}
-                            </p>
-                            {activeFilterCount > 0
-                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                              : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
-                          </div>
-                        )
+                        emptyText: <NoData description={loading ? (
+                                                        <div style={{ minHeight: 240 }} />
+                                                      ) : (
+                                                        <div className="sc-empty">
+                                                          <SnippetsOutlined className="sc-empty__icon" />
+                                                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                                                          <p className="sc-empty__desc">
+                                                            {activeFilterCount > 0
+                                                              ? 'Try widening your search or clearing the filters.'
+                                                              : 'Create a run to execute a suite and record pass/fail results.'}
+                                                          </p>
+                                                          {activeFilterCount > 0
+                                                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                            : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                                                        </div>
+                                                      )} />
                       }}
                     />
                   </div>
                 ) : (
                   <div className="pp-grid">
                     {loading ? null : filteredRuns.length === 0 ? (
-                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                        <SnippetsOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <NoData description={
+                          <div className="sc-empty pp-empty">
+                            <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
+                            <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                            <p className="sc-empty__desc pp-empty-sub">
+                              {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
+                            </p>
+                            {activeFilterCount > 0
+                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                              : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
+                          </div>
+                        } />
                       </div>
                     ) : (
                       pagedRuns.map(r => renderRunCard(r))

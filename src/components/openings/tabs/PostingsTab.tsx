@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Empty, Skeleton, Tooltip } from 'antd';
 import { Bot, Globe, Lock, XCircle } from 'lucide-react';
@@ -54,17 +55,14 @@ export default function PostingsTab({
   if (postings.length === 0) {
     return (
       <div className="omp-empty">
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <>
-              <div className="omp-empty-title">Not posted anywhere yet</div>
-              <div className="omp-empty-sub">
-                An approved opening can be posted internally first, then move to external.
-              </div>
-            </>
-          }
-        />
+        <NoData description={
+                        <>
+                          <div className="omp-empty-title">Not posted anywhere yet</div>
+                          <div className="omp-empty-sub">
+                            An approved opening can be posted internally first, then move to external.
+                          </div>
+                        </>
+                      } />
       </div>
     );
   }

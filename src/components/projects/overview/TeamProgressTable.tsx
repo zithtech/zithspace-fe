@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from "react";
 import { Typography, Avatar, Empty } from "antd";
 import { TeamOutlined, SortAscendingOutlined } from "@ant-design/icons";
@@ -168,10 +169,7 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
       <div style={{ flex: 1, overflowY: "auto", padding: "0 18px" }}>
         {sorted.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>}
-            />
+            <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>} />
           </div>
         ) : (
           sorted.map((item) => (

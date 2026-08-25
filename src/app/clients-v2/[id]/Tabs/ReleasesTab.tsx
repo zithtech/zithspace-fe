@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -487,7 +488,7 @@ export default function ReleasesTab({ clientId, projects = [], onRefresh }: Prop
               onRow={(record) => ({
                 onClick: () => setViewingRelease(record),
                 style: { cursor: "pointer" },
-              })}
+              })} locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (

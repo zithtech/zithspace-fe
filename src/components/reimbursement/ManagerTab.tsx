@@ -1,4 +1,4 @@
-
+"use client";
 // "use client";
 // import PreviewModal from "@/components/common/PreviewModal";
 // import {
@@ -9271,7 +9271,7 @@
 
 
 
-"use client";
+
 import { Button, Table, Tag, Input, Space, Modal, message, Drawer } from "antd";
 import {
   ReloadOutlined,

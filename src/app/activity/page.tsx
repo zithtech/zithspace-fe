@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import {
@@ -585,8 +586,13 @@ export default function ActivityPage() {
   if (!canReadActivityLogAll) {
     return (
       <MainLayout>
-        <div style={{ padding: 40 }}>
-          <Empty description="You don't have permission to view activity history." />
+        <div style={{ padding: 40, gridColumn: '1 / -1' }}>
+          <NoData description={
+              <div className="pp-empty">
+                <div className="pp-empty-title">Permission Denied</div>
+                <div className="pp-empty-sub">You don't have permission to view activity history.</div>
+              </div>
+          } />
         </div>
       </MainLayout>
     );
@@ -903,12 +909,22 @@ export default function ActivityPage() {
                 ))}
               </div>
             ) : error ? (
-              <div className="ax-feed-card ax-empty">
-                <Empty description={error} />
+              <div className="ax-feed-card ax-empty pp-empty" style={{ gridColumn: '1 / -1' }}>
+                <NoData description={
+                  <div className="pp-empty">
+                    <div className="pp-empty-title">Error Loading Activity</div>
+                    <div className="pp-empty-sub">{error}</div>
+                  </div>
+                } />
               </div>
             ) : rows.length === 0 ? (
-              <div className="ax-feed-card ax-empty">
-                <Empty description="No activity matches these filters." />
+              <div className="ax-feed-card ax-empty pp-empty" style={{ gridColumn: '1 / -1' }}>
+                <NoData description={
+                  <div className="pp-empty">
+                    <div className="pp-empty-title">No Activity Found</div>
+                    <div className="pp-empty-sub">No activity matches these filters.</div>
+                  </div>
+                } />
               </div>
             ) : (
               grouped.map(([label, items]) => (

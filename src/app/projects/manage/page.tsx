@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useEffect } from "react";
 import {
   App,
@@ -1120,24 +1121,11 @@ const ProjectsManageContent: React.FC = () => {
                         textAlign: "center",
                         background: "var(--bg-pure-white)",
                       }}>
-                        <Empty
-                          description={
-                            <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
-                              {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
-                            </Text>
-                          }
-                        >
-                          {!hasActiveFilters && (
-                            <Button
-                              type="primary"
-                              icon={<PlusOutlined />}
-                              onClick={handleAdd}
-                              style={{ borderRadius: 8, fontWeight: 600 }}
-                            >
-                              Add Project
-                            </Button>
-                          )}
-                        </Empty>
+                        <NoData description={
+                                                                          <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                                                                            {hasActiveFilters ? "No projects match your filters" : "No projects yet — create your first one"}
+                                                                          </Text>
+                                                                        } />
                       </div>
                     ) : (
                       <div className="pm2-grid">
@@ -1285,7 +1273,7 @@ const ProjectsManageContent: React.FC = () => {
                             onClick: () => {
                               router.push(`/projects/${record.id}/overview`);
                             },
-                          })}
+                          })} locale={{ emptyText: <NoData /> }}
                         />
                       </ZukvoLoadingOverlay>
                     </div>

@@ -1341,7 +1341,7 @@ export default function InvoiceInvoicesPage() {
                                                           dataSource={[]}
                                                           pagination={false}
                                                           className="pp-table"
-                                                          scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }}
+                                                          scroll={{ x: 1100, y: selectedRowKeys.length > 0 ? 'calc(100vh - 390px)' : 'calc(100vh - 325px)' }} locale={{ emptyText: <NoData /> }}
                                                         />
                                       </ZukvoLoadingOverlay>
                 </div>
@@ -1496,7 +1496,7 @@ export default function InvoiceInvoicesPage() {
                       setPreviewInvoiceNumber(record.invoiceNumber);
                     },
                     className: 'pp-row',
-                  })}
+                  })} locale={{ emptyText: <NoData /> }}
                 />
               </div>
             )}

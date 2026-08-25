@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import { Modal, Breadcrumb, List, Checkbox, Button, Spin, Empty, message, Progress } from "antd";
 import { Folder, File, ArrowLeft } from "lucide-react";
@@ -326,7 +327,7 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
               <span className="mt-4 font-medium text-sm">Loading files...</span>
             </div>
           ) : files.length === 0 ? (
-            <Empty description={<span className="text-slate-500 font-medium">No files found</span>} className="mt-20" />
+            <NoData description={<span className="text-slate-500 font-medium">No files found</span>} />
           ) : (
             <List
               dataSource={files}

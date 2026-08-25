@@ -105,7 +105,7 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
         : provider === "zoho_drive" 
         ? `/api/v2/document-hubs/${hubId}/external/zoho/files?folderId=${folderId}`
         : provider === "notion"
-        ? `/api/v2/document-hubs/${hubId}/external/notion/files`
+        ? `/api/v2/document-hubs/${hubId}/external/notion/files?folderId=${folderId}`
         : `/api/v2/document-hubs/${hubId}/external/onedrive/files?folderId=${folderId}`;
         
       const data = await api.get(endpoint);

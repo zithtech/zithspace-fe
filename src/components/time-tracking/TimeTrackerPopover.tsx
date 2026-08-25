@@ -134,7 +134,8 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
 
   const loadProjects = async () => {
     try {
-      const res = await ProjectService.getUserProjects();
+      // Pass true to ensure we only get explicitly assigned projects, even for admins
+      const res = await ProjectService.getUserProjects(true);
       setProjects(res || []);
     } catch (err) { }
   };

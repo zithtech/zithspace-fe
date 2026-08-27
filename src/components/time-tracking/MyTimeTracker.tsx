@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState } from "react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { getSyncedTime } from "@/utils/timeUtils";
@@ -460,21 +462,21 @@ export function MyTimeTracker({
                               rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
                               scroll={{ x: 800 }}
                               locale={{
-                                emptyText: loading ? <></> : (
-                                  <div className="mtt-tracker-card__empty">
-                                    <div className="mtt-tracker-card__empty-icon">
-                                      <ClockCircleOutlined />
-                                    </div>
-                                    <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
-                                    <div className="mtt-tracker-card__empty-sub">
-                                      {canCreateTimeTracking ? (
-                                        <>Start a timer or click <strong>Add Time</strong> to log a manual entry.</>
-                                      ) : (
-                                        "You do not have permission to log or start timers."
-                                      )}
-                                    </div>
-                                  </div>
-                                )
+                                emptyText: <NoData description={loading ? <></> : (
+                                                                        <div className="mtt-tracker-card__empty">
+                                                                          <div className="mtt-tracker-card__empty-icon">
+                                                                            <ClockCircleOutlined />
+                                                                          </div>
+                                                                          <div className="mtt-tracker-card__empty-title">No time logged for this day</div>
+                                                                          <div className="mtt-tracker-card__empty-sub">
+                                                                            {canCreateTimeTracking ? (
+                                                                              <>Start a timer or click <strong>Add Time</strong> to log a manual entry.</>
+                                                                            ) : (
+                                                                              "You do not have permission to log or start timers."
+                                                                            )}
+                                                                          </div>
+                                                                        </div>
+                                                                      )} />
                               }}
                               expandable={{
                                 expandedRowRender: (record) => {

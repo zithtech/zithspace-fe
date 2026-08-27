@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -398,7 +400,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           tlLoading ? (
             <div style={{ padding: "40px 0", textAlign: "center" }}><ZukvoLoader size="md" /></div>
           ) : timeline.length === 0 ? (
-            <Empty description={<span style={{ color: "var(--text-slate-500)" }}>No activity yet</span>} />
+            <NoData description={<span style={{ color: "var(--text-slate-500)" }}>No activity yet</span>} />
           ) : (
             <ol className="wld-timeline">
               {timeline.map((item: any, idx: number) => {
@@ -426,7 +428,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
         )}
 
         {tab === "notes" && (
-          <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Inline notes are coming soon. Use the timeline for now.</span>} />
+          <NoData description={<span style={{ color: "var(--text-slate-500)" }}>Inline notes are coming soon. Use the timeline for now.</span>} />
         )}
         {tab === "emails" && (
           mailsLoading ? (
@@ -462,7 +464,7 @@ export const WebsiteLeadDrawer: React.FC<Props> = ({
           )
         )}
         {tab === "meetings" && (
-          <Empty description={<span style={{ color: "var(--text-slate-500)" }}>Meeting log coming soon.</span>} />
+          <NoData description={<span style={{ color: "var(--text-slate-500)" }}>Meeting log coming soon.</span>} />
         )}
       </div>
 

@@ -1,5 +1,5 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 /**
  * QA Submissions — dashboard and list (§4, §5).
  *
@@ -910,30 +910,30 @@ function QaSubmissionsContent() {
                     setSortDir(sorter.order === "ascend" ? "asc" : "desc");
                   }}
                   locale={{
-                    emptyText: (
-                      <div className="sc-empty">
-                        <FileDoneOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">
-                          {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
-                        </p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0
-                            ? "Try widening your search or clearing the filters."
-                            : "Create a submission to report the testing results for a scope. You can submit while bugs are still open — sign-off comes later."}
-                        </p>
-                        {activeFilterCount > 0 ? (
-                          <Button size="small" onClick={clearFilters}>
-                            Clear filters
-                          </Button>
-                        ) : (
-                          canCreateSubmission && (
-                            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
-                              Create QA Submission
-                            </Button>
-                          )
-                        )}
-                      </div>
-                    ),
+                    emptyText: <NoData description={(
+                                                <div className="sc-empty">
+                                                  <FileDoneOutlined className="sc-empty__icon" />
+                                                  <p className="sc-empty__title">
+                                                    {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
+                                                  </p>
+                                                  <p className="sc-empty__desc">
+                                                    {activeFilterCount > 0
+                                                      ? "Try widening your search or clearing the filters."
+                                                      : "Create a submission to report the testing results for a scope. You can submit while bugs are still open — sign-off comes later."}
+                                                  </p>
+                                                  {activeFilterCount > 0 ? (
+                                                    <Button size="small" onClick={clearFilters}>
+                                                      Clear filters
+                                                    </Button>
+                                                  ) : (
+                                                    canCreateSubmission && (
+                                                      <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
+                                                        Create QA Submission
+                                                      </Button>
+                                                    )
+                                                  )}
+                                                </div>
+                                              )} />,
                   }}
                 />
                 )}
@@ -941,16 +941,20 @@ function QaSubmissionsContent() {
             ) : (
               <div className="pp-grid" style={firstLoad ? { minHeight: 360 } : undefined}>
                 {firstLoad ? null : rows.length === 0 ? (
-                  <div className="sc-empty" style={{ gridColumn: "1 / -1" }}>
-                    <FileDoneOutlined className="sc-empty__icon" />
-                    <p className="sc-empty__title">
-                      {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
-                    </p>
-                    <p className="sc-empty__desc">
-                      {activeFilterCount > 0
-                        ? "Try widening your search or clearing the filters."
-                        : "Create a submission to report the testing results for a scope."}
-                    </p>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <NoData description={
+                      <div className="sc-empty pp-empty">
+                        <FileDoneOutlined className="sc-empty__icon pp-empty-orb" />
+                        <p className="sc-empty__title pp-empty-title">
+                          {activeFilterCount > 0 ? "No submissions match these filters" : "No QA submissions yet"}
+                        </p>
+                        <p className="sc-empty__desc pp-empty-sub">
+                          {activeFilterCount > 0
+                            ? "Try widening your search or clearing the filters."
+                            : "Create a submission to report the testing results for a scope."}
+                        </p>
+                      </div>
+                    } />
                   </div>
                 ) : (
                   rows.map(renderCard)

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import dayjs from "dayjs";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -614,7 +615,7 @@ export default function TeamTab({ clientId, projects = [], onCountChange, onRefr
             columns={columns}
             rowKey="id"
             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
-            scroll={{ x: "max-content" }}
+            scroll={{ x: "max-content" }} locale={{ emptyText: <NoData /> }}
           />
         </div>
       ) : (

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
@@ -1222,25 +1223,11 @@ export default function EscalationSettingsPage() {
           <div className="es-body">
             {!loading && activeSection.data.length === 0 ? (
               <div className="es-empty">
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <span style={{ color: 'var(--text-slate-500)', fontSize: 13 }}>
-                      {activeSection.empty}
-                    </span>
-                  }
-                >
-                  {canManageEscalations && (
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => handleOpenDrawer()}
-                      className="es-primary-btn"
-                    >
-                      Add {activeSection.singular}
-                    </Button>
-                  )}
-                </Empty>
+                <NoData description={
+                                                  <span style={{ color: 'var(--text-slate-500)', fontSize: 13 }}>
+                                                    {activeSection.empty}
+                                                  </span>
+                                                } />
               </div>
             ) : view === 'list' ? (
               <div className="es-table-wrap">
@@ -1260,7 +1247,7 @@ export default function EscalationSettingsPage() {
                                                         handleOpenDrawer(record);
                                                       },
                                                       className: 'es-row',
-                                                    })}
+                                                    })} locale={{ emptyText: <NoData /> }}
                                                   />
                                   </ZukvoLoadingOverlay>
               </div>

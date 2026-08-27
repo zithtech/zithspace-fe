@@ -1,4 +1,5 @@
 'use client';
+import NoData from "@/components/common/NoData";
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
@@ -97,7 +98,9 @@ export default function ConfigurationsPage() {
         {loading ? (
           <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading configurations...</div>
         ) : configs.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-slate-500 w-full">No configurations found.</div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <NoData description="No configurations found." />
+          </div>
         ) : viewMode === 'card' ? (
           <div className="pp-grid">
             {configs.map((c) => {

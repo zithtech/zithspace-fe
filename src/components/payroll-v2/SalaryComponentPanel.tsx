@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -562,7 +563,7 @@ export default function SalaryComponentPanel() {
                         dataSource={pagedRows}
                         pagination={false}
                         onRow={() => ({ className: 'pvc-row' })}
-                        scroll={{ x: 'max-content' }}
+                        scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
                       />
               </ZukvoLoadingOverlay>
       </div>

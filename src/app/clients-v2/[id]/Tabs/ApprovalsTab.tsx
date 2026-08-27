@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -646,7 +647,7 @@ export default function ApprovalsTab({ clientId, projects = [], onRefresh }: Pro
             onRow={(record) => ({
               onClick: () => setOpenId(record.id),
               style: { cursor: "pointer" }
-            })}
+            })} locale={{ emptyText: <NoData /> }}
           />
         </div>
       ) : (
@@ -2032,7 +2033,7 @@ function ApprovalDetailDrawer({
             color: c.textSubtle,
           }}
         >
-          {loading ? "Loading…" : <Empty description="Nothing to show" />}
+          {loading ? "Loading…" : <NoData description="Nothing to show" />}
         </div>
       ) : (
         <>

@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1185,37 +1186,41 @@ export default function TestSuitesPage() {
                   })}
                   locale={{
                     /* Holding the height beats claiming "no suites" mid-fetch. */
-                    emptyText: loading ? (
-                      <div style={{ minHeight: 240 }} />
-                    ) : (
-                      <div className="sc-empty">
-                        <SnippetsOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0
-                            ? 'Try widening your search or clearing the filters.'
-                            : 'Group related test cases into a suite you can run together.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
-                      </div>
-                    )
+                    emptyText: <NoData description={loading ? (
+                                                <div style={{ minHeight: 240 }} />
+                                              ) : (
+                                                <div className="sc-empty">
+                                                  <SnippetsOutlined className="sc-empty__icon" />
+                                                  <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
+                                                  <p className="sc-empty__desc">
+                                                    {activeFilterCount > 0
+                                                      ? 'Try widening your search or clearing the filters.'
+                                                      : 'Group related test cases into a suite you can run together.'}
+                                                  </p>
+                                                  {activeFilterCount > 0
+                                                    ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                    : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                                                </div>
+                                              )} />
                   }}
                 />
               </div>
             ) : (
               <div className="pp-grid">
                 {loading ? null : filteredSuites.length === 0 ? (
-                  <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                    <SnippetsOutlined className="sc-empty__icon" />
-                    <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                    <p className="sc-empty__desc">
-                      {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Group related test cases into a suite you can run together.'}
-                    </p>
-                    {activeFilterCount > 0
-                      ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                      : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <NoData description={
+                      <div className="sc-empty pp-empty">
+                        <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
+                        <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
+                        <p className="sc-empty__desc pp-empty-sub">
+                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Group related test cases into a suite you can run together.'}
+                        </p>
+                        {activeFilterCount > 0
+                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                          : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                      </div>
+                    } />
                   </div>
                 ) : (
                   pagedSuites.map(r => renderSuiteCard(r))

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState, useEffect } from 'react';
@@ -716,40 +717,40 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     className="premium-table workstation-grid"
                     scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
                     locale={{
-                      emptyText: (
-                        <div className="dm-empty-state">
-                          <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
-                            {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
-                          </div>
-                          <div className="dm-empty-title">
-                            {searchQuery || filterStatus !== 'all'
-                              ? 'No matching definitions'
-                              : `No ${type.label.toLowerCase()} configured yet`}
-                          </div>
-                          <div className="dm-empty-desc">
-                            {searchQuery || filterStatus !== 'all'
-                              ? 'Try a different search term or clear your filters.'
-                              : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
-                          </div>
-                          {canCreateTicketSetting && (
-                            <Button
-                              type="primary"
-                              icon={<PlusOutlined />}
-                              onClick={handleCreate}
-                              style={{
-                                marginTop: 16,
-                                borderRadius: 8,
-                                height: 38,
-                                fontWeight: 700,
-                                background: type.color,
-                                borderColor: type.color,
-                              }}
-                            >
-                              Create Definition
-                            </Button>
-                          )}
-                        </div>
-                      ),
+                      emptyText: <NoData description={(
+                                                    <div className="dm-empty-state">
+                                                      <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
+                                                        {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
+                                                      </div>
+                                                      <div className="dm-empty-title">
+                                                        {searchQuery || filterStatus !== 'all'
+                                                          ? 'No matching definitions'
+                                                          : `No ${type.label.toLowerCase()} configured yet`}
+                                                      </div>
+                                                      <div className="dm-empty-desc">
+                                                        {searchQuery || filterStatus !== 'all'
+                                                          ? 'Try a different search term or clear your filters.'
+                                                          : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
+                                                      </div>
+                                                      {canCreateTicketSetting && (
+                                                        <Button
+                                                          type="primary"
+                                                          icon={<PlusOutlined />}
+                                                          onClick={handleCreate}
+                                                          style={{
+                                                            marginTop: 16,
+                                                            borderRadius: 8,
+                                                            height: 38,
+                                                            fontWeight: 700,
+                                                            background: type.color,
+                                                            borderColor: type.color,
+                                                          }}
+                                                        >
+                                                          Create Definition
+                                                        </Button>
+                                                      )}
+                                                    </div>
+                                                  )} />,
                     }}
                   />
                   </div>

@@ -1,4 +1,5 @@
 'use client';
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -350,30 +351,34 @@ function ProjectSelectContent() {
               ))}
             </Row>
           ) : filteredProjects.length === 0 ? (
-            <div className="zs-empty">
-              <div className="zs-empty-icon">
-                <FolderOpenOutlined />
-              </div>
-              <Text strong className="zs-empty-title">
-                {search || statusFilter !== 'all' ? 'No matching projects' : 'No projects yet'}
-              </Text>
-              <Text className="zs-empty-sub">
-                {search
-                  ? `We couldn't find anything matching "${search}".`
-                  : statusFilter !== 'all'
-                    ? 'Try a different status filter, or clear it to see everything.'
-                    : "You haven't been assigned to any projects yet."}
-              </Text>
-              {canCreateProject && !search && statusFilter === 'all' && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setCreateDrawerOpen(true)}
-                  className="zs-empty-cta"
-                >
-                  Create your first project
-                </Button>
-              )}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <NoData description={
+                <div className="zs-empty pp-empty">
+                  <div className="zs-empty-icon pp-empty-orb">
+                    <FolderOpenOutlined />
+                  </div>
+                  <Text strong className="zs-empty-title pp-empty-title">
+                    {search || statusFilter !== 'all' ? 'No matching projects' : 'No projects yet'}
+                  </Text>
+                  <Text className="zs-empty-sub pp-empty-sub">
+                    {search
+                      ? `We couldn't find anything matching "${search}".`
+                      : statusFilter !== 'all'
+                        ? 'Try a different status filter, or clear it to see everything.'
+                        : "You haven't been assigned to any projects yet."}
+                  </Text>
+                  {canCreateProject && !search && statusFilter === 'all' && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setCreateDrawerOpen(true)}
+                      className="zs-empty-cta"
+                    >
+                      Create your first project
+                    </Button>
+                  )}
+                </div>
+              } />
             </div>
           ) : (
             <Row gutter={[20, 20]}>

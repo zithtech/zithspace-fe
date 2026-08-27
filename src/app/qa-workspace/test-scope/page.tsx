@@ -1,6 +1,6 @@
 "use client";
-
-import React, { Suspense, useState, useEffect } from "react";
+import NoData from "@/components/common/NoData";
+import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip, Result, Table, Typography, message, Modal, Input, Select, Dropdown } from "antd";
 import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, RightOutlined } from "@ant-design/icons";

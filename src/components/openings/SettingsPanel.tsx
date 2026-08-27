@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { App,
   Button,
@@ -379,17 +380,14 @@ export default function SettingsPanel() {
               locale={{
                 emptyText: (
                   <div className="omp-empty">
-                    <Empty
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description={
-                        <>
-                          <div className="omp-empty-title">No workflows configured</div>
-                          <div className="omp-empty-sub">
-                            Create one to get Hiring Manager → HR → Finance approvals.
-                          </div>
-                        </>
-                      }
-                    />
+                    <NoData description={
+                                                  <>
+                                                    <div className="omp-empty-title">No workflows configured</div>
+                                                    <div className="omp-empty-sub">
+                                                      Create one to get Hiring Manager → HR → Finance approvals.
+                                                    </div>
+                                                  </>
+                                                } />
                   </div>
                 ),
               }}

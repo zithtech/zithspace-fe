@@ -1,9 +1,4 @@
-
-
-
-
-
-
+"use client";
 // "use client";
 // import { Button, Table, Tag, Popconfirm, Space, Input } from "antd";
 // import { 
@@ -375,7 +370,7 @@
 // }
 
 
-"use client";
+
 import { Button, Table, Tag, Popconfirm, Space, Input, Modal } from "antd";
 import {
   PlusOutlined,

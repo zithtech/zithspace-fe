@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Button, Table, Tooltip, Empty } from 'antd';
@@ -555,21 +556,18 @@ export default function OpeningsListPanel({
             locale={{
               emptyText: (
                 <div className="omp-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <>
-                        <div className="omp-empty-title">
-                          {archived ? 'Nothing archived yet' : 'No openings yet'}
-                        </div>
-                        <div className="omp-empty-sub">
-                          {archived
-                            ? 'Closed openings land here once they are archived.'
-                            : 'Create a requisition to start hiring.'}
-                        </div>
-                      </>
-                    }
-                  />
+                  <NoData description={
+                                              <>
+                                                <div className="omp-empty-title">
+                                                  {archived ? 'Nothing archived yet' : 'No openings yet'}
+                                                </div>
+                                                <div className="omp-empty-sub">
+                                                  {archived
+                                                    ? 'Closed openings land here once they are archived.'
+                                                    : 'Create a requisition to start hiring.'}
+                                                </div>
+                                              </>
+                                            } />
                 </div>
               ),
             }}

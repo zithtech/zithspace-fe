@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -3474,74 +3476,75 @@ export default function LeadsPage() {
                           style: { cursor: 'pointer' }
                         })}
                         locale={{
-                          emptyText: (
-                            <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                              <div
-                                style={{
-                                  width: 64,
-                                  height: 64,
-                                  margin: "0 auto 16px",
-                                  borderRadius: 18,
-                                  background: "var(--bg-blue-50)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "#3b82f6",
-                                }}
-                              >
-                                <Layers size={28} />
-                              </div>
-                              <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                                {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                              </Title>
-                              <Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                                {leads.length === 0
-                                  ? "Add your first opportunity to start tracking your pipeline."
-                                  : "Try clearing filters or switching to a different view."}
-                              </Text>
-                              {leads.length === 0 ? (
-                                <Button
-                                  type="primary"
-                                  icon={<Plus size={14} />}
-                                  onClick={() => {
-                                    setEditingKey(null);
-                                    form.resetFields();
-                                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
-                                    const defaultStatus = configStatuses.find(s => s.is_default);
-                                    if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
-                                    setIsDrawerVisible(true);
-                                  }}
-                                  style={{
-                                    borderRadius: 6,
-                                    height: 36,
-                                    fontWeight: 700,
-                                    background: "#3b82f6",
-                                    border: "none",
-                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
-                                  }}
-                                >
-                                  Add First Lead
-                                </Button>
-                              ) : (
-                                <Button
-                                  icon={<RefreshCw size={14} />}
-                                  onClick={() => {
-                                    setFilterStatus(null);
-                                    setFilterAction(null);
-                                    setFilterPlatform(null);
-                                    setFilterDateRange(null);
-                                    setFilterCreatedBy(null);
-                                    setFilterMailStatus(null);
-                                    setSearchText("");
-                                    setActiveSegment("all");
-                                  }}
-                                  style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
-                                >
-                                  Clear all filters
-                                </Button>
-                              )}
-                            </div>
-                          ),
+                            emptyText: <NoData description={(
+                                                            <div className="pp-empty" style={{ padding: "60px 24px", textAlign: "center" }}>
+                                                              <div
+                                                                className="pp-empty-icon"
+                                                                style={{
+                                                                  width: 64,
+                                                                  height: 64,
+                                                                  margin: "0 auto 16px",
+                                                                  borderRadius: 18,
+                                                                  background: "var(--bg-blue-50)",
+                                                                  display: "flex",
+                                                                  alignItems: "center",
+                                                                  justifyContent: "center",
+                                                                  color: "#3b82f6",
+                                                                }}
+                                                              >
+                                                                <Layers size={28} />
+                                                              </div>
+                                                              <Title level={5} className="pp-empty-title" style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                                                                {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                                                              </Title>
+                                                              <Text className="pp-empty-sub" style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                                                                {leads.length === 0
+                                                                  ? "Add your first opportunity to start tracking your pipeline."
+                                                                  : "Try clearing filters or switching to a different view."}
+                                                              </Text>
+                                                              {leads.length === 0 ? (
+                                                                <Button
+                                                                  type="primary"
+                                                                  icon={<Plus size={14} />}
+                                                                  onClick={() => {
+                                                                    setEditingKey(null);
+                                                                    form.resetFields();
+                                                                    form.setFieldsValue({ platform: 'Upwork', customPlatform: '', leadSourceKind: 'platform' });
+                                                                    const defaultStatus = configStatuses.find(s => s.is_default);
+                                                                    if (defaultStatus) form.setFieldsValue({ status: defaultStatus.name });
+                                                                    setIsDrawerVisible(true);
+                                                                  }}
+                                                                  style={{
+                                                                    borderRadius: 6,
+                                                                    height: 36,
+                                                                    fontWeight: 700,
+                                                                    background: "#3b82f6",
+                                                                    border: "none",
+                                                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
+                                                                  }}
+                                                                >
+                                                                  Add First Lead
+                                                                </Button>
+                                                              ) : (
+                                                                <Button
+                                                                  icon={<RefreshCw size={14} />}
+                                                                  onClick={() => {
+                                                                    setFilterStatus(null);
+                                                                    setFilterAction(null);
+                                                                    setFilterPlatform(null);
+                                                                    setFilterDateRange(null);
+                                                                    setFilterCreatedBy(null);
+                                                                    setFilterMailStatus(null);
+                                                                    setSearchText("");
+                                                                    setActiveSegment("all");
+                                                                  }}
+                                                                  style={{ borderRadius: 0, height: 36, fontWeight: 600 }}
+                                                                >
+                                                                  Clear all filters
+                                                                </Button>
+                                                              )}
+                                                            </div>
+                                                          )} />,
                         }}
                       />
                     )}
@@ -3565,19 +3568,23 @@ export default function LeadsPage() {
                         ))}
                       </div>
                     ) : paginatedLeads.length === 0 ? (
-                      <div className="lm-grid-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
-                        <div style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
-                          <Layers size={28} />
-                        </div>
-                        <Typography.Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
-                          {leads.length === 0 ? "No leads yet" : "No matching leads"}
-                        </Typography.Title>
-                        <Typography.Text style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
-                          {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
-                        </Typography.Text>
-                        {leads.length === 0 && canCreateLead && hasGrid && (
-                          <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}>Add First Lead</Button>
-                        )}
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <NoData description={
+                          <div className="lm-grid-empty pp-empty" style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-pure-white)", borderRadius: 0, border: "1px solid var(--border-slate-200)" }}>
+                            <div className="pp-empty-icon" style={{ width: 64, height: 64, margin: "0 auto 16px", borderRadius: 18, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+                              <Layers size={28} />
+                            </div>
+                            <Typography.Title level={5} className="pp-empty-title" style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>
+                              {leads.length === 0 ? "No leads yet" : "No matching leads"}
+                            </Typography.Title>
+                            <Typography.Text className="pp-empty-sub" style={{ color: "#94a3b8", fontSize: 13, display: "block", marginTop: 4, marginBottom: 16 }}>
+                              {leads.length === 0 ? "Add your first opportunity to start tracking your pipeline." : "Try clearing filters or switching to a different view."}
+                            </Typography.Text>
+                            {leads.length === 0 && canCreateLead && hasGrid && (
+                              <Button type="primary" icon={<Plus size={14} />} onClick={() => setIsDrawerVisible(true)} style={{ borderRadius: 6, height: 36, fontWeight: 700, background: "#3b82f6", border: "none", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}>Add First Lead</Button>
+                            )}
+                          </div>
+                        } />
                       </div>
                     ) : (
                       <>
@@ -4662,7 +4669,7 @@ export default function LeadsPage() {
               <ZukvoLoader size="lg" />
             </div>
           ) : timelineData.length === 0 ? (
-            <Empty description="No activity recorded yet" />
+            <NoData description="No activity recorded yet" />
           ) : (
             <Timeline
               mode="left"

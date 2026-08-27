@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Button, Drawer, Empty, Input, Skeleton, Tag, Tooltip } from 'antd';
@@ -304,7 +305,7 @@ export default function ApplicationDrawer({
               Stage History
             </div>
             {app.history.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No movement recorded" className="my-4" />
+              <NoData description="No movement recorded" />
             ) : (
               <div className="relative pl-3">
                 {app.history.map((h, i) => {

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -114,14 +116,8 @@ export default function TicketsArchivedPage() {
     return (projects as any[])
       .map((p, i) => {
         const stats = dashboardStats?.projectStats?.find((s: any) => s.id === p.value);
-        const archivedCount =
-          stats?.statuses?.reduce((acc: number, s: any) => {
-            const statusStr = s.status?.toLowerCase() || '';
-            if (statusStr === 'completed' || statusStr === 'archived' || statusStr === 'finished') {
-              return acc + s.count;
-            }
-            return acc;
-          }, 0) || 0;
+        const archivedCount = stats?.archivedCount || 0;
+        
         return {
           value: p.value,
           label: p.label,
@@ -457,7 +453,19 @@ export default function TicketsArchivedPage() {
           ) : undefined
         }
       >
-        <ZukvoLoadingOverlay loading={isLoading} message="">
+        { (isLoading || isFetching || isRefreshing || statsLoading) ? (
+          <div style={{ padding: 24, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                <div style={{ flex: 1 }}><div style={{ height: 20, background: 'var(--bg-slate-100)', borderRadius: 4, width: '60%' }} /></div>
+                <div style={{ flex: 2 }}><div style={{ height: 20, background: 'var(--bg-slate-100)', borderRadius: 4, width: '100%' }} /></div>
+                <div style={{ flex: 1 }}><div style={{ height: 20, background: 'var(--bg-slate-100)', borderRadius: 4, width: '80%' }} /></div>
+                <div style={{ width: 100 }}><div style={{ height: 20, background: 'var(--bg-slate-100)', borderRadius: 4, width: '100%' }} /></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ZukvoLoadingOverlay loading={isRefreshing || isFetching} message="">
           <Table
             columns={columns}
             dataSource={tickets}
@@ -470,38 +478,39 @@ export default function TicketsArchivedPage() {
             className="ar2-table"
 
             locale={{
-              emptyText: isLoading ? null : (
-                <div className="ar2-empty">
-                  <div className="ar2-empty-icon">
-                    <FolderOpenOutlined />
-                  </div>
-                  <Text className="ar2-empty-title">
-                    {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
-                  </Text>
-                  <Text className="ar2-empty-sub">
-                    {isFiltered
-                      ? 'Try adjusting your filters or search query.'
-                      : 'Tickets are automatically archived when sprints are completed.'}
-                  </Text>
-                  {isFiltered && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setSearchText('');
-                        setSelectedProject(null);
-                      }}
-                      style={{ marginTop: 12 }}
-                    >
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              ),
+              emptyText: <NoData description={isLoading ? null : (
+                                    <div className="ar2-empty">
+                                      <div className="ar2-empty-icon">
+                                        <FolderOpenOutlined />
+                                      </div>
+                                      <Text className="ar2-empty-title">
+                                        {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
+                                      </Text>
+                                      <Text className="ar2-empty-sub">
+                                        {isFiltered
+                                          ? 'Try adjusting your filters or search query.'
+                                          : 'Tickets are automatically archived when sprints are completed.'}
+                                      </Text>
+                                      {isFiltered && (
+                                        <Button
+                                          size="small"
+                                          onClick={() => {
+                                            setSearchText('');
+                                            setSelectedProject(null);
+                                          }}
+                                          style={{ marginTop: 12 }}
+                                        >
+                                          Clear filters
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )} />,
             }}
             pagination={false}
             scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}
           />
         </ZukvoLoadingOverlay>
+        )}
 
         <style jsx global>{`
           /* ── Table sized + framed ─────────────────────────── */
@@ -769,7 +778,7 @@ export default function TicketsArchivedPage() {
             background: #161B22 !important; border-color: #1F2937 !important; color: #94A3B8 !important;
           }
           .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-          .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+          .pp-pager-num.is-active { background: #3B82F6 !important; border-color: #3B82F6 !important; color: #fff !important; }
           .pp-pagesize { margin-left: 5px; }
           .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
           [data-theme='dark'] .pp-pagesize .ant-select-selector {

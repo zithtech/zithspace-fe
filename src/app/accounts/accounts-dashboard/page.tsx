@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -1019,7 +1020,7 @@ export default function AccountsPage() {
                     className="pp-table"
                     scroll={{ x: 1000 }}
                     pagination={false}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: <NoData description={emptyState} /> }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
@@ -1036,7 +1037,7 @@ export default function AccountsPage() {
                   {loading ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : transactions.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                    <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                   ) : (
                     transactions.map((item) => {
                       const isCredit = item.type === 'credit';
@@ -1516,7 +1517,7 @@ export default function AccountsPage() {
           })()
         ) : (
           <div className="accounts-breakdown__empty">
-            <Empty description="No breakdown data available" />
+            <NoData description="No breakdown data available" />
           </div>
         )}
       </Drawer>
@@ -1602,7 +1603,7 @@ export default function AccountsPage() {
           </div>
         ) : (
           <div className="accounts-breakdown__empty">
-            <Empty description="No recent transactions" />
+            <NoData description="No recent transactions" />
           </div>
         )}
       </Drawer>

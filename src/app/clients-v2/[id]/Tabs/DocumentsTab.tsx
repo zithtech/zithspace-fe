@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState } from "react";
 import {
   Table,
@@ -751,17 +752,17 @@ export default function DocumentsTab({
             className="pp-table"
             scroll={{ x: "max-content" }}
             locale={{
-              emptyText: (
-                <div className="ptab-empty">
-                  <div className="ptab-empty-icon">
-                    <FolderArchive size={26} />
-                  </div>
-                  <div className="ptab-empty-title">No documents yet</div>
-                  <div className="ptab-empty-desc">
-                    Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
-                  </div>
-                </div>
-              ),
+              emptyText: <NoData description={(
+                                    <div className="ptab-empty">
+                                      <div className="ptab-empty-icon">
+                                        <FolderArchive size={26} />
+                                      </div>
+                                      <div className="ptab-empty-title">No documents yet</div>
+                                      <div className="ptab-empty-desc">
+                                        Upload MSAs, SOWs, NDAs, and other legal annexures to keep a complete client record.
+                                      </div>
+                                    </div>
+                                  )} />,
             }}
           />
         </div>

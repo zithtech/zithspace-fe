@@ -1,6 +1,5 @@
-
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { useState } from "react";
 import { List, Typography, Button, Space, Divider, message, Tooltip, Tag, Row, Col, Card, Empty } from "antd";
 import {
@@ -116,7 +115,7 @@ export default function CodeIntegrationSection({ ticketId, isEditing }: CodeInte
                     >
                         {(!codeMetadata?.pullRequests || codeMetadata.pullRequests.length === 0) ? (
                             <div style={{ padding: 24, textAlign: 'center' }}>
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No PRs or Branches linked" />
+                                <NoData description="No PRs or Branches linked" />
                             </div>
                         ) : (
                             <List

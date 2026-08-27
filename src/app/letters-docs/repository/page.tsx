@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
@@ -417,39 +418,39 @@ export default function DocumentRepositoryPage() {
             <ZukvoLoader message="Loading document repository..." size="md" />
           </div>
         ) : documents.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--bg-pure-white)',
-              borderRadius: '12px',
-              border: '1px dashed var(--border-slate-200)',
-              padding: '60px 20px',
-              textAlign: 'center',
-            }}
-          >
-            <Archive size={48} style={{ color: 'var(--text-slate-400)', margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-slate-900)', margin: '0 0 8px' }}>No Generated Documents Yet</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-slate-600)', margin: '0 0 20px' }}>
-              Personalize and generate your first HR letter from Template Management or Letter Generation.
-            </p>
-            <Link
-              href="/letters-docs/generate"
+          <NoData description={
+            <div
+              className="pp-empty"
               style={{
-                padding: '10px 22px',
-                borderRadius: '8px',
-                background: '#3b82f6',
-                color: 'var(--bg-pure-white)',
-                fontWeight: 600,
-                fontSize: '14px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
+                background: 'var(--bg-pure-white)',
+                borderRadius: '12px',
+                border: '1px dashed var(--border-slate-200)',
+                padding: '60px 20px',
+                textAlign: 'center',
               }}
             >
-              <Plus size={18} />
-              Generate Document Now
-            </Link>
-          </div>
+              <div className="pp-empty-orb"><Archive size={48} style={{ color: 'var(--text-slate-400)', margin: '0 auto 16px' }} /></div>
+              <h3 className="pp-empty-title" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-slate-900)', margin: '0 0 8px' }}>No Generated Documents Yet</h3>
+              <p className="pp-empty-sub" style={{ fontSize: '14px', color: 'var(--text-slate-600)', margin: '0 0 20px' }}>
+                Personalize and generate your first HR letter from Template Management or Letter Generation.
+              </p>
+              <Link
+                href="/letters-docs/generate"
+                style={{
+                  padding: '10px 22px',
+                  borderRadius: '8px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                Go to Document Generation
+              </Link>
+            </div>
+          } />
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
@@ -460,7 +461,7 @@ export default function DocumentRepositoryPage() {
               dataSource={paginatedDocuments}
               pagination={false}
               scroll={{ x: 'max-content', y: '100%' }}
-              onRow={(record) => ({ className: 'att-row', onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })}
+              onRow={(record) => ({ className: 'att-row', onClick: () => handlePreviewDocument(record), style: { cursor: 'pointer' } })} locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (

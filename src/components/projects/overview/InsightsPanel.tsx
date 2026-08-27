@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React from "react";
 import { Typography, Empty } from "antd";
 import {
@@ -82,10 +83,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights, height =
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
         {insights.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No insights yet</Text>}
-            />
+            <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No insights yet</Text>} />
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -303,7 +305,7 @@ export default function ProjectsPage() {
                 })}
                 {projectStats.length === 0 && (
                   <Col span={24}>
-                    <Empty description="No active project data" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                    <NoData description="No active project data" />
                   </Col>
                 )}
               </Row>

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -73,7 +75,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : rows.length === 0 ? (
-        <div style={{ padding: 56 }}><Empty description="No payslips available yet" /></div>
+        <div style={{ padding: 56 }}><NoData description="No payslips available yet" /></div>
       ) : (
         <>
           {latest && (
@@ -87,7 +89,7 @@ export default function MyPayslipsPanel({ hideSidebarToggle }: { hideSidebarTogg
             </div>
           )}
           <div className="mps-table-wrap">
-            <Table rowKey="id" size="small" className="mps-table" columns={columns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }} />
+            <Table rowKey="id" size="small" className="mps-table" columns={columns} dataSource={rows} pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
           </div>
         </>
       )}

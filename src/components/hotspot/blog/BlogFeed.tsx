@@ -1,4 +1,5 @@
 'use client';
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -177,21 +178,25 @@ export default function BlogFeed() {
             <ZukvoLoader size="md" />
           </div>
         ) : posts.length === 0 ? (
-          <div className="hsb-state hsb-empty">
-            <div className="hsb-empty-title">
-              {search
-                ? 'No posts match that search'
-                : scope === 'mine'
-                  ? 'You have not posted yet'
-                  : scope === 'tagged'
-                    ? 'Nobody has tagged you yet'
-                    : 'Nothing here yet'}
-            </div>
-            <div className="hsb-empty-sub">
-              {scope === 'all' && !search
-                ? 'Be the first — post a photo or a note and tag whoever should see it.'
-                : 'Try a different filter or search.'}
-            </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <NoData description={
+              <div className="hsb-state hsb-empty pp-empty">
+                <div className="hsb-empty-title pp-empty-title">
+                  {search
+                    ? 'No posts match that search'
+                    : scope === 'mine'
+                      ? 'You have not posted yet'
+                      : scope === 'tagged'
+                        ? 'Nobody has tagged you yet'
+                        : 'Nothing here yet'}
+                </div>
+                <div className="hsb-empty-sub pp-empty-sub">
+                  {scope === 'all' && !search
+                    ? 'Be the first — post a photo or a note and tag whoever should see it.'
+                    : 'Try a different filter or search.'}
+                </div>
+              </div>
+            } />
           </div>
         ) : (
           <>

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
@@ -823,7 +824,7 @@ export default function ManageAttendancePanel() {
             expandable={{
               expandedRowRender: renderSessions,
               rowExpandable: (record) => ((record as ExtendedAttendance).sessions?.length || 0) > 0,
-            }}
+            }} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

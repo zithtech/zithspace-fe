@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1068,24 +1070,24 @@ export default function TestSuiteDetailsPage() {
                 pagination={false}
                 locale={{
                   /* Holding the height beats claiming "no cases" mid-fetch. */
-                  emptyText: loading ? (
-                    <div style={{ minHeight: 220 }} />
-                  ) : (
-                    <div className="sc-empty">
-                      <FileTextOutlined className="sc-empty__icon" />
-                      <p className="sc-empty__title">
-                        {activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases linked yet'}
-                      </p>
-                      <p className="sc-empty__desc">
-                        {activeFilterCount > 0
-                          ? 'Try widening your search or clearing the filters.'
-                          : 'Map cases from the business scenario into this suite so they run together.'}
-                      </p>
-                      {activeFilterCount > 0
-                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                        : canUpdateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>Add Test Case</Button>}
-                    </div>
-                  )
+                  emptyText: <NoData description={loading ? (
+                                            <div style={{ minHeight: 220 }} />
+                                          ) : (
+                                            <div className="sc-empty">
+                                              <FileTextOutlined className="sc-empty__icon" />
+                                              <p className="sc-empty__title">
+                                                {activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases linked yet'}
+                                              </p>
+                                              <p className="sc-empty__desc">
+                                                {activeFilterCount > 0
+                                                  ? 'Try widening your search or clearing the filters.'
+                                                  : 'Map cases from the business scenario into this suite so they run together.'}
+                                              </p>
+                                              {activeFilterCount > 0
+                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                : canUpdateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openEditModal}>Add Test Case</Button>}
+                                            </div>
+                                          )} />
                 }}
               />
             </div>

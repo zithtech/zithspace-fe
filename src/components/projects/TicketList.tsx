@@ -2015,27 +2015,45 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             <Space size={4}>
               {/* Context based actions */}
               {context === 'backlog' && canUpdateTicket && (
-                <Tooltip title="Add to Sprint">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
-                    className="saas-button-item"
-                  />
-                </Tooltip>
+                <ConfirmDialog
+                  tone="primary"
+                  title="Add to Sprint"
+                  description="Are you sure you want to add this ticket to the active sprint?"
+                  confirmText="Add to Sprint"
+                  onConfirm={() => handleSprintAssignment(record.id, 'add')}
+                  placement="topRight"
+                >
+                  <Tooltip title="Add to Sprint">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                      onClick={(e) => e.stopPropagation()}
+                      className="saas-button-item"
+                    />
+                  </Tooltip>
+                </ConfirmDialog>
               )}
               {context === 'active' && canUpdateTicket && (
-                <Tooltip title="Remove from Sprint">
-                  <Button
-                    type="text"
-                    size="small"
-                    danger
-                    icon={<MinusCircleOutlined />}
-                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
-                    className="saas-button-item"
-                  />
-                </Tooltip>
+                <ConfirmDialog
+                  tone="danger"
+                  title="Remove from Sprint"
+                  description="Are you sure you want to remove this ticket from the active sprint?"
+                  confirmText="Remove"
+                  onConfirm={() => handleSprintAssignment(record.id, 'remove')}
+                  placement="topRight"
+                >
+                  <Tooltip title="Remove from Sprint">
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<MinusCircleOutlined />}
+                      onClick={(e) => e.stopPropagation()}
+                      className="saas-button-item"
+                    />
+                  </Tooltip>
+                </ConfirmDialog>
               )}
 
               <Divider type="vertical" style={{ margin: '0 4px' }} />

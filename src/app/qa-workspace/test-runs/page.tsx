@@ -1,5 +1,5 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip } from "antd";

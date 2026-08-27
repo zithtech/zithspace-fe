@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1198,37 +1199,41 @@ export default function TestCasesPage() {
                     locale={{
                       /* "No test cases yet" would be a lie while the first page is
                          still in flight — hold the height instead. */
-                      emptyText: loading ? (
-                        <div style={{ minHeight: 240 }} />
-                      ) : (
-                        <div className="sc-empty">
-                          <Folder size={26} className="sc-empty__icon" />
-                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                          <p className="sc-empty__desc">
-                            {activeFilterCount > 0
-                              ? 'Try widening your search or clearing the filters.'
-                              : 'Create your first test case to start grouping testing scenarios.'}
-                          </p>
-                          {activeFilterCount > 0
-                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                        </div>
-                      )
+                      emptyText: <NoData description={loading ? (
+                                                    <div style={{ minHeight: 240 }} />
+                                                  ) : (
+                                                    <div className="sc-empty">
+                                                      <Folder size={26} className="sc-empty__icon" />
+                                                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                                                      <p className="sc-empty__desc">
+                                                        {activeFilterCount > 0
+                                                          ? 'Try widening your search or clearing the filters.'
+                                                          : 'Create your first test case to start grouping testing scenarios.'}
+                                                      </p>
+                                                      {activeFilterCount > 0
+                                                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                                                    </div>
+                                                  )} />
                     }}
                   />
                 </div>
               ) : (
                 <div className="pp-grid">
                   {loading ? null : filteredData.length === 0 ? (
-                    <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                      <Folder size={26} className="sc-empty__icon" />
-                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                      <p className="sc-empty__desc">
-                        {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
-                      </p>
-                      {activeFilterCount > 0
-                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <NoData description={
+                        <div className="sc-empty pp-empty">
+                          <Folder size={26} className="sc-empty__icon pp-empty-orb" />
+                          <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                          <p className="sc-empty__desc pp-empty-sub">
+                            {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
+                          </p>
+                          {activeFilterCount > 0
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                        </div>
+                      } />
                     </div>
                   ) : (
                     pagedCases.map(r => renderCaseCard(r))

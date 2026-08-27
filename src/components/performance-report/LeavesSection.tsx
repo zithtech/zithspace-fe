@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -244,7 +246,7 @@ export default function LeavesSection({ userId, range }: Props) {
                   columns={columns}
                   dataSource={rows}
                   pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100] }}
-                  scroll={{ x: 820 }}
+                  scroll={{ x: 820 }} locale={{ emptyText: <NoData /> }}
                 />
           </ZukvoLoadingOverlay>
     </div>

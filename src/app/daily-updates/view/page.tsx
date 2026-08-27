@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1024,21 +1026,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               </div>
             ) : updates.length === 0 ? (
               <Card style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", textAlign: "center", padding: "60px 0" }}>
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <Space direction="vertical" size={2}>
-                      <Text strong style={{ color: "var(--text-slate-700)", fontSize: 15 }}>No updates found</Text>
-                      <Text style={{ color: "var(--text-slate-400)" }}>Try adjusting your filters or date range</Text>
-                    </Space>
-                  }
-                >
-                  {canCreateDailyUpdate && (
-                    <Button type="primary" onClick={handleSubmitNew} style={{ borderRadius: 8, marginTop: 8 }}>
-                      Submit First Update
-                    </Button>
-                  )}
-                </Empty>
+                <NoData description={
+                                                      <Space direction="vertical" size={2}>
+                                                        <Text strong style={{ color: "var(--text-slate-700)", fontSize: 15 }}>No updates found</Text>
+                                                        <Text style={{ color: "var(--text-slate-400)" }}>Try adjusting your filters or date range</Text>
+                                                      </Space>
+                                                    } />
               </Card>
             ) : viewMode === "card" ? (
               <>

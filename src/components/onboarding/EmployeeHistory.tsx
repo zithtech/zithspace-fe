@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, {
   useState,
   forwardRef,
@@ -207,11 +209,7 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         {!fileUrl ? (
           <div style={{ textAlign: "center" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<span style={{ color: "var(--text-slate-400)", fontSize: "12px" }}>No file uploaded</span>}
-              style={{ margin: "5px 0" }}
-            />
+            <NoData description={<span style={{ color: "var(--text-slate-400)", fontSize: "12px" }}>No file uploaded</span>} />
             <Upload
               showUploadList={false}
               beforeUpload={handleFileSelect}

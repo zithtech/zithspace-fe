@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useMemo } from 'react';
 import { Typography, Tag, Empty, Avatar, Tooltip } from 'antd';
@@ -98,18 +99,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
     if (!activities || activities.length === 0) {
         return (
             <div style={{ padding: 32 }}>
-                <Empty
-                    image={
-                        <div style={{
-                            width: 56, height: 56, margin: '0 auto', borderRadius: 16,
-                            background: 'rgba(148, 163, 184, 0.1)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <HistoryOutlined style={{ fontSize: 24, color: '#94a3b8' }} />
-                        </div>
-                    }
-                    description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>}
-                />
+                <NoData description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>} />
             </div>
         );
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -650,10 +651,7 @@ export default function ProjectTrashManagementPage() {
                     scroll={{ x: "max-content" }}
                     locale={{
                       emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description={<Text type="secondary">No projects found in trash</Text>}
-                        />
+                        <NoData description={<Text type="secondary">No projects found in trash</Text>} />
                       ),
                     }}
                   />
@@ -668,10 +666,7 @@ export default function ProjectTrashManagementPage() {
                     ))
                     : paginatedTrashProjects.length === 0 ? (
                       <div style={{ gridColumn: '1 / -1', padding: '40px 0' }}>
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description={<Text type="secondary">No projects found in trash</Text>}
-                        />
+                        <NoData description={<Text type="secondary">No projects found in trash</Text>} />
                       </div>
                     ) : paginatedTrashProjects.map((project: any) => {
                       const pm = project.projectManager;

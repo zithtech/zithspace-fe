@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Button, Input, Select, Modal, Dropdown, Tooltip, message, Table,
@@ -476,7 +477,7 @@ function SectionsContent() {
                   className="pp-table"
                   scroll={{ x: 'max-content' }}
                   pagination={false}
-                  locale={{ emptyText: emptyState }}
+                  locale={{ emptyText: <NoData description={emptyState} /> }}
                   onRow={(record) => ({
                     onClick: (e) => {
                       const t = e.target as HTMLElement;
@@ -492,7 +493,7 @@ function SectionsContent() {
                 {sectionsLoading && !sectionsLoaded ? (
                   <div className="pp-grid-loading" style={{ gridColumn: '1 / -1' }}>Loading sections…</div>
                 ) : paged.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                 ) : paged.map((s) => {
                   const meta = typeMeta(s.type);
                   const grad = gradientForColor(meta.color);

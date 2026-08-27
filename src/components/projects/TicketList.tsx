@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -4941,7 +4942,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               handleViewTicket(record);
                             },
                             className: 'pp-row',
-                          })}
+                          })} locale={{ emptyText: <NoData /> }}
                         />
                       </div>
                       {renderCustomPagination(
@@ -5443,7 +5444,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               handleViewTicket(record);
                             },
                             className: 'pp-row',
-                          })}
+                          })} locale={{ emptyText: <NoData /> }}
                         />
                       </div>
                       {renderCustomPagination(
@@ -5541,7 +5542,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               handleViewTicket(record);
                             },
                             className: 'pp-row',
-                          })}
+                          })} locale={{ emptyText: <NoData /> }}
                         />
                       </div>
                       {renderCustomPagination(
@@ -5585,7 +5586,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     }}
                   />
                 ) : (
-                  <Card className="saas-card"><Empty description="No tickets found" /></Card>
+                  <Card className="saas-card"><NoData description="No tickets found" /></Card>
                 )}
               </div>
             )}

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 /**
  * Approvals — the approver's own queue.
  *
@@ -709,26 +710,26 @@ function ApprovalsContent() {
                       setSortDir(sorter.order === "ascend" ? "asc" : "desc");
                     }}
                     locale={{
-                      emptyText: (
-                        <div className="sc-empty">
-                          <FileDoneOutlined className="sc-empty__icon" />
-                          <p className="sc-empty__title">
-                            {activeFilterCount > 0
-                              ? "No submissions match these filters"
-                              : `Nothing in ${bucket.label.toLowerCase()}`}
-                          </p>
-                          <p className="sc-empty__desc">
-                            {activeFilterCount > 0
-                              ? "Try widening your search or clearing the filters."
-                              : "Submissions appear here once QA reports their testing results."}
-                          </p>
-                          {activeFilterCount > 0 && (
-                            <Button size="small" onClick={clearFilters}>
-                              Clear filters
-                            </Button>
-                          )}
-                        </div>
-                      ),
+                      emptyText: <NoData description={(
+                                                    <div className="sc-empty">
+                                                      <FileDoneOutlined className="sc-empty__icon" />
+                                                      <p className="sc-empty__title">
+                                                        {activeFilterCount > 0
+                                                          ? "No submissions match these filters"
+                                                          : `Nothing in ${bucket.label.toLowerCase()}`}
+                                                      </p>
+                                                      <p className="sc-empty__desc">
+                                                        {activeFilterCount > 0
+                                                          ? "Try widening your search or clearing the filters."
+                                                          : "Submissions appear here once QA reports their testing results."}
+                                                      </p>
+                                                      {activeFilterCount > 0 && (
+                                                        <Button size="small" onClick={clearFilters}>
+                                                          Clear filters
+                                                        </Button>
+                                                      )}
+                                                    </div>
+                                                  )} />,
                     }}
                   />
                 )}

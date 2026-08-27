@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Form, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -319,7 +320,7 @@ export default function AddHolidaysPanel() {
 
       <div className="lvh-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} />
+          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import NoData from '@/components/common/NoData';
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
 import { useProposalStore } from '@/store/proposalStore';
@@ -231,7 +232,7 @@ export const LeftRail: React.FC<LeftRailProps> = ({ layout = 'vertical' }) => {
       {sectionsLoading && !sectionsLoaded ? (
         <div style={{ padding: '24px 8px', textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>Loading sections…</div>
       ) : created.length === 0 ? (
-        emptyState
+        <NoData description={emptyState} />
       ) : (
         created.map((s) => (
           <React.Fragment key={s.id}>

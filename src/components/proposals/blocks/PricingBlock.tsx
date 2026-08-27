@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import { Typography, Table, Form, Input, InputNumber, Button, Space, Divider, Select, Row, Col, Tag, Switch, Tooltip, DatePicker } from 'antd';
 import {
   PlusOutlined,
@@ -147,7 +148,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
         rowKey="id"
         bordered={false}
         size="middle"
-        rowClassName={(record: any) => record._ghost ? 'pricing-ghost-row' : ''}
+        rowClassName={(record: any) => record._ghost ? 'pricing-ghost-row' : ''} locale={{ emptyText: <NoData /> }}
       />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>

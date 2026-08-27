@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { nanoid } from 'nanoid';
 import {
@@ -712,7 +713,7 @@ function BuilderV2Content() {
                   </>
                 ) : (
                   <div style={{ padding: 40 }}>
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select a section to edit" />
+                    <NoData description="Select a section to edit" />
                   </div>
                 )}
               </div>

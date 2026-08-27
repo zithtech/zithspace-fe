@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -1397,7 +1398,7 @@ export default function RolesPage() {
                   dataSource={filteredRoles}
                   rowKey="id"
                   pagination={false}
-                  scroll={{ x: 1000 }}
+                  scroll={{ x: 1000 }} locale={{ emptyText: <NoData /> }}
                 />
 
               </div>

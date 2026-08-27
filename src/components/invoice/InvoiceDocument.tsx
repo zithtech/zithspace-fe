@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React from 'react';
 import { Card, Typography, Table, Tag, Alert, Space, Button } from 'antd';
 import dayjs from 'dayjs';
@@ -351,7 +352,7 @@ export function InvoiceDocument({
                   })}
                 </Table.Summary.Row>
               </>
-            )}
+            )} locale={{ emptyText: <NoData /> }}
           />
 
           {/* Amount in Words */}

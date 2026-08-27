@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -94,7 +96,7 @@ const ProjectOverviewPage = () => {
     return (
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <Empty description="No overview data found for this project." />
+          <NoData description="No overview data found for this project." />
         </div>
       </MainLayout>
     );

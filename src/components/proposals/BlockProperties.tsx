@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useState } from 'react';
 import { useProposalStore } from '@/store/proposalStore';
 import { BlockSettingsRenderer } from './blocks';
@@ -330,7 +331,7 @@ export const BlockProperties = () => {
 
             {blocks.length === 0 && (
               <div className="pb-props__empty">
-                <Empty description="Add blocks to start editing" />
+                <NoData description="Add blocks to start editing" />
               </div>
             )}
           </div>

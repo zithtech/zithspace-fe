@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -476,33 +478,33 @@ export default function TicketsArchivedPage() {
             className="ar2-table"
 
             locale={{
-              emptyText: isLoading ? null : (
-                <div className="ar2-empty">
-                  <div className="ar2-empty-icon">
-                    <FolderOpenOutlined />
-                  </div>
-                  <Text className="ar2-empty-title">
-                    {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
-                  </Text>
-                  <Text className="ar2-empty-sub">
-                    {isFiltered
-                      ? 'Try adjusting your filters or search query.'
-                      : 'Tickets are automatically archived when sprints are completed.'}
-                  </Text>
-                  {isFiltered && (
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        setSearchText('');
-                        setSelectedProject(null);
-                      }}
-                      style={{ marginTop: 12 }}
-                    >
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              ),
+              emptyText: <NoData description={isLoading ? null : (
+                                    <div className="ar2-empty">
+                                      <div className="ar2-empty-icon">
+                                        <FolderOpenOutlined />
+                                      </div>
+                                      <Text className="ar2-empty-title">
+                                        {isFiltered ? 'No matching tickets' : 'No archived tickets yet'}
+                                      </Text>
+                                      <Text className="ar2-empty-sub">
+                                        {isFiltered
+                                          ? 'Try adjusting your filters or search query.'
+                                          : 'Tickets are automatically archived when sprints are completed.'}
+                                      </Text>
+                                      {isFiltered && (
+                                        <Button
+                                          size="small"
+                                          onClick={() => {
+                                            setSearchText('');
+                                            setSelectedProject(null);
+                                          }}
+                                          style={{ marginTop: 12 }}
+                                        >
+                                          Clear filters
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )} />,
             }}
             pagination={false}
             scroll={{ x: 'max-content', y: 'calc(100vh - 280px)' }}

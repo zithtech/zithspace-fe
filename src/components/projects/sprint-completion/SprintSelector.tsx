@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -102,11 +104,7 @@ export function SprintSelector({
 
       {/* No Sprints Message */}
       {sprints.length === 0 && !loading && (
-        <Empty
-          description="No sprints available"
-          style={{ marginBottom: 12 }}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <NoData description="No sprints available" />
       )}
 
       {/* Create New Sprint Button */}

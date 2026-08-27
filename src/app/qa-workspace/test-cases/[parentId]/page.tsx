@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1263,24 +1265,24 @@ export default function ParentTestCaseDetailsPage() {
                 })}
                 locale={{
                   /* Holding the height beats claiming "no cases" mid-fetch. */
-                  emptyText: loading ? (
-                    <div style={{ minHeight: 220 }} />
-                  ) : (
-                    <div className="sc-empty">
-                      <FileTextOutlined className="sc-empty__icon" />
-                      <p className="sc-empty__title">
-                        {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
-                      </p>
-                      <p className="sc-empty__desc">
-                        {activeFilterCount > 0
-                          ? 'Try widening your search or clearing the filters.'
-                          : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
-                      </p>
-                      {activeFilterCount > 0
-                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
-                    </div>
-                  )
+                  emptyText: <NoData description={loading ? (
+                                            <div style={{ minHeight: 220 }} />
+                                          ) : (
+                                            <div className="sc-empty">
+                                              <FileTextOutlined className="sc-empty__icon" />
+                                              <p className="sc-empty__title">
+                                                {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
+                                              </p>
+                                              <p className="sc-empty__desc">
+                                                {activeFilterCount > 0
+                                                  ? 'Try widening your search or clearing the filters.'
+                                                  : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
+                                              </p>
+                                              {activeFilterCount > 0
+                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
+                                            </div>
+                                          )} />
                 }}
               />
             </div>

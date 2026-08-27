@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React from 'react';
 import { Empty, Tooltip } from 'antd';
 import { Bot } from 'lucide-react';
@@ -13,7 +14,7 @@ export default function TimelineTab({ history }: { history: StatusHistoryEntry[]
   if (!history?.length) {
     return (
       <div className="omp-empty">
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No activity recorded yet" />
+        <NoData description="No activity recorded yet" />
       </div>
     );
   }

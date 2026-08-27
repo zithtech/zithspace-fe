@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
@@ -238,7 +240,7 @@ export default function AccountTrashPage() {
                 },
                 showSizeChanger: true,
                 className: "p-4",
-              }}
+              }} locale={{ emptyText: <NoData /> }}
             />
           </ZukvoLoadingOverlay>
         </div>

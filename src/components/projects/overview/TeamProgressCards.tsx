@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import { Typography, Avatar, Empty, Tooltip } from "antd";
 import { OverviewPager } from "./OverviewPager";
@@ -99,10 +100,7 @@ export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = 
 
       {members.length === 0 ? (
         <div className="po-tm-empty">
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>}
-          />
+          <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No team members</Text>} />
         </div>
       ) : (
         <div className="po-tm-list">

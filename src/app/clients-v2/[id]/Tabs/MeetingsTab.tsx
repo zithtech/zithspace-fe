@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -716,7 +717,7 @@ export default function MeetingsTab({
                               rowKey="id"
                               pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
                               scroll={{ x: "max-content" }}
-                              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })}
+                              onRow={(m) => ({ onClick: () => setOpenId(m.id), style: { cursor: "pointer" } })} locale={{ emptyText: <NoData /> }}
                             />
                 </ZukvoLoadingOverlay>
           </div>
@@ -2512,7 +2513,7 @@ function MomDetailDrawer({
             color: c.textSubtle,
           }}
         >
-          {loading ? "Loading…" : <Empty description="Nothing to show" />}
+          {loading ? "Loading…" : <NoData description="Nothing to show" />}
         </div>
       ) : (
         <>

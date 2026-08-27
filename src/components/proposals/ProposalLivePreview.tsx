@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React from "react";
 import {
   Typography,
@@ -210,7 +211,7 @@ const renderBlockContent = (block: any) => {
                   </span>
                 ),
               },
-            ]}
+            ]} locale={{ emptyText: <NoData /> }}
           />
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
@@ -645,7 +646,7 @@ const renderBlockContent = (block: any) => {
     default:
       return (
         <div style={{ padding: 24, textAlign: "center" }}>
-          <Empty description={`Details for ${block.type} section`} />
+          <NoData description={`Details for ${block.type} section`} />
         </div>
       );
   }
@@ -678,13 +679,11 @@ export const ProposalLivePreview: React.FC<ProposalLivePreviewProps> = ({
   if (blocks.length === 0) {
     return (
       <div className={className} style={{ padding: 32 }}>
-        <Empty
-          description={
-            <span style={{ color: "var(--text-slate-500)" }}>
-              No content has been added to this proposal yet.
-            </span>
-          }
-        />
+        <NoData description={
+                        <span style={{ color: "var(--text-slate-500)" }}>
+                          No content has been added to this proposal yet.
+                        </span>
+                      } />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -694,7 +695,7 @@ export default function PortalAccessTab({ clientId, contacts, onCountChange, onR
           pagination={false}
           scroll={{ x: "max-content" }}
           className="premium-table"
-          locale={{ emptyText: <div style={{ color: c.textSubtle }}>No portal users found</div> }}
+          locale={{ emptyText: <NoData description={<div style={{ color: c.textSubtle }}>No portal users found</div>} /> }}
         />
       ) : (
         <div className="pp-grid">

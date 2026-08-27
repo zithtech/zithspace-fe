@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 /**
  * QA Submission detail (§30) — the structured, read-only record.
  *
@@ -830,7 +831,7 @@ export default function QaSubmissionDetailPage() {
                         </span>
                       ),
                     },
-                  ]}
+                  ]} locale={{ emptyText: <NoData /> }}
                 />
               )}
             </Section>
@@ -907,7 +908,7 @@ export default function QaSubmissionDetailPage() {
                         </span>
                       ),
                     },
-                  ]}
+                  ]} locale={{ emptyText: <NoData /> }}
                 />
               )}
             </Section>
@@ -1022,7 +1023,7 @@ export default function QaSubmissionDetailPage() {
                           },
                         ]
                       : []),
-                  ]}
+                  ]} locale={{ emptyText: <NoData /> }}
                 />
               )}
             </Section>
@@ -1097,7 +1098,7 @@ export default function QaSubmissionDetailPage() {
                           },
                         ]
                       : []),
-                  ]}
+                  ]} locale={{ emptyText: <NoData /> }}
                 />
               )}
             </Section>
@@ -1580,7 +1581,7 @@ export default function QaSubmissionDetailPage() {
                   { title: "Ticket", dataIndex: "ticket_number", key: "ticket_number", width: 120, render: (v: string) => v || "—" },
                 ]
               : []),
-          ]}
+          ]} locale={{ emptyText: <NoData /> }}
         />
       </Modal>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -272,18 +273,20 @@ export default function StructuresManagementPage() {
             <ZukvoLoader message="Loading custom structures..." size="md" />
           </div>
         ) : filteredStructures.length === 0 ? (
-          <div style={{ padding: '60px 0', textAlign: 'center' }}>
-            <Layers size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} />
-            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Structures Found</div>
-            <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
-              Create your first custom structure to reuse across document templates.
+          <NoData description={
+            <div className="pp-empty" style={{ padding: '60px 0', textAlign: 'center' }}>
+              <div className="pp-empty-orb"><Layers size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} /></div>
+              <div className="pp-empty-title" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Structures Found</div>
+              <div className="pp-empty-sub" style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
+                Create your first custom structure to reuse across document templates.
+              </div>
+              {perms.canCreateLetterFormat && (
+                <Button type="primary" onClick={() => router.push('/letters-docs/structures/builder')} icon={<Plus size={15} />}>
+                  Create Format
+                </Button>
+              )}
             </div>
-            {perms.canCreateLetterFormat && (
-              <Button type="primary" onClick={() => router.push('/letters-docs/structures/builder')} icon={<Plus size={15} />}>
-                Create Format
-              </Button>
-            )}
-          </div>
+          } />
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
@@ -294,7 +297,7 @@ export default function StructuresManagementPage() {
               dataSource={paginatedStructures}
               pagination={false}
               onRow={() => ({ className: 'att-row' })}
-              scroll={{ x: 'max-content', y: '100%' }}
+              scroll={{ x: 'max-content', y: '100%' }} locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (

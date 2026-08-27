@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Avatar, message, Tooltip, DatePicker } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -408,7 +409,7 @@ export default function ApprovalsPanel() {
             pagination={false}
             scroll={{ x: 'max-content', y: 'calc(100vh - 460px)' }}
             expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-            onRow={() => ({ className: 'lvap-row' })}
+            onRow={() => ({ className: 'lvap-row' })} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

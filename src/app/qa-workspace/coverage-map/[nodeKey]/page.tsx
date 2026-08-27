@@ -14,11 +14,11 @@
 
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Tooltip } from "antd";
+import { Button, Drawer, Tooltip } from "antd";
 import { BugOutlined } from "@ant-design/icons";
 import {
-  ArrowLeft, ArrowUpRight, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
-  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
+  ArrowLeft, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
+  ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
   PlayCircle, Repeat, RotateCw, Search, Target, TrendingDown, TrendingUp, X,
 } from "lucide-react";
 import dayjs from "dayjs";
@@ -30,23 +30,15 @@ import { apiClient } from "@/lib/axios";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
-  ResultBar, fmtAgo, fmtDate, fmtDateTime, initialsOf, statusTone,
+  fmtAgo, fmtDate, fmtDateTime, initialsOf,
   useCoverageData, useUserProjects, type ModuleNode,
 } from "../shared";
 
 /** Failing runs whose failures are fetched without being asked. */
 const EAGER_FAILURE_RUNS = 8;
 
-/** Suites shown as chips in the execution-history switcher; the rest live in the search dropdown. */
-const VISIBLE_SUITE_TABS = 2;
-
-const SECTIONS = [
-  { key: "suites", label: "Suites & runs", icon: Layers },
-  { key: "failures", label: "Failures", icon: Flame },
-  { key: "scopes", label: "Scopes", icon: Target },
-  { key: "scenarios", label: "Scenarios", icon: ClipboardList },
-] as const;
-type SectionKey = (typeof SECTIONS)[number]["key"];
+/** How many run-result reads Case stability keeps in flight at once. */
+const RESULT_CONCURRENCY = 5;
 
 const runDate = (r: any) => r?.started_at || r?.created_at || null;
 
@@ -62,6 +54,18 @@ const rateOf = (r: any) => {
   const { passed, failed, blocked } = countsOf(r);
   const executed = passed + failed + blocked;
   return executed > 0 ? Math.round((passed / executed) * 100) : null;
+};
+
+/**
+ * Passed and failed as a share of the two together. A count on its own doesn't
+ * say whether "8 failed" was a bad day or a bad quarter, so every calendar
+ * figure carries its percentage beside it. Null when nothing passed or failed.
+ */
+const shareOf = (passed: number, failed: number) => {
+  const total = passed + failed;
+  if (total === 0) return null;
+  const pass = Math.round((passed / total) * 100);
+  return { pass, fail: 100 - pass };
 };
 
 /** What a run is called for grouping — its type if set, else its name. */
@@ -81,7 +85,7 @@ interface Insight {
  * a stand-up: how much has run, what kind, what went worst, and what needs
  * attention right now.
  */
-function buildInsights(node: ModuleNode, chrono: any[], hotspots: { name: string; runs: any[] }[]): Insight[] {
+function buildInsights(suites: any[], chrono: any[], hotspots: { name: string; runs: any[] }[]): Insight[] {
   const out: Insight[] = [];
   const runs = chrono;
   const n = runs.length;
@@ -90,8 +94,8 @@ function buildInsights(node: ModuleNode, chrono: any[], hotspots: { name: string
     out.push({
       icon: AlertTriangle, tone: "warn",
       text: <>This module has <b>never been executed</b>.</>,
-      detail: node.suites.length
-        ? `${node.suites.length} suite${node.suites.length === 1 ? " is" : "s are"} ready but no run has been created.`
+      detail: suites.length
+        ? `${suites.length} suite${suites.length === 1 ? " is" : "s are"} ready but no run has been created.`
         : "No suite has been assembled for it yet, so there is nothing to run.",
     });
     return out;
@@ -192,11 +196,11 @@ function buildInsights(node: ModuleNode, chrono: any[], hotspots: { name: string
   }
 
   // 8 — suites nobody runs
-  const idle = node.suites.filter(su => !runs.some(r => String(r.suite_id) === String(su.id)));
+  const idle = suites.filter(su => !runs.some(r => String(r.suite_id) === String(su.id)));
   if (idle.length) {
     out.push({
       icon: Layers, tone: "warn",
-      text: <><b>{idle.length} of {node.suites.length} suite{node.suites.length === 1 ? "" : "s"}</b> {idle.length === 1 ? "has" : "have"} never been run.</>,
+      text: <><b>{idle.length} of {suites.length} suite{suites.length === 1 ? "" : "s"}</b> {idle.length === 1 ? "has" : "have"} never been run.</>,
       detail: idle.slice(0, 3).map(su => su.suite_name).filter(Boolean).join(", ")
         + (idle.length > 3 ? ` and ${idle.length - 3} more.` : "."),
     });
@@ -215,273 +219,227 @@ function buildInsights(node: ModuleNode, chrono: any[], hotspots: { name: string
   return out;
 }
 
-const GRAINS = [
-  { key: "run", label: "Per run" },
-  { key: "day", label: "Day" },
-  { key: "month", label: "Month" },
-  { key: "year", label: "Year" },
-] as const;
-type Grain = (typeof GRAINS)[number]["key"];
-
-const GRAIN_FORMAT: Record<Exclude<Grain, "run">, { bucket: string; label: string }> = {
-  day: { bucket: "YYYY-MM-DD", label: "D MMM" },
-  month: { bucket: "YYYY-MM", label: "MMM YYYY" },
-  year: { bucket: "YYYY", label: "YYYY" },
-};
-
-interface Bucket {
-  key: string;
-  label: string;
-  sub: string;
+/** One entry in the suite rail — a suite, or the catch-all beside them. */
+interface SuiteStat {
+  id: string;
+  name: string;
+  runs: number;
   passed: number;
   failed: number;
-  blocked: number;
-  notRun: number;
-  runs: any[];
+  /** Days since the suite last ran, null if it never has. */
+  idleDays: number | null;
 }
 
-/** Groups a suite's runs into the buckets the chart draws — one per run, or per day / month / year. */
-function bucketRuns(runs: any[], grain: Grain): Bucket[] {
-  if (grain === "run") {
-    return chronological(runs).map((r, i) => {
-      const c = countsOf(r);
-      return {
-        key: String(r.id),
-        label: `#${i + 1}`,
-        sub: fmtDate(runDate(r)) || "no date",
-        ...c,
-        notRun: c.notRun,
-        runs: [r],
-      } as Bucket;
-    });
-  }
+/** How the rail orders its suites. Activity is the default — busiest first. */
+const RAIL_SORTS = [
+  { key: "activity", label: "Activity", hint: "Busiest suites first" },
+  { key: "risk", label: "Risk", hint: "Most failures first" },
+  { key: "name", label: "Name", hint: "A to Z" },
+] as const;
+type RailSort = (typeof RAIL_SORTS)[number]["key"];
 
-  const { bucket: bucketFmt, label: labelFmt } = GRAIN_FORMAT[grain];
-  const map = new Map<string, Bucket>();
-  chronological(runs).forEach(r => {
-    const d = dayjs(runDate(r));
-    const key = d.isValid() ? d.format(bucketFmt) : "unknown";
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        label: d.isValid() ? d.format(labelFmt) : "Undated",
-        sub: "",
-        passed: 0, failed: 0, blocked: 0, notRun: 0,
-        runs: [],
-      });
-    }
-    const b = map.get(key)!;
-    const c = countsOf(r);
-    b.passed += c.passed;
-    b.failed += c.failed;
-    b.blocked += c.blocked;
-    b.notRun += c.notRun;
-    b.runs.push(r);
-  });
-
-  return Array.from(map.values())
-    .sort((a, b) => a.key.localeCompare(b.key))
-    .map(b => ({ ...b, sub: `${b.runs.length} run${b.runs.length === 1 ? "" : "s"}` }));
-}
+/** Pass rate over what a suite actually resolved, null if nothing has. */
+const rateOfStat = (s: { passed: number; failed: number }) => {
+  const total = s.passed + s.failed;
+  return total > 0 ? Math.round((s.passed / total) * 100) : null;
+};
 
 /**
- * Execution history — pick a suite, pick a grain, and see exactly when it ran
- * and how much passed versus failed each time. Bars are counts, not shares, so
- * a run that doubled in size reads as a taller pair rather than a flat ratio.
+ * The suite rail — every suite the module has, down the left of the page.
+ *
+ * The panels beside it all read the same selection, so switching suite is one
+ * click rather than three dropdowns kept in sync by hand. Each row carries the
+ * numbers you would otherwise open the suite to find: how much it has run, what
+ * share of that passed, and whether it has gone quiet — enough to pick the
+ * suite worth looking at without opening any of them.
  */
-function ExecutionChart({ suites, runs, selectedKey, onPick }: {
-  suites: any[];
-  runs: any[];
-  /** Bucket currently shown in the inspector, so the chart can mark it. */
-  selectedKey: string | null;
-  onPick: (label: string, runs: any[]) => void;
+function SuiteRail({ stats, value, onChange, totalRuns }: {
+  stats: SuiteStat[];
+  value: string;
+  onChange: (id: string) => void;
+  totalRuns: number;
 }) {
-  const [suiteId, setSuiteId] = useState<string>("all");
-  const [grain, setGrain] = useState<Grain>("run");
-  const [hover, setHover] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<RailSort>("activity");
 
-  /** Suites that actually have runs, plus whatever ran without one. */
-  const tabs = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = q ? stats.filter(s => s.name.toLowerCase().includes(q)) : stats;
+    return rows.slice().sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "risk") return b.failed - a.failed || b.runs - a.runs;
+      return b.runs - a.runs || a.name.localeCompare(b.name);
+    });
+  }, [stats, query, sort]);
 
-  /**
-   * Only the two busiest suites get a chip. Everything else is reachable from
-   * the search dropdown beside them — and whichever suite is picked there takes
-   * the second chip slot so the current selection is always visible.
-   */
-  const visibleTabs = useMemo(() => {
-    const top = tabs.slice(0, VISIBLE_SUITE_TABS);
-    if (suiteId !== "all" && !top.some(t => t.id === suiteId)) {
-      const picked = tabs.find(t => t.id === suiteId);
-      if (picked) return [...top.slice(0, VISIBLE_SUITE_TABS - 1), picked];
-    }
-    return top;
-  }, [tabs, suiteId]);
+  /** Suites nobody has executed sit under their own heading rather than in the ranking. */
+  const live = shown.filter(s => s.runs > 0);
+  const dormant = shown.filter(s => s.runs === 0);
 
-  const hiddenCount = tabs.length - visibleTabs.length;
-
-  const scoped = useMemo(() => {
-    if (suiteId === "all") return runs;
-    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
-    return runs.filter(r => String(r.suite_id) === suiteId);
-  }, [runs, suites, suiteId]);
-
-  const buckets = useMemo(() => bucketRuns(scoped, grain), [scoped, grain]);
-  const peak = Math.max(1, ...buckets.map(b => Math.max(b.passed, b.failed)));
-  const ticks = [peak, Math.round(peak * 0.75), Math.round(peak * 0.5), Math.round(peak * 0.25), 0];
-
-  const totals = buckets.reduce(
-    (a, b) => ({ passed: a.passed + b.passed, failed: a.failed + b.failed, runs: a.runs + b.runs.length }),
-    { passed: 0, failed: 0, runs: 0 },
+  const totals = stats.reduce(
+    (a, s) => ({ passed: a.passed + s.passed, failed: a.failed + s.failed }),
+    { passed: 0, failed: 0 },
   );
-  const activeName = suiteId === "all"
-    ? "All suites"
-    : tabs.find(t => t.id === suiteId)?.name ?? "Suite";
+  const atRisk = stats.filter(s => s.failed > 0).length;
+
+  const row = (s: SuiteStat, all = false) => {
+    const active = value === s.id;
+    const rate = rateOfStat(s);
+    const dead = s.runs === 0;
+    return (
+      <button
+        key={s.id}
+        type="button"
+        className={`sr__row${active ? " is-active" : ""}${dead ? " is-dormant" : ""}`}
+        onClick={() => onChange(s.id)}
+        disabled={dead}
+        title={dead ? `${s.name} — never run` : `${s.name} — ${s.runs} run${s.runs === 1 ? "" : "s"}, ${s.failed} failed case${s.failed === 1 ? "" : "s"}`}
+      >
+        <span className="sr__row-top">
+          {all
+            ? <Boxes size={13} className="sr__row-ic" />
+            : <span className={`sr__dot${s.failed > 0 ? " is-fail" : dead ? " is-dead" : " is-ok"}`} />}
+          <span className="sr__name">{s.name}</span>
+          <span className="sr__count">{s.runs}</span>
+        </span>
+
+        {dead ? (
+          <span className="sr__row-meta"><span className="sr__flag">Never run</span></span>
+        ) : (
+          <>
+            <span className="sr__row-meta">
+              {rate !== null && <span className={`sr__rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>}
+              <span className="sr__sep" />
+              {s.failed > 0
+                ? <span className="sr__fails">{s.failed} failed</span>
+                : <span className="sr__clean">no failures</span>}
+              {s.idleDays !== null && s.idleDays > 30 && (
+                <span className="sr__flag">{s.idleDays}d quiet</span>
+              )}
+            </span>
+            {rate !== null && (
+              <span className="sr__track"><i style={{ width: `${rate}%` }} /></span>
+            )}
+          </>
+        )}
+        <ChevronRight size={13} className="sr__go" />
+      </button>
+    );
+  };
 
   return (
-    <div className="mx-chart">
-      <div className="mx-chart__head">
-        <div>
-          <div className="mx-chart__title">Execution history</div>
-          <div className="mx-chart__sub">
-            {activeName} · <b>{totals.runs}</b> run{totals.runs === 1 ? "" : "s"} ·{" "}
-            <b>{totals.passed}</b> passed, <b>{totals.failed}</b> failed
+    <aside className="sr">
+      <header className="sr__head">
+        <span className="sr__head-ic"><Layers size={14} /></span>
+        <div className="min-w-0">
+          <div className="sr__head-title">Suites</div>
+          <div className="sr__head-sub">
+            {stats.length} total{atRisk > 0 && <> · <b>{atRisk}</b> with failures</>}
           </div>
         </div>
-        <div className="mx-grains">
-          {GRAINS.map(g => (
-            <button
-              key={g.key}
-              type="button"
-              className={grain === g.key ? "is-active" : ""}
-              onClick={() => setGrain(g.key)}
-            >
-              {g.label}
-            </button>
-          ))}
+      </header>
+
+      <div className="sr__controls">
+        <div className="sr__search">
+          <Search size={12} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Find a suite" />
+          {query && <button type="button" onClick={() => setQuery("")} title="Clear"><X size={12} /></button>}
         </div>
-      </div>
-
-      {/* Which suite are we looking at? */}
-      <div className="mx-suites">
-        <button
-          type="button"
-          className={`mx-suite${suiteId === "all" ? " is-active" : ""}`}
-          onClick={() => setSuiteId("all")}
-        >
-          <Layers size={12} />
-          All suites
-          <span className="mx-suite__n">{runs.length}</span>
-        </button>
-        {visibleTabs.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            className={`mx-suite${suiteId === t.id ? " is-active" : ""}${t.n === 0 ? " is-zero" : ""}`}
-            onClick={() => setSuiteId(t.id)}
-            title={t.name}
-            disabled={t.n === 0}
-          >
-            {t.name}
-            <span className="mx-suite__n">{t.n}</span>
-          </button>
-        ))}
-
-        {hiddenCount > 0 && (
-          <div className="mx-suites__find">
-            <SearchableDropdown
-              value={suiteId === "all" ? null : suiteId}
-              onChange={(v: any) => setSuiteId(v || "all")}
-              options={tabs.map(t => ({
-                value: t.id,
-                label: t.name,
-                meta: `${t.n} run${t.n === 1 ? "" : "s"}`,
-                disabled: t.n === 0,
-              }))}
-              searchPlaceholder="Search suites"
-              itemNoun="suites"
-              hideAvatar
-              allowClear={false}
-              width={280}
-              customTrigger={
-                <button type="button" className="mx-suite mx-suite--find" title="Search every suite">
-                  <Search size={12} />
-                  Find a suite
-                  <span className="mx-suite__n">+{hiddenCount}</span>
-                  <ChevronDown size={12} className="mx-suite__caret" />
-                </button>
-              }
-            />
+        {stats.length > 1 && (
+          <div className="sr__sorts">
+            {RAIL_SORTS.map(o => (
+              <button
+                key={o.key}
+                type="button"
+                className={sort === o.key ? "is-active" : ""}
+                onClick={() => setSort(o.key)}
+                title={o.hint}
+              >
+                {o.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {buckets.length === 0 ? (
-        <div className="mx-chart__empty">This suite has never been executed.</div>
-      ) : (
-        <div className="mx-plot">
-          <div className="mx-axis">
-            {ticks.map((t, i) => <span key={i}>{t}</span>)}
-          </div>
+      <div className="sr__list">
+        {row({
+          id: "all", name: "All suites", runs: totalRuns,
+          passed: totals.passed, failed: totals.failed, idleDays: null,
+        }, true)}
 
-          <div className="mx-canvas">
-            <div className="mx-inner">
-              <div className="mx-rules">
-                {ticks.map((_, i) => <span key={i} />)}
-              </div>
+        {live.length > 0 && (
+          <div className="sr__group"><span>Executed</span><i />{live.length}</div>
+        )}
+        {live.map(s => row(s))}
 
-              <div className={`mx-cols${buckets.length > 18 ? " is-dense" : ""}`}>
-              {buckets.map(b => {
-                const rate = b.passed + b.failed > 0 ? Math.round((b.passed / (b.passed + b.failed)) * 100) : null;
-                return (
-                  <button
-                    key={b.key}
-                    type="button"
-                    className={`mx-col${hover === b.key ? " is-hot" : ""}${selectedKey === b.key ? " is-picked" : ""}${b.failed > 0 ? " has-fail" : ""}`}
-                    onMouseEnter={() => setHover(b.key)}
-                    onMouseLeave={() => setHover(h => (h === b.key ? null : h))}
-                    onClick={() => onPick(b.label, b.runs)}
-                    title={`${b.label}${b.sub ? ` · ${b.sub}` : ""} — ${b.passed} passed, ${b.failed} failed`
-                      + `${b.blocked ? `, ${b.blocked} blocked` : ""}${b.notRun ? `, ${b.notRun} not run` : ""}`}
-                  >
-                    <span className="mx-col__bars">
-                      <span className="mx-b is-pass" style={{ height: `${(b.passed / peak) * 100}%` }}>
-                        {buckets.length <= 12 && b.passed > 0 && <i>{b.passed}</i>}
-                      </span>
-                      <span className="mx-b is-fail" style={{ height: `${(b.failed / peak) * 100}%` }}>
-                        {buckets.length <= 12 && b.failed > 0 && <i>{b.failed}</i>}
-                      </span>
-                    </span>
-                    <span className="mx-col__foot">
-                      <span className="mx-col__label">{b.label}</span>
-                      {rate !== null && buckets.length <= 12 && (
-                        <span className={`mx-col__rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>
-                      )}
-                    </span>
-                  </button>
-                );
-                })}
-              </div>
-            </div>
-          </div>
+        {dormant.length > 0 && (
+          <div className="sr__group"><span>Never run</span><i />{dormant.length}</div>
+        )}
+        {dormant.map(s => row(s))}
 
-        </div>
-      )}
-
-      <div className="mx-legend mx-legend--foot">
-        <span><i className="is-pass" />Passed</span>
-        <span><i className="is-fail" />Failed</span>
-        <span className="mx-legend__hint">Click a bar to inspect that run</span>
+        {shown.length === 0 && <div className="sr__empty">No suite matches “{query}”.</div>}
       </div>
-    </div>
+
+      <footer className="sr__foot">
+        <b>{totalRuns}</b> run{totalRuns === 1 ? "" : "s"} ·{" "}
+        <b>{totals.passed + totals.failed}</b> case result{totals.passed + totals.failed === 1 ? "" : "s"}
+      </footer>
+    </aside>
+  );
+}
+
+/**
+ * "What the history says" — the read-out that opens the page.
+ *
+ * It reads the whole module by default, but a module's suites often test very
+ * different things, so the same picker the calendar uses narrows every insight
+ * below it to one suite's runs.
+ */
+function HistoryInsights({ suites, runs, hotspots, suiteName }: {
+  /** Suites in scope — every one of the module's, or just the picked one. */
+  suites: any[];
+  /** Runs in scope, oldest first. */
+  runs: any[];
+  /** Cases that failed more than once, each carrying the runs it failed in. */
+  hotspots: { name: string; runs: { run: any }[] }[];
+  /** Name of the suite the rail has picked, or null while reading all of them. */
+  suiteName: string | null;
+}) {
+  const insights = useMemo(
+    () => buildInsights(suites, runs, hotspots),
+    [suites, runs, hotspots],
+  );
+
+  return (
+    <section className="mx-insights">
+      <header className="mx-insights__head">
+        <span className="mx-insights__ic"><Lightbulb size={14} /></span>
+        <div className="min-w-0">
+          <div className="mx-insights__title">What the history says</div>
+          <div className="mx-insights__sub">
+            {suiteName
+              ? <>Read from the <b>{runs.length}</b> run{runs.length === 1 ? "" : "s"} of “{suiteName}”</>
+              : "Read from every scope, suite and run attached to this module"}
+          </div>
+        </div>
+      </header>
+      <ol className="mx-insights__list">
+        {insights.map((ins, i) => {
+          const Icon = ins.icon;
+          return (
+            <li key={i} className={`mx-ins mx-ins--${ins.tone}`}>
+              <span className="mx-ins__n">{i + 1}</span>
+              <span className="mx-ins__ic"><Icon size={14} /></span>
+              <div className="mx-ins__body">
+                <div className="mx-ins__text">{ins.text}</div>
+                {ins.detail && <div className="mx-ins__detail">{ins.detail}</div>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -489,39 +447,21 @@ function ExecutionChart({ suites, runs, selectedKey, onPick }: {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /**
- * Run calendar — the same execution history laid out by date instead of by
- * bar. Pick a suite, walk the months, and every day carries the runs that
- * executed on it; clicking a day (or a single run beside it) sends it to the
- * inspector exactly like clicking a bar does.
+ * Run calendar — the execution history laid out by date. Walk the months and
+ * every day carries the runs that executed on it, with the day's pass and fail
+ * split; picking a day lists those runs in the rail beside it.
  */
-function RunCalendar({ suites, runs, selectedKey, onPick }: {
+function RunCalendar({ suites, runs }: {
+  /** Every suite the module has — used to name the suite a run belongs to. */
   suites: any[];
+  /** Runs in scope, oldest first. */
   runs: any[];
-  /** Bucket currently shown in the inspector, so the calendar can mark it. */
-  selectedKey: string | null;
-  onPick: (label: string, runs: any[]) => void;
 }) {
-  const [suiteId, setSuiteId] = useState<string>("all");
+  const router = useRouter();
   const [cursor, setCursor] = useState(() => dayjs().startOf("month"));
   const [day, setDay] = useState<string | null>(null);
 
-  /** Every suite plus a catch-all, with how many runs each one carries. */
-  const options = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
-
-  const scoped = useMemo(() => {
-    if (suiteId === "all") return runs;
-    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
-    return runs.filter(r => String(r.suite_id) === suiteId);
-  }, [runs, suites, suiteId]);
+  const scoped = runs;
 
   /** Runs keyed by the day they ran, so painting a cell is one lookup. */
   const byDay = useMemo(() => {
@@ -541,7 +481,7 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
     const d = newest ? dayjs(runDate(newest)) : null;
     setCursor(d?.isValid() ? d.startOf("month") : dayjs().startOf("month"));
     setDay(null);
-  }, [suiteId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Six weeks from the Monday on or before the 1st — a stable grid every month. */
   const cells = useMemo(() => {
@@ -564,6 +504,7 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
     (a, r) => { const x = countsOf(r); return { passed: a.passed + x.passed, failed: a.failed + x.failed }; },
     { passed: 0, failed: 0 },
   );
+  const monthShare = shareOf(monthTotals.passed, monthTotals.failed);
   /** Years the picker offers — whatever ran, plus this year and wherever the cursor sits. */
   const years = useMemo(() => {
     const counted = new Map<string, number>();
@@ -586,12 +527,12 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
   const firstRunDay = useMemo(() => cells.find(c => !c.outside && c.runs.length)?.key ?? null, [cells]);
   const activeDay = day && cells.some(c => c.key === day && c.runs.length) ? day : firstRunDay;
   const selected = activeDay ? cells.find(c => c.key === activeDay) : null;
+  const selectedShare = selected ? shareOf(selected.passed, selected.failed) : null;
   const labelOf = (d: any) => d.format("D MMM YYYY");
 
   const pick = (cell: { key: string; d: any; runs: any[]; outside: boolean }) => {
     setDay(cell.key);
     if (cell.outside) setCursor(cell.d.startOf("month"));
-    if (cell.runs.length) onPick(labelOf(cell.d), chronological(cell.runs));
   };
 
   return (
@@ -601,30 +542,12 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
           <div className="cal__title"><CalendarDays size={14} />Run calendar</div>
           <div className="cal__sub">
             <b>{monthRuns.length}</b> run{monthRuns.length === 1 ? "" : "s"} in {cursor.format("MMMM YYYY")} ·{" "}
-            <b>{monthTotals.passed}</b> passed, <b>{monthTotals.failed}</b> failed
+            <b>{monthTotals.passed}</b> passed{monthShare && <> ({monthShare.pass}%)</>},{" "}
+            <b>{monthTotals.failed}</b> failed{monthShare && <> ({monthShare.fail}%)</>}
           </div>
         </div>
 
         <div className="cal__tools">
-          <SearchableDropdown
-            value={suiteId}
-            onChange={(v: any) => setSuiteId(v || "all")}
-            options={[
-              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
-              ...options.map(o => ({
-                value: o.id,
-                label: o.name,
-                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
-                disabled: o.n === 0,
-              })),
-            ]}
-            searchPlaceholder="Search suites"
-            itemNoun="suites"
-            hideAvatar
-            allowClear={false}
-            width={280}
-            style={{ width: 230 }}
-          />
           <div className="cal__nav">
             <button type="button" onClick={() => setCursor(c => c.subtract(1, "month"))} title="Previous month">
               <ChevronLeft size={14} />
@@ -664,7 +587,8 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
           {WEEKDAYS.map(w => <div key={w} className="cal__wd">{w}</div>)}
           {cells.map(c => {
             const isToday = c.d.isSame(dayjs(), "day");
-            const picked = activeDay === c.key || (!!selectedKey && selectedKey === labelOf(c.d));
+            const share = shareOf(c.passed, c.failed);
+            const picked = activeDay === c.key;
             return (
               <button
                 key={c.key}
@@ -674,7 +598,9 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
                 onClick={() => pick(c)}
                 disabled={!c.runs.length}
                 title={c.runs.length
-                  ? `${labelOf(c.d)} — ${c.runs.length} run${c.runs.length === 1 ? "" : "s"}, ${c.passed} passed, ${c.failed} failed`
+                  ? `${labelOf(c.d)} — ${c.runs.length} run${c.runs.length === 1 ? "" : "s"}, `
+                    + `${c.passed} passed${share ? ` (${share.pass}%)` : ""}, `
+                    + `${c.failed} failed${share ? ` (${share.fail}%)` : ""}`
                   : labelOf(c.d)}
               >
                 <span className="cal__date">{c.d.date()}</span>
@@ -685,8 +611,12 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
                       <i className="is-fail" style={{ flexGrow: c.failed || 0 }} />
                     </span>
                     <span className="cal__counts">
-                      <em className={`is-pass${c.passed === 0 ? " is-zero" : ""}`}>{c.passed}</em>
-                      <em className={`is-fail${c.failed === 0 ? " is-zero" : ""}`}>{c.failed}</em>
+                      <em className={`is-pass${c.passed === 0 ? " is-zero" : ""}`}>
+                        {c.passed}{share && <i>{share.pass}%</i>}
+                      </em>
+                      <em className={`is-fail${c.failed === 0 ? " is-zero" : ""}`}>
+                        {c.failed}{share && <i>{share.fail}%</i>}
+                      </em>
                     </span>
                   </>
                 )}
@@ -695,6 +625,7 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
           })}
         </div>
 
+        <div className="cal__rail">
         <aside className="cal__side">
           {!selected || !selected.runs.length ? (
             <div className="cal__side-empty">
@@ -706,20 +637,24 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
               <div className="cal__side-head">
                 <div className="cal__side-title">{selected.d.format("dddd, D MMM YYYY")}</div>
                 <div className="cal__side-sub">
-                  {selected.runs.length} run{selected.runs.length === 1 ? "" : "s"} · {selected.passed} passed, {selected.failed} failed
+                  {selected.runs.length} run{selected.runs.length === 1 ? "" : "s"} ·{" "}
+                  {selected.passed} passed{selectedShare && ` (${selectedShare.pass}%)`},{" "}
+                  {selected.failed} failed{selectedShare && ` (${selectedShare.fail}%)`}
                 </div>
               </div>
               <ul className="cal__runs">
                 {chronological(selected.runs).map((r: any) => {
                   const c = countsOf(r);
                   const rate = rateOf(r);
+                  const sh = shareOf(c.passed, c.failed);
                   const suite = suites.find(su => String(su.id) === String(r.suite_id));
                   return (
                     <li key={r.id}>
                       <button
                         type="button"
                         className="cal__run"
-                        onClick={() => onPick(labelOf(selected.d), [r])}
+                        onClick={() => router.push(`/qa-workspace/test-runs/${r.id}`)}
+                        title="Open this run"
                       >
                         <span className="cal__run-top">
                           <span className="cal__run-name">{r.run_name || "Untitled run"}</span>
@@ -731,8 +666,8 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
                           {[suite?.suite_name, fmtDateTime(runDate(r))].filter(Boolean).join(" · ")}
                         </span>
                         <span className="cal__run-counts">
-                          <em className="is-pass">{c.passed} passed</em>
-                          <em className="is-fail">{c.failed} failed</em>
+                          <em className="is-pass">{c.passed} passed{sh && ` · ${sh.pass}%`}</em>
+                          <em className="is-fail">{c.failed} failed{sh && ` · ${sh.fail}%`}</em>
                           {c.blocked > 0 && <em>{c.blocked} blocked</em>}
                         </span>
                       </button>
@@ -743,12 +678,17 @@ function RunCalendar({ suites, runs, selectedKey, onPick }: {
             </>
           )}
         </aside>
+        </div>
       </div>
     </section>
   );
 }
 
-/** One case's result on one run, as the matrix needs it. */
+/**
+ * One case's result on one run. The matrix draws the square from `status`
+ * alone, but expanding a case reads the rest — when it was executed, what the
+ * tester wrote, and what the case itself is classified as.
+ */
 interface ResultCell {
   caseKey: string;
   ref?: string;
@@ -756,26 +696,33 @@ interface ResultCell {
   status: string;
   bugLogged: boolean;
   bugNumber?: string | null;
+  executedAt?: string | null;
+  notes?: string | null;
+  priority?: string | null;
+  severity?: string | null;
+  testType?: string | null;
 }
 
-type Shape = "flaky" | "regressed" | "failing" | "fixed" | "never" | "stable";
+type Shape = "flaky" | "regressed" | "failing" | "fixed";
 
 const SHAPES: Record<Shape, { label: string; hint: string; rank: number }> = {
   flaky:     { label: "Flaky",     hint: "Passes and fails alternate — suspect the test, not only the build", rank: 0 },
   regressed: { label: "Regressed", hint: "Passed before, fails on the latest run", rank: 1 },
   failing:   { label: "Failing",   hint: "Failing, with no passing run to compare against", rank: 2 },
   fixed:     { label: "Fixed",     hint: "Failed earlier, passing on the latest run", rank: 3 },
-  never:     { label: "Never run", hint: "Sits in a suite but no run has executed it", rank: 4 },
-  stable:    { label: "Stable",    hint: "Passed on every run that touched it", rank: 5 },
 };
 
-const WINDOWS = [10, 20, 40] as const;
+/** Failed cases rendered per page; scrolling to the end reveals the next batch. */
+const CASE_PAGE = 15;
+
+/** Fail more times than this and the case is flagged, not just listed. */
+const CONCERN_FAILS = 2;
 
 const FILTERS = [
-  { key: "all", label: "All cases" },
-  { key: "unstable", label: "Flaky & regressed" },
-  { key: "failing", label: "Ever failed" },
-  { key: "never", label: "Never run" },
+  { key: "all", label: "All failed" },
+  { key: "concern", label: "Needs attention" },
+  { key: "flaky", label: "Flaky" },
+  { key: "open", label: "Still failing" },
 ] as const;
 type MatrixFilter = (typeof FILTERS)[number]["key"];
 
@@ -790,63 +737,171 @@ const cellTone = (status?: string) => {
 };
 
 /**
- * Stability matrix — the module read case by case instead of run by run.
+ * One failed case's whole history, shown in a drawer beside the list.
  *
- * Every other panel on this page answers "what happened in this execution".
- * This one answers "which case is the problem", which is the question that
- * decides where the next fix goes: a solid red streak is a regression somebody
- * owns, a red/green barcode is a flaky test, and an all-ash row is a case that
- * lives in a suite nobody ever executes.
+ * The list answers "how often"; this answers "when, and what happened" — every
+ * run that touched the case, newest first, with the time it was executed, who
+ * ran it, the tester's note and whether a bug came out of it. It opens over the
+ * page rather than sending the reader somewhere else to find the same answer.
  */
-function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
+function CaseDrawer({ row, runs, suites, onClose }: {
+  /** The case being read, or null while the drawer is closed. */
+  row: CaseRow | null;
+  /** Every run in scope, oldest first. */
+  runs: any[];
   suites: any[];
-  /** Every run this module has, oldest first. */
+  onClose: () => void;
+}) {
+  /** Newest first — the last thing that happened to this case is the thing to read. */
+  const events = useMemo(() => {
+    if (!row) return [];
+    return runs
+      .map((run, i) => ({ run, no: i + 1, cell: row.cells.get(String(run.id)) }))
+      .filter(e => !!e.cell)
+      .reverse();
+  }, [row, runs]);
+
+  /** Case attributes live on the result rows; take them from wherever they were recorded. */
+  const attrs = useMemo(() => {
+    const c = events.map(e => e.cell!);
+    return [
+      c.find(x => x.priority)?.priority && `${c.find(x => x.priority)!.priority} priority`,
+      c.find(x => x.severity)?.severity && `${c.find(x => x.severity)!.severity} severity`,
+      c.find(x => x.testType)?.testType,
+    ].filter(Boolean).join(" · ");
+  }, [events]);
+
+  const passes = events.filter(e => e.cell!.status?.toLowerCase() === "pass").length;
+
+  return (
+    <Drawer
+      open={!!row}
+      onClose={onClose}
+      width={560}
+      destroyOnClose
+      rootClassName="sm-drawer"
+      title={row && (
+        <div className="sm__dr-title">
+          <div className="sm__dr-id">
+            {row.ref && <code className="sm__ref">{row.ref}</code>}
+            <span className="sm__dr-name">{row.name}</span>
+          </div>
+          <div className="sm__dr-sub">{attrs || "No priority, severity or type recorded for this case"}</div>
+        </div>
+      )}
+    >
+      {row && (
+        <>
+          <div className="sm__dr-tally">
+            <span className="is-fail"><b>{row.fails}</b>failed</span>
+            <span className="is-pass"><b>{passes}</b>passed</span>
+            <span><b>{events.length}</b>run{events.length === 1 ? "" : "s"}</span>
+            {row.unfiled > 0 && <span className="is-fail"><b>{row.unfiled}</b>without a bug</span>}
+          </div>
+
+          {row.concern && (
+            <div className="sm__dr-warn">
+              <AlertTriangle size={14} />
+              Failed {row.fails} times — more than {CONCERN_FAILS}, so this is worth a look before the next run.
+            </div>
+          )}
+
+          <div className="sm__dr-label">Every run that touched this case</div>
+          <ol className="sm__events">
+            {events.map(({ run, no, cell }) => {
+              const c = cell!;
+              const suite = suites.find(su => String(su.id) === String(run.suite_id));
+              const when = fmtDateTime(c.executedAt) || fmtDateTime(runDate(run));
+              return (
+                <li key={run.id} className={`sm__ev is-${cellTone(c.status)}`}>
+                  <span className="sm__ev-status">{c.status || "Not Executed"}</span>
+                  <div className="sm__ev-body">
+                    <div className="sm__ev-top">
+                      <span className="sm__ev-run">#{no} · {run.run_name || "Untitled run"}</span>
+                      {c.bugLogged
+                        ? <span className="cm-pill cm-pill--blue">{c.bugNumber || "Bug filed"}</span>
+                        : c.status?.toLowerCase() === "fail" && <span className="cm-pill cm-pill--ash">No bug</span>}
+                    </div>
+                    <div className="sm__ev-meta">
+                      <span><Clock size={10} />{when || "no execution time recorded"}</span>
+                      {suite?.suite_name && <span><Layers size={10} />{suite.suite_name}</span>}
+                      {run.execution_type && <span>{run.execution_type}</span>}
+                      {run.created_by_name && <span>by {run.created_by_name}</span>}
+                    </div>
+                    {c.notes && <div className="sm__ev-note">“{c.notes}”</div>}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </>
+      )}
+    </Drawer>
+  );
+}
+
+/** One failed case, read across every run that executed it. */
+interface CaseRow {
+  key: string;
+  ref?: string;
+  name: string;
+  cells: Map<string, ResultCell>;
+  /** How many times it went red — the number the list is ranked by. */
+  fails: number;
+  /** Runs that produced a pass or a fail; blocked and not-run aren't verdicts. */
+  executed: number;
+  flips: number;
+  shape: Shape;
+  unfiled: number;
+  concern: boolean;
+}
+
+/**
+ * Case stability — which cases keep breaking, and how badly.
+ *
+ * Only cases that have actually failed are listed. A case that passes every
+ * time needs nobody's attention, so listing it only buries the ones that do.
+ * What's left is ranked by how many times each broke, and anything that failed
+ * more than twice is flagged rather than left for the reader to count. Opening
+ * a row gives its whole history in a drawer, without leaving the page.
+ */
+function StabilityMatrix({ suites, runs, results, onNeed }: {
+  /** Every suite the module has — used to name the suite a run belongs to. */
+  suites: any[];
+  /** Runs in scope, oldest first. */
   runs: any[];
   results: Record<string, ResultCell[]>;
   /** Asks the page to load a run's full result list, once. */
   onNeed: (runId: string) => void;
-  onPick: (label: string, runs: any[]) => void;
 }) {
-  const [suiteId, setSuiteId] = useState<string>("all");
-  const [windowSize, setWindowSize] = useState<number>(10);
   const [filter, setFilter] = useState<MatrixFilter>("all");
   const [query, setQuery] = useState("");
+  /** The case whose history is open in the drawer. */
+  const [openCase, setOpenCase] = useState<string | null>(null);
+  /** How many rows are on screen — one page at a time, grown by scrolling. */
+  const [limit, setLimit] = useState(CASE_PAGE);
+  const sentinel = useRef<HTMLLIElement | null>(null);
 
-  const options = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
+  const scoped = runs;
 
-  const scoped = useMemo(() => {
-    if (suiteId === "all") return runs;
-    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
-    return runs.filter(r => String(r.suite_id) === suiteId);
-  }, [runs, suites, suiteId]);
+  /** A different suite redraws the rows, so the open drawer closes with them. */
+  useEffect(() => { setOpenCase(null); }, [runs]);
 
-  /** The newest N runs, still read left to right in execution order. */
-  const columns = useMemo(() => scoped.slice(-windowSize), [scoped, windowSize]);
-
-  /** Only the runs on screen are fetched, and only once each. */
+  /** Every run in scope is read, and only once each. */
   useEffect(() => {
-    columns.forEach(r => onNeed(String(r.id)));
-  }, [columns]); // eslint-disable-line react-hooks/exhaustive-deps
+    scoped.forEach(r => onNeed(String(r.id)));
+  }, [scoped]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pending = columns.filter(r => !results[String(r.id)]).length;
-  const ready = columns.length - pending;
+  const pending = scoped.filter(r => !results[String(r.id)]).length;
+  const ready = scoped.length - pending;
 
-  /** One row per case, with its result on every column it appears in. */
-  const rows = useMemo(() => {
+  /** One row per case that has failed at least once, worst first. */
+  const rows: CaseRow[] = useMemo(() => {
     const byCase = new Map<string, {
       key: string; ref?: string; name: string;
       cells: Map<string, ResultCell>;
     }>();
-    columns.forEach(run => {
+    scoped.forEach(run => {
       (results[String(run.id)] ?? []).forEach(cell => {
         if (!byCase.has(cell.caseKey)) {
           byCase.set(cell.caseKey, { key: cell.caseKey, ref: cell.ref, name: cell.name, cells: new Map() });
@@ -857,7 +912,7 @@ function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
 
     return Array.from(byCase.values()).map(row => {
       /** The pass/fail sequence in execution order — blocked and not-run don't count as a verdict. */
-      const seq = columns
+      const seq = scoped
         .map(run => row.cells.get(String(run.id))?.status?.toLowerCase())
         .filter(v => v === "pass" || v === "fail") as string[];
       const fails = seq.filter(v => v === "fail").length;
@@ -865,38 +920,61 @@ function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
       const last = seq[seq.length - 1];
       const unfiled = Array.from(row.cells.values()).filter(c => c.status === "Fail" && !c.bugLogged).length;
 
-      const shape: Shape = seq.length === 0 ? "never"
-        : flips >= 2 ? "flaky"
-          : last === "fail" ? (fails === seq.length ? "failing" : "regressed")
-            : fails > 0 ? "fixed"
-              : "stable";
+      const shape: Shape = flips >= 2 ? "flaky"
+        : last === "fail" ? (fails === seq.length ? "failing" : "regressed")
+          : "fixed";
 
-      return { ...row, seq, fails, flips, executed: seq.length, shape, unfiled };
-    }).sort((a, b) => {
-      const r = SHAPES[a.shape].rank - SHAPES[b.shape].rank;
-      if (r !== 0) return r;
-      if (b.flips !== a.flips) return b.flips - a.flips;
-      if (b.fails !== a.fails) return b.fails - a.fails;
-      return a.name.localeCompare(b.name);
-    });
-  }, [columns, results]);
+      return { ...row, fails, flips, executed: seq.length, shape, unfiled, concern: fails > CONCERN_FAILS };
+    })
+      /* A case that never went red isn't a stability question — drop it. */
+      .filter(row => row.fails > 0)
+      .sort((a, b) => {
+        if (a.concern !== b.concern) return a.concern ? -1 : 1;
+        if (b.fails !== a.fails) return b.fails - a.fails;
+        const r = SHAPES[a.shape].rank - SHAPES[b.shape].rank;
+        if (r !== 0) return r;
+        if (b.flips !== a.flips) return b.flips - a.flips;
+        return a.name.localeCompare(b.name);
+      });
+  }, [scoped, results]);
 
-  const tally = useMemo(() => {
-    const t: Record<Shape, number> = { flaky: 0, regressed: 0, failing: 0, fixed: 0, never: 0, stable: 0 };
-    rows.forEach(r => { t[r.shape] += 1; });
-    return t;
-  }, [rows]);
+  const concerning = useMemo(() => rows.filter(r => r.concern).length, [rows]);
+  const totalFails = useMemo(() => rows.reduce((a, r) => a + r.fails, 0), [rows]);
+  const worst = rows[0]?.fails ?? 1;
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
-      if (filter === "unstable" && r.shape !== "flaky" && r.shape !== "regressed") return false;
-      if (filter === "failing" && r.fails === 0) return false;
-      if (filter === "never" && r.shape !== "never") return false;
+      if (filter === "concern" && !r.concern) return false;
+      if (filter === "flaky" && r.shape !== "flaky") return false;
+      if (filter === "open" && r.shape === "fixed") return false;
       if (q && !`${r.ref ?? ""} ${r.name}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [rows, filter, query]);
+
+  /** Any change to what is listed starts the paging over. */
+  useEffect(() => { setLimit(CASE_PAGE); }, [runs, filter, query]);
+
+  const page = useMemo(() => shown.slice(0, limit), [shown, limit]);
+  const more = shown.length - page.length;
+
+  /**
+   * The next page arrives when the end of the list reaches the viewport, so
+   * the reader never hits a "load more" button.
+   */
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || more === 0) return;
+    const io = new IntersectionObserver(
+      entries => { if (entries[0]?.isIntersecting) setLimit(n => n + CASE_PAGE); },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more]);
+
+  const active = rows.find(r => r.key === openCase) ?? null;
 
   return (
     <section className="sm">
@@ -904,58 +982,32 @@ function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
         <div>
           <div className="sm__title"><Grid3x3 size={14} />Case stability</div>
           <div className="sm__sub">
-            {columns.length === 0
-              ? "No run to compare yet."
-              : <>Last <b>{columns.length}</b> run{columns.length === 1 ? "" : "s"} · <b>{rows.length}</b> case{rows.length === 1 ? "" : "s"}
-                {pending > 0 && <> · loading {ready}/{columns.length}</>}</>}
+            {scoped.length === 0
+              ? "No run to read yet."
+              : <>Across <b>{scoped.length}</b> run{scoped.length === 1 ? "" : "s"} · <b>{rows.length}</b> failed case{rows.length === 1 ? "" : "s"}
+                {totalFails > 0 && <> · <b>{totalFails}</b> failure{totalFails === 1 ? "" : "s"}</>}
+                {concerning > 0 && <> · <b className="sm__sub-warn">{concerning}</b> need{concerning === 1 ? "s" : ""} attention</>}
+                {pending > 0 && <> · reading {ready}/{scoped.length}</>}</>}
           </div>
+          {shown.length > CASE_PAGE && (
+            <div className="sm__sub">
+              Showing <b>{page.length}</b> of <b>{shown.length}</b> — scroll for more
+            </div>
+          )}
         </div>
 
-        <div className="sm__tools">
-          <SearchableDropdown
-            value={suiteId}
-            onChange={(v: any) => setSuiteId(v || "all")}
-            options={[
-              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
-              ...options.map(o => ({
-                value: o.id, label: o.name,
-                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
-                disabled: o.n === 0,
-              })),
-            ]}
-            searchPlaceholder="Search suites"
-            itemNoun="suites"
-            hideAvatar
-            allowClear={false}
-            width={280}
-            style={{ width: 216 }}
-          />
-          <div className="sm__windows">
-            {WINDOWS.map(w => (
-              <button
-                key={w}
-                type="button"
-                className={windowSize === w ? "is-active" : ""}
-                onClick={() => setWindowSize(w)}
-                title={`Compare the last ${w} runs`}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {columns.length === 0 ? (
+      {scoped.length === 0 ? (
         <div className="sm__empty">Nothing has been executed for this suite yet.</div>
       ) : (
         <>
           <div className="sm__filters">
             {FILTERS.map(f => {
               const n = f.key === "all" ? rows.length
-                : f.key === "unstable" ? tally.flaky + tally.regressed
-                  : f.key === "failing" ? rows.filter(r => r.fails > 0).length
-                    : tally.never;
+                : f.key === "concern" ? concerning
+                  : f.key === "flaky" ? rows.filter(r => r.shape === "flaky").length
+                    : rows.filter(r => r.shape !== "fixed").length;
               return (
                 <button
                   key={f.key}
@@ -984,241 +1036,76 @@ function StabilityMatrix({ suites, runs, results, onNeed, onPick }: {
 
           {pending > 0 && rows.length === 0 ? (
             <div className="sm__loading"><ZukvoLoader size="sm" message="Reading run results…" /></div>
-          ) : shown.length === 0 ? (
-            <div className="sm__empty">No case matches this filter.</div>
-          ) : (
-            <div className="sm__scroll">
-              <div
-                className="sm__grid"
-                style={{ gridTemplateColumns: `minmax(240px, 1fr) repeat(${columns.length}, 26px) 96px` }}
-              >
-                <div className="sm__corner">Test case</div>
-                {columns.map((run, i) => (
-                  <div
-                    key={run.id}
-                    className={`sm__colhead${Number(run.failed_count || 0) > 0 ? " has-fail" : ""}`}
-                    title={`${run.run_name || "Untitled run"} · ${fmtDateTime(runDate(run)) || "no date"}`}
-                  >
-                    {scoped.length - columns.length + i + 1}
-                  </div>
-                ))}
-                <div className="sm__colhead sm__colhead--shape">Shape</div>
-
-                {shown.map(row => (
-                  <React.Fragment key={row.key}>
-                    <div className="sm__case" title={row.name}>
-                      {row.ref && <code className="sm__ref">{row.ref}</code>}
-                      <span className="sm__case-name">{row.name}</span>
-                      {row.unfiled > 0 && (
-                        <Tooltip title={`${row.unfiled} failure${row.unfiled === 1 ? "" : "s"} with no bug filed`}>
-                          <span className="sm__nobug">no bug</span>
-                        </Tooltip>
-                      )}
-                    </div>
-                    {columns.map(run => {
-                      const cell = row.cells.get(String(run.id));
-                      const tone = cellTone(cell?.status);
-                      return (
-                        <button
-                          key={run.id}
-                          type="button"
-                          className={`sm__cell is-${tone}`}
-                          disabled={!cell}
-                          onClick={() => onPick(`Run ${run.run_name || ""}`.trim(), [run])}
-                          title={`${row.ref ? `${row.ref} · ` : ""}${cell?.status || "not in this run"}\n${run.run_name || "Untitled run"} · ${fmtDateTime(runDate(run)) || "no date"}`}
-                        />
-                      );
-                    })}
-                    <Tooltip title={SHAPES[row.shape].hint}>
-                      <div className={`sm__shape is-${row.shape}`}>
-                        {SHAPES[row.shape].label}
-                        {row.executed > 0 && <span>{row.fails}/{row.executed}</span>}
-                      </div>
-                    </Tooltip>
-                  </React.Fragment>
-                ))}
-              </div>
+          ) : rows.length === 0 ? (
+            <div className="sm__empty sm__empty--clean">
+              <CheckCircle2 size={16} />
+              No case failed across the {scoped.length} run{scoped.length === 1 ? "" : "s"} on record.
             </div>
+          ) : shown.length === 0 ? (
+            <div className="sm__empty">No failed case matches this filter.</div>
+          ) : (
+            <ul className="sm__list">
+              {page.map(row => (
+                <li key={row.key}>
+                  <button
+                    type="button"
+                    className={`sm__row${row.concern ? " is-concern" : ""}`}
+                    onClick={() => setOpenCase(row.key)}
+                    title={`${row.name} — see every run that executed it`}
+                  >
+                    <span className="sm__row-main">
+                      <span className="sm__row-top">
+                        {row.ref && <code className="sm__ref">{row.ref}</code>}
+                        <span className="sm__case-name">{row.name}</span>
+                        {row.unfiled > 0 && (
+                          <Tooltip title={`${row.unfiled} failure${row.unfiled === 1 ? "" : "s"} with no bug filed`}>
+                            <span className="sm__nobug">no bug</span>
+                          </Tooltip>
+                        )}
+                      </span>
+                      {/* How much of this case's history is red, against the worst case here. */}
+                      <span className="sm__row-track">
+                        <i style={{ width: `${(row.fails / worst) * 100}%` }} />
+                      </span>
+                    </span>
+
+                    <span className="sm__row-side">
+                      <Tooltip
+                        title={row.concern
+                          ? `Failed ${row.fails} times in ${row.executed} run${row.executed === 1 ? "" : "s"} — more than ${CONCERN_FAILS}, worth a look`
+                          : `Failed ${row.fails} time${row.fails === 1 ? "" : "s"} in ${row.executed} run${row.executed === 1 ? "" : "s"}`}
+                      >
+                        <span className={`sm__fails${row.concern ? " is-concern" : ""}`}>
+                          {row.concern && <AlertTriangle size={11} />}
+                          <b>{row.fails}×</b>
+                          <span>failed of {row.executed}</span>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title={SHAPES[row.shape].hint}>
+                        <span className={`sm__shape is-${row.shape}`}>{SHAPES[row.shape].label}</span>
+                      </Tooltip>
+                      <ChevronRight size={14} className="sm__row-chev" />
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {more > 0 && (
+                <li ref={sentinel} className="sm__more">
+                  <ZukvoLoader size="sm" message={`Loading ${Math.min(more, CASE_PAGE)} more of ${shown.length}`} />
+                </li>
+              )}
+            </ul>
           )}
 
           <div className="sm__legend">
-            <span><i className="is-pass" />Passed</span>
-            <span><i className="is-fail" />Failed</span>
-            <span><i className="is-block" />Blocked</span>
-            <span><i className="is-idle" />Not executed</span>
-            <span><i className="is-none" />Not in that run</span>
-            <span className="sm__legend-hint">Click a square to inspect that run · rows sorted by how unstable they are</span>
+            <span className="sm__legend-concern"><AlertTriangle size={11} />More than {CONCERN_FAILS} failures</span>
+            <span className="sm__legend-hint">Only cases that have failed · open one for every run it executed in</span>
           </div>
         </>
       )}
+
+      <CaseDrawer row={active} runs={scoped} suites={suites} onClose={() => setOpenCase(null)} />
     </section>
-  );
-}
-
-/**
- * The panel beside the chart. Idle it shows the run mix; pick a bar and it
- * becomes that run's read-out — counts, pass rate and every failed case —
- * so the answer arrives next to the bar rather than further down the page.
- */
-function RunInspector({
-  focus, runId, onPickRun, onClear, failures, loading, router,
-}: {
-  focus: { label: string; runs: any[] };
-  runId: string | null;
-  onPickRun: (id: string) => void;
-  onClear: () => void;
-  failures: FailureRow[] | undefined;
-  loading: boolean;
-  router: ReturnType<typeof useRouter>;
-}) {
-  const run = focus.runs.find((r: any) => String(r.id) === runId) ?? focus.runs[focus.runs.length - 1];
-  const c = countsOf(run);
-  const executed = c.passed + c.failed + c.blocked;
-  const rate = executed > 0 ? Math.round((c.passed / executed) * 100) : null;
-
-  return (
-    <aside className="mx-inspect">
-      <header className="mx-inspect__head">
-        <div className="min-w-0">
-          <div className="mx-chart__title">{focus.label}</div>
-          <div className="mx-chart__sub">
-            {focus.runs.length > 1 ? `${focus.runs.length} runs in this period` : "Run detail"}
-          </div>
-        </div>
-        <button className="mx-inspect__close" onClick={onClear} aria-label="Back to run mix">
-          <X size={14} />
-        </button>
-      </header>
-
-      {focus.runs.length > 1 && (
-        <div className="mx-inspect__switch">
-          {focus.runs.map((r: any) => (
-            <button
-              key={r.id}
-              type="button"
-              className={`mx-inspect__chip${String(r.id) === String(run.id) ? " is-active" : ""}${Number(r.failed_count || 0) > 0 ? " has-fail" : ""}`}
-              onClick={() => onPickRun(String(r.id))}
-              title={r.run_name || "Untitled run"}
-            >
-              {fmtDate(runDate(r)) || "Undated"}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="mx-inspect__run">
-        <div className="mx-inspect__name">{run.run_name || "Untitled run"}</div>
-        <div className="mx-inspect__meta">
-          {[fmtDateTime(runDate(run)), run.created_by_name && `by ${run.created_by_name}`, run.scope_name]
-            .filter(Boolean).join(" · ")}
-        </div>
-      </div>
-
-      <div className="mx-inspect__stats">
-        <span className="mx-stat is-pass"><b>{c.passed}</b>passed</span>
-        <span className={`mx-stat${c.failed ? " is-fail" : ""}`}><b>{c.failed}</b>failed</span>
-        <span className="mx-stat"><b>{c.blocked}</b>blocked</span>
-        <span className="mx-stat"><b>{c.notRun}</b>not run</span>
-      </div>
-
-      {rate !== null && (
-        <div className="mx-inspect__rate">
-          <div className="mx-inspect__ratetop">
-            <span>Pass rate</span>
-            <b className={rate < 80 ? "is-low" : ""}>{rate}%</b>
-          </div>
-          <div className="mx-inspect__track">
-            <span style={{ width: `${rate}%` }} className={rate < 80 ? "is-low" : ""} />
-          </div>
-        </div>
-      )}
-
-      <div className="mx-inspect__body">
-        {c.failed === 0 ? (
-          <div className="mx-inspect__clean">
-            <CheckCircle2 size={16} />
-            Nothing failed on this run.
-          </div>
-        ) : loading && !failures ? (
-          <div className="mx-inspect__loading"><ZukvoLoader size="sm" message="Loading failures…" /></div>
-        ) : !failures?.length ? (
-          <div className="mx-inspect__clean">No failure detail recorded.</div>
-        ) : (
-          <>
-            <div className="mx-inspect__label"><Flame size={11} />{failures.length} failed case{failures.length === 1 ? "" : "s"}</div>
-            <div className="mx-inspect__list">
-              {failures.map(row => (
-                <div key={row.id} className="mx-failcard">
-                  <div className="mx-failcard__top">
-                    {row.tc_ref_id && <code className="md-ref">{row.tc_ref_id}</code>}
-                    <span className="mx-failcard__name">{row.name}</span>
-                  </div>
-                  <div className="mx-failcard__meta">
-                    {[row.severity && `Severity ${row.severity}`, row.priority, row.test_type,
-                      fmtDateTime(row.executed_at)].filter(Boolean).join(" · ")}
-                  </div>
-                  {row.notes && <div className="mx-failcard__note">“{row.notes}”</div>}
-                  {row.bug_logged
-                    ? <span className="cm-pill cm-pill--blue">{row.bug_number || "Bug filed"}</span>
-                    : <span className="cm-pill cm-pill--ash">No bug</span>}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <Button
-        block
-        size="small"
-        className="mx-inspect__cta"
-        onClick={() => router.push(`/qa-workspace/test-runs/${run.id}`)}
-      >
-        Open the full run
-        <ArrowUpRight size={13} />
-      </Button>
-    </aside>
-  );
-}
-
-/** Run types as a share of all runs — what this module is actually tested with. */
-function KindBreakdown({ runs }: { runs: any[] }) {
-  const kinds = useMemo(() => {
-    const map = new Map<string, { n: number; failed: number }>();
-    runs.forEach(r => {
-      const k = kindOf(r);
-      const cur = map.get(k) || { n: 0, failed: 0 };
-      cur.n += 1;
-      cur.failed += countsOf(r).failed;
-      map.set(k, cur);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[1].n - a[1].n);
-  }, [runs]);
-
-  if (!kinds.length) return null;
-  const top = kinds[0][1].n;
-
-  return (
-    <div className="mx-kinds">
-      <div className="mx-chart__title">Run mix</div>
-      <div className="mx-chart__sub">How this module gets tested</div>
-      <div className="mx-kinds__list">
-        {kinds.map(([name, v]) => (
-          <div key={name} className="mx-kind">
-            <div className="mx-kind__top">
-              <span className="mx-kind__name" title={name}>{name}</span>
-              <span className="mx-kind__n">{v.n}</span>
-            </div>
-            <div className="mx-kind__track">
-              <span className="mx-kind__fill" style={{ width: `${(v.n / top) * 100}%` }} />
-            </div>
-            <div className="mx-kind__meta">
-              {v.failed > 0 ? `${v.failed} failed case${v.failed === 1 ? "" : "s"}` : "no failures"}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -1264,17 +1151,16 @@ function ModuleDetail() {
     [nodes, nodeKey],
   );
 
-  const [section, setSection] = useState<SectionKey>("suites");
-  const [openRuns, setOpenRuns] = useState<Record<string, boolean>>({});
-  /** The chart bucket being inspected beside the graph, if any. */
-  const [focus, setFocus] = useState<{ key: string; label: string; runs: any[] } | null>(null);
-  const [focusRunId, setFocusRunId] = useState<string | null>(null);
+  /** The suite the rail has picked — every panel on the page reads it. */
+  const [suiteId, setSuiteId] = useState<string>("all");
   const [failures, setFailures] = useState<Record<string, FailureRow[]>>({});
   const [loadingRun, setLoadingRun] = useState<Record<string, boolean>>({});
   /** Every case result of a run — what the stability matrix reads, unlike the failures-only list. */
   const [runResults, setRunResults] = useState<Record<string, ResultCell[]>>({});
   /** Guards against the matrix asking for the same run twice before state settles. */
   const resultsAsked = useRef<Set<string>>(new Set());
+  const resultQueue = useRef<string[]>([]);
+  const resultsInFlight = useRef(0);
 
   /** Failing runs, newest first — the ones worth pulling detail for. */
   const failingRuns = useMemo(
@@ -1284,10 +1170,14 @@ function ModuleDetail() {
     [node],
   );
 
-  /** The whole result list of a run, cached per run and pulled only when the matrix shows it. */
-  const fetchRunResults = async (runId: string) => {
-    if (resultsAsked.current.has(runId)) return;
-    resultsAsked.current.add(runId);
+  /**
+   * The whole result list of a run, cached per run.
+   *
+   * Case stability reads every run the module has, so a busy module would fire
+   * a hundred of these at once. They queue instead, a few at a time, and the
+   * panel fills in as they land.
+   */
+  const readRun = async (runId: string) => {
     try {
       const res: any = await apiClient.get(`/api/v2/qa/runs/${runId}`, { params: { pageSize: 500 } });
       const rows: any[] = res?.data?.data?.results ?? [];
@@ -1300,10 +1190,34 @@ function ModuleDetail() {
           status: String(r.status || "Not Executed"),
           bugLogged: !!r.bug_logged,
           bugNumber: r.bug_number ?? null,
+          executedAt: r.executed_at ?? null,
+          notes: r.notes ?? null,
+          priority: r.priority ?? null,
+          severity: r.severity ?? null,
+          testType: r.test_type ?? null,
         })),
       }));
     } catch {
       setRunResults(prev => ({ ...prev, [runId]: [] }));
+    }
+  };
+
+  const fetchRunResults = (runId: string) => {
+    if (resultsAsked.current.has(runId)) return;
+    resultsAsked.current.add(runId);
+    resultQueue.current.push(runId);
+    drainResultQueue();
+  };
+
+  /** Keeps at most RESULT_CONCURRENCY reads in flight, starting the next as each finishes. */
+  const drainResultQueue = () => {
+    while (resultsInFlight.current < RESULT_CONCURRENCY && resultQueue.current.length) {
+      const next = resultQueue.current.shift()!;
+      resultsInFlight.current += 1;
+      readRun(next).finally(() => {
+        resultsInFlight.current -= 1;
+        drainResultQueue();
+      });
     }
   };
 
@@ -1342,128 +1256,70 @@ function ModuleDetail() {
     return Array.from(byCase.values()).sort((a, b) => b.runs.length - a.runs.length);
   }, [node, failures]);
 
-  const runsBySuite = useMemo(() => {
-    const map = new Map<string, any[]>();
-    (node?.runs ?? []).forEach((r: any) => {
-      const key = String(r.suite_id ?? "__none");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    });
-    return map;
-  }, [node]);
-
   /** Every run this module has, oldest first — "#5" means the fifth executed. */
   const allRuns = useMemo(() => chronological(node?.runs ?? []), [node]);
 
-  const insights = useMemo(
-    () => (node ? buildInsights(node, allRuns, hotspots) : []),
-    [node, allRuns, hotspots],
-  );
+  /** What the rail lists: every suite, plus a catch-all for runs without one. */
+  const suiteStats = useMemo<SuiteStat[]>(() => {
+    const suites = node?.suites ?? [];
+    const statOf = (id: string, name: string, rows: any[]): SuiteStat => {
+      const last = rows.length ? runDate(rows[rows.length - 1]) : null;
+      return {
+        id, name,
+        runs: rows.length,
+        passed: rows.reduce((a, r) => a + countsOf(r).passed, 0),
+        failed: rows.reduce((a, r) => a + countsOf(r).failed, 0),
+        idleDays: last ? dayjs().diff(dayjs(last), "day") : null,
+      };
+    };
+    const out = suites.map((su: any) => statOf(
+      String(su.id),
+      su.suite_name || "Untitled suite",
+      allRuns.filter(r => String(r.suite_id) === String(su.id)),
+    ));
+    const orphans = allRuns.filter(r => !suites.some((su: any) => String(su.id) === String(r.suite_id)));
+    if (orphans.length) out.push(statOf("__none", "Without a suite", orphans));
+    /* Busiest first, but a suite nobody runs still has to be visible. */
+    return out.sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name));
+  }, [node, allRuns]);
+
+  /** Runs of the picked suite — what every panel below the rail reads. */
+  const scopedRuns = useMemo(() => {
+    if (suiteId === "all") return allRuns;
+    if (suiteId === "__none") {
+      return allRuns.filter(r => !(node?.suites ?? []).some((su: any) => String(su.id) === String(r.suite_id)));
+    }
+    return allRuns.filter(r => String(r.suite_id) === suiteId);
+  }, [allRuns, node, suiteId]);
+
+  /** Only the picked suite counts as "never run" once the page narrows to it. */
+  const scopedSuites = useMemo(() => {
+    const suites = node?.suites ?? [];
+    if (suiteId === "all") return suites;
+    return suites.filter((su: any) => String(su.id) === suiteId);
+  }, [node, suiteId]);
+
+  /** A hotspot keeps only the failures that happened inside the picked suite. */
+  const scopedHotspots = useMemo(() => {
+    if (suiteId === "all") return hotspots;
+    const ids = new Set(scopedRuns.map(r => String(r.id)));
+    return hotspots
+      .map(h => ({ ...h, runs: h.runs.filter(x => ids.has(String(x.run.id))) }))
+      .filter(h => h.runs.length)
+      .sort((a, b) => b.runs.length - a.runs.length);
+  }, [hotspots, suiteId, scopedRuns]);
+
+  const suiteName = suiteId === "all"
+    ? null
+    : suiteStats.find(su => su.id === suiteId)?.name ?? "this suite";
 
   const name = node?.name || hintedName || "Module";
   const canRead = canReadScope || canReadCase || canReadSuite || canReadRun;
   if (!canRead) return null;
 
-  const toggleRun = (runId: string) => {
-    setOpenRuns(prev => ({ ...prev, [runId]: !prev[runId] }));
-    fetchFailures(runId);
-  };
-
   const backToMap = () => router.push(
     `/qa-workspace/coverage-map${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`,
   );
-
-  /* ── Rows ─────────────────────────────────────────────────────────────── */
-
-  const renderFailureList = (runId: string) => {
-    const rows = failures[runId];
-    if (loadingRun[runId] && !rows) {
-      return <div className="md-fail__loading"><ZukvoLoader size="sm" message="Loading failures…" /></div>;
-    }
-    if (!rows?.length) {
-      return <div className="md-fail__none">No failing cases recorded on this run.</div>;
-    }
-    return (
-      <div className="md-fail">
-        <div className="md-fail__head">
-          <Flame size={12} />
-          {rows.length} failed case{rows.length === 1 ? "" : "s"}
-        </div>
-        {rows.map(row => (
-          <div key={row.id} className="md-failrow">
-            <span className="md-failrow__dot" />
-            <div className="md-failrow__body">
-              <div className="md-failrow__title">
-                {row.tc_ref_id && <code className="md-ref">{row.tc_ref_id}</code>}
-                {row.name}
-              </div>
-              <div className="md-failrow__meta">
-                {[
-                  row.severity && `Severity ${row.severity}`,
-                  row.priority && `${row.priority} priority`,
-                  row.test_type,
-                  fmtDateTime(row.executed_at) && `failed ${fmtDateTime(row.executed_at)}`,
-                ].filter(Boolean).join(" · ")}
-              </div>
-              {row.notes && <div className="md-failrow__note">“{row.notes}”</div>}
-            </div>
-            {row.bug_logged ? (
-              <Tooltip title="A bug is already filed for this failure">
-                <span className="cm-pill cm-pill--blue">{row.bug_number || "Bug filed"}</span>
-              </Tooltip>
-            ) : (
-              <span className="cm-pill cm-pill--ash">No bug</span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderRun = (run: any, index: number, total: number) => {
-    const id = String(run.id);
-    const isOpen = !!openRuns[id];
-    const failed = Number(run.failed_count || 0);
-    const passed = Number(run.passed_count || 0);
-    const blocked = Number(run.blocked_count || 0);
-    const notRun = Number(run.not_executed_count || 0);
-    return (
-      <div key={id} className={`md-run${isOpen ? " is-open" : ""}${failed > 0 ? " has-fail" : ""}`}>
-        <button className="md-run__head" onClick={() => toggleRun(id)}>
-          <span className="md-run__chev">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-          <span className="md-run__ord" title={`Run ${index + 1} of ${total}`}>#{index + 1}</span>
-          <span className="md-run__id">
-            <span className="md-run__name">{run.run_name || "Untitled run"}</span>
-            <span className="md-run__meta">
-              {[
-                fmtDateTime(runDate(run)),
-                run.created_by_name && `by ${run.created_by_name}`,
-                run.scope_name && `scope: ${run.scope_name}`,
-              ].filter(Boolean).join(" · ")}
-            </span>
-          </span>
-          <span className="md-run__bar">
-            <ResultBar passed={passed} failed={failed} blocked={blocked} notExecuted={notRun} />
-          </span>
-          <span className="md-run__counts">
-            <span className="md-count is-pass">{passed}</span>
-            <span className={`md-count${failed > 0 ? " is-fail" : ""}`}>{failed}</span>
-            <span className="md-count">{notRun}</span>
-          </span>
-          <span
-            className="md-run__go"
-            role="link"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-runs/${id}`); }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); router.push(`/qa-workspace/test-runs/${id}`); } }}
-          >
-            <ArrowUpRight size={14} />
-          </span>
-        </button>
-        {isOpen && <div className="md-run__body">{renderFailureList(id)}</div>}
-      </div>
-    );
-  };
 
   return (
     <MainLayout noPadding>
@@ -1509,331 +1365,63 @@ function ModuleDetail() {
             ) : node ? (
               <>
                 {/* The QA pipeline for this module, stage by stage — planned,
-                    written, assembled, executed. Each stage jumps to its list. */}
+                    written, assembled, executed. */}
                 <nav className="md-flow">
                   {([
-                    { key: "scopes", icon: Target, n: node.scopes.length, label: "Scopes", hint: "planned this module", tab: "scopes" },
-                    { key: "scenarios", icon: ClipboardList, n: node.cases.length, label: "Scenarios", hint: "written for it", tab: "scenarios" },
-                    { key: "cases", icon: FileText, n: node.childCases, label: "Cases", hint: "beneath those scenarios", tab: "scenarios" },
-                    { key: "suites", icon: Layers, n: node.suites.length, label: "Suites", hint: "assembled to execute", tab: "suites" },
-                    { key: "runs", icon: PlayCircle, n: node.runs.length, label: "Runs", hint: "executed so far", tab: "suites" },
+                    { key: "scopes", icon: Target, n: node.scopes.length, label: "Scopes", hint: "planned this module" },
+                    { key: "scenarios", icon: ClipboardList, n: node.cases.length, label: "Scenarios", hint: "written for it" },
+                    { key: "cases", icon: FileText, n: node.childCases, label: "Cases", hint: "beneath those scenarios" },
+                    { key: "suites", icon: Layers, n: node.suites.length, label: "Suites", hint: "assembled to execute" },
+                    { key: "runs", icon: PlayCircle, n: node.runs.length, label: "Runs", hint: "executed so far" },
                   ] as const).map((step, i, arr) => {
                     const Icon = step.icon;
                     return (
                       <React.Fragment key={step.key}>
-                        <button
-                          type="button"
+                        <div
                           className={`md-step${step.n === 0 ? " is-zero" : ""}`}
-                          onClick={() => setSection(step.tab as SectionKey)}
                           title={`${step.n} ${step.label.toLowerCase()} ${step.hint}`}
                         >
                           <Icon size={13} className="md-step__ic" />
                           <span className="md-step__n">{step.n}</span>
                           <span className="md-step__label">{step.label}</span>
-                        </button>
+                        </div>
                         {i < arr.length - 1 && <span className="md-flow__sep" />}
                       </React.Fragment>
                     );
                   })}
                 </nav>
 
-                {/* What the history says, before any of the raw lists. */}
-                <section className="mx-insights">
-                  <header className="mx-insights__head">
-                    <span className="mx-insights__ic"><Lightbulb size={14} /></span>
-                    <div>
-                      <div className="mx-insights__title">What the history says</div>
-                      <div className="mx-insights__sub">Read from every scope, suite and run attached to this module</div>
-                    </div>
-                  </header>
-                  <ol className="mx-insights__list">
-                    {insights.map((ins, i) => {
-                      const Icon = ins.icon;
-                      return (
-                        <li key={i} className={`mx-ins mx-ins--${ins.tone}`}>
-                          <span className="mx-ins__n">{i + 1}</span>
-                          <span className="mx-ins__ic"><Icon size={14} /></span>
-                          <div className="mx-ins__body">
-                            <div className="mx-ins__text">{ins.text}</div>
-                            {ins.detail && <div className="mx-ins__detail">{ins.detail}</div>}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </section>
+                <div className="md-body">
+                  <SuiteRail
+                    stats={suiteStats}
+                    value={suiteId}
+                    onChange={setSuiteId}
+                    totalRuns={allRuns.length}
+                  />
 
-                {allRuns.length > 0 && (
-                  <div className="mx-charts">
-                    <ExecutionChart
-                      suites={node.suites}
-                      runs={allRuns}
-                      selectedKey={focus?.key ?? null}
-                      onPick={(label, picked) => {
-                        const last = picked[picked.length - 1];
-                        setFocus({ key: label, label, runs: picked });
-                        setFocusRunId(String(last.id));
-                        fetchFailures(String(last.id));
-                      }}
+                  <div className="md-main">
+                    {/* What the history says, before any of the raw lists. */}
+                    <HistoryInsights
+                      suites={scopedSuites}
+                      runs={scopedRuns}
+                      hotspots={scopedHotspots}
+                      suiteName={suiteName}
                     />
-                    {focus ? (
-                      <RunInspector
-                        focus={focus}
-                        runId={focusRunId}
-                        onPickRun={(id) => { setFocusRunId(id); fetchFailures(id); }}
-                        onClear={() => { setFocus(null); setFocusRunId(null); }}
-                        failures={focusRunId ? failures[focusRunId] : undefined}
-                        loading={focusRunId ? !!loadingRun[focusRunId] : false}
-                        router={router}
+
+                    {scopedRuns.length > 0 && (
+                      <RunCalendar suites={node.suites} runs={scopedRuns} />
+                    )}
+
+                    {scopedRuns.length > 0 && (
+                      <StabilityMatrix
+                        suites={node.suites}
+                        runs={scopedRuns}
+                        results={runResults}
+                        onNeed={fetchRunResults}
                       />
-                    ) : (
-                      <KindBreakdown runs={allRuns} />
                     )}
                   </div>
-                )}
-
-                {allRuns.length > 0 && (
-                  <RunCalendar
-                    suites={node.suites}
-                    runs={allRuns}
-                    selectedKey={focus?.key ?? null}
-                    onPick={(label, picked) => {
-                      const last = picked[picked.length - 1];
-                      setFocus({ key: label, label, runs: picked });
-                      setFocusRunId(String(last.id));
-                      fetchFailures(String(last.id));
-                    }}
-                  />
-                )}
-
-                {allRuns.length > 0 && (
-                  <StabilityMatrix
-                    suites={node.suites}
-                    runs={allRuns}
-                    results={runResults}
-                    onNeed={fetchRunResults}
-                    onPick={(label, picked) => {
-                      const last = picked[picked.length - 1];
-                      setFocus({ key: label, label, runs: picked });
-                      setFocusRunId(String(last.id));
-                      fetchFailures(String(last.id));
-                    }}
-                  />
-                )}
-
-                <div className="md-tabs">
-                  {SECTIONS.map(sct => {
-                    const Icon = sct.icon;
-                    const count = sct.key === "suites" ? node.suites.length
-                      : sct.key === "failures" ? hotspots.length
-                        : sct.key === "scopes" ? node.scopes.length
-                          : node.cases.length;
-                    return (
-                      <button
-                        key={sct.key}
-                        className={`md-tab${section === sct.key ? " is-active" : ""}`}
-                        onClick={() => setSection(sct.key)}
-                      >
-                        <Icon size={14} />
-                        {sct.label}
-                        <span className="md-tab__n">{count}</span>
-                      </button>
-                    );
-                  })}
                 </div>
-
-                {/* ── Suites, each with its whole run history ───────────── */}
-                {section === "suites" && (
-                  <div className="md-list">
-                    {node.suites.length === 0 && (
-                      <div className="cm-col__empty">No suite has been assembled for this module.</div>
-                    )}
-                    {node.suites.map((suite: any) => {
-                      const suiteRuns = chronological(runsBySuite.get(String(suite.id)) ?? []);
-                      const failedRuns = suiteRuns.filter((r: any) => Number(r.failed_count || 0) > 0).length;
-                      return (
-                        <section key={suite.id} className="md-card">
-                          <header className="md-card__head">
-                            <span className="md-card__ic"><Layers size={14} /></span>
-                            <div className="md-card__id">
-                              <div className="md-card__title">{suite.suite_name || "Untitled suite"}</div>
-                              <div className="md-card__meta">
-                                {[
-                                  `${Number(suite.case_count || 0)} cases`,
-                                  `${suiteRuns.length} run${suiteRuns.length === 1 ? "" : "s"}`,
-                                  failedRuns ? `${failedRuns} with failures` : null,
-                                  suite.parent_title,
-                                  suite.created_by_name && `by ${suite.created_by_name}`,
-                                  fmtDate(suite.created_at) && `added ${fmtDate(suite.created_at)}`,
-                                ].filter(Boolean).join(" · ")}
-                              </div>
-                            </div>
-                            <Button
-                              size="small"
-                              onClick={() => router.push(`/qa-workspace/test-suites/${suite.id}`)}
-                            >
-                              Open suite
-                            </Button>
-                          </header>
-
-                          {suiteRuns.length === 0 ? (
-                            <div className="md-card__empty">Nothing has been executed against this suite yet.</div>
-                          ) : (
-                            <div className="md-runs">
-                              {suiteRuns.map((run, i) => renderRun(run, i, suiteRuns.length))}
-                            </div>
-                          )}
-                        </section>
-                      );
-                    })}
-
-                    {/* Runs whose suite sits outside this module's suite list */}
-                    {(runsBySuite.get("__none")?.length ?? 0) > 0 && (
-                      <section className="md-card">
-                        <header className="md-card__head">
-                          <span className="md-card__ic"><PlayCircle size={14} /></span>
-                          <div className="md-card__id">
-                            <div className="md-card__title">Runs without a suite</div>
-                            <div className="md-card__meta">Executed here but no longer linked to a suite</div>
-                          </div>
-                        </header>
-                        <div className="md-runs">
-                          {chronological(runsBySuite.get("__none")!).map((run, i, arr) => renderRun(run, i, arr.length))}
-                        </div>
-                      </section>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Failure hotspots across every run ─────────────────── */}
-                {section === "failures" && (
-                  <div className="md-list">
-                    {failingRuns.length === 0 ? (
-                      <div className="cm-col__empty">No run in this module has recorded a failure.</div>
-                    ) : (
-                      <>
-                        <div className="md-note">
-                          <AlertTriangle size={13} />
-                          <span>
-                            Failures from the {Math.min(failingRuns.length, EAGER_FAILURE_RUNS)} most recent failing
-                            run{failingRuns.length === 1 ? "" : "s"} are loaded.
-                            {failingRuns.length > EAGER_FAILURE_RUNS
-                              ? ` Open an older run under Suites & runs to add it here.`
-                              : ""}
-                          </span>
-                        </div>
-
-                        {hotspots.length === 0 ? (
-                          <div className="md-card__empty">Loading failure detail…</div>
-                        ) : hotspots.map(spot => (
-                          <section key={spot.ref || spot.name} className="md-card">
-                            <header className="md-card__head">
-                              <span className="md-card__ic is-fail"><Flame size={14} /></span>
-                              <div className="md-card__id">
-                                <div className="md-card__title">
-                                  {spot.ref && <code className="md-ref">{spot.ref}</code>}
-                                  {spot.name}
-                                </div>
-                                <div className="md-card__meta">
-                                  failed in {spot.runs.length} run{spot.runs.length === 1 ? "" : "s"}
-                                </div>
-                              </div>
-                              {spot.runs.length > 1 && <span className="cm-pill cm-pill--red">recurring</span>}
-                            </header>
-                            <div className="md-spot">
-                              {spot.runs
-                                .slice()
-                                .sort((a, b) => dayjs(runDate(b.run) || 0).valueOf() - dayjs(runDate(a.run) || 0).valueOf())
-                                .map(({ run, row }) => (
-                                  <button
-                                    key={`${run.id}-${row.id}`}
-                                    className="md-spotrow"
-                                    onClick={() => router.push(`/qa-workspace/test-runs/${run.id}`)}
-                                  >
-                                    <span className="md-spotrow__run">{run.run_name || "Untitled run"}</span>
-                                    <span className="md-spotrow__meta">
-                                      {[
-                                        fmtDateTime(row.executed_at || runDate(run)),
-                                        run.created_by_name && `by ${run.created_by_name}`,
-                                      ].filter(Boolean).join(" · ")}
-                                    </span>
-                                    {row.notes && <span className="md-spotrow__note">“{row.notes}”</span>}
-                                    <ArrowUpRight size={13} className="md-spotrow__go" />
-                                  </button>
-                                ))}
-                            </div>
-                          </section>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Scopes that planned this module ───────────────────── */}
-                {section === "scopes" && (
-                  <div className="md-list">
-                    {node.scopes.length === 0 && (
-                      <div className="cm-col__empty">No scope has planned this module.</div>
-                    )}
-                    {node.scopes.map((sc: any) => (
-                      <button
-                        key={sc.id}
-                        className="md-card md-card--row"
-                        onClick={() => router.push(`/qa-workspace/test-scope/${sc.id}`)}
-                      >
-                        <span className="md-card__ic"><Target size={14} /></span>
-                        <div className="md-card__id">
-                          <div className="md-card__title">{sc.name || "Untitled scope"}</div>
-                          <div className="md-card__meta">
-                            {[
-                              sc.type,
-                              sc.priority && `${sc.priority} priority`,
-                              sc.qa_owner,
-                              fmtDate(sc.created_at) && `created ${fmtDate(sc.created_at)}`,
-                              sc.start_date && sc.end_date
-                                ? `${fmtDate(sc.start_date)} → ${fmtDate(sc.end_date)}`
-                                : sc.end_date ? `due ${fmtDate(sc.end_date)}` : null,
-                            ].filter(Boolean).join(" · ")}
-                          </div>
-                        </div>
-                        {sc.status && <span className={`cm-pill cm-pill--${statusTone(sc.status)}`}>{sc.status}</span>}
-                        <ArrowUpRight size={13} className="md-card__go" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Scenarios written for it ──────────────────────────── */}
-                {section === "scenarios" && (
-                  <div className="md-list">
-                    {node.cases.length === 0 && (
-                      <div className="cm-col__empty">No scenario has been written for this module.</div>
-                    )}
-                    {node.cases.map((c: any) => (
-                      <button
-                        key={c.id}
-                        className="md-card md-card--row"
-                        onClick={() => router.push(`/qa-workspace/test-cases/${c.id}`)}
-                      >
-                        <span className="md-card__ic"><FileText size={14} /></span>
-                        <div className="md-card__id">
-                          <div className="md-card__title">{c.title || "Untitled scenario"}</div>
-                          <div className="md-card__meta">
-                            {[
-                              `${Number(c.child_count || 0)} module cases`,
-                              c.feature,
-                              c.automation,
-                              (c.owner_name || c.qa_owner) && `owner ${c.owner_name || c.qa_owner}`,
-                              fmtDate(c.created_at) && `added ${fmtDate(c.created_at)}`,
-                            ].filter(Boolean).join(" · ")}
-                          </div>
-                        </div>
-                        {c.status && <span className={`cm-pill cm-pill--${statusTone(c.status)}`}>{c.status}</span>}
-                        <ArrowUpRight size={13} className="md-card__go" />
-                      </button>
-                    ))}
-                  </div>
-                )}
               </>
             ) : null}
           </ZukvoLoadingOverlay>
@@ -1892,10 +1480,8 @@ const STYLES = `
 .md-step {
   display: inline-flex; align-items: center; gap: 7px;
   height: 32px; padding: 0 12px; border: none; border-radius: 7px;
-  background: transparent; cursor: pointer; white-space: nowrap;
-  transition: background .15s ease, color .15s ease;
+  background: transparent; white-space: nowrap;
 }
-.md-step:hover { background: rgba(59,130,246,.06); }
 .md-step__ic { color: #2563eb; flex-shrink: 0; }
 .md-step__n {
   font-size: 15px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
@@ -1911,13 +1497,178 @@ const STYLES = `
   .md-flow__sep { display: none; }
 }
 
+/* ── Suite rail: the page's one selector, down the left ────────────────── */
+.md-body { display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 16px; align-items: start; }
+.md-main { min-width: 0; }
+
+.sr {
+  position: sticky; top: 0; align-self: start;
+  /* The shell is 100vh - 64 topbar - 56 header; keep the rail inside that. */
+  display: flex; flex-direction: column; max-height: calc(100vh - 140px);
+  border: 1px solid var(--border-slate-200); border-radius: 14px;
+  background: var(--bg-pure-white); overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.03);
+}
+
+.sr__head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border-slate-100);
+  background: linear-gradient(180deg, rgba(59,130,246,.05), transparent);
+}
+.sr__head-ic {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
+}
+.sr__head-title { font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900); }
+.sr__head-sub { margin-top: 1px; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+.sr__head-sub b { color: #dc2626; font-weight: 800; }
+
+.sr__controls { padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.sr__search {
+  display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 9px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-slate-50);
+  color: var(--text-slate-400);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.sr__search:focus-within {
+  border-color: rgba(59,130,246,.45); background: var(--bg-pure-white);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+}
+.sr__search input {
+  border: none; outline: none; background: transparent; width: 100%; min-width: 0;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-800);
+}
+.sr__search button { display: inline-flex; border: none; background: transparent; cursor: pointer; color: var(--text-slate-400); padding: 0; }
+.sr__search button:hover { color: var(--text-slate-700); }
+
+.sr__sorts {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-slate-50);
+}
+.sr__sorts button {
+  height: 22px; border: none; border-radius: 6px; background: transparent; cursor: pointer;
+  font-size: 10px; font-weight: 700; color: var(--text-slate-500);
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.sr__sorts button:hover { color: var(--text-slate-800); }
+.sr__sorts button.is-active {
+  background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.07);
+}
+
+.sr__list { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; padding: 0 8px 10px; }
+.sr__list::-webkit-scrollbar { width: 5px; }
+.sr__list::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
+
+/* A hairline heading that splits what runs from what never has. */
+.sr__group {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 12px 4px 5px;
+  font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-slate-300);
+  font-variant-numeric: tabular-nums;
+}
+.sr__group i { flex: 1; height: 1px; background: var(--border-slate-100); }
+
+.sr__row {
+  position: relative; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 4px; width: 100%;
+  padding: 9px 24px 9px 11px; border-radius: 10px; border: 1px solid transparent;
+  background: transparent; cursor: pointer; text-align: left;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+/* The accent bar that marks the live selection. */
+.sr__row::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 0; border-radius: 0 3px 3px 0; background: #2563eb;
+  transition: height .18s ease;
+}
+.sr__row:hover:not(:disabled) { background: var(--bg-slate-50); }
+.sr__row.is-active {
+  background: rgba(59,130,246,.07); border-color: rgba(59,130,246,.26);
+  box-shadow: 0 1px 3px rgba(37,99,235,.07);
+}
+.sr__row.is-active::before { height: 60%; }
+.sr__row.is-dormant { opacity: .5; cursor: default; }
+
+.sr__row-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.sr__row-ic { color: #2563eb; flex-shrink: 0; }
+/* A one-glance verdict before any of the numbers are read. */
+.sr__dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+.sr__dot.is-ok { background: #10b981; }
+.sr__dot.is-fail { background: #ef4444; }
+.sr__dot.is-dead { background: var(--border-slate-300, #cbd5e1); }
+.sr__name {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 650; color: var(--text-slate-700); letter-spacing: -.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sr__row.is-active .sr__name { color: var(--text-slate-900); font-weight: 750; }
+.sr__count {
+  flex-shrink: 0; min-width: 22px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+  font-size: 10px; font-weight: 800; color: var(--text-slate-500); font-variant-numeric: tabular-nums;
+}
+.sr__row.is-active .sr__count { background: rgba(59,130,246,.14); border-color: transparent; color: #2563eb; }
+
+.sr__row-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-left: 13px; }
+.sr__row-meta > * { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sr__rate { color: #059669; }
+.sr__rate.is-low { color: #dc2626; }
+.sr__sep { width: 2px; height: 2px; border-radius: 999px; background: var(--border-slate-200); }
+.sr__fails { color: #dc2626; }
+.sr__clean { color: var(--text-slate-400); font-weight: 600; }
+.sr__flag {
+  padding: 0 6px; border-radius: 999px; font-weight: 700;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); color: var(--text-slate-400);
+}
+
+/* Green as far as the pass rate goes, red for the rest. */
+.sr__track {
+  display: block; height: 3px; margin: 2px 0 0 13px; border-radius: 999px; overflow: hidden;
+  background: #ef4444;
+}
+.sr__track i { display: block; height: 100%; background: #10b981; border-radius: 999px; transition: width .3s ease; }
+
+.sr__go {
+  position: absolute; right: 7px; top: 50%; transform: translateY(-50%) translateX(-3px);
+  color: var(--text-slate-300); opacity: 0; transition: opacity .16s ease, transform .16s ease;
+}
+.sr__row:hover:not(:disabled) .sr__go { opacity: 1; transform: translateY(-50%) translateX(0); }
+.sr__row.is-active .sr__go { opacity: 1; transform: translateY(-50%) translateX(0); color: #2563eb; }
+
+.sr__empty { padding: 18px 10px; text-align: center; font-size: 11px; color: var(--text-slate-400); }
+.sr__foot {
+  flex-shrink: 0; padding: 9px 14px; border-top: 1px solid var(--border-slate-100);
+  background: var(--bg-slate-50);
+  font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); font-variant-numeric: tabular-nums;
+}
+.sr__foot b { font-weight: 800; color: var(--text-slate-600); }
+
+@media (max-width: 1180px) {
+  .md-body { grid-template-columns: minmax(0, 1fr); }
+  .sr { position: static; max-height: none; }
+  /* Stacked, the rail reads as a row of cards rather than a column. */
+  .sr__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); overflow: visible; gap: 6px; }
+  .sr__group { grid-column: 1 / -1; }
+  .sr__row { border-color: var(--border-slate-100); }
+}
+
+/**
+ * The suite picker's value row is a flex child that never declared min-width:0,
+ * so a long suite name pushed past the trigger instead of ellipsising. Every
+ * picker on this page is capped and truncated here.
+ */
+.cal__tools .sd-trigger { max-width: 100%; }
+.cal__tools .sd-trigger-content > div { min-width: 0; }
+.cal__tools .sd-trigger-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Insights: the read-out, before any raw list ───────────────────────── */
 .mx-insights {
   border: 1px solid var(--border-slate-200); border-radius: 14px;
   background: var(--bg-pure-white); overflow: hidden; margin-bottom: 12px;
 }
 .mx-insights__head {
-  display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px; padding: 12px 16px; flex-wrap: wrap;
   border-bottom: 1px solid var(--border-slate-100);
   background: linear-gradient(180deg, rgba(59,130,246,.05), transparent);
 }
@@ -1928,6 +1679,7 @@ const STYLES = `
 }
 .mx-insights__title { font-size: 13.5px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900); }
 .mx-insights__sub { margin-top: 2px; font-size: 11.5px; color: var(--text-slate-400); }
+.mx-insights__sub b { font-weight: 750; color: var(--text-slate-600); }
 .mx-insights__list { margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
 .mx-ins {
@@ -1959,24 +1711,6 @@ const STYLES = `
 .mx-ins--bad .mx-ins__n { color: #dc2626; border-color: rgba(239,68,68,.25); }
 .mx-ins--bad .mx-ins__text b { color: #b91c1c; }
 .mx-ins--info .mx-ins__ic { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.18); }
-
-/* ── Charts ────────────────────────────────────────────────────────────── */
-.mx-charts { display: grid; grid-template-columns: minmax(0, 1fr) 288px; gap: 12px; margin-bottom: 16px; align-items: stretch; }
-.mx-chart, .mx-kinds {
-  border: 1px solid var(--border-slate-200); border-radius: 14px;
-  background: var(--bg-pure-white); padding: 14px 16px 12px;
-}
-/* The chart fills whatever height the inspector beside it needs. */
-.mx-chart { display: flex; flex-direction: column; min-width: 0; }
-.mx-chart__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.mx-chart__title { font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900); }
-.mx-chart__sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
-
-.mx-legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.mx-legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--text-slate-500); }
-.mx-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.mx-legend i.is-pass { background: #10b981; }
-.mx-legend i.is-fail { background: #ef4444; }
 
 /* ── Run calendar ──────────────────────────────────────────────────────── */
 .cal {
@@ -2011,7 +1745,7 @@ const STYLES = `
 }
 .cal__today:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
 
-.cal__body { display: grid; grid-template-columns: minmax(0, 1fr) 268px; gap: 12px; margin-top: 14px; }
+.cal__body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; margin-top: 14px; align-items: stretch; }
 .cal__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal__wd {
   padding: 2px 0 4px; text-align: center;
@@ -2019,7 +1753,7 @@ const STYLES = `
 }
 .cal__cell {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-  min-height: 70px; padding: 6px 7px; cursor: pointer; text-align: left;
+  min-height: 78px; padding: 6px 7px; cursor: pointer; text-align: left;
   border: 1px solid var(--border-slate-100); border-radius: 10px; background: var(--bg-pure-white);
   transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
@@ -2034,11 +1768,15 @@ const STYLES = `
 .cal__cell.is-today { border-color: rgba(59,130,246,.35); }
 .cal__cell.is-picked { border-color: rgba(59,130,246,.55); box-shadow: 0 0 0 2px rgba(59,130,246,.14); }
 /* Under the line: passed in green on the left, failed in red on the right. */
-.cal__counts { display: flex; align-items: baseline; justify-content: space-between; width: 100%; gap: 8px; }
+.cal__counts { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; gap: 8px; }
 .cal__counts em {
   font-style: normal; font-size: 13px; font-weight: 800; line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+.cal__counts em { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+/* The share under the count — smaller and lighter, so the number still leads. */
+.cal__counts em i { font-style: normal; font-size: 9.5px; font-weight: 700; line-height: 1; opacity: .7; }
+.cal__counts em.is-fail { align-items: flex-end; }
 .cal__counts em.is-pass { color: #059669; }
 .cal__counts em.is-fail { color: #dc2626; }
 .cal__counts em.is-zero { opacity: .35; }
@@ -2048,7 +1786,14 @@ const STYLES = `
 .cal__bar i.is-pass { background: #10b981; }
 .cal__bar i.is-fail { background: #ef4444; }
 
+/**
+ * The rail is measured by the calendar beside it, never the other way round: it
+ * contributes no height of its own, and the card fills it absolutely, so a busy
+ * day scrolls its list instead of stretching the whole panel.
+ */
+.cal__rail { position: relative; min-height: 0; }
 .cal__side {
+  position: absolute; inset: 0;
   border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-slate-50);
   padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
 }
@@ -2057,9 +1802,18 @@ const STYLES = `
   text-align: center; font-size: 11.5px; color: var(--text-slate-400);
 }
 .cal__side-empty svg { color: var(--text-slate-300); }
+.cal__side-head { flex-shrink: 0; }
 .cal__side-title { font-size: 12px; font-weight: 750; color: var(--text-slate-900); }
 .cal__side-sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
-.cal__runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 264px; overflow-y: auto; }
+.cal__runs {
+  list-style: none; margin: 0; padding: 0 2px 0 0;
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1; min-height: 0; overflow-y: auto;
+}
+/* Cards keep their natural height — the list scrolls, they never compress. */
+.cal__runs > li { flex-shrink: 0; }
+.cal__runs::-webkit-scrollbar { width: 5px; }
+.cal__runs::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
 .cal__run {
   width: 100%; display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer;
   padding: 8px 9px; border: 1px solid var(--border-slate-200); border-radius: 10px; background: var(--bg-pure-white);
@@ -2081,6 +1835,9 @@ const STYLES = `
 
 @media (max-width: 1080px) {
   .cal__body { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked, there is no calendar beside the rail to take its height from. */
+  .cal__rail { position: static; }
+  .cal__side { position: static; max-height: 420px; }
 }
 
 /* ── Case stability matrix ─────────────────────────────────────────────── */
@@ -2088,25 +1845,13 @@ const STYLES = `
   border: 1px solid var(--border-slate-200); border-radius: 14px;
   background: var(--bg-pure-white); padding: 14px 16px 14px; margin-bottom: 16px;
 }
-.sm__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.sm__head { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
 .sm__title {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900);
 }
 .sm__title svg { color: #2563eb; }
 .sm__sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
-.sm__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.sm__windows {
-  display: inline-flex; padding: 2px; gap: 2px;
-  border: 1px solid var(--border-slate-200); border-radius: 9px; background: var(--bg-slate-50);
-}
-.sm__windows button {
-  height: 24px; min-width: 34px; padding: 0 8px; border: none; border-radius: 7px; background: transparent;
-  cursor: pointer; font-size: 11px; font-weight: 650; color: var(--text-slate-500);
-}
-.sm__windows button:hover { color: var(--text-slate-800); }
-.sm__windows button.is-active { background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
-
 .sm__filters {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   margin-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-slate-100);
@@ -2140,31 +1885,39 @@ const STYLES = `
 }
 .sm__search button:hover { color: var(--text-slate-700); }
 
-.sm__scroll { margin-top: 12px; overflow-x: auto; }
-.sm__scroll::-webkit-scrollbar { height: 6px; }
-.sm__scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
-.sm__grid { display: grid; gap: 3px; align-items: center; min-width: max-content; }
-.sm__corner, .sm__colhead {
-  position: sticky; top: 0; z-index: 2; background: var(--bg-pure-white);
-  font-size: 10px; font-weight: 750; letter-spacing: .03em; text-transform: uppercase; color: var(--text-slate-400);
-  padding-bottom: 6px;
+/* ── The failed-case list ──────────────────────────────────────────────── */
+.sm__list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+/* The tripwire that pulls the next page in as it comes into view. */
+.sm__more { display: flex; justify-content: center; padding: 14px 0 6px; }
+.sm__row {
+  width: 100%; display: flex; align-items: center; gap: 14px; cursor: pointer; text-align: left;
+  padding: 10px 12px; border-radius: 11px;
+  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-.sm__corner { left: 0; z-index: 3; text-align: left; }
-.sm__colhead { text-align: center; font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: 0; }
-.sm__colhead.has-fail { color: #dc2626; }
-.sm__colhead--shape { text-align: left; padding-left: 8px; }
+.sm__row:hover { border-color: rgba(59,130,246,.45); box-shadow: 0 1px 4px rgba(15,23,42,.06); }
+.sm__row:hover .sm__row-chev { color: #2563eb; transform: translateX(2px); }
+/* Flagged cases carry the warning on the whole row, not just the count. */
+.sm__row.is-concern { border-color: rgba(239,68,68,.28); background: rgba(239,68,68,.03); }
+.sm__row.is-concern:hover { border-color: rgba(239,68,68,.5); }
+.sm__row-main { flex: 1; min-width: 0; }
+.sm__row-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.sm__row-side { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.sm__row-chev { color: var(--text-slate-300); transition: color .15s ease, transform .15s ease; }
+/* How red this case's history is, against the worst case on the list. */
+.sm__row-track {
+  display: block; height: 4px; margin-top: 7px; border-radius: 999px; overflow: hidden;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+}
+.sm__row-track i { display: block; height: 100%; background: #ef4444; border-radius: 999px; }
 
-.sm__case {
-  position: sticky; left: 0; z-index: 1; background: var(--bg-pure-white);
-  display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 0; min-width: 0;
-}
 .sm__ref {
   flex-shrink: 0; padding: 1px 5px; border-radius: 5px;
   background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
   font-size: 9.5px; font-weight: 700; color: var(--text-slate-500);
 }
 .sm__case-name {
-  font-size: 11.5px; font-weight: 600; color: var(--text-slate-800);
+  font-size: 12px; font-weight: 650; color: var(--text-slate-800);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .sm__nobug {
@@ -2173,40 +1926,93 @@ const STYLES = `
   font-size: 9.5px; font-weight: 700;
 }
 
-.sm__cell {
-  width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent; cursor: pointer; padding: 0;
-  transition: transform .12s ease, box-shadow .12s ease;
+/* ── The drawer: one case, every run it executed in ────────────────────── */
+.sm__dr-id { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+.sm__dr-name { font-size: 13px; font-weight: 750; color: var(--text-slate-900); }
+.sm__dr-sub { margin-top: 3px; font-size: 11px; font-weight: 500; color: var(--text-slate-400); }
+.sm__dr-tally {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
-.sm__cell:hover:not(:disabled) { transform: scale(1.14); box-shadow: 0 1px 4px rgba(15,23,42,.16); }
-.sm__cell:disabled { cursor: default; }
-.sm__cell.is-pass { background: #10b981; }
-.sm__cell.is-fail { background: #ef4444; }
-.sm__cell.is-block { background: #f59e0b; }
-.sm__cell.is-idle { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
-.sm__cell.is-none { background: transparent; border-color: var(--border-slate-100); border-style: dashed; }
+.sm__dr-tally span {
+  display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 74px;
+  padding: 8px 10px; border-radius: 9px;
+  font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+}
+.sm__dr-tally b { font-size: 16px; font-weight: 800; color: var(--text-slate-800); font-variant-numeric: tabular-nums; }
+.sm__dr-tally .is-fail { background: rgba(239,68,68,.07); border-color: rgba(239,68,68,.18); }
+.sm__dr-tally .is-fail b { color: #dc2626; }
+.sm__dr-tally .is-pass { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.18); }
+.sm__dr-tally .is-pass b { color: #047857; }
+.sm__dr-warn {
+  display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.45; color: #b91c1c;
+  background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.24);
+}
+.sm__dr-warn svg { flex-shrink: 0; }
+.sm__dr-label {
+  margin: 18px 0 8px;
+  font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text-slate-400);
+}
+.sm-drawer .ant-drawer-header { padding: 14px 20px; border-bottom: 1px solid var(--border-slate-200); }
+.sm-drawer .ant-drawer-body { padding: 16px 20px 24px; background: var(--bg-pure-white); }
+.sm__events { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sm__ev {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px;
+  border: 1px solid var(--border-slate-200); border-radius: 10px; background: var(--bg-pure-white);
+}
+.sm__ev-status {
+  flex-shrink: 0; min-width: 62px; padding: 2px 8px; border-radius: 999px; text-align: center;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .02em;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); color: var(--text-slate-500);
+}
+.sm__ev.is-fail { border-color: rgba(239,68,68,.28); background: rgba(239,68,68,.04); }
+.sm__ev.is-fail .sm__ev-status { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.26); color: #dc2626; }
+.sm__ev.is-pass .sm__ev-status { background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.24); color: #047857; }
+.sm__ev.is-block .sm__ev-status { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.28); color: #b45309; }
+.sm__ev-body { flex: 1; min-width: 0; }
+.sm__ev-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.sm__ev-run { font-size: 11.5px; font-weight: 700; color: var(--text-slate-900); }
+.sm__ev-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 3px; }
+.sm__ev-meta span { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--text-slate-400); }
+.sm__ev-meta svg { color: var(--text-slate-300); }
+.sm__ev-note {
+  margin-top: 6px; padding: 5px 8px; border-radius: 6px;
+  font-size: 11px; font-style: italic; line-height: 1.45; color: var(--text-slate-600);
+  background: var(--bg-slate-50); border-left: 2px solid var(--border-slate-200);
+}
+.sm__ev.is-fail .sm__ev-note { border-left-color: rgba(239,68,68,.35); }
 
 .sm__shape {
-  display: flex; align-items: center; gap: 6px; padding-left: 8px;
-  font-size: 10.5px; font-weight: 700; color: var(--text-slate-500); white-space: nowrap;
-}
-.sm__shape span {
-  padding: 0 5px; border-radius: 999px; font-size: 9.5px; font-weight: 700; font-variant-numeric: tabular-nums;
-  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); color: var(--text-slate-500);
+  min-width: 66px; padding: 2px 8px; border-radius: 999px; text-align: center;
+  font-size: 10px; font-weight: 750; white-space: nowrap;
+  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
 }
 .sm__shape.is-flaky { color: #b45309; }
 .sm__shape.is-regressed, .sm__shape.is-failing { color: #dc2626; }
 .sm__shape.is-fixed { color: #059669; }
-.sm__shape.is-stable { color: var(--text-slate-400); }
-.sm__shape.is-never { color: var(--text-slate-400); }
+
+/* How many times this case went red, and whether that count is a problem. */
+.sm__fails {
+  display: flex; align-items: baseline; gap: 5px;
+  font-size: 10.5px; color: var(--text-slate-500); white-space: nowrap;
+}
+.sm__fails b { font-size: 14px; font-weight: 800; color: #dc2626; font-variant-numeric: tabular-nums; }
+.sm__fails span { font-size: 10px; color: var(--text-slate-400); }
+.sm__fails svg { color: #dc2626; flex-shrink: 0; }
+.sm__fails.is-concern {
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.28);
+}
+.sm__fails.is-concern span { color: #b91c1c; }
+.sm__sub-warn { color: #dc2626; }
 
 .sm__legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .sm__legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--text-slate-500); }
-.sm__legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.sm__legend i.is-pass { background: #10b981; }
-.sm__legend i.is-fail { background: #ef4444; }
-.sm__legend i.is-block { background: #f59e0b; }
-.sm__legend i.is-idle { background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); }
-.sm__legend i.is-none { border: 1px dashed var(--border-slate-200); }
+.sm__legend-concern {
+  color: #dc2626 !important; padding: 1px 7px; border-radius: 999px;
+  background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.24);
+}
 .sm__legend-hint { margin-left: auto; color: var(--text-slate-400); font-weight: 500; }
 
 .sm__empty {
@@ -2214,388 +2020,14 @@ const STYLES = `
   font-size: 12px; color: var(--text-slate-400);
   border: 1px dashed var(--border-slate-200); border-radius: 10px;
 }
+.sm__empty--clean {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  color: var(--text-slate-500); background: rgba(16,185,129,.06);
+  border: 1px solid rgba(16,185,129,.2);
+}
+.sm__empty--clean svg { color: #047857; }
 .sm__loading { padding: 28px 0; display: flex; justify-content: center; }
 
-/* Suite switcher */
-.mx-suites {
-  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-  margin-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-slate-100);
-}
-.mx-suite {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 220px;
-  height: 28px; padding: 0 10px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-  font-size: 11.5px; font-weight: 600; color: var(--text-slate-600);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
-}
-.mx-suite:hover:not(:disabled) { background: var(--bg-slate-50); color: var(--text-slate-900); }
-.mx-suite.is-active { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.28); }
-.mx-suite:disabled { opacity: .45; cursor: default; }
-.mx-suite__n {
-  min-width: 17px; padding: 0 5px; border-radius: 999px; text-align: center;
-  font-size: 10px; font-weight: 700;
-  background: var(--bg-slate-50); color: var(--text-slate-500); border: 1px solid var(--border-slate-100);
-}
-.mx-suite.is-active .mx-suite__n { background: rgba(59,130,246,.16); color: #2563eb; border-color: transparent; }
-.mx-suites__find { display: inline-flex; }
-.mx-suite--find { border-style: dashed; color: var(--text-slate-500); }
-.mx-suite--find .mx-suite__caret { color: var(--text-slate-400); margin-left: -2px; }
-
-/* Grain switch */
-.mx-grains {
-  display: inline-flex; padding: 2px; gap: 2px;
-  border: 1px solid var(--border-slate-200); border-radius: 9px; background: var(--bg-slate-50);
-}
-.mx-grains button {
-  height: 24px; padding: 0 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer;
-  font-size: 11px; font-weight: 650; color: var(--text-slate-500);
-  transition: background .15s ease, color .15s ease;
-}
-.mx-grains button:hover { color: var(--text-slate-800); }
-.mx-grains button.is-active { background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
-
-/* ── Plot: grouped pass / fail columns ─────────────────────────────────── */
-/* --mx-headroom keeps the tallest bar (and its value label) inside the card:
-   bar heights are a % of the area below it, so 1 run or 1000 draw the same. */
-.mx-plot { position: relative; display: flex; gap: 10px; margin-top: 16px; flex: 1; min-height: 208px; --mx-headroom: 20px; }
-.mx-chart__empty {
-  margin-top: 16px; padding: 34px 16px; text-align: center;
-  font-size: 12px; color: var(--text-slate-400);
-  border: 1px dashed var(--border-slate-200); border-radius: 10px;
-}
-.mx-axis {
-  display: flex; flex-direction: column; justify-content: space-between;
-  flex-shrink: 0; padding-bottom: 34px; padding-top: var(--mx-headroom);
-  font-size: 9.5px; font-weight: 700; color: var(--text-slate-300); font-variant-numeric: tabular-nums;
-}
-/* Long month and year labels get room; many buckets scroll rather than clip. */
-.mx-canvas { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
-.mx-canvas::-webkit-scrollbar { height: 6px; }
-.mx-canvas::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
-.mx-inner { position: relative; width: max-content; min-width: 100%; height: 100%; }
-.mx-rules {
-  position: absolute; left: 0; right: 0; top: var(--mx-headroom); bottom: 34px;
-  display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;
-}
-.mx-rules span { display: block; height: 1px; background: var(--border-slate-100); }
-
-.mx-cols { display: flex; align-items: stretch; gap: 4px; height: 100%; }
-.mx-col {
-  flex: 1 0 56px; min-width: 56px;
-  display: flex; flex-direction: column; align-items: center;
-  padding: 0 2px; border: none; background: transparent; cursor: pointer;
-  border-radius: 8px 8px 0 0; transition: background .15s ease;
-}
-.mx-col:hover, .mx-col.is-hot { background: rgba(59,130,246,.05); }
-.mx-col__bars {
-  display: flex; align-items: flex-end; justify-content: center; gap: 3px;
-  width: 100%; flex: 1; min-height: 0; padding-top: var(--mx-headroom); box-sizing: border-box;
-}
-/* Fixed footer height keeps the grid lines and the bar baseline aligned. */
-.mx-col__foot {
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
-  height: 34px; padding-top: 6px; width: 100%; flex-shrink: 0;
-}
-.mx-b {
-  position: relative; width: 46%; max-width: 22px; min-height: 2px; border-radius: 4px 4px 0 0;
-  transition: opacity .15s ease, filter .15s ease;
-}
-.mx-b.is-pass { background: #10b981; }
-.mx-b.is-fail { background: #ef4444; }
-.mx-b i {
-  position: absolute; left: 50%; top: -15px; transform: translateX(-50%);
-  font-style: normal; font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
-  color: var(--text-slate-500); white-space: nowrap;
-}
-.mx-b.is-fail i { color: #dc2626; }
-.mx-col.is-hot .mx-b { filter: brightness(1.05); }
-.mx-col__label {
-  font-size: 10px; font-weight: 700; color: var(--text-slate-400); font-variant-numeric: tabular-nums;
-  line-height: 1.3; max-width: 100%; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-}
-.mx-col.is-hot .mx-col__label { color: #2563eb; }
-.mx-col__rate { font-size: 9.5px; font-weight: 700; color: #047857; }
-.mx-col__rate.is-low { color: #dc2626; }
-.mx-cols.is-dense .mx-b { border-radius: 2px 2px 0 0; }
-
-.mx-legend--foot {
-  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-slate-100);
-}
-.mx-legend__hint { margin-left: auto; color: var(--text-slate-300) !important; font-weight: 500 !important; }
-
-/* ── Run inspector: the picked bar's read-out, beside the chart ────────── */
-.mx-inspect {
-  display: flex; flex-direction: column; min-width: 0;
-  border: 1px solid rgba(59,130,246,.28); border-radius: 14px;
-  background: var(--bg-pure-white); padding: 14px 14px 12px;
-  box-shadow: 0 8px 26px rgba(15,23,42,.05);
-}
-.mx-inspect__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.mx-inspect__close {
-  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 24px; height: 24px; border-radius: 7px; border: none; background: transparent; cursor: pointer;
-  color: var(--text-slate-400); transition: background .15s ease, color .15s ease;
-}
-.mx-inspect__close:hover { background: var(--bg-slate-50); color: var(--text-slate-800); }
-
-.mx-inspect__switch { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
-.mx-inspect__chip {
-  height: 24px; padding: 0 9px; border-radius: 7px; cursor: pointer;
-  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-  font-size: 10.5px; font-weight: 650; color: var(--text-slate-500);
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-.mx-inspect__chip:hover { background: var(--bg-slate-50); }
-.mx-inspect__chip.has-fail { color: #dc2626; border-color: rgba(239,68,68,.24); }
-.mx-inspect__chip.is-active { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); }
-
-.mx-inspect__run { margin-top: 12px; }
-.mx-inspect__name { font-size: 13px; font-weight: 750; color: var(--text-slate-900); letter-spacing: -.01em; }
-.mx-inspect__meta { margin-top: 3px; font-size: 11px; line-height: 1.45; color: var(--text-slate-400); }
-
-.mx-inspect__stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 11px; }
-.mx-stat {
-  display: flex; align-items: baseline; gap: 5px; padding: 6px 9px; border-radius: 8px;
-  font-size: 10.5px; color: var(--text-slate-400);
-  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.mx-stat b { font-size: 14px; font-weight: 800; color: var(--text-slate-800); font-variant-numeric: tabular-nums; }
-.mx-stat.is-pass { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.18); }
-.mx-stat.is-pass b { color: #047857; }
-.mx-stat.is-fail { background: rgba(239,68,68,.07); border-color: rgba(239,68,68,.18); }
-.mx-stat.is-fail b { color: #dc2626; }
-
-.mx-inspect__rate { margin-top: 11px; }
-.mx-inspect__ratetop {
-  display: flex; align-items: baseline; justify-content: space-between;
-  font-size: 10.5px; font-weight: 650; color: var(--text-slate-400);
-}
-.mx-inspect__ratetop b { font-size: 13px; font-weight: 800; color: #047857; font-variant-numeric: tabular-nums; }
-.mx-inspect__ratetop b.is-low { color: #dc2626; }
-.mx-inspect__track {
-  height: 6px; margin-top: 5px; border-radius: 999px; overflow: hidden;
-  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.mx-inspect__track span { display: block; height: 100%; background: #10b981; border-radius: 999px; }
-.mx-inspect__track span.is-low { background: #ef4444; }
-
-.mx-inspect__body { margin-top: 12px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.mx-inspect__label {
-  display: flex; align-items: center; gap: 5px; margin-bottom: 7px;
-  font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #dc2626;
-}
-.mx-inspect__list { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; max-height: 340px; overflow-y: auto; padding-right: 2px; }
-.mx-inspect__list::-webkit-scrollbar { width: 5px; }
-.mx-inspect__list::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
-
-.mx-failcard {
-  padding: 9px 10px; border-radius: 9px;
-  background: rgba(239,68,68,.04); border: 1px solid rgba(239,68,68,.16);
-}
-.mx-failcard__top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.mx-failcard__name { font-size: 12px; font-weight: 650; color: var(--text-slate-800); }
-.mx-failcard__meta { margin-top: 3px; font-size: 10.5px; color: var(--text-slate-400); }
-.mx-failcard__note {
-  margin: 6px 0; padding: 5px 8px; border-radius: 6px;
-  font-size: 11px; font-style: italic; line-height: 1.45; color: var(--text-slate-600);
-  background: var(--bg-pure-white); border-left: 2px solid rgba(239,68,68,.3);
-}
-.mx-failcard .cm-pill { margin-top: 4px; }
-
-.mx-inspect__clean {
-  display: flex; align-items: center; gap: 7px; padding: 14px 12px; border-radius: 9px;
-  font-size: 11.5px; color: var(--text-slate-500);
-  background: rgba(16,185,129,.06); border: 1px solid rgba(16,185,129,.18);
-}
-.mx-inspect__clean svg { color: #047857; }
-.mx-inspect__loading { padding: 18px 0; display: flex; justify-content: center; }
-.mx-inspect__cta { margin-top: 12px; display: inline-flex !important; align-items: center; gap: 5px; border-radius: 8px; }
-
-/* the picked column keeps its highlight while the inspector is open */
-.mx-col.is-picked { background: rgba(59,130,246,.1); box-shadow: inset 0 0 0 1px rgba(59,130,246,.25); }
-.mx-col.is-picked .mx-col__label { color: #2563eb; font-weight: 800; }
-
-.mx-kinds__list { display: flex; flex-direction: column; gap: 11px; margin-top: 14px; }
-.mx-kind__top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.mx-kind__name {
-  font-size: 12px; font-weight: 650; color: var(--text-slate-700);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.mx-kind__n { font-size: 12px; font-weight: 800; color: var(--text-slate-900); font-variant-numeric: tabular-nums; }
-.mx-kind__track {
-  height: 6px; margin-top: 5px; border-radius: 999px; overflow: hidden;
-  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.mx-kind__fill { display: block; height: 100%; background: #3B82F6; border-radius: 999px; }
-.mx-kind__meta { margin-top: 4px; font-size: 10.5px; color: var(--text-slate-400); }
-
-@media (max-width: 1100px) {
-  .mx-charts { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 640px) {
-  .mx-legend { gap: 8px; }
-}
-
-
-/* ── Section tabs ──────────────────────────────────────────────────────── */
-.md-tabs {
-  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
-  padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
-}
-.md-tab {
-  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px;
-  border: 1px solid transparent; border-radius: 9px; background: transparent; cursor: pointer;
-  font-size: 12.5px; font-weight: 600; color: var(--text-slate-500);
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-.md-tab:hover { background: var(--bg-slate-50); color: var(--text-slate-800); }
-.md-tab.is-active { background: var(--bg-blue-50); color: #2563eb; border-color: rgba(59,130,246,.22); }
-.md-tab__n {
-  min-width: 18px; padding: 0 6px; border-radius: 999px; text-align: center;
-  font-size: 10.5px; font-weight: 700;
-  background: var(--bg-slate-50); color: var(--text-slate-500); border: 1px solid var(--border-slate-100);
-}
-.md-tab.is-active .md-tab__n { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
-
-/* ── Cards ─────────────────────────────────────────────────────────────── */
-.md-list { display: flex; flex-direction: column; gap: 10px; }
-.md-card {
-  border: 1px solid var(--border-slate-200); border-radius: 12px;
-  background: var(--bg-pure-white); overflow: hidden;
-  transition: border-color .18s ease, box-shadow .18s ease;
-}
-.md-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 16px rgba(15,23,42,.04); }
-.md-card--row {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 12px 14px; cursor: pointer; text-align: left;
-}
-.md-card__head { display: flex; align-items: center; gap: 11px; padding: 12px 14px; }
-.md-card__ic {
-  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
-}
-.md-card__ic.is-fail { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.2); }
-.md-card__id { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-card__title {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; color: var(--text-slate-900);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-card__meta {
-  font-size: 11.5px; color: var(--text-slate-400);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-card__go { color: var(--text-slate-300); flex-shrink: 0; }
-.md-card--row:hover .md-card__go { color: #3B82F6; }
-.md-card__empty {
-  padding: 12px 14px; border-top: 1px solid var(--border-slate-100);
-  font-size: 11.5px; color: var(--text-slate-400); background: var(--bg-slate-50);
-}
-.md-ref {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 700;
-  padding: 1px 6px; border-radius: 5px; flex-shrink: 0;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.md-note {
-  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px;
-  border: 1px solid rgba(59,130,246,.2); border-radius: 10px; background: rgba(59,130,246,.05);
-  font-size: 11.5px; line-height: 1.5; color: var(--text-slate-600);
-}
-.md-note svg { color: #3B82F6; flex-shrink: 0; margin-top: 1px; }
-
-/* ── Run history ───────────────────────────────────────────────────────── */
-.md-runs { border-top: 1px solid var(--border-slate-200); }
-.md-run + .md-run { border-top: 1px solid var(--border-slate-100); }
-.md-run.is-open { background: var(--bg-slate-50); }
-.md-run__head {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 9px 14px; border: none; background: transparent; cursor: pointer; text-align: left;
-  transition: background .15s ease;
-}
-.md-run__head:hover { background: var(--bg-slate-50); }
-.md-run__chev { color: var(--text-slate-400); display: inline-flex; flex-shrink: 0; }
-.md-run__ord {
-  min-width: 30px; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; text-align: center;
-  font-size: 10.5px; font-weight: 800;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-}
-.md-run.has-fail .md-run__ord { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); }
-.md-run__id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
-.md-run__name {
-  font-size: 12.5px; font-weight: 650; color: var(--text-slate-800);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-run__meta {
-  font-size: 11px; color: var(--text-slate-400);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-run__bar { display: flex; flex: 0 1 160px; min-width: 90px; }
-.md-run__counts { display: inline-flex; gap: 4px; flex-shrink: 0; }
-.md-count {
-  min-width: 24px; padding: 1px 6px; border-radius: 6px; text-align: center;
-  font-size: 10.5px; font-weight: 700;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.md-count.is-pass { color: #047857; background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.2); }
-.md-count.is-fail { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.2); }
-.md-run__go {
-  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 26px; height: 26px; border-radius: 7px; cursor: pointer;
-  color: var(--text-slate-300); transition: background .15s ease, color .15s ease;
-}
-.md-run__go:hover { background: var(--bg-pure-white); color: #3B82F6; }
-
-/* ── Failures inside a run ─────────────────────────────────────────────── */
-.md-run__body { padding: 4px 14px 14px 52px; }
-.md-fail__loading, .md-fail__none {
-  padding: 10px 12px; font-size: 11.5px; color: var(--text-slate-400);
-  border: 1px dashed var(--border-slate-200); border-radius: 9px; background: var(--bg-pure-white);
-}
-.md-fail {
-  border: 1px solid rgba(239,68,68,.18); border-radius: 10px;
-  background: var(--bg-pure-white); overflow: hidden;
-}
-.md-fail__head {
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
-  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: #dc2626; background: rgba(239,68,68,.06); border-bottom: 1px solid rgba(239,68,68,.14);
-}
-.md-failrow { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; }
-.md-failrow + .md-failrow { border-top: 1px solid var(--border-slate-100); }
-.md-failrow__dot {
-  width: 7px; height: 7px; border-radius: 999px; background: #ef4444; flex-shrink: 0; margin-top: 6px;
-}
-.md-failrow__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-failrow__title {
-  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
-  font-size: 12.5px; font-weight: 650; color: var(--text-slate-800);
-}
-.md-failrow__meta { font-size: 11px; color: var(--text-slate-400); }
-.md-failrow__note {
-  margin-top: 2px; padding: 6px 9px; border-radius: 7px;
-  font-size: 11.5px; font-style: italic; line-height: 1.45; color: var(--text-slate-600);
-  background: var(--bg-slate-50); border-left: 2px solid var(--border-slate-200);
-}
-
-/* ── Hotspot rows ──────────────────────────────────────────────────────── */
-.md-spot { border-top: 1px solid var(--border-slate-100); }
-.md-spotrow {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 9px 14px; border: none; background: transparent; cursor: pointer; text-align: left;
-  transition: background .15s ease;
-}
-.md-spotrow + .md-spotrow { border-top: 1px solid var(--border-slate-100); }
-.md-spotrow:hover { background: var(--bg-slate-50); }
-.md-spotrow__run { font-size: 12.5px; font-weight: 650; color: var(--text-slate-800); flex-shrink: 0; }
-.md-spotrow__meta { font-size: 11px; color: var(--text-slate-400); flex-shrink: 0; }
-.md-spotrow__note {
-  font-size: 11px; font-style: italic; color: var(--text-slate-500);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
-}
-.md-spotrow__go { color: var(--text-slate-300); flex-shrink: 0; margin-left: auto; }
 
 /* ── Borrowed vocabulary from the map ──────────────────────────────────── */
 .cm-bar {

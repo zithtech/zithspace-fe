@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import dayjs from "dayjs";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -530,7 +531,7 @@ export default function SupportTicketsTab({ clientId, projects = [], onCountChan
               rowKey="id"
               pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 20, hideOnSinglePage: true }}
               scroll={{ x: "max-content" }}
-              onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })}
+              onRow={(t) => ({ onClick: () => setOpenId(t.id), style: { cursor: "pointer" } })} locale={{ emptyText: <NoData /> }}
             />
           </ZukvoLoadingOverlay>
         </div>
@@ -1811,14 +1812,11 @@ function TicketDetailDrawer({
             }}
           >
             {detail.messages.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <span style={{ color: c.textSubtle, fontSize: 13 }}>
-                    No messages yet
-                  </span>
-                }
-              />
+              <NoData description={
+                                                <span style={{ color: c.textSubtle, fontSize: 13 }}>
+                                                  No messages yet
+                                                </span>
+                                              } />
             ) : (
               detail.messages.map((m) => (
                 <MessageBubble key={m.id} m={m} c={c} tones={tones} />

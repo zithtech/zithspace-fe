@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import { Table, Tag, Badge, Card, notification, Button, Input } from "antd";
 import { FileText, Receipt, RefreshCw, Search, LayoutGrid, List } from "lucide-react";
@@ -273,17 +274,17 @@ export default function InvoicesTab({ clientId, onRefresh }: InvoicesTabProps) {
                               className="pp-table"
                               scroll={{ x: "max-content" }}
                               locale={{
-                                emptyText: (
-                                  <div className="ptab-empty">
-                                    <div className="ptab-empty-icon">
-                                      <Receipt size={26} />
-                                    </div>
-                                    <div className="ptab-empty-title">No Invoices Found</div>
-                                    <div className="ptab-empty-desc">
-                                      There are no portal-visible invoices for this client yet.
-                                    </div>
-                                  </div>
-                                ),
+                                emptyText: <NoData description={(
+                                                                        <div className="ptab-empty">
+                                                                          <div className="ptab-empty-icon">
+                                                                            <Receipt size={26} />
+                                                                          </div>
+                                                                          <div className="ptab-empty-title">No Invoices Found</div>
+                                                                          <div className="ptab-empty-desc">
+                                                                            There are no portal-visible invoices for this client yet.
+                                                                          </div>
+                                                                        </div>
+                                                                      )} />,
                               }}
                             />
                   </ZukvoLoadingOverlay>

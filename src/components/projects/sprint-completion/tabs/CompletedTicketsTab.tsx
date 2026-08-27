@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState } from "react";
 import { Table, Typography, Empty, Avatar, Tooltip } from "antd";
 import {
@@ -192,14 +193,11 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
             boxShadow: 'var(--sc-shadow-sm)',
           }}
         >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ fontSize: 14, color: 'var(--sc-text-muted)' }}>
-                No tickets completed in this sprint yet.
-              </span>
-            }
-          />
+          <NoData description={
+                                <span style={{ fontSize: 14, color: 'var(--sc-text-muted)' }}>
+                                  No tickets completed in this sprint yet.
+                                </span>
+                              } />
         </div>
       ) : (
         <>
@@ -272,7 +270,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({ ticket
                 ),
               }}
               scroll={{ x: 1200, y: 'calc(90vh - 450px)' }}
-              size="middle"
+              size="middle" locale={{ emptyText: <NoData /> }}
             />
           </div>
         </>

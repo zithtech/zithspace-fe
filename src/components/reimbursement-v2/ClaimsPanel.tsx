@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, DatePicker, Tooltip,
@@ -404,7 +405,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
               setCurrentPage(page);
               setPageSize(size ?? pageSize);
             },
-          }} />
+          }} locale={{ emptyText: <NoData /> }} />
       </div>
 
       <Drawer
@@ -542,7 +543,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
               <SectionCard icon={<SolutionOutlined />}
                 title="Line items" subtitle="Add each expense — saved with the claim" step="STEP 2">
-                {newItems.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items added yet" />}
+                {newItems.length === 0 && <NoData description="No items added yet" />}
                 {newItems.map((li) => (
                   <div key={li.key} className="rvp-line-item">
                     <div>
@@ -594,7 +595,7 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
 
               <SectionCard icon={<SolutionOutlined />}
                 title="Line items" subtitle={isDraft ? 'Add expenses to this claim' : 'Expenses on this claim'}>
-                {current.items.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No items yet" />}
+                {current.items.length === 0 && <NoData description="No items yet" />}
                 {current.items.map((it) => (
                   <div key={it.id} className="rvp-line-item">
                     <div>

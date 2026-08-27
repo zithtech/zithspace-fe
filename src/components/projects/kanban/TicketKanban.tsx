@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from 'react';
 import {
   DndContext,
@@ -400,7 +401,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
               boxShadow: 'var(--kb-shadow-card)',
             }}
           >
-            <Empty description={<span style={{ color: 'var(--kb-text-muted)' }}>No tickets yet — create one to get started</span>} />
+            <NoData description={<span style={{ color: 'var(--kb-text-muted)' }}>No tickets yet — create one to get started</span>} />
           </div>
         ) : (
           <div className="kb-track">

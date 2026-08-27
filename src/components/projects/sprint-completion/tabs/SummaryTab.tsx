@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React from "react";
 import { Progress, Empty } from "antd";
 import {
@@ -265,7 +266,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
 
             {/* Empty fallback in case stats hide */}
             {!checklist.length && (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No checklist data" />
+              <NoData description="No checklist data" />
             )}
           </div>
         </div>

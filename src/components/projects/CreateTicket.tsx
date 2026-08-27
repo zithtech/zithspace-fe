@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -779,7 +780,7 @@ export default function CreateTicket() {
               >
                 {!selectedProject ? (
                   <div style={{ textAlign: "center", padding: "12px 0" }}>
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
+                    <NoData description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
                   </div>
                 ) : releasePlans.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "12px 0" }}>

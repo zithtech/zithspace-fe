@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
@@ -1066,9 +1067,11 @@ function LetterGenerationContent() {
                 <ZukvoLoader message="Loading active templates..." size="md" />
               </div>
             ) : templates.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
-                No active document templates available. Please create or activate a template in Template Management first.
-              </div>
+              <NoData description={
+                <div className="pp-empty" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-slate-600)' }}>
+                  <div className="pp-empty-sub">No active document templates available. Please create or activate a template in Template Management first.</div>
+                </div>
+              } />
             ) : view === 'list' ? (
               <div className="att-table-wrap" style={{ marginTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <Table
@@ -1175,7 +1178,7 @@ function LetterGenerationContent() {
                       router.push(`/letters-docs/generate?templateId=${tpl.id}`);
                     },
                     style: { cursor: 'pointer', background: selectedTemplateId === tpl.id ? 'var(--bg-blue-50)' : undefined }
-                  })}
+                  })} locale={{ emptyText: <NoData /> }}
                 />
               </div>
             ) : (

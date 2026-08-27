@@ -2023,15 +2023,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   onConfirm={() => handleSprintAssignment(record.id, 'add')}
                   placement="topRight"
                 >
-                  <Tooltip title="Add to Sprint">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-                      onClick={(e) => e.stopPropagation()}
-                      className="saas-button-item"
-                    />
-                  </Tooltip>
+                  <Button
+                    type="text"
+                    size="small"
+                    aria-label="Add to Sprint"
+                    icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                    onClick={(e) => e.stopPropagation()}
+                    className="saas-button-item"
+                  />
                 </ConfirmDialog>
               )}
               {context === 'active' && canUpdateTicket && (
@@ -2043,16 +2042,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   onConfirm={() => handleSprintAssignment(record.id, 'remove')}
                   placement="topRight"
                 >
-                  <Tooltip title="Remove from Sprint">
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<MinusCircleOutlined />}
-                      onClick={(e) => e.stopPropagation()}
-                      className="saas-button-item"
-                    />
-                  </Tooltip>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    aria-label="Remove from Sprint"
+                    icon={<MinusCircleOutlined />}
+                    onClick={(e) => e.stopPropagation()}
+                    className="saas-button-item"
+                  />
                 </ConfirmDialog>
               )}
 
@@ -5070,16 +5068,40 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                           </Button>
                         )}
                         {canCreateTicketPlan && (
-                          <Button
-                            type="default"
-                            size="small"
-                            icon={<PlusOutlined />}
-                            onClick={() => setCreateSprintModalOpen(true)}
-                            className="saas-button-item"
-                            style={{ height: 28, fontWeight: 600, fontSize: 12 }}
-                          >
-                            New Sprint
-                          </Button>
+                          activeSprint ? (
+                            // A sprint is already running — creating another one only
+                            // produces a draft, so confirm the intent first.
+                            <ConfirmDialog
+                              tone="warning"
+                              title="Sprint Already Running"
+                              description={`${activeSprint.version || activeSprint.name || 'A sprint'} is already running — you can create this sprint now and use it later. Continue?`}
+                              confirmText="Yes"
+                              cancelText="No"
+                              placement="bottomRight"
+                              onConfirm={() => setCreateSprintModalOpen(true)}
+                            >
+                              <Button
+                                type="default"
+                                size="small"
+                                icon={<PlusOutlined />}
+                                className="saas-button-item"
+                                style={{ height: 28, fontWeight: 600, fontSize: 12 }}
+                              >
+                                New Sprint
+                              </Button>
+                            </ConfirmDialog>
+                          ) : (
+                            <Button
+                              type="default"
+                              size="small"
+                              icon={<PlusOutlined />}
+                              onClick={() => setCreateSprintModalOpen(true)}
+                              className="saas-button-item"
+                              style={{ height: 28, fontWeight: 600, fontSize: 12 }}
+                            >
+                              New Sprint
+                            </Button>
+                          )
                         )}
                       </Space>
 

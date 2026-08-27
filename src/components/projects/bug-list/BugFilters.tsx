@@ -23,13 +23,16 @@ const { Text } = Typography;
 
 export interface BugFilterState {
   search?: string;
-  severity?: string;
-  bugStatus?: string;
-  bugType?: string;
-  module?: string;
-  assigneeId?: string;
-  createdById?: string;
-  ticketStatus?: string;
+  /** Every value pill is multi-select, so these hold the full picked set. */
+  folderIds?: string[];
+  sheetIds?: string[];
+  severity?: string[];
+  bugStatus?: string[];
+  bugType?: string[];
+  module?: string[];
+  assigneeId?: string[];
+  createdById?: string[];
+  ticketStatus?: string[];
   createdRange?: [any, any] | null;
   updatedRange?: [any, any] | null;
 }
@@ -42,10 +45,6 @@ interface BugFiltersProps {
   // Options
   folders?: FilterPillOption[];
   sheets?: FilterPillOption[];
-  selectedFolderId?: string | null;
-  selectedSheetId?: string | null;
-  onFolderChange?: (id: string | null) => void;
-  onSheetChange?: (id: string | null) => void;
 
   members?: FilterPillOption[];
   severityOptions?: FilterPillOption[];
@@ -61,10 +60,6 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
   onReset,
   folders = [],
   sheets = [],
-  selectedFolderId,
-  selectedSheetId,
-  onFolderChange,
-  onSheetChange,
   members = [],
   severityOptions = [],
   statusOptions = [],
@@ -72,16 +67,20 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
   moduleOptions = [],
   ticketStatusOptions = [],
 }) => {
+  /** A multi-select pill contributes one count per picked value. */
+  const countOf = (v?: string[]) => v?.length || 0;
   const activeCount =
-    (filters.severity ? 1 : 0) +
-    (filters.bugStatus ? 1 : 0) +
-    (filters.bugType ? 1 : 0) +
-    (filters.module ? 1 : 0) +
-    (filters.assigneeId ? 1 : 0) +
-    (filters.createdById ? 1 : 0) +
-    (filters.ticketStatus ? 1 : 0) +
-    (selectedFolderId ? 1 : 0) +
-    (selectedSheetId ? 1 : 0);
+    countOf(filters.severity) +
+    countOf(filters.bugStatus) +
+    countOf(filters.bugType) +
+    countOf(filters.module) +
+    countOf(filters.assigneeId) +
+    countOf(filters.createdById) +
+    countOf(filters.ticketStatus) +
+    countOf(filters.folderIds) +
+    countOf(filters.sheetIds) +
+    (filters.createdRange ? 1 : 0) +
+    (filters.updatedRange ? 1 : 0);
 
   return (
     <div className="tf-panel">
@@ -104,7 +103,7 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
 
       {/* Filter rows */}
       <div className="tf-body">
-        {onFolderChange && (
+        {folders.length > 0 && (
           <div className="tf-row">
             <div className="tf-row-label">
               <FolderOutlined className="tf-row-icon" />
@@ -112,21 +111,17 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
             </div>
             <TicketFilterPill
               label="Folder"
-              value={selectedFolderId || ""}
+              values={filters.folderIds || []}
               options={folders}
-              onChange={(val) => {
-                if (Array.isArray(val)) val = val[0];
-                onFolderChange(val || null);
-              }}
+              onChange={(val) => onFilterChange("folderIds", val)}
               placeholder="All folders"
               itemNoun="folders"
               width={260}
-              multiple={false}
             />
           </div>
         )}
 
-        {onSheetChange && (
+        {sheets.length > 0 && (
           <div className="tf-row">
             <div className="tf-row-label">
               <ApartmentOutlined className="tf-row-icon" />
@@ -134,16 +129,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
             </div>
             <TicketFilterPill
               label="Sheet"
-              value={selectedSheetId || ""}
+              values={filters.sheetIds || []}
               options={sheets}
-              onChange={(val) => {
-                if (Array.isArray(val)) val = val[0];
-                onSheetChange(val || null);
-              }}
+              onChange={(val) => onFilterChange("sheetIds", val)}
               placeholder="All sheets"
               itemNoun="sheets"
               width={260}
-              multiple={false}
             />
           </div>
         )}
@@ -155,13 +146,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Status"
-            value={filters.bugStatus || ""}
+            values={filters.bugStatus || []}
             options={statusOptions}
             onChange={(val) => onFilterChange("bugStatus", val)}
             placeholder="Any"
             itemNoun="statuses"
             width={260}
-            multiple={false}
           />
         </div>
 
@@ -172,13 +162,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Severity"
-            value={filters.severity || ""}
+            values={filters.severity || []}
             options={severityOptions}
             onChange={(val) => onFilterChange("severity", val)}
             placeholder="Any"
             itemNoun="severities"
             width={260}
-            multiple={false}
           />
         </div>
 
@@ -189,13 +178,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Type"
-            value={filters.bugType || ""}
+            values={filters.bugType || []}
             options={typeOptions}
             onChange={(val) => onFilterChange("bugType", val)}
             placeholder="Any"
             itemNoun="types"
             width={260}
-            multiple={false}
           />
         </div>
 
@@ -207,13 +195,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
             </div>
             <TicketFilterPill
               label="Module"
-              value={filters.module || ""}
+              values={filters.module || []}
               options={moduleOptions}
               onChange={(val) => onFilterChange("module", val)}
               placeholder="Any"
               itemNoun="modules"
               width={260}
-              multiple={false}
             />
           </div>
         )}
@@ -225,7 +212,7 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Assignee"
-            value={filters.assigneeId || ""}
+            values={filters.assigneeId || []}
             options={members}
             onChange={(val) => onFilterChange("assigneeId", val)}
             placeholder="Anyone"
@@ -233,7 +220,6 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
             width={290}
             showAvatar
             searchPlaceholder="Search people..."
-            multiple={false}
           />
         </div>
 
@@ -244,7 +230,7 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Created By"
-            value={filters.createdById || ""}
+            values={filters.createdById || []}
             options={members}
             onChange={(val) => onFilterChange("createdById", val)}
             placeholder="Anyone"
@@ -252,7 +238,6 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
             width={290}
             showAvatar
             searchPlaceholder="Search people..."
-            multiple={false}
           />
         </div>
 
@@ -263,13 +248,12 @@ export const BugFilters: React.FC<BugFiltersProps> = ({
           </div>
           <TicketFilterPill
             label="Ticket Status"
-            value={filters.ticketStatus || ""}
+            values={filters.ticketStatus || []}
             options={ticketStatusOptions}
             onChange={(val) => onFilterChange("ticketStatus", val)}
             placeholder="Any"
             itemNoun="ticket statuses"
             width={260}
-            multiple={false}
           />
         </div>
 

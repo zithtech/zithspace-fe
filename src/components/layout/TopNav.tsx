@@ -281,22 +281,31 @@ export default function TopNav({
     return false;
   });
 
+  const isNavItemAllowed = (item: NavItem): boolean => {
+    // 1. Subscription Check
+    if (item.requiredSubscriptionFeature && !hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)) {
+      return false;
+    }
+
+    // 2. RBAC Check
+    if (item.requiredPermission) return hasPermission(item.requiredPermission);
+    if (item.requiredAnyPermission) return hasAnyPermission(...item.requiredAnyPermission);
+    return true;
+  };
+
+  // Whether a module's defaultPath points at a nav item the user can actually reach
+  const isPathAllowed = (items: NavItem[], path: string): boolean => {
+    for (const item of items) {
+      if (!isNavItemAllowed(item)) continue;
+      if (item.path === path) return true;
+      if (item.children && isPathAllowed(item.children, path)) return true;
+    }
+    return false;
+  };
+
   const getFirstAllowedPath = (items: NavItem[]): string | undefined => {
     for (const item of items) {
-      // 1. Subscription Check
-      if (item.requiredSubscriptionFeature && !hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)) {
-        continue;
-      }
-
-      // 2. RBAC Check
-      let hasItemPermission = true;
-      if (item.requiredPermission) {
-        hasItemPermission = hasPermission(item.requiredPermission);
-      } else if (item.requiredAnyPermission) {
-        hasItemPermission = hasAnyPermission(...item.requiredAnyPermission);
-      }
-
-      if (!hasItemPermission) {
+      if (!isNavItemAllowed(item)) {
         continue;
       }
 
@@ -314,6 +323,11 @@ export default function TopNav({
     onModuleChange(moduleKey);
     const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
     if (moduleConfig) {
+      // Prefer the module's declared landing page when the user can reach it
+      if (moduleConfig.defaultPath && isPathAllowed(moduleConfig.items, moduleConfig.defaultPath)) {
+        router.push(moduleConfig.defaultPath);
+        return;
+      }
       const firstAllowedPath = getFirstAllowedPath(moduleConfig.items);
       if (firstAllowedPath) {
         router.push(firstAllowedPath);

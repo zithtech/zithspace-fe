@@ -444,6 +444,141 @@ export const hivebugStyles = `
   border-radius: 12px !important;
 }
 
+/* ── Project picker (shown until a project is chosen) ─────────────────────
+   The page has nothing to render without a project, so this is the whole
+   screen: search every project, or pick one of the first few by hand. */
+/* .hb-content hides its overflow, so the picker scrolls inside its own host —
+   the grid grows past the viewport as soon as "Show more" is pressed. */
+.hb-pp-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+.hb-projectpicker {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hb-pp-head { text-align: center; margin-bottom: 26px; }
+.hb-pp-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 54px; height: 54px; margin-bottom: 16px;
+  border-radius: 16px;
+  color: var(--hb-accent);
+  background: rgba(var(--hb-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--hb-accent-rgb), 0.22);
+  box-shadow: 0 10px 30px -12px rgba(var(--hb-accent-rgb), 0.5);
+}
+.hb-pp-title {
+  margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--hb-text);
+}
+.hb-pp-sub {
+  margin: 8px auto 0; max-width: 420px;
+  font-size: 13px; line-height: 1.55; color: var(--hb-text-soft);
+}
+.hb-pp-search { width: 100%; max-width: 440px; }
+.hb-pp-search .sd-trigger { height: 42px !important; border-radius: 10px !important; }
+
+/* A labelled rule, so the grid reads as "or pick one" rather than as a list. */
+.hb-pp-divider {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  margin: 28px 0 14px;
+  color: var(--hb-text-muted);
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+}
+.hb-pp-divider::before, .hb-pp-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--hb-border);
+}
+
+.hb-pp-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 10px;
+}
+.hb-pp-card {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 12px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--hb-border);
+  background: var(--hb-bg-elev);
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.hb-pp-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--hb-accent-rgb), 0.45);
+  background: var(--hb-bg-soft);
+  box-shadow: 0 12px 26px -16px rgba(var(--hb-accent-rgb), 0.75);
+}
+.hb-pp-card:focus-visible {
+  outline: 2px solid rgba(var(--hb-accent-rgb), 0.6);
+  outline-offset: 2px;
+}
+.hb-pp-card__code {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .03em;
+  color: var(--hb-text-soft);
+  background: var(--hb-bg-soft);
+  border: 1px solid var(--hb-border);
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+.hb-pp-card:hover .hb-pp-card__code {
+  color: var(--hb-accent-fg);
+  background: var(--hb-accent);
+  border-color: var(--hb-accent);
+}
+.hb-pp-card__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hb-pp-card__name {
+  font-size: 13px; font-weight: 600; color: var(--hb-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hb-pp-card__meta { font-size: 11px; color: var(--hb-text-muted); }
+.hb-pp-card__go {
+  flex-shrink: 0; color: var(--hb-text-muted);
+  opacity: 0; transform: translateX(-4px);
+  transition: opacity .16s ease, transform .16s ease, color .16s ease;
+}
+.hb-pp-card:hover .hb-pp-card__go { opacity: 1; transform: translateX(0); color: var(--hb-accent); }
+
+.hb-pp-more {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 16px; padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--hb-border);
+  background: transparent;
+  color: var(--hb-text-soft);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.hb-pp-more:hover {
+  color: var(--hb-accent);
+  border-color: rgba(var(--hb-accent-rgb), 0.45);
+  background: rgba(var(--hb-accent-rgb), 0.06);
+}
+.hb-pp-more svg { transition: transform .2s ease; }
+.hb-pp-more svg.is-open { transform: rotate(180deg); }
+
+.hb-pp-none {
+  margin-top: 26px; font-size: 13px; color: var(--hb-text-muted); text-align: center;
+}
+
+@media (max-width: 560px) {
+  .hb-projectpicker { padding: 36px 16px 48px; }
+  .hb-pp-grid { grid-template-columns: 1fr; }
+}
+
 .hb-section { padding: 6px 14px 4px; }
 .hb-section-grow { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .hb-section-title {
@@ -797,7 +932,7 @@ export const hivebugStyles = `
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin: 10px 14px 0 14px;
+  margin: 6px 14px 0 14px;
   padding: 0;
 }
 /* Proposal-style stat card: flat, horizontal centered layout */

@@ -402,6 +402,15 @@ export const QA_SUBMISSION_STYLES = `
 .sc-name__text { display: flex; flex-direction: column; min-width: 0; }
 .sc-name__title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sc-name__meta { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+/* One-line cell text that gives way to an ellipsis rather than wrapping the
+   row to four lines or widening the column past its card. */
+.qs-cell-1line { display: block; font-size: 12.5px; color: var(--text-slate-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Whatever the column widths work out to, the table scrolls inside the section
+   instead of spilling over its right edge. */
+.qs-section__body { min-width: 0; }
+.qs-section__body .sc-table, .qs-section__body .sc-table .ant-table { max-width: 100%; }
+.qs-failtable .ant-table-body { overflow-x: auto !important; }
+.qs-failtable .sc-name__meta { max-width: 100%; }
 .qs-muted { color: var(--text-slate-400); font-size: 12.5px; }
 .qs-num { font-variant-numeric: tabular-nums; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800); }
 .qs-num--zero { color: var(--text-slate-300); font-weight: 500; }

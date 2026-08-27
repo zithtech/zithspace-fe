@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -276,7 +278,7 @@ export default function TicketDashboard() {
               ))}
               {projectStats.length === 0 && (
                 <Col span={24}>
-                  <Empty description="No active project data" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  <NoData description="No active project data" />
                 </Col>
               )}
             </Row>
@@ -296,7 +298,7 @@ export default function TicketDashboard() {
                 rowKey="id"
                 pagination={false}
                 size="middle"
-                scroll={{ x: 600 }}
+                scroll={{ x: 600 }} locale={{ emptyText: <NoData /> }}
               />
             </Card>
           </div>
@@ -336,7 +338,7 @@ export default function TicketDashboard() {
               </div>
             ))}
             {recentActivity.length === 0 && (
-              <Empty description="No recent updates" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: '40px 0' }} />
+              <NoData description="No recent updates" />
             )}
             <div style={{ padding: '16px 0', textAlign: 'center' }}>
               <Button type="link" size="small">View Full Activity Log</Button>

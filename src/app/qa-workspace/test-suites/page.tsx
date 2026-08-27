@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -8,7 +9,7 @@ import { Button, Table, Tag, message, Input, Select, Tooltip } from "antd";
 import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { Layers, Trash2, Pencil, Folder, Menu, RotateCw } from "lucide-react";
+import { Layers, Trash2, Pencil, Folder, FolderOpen, Boxes, Link2, ChevronDown, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -18,7 +19,25 @@ import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ProjectService } from "@/services/projectService";
 
-type TabKey = "suites";
+/** How many entries each sidebar section shows before "Show more". */
+const PROJECTS_PREVIEW = 3;
+const MODULES_PREVIEW = 5;
+
+const COVERAGE_OPTIONS = [
+  { value: 'linked', label: 'Has linked cases' },
+  { value: 'empty', label: 'No cases yet' },
+];
+
+/** Collapses a list to its preview window, keeping the selected entry visible. */
+function previewList<T extends { value: string }>(items: T[], limit: number, expanded: boolean, selected?: string) {
+  if (expanded) return items;
+  const head = items.slice(0, limit);
+  if (selected && !head.some(i => i.value === selected)) {
+    const active = items.find(i => i.value === selected);
+    if (active) return [...head, active];
+  }
+  return head;
+}
 
 /* Product-standard stat tile */
 const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
@@ -71,9 +90,10 @@ export default function TestSuitesPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestSuites" });
 
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("suites");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  const [showAllModules, setShowAllModules] = useState(false);
 
   const [suites, setSuites] = useState<any[]>([]);
   const [parents, setParents] = useState<any[]>([]);
@@ -224,6 +244,17 @@ export default function TestSuitesPage() {
     { value: 'Unassigned', label: 'Unassigned' },
     ...modules.map(m => ({ value: m.id, label: m.module_name }))
   ];
+
+  /* Sidebar sections — the same option lists the filter row uses. */
+  const moduleNavOptions = modules.map(m => ({ value: String(m.id), label: String(m.module_name) }));
+  const visibleProjects = previewList(projectOptions, PROJECTS_PREVIEW, showAllProjects, projectFilter);
+  const visibleModules = previewList(moduleNavOptions, MODULES_PREVIEW, showAllModules, moduleFilter);
+  const hiddenProjectCount = Math.max(0, projectOptions.length - PROJECTS_PREVIEW);
+  const hiddenModuleCount = Math.max(0, moduleNavOptions.length - MODULES_PREVIEW);
+  const selectedProjectLabel = projectOptions.find(p => p.value === projectFilter)?.label;
+  const selectedModuleLabel = moduleFilter === 'Unassigned'
+    ? 'Unassigned'
+    : moduleNavOptions.find(m => m.value === moduleFilter)?.label;
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0) + (projectFilter ? 1 : 0);
@@ -484,6 +515,18 @@ export default function TestSuitesPage() {
         .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
         .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
         .pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
+        .pp-nav-caption + .pp-nav-item { margin-top: 0; }
+        .pp-nav-item ~ .pp-nav-caption, .pp-nav-more + .pp-nav-caption { margin-top: 16px; }
+        .pp-nav-more {
+          display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
+          margin-top: 2px; border: none; background: transparent; border-radius: 7px;
+          color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease;
+        }
+        .pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
+        .pp-nav-more-icon { transition: transform .18s ease; }
+        .pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
+        .pp-nav-empty { display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400); }
         .pp-nav-item.is-active::before {
           content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
@@ -934,12 +977,101 @@ export default function TestSuitesPage() {
             )}
           </div>
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Workspace</span>
-            <button className="pp-nav-item is-active" onClick={() => setActiveTab("suites")}>
-              <Layers size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Suites</span>
-              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
+            <span className="pp-nav-caption">Projects</span>
+            <button
+              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
+              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Boxes size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Projects</span>
+              {projectOptions.length > 0 ? <span className="pp-nav-count">{projectOptions.length}</span> : null}
             </button>
+            {visibleProjects.map(pj => (
+              <button
+                key={pj.value}
+                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
+                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
+                title={pj.label}
+              >
+                {projectFilter === pj.value
+                  ? <FolderOpen size={15} className="pp-nav-icon" />
+                  : <Folder size={15} className="pp-nav-icon" />}
+                <span className="pp-nav-label">{pj.label}</span>
+              </button>
+            ))}
+            {!loadingProjects && projectOptions.length === 0 && (
+              <span className="pp-nav-empty">No projects assigned</span>
+            )}
+            {hiddenProjectCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
+                onClick={() => setShowAllProjects(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
+              </button>
+            )}
+
+            <span className="pp-nav-caption">Modules</span>
+            <button
+              className={`pp-nav-item ${!moduleFilter ? 'is-active' : ''}`}
+              onClick={() => { setModuleFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Layers size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Modules</span>
+              {moduleNavOptions.length > 0 ? <span className="pp-nav-count">{moduleNavOptions.length}</span> : null}
+            </button>
+            <button
+              className={`pp-nav-item ${moduleFilter === 'Unassigned' ? 'is-active' : ''}`}
+              onClick={() => { setModuleFilter('Unassigned'); setMobileSidebarOpen(false); }}
+            >
+              <Folder size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Unassigned</span>
+            </button>
+            {visibleModules.map(m => (
+              <button
+                key={m.value}
+                className={`pp-nav-item ${moduleFilter === m.value ? 'is-active' : ''}`}
+                onClick={() => { setModuleFilter(m.value); setMobileSidebarOpen(false); }}
+                title={m.label}
+              >
+                <Folder size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">{m.label}</span>
+              </button>
+            ))}
+            {moduleNavOptions.length === 0 && (
+              <span className="pp-nav-empty">No modules yet</span>
+            )}
+            {hiddenModuleCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllModules ? 'is-open' : ''}`}
+                onClick={() => setShowAllModules(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllModules ? 'Show less' : `Show ${hiddenModuleCount} more`}
+              </button>
+            )}
+
+            <span className="pp-nav-caption">Coverage</span>
+            <button
+              className={`pp-nav-item ${!coverageFilter ? 'is-active' : ''}`}
+              onClick={() => { setCoverageFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Layers size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Any coverage</span>
+            </button>
+            {COVERAGE_OPTIONS.map(c => (
+              <button
+                key={c.value}
+                className={`pp-nav-item ${coverageFilter === c.value ? 'is-active' : ''}`}
+                onClick={() => { setCoverageFilter(c.value); setMobileSidebarOpen(false); }}
+              >
+                <Link2 size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">{c.label}</span>
+              </button>
+            ))}
           </div>
         </aside>
 
@@ -955,7 +1087,9 @@ export default function TestSuitesPage() {
               />
               <span className="sc-topbar__h1">All Test Suites</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">Organize child test cases from your business scenarios into executable suites</span>
+              <span className="sc-topbar__sub">
+                {[selectedProjectLabel || 'All projects', selectedModuleLabel].filter(Boolean).join(' · ')}
+              </span>
             </div>
 
             <div className="dh-main-controls">
@@ -998,15 +1132,6 @@ export default function TestSuitesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 allowClear
               />
-                            <SearchableDropdown
-                options={projectOptions}
-                value={projectFilter}
-                onChange={(v) => setProjectFilter(v)}
-                placeholder="Any project"
-                hideAvatar
-                itemNoun="projects"
-                className="sc-filters__field"
-              />
               <SearchableDropdown
                 options={scenarioFilterOptions}
                 value={scenarioFilter}
@@ -1025,10 +1150,7 @@ export default function TestSuitesPage() {
                 className="sc-filters__field"
               />
               <SearchableDropdown
-                options={[
-                  { value: 'linked', label: 'Has linked cases' },
-                  { value: 'empty', label: 'No cases yet' },
-                ]}
+                options={COVERAGE_OPTIONS}
                 value={coverageFilter}
                 onChange={(v) => setCoverageFilter(v)}
                 placeholder="Any coverage"
@@ -1064,37 +1186,41 @@ export default function TestSuitesPage() {
                   })}
                   locale={{
                     /* Holding the height beats claiming "no suites" mid-fetch. */
-                    emptyText: loading ? (
-                      <div style={{ minHeight: 240 }} />
-                    ) : (
-                      <div className="sc-empty">
-                        <SnippetsOutlined className="sc-empty__icon" />
-                        <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                        <p className="sc-empty__desc">
-                          {activeFilterCount > 0
-                            ? 'Try widening your search or clearing the filters.'
-                            : 'Group related test cases into a suite you can run together.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
-                      </div>
-                    )
+                    emptyText: <NoData description={loading ? (
+                                                <div style={{ minHeight: 240 }} />
+                                              ) : (
+                                                <div className="sc-empty">
+                                                  <SnippetsOutlined className="sc-empty__icon" />
+                                                  <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
+                                                  <p className="sc-empty__desc">
+                                                    {activeFilterCount > 0
+                                                      ? 'Try widening your search or clearing the filters.'
+                                                      : 'Group related test cases into a suite you can run together.'}
+                                                  </p>
+                                                  {activeFilterCount > 0
+                                                    ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                                    : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                                                </div>
+                                              )} />
                   }}
                 />
               </div>
             ) : (
               <div className="pp-grid">
                 {loading ? null : filteredSuites.length === 0 ? (
-                  <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
-                    <SnippetsOutlined className="sc-empty__icon" />
-                    <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                    <p className="sc-empty__desc">
-                      {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Group related test cases into a suite you can run together.'}
-                    </p>
-                    {activeFilterCount > 0
-                      ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                      : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <NoData description={
+                      <div className="sc-empty pp-empty">
+                        <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
+                        <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
+                        <p className="sc-empty__desc pp-empty-sub">
+                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Group related test cases into a suite you can run together.'}
+                        </p>
+                        {activeFilterCount > 0
+                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                          : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+                      </div>
+                    } />
                   </div>
                 ) : (
                   pagedSuites.map(r => renderSuiteCard(r))

@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -862,27 +864,27 @@ export default function DashboardPage() {
                 })}
                 className="dashboard-table"
                 locale={{
-                  emptyText: (
-                    <div className="py-10 text-center">
-                      <FileText
-                        size={28}
-                        className="mx-auto mb-2"
-                        style={{ color: "var(--text-secondary)" }}
-                      />
-                      <div
-                        className="text-[13px] font-semibold"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        No invoices yet
-                      </div>
-                      <div
-                        className="text-[11.5px] mt-1"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Create your first invoice to see it here
-                      </div>
-                    </div>
-                  ),
+                  emptyText: <NoData description={(
+                                            <div className="py-10 text-center">
+                                              <FileText
+                                                size={28}
+                                                className="mx-auto mb-2"
+                                                style={{ color: "var(--text-secondary)" }}
+                                              />
+                                              <div
+                                                className="text-[13px] font-semibold"
+                                                style={{ color: "var(--text-primary)" }}
+                                              >
+                                                No invoices yet
+                                              </div>
+                                              <div
+                                                className="text-[11.5px] mt-1"
+                                                style={{ color: "var(--text-secondary)" }}
+                                              >
+                                                Create your first invoice to see it here
+                                              </div>
+                                            </div>
+                                          )} />,
                 }}
               />
             </div>

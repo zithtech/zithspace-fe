@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Table, Tabs, Modal, Input, Drawer, message, Descriptions, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -139,7 +140,7 @@ export default function ApprovalsPanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
-                  locale={{ emptyText: <Empty description="No pending claims" /> }}
+                  locale={{ emptyText: <NoData description="No pending claims" /> }}
                   pagination={{
                     current: claimsPage,
                     pageSize: claimsSize,
@@ -161,7 +162,7 @@ export default function ApprovalsPanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
-                  locale={{ emptyText: <Empty description="No pending advances" /> }}
+                  locale={{ emptyText: <NoData description="No pending advances" /> }}
                   pagination={{
                     current: advancesPage,
                     pageSize: advancesSize,

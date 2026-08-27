@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, Button, message, Table, Switch, Input, Tooltip, Drawer, AutoComplete } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -688,7 +690,7 @@ function DocumentsNeededTab() {
             dataSource={rows}
             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, hideOnSinglePage: true, size: "small" }}
             scroll={{ x: 'max-content' }}
-            locale={{ emptyText: "No documents yet — add the ones you need from new hires." }}
+            locale={{ emptyText: <NoData description={"No documents yet — add the ones you need from new hires."} /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

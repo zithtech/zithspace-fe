@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from "react";
 import {
   Avatar,
@@ -343,7 +344,7 @@ export function BucketManageInlinePanel({
           disabled={!sprintTargetProjectId || sprintsLoading}
           notFoundContent={
             sprintTargetProjectId && !sprintsLoading ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No available sprints" />
+              <NoData description="No available sprints" />
             ) : null
           }
         >

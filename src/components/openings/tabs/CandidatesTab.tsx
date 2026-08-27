@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -424,17 +425,14 @@ export default function CandidatesTab({
             locale={{
               emptyText: (
                 <div className="omp-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <>
-                        <div className="omp-empty-title">No candidates yet</div>
-                        <div className="omp-empty-sub">
-                          Add an existing candidate to start the pipeline.
-                        </div>
-                      </>
-                    }
-                  />
+                  <NoData description={
+                                              <>
+                                                <div className="omp-empty-title">No candidates yet</div>
+                                                <div className="omp-empty-sub">
+                                                  Add an existing candidate to start the pipeline.
+                                                </div>
+                                              </>
+                                            } />
                 </div>
               ),
             }}

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -531,7 +533,7 @@ export default function LeavePolicyPanel() {
           <span className="lvp-child-dot">·</span>
           <span><b>Applies to:</b> {targetSummary(d)}</span>
         </div>
-        <Table rowKey={(l) => l.id ?? l.leaveTypeId} size="small" className="lvp-child-table" columns={childCols} dataSource={d.lines} pagination={false} scroll={{ x: 'max-content' }} />
+        <Table rowKey={(l) => l.id ?? l.leaveTypeId} size="small" className="lvp-child-table" columns={childCols} dataSource={d.lines} pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
       </div>
     );
   };
@@ -624,7 +626,7 @@ export default function LeavePolicyPanel() {
               expandedRowRender,
               onExpand: onExpandRow,
               rowExpandable: (r) => r.lineCount > 0,
-            }}
+            }} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

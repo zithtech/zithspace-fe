@@ -1,6 +1,5 @@
-
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   Typography,
@@ -723,7 +722,7 @@ export default function SquadManagement() {
                   scroll={{ x: 'max-content' }}
                   rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
                   pagination={false}
-                  locale={{ emptyText: emptyState }}
+                  locale={{ emptyText: <NoData description={emptyState} /> }}
                   onRow={(record) => ({
                     onClick: (e) => {
                       const t = e.target as HTMLElement;
@@ -739,7 +738,7 @@ export default function SquadManagement() {
                 {loading ? (
                   <div className="sq-grid-loading">Loading...</div>
                 ) : paginatedSquads.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                  <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                 ) : (
                   paginatedSquads.map((s) => {
                     const isArchived = s.isArchived;

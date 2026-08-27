@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -61,7 +63,7 @@ export default function AssignmentHistoryDrawer({
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><ZukvoLoader size="md" /></div>
           ) : rows.length === 0 ? (
-            <Empty description="No salary assignments yet" style={{ marginTop: 48 }} />
+            <NoData description="No salary assignments yet" />
           ) : (
             <div className="ahd-timeline">
               {rows.map((r, i) => {

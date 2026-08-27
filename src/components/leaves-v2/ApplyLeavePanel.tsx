@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -481,7 +482,7 @@ export default function ApplyLeavePanel({ hideSidebarToggle }: { hideSidebarTogg
             pagination={false}
             scroll={{ x: 'max-content', y: 'calc(100vh - 320px)' }}
             expandable={{ expandedRowRender: expandedRow, expandRowByClick: true, columnWidth: 32 }}
-            onRow={() => ({ className: 'lva-row' })}
+            onRow={() => ({ className: 'lva-row' })} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

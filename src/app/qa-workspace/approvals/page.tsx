@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 /**
  * Approvals — the approver's own queue.
  *
@@ -29,6 +30,7 @@ import {
   Undo2,
   Menu,
   RotateCw,
+  Target,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
@@ -39,6 +41,7 @@ import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import ScopeApprovals from "./ScopeApprovals";
 import { MembersService } from "@/services/membersService";
 import QaSubmissionService, {
   AWAITING_APPROVAL_STATUSES,
@@ -128,7 +131,7 @@ function ApprovalsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
-  const { canReadPmApproval, canApproveSubmission, canSendBackSubmission } = usePermission();
+  const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
 
   const [rows, setRows] = useState<SubmissionListItem[]>([]);
   const [stats, setStats] = useState<SubmissionStats | null>(null);
@@ -138,6 +141,21 @@ function ApprovalsContent() {
   const [members, setMembers] = useState<any[]>([]);
 
   const [bucketKey, setBucketKey] = useState<string>(searchParams.get("bucket") || "awaiting");
+  /**
+   * Test scopes are the other thing an approver decides on. They were their own
+   * page until now; here they are simply a second view of the same queue, so
+   * the sidebar switches between the two rather than the approver switching
+   * screens.
+   */
+  const [view, setView] = useState<"submissions" | "scopes">(
+    searchParams.get("view") === "scopes" ? "scopes" : "submissions",
+  );
+  /**
+   * Permissions arrive with auth rather than on the first render, so the choice
+   * is derived rather than seeded: an approver who only signs off scopes has no
+   * submission queue to fall back to.
+   */
+  const effectiveView = canReadPmApproval ? view : "scopes";
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -211,9 +229,9 @@ function ApprovalsContent() {
   }, []);
 
   useEffect(() => {
-    if (!canReadPmApproval) return;
+    if (!canReadPmApproval || effectiveView !== "submissions") return;
     fetchList();
-  }, [canReadPmApproval, fetchList]);
+  }, [canReadPmApproval, fetchList, effectiveView]);
 
   useEffect(() => {
     if (!canReadPmApproval) return;
@@ -310,7 +328,9 @@ function ApprovalsContent() {
 
   const openSubmission = (id: string) => router.push(`/qa-workspace/qa-submissions/${id}`);
 
-  if (!canReadPmApproval) return null;
+  // Either queue is enough to have business here — an approver who only signs
+  // off test scopes still needs this page.
+  if (!canReadPmApproval && !canApproveScope) return null;
 
   const firstLoad = loading && rows.length === 0;
 
@@ -535,22 +555,43 @@ function ApprovalsContent() {
           </div>
 
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Queue</span>
-            {BUCKETS.map((b) => (
+            {canReadPmApproval && <span className="pp-nav-caption">Queue</span>}
+            {canReadPmApproval && BUCKETS.map((b) => (
               <button
                 key={b.key}
-                className={`pp-nav-item ${bucketKey === b.key ? "is-active" : ""}`}
-                onClick={() => setBucketKey(b.key)}
+                className={`pp-nav-item ${effectiveView === "submissions" && bucketKey === b.key ? "is-active" : ""}`}
+                onClick={() => {
+                  setView("submissions");
+                  setBucketKey(b.key);
+                  setMobileSidebarOpen(false);
+                }}
               >
                 <b.icon size={15} className="pp-nav-icon" />
                 <span className="pp-nav-label">{b.label}</span>
                 {stats && <span className="pp-nav-count">{b.count(stats)}</span>}
               </button>
             ))}
+
+            {canApproveScope && (
+              <>
+                <span className="pp-nav-caption">Test Scope</span>
+                <button
+                  className={`pp-nav-item ${effectiveView === "scopes" ? "is-active" : ""}`}
+                  onClick={() => { setView("scopes"); setMobileSidebarOpen(false); }}
+                >
+                  <Target size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">Scope Approvals</span>
+                </button>
+              </>
+            )}
           </div>
         </aside>
 
         <main className="dh-main">
+          {effectiveView === "scopes" ? (
+            <ScopeApprovals onOpenSidebar={() => setMobileSidebarOpen(true)} />
+          ) : (
+          <>
           <div className="dh-main-topbar sc-topbar">
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
@@ -669,26 +710,26 @@ function ApprovalsContent() {
                       setSortDir(sorter.order === "ascend" ? "asc" : "desc");
                     }}
                     locale={{
-                      emptyText: (
-                        <div className="sc-empty">
-                          <FileDoneOutlined className="sc-empty__icon" />
-                          <p className="sc-empty__title">
-                            {activeFilterCount > 0
-                              ? "No submissions match these filters"
-                              : `Nothing in ${bucket.label.toLowerCase()}`}
-                          </p>
-                          <p className="sc-empty__desc">
-                            {activeFilterCount > 0
-                              ? "Try widening your search or clearing the filters."
-                              : "Submissions appear here once QA reports their testing results."}
-                          </p>
-                          {activeFilterCount > 0 && (
-                            <Button size="small" onClick={clearFilters}>
-                              Clear filters
-                            </Button>
-                          )}
-                        </div>
-                      ),
+                      emptyText: <NoData description={(
+                                                    <div className="sc-empty">
+                                                      <FileDoneOutlined className="sc-empty__icon" />
+                                                      <p className="sc-empty__title">
+                                                        {activeFilterCount > 0
+                                                          ? "No submissions match these filters"
+                                                          : `Nothing in ${bucket.label.toLowerCase()}`}
+                                                      </p>
+                                                      <p className="sc-empty__desc">
+                                                        {activeFilterCount > 0
+                                                          ? "Try widening your search or clearing the filters."
+                                                          : "Submissions appear here once QA reports their testing results."}
+                                                      </p>
+                                                      {activeFilterCount > 0 && (
+                                                        <Button size="small" onClick={clearFilters}>
+                                                          Clear filters
+                                                        </Button>
+                                                      )}
+                                                    </div>
+                                                  )} />,
                     }}
                   />
                 )}
@@ -727,6 +768,8 @@ function ApprovalsContent() {
                 />
               </div>
             </div>
+          )}
+          </>
           )}
         </main>
       </div>

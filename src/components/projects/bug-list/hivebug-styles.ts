@@ -932,7 +932,7 @@ export const hivebugStyles = `
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin: 10px 14px 0 14px;
+  margin: 6px 14px 0 14px;
   padding: 0;
 }
 /* Proposal-style stat card: flat, horizontal centered layout */

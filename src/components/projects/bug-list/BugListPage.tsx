@@ -146,6 +146,7 @@ import type {
   BugSheet,
   BugStatus,
   BugType,
+  BugWorkStatus,
   CreateBugInput,
   UpdateBugInput,
 } from "@/services/bugListService";
@@ -160,16 +161,19 @@ const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
 const TYPE_OPTS: BugType[] = ["ui", "functional", "api"];
 
+/** Every value filter is multi-select, so each one holds the full picked set. */
 interface FilterState {
   search: string;
-  severity?: BugSeverity;
-  status?: BugStatus;
-  bugStatus?: "not started" | "pending" | "completed";
-  bugType?: BugType;
-  module?: string;
-  assigneeId?: string;
-  createdById?: string;
-  ticketStatus?: string;
+  folderIds?: string[];
+  sheetIds?: string[];
+  severity?: BugSeverity[];
+  status?: BugStatus[];
+  bugStatus?: BugWorkStatus[];
+  bugType?: BugType[];
+  module?: string[];
+  assigneeId?: string[];
+  createdById?: string[];
+  ticketStatus?: string[];
   createdRange?: [any, any] | null;
   updatedRange?: [any, any] | null;
 }
@@ -420,6 +424,8 @@ export default function BugListPage() {
     () => ({
       folderId: selectedFolderId || undefined,
       sheetId: selectedSheetId || undefined,
+      folderIds: filters.folderIds,
+      sheetIds: filters.sheetIds,
       projectId: selectedProjectId || undefined,
       scope,
       search: filters.search || undefined,
@@ -429,7 +435,7 @@ export default function BugListPage() {
       bugType: filters.bugType,
       module: filters.module,
       assigneeId: filters.assigneeId,
-      createdById: filters.createdById || undefined,
+      createdById: filters.createdById,
       ticketStatus: filters.ticketStatus,
       createdFrom: filters.createdRange?.[0] ? dayjs(filters.createdRange[0]).startOf("day").toISOString() : undefined,
       createdTo: filters.createdRange?.[1] ? dayjs(filters.createdRange[1]).endOf("day").toISOString() : undefined,
@@ -481,8 +487,10 @@ export default function BugListPage() {
 
   const rawBugs = bugsResponse?.bugs || [];
   const bugs = useMemo(() => {
-    if (!filters.bugStatus) return rawBugs;
-    return rawBugs.filter(b => b.bugStatus === filters.bugStatus || (!b.bugStatus && filters.bugStatus === "not started"));
+    const wanted = filters.bugStatus || [];
+    if (!wanted.length) return rawBugs;
+    // Bugs saved before the work-status column existed read as "not started".
+    return rawBugs.filter(b => wanted.includes(b.bugStatus || "not started"));
   }, [rawBugs, filters.bugStatus]);
   const total = bugsResponse?.pagination.total || 0;
   const shown = bugs.length;
@@ -530,12 +538,61 @@ export default function BugListPage() {
     : pickerProjects.slice(0, PROJECT_PICKER_PREVIEW);
   const hiddenPickerCount = Math.max(0, pickerProjects.length - PROJECT_PICKER_PREVIEW);
 
-  const formattedModuleOptions = useMemo(() => {
-    return moduleOptions.map(m => ({
-      value: m,
-      label: m
-    }));
-  }, [moduleOptions]);
+  /** Filter pills offer the project's modules plus any legacy names still on bugs. */
+  const formattedModuleOptions = useMemo(
+    () => [
+      ...projectModuleOptions.map((m) => ({ value: m.value, label: m.label })),
+      ...legacyModules.map((m) => ({ value: m, label: m })),
+    ],
+    [projectModuleOptions, legacyModules]
+  );
+
+  const folderFilterOptions = useMemo(
+    () => allFolders.map((f) => ({ value: f.id, label: f.name })),
+    [allFolders]
+  );
+
+  /** Sheets narrow to the picked folders so the two pills can't contradict. */
+  const sheetFilterOptions = useMemo(() => {
+    const picked = new Set(filters.folderIds || []);
+    return allSheets
+      .filter((s) => (picked.size ? picked.has(s.folderId) : !selectedFolderId || s.folderId === selectedFolderId))
+      .map((s) => ({ value: s.id, label: s.name }));
+  }, [allSheets, filters.folderIds, selectedFolderId]);
+
+  /**
+   * Folder and sheet are multi-select filters rather than navigation, so picking
+   * them drops the sidebar drill-down — otherwise the two scopes AND together
+   * and the list silently comes back empty.
+   */
+  const applyFilter = useCallback(
+    (key: keyof FilterState, val: any) => {
+      setFilters((f) => {
+        const next: FilterState = { ...f, [key]: val };
+        if (key === "folderIds") {
+          const picked = new Set<string>(val || []);
+          if (picked.size) {
+            next.sheetIds = (f.sheetIds || []).filter((id) => {
+              const sheet = allSheets.find((s) => s.id === id);
+              return !!sheet && picked.has(sheet.folderId);
+            });
+          }
+        }
+        return next;
+      });
+      if (key === "folderIds" || key === "sheetIds") {
+        setSelectedFolderId(null);
+        setSelectedSheetId(null);
+      }
+    },
+    [allSheets]
+  );
+
+  const resetFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSelectedFolderId(null);
+    setSelectedSheetId(null);
+  }, []);
 
   const memberOptions = useMemo(
     () => members.map((m: any) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl, description: m.description })),
@@ -544,13 +601,18 @@ export default function BugListPage() {
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
-    if (filters.severity) n += filters.severity.length;
-    if (filters.bugStatus) n += filters.bugStatus.length;
-    if (filters.bugType) n += filters.bugType.length;
-    if (filters.module) n += filters.module.length;
-    if (filters.assigneeId) n += filters.assigneeId.length;
-    if (filters.createdById) n += filters.createdById.length;
-    if (filters.ticketStatus) n += filters.ticketStatus.length;
+    n += filters.severity?.length || 0;
+    n += filters.bugStatus?.length || 0;
+    n += filters.bugType?.length || 0;
+    n += filters.module?.length || 0;
+    n += filters.assigneeId?.length || 0;
+    n += filters.createdById?.length || 0;
+    n += filters.ticketStatus?.length || 0;
+    n += filters.folderIds?.length || 0;
+    n += filters.sheetIds?.length || 0;
+    if (filters.createdRange) n++;
+    if (filters.updatedRange) n++;
+    // The sidebar drill-down narrows the list too, so it reads as a filter here.
     if (selectedFolderId) n++;
     if (selectedSheetId) n++;
     return n;
@@ -1001,18 +1063,10 @@ export default function BugListPage() {
                   content={
                     <BugFilters
                       filters={filters}
-                      onFilterChange={(key, val) => setFilters(f => ({ ...f, [key]: val }))}
-                      onReset={() => {
-                        setFilters(DEFAULT_FILTERS);
-                        setSelectedFolderId(null);
-                        setSelectedSheetId(null);
-                      }}
-                      folders={allFolders.map(f => ({ value: f.id, label: f.name }))}
-                      sheets={allSheets.filter(s => !selectedFolderId || s.folderId === selectedFolderId).map(s => ({ value: s.id, label: s.name }))}
-                      selectedFolderId={selectedFolderId}
-                      selectedSheetId={selectedSheetId}
-                      onFolderChange={(id) => { setSelectedFolderId(id); setSelectedSheetId(null); }}
-                      onSheetChange={(id) => setSelectedSheetId(id)}
+                      onFilterChange={(key, val) => applyFilter(key as keyof FilterState, val)}
+                      onReset={resetFilters}
+                      folders={folderFilterOptions}
+                      sheets={sheetFilterOptions}
                       members={memberOptions}
                       severityOptions={[
                         { value: "critical", label: "Critical" },
@@ -1099,7 +1153,7 @@ export default function BugListPage() {
         </header>
 
         {filtersVisible && viewMode === "list" && (
-          <div className="tl-filter-row" style={{ padding: '12px 24px', marginBottom: '16px' }}>
+          <div className="tl-filter-row" style={{ padding: '10px 24px', marginBottom: '2px' }}>
             <div className="tl-filter-row-label">
               <FilterOutlined style={{ fontSize: 11 }} />
               <span>Filters</span>
@@ -1111,28 +1165,23 @@ export default function BugListPage() {
               <TicketFilterPill
                 icon={<FolderOutlined style={{ fontSize: 11 }} />}
                 label="Folder"
-                value={selectedFolderId || ""}
-                options={allFolders.map(f => ({ value: f.id, label: f.name }))}
-                onChange={(val: any) => {
-                  setSelectedFolderId(val || null);
-                  setSelectedSheetId(null);
-                }}
+                values={filters.folderIds || []}
+                options={folderFilterOptions}
+                onChange={(val: any) => applyFilter("folderIds", val)}
                 itemNoun="folders"
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
                 label="Sheet"
-                value={selectedSheetId || ""}
-                options={allSheets.filter(s => !selectedFolderId || s.folderId === selectedFolderId).map(s => ({ value: s.id, label: s.name }))}
-                onChange={(val: any) => setSelectedSheetId(val || null)}
+                values={filters.sheetIds || []}
+                options={sheetFilterOptions}
+                onChange={(val: any) => applyFilter("sheetIds", val)}
                 itemNoun="sheets"
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
                 label="Status"
-                value={filters.bugStatus || ""}
+                values={filters.bugStatus || []}
                 options={[
                   { value: "not started", label: "Not Started" },
                   { value: "pending", label: "Pending" },
@@ -1140,12 +1189,11 @@ export default function BugListPage() {
                 ]}
                 onChange={(val: any) => setFilters(f => ({ ...f, bugStatus: val }))}
                 itemNoun="statuses"
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
                 label="Severity"
-                value={filters.severity || ""}
+                values={filters.severity || []}
                 options={[
                   { value: "critical", label: "Critical" },
                   { value: "high", label: "High" },
@@ -1154,12 +1202,11 @@ export default function BugListPage() {
                 ]}
                 onChange={(val: any) => setFilters(f => ({ ...f, severity: val }))}
                 itemNoun="severities"
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
                 label="Type"
-                value={filters.bugType || ""}
+                values={filters.bugType || []}
                 options={[
                   { value: "functional", label: "Functional" },
                   { value: "visual", label: "Visual" },
@@ -1170,45 +1217,41 @@ export default function BugListPage() {
                 ]}
                 onChange={(val: any) => setFilters(f => ({ ...f, bugType: val }))}
                 itemNoun="types"
-                multiple={false}
               />
               {formattedModuleOptions.length > 0 && (
                 <TicketFilterPill
                   icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
                   label="Module"
-                  value={filters.module || ""}
+                  values={filters.module || []}
                   options={formattedModuleOptions}
                   onChange={(val: any) => setFilters(f => ({ ...f, module: val }))}
                   itemNoun="modules"
-                  multiple={false}
                 />
               )}
               <TicketFilterPill
                 icon={<UserOutlined style={{ fontSize: 11 }} />}
                 label="Assignee"
-                value={filters.assigneeId || ""}
+                values={filters.assigneeId || []}
                 options={memberOptions}
                 onChange={(val: any) => setFilters(f => ({ ...f, assigneeId: val }))}
                 itemNoun="members"
                 width={290}
                 showAvatar
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<UserOutlined style={{ fontSize: 11 }} />}
                 label="Created By"
-                value={filters.createdById || ""}
+                values={filters.createdById || []}
                 options={memberOptions}
                 onChange={(val: any) => setFilters(f => ({ ...f, createdById: val }))}
                 itemNoun="members"
                 width={290}
                 showAvatar
-                multiple={false}
               />
               <TicketFilterPill
                 icon={<LinkOutlined style={{ fontSize: 11 }} />}
                 label="Ticket"
-                value={filters.ticketStatus || ""}
+                values={filters.ticketStatus || []}
                 options={[
                   { value: "all", label: "All bugs" },
                   { value: "linked", label: "Linked to tickets" },
@@ -1216,7 +1259,6 @@ export default function BugListPage() {
                 ]}
                 onChange={(val: any) => setFilters(f => ({ ...f, ticketStatus: val }))}
                 itemNoun="ticket statuses"
-                multiple={false}
               />
               <DateFilterPill
                 icon={<CalendarOutlined style={{ fontSize: 11 }} />}
@@ -1234,11 +1276,7 @@ export default function BugListPage() {
                 <button
                   type="button"
                   className="fp-trigger"
-                  onClick={() => {
-                    setFilters(DEFAULT_FILTERS);
-                    setSelectedFolderId(null);
-                    setSelectedSheetId(null);
-                  }}
+                  onClick={resetFilters}
                   title="Clear all filters"
                 >
                   <span className="fp-trigger-icon"><ReloadOutlined style={{ fontSize: 11 }} /></span>

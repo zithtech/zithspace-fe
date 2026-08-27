@@ -881,7 +881,15 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   rules={[{ required: true }]}
                   extra="Lower numbers appear first in dropdowns"
                 >
-                  <InputNumber min={1} style={{ width: '100%' }} />
+                  <InputNumber 
+                    min={1} 
+                    style={{ width: '100%' }} 
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </Form.Item>
               </SectionCard>
 
@@ -889,14 +897,22 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 <Form.Item
                   name="label"
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Display Label</Text>}
-                  rules={[{ required: true, message: 'Label is required' }]}
+                  rules={[
+                    { required: true, message: 'Label is required' },
+                    { pattern: /^[a-zA-Z0-9\s\-_]+$/, message: 'Special characters are not allowed' }
+                  ]}
+                  normalize={(value) => (value || '').replace(/[^a-zA-Z0-9\s\-_]/g, '')}
                 >
                   <Input placeholder="e.g. High Priority" />
                 </Form.Item>
                 <Form.Item
                   name="value"
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>System Key (Value)</Text>}
-                  rules={[{ required: true, message: 'Key is required' }]}
+                  rules={[
+                    { required: true, message: 'Key is required' },
+                    { pattern: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, and underscores are allowed (no spaces or special characters)' }
+                  ]}
+                  normalize={(value) => (value || '').replace(/[^a-zA-Z0-9_]/g, '')}
                   extra="Internal identifier (uppercase/lowercase without spaces)"
                 >
                   <Input placeholder="e.g. HIGH" className="dm-input-mono" />

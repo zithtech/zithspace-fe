@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { Suspense, useState, useEffect } from "react";
@@ -425,35 +426,36 @@ function CalendarPageContent() {
 
 function EmptyState() {
     return (
-        <div style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 48,
-            textAlign: 'center',
-            background: 'var(--cal-empty-grad)',
-        }}>
-            <div style={{
-                width: 96,
-                height: 96,
-                borderRadius: 24,
-                background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 24,
-                boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
-            }}>
-                <CalendarOutlined style={{ fontSize: 44, color: '#FFFFFF' }} />
-            </div>
-            <Title level={3} style={{ margin: 0, fontWeight: 600, color: 'var(--cal-text-strong)' }}>
-                Connect a calendar to get started
-            </Title>
-            <Text style={{ color: 'var(--cal-text-muted)', fontSize: 15, marginTop: 8, maxWidth: 460 }}>
-                Bring your Google, Outlook or Zoho events into one beautiful, unified workspace — and let your team see what's planned at a glance.
-            </Text>
+        <NoData description={
+          <div className="pp-empty" style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 48,
+              textAlign: 'center',
+              background: 'var(--cal-empty-grad)',
+          }}>
+              <div className="pp-empty-icon" style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: 24,
+                  background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 24,
+                  boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+              }}>
+                  <CalendarOutlined style={{ fontSize: 44, color: '#FFFFFF' }} />
+              </div>
+              <Title className="pp-empty-title" level={3} style={{ margin: 0, fontWeight: 600, color: 'var(--cal-text-strong)' }}>
+                  Connect a calendar to get started
+              </Title>
+              <Text className="pp-empty-sub" style={{ color: 'var(--cal-text-muted)', fontSize: 15, marginTop: 8, maxWidth: 460 }}>
+                  Bring your Google, Outlook or Zoho events into one beautiful, unified workspace — and let your team see what's planned at a glance.
+              </Text>
             <div style={{ marginTop: 28, display: 'flex', gap: 12 }}>
                 <Button
                     type="primary"
@@ -489,7 +491,8 @@ function EmptyState() {
                 <span><WindowsOutlined style={{ marginRight: 6, color: '#0078D4' }} /> Outlook</span>
                 <span><CalendarOutlined style={{ marginRight: 6, color: '#E42527' }} /> Zoho</span>
             </div>
-        </div>
+          </div>
+        } />
     );
 }
 

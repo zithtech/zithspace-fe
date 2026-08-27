@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -443,7 +444,7 @@ export default function SalaryStructurePanel() {
       {/* TABLE */}
       <div className="pvs-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-              <Table rowKey="id" size="small" className="pvs-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} />
+              <Table rowKey="id" size="small" className="pvs-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvs-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
               </ZukvoLoadingOverlay>
       </div>
 

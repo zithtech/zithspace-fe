@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -622,7 +623,7 @@ function InvitesContent() {
             dataSource={pagedRows}
             pagination={false}
             onRow={() => ({ className: 'onbi-row' })}
-            locale={{ emptyText: 'No invites yet — invite your first employee.' }}
+            locale={{ emptyText: <NoData description={'No invites yet — invite your first employee.'} /> }}
             scroll={{ x: 'max-content' }}
           />
         </ZukvoLoadingOverlay>

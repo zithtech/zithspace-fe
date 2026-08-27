@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1508,33 +1509,35 @@ export default function SprintPlanComponent() {
                       <ZukvoLoader size="md" />
                     </div>
                   ) : tablePlans.length === 0 ? (
-                    <div className="sp-empty-state">
-                      <div className="sp-empty-icon">
-                        <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                    <NoData description={
+                      <div className="sp-empty-state pp-empty">
+                        <div className="sp-empty-icon pp-empty-orb">
+                          <CalendarOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                        </div>
+                        <Title level={5} className="pp-empty-title" style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                          No sprint cycles yet
+                        </Title>
+                        <Text className="pp-empty-sub" style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
+                          Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
+                        </Text>
+                        {canCreateTicketPlan && (
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={() => setShowCreateModal(true)}
+                            style={{
+                              height: 36,
+                              fontWeight: 700,
+                              borderRadius: 8,
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                              border: 'none'
+                            }}
+                          >
+                            Plan your first sprint
+                          </Button>
+                        )}
                       </div>
-                      <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
-                        No sprint cycles yet
-                      </Title>
-                      <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', marginBottom: 20, maxWidth: 360, textAlign: 'center' }}>
-                        Plan your first sprint to start tracking delivery, milestones, and team velocity in one place.
-                      </Text>
-                      {canCreateTicketPlan && (
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          onClick={() => setShowCreateModal(true)}
-                          style={{
-                            height: 36,
-                            fontWeight: 700,
-                            borderRadius: 8,
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                            border: 'none'
-                          }}
-                        >
-                          Plan your first sprint
-                        </Button>
-                      )}
-                    </div>
+                    } />
                   ) : (
                     tablePlans.map((record) => {
                       const project = typeof record.project === 'object' ? record.project : null;
@@ -1920,17 +1923,19 @@ export default function SprintPlanComponent() {
                 {loading ? (
                   <div className="sp-card-loading"><Spin /></div>
                 ) : tablePlans.length === 0 ? (
-                  <div className="sp-empty-state">
-                    <div className="sp-empty-icon">
-                      <TableOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                  <NoData description={
+                    <div className="sp-empty-state pp-empty">
+                      <div className="sp-empty-icon pp-empty-orb">
+                        <TableOutlined style={{ fontSize: 28, color: '#3b82f6' }} />
+                      </div>
+                      <Title level={5} className="pp-empty-title" style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
+                        No sprint cycles yet
+                      </Title>
+                      <Text className="pp-empty-sub" style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', maxWidth: 360, textAlign: 'center' }}>
+                        Plan your first sprint to start tracking delivery in one place.
+                      </Text>
                     </div>
-                    <Title level={5} style={{ margin: '0 0 6px', fontWeight: 700, color: 'var(--text-slate-900)' }}>
-                      No sprint cycles yet
-                    </Title>
-                    <Text style={{ fontSize: 13, color: 'var(--text-slate-500)', display: 'block', maxWidth: 360, textAlign: 'center' }}>
-                      Plan your first sprint to start tracking delivery in one place.
-                    </Text>
-                  </div>
+                  } />
                 ) : (
                   <div className="sp-tbl-wrap" role="table" aria-label="Sprint cycles table">
                     <div className="sp-tbl-head" role="row">

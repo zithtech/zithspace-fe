@@ -1,6 +1,4 @@
-
 "use client";
-
 import React, { useState } from "react";
 import { Modal, Form, Input, Select, Button, message, Divider, Typography, Space } from "antd";
 import { PlusOutlined } from "@ant-design/icons";

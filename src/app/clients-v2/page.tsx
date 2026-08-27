@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import { AppstoreOutlined, UnorderedListOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined, MenuOutlined } from '@ant-design/icons';
 import {
@@ -710,14 +711,11 @@ export default function ClientsV2ListPage() {
           </div>
         ) : !projects || projects.length === 0 ? (
           <div className="cm-empty-projects">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  No active projects yet for this client
-                </Text>
-              }
-            />
+            <NoData description={
+                                        <Text type="secondary" style={{ fontSize: 13 }}>
+                                          No active projects yet for this client
+                                        </Text>
+                                      } />
           </div>
         ) : (
           <div className="cm-project-list">
@@ -1045,28 +1043,28 @@ export default function ClientsV2ListPage() {
                             style: { cursor: "pointer" },
                           })}
                           locale={{
-                            emptyText: (
-                              <div className="cm-table-empty">
-                                <div className="cm-empty-icon">
-                                  <Building2 size={28} />
-                                </div>
-                                <div className="cm-empty-title">No clients yet</div>
-                                <div className="cm-empty-desc">
-                                  Add your first client to start tracking projects and contracts.
-                                </div>
-                                {canCreateClient && (
-                                  <Button
-                                    type="primary"
-                                    icon={<Plus size={14} />}
-                                    className="cm-primary-btn"
-                                    style={{ marginTop: 16 }}
-                                    onClick={() => router.push("/clients-v2/create")}
-                                  >
-                                    Create Client
-                                  </Button>
-                                )}
-                              </div>
-                            ),
+                            emptyText: <NoData description={(
+                                                                <div className="cm-table-empty">
+                                                                  <div className="cm-empty-icon">
+                                                                    <Building2 size={28} />
+                                                                  </div>
+                                                                  <div className="cm-empty-title">No clients yet</div>
+                                                                  <div className="cm-empty-desc">
+                                                                    Add your first client to start tracking projects and contracts.
+                                                                  </div>
+                                                                  {canCreateClient && (
+                                                                    <Button
+                                                                      type="primary"
+                                                                      icon={<Plus size={14} />}
+                                                                      className="cm-primary-btn"
+                                                                      style={{ marginTop: 16 }}
+                                                                      onClick={() => router.push("/clients-v2/create")}
+                                                                    >
+                                                                      Create Client
+                                                                    </Button>
+                                                                  )}
+                                                                </div>
+                                                              )} />,
                           }}
                           expandable={{
                             expandedRowRender: (record) => expandedRowRender(record, false),
@@ -1093,26 +1091,30 @@ export default function ClientsV2ListPage() {
                     ) : (
                       <div className="bh2-grid">
                         {data.length === 0 ? (
-                          <div className="bh2-empty" style={{ gridColumn: "1 / -1" }}>
-                            <div className="bh2-empty-icon">
-                              <Building2 size={28} style={{ color: "#3b82f6" }} />
-                            </div>
-                            <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                              No clients yet
-                            </Title>
-                            <Text style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
-                              Add your first client to start tracking projects and contracts.
-                            </Text>
-                            {canCreateClient && (
-                              <Button
-                                type="primary"
-                                icon={<Plus size={14} />}
-                                onClick={() => router.push("/clients-v2/create")}
-                                style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "#3b82f6", border: "none" }}
-                              >
-                                Create Client
-                              </Button>
-                            )}
+                          <div style={{ gridColumn: "1 / -1" }}>
+                            <NoData description={
+                              <div className="bh2-empty">
+                                <div className="bh2-empty-icon">
+                                  <Building2 size={28} style={{ color: "#3b82f6" }} />
+                                </div>
+                                <Title level={5} className="bh2-empty-title" style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                                  No clients yet
+                                </Title>
+                                <Text className="bh2-empty-desc" style={{ fontSize: 13, color: "var(--text-slate-500)", display: "block", marginBottom: 20, maxWidth: 360, textAlign: "center" }}>
+                                  Add your first client to start tracking projects and contracts.
+                                </Text>
+                                {canCreateClient && (
+                                  <Button
+                                    type="primary"
+                                    icon={<Plus size={14} />}
+                                    onClick={() => router.push("/clients-v2/create")}
+                                    style={{ height: 36, fontWeight: 700, borderRadius: 8, background: "#3b82f6", border: "none" }}
+                                  >
+                                    Create Client
+                                  </Button>
+                                )}
+                              </div>
+                            } />
                           </div>
                         ) : (
                           data.map((record) => {

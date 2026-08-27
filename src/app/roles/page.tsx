@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -383,19 +384,20 @@ const AVATAR_PALETTE: [string, string][] = [
   ['#3b82f6', '#6366f1'],
 ];
 
-/** Maps RBAC resource keys to backend subscription feature prefixes */
+/** Maps RBAC resource keys to backend subscription feature */
 const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   // Home
   dashboard: ["home_home_general_dashboard"],
   integration: ["home_home_general_integrations"],
-  mail: ["mail"],
-  calendar: ["calendar"],
-  chat: ["chat"],
-  skills: ["skills"],
+  mail: ["home_home_general_mail"],
+  calendar: ["home_home_general_calendar"],
+  chat: ["home_home_general_team_chat"],
+  skills: ["home_home_general_skills"],
   notification: ["notification"],
-  bookmark: ["bookmark"],
+  bookmark: ["home_home_general_bookmarks"],
   time_tracking: ["work_time_tracking", "work_timesheet"],
-  activity_log: ["activity_log"],
+  activity_log: ["home_home_general_activity"],
+  hotspot: ["home_home_general_hotspot"],
 
   // Work
   project: ["work_projects"],
@@ -403,12 +405,13 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   timesheet: ["work_timesheet", "work_time_tracking"],
   daily_update: ["work_daily_updates"],
   document: ["work_document_hub"],
-  squad: ["work_squad_management"],
+  squad: ["work_squad_management", "work_squad", "squad"],
   escalation: ["work_escalations"],
   lead: ["work_lead_management"],
   bidiq: ["work_bidiq"],
   proposal: ["work_proposals"],
   pipeline: ["pipeline"],
+  qa: ["work_qa_space", "work_qa_workspace"],
 
   // HRMS
   attendance: ["hrms_attendance"],
@@ -417,7 +420,9 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   onboarding: ["hrms_onboarding"],
   exit: ["hrms_employee_exit"],
   performance: ["hrms_performance"],
-  opening: ["hrms_opening_management"],
+  opening: ["hrms_openings", "hrms_opening_management"],
+  recruitment: ["hrms_candidate_pipeline"],
+  letter: ["hrms_doc_suite"],
   profile: ["hrms_profile", "hrms_new_profile"],
 
   // Admin
@@ -1397,7 +1402,7 @@ export default function RolesPage() {
                   dataSource={filteredRoles}
                   rowKey="id"
                   pagination={false}
-                  scroll={{ x: 1000 }}
+                  scroll={{ x: 1000 }} locale={{ emptyText: <NoData /> }}
                 />
 
               </div>

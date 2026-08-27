@@ -1,12 +1,12 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip } from "antd";
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
-import { useRouter, useSearchParams } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2, Menu, RotateCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PlayCircle, Target, Activity, Trash2, Folder, FolderOpen, Boxes, Layers, ChevronDown, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -19,7 +19,26 @@ import { ProjectService } from "@/services/projectService";
 
 const { Text } = Typography;
 
-type TabKey = "dashboard" | "runs";
+/** How many entries each sidebar section shows before "Show more". */
+const PROJECTS_PREVIEW = 3;
+const SUITES_PREVIEW = 5;
+
+const PROGRESS_OPTIONS = [
+  { value: 'notStarted', label: 'Not started' },
+  { value: 'active', label: 'In progress' },
+  { value: 'completed', label: 'Completed' },
+];
+
+/** Collapses a list to its preview window, keeping the selected entry visible. */
+function previewList<T extends { value: string }>(items: T[], limit: number, expanded: boolean, selected?: string) {
+  if (expanded) return items;
+  const head = items.slice(0, limit);
+  if (selected && !head.some(i => i.value === selected)) {
+    const active = items.find(i => i.value === selected);
+    if (active) return [...head, active];
+  }
+  return head;
+}
 
 /* Product-standard stat tile */
 const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
@@ -71,10 +90,10 @@ function initialsOf(name: string) {
 function TestRunsContent() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestRuns" });
 
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>((searchParams.get("tab") as TabKey) || "runs");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  const [showAllSuites, setShowAllSuites] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
   const [runs, setRuns] = useState<any[]>([]);
@@ -262,6 +281,14 @@ function TestRunsContent() {
   const filteredRuns = runs; // Data is already filtered by backend
 
   const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
+
+  /* Sidebar sections — the same option lists the filter row uses. */
+  const visibleProjects = previewList(projectOptions, PROJECTS_PREVIEW, showAllProjects, projectFilter);
+  const visibleSuites = previewList(suiteFilterOptions, SUITES_PREVIEW, showAllSuites, suiteFilter);
+  const hiddenProjectCount = Math.max(0, projectOptions.length - PROJECTS_PREVIEW);
+  const hiddenSuiteCount = Math.max(0, suiteFilterOptions.length - SUITES_PREVIEW);
+  const selectedProjectLabel = projectOptions.find(p => p.value === projectFilter)?.label;
+  const selectedSuiteLabel = suiteFilterOptions.find(o => o.value === suiteFilter)?.label;
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (projectFilter ? 1 : 0);
@@ -504,6 +531,18 @@ function TestRunsContent() {
         .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
         .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
         .pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
+        .pp-nav-caption + .pp-nav-item { margin-top: 0; }
+        .pp-nav-item ~ .pp-nav-caption, .pp-nav-more + .pp-nav-caption { margin-top: 16px; }
+        .pp-nav-more {
+          display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
+          margin-top: 2px; border: none; background: transparent; border-radius: 7px;
+          color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease;
+        }
+        .pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
+        .pp-nav-more-icon { transition: transform .18s ease; }
+        .pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
+        .pp-nav-empty { display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400); }
         .pp-nav-item.is-active::before {
           content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
@@ -857,12 +896,94 @@ function TestRunsContent() {
           </div>
 
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Workspace</span>
-            <button className={`pp-nav-item ${activeTab === 'runs' ? 'is-active' : ''}`} onClick={() => setActiveTab('runs')}>
-              <PlayCircle size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Runs</span>
-              {totalItems > 0 && <span className="pp-nav-count">{totalItems}</span>}
+            <span className="pp-nav-caption">Projects</span>
+            <button
+              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
+              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Boxes size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Projects</span>
+              {projectOptions.length > 0 ? <span className="pp-nav-count">{projectOptions.length}</span> : null}
             </button>
+            {visibleProjects.map(pj => (
+              <button
+                key={pj.value}
+                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
+                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
+                title={pj.label}
+              >
+                {projectFilter === pj.value
+                  ? <FolderOpen size={15} className="pp-nav-icon" />
+                  : <Folder size={15} className="pp-nav-icon" />}
+                <span className="pp-nav-label">{pj.label}</span>
+              </button>
+            ))}
+            {!loadingProjects && projectOptions.length === 0 && (
+              <span className="pp-nav-empty">No projects assigned</span>
+            )}
+            {hiddenProjectCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
+                onClick={() => setShowAllProjects(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
+              </button>
+            )}
+
+            <span className="pp-nav-caption">Suites</span>
+            <button
+              className={`pp-nav-item ${!suiteFilter ? 'is-active' : ''}`}
+              onClick={() => { setSuiteFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Layers size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Suites</span>
+              {suiteFilterOptions.length > 0 ? <span className="pp-nav-count">{suiteFilterOptions.length}</span> : null}
+            </button>
+            {visibleSuites.map(su => (
+              <button
+                key={su.value}
+                className={`pp-nav-item ${suiteFilter === su.value ? 'is-active' : ''}`}
+                onClick={() => { setSuiteFilter(su.value); setMobileSidebarOpen(false); }}
+                title={su.label}
+              >
+                <Layers size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">{su.label}</span>
+              </button>
+            ))}
+            {suiteFilterOptions.length === 0 && (
+              <span className="pp-nav-empty">No suites yet</span>
+            )}
+            {hiddenSuiteCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllSuites ? 'is-open' : ''}`}
+                onClick={() => setShowAllSuites(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllSuites ? 'Show less' : `Show ${hiddenSuiteCount} more`}
+              </button>
+            )}
+
+            <span className="pp-nav-caption">Progress</span>
+            <button
+              className={`pp-nav-item ${!progressFilter ? 'is-active' : ''}`}
+              onClick={() => { setProgressFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Activity size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">Any progress</span>
+            </button>
+            {PROGRESS_OPTIONS.map(o => (
+              <button
+                key={o.value}
+                className={`pp-nav-item ${progressFilter === o.value ? 'is-active' : ''}`}
+                onClick={() => { setProgressFilter(o.value); setMobileSidebarOpen(false); }}
+              >
+                <PlayCircle size={15} className="pp-nav-icon" />
+                <span className="pp-nav-label">{o.label}</span>
+              </button>
+            ))}
           </div>
         </aside>
 
@@ -876,12 +997,10 @@ function TestRunsContent() {
                 icon={<Menu size={18} />}
                 onClick={() => setMobileSidebarOpen(true)}
               />
-              <span className="sc-topbar__h1">{activeTab === 'runs' ? 'All Test Runs' : 'Dashboard'}</span>
+              <span className="sc-topbar__h1">All Test Runs</span>
               <span className="sc-topbar__div" />
               <span className="sc-topbar__sub">
-                {activeTab === 'runs'
-                  ? 'Execute test suites and track real-time QA test results'
-                  : 'Overview of test runs and pass/fail execution progress'}
+                {[selectedProjectLabel || 'All projects', selectedSuiteLabel].filter(Boolean).join(' · ')}
               </span>
             </div>
 
@@ -894,164 +1013,137 @@ function TestRunsContent() {
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
-              {activeTab === 'runs' && (
-                <>
-                  <div className="pp-segmented">
-                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
-                    <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
-                  </div>
-                  {canCreateRun && (
-                    <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>
-                      New Run
-                    </Button>
-                  )}
-                </>
+              <div className="pp-segmented">
+                <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
+              </div>
+              {canCreateRun && (
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>
+                  New Run
+                </Button>
               )}
             </div>
           </div>
 
           <div className="dh-main-scroll">
-            {activeTab === 'runs' && (
-              <>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                  {[
-                    { key: undefined, label: "Total Runs", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
-                    { key: 'active', label: "In Progress", value: stats?.activeRuns || 0, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
-                    { key: 'completed', label: "Completed", value: stats?.completedRuns || 0, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round(((stats?.completedRuns || 0) / totalItems) * 100) : 0}% of all runs` },
-                    { key: undefined, label: "Executed Cases", value: stats?.totalExecutedCases || 0, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
-                  ].map((stat, i) => {
-                    return (
-                      <div key={`${stat.label}-${i}`}>
-                        <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Filter row */}
-                <div className="sc-filters">
-                  <Input
-                    className="sc-filters__search"
-                    placeholder="Search runs, suites…"
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    allowClear
-                  />
-                                  <SearchableDropdown
-                    options={projectOptions}
-                    value={projectFilter}
-                    onChange={(v) => setProjectFilter(v)}
-                    placeholder="Any project"
-                    hideAvatar
-                    itemNoun="projects"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={suiteFilterOptions}
-                    value={suiteFilter}
-                    onChange={(v) => setSuiteFilter(v)}
-                    onSearch={(v) => setSuiteSearchTerm(v)}
-                    placeholder="All suites"
-                    itemNoun="suites"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={[
-                      { value: 'notStarted', label: 'Not started' },
-                      { value: 'active', label: 'In progress' },
-                      { value: 'completed', label: 'Completed' },
-                    ]}
-                    value={progressFilter}
-                    onChange={(v) => setProgressFilter(v)}
-                    placeholder="Any progress"
-                    hideAvatar
-                    itemNoun="states"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
-                    value={moduleFilter}
-                    onChange={(v) => setModuleFilter(v)}
-                    placeholder="Any module"
-                    hideAvatar
-                    itemNoun="modules"
-                    className="sc-filters__field"
-                  />
-  
-                  {activeFilterCount > 0 && (
-                    <button type="button" className="sc-clear" onClick={clearFilters}>
-                      Clear ({activeFilterCount})
-                    </button>
-                  )}
-                </div>
-
-                {/* Table or Grid — only the results blur, so the filters above
-                    stay usable while a search refetches. */}
-                <ZukvoLoadingOverlay loading={loading} message="Loading test runs…" minHeight={loading ? 320 : undefined}>
-                {viewMode === 'list' ? (
-                  <div className="sc-tablewrap">
-                    <Table
-                      className="ts-table sc-table"
-                      dataSource={pagedRuns}
-                      columns={columns}
-                      rowKey="id"
-                      pagination={false}
-                      onRow={(record) => ({
-                        onClick: () => openExecuteDrawer(record),
-                      })}
-                      locale={{
-                        /* Holding the height beats claiming "no runs" mid-fetch. */
-                        emptyText: loading ? (
-                          <div style={{ minHeight: 240 }} />
-                        ) : (
-                          <div className="sc-empty">
-                            <SnippetsOutlined className="sc-empty__icon" />
-                            <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
-                            <p className="sc-empty__desc">
-                              {activeFilterCount > 0
-                                ? 'Try widening your search or clearing the filters.'
-                                : 'Create a run to execute a suite and record pass/fail results.'}
-                            </p>
-                            {activeFilterCount > 0
-                              ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                              : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
-                          </div>
-                        )
-                      }}
-                    />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+              {[
+                { key: undefined, label: "Total Runs", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
+                { key: 'active', label: "In Progress", value: stats?.activeRuns || 0, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Activity, sub: 'partially executed' },
+                { key: 'completed', label: "Completed", value: stats?.completedRuns || 0, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round(((stats?.completedRuns || 0) / totalItems) * 100) : 0}% of all runs` },
+                { key: undefined, label: "Executed Cases", value: stats?.totalExecutedCases || 0, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'results recorded' }
+              ].map((stat, i) => {
+                return (
+                  <div key={`${stat.label}-${i}`}>
+                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
-                ) : (
-                  <div className="pp-grid">
-                    {loading ? null : filteredRuns.length === 0 ? (
-                      <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                );
+              })}
+            </div>
+
+            {/* Filter row */}
+            <div className="sc-filters">
+              <Input
+                className="sc-filters__search"
+                placeholder="Search runs, suites…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+              <SearchableDropdown
+                options={suiteFilterOptions}
+                value={suiteFilter}
+                onChange={(v) => setSuiteFilter(v)}
+                onSearch={(v) => setSuiteSearchTerm(v)}
+                placeholder="All suites"
+                itemNoun="suites"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={PROGRESS_OPTIONS}
+                value={progressFilter}
+                onChange={(v) => setProgressFilter(v)}
+                placeholder="Any progress"
+                hideAvatar
+                itemNoun="states"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={modules.map(m => ({ value: m.id, label: m.module_name || m.name || "Unnamed Module" }))}
+                value={moduleFilter}
+                onChange={(v) => setModuleFilter(v)}
+                placeholder="Any module"
+                hideAvatar
+                itemNoun="modules"
+                className="sc-filters__field"
+              />
+  
+              {activeFilterCount > 0 && (
+                <button type="button" className="sc-clear" onClick={clearFilters}>
+                  Clear ({activeFilterCount})
+                </button>
+              )}
+            </div>
+
+            {/* Table or Grid — only the results blur, so the filters above
+                stay usable while a search refetches. */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading test runs…" minHeight={loading ? 320 : undefined}>
+            {viewMode === 'list' ? (
+              <div className="sc-tablewrap">
+                <Table
+                  className="ts-table sc-table"
+                  dataSource={pagedRuns}
+                  columns={columns}
+                  rowKey="id"
+                  pagination={false}
+                  onRow={(record) => ({
+                    onClick: () => openExecuteDrawer(record),
+                  })}
+                  locale={{
+                    /* Holding the height beats claiming "no runs" mid-fetch. */
+                    emptyText: loading ? (
+                      <div style={{ minHeight: 240 }} />
+                    ) : (
+                      <div className="sc-empty">
                         <SnippetsOutlined className="sc-empty__icon" />
                         <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
                         <p className="sc-empty__desc">
-                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
+                          {activeFilterCount > 0
+                            ? 'Try widening your search or clearing the filters.'
+                            : 'Create a run to execute a suite and record pass/fail results.'}
                         </p>
                         {activeFilterCount > 0
                           ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
                           : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
                       </div>
-                    ) : (
-                      pagedRuns.map(r => renderRunCard(r))
-                    )}
+                    )
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="pp-grid">
+                {loading ? null : filteredRuns.length === 0 ? (
+                  <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                    <SnippetsOutlined className="sc-empty__icon" />
+                    <p className="sc-empty__title">{activeFilterCount > 0 ? 'No runs match these filters' : 'No test runs yet'}</p>
+                    <p className="sc-empty__desc">
+                      {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create a run to execute a suite and record results.'}
+                    </p>
+                    {activeFilterCount > 0
+                      ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                      : canCreateRun && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>Create Test Run</Button>}
                   </div>
+                ) : (
+                  pagedRuns.map(r => renderRunCard(r))
                 )}
-                </ZukvoLoadingOverlay>
-              </>
-            )}
-
-            {activeTab === 'dashboard' && (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-slate-500)' }}>
-                Test Runs Dashboard Content
               </div>
             )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {activeTab === 'runs' && filteredRuns.length > 0 && (
+          {filteredRuns.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -167,7 +169,7 @@ export default function ConfigurationPanel() {
             { title: 'Count', key: 'c', render: (_, l) => `${l.countPerPeriod} ${l.accrualMethod === 'monthly' ? '/mo' : '/term'}` },
             { title: `Total / ${TERM_LABEL[d.termCycle]?.toLowerCase()}`, key: 't', render: (_, l) => <strong style={{ color: PALETTE.blue }}>{l.allocation ?? '—'}</strong> },
             { title: 'Carry Fwd', key: 'cf', render: (_, l) => (l.carryForward ? <Tag color="green">Yes{l.carryForwardMax != null ? ` (max ${l.carryForwardMax})` : ''}</Tag> : <Tag>No</Tag>) },
-          ]}
+          ]} locale={{ emptyText: <NoData /> }}
         />
       </div>
     );
@@ -274,13 +276,13 @@ export default function ConfigurationPanel() {
                     <div className="lvc-result-grid">
                       <div>
                         <div className="lvc-mini-head">By Leave Type</div>
-                        {result.byLeaveType.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nothing credited" /> :
-                          <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} />}
+                        {result.byLeaveType.length === 0 ? <NoData description="Nothing credited" /> :
+                          <Table rowKey="leaveTypeId" size="small" pagination={false} columns={byTypeCols} dataSource={result.byLeaveType} className="lvc-table" scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />}
                       </div>
                       <div>
                         <div className="lvc-mini-head">Details {result.details.length >= 1000 && <span style={{ color: PALETTE.grey, fontWeight: 400 }}>(first 1000)</span>}</div>
-                        {result.details.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No grants" /> :
-                          <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} />}
+                        {result.details.length === 0 ? <NoData description="No grants" /> :
+                          <Table rowKey={(d) => `${d.userId}-${d.leaveTypeId}-${d.periodKey}`} size="small" pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }} columns={detailCols} dataSource={result.details} className="lvc-table" scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />}
                       </div>
                     </div>
                   </div>
@@ -304,7 +306,7 @@ export default function ConfigurationPanel() {
                       pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], defaultPageSize: 20, hideOnSinglePage: true }}
                       scroll={{ x: 'max-content' }}
                       expandable={{ expandedRowRender: expandedPolicy, onExpand: onExpandPolicy, rowExpandable: (r) => r.lineCount > 0 }}
-                      locale={{ emptyText: 'No active policies' }}
+                      locale={{ emptyText: <NoData description={'No active policies'} /> }}
                     />
                   </ZukvoLoadingOverlay>
                 </div>

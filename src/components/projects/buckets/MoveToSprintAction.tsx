@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useState } from "react";
 import { Popover, Button, Select, Space, Typography, Tooltip, Empty, Divider, Badge } from "antd";
 import {
@@ -104,7 +105,7 @@ export const MoveToSprintAction: React.FC<MoveToSprintActionProps> = ({
             onChange={setSelectedSprintId}
             disabled={!selectedProjectId || isLoadingSprints}
             dropdownMatchSelectWidth={false}
-            notFoundContent={selectedProjectId && !isLoadingSprints ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No active sprints found" /> : null}
+            notFoundContent={selectedProjectId && !isLoadingSprints ? <NoData description="No active sprints found" /> : null}
           >
             {sprints?.map((s) => (
               <Option key={s.id} value={s.id}>

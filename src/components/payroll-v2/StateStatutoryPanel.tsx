@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Switch, Select, InputNumber, message, Tooltip, Space } from 'antd';
@@ -316,10 +317,10 @@ export default function StateStatutoryPanel() {
       <div className="pvss-table-wrap">
         {view === 'pt'
           ? <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
+                  <Table rowKey="id" size="small" className="pvss-table" columns={ptColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvss-table" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} />
+                  <Table rowKey="id" size="small" className="pvss-table" columns={lwfColumns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvss-row' })} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 

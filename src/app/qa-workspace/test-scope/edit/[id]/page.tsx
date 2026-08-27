@@ -965,6 +965,17 @@ export default function EditScopePage() {
     []
   );
 
+  // The tenant's module list, offered on the Product & Modules step.
+  const [qaModules, setQaModules] = useState<any[]>([]);
+  useEffect(() => {
+    axios.get('/api/v2/qa/modules')
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+        setQaModules(Array.isArray(list) ? list : []);
+      })
+      .catch(() => { /* typing a module still works without the list */ });
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -1654,7 +1665,7 @@ export default function EditScopePage() {
       await axios.put(`/api/v2/qa/test-scopes/${id}`, payload);
       setIsDirty(false);
       message.success(`Scope updated successfully`);
-      router.push("/qa-workspace/test-scope?tab=scopes");
+      router.push("/qa-workspace/test-scope");
     } catch (error) {
       console.error(error);
       message.error("Failed to update Test Scope");
@@ -1694,7 +1705,7 @@ export default function EditScopePage() {
       await axios.put(`/api/v2/qa/test-scopes/${id}`, payload);
       setIsDirty(false);
       message.success(`Scope updated and approval requested successfully`);
-      router.push("/qa-workspace/test-scope?tab=scopes");
+      router.push("/qa-workspace/test-scope");
     } catch (error) {
       console.error(error);
       message.error("Failed to request approval for Test Scope");
@@ -1735,11 +1746,12 @@ export default function EditScopePage() {
 
   const sprintOptions = sprints.map(s => ({ value: s.id || s.name, label: s.name }));
 
-  const moduleOpts = [
-    { value: 'Home', label: 'Home' }, { value: 'Work', label: 'Work' },
-    { value: 'Admin', label: 'Admin' }, { value: 'HRMS', label: 'HRMS' },
-    { value: 'Finance', label: 'Finance' }, { value: 'My Hub', label: 'My Hub' }
-  ];
+  /* The workspace's own module list — the same one QA Space → Settings curates.
+     Anything typed here that isn't on it is registered on save. */
+  const moduleOpts = qaModules.map((m: any) => ({
+    value: String(m.module_name),
+    label: String(m.module_name),
+  }));
   const customModules = (formData.details.modules || []).filter((m: string) => !moduleOpts.find(o => o.value === m)).map((m: string) => ({ value: m, label: m }));
   const allModuleOpts = [...moduleOpts, ...customModules];
 
@@ -2282,7 +2294,7 @@ export default function EditScopePage() {
                   <div className="ts-crumb">
                     <button onClick={() => router.push('/qa-workspace/test-scope')}>QA Workspace</button>
                     <span>›</span>
-                    <button onClick={() => router.push('/qa-workspace/test-scope?tab=scopes')}>Test Scopes</button>
+                    <button onClick={() => router.push('/qa-workspace/test-scope')}>Test Scopes</button>
                     <span>›</span>
                     <span style={{ color: 'var(--ts-text-2)' }}>Edit</span>
                   </div>

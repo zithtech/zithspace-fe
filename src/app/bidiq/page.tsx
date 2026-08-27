@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
@@ -593,28 +594,24 @@ export default function BidIqPage() {
                       })}
                       pagination={false}
                       locale={{
-                        emptyText: paginatedBids.length === 0 ? (
-                          <div className="biq-empty">
-                            <div className="biq-empty-icon">
-                              <Zap size={26} />
-                            </div>
-                            <div className="biq-empty-title">No BidIq analyses yet</div>
-                            <div className="biq-empty-text">
-                              Run BidIq on a lead and it will appear here.
-                            </div>
-                          </div>
-                        ) : undefined,
+                        emptyText: <NoData description={paginatedBids.length === 0 ? (
+                                                        <div className="biq-empty">
+                                                          <div className="biq-empty-icon">
+                                                            <Zap size={26} />
+                                                          </div>
+                                                          <div className="biq-empty-title">No BidIq analyses yet</div>
+                                                          <div className="biq-empty-text">
+                                                            Run BidIq on a lead and it will appear here.
+                                                          </div>
+                                                        </div>
+                                                      ) : undefined} />,
                       }}
                     />
                   </div>
                 ) : (
                   <div className="biq-grid-view">
                     {totalCount === 0 ? (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="No BidIq analyses yet."
-                        style={{ padding: "60px 0" }}
-                      />
+                      <NoData description="No BidIq analyses yet." />
                     ) : (
                       <div className="biq-grid">
                         {paginatedBids.map((record) => {

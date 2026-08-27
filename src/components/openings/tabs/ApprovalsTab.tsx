@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React from 'react';
 import { Empty } from 'antd';
 import { BadgeCheck, Check, Clock, MinusCircle, X } from 'lucide-react';
@@ -42,17 +43,14 @@ export default function ApprovalsTab({ state }: { state: OpeningApprovalState | 
   if (!state || state.rounds.length === 0) {
     return (
       <div className="omp-empty">
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <>
-              <div className="omp-empty-title">Not submitted for approval yet</div>
-              <div className="omp-empty-sub">
-                Submitting a draft opening materialises the approval chain here.
-              </div>
-            </>
-          }
-        />
+        <NoData description={
+                        <>
+                          <div className="omp-empty-title">Not submitted for approval yet</div>
+                          <div className="omp-empty-sub">
+                            Submitting a draft opening materialises the approval chain here.
+                          </div>
+                        </>
+                      } />
       </div>
     );
   }

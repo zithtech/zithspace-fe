@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useMemo, useState } from "react";
 import { Typography, Avatar, Empty, Tooltip } from "antd";
 import {
@@ -219,10 +220,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
     return (
       <div className="tl-card">
         <div style={{ padding: "48px 0" }}>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No tickets to chart on the timeline</Text>}
-          />
+          <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No tickets to chart on the timeline</Text>} />
         </div>
       </div>
     );
@@ -356,7 +354,7 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
       <div className="tl-body">
         {groups.length === 0 && (
           <div style={{ padding: "40px 0" }}>
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: "var(--text-slate-400)" }}>No matches found</Text>} />
+            <NoData description={<Text style={{ color: "var(--text-slate-400)" }}>No matches found</Text>} />
           </div>
         )}
         

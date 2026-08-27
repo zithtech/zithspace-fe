@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
@@ -485,7 +486,7 @@ export default function LeaveTypePanel() {
             dataSource={pagedRows}
             pagination={false}
             scroll={{ x: 'max-content' }}
-            onRow={() => ({ className: 'lvt-row' })}
+            onRow={() => ({ className: 'lvt-row' })} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

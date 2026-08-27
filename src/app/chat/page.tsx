@@ -3,6 +3,7 @@
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React from 'react';
 import { Empty, Typography } from 'antd';
+import NoData from "@/components/common/NoData";
 
 const { Text } = Typography;
 
@@ -16,7 +17,7 @@ export default function ChatPage() {
             height: '100%',
             flexDirection: 'column'
         }}>
-            <Empty description={false} />
+            <NoData />
             <Text type="secondary" style={{ marginTop: 16 }}>
                 Select a channel to start chatting
             </Text>

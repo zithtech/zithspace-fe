@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
@@ -723,7 +724,7 @@ export default function ReportsHub() {
                 className="pp-table"
                 scroll={{ x: 'max-content' }}
                 pagination={false}
-                locale={{ emptyText: emptyState }}
+                locale={{ emptyText: <NoData description={emptyState} /> }}
                 onRow={(record) => ({
                   onClick: (e) => {
                     const t = e.target as HTMLElement;
@@ -739,7 +740,7 @@ export default function ReportsHub() {
               {loading ? (
                 <div className="pp-grid-loading">Loading…</div>
               ) : tableReports.length === 0 ? (
-                <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
+                <div style={{ gridColumn: "1 / -1" }}><NoData description={emptyState} /></div>
               ) : (
                 tableReports.map((r) => {
                   const accent = accentFor(r.sprintId);

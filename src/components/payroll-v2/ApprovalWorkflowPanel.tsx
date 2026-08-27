@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { Menu } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Input, Switch, Select, message, Tooltip, Space } from 'antd';
@@ -233,7 +234,7 @@ export default function ApprovalWorkflowPanel() {
 
       <div className="pvw-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="pvw-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} />
+          <Table rowKey="id" size="small" className="pvw-table" columns={columns} dataSource={pagedRows} pagination={false} onRow={() => ({ className: 'pvw-row' })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 

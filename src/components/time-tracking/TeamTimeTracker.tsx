@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from "react";
 import { getSyncedTime } from "@/utils/timeUtils";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
@@ -1108,17 +1109,17 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                               size="small"
                               scroll={{ x: 900 }}
                               locale={{
-                                emptyText: loading ? <></> : (
-                                  <div className="mtt-tracker-card__empty">
-                                    <div className="mtt-tracker-card__empty-icon">
-                                      <TeamOutlined />
-                                    </div>
-                                    <div className="mtt-tracker-card__empty-title">No team activity in this range</div>
-                                    <div className="mtt-tracker-card__empty-sub">
-                                      Try widening the date range or clearing filters to see more.
-                                    </div>
-                                  </div>
-                                )
+                                emptyText: <NoData description={loading ? <></> : (
+                                                                        <div className="mtt-tracker-card__empty">
+                                                                          <div className="mtt-tracker-card__empty-icon">
+                                                                            <TeamOutlined />
+                                                                          </div>
+                                                                          <div className="mtt-tracker-card__empty-title">No team activity in this range</div>
+                                                                          <div className="mtt-tracker-card__empty-sub">
+                                                                            Try widening the date range or clearing filters to see more.
+                                                                          </div>
+                                                                        </div>
+                                                                      )} />
                               }}
                             />
                   </ZukvoLoadingOverlay>

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
@@ -535,42 +536,46 @@ export default function TemplateManagementPage() {
             <ZukvoLoader message='Loading templates...' size="md" />
           </div>
         ) : templates.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--bg-pure-white)',
-              borderRadius: '12px',
-              border: '1px dashed var(--border-slate-200)',
-              padding: '60px 20px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ padding: '60px 0', textAlign: 'center' }}>
-              <FileText size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} />
-              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Templates Found</div>
-              <div style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
-                You don't have any templates matching your criteria yet.
+          <NoData description={
+            <div
+              className="pp-empty"
+              style={{
+                background: 'var(--bg-pure-white)',
+                borderRadius: '12px',
+                border: '1px dashed var(--border-slate-200)',
+                padding: '60px 20px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                <div className="pp-empty-orb"><FileText size={48} style={{ color: 'var(--text-slate-300)', margin: '0 auto 16px' }} /></div>
+                <div className="pp-empty-title" style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-800)', marginBottom: '8px' }}>No Templates Found</div>
+                <div className="pp-empty-sub" style={{ color: 'var(--text-slate-500)', fontSize: '14px', marginBottom: '24px' }}>
+                  You don't have any templates matching your criteria yet.
+                </div>
+                {perms.canCreateLetterTemplate && (
+                  <Link
+                    href="/letters-docs/templates/builder"
+                    style={{
+                      background: '#3b82f6',
+                      color: 'white',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Plus size={18} />
+                    Create First Template
+                  </Link>
+                )}
               </div>
-              {perms.canCreateLetterTemplate && (
-                <Link
-                  href="/letters-docs/templates/builder"
-                  style={{
-                    background: '#3b82f6',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <Plus size={18} />
-                  Create First Template
-                </Link>
-              )}
-            </div></div>
+            </div>
+          } />
         ) : view === 'list' ? (
           <div className="att-table-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <Table
@@ -581,7 +586,7 @@ export default function TemplateManagementPage() {
               dataSource={paginatedTemplates}
               pagination={false}
               scroll={{ x: 'max-content', y: '100%' }}
-              onRow={() => ({ className: 'att-row' })}
+              onRow={() => ({ className: 'att-row' })} locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (

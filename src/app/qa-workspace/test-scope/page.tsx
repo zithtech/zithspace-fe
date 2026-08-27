@@ -2,65 +2,31 @@
 import NoData from "@/components/common/NoData";
 import React, { Suspense, useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Tooltip, Result, Empty, Table, Tag, Typography, message, Modal, Input, Form, Select, Tabs, Dropdown } from "antd";
-import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, CloseOutlined, RightOutlined } from "@ant-design/icons";
+import { Button, Tooltip, Result, Table, Typography, message, Modal, Input, Select, Dropdown } from "antd";
+import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, RightOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, LayoutDashboard, Target, CheckSquare, Settings, FileText, Link2, Monitor, AlertCircle, CheckCircle, CheckCircle2, TrendingUp, ArrowRight, Plus, Pencil, Trash2, Check, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, User, Users, Folder, FolderOpen, ChevronDown, Link2, Monitor, AlertCircle, CheckCircle, Pencil, Trash2, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
-import { useTheme } from "@/context/ThemeContext";
-import { Line } from "@ant-design/plots";
 import dayjs from "dayjs";
 import { ProjectService } from "@/services/projectService";
 
 const { Text, Paragraph } = Typography;
 
-type TabKey = "dashboard" | "scopes" | "approvals" | "settings";
-
-/** The three option lists a workspace admin can curate. */
-const SETTING_CATEGORIES = [
-  {
-    key: 'scope_type' as const,
-    label: 'Scope Type',
-    icon: FileText,
-    blurb: 'Kinds of test scope',
-    help: 'Choices offered in the Scope Type dropdown when creating or editing a test scope.',
-  },
-  {
-    key: 'priority' as const,
-    label: 'Priority',
-    icon: TrendingUp,
-    blurb: 'Urgency levels',
-    help: 'Priority levels available on every test scope, ordered from lowest to highest.',
-  },
-  {
-    key: 'status' as const,
-    label: 'Status',
-    icon: CheckCircle2,
-    blurb: 'Lifecycle states',
-    help: 'Statuses a test scope moves through, from first draft to final approval.',
-  },
-];
+/** How many projects the sidebar shows before "Show more". */
+const PROJECTS_PREVIEW = 3;
 
 function initialsOf(name: string) {
   if (!name) return 'TS';
   const parts = name.split(' ').filter(Boolean);
   if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
-}
-
-/** Label → snake_case key, so admins never have to invent one by hand. */
-function slugify(s: string) {
-  return (s || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
 }
 
 function hashCode(str: string) {
@@ -200,31 +166,10 @@ const TimelineCell = ({ start, end }: { start?: string; end?: string }) => {
   );
 };
 
-/* Section header */
-const SectionHeader = ({ icon: Icon, title, subtitle, right }: { icon: any; title: string; subtitle?: string; right?: React.ReactNode; }) => (
-  <div className="px-4 py-2 flex items-center justify-between gap-3 border-b" style={{ borderColor: "var(--border-slate-200)", padding: '8px 16px', display: 'flex', borderBottom: '1px solid var(--border-slate-200)' }}>
-    <div className="flex items-center gap-2.5 min-w-0" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.2)" }}>
-        <Icon size={13} strokeWidth={2.25} />
-      </div>
-      <span className="text-[13px] font-semibold" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-900)" }}>{title}</span>
-      {subtitle && (
-        <>
-          <span className="h-3 w-px" style={{ width: 1, height: 12, background: "var(--border-slate-200)" }} />
-          <span className="text-[10.5px] uppercase tracking-[0.08em]" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', color: "var(--text-slate-500)" }}>{subtitle}</span>
-        </>
-      )}
-    </div>
-    {right}
-  </div>
-);
-
 function TestScopeContent() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestScope" });
 
-  const searchParams = useSearchParams();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>((searchParams.get("tab") as TabKey) || "dashboard");
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [scopes, setScopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -239,7 +184,6 @@ function TestScopeContent() {
     routedForApproval: 0,
     draftNoDueDate: 0,
     overdueCount: 0,
-    yearlyScopesData: [],
   });
   const [totalScopes, setTotalScopes] = useState(0);
 
@@ -260,13 +204,13 @@ function TestScopeContent() {
   const [previewFile, setPreviewFile] = useState<any>(null);
   // User's accessible projects — drives both dropdown options and visibility restriction
   const [userProjects, setUserProjects] = useState<{ value: string; label: string }[]>([]);
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  /** Total scopes owned by the signed-in user, for the "My Scopes" badge. */
+  const [myScopesCount, setMyScopesCount] = useState<number | null>(null);
 
-  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope, canManageQa, canApproveScope } = usePermission();
+  const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope } = usePermission();
   const { user, isLoading } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
 
   // Pre-fill the QA Owner filter with the current user's name once auth loads
   useEffect(() => {
@@ -279,14 +223,6 @@ function TestScopeContent() {
   useEffect(() => {
     setPage(1);
   }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
-
-  useEffect(() => {
-    setMounted(true);
-    const tabParam = searchParams.get("tab") as TabKey;
-    if (tabParam && ["dashboard", "scopes", "approvals", "settings"].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
 
   const fetchStats = async () => {
     try {
@@ -318,7 +254,6 @@ function TestScopeContent() {
           ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
           sortBy: sortKey === 'endDate' ? 'endDate' : sortKey === 'name' ? 'name' : 'created_at',
           sortOrder: 'desc',
-          isApproval: activeTab === 'approvals' ? 'true' : undefined
         }
       });
       // Backend: { success: true, data: [...], pagination: { total, page, pageSize, totalPages } }
@@ -336,7 +271,7 @@ function TestScopeContent() {
     if (!isLoading && canReadScope) {
       fetchScopes();
     }
-  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey, activeTab]);
+  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey]);
 
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
@@ -351,57 +286,14 @@ function TestScopeContent() {
     }
   };
 
-  const performApprovalAction = async (record: any, newStatus: string) => {
-    try {
-      const payload = {
-        ...record,
-        status: newStatus,
-        details: {
-          ...(record.details || {}),
-          approvalWorkflow: {
-            ...(record.details?.approvalWorkflow || {}),
-            status: newStatus === 'Approved' ? 'approved' : 'rejected'
-          }
-        }
-      };
-      await axios.put(`/api/v2/qa/test-scopes/${record.id}`, payload);
-      message.success(`Test Scope ${newStatus === 'Approved' ? 'approved' : 'rejected'} successfully`);
-      fetchScopes();
-    } catch (error) {
-      console.error(error);
-      message.error(`Failed to ${newStatus === 'Approved' ? 'approve' : 'reject'} Test Scope`);
-    }
-  };
-
-  // ── Settings State ──────────────────────────────────────────
+  /**
+   * The curated option lists (Scope Type / Priority / Status). They are managed
+   * in QA Space → Settings; the page still reads them so the filters and the
+   * status badges use the workspace's own labels and colours.
+   */
   const [scopeSettings, setScopeSettings] = useState<any[]>([]);
-  const [settingsLoading, setSettingsLoading] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [editingSetting, setEditingSetting] = useState<any>(null);
-  const [settingsActiveCategory, setSettingsActiveCategory] = useState<'scope_type' | 'priority' | 'status'>('scope_type');
-  const [settingsForm] = Form.useForm();
-  /** Once the user edits the key by hand we stop deriving it from the label. */
-  const [keyTouched, setKeyTouched] = useState(false);
-  const draftLabel = Form.useWatch('label', settingsForm);
-  const draftColor = Form.useWatch('color', settingsForm);
-
-  const CATEGORY_LABELS: Record<string, string> = { scope_type: 'Scope Type', priority: 'Priority', status: 'Status' };
-  const activeCategoryMeta = SETTING_CATEGORIES.find(c => c.key === settingsActiveCategory);
-
-  /** How many scopes currently reference a settings option — shown before deleting. */
-  const usageCountFor = (record: any) => {
-    const field = settingsActiveCategory === 'scope_type' ? 'type'
-      : settingsActiveCategory === 'priority' ? 'priority' : 'status';
-    return scopes.filter(s => s[field] === record.value || s[field] === record.label).length;
-  };
-  const COLOR_OPTIONS = [
-    { value: 'default', label: 'Grey' }, { value: 'blue', label: 'Blue' }, { value: 'green', label: 'Green' },
-    { value: 'orange', label: 'Orange' }, { value: 'red', label: 'Red' }, { value: 'purple', label: 'Purple' },
-    { value: 'cyan', label: 'Cyan' }, { value: 'gold', label: 'Gold' },
-  ];
 
   const fetchScopeSettings = async () => {
-    setSettingsLoading(true);
     try {
       const res: any = await axios.get(`/api/v2/qa/test-scopes/settings?_t=${Date.now()}`);
       let data = [];
@@ -411,14 +303,41 @@ function TestScopeContent() {
       setScopeSettings(data);
     } catch (err) {
       console.error("Failed to fetch settings", err);
-    } finally { setSettingsLoading(false); }
+    }
   };
+  /**
+   * The list endpoint is the only place that knows how many scopes a given QA
+   * owner has, so the sidebar badge asks for a single row and reads the total.
+   */
+  const fetchMyScopesCount = async () => {
+    if (!user?.name) return;
+    try {
+      const res: any = await apiClient.get("/api/v2/qa/test-scopes", {
+        params: {
+          page: 1,
+          pageSize: 1,
+          qa_owner: user.name,
+          ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
+        }
+      });
+      setMyScopesCount(res?.data?.pagination?.total ?? 0);
+    } catch (err) {
+      console.error('fetchMyScopesCount error:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoading && canReadScope) fetchMyScopesCount();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, canReadScope, user?.name, userProjects]);
+
   const handleRefresh = async () => {
     try {
       await Promise.all([
         fetchScopes(),
         fetchStats(),
-        fetchScopeSettings()
+        fetchScopeSettings(),
+        fetchMyScopesCount()
       ]);
     } catch (err) {
       console.error('Refresh error:', err);
@@ -450,110 +369,25 @@ function TestScopeContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canReadScope]);
 
-  const openCreateSetting = () => {
-    setEditingSetting(null);
-    setKeyTouched(false);
-    settingsForm.resetFields();
-    settingsForm.setFieldsValue({ color: 'default' });
-    setSettingsModalOpen(true);
-  };
+  /* "My Scopes" vs "All Scopes" both drive the same qa_owner filter. */
+  const isMyScopes = !!user?.name && ownerFilter === user.name;
+  const isAllScopes = !ownerFilter;
 
-  const openEditSetting = (item: any) => {
-    setKeyTouched(true);
-    setEditingSetting(item);
-    settingsForm.setFieldsValue({ value: item.value, label: item.label, color: item.color || 'default' });
-    setSettingsModalOpen(true);
-  };
-
-  const handleSaveSetting = async () => {
-    try {
-      const values = await settingsForm.validateFields();
-      if (editingSetting) {
-        await axios.put(`/api/v2/qa/test-scopes/settings/${editingSetting.id}`, values);
-        message.success('Updated successfully');
-      } else {
-        await axios.post('/api/v2/qa/test-scopes/settings', { ...values, category: settingsActiveCategory });
-        message.success('Created successfully');
-      }
-      setSettingsModalOpen(false);
-      fetchScopeSettings();
-    } catch (err: any) {
-      if (err?.errorFields) return;
-      message.error('Failed to save');
+  /**
+   * Only the first few projects are listed; a selected project that falls
+   * outside that window is appended so the active item is never hidden.
+   */
+  const visibleProjects = useMemo(() => {
+    if (showAllProjects) return userProjects;
+    const head = userProjects.slice(0, PROJECTS_PREVIEW);
+    if (projectFilter && !head.some(p => p.value === projectFilter)) {
+      const selected = userProjects.find(p => p.value === projectFilter);
+      if (selected) return [...head, selected];
     }
-  };
+    return head;
+  }, [userProjects, showAllProjects, projectFilter]);
 
-  const handleDeleteSetting = async (id: string) => {
-    try {
-      await axios.delete(`/api/v2/qa/test-scopes/settings/${id}`);
-      message.success('Deleted');
-      fetchScopeSettings();
-    } catch { message.error('Failed to delete'); }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'settings' && scopeSettings.length === 0) fetchScopeSettings();
-  }, [activeTab]);
-  /* Dashboard Chart Data */
-  const currentYear = dayjs().year();
-  const monthlyScopesConfig = useMemo(
-    () => ({
-      data: stats.yearlyScopesData,
-      xField: "month",
-      yField: "scopes",
-      smooth: true,
-      theme: isDark ? "dark" : undefined,
-      color: "#3B82F6",
-      lineStyle: { lineWidth: 2.5 },
-      point: {
-        size: 3,
-        style: {
-          fill: isDark ? "#161B22" : "#fff",
-          stroke: "#3B82F6",
-          lineWidth: 2,
-        },
-      },
-      area: {
-        style: {
-          fill: isDark
-            ? "l(270) 0:rgba(59,130,246,0.25) 1:rgba(59,130,246,0.01)"
-            : "l(270) 0:rgba(59,130,246,0.18) 1:rgba(59,130,246,0.02)",
-        },
-      },
-      xAxis: {
-        label: {
-          style: {
-            fill: isDark ? "#94a3b8" : "#64748b",
-            fontSize: 11,
-          },
-        },
-        grid: {
-          line: {
-            style: {
-              stroke: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-            },
-          },
-        },
-      },
-      yAxis: {
-        label: {
-          formatter: (v: string) => `${Number(v).toFixed(0)}`,
-          style: {
-            fill: isDark ? "#94a3b8" : "#64748b",
-            fontSize: 11,
-          },
-        },
-        grid: {
-          line: {
-            style: {
-              stroke: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-            },
-          },
-        },
-      },
-    }),
-    [stats.yearlyScopesData, isDark]
-  );
+  const hiddenProjectCount = Math.max(0, userProjects.length - PROJECTS_PREVIEW);
 
   if (isLoading) return null;
 
@@ -722,72 +556,6 @@ function TestScopeContent() {
     }
   ];
 
-  const approvalColumns = [
-    {
-      title: "Test Scope", dataIndex: "name", key: "name", width: 320,
-      render: (t: string, r: any) => (
-        <div className="sc-name">
-          <span className="sc-name__badge">{initialsOf(t || '')}</span>
-          <span className="sc-name__text">
-            <span className="sc-name__title">{t || 'Untitled scope'}</span>
-            {r.type ? <span className="sc-name__meta">{r.type}</span> : null}
-          </span>
-        </div>
-      )
-    },
-    {
-      title: "Status", dataIndex: "status", key: "status", width: 130,
-      render: (t: string) => <StatusPill status={t} />
-    },
-    {
-      title: "Priority", dataIndex: "priority", key: "priority", width: 120,
-      render: (t: string) => <PriorityMeter priority={t} />
-    },
-    {
-      title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", width: 170,
-      render: (t: string) => <PersonChip name={t} />
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: any, r: any) => {
-        const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
-
-        return (
-          <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-            {isProcessed ? (
-              <Button type="primary" size="small" disabled style={{ background: "var(--bg-slate-200)", borderColor: "transparent", color: "var(--text-slate-400)" }}>Approve</Button>
-            ) : (
-              <ConfirmDialog
-                tone="success"
-                title="Approve Test Scope?"
-                description="Are you sure you want to approve this test scope?"
-                confirmText="Approve"
-                onConfirm={async () => { await performApprovalAction(r, 'Approved'); }}
-              >
-                <Button type="primary" size="small" style={{ background: "#10b981", borderColor: "#10b981" }}>Approve</Button>
-              </ConfirmDialog>
-            )}
-
-            {isProcessed ? (
-              <Button type="default" danger size="small" disabled>Reject</Button>
-            ) : (
-              <ConfirmDialog
-                tone="danger"
-                title="Reject Test Scope?"
-                description="Are you sure you want to reject this test scope?"
-                confirmText="Reject"
-                onConfirm={async () => { await performApprovalAction(r, 'Rejected'); }}
-              >
-                <Button type="default" danger size="small">Reject</Button>
-              </ConfirmDialog>
-            )}
-          </div>
-        );
-      }
-    }
-  ];
-
   const activeFilterCount =
     (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
     (timelineFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
@@ -836,43 +604,10 @@ function TestScopeContent() {
     </div>
   );
 
-  const actionMenu = (r: any, isApprovalTab: boolean) => {
-    const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
+  const actionMenu = (r: any) => {
     return {
       className: 'pp-action-menu',
-      items: isApprovalTab ? [
-        {
-          key: 'approve',
-          disabled: isProcessed,
-          label: (
-            <ConfirmDialog
-              tone="success"
-              title="Approve Test Scope?"
-              description="Are you sure you want to approve this test scope?"
-              confirmText="Approve"
-              onConfirm={() => performApprovalAction(r, 'Approved')}
-            >
-              {menuLabel('Approve', 'Approve test scope', <CheckCircleOutlined />, '#10b981', 'rgba(16,185,129,0.12)')}
-            </ConfirmDialog>
-          )
-        },
-        {
-          key: 'reject',
-          disabled: isProcessed,
-          danger: true,
-          label: (
-            <ConfirmDialog
-              tone="danger"
-              title="Reject Test Scope?"
-              description="Are you sure you want to reject this test scope?"
-              confirmText="Reject"
-              onConfirm={() => performApprovalAction(r, 'Rejected')}
-            >
-              {menuLabel('Reject', 'Reject test scope', <CloseCircleOutlined />, '#ef4444', 'rgba(239,68,68,0.12)')}
-            </ConfirmDialog>
-          )
-        }
-      ] : [
+      items: [
         // Only the actions this role actually holds
         ...(canUpdateScope ? [
           { key: 'edit', label: menuLabel('Edit', 'Edit test scope', <Pencil size={15} />, '#64748b', 'rgba(100,116,139,0.12)'), onClick: () => router.push(`/qa-workspace/test-scope/edit/${r.id}`) },
@@ -902,11 +637,10 @@ function TestScopeContent() {
     };
   };
 
-  const renderScopeCard = (r: any, isApprovalTab: boolean) => {
+  const renderScopeCard = (r: any) => {
     const accent = accentFor(r.name || r.id);
     const s = scopeSettings.find(set => set.category === 'status' && set.value === r.status);
     const color = s?.color && s.color !== 'default' ? s.color : (r.status === 'Approved' ? '#10b981' : r.status === 'Rejected' ? '#ef4444' : r.status === 'In Review' ? '#f59e0b' : r.status === 'Draft' ? '#64748b' : '#3b82f6');
-    const isProcessed = r.status === 'Approved' || r.status === 'Rejected';
 
     return (
       <div key={r.id} className="pc-card" onClick={() => router.push(`/qa-workspace/test-scope/${r.id}`)}>
@@ -922,7 +656,7 @@ function TestScopeContent() {
             </div>
           </div>
           <Dropdown
-            menu={actionMenu(r, isApprovalTab)}
+            menu={actionMenu(r)}
             overlayClassName="pp-action-pop"
             trigger={['click']}
             placement="bottomRight"
@@ -1065,6 +799,23 @@ function TestScopeContent() {
         .pp-nav-item.is-active::before {
           content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
+        }
+        .pp-nav-item:disabled { opacity: .45; cursor: not-allowed; }
+        .pp-nav-item:disabled:hover { background: transparent; color: var(--text-slate-600); }
+
+        /* "Show N more" toggle under the project list */
+        .pp-nav-more {
+          display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
+          margin-top: 2px; border: none; background: transparent; border-radius: 7px;
+          color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
+          transition: background .15s ease, color .15s ease;
+        }
+        .pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
+        .pp-nav-more-icon { transition: transform .18s ease; }
+        .pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
+
+        .pp-nav-empty {
+          display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400);
         }
         
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
@@ -1289,121 +1040,6 @@ function TestScopeContent() {
         .sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
         .sc-table .ant-table-tbody > tr > td:last-child { padding-right: 12px !important; }
 
-        /* ── Scope Settings: category tabs ──────────────────────────── */
-        .st-tabs .ant-tabs-nav { margin-bottom: 14px !important; }
-        .st-tabs .ant-tabs-nav::before { border-bottom: 1px solid var(--border-slate-200) !important; }
-        .st-tabs .ant-tabs-nav-list { gap: 4px; }
-        .st-tabs .ant-tabs-tab {
-          padding: 9px 14px !important; margin: 0 !important;
-          border-radius: 8px 8px 0 0; transition: background .15s ease;
-        }
-        .st-tabs .ant-tabs-tab:hover { background: var(--bg-slate-50); }
-        .st-tabs .ant-tabs-tab + .ant-tabs-tab { margin-left: 2px !important; }
-        .st-tabs .ant-tabs-ink-bar { height: 2px !important; border-radius: 2px 2px 0 0; background: #3B82F6 !important; }
-
-        .st-tab { display: inline-flex; align-items: center; gap: 8px; }
-        .st-tab__icon { color: var(--text-slate-400); transition: color .15s ease; }
-        .st-tab__label { font-size: 13px; font-weight: 600; color: var(--text-slate-600); transition: color .15s ease; }
-        .st-tab__count {
-          min-width: 20px; padding: 1px 7px; border-radius: 999px;
-          font-size: 11px; font-weight: 700; text-align: center;
-          background: var(--bg-slate-50); color: var(--text-slate-500);
-          border: 1px solid var(--border-slate-200); transition: all .15s ease;
-        }
-        .st-tabs .ant-tabs-tab-active .st-tab__icon { color: #3B82F6; }
-        .st-tabs .ant-tabs-tab-active .st-tab__label { color: #3B82F6; font-weight: 700; }
-        .st-tabs .ant-tabs-tab-active .st-tab__count {
-          background: rgba(59,130,246,.1); color: #2563eb; border-color: rgba(59,130,246,.24);
-        }
-
-        /* ── Scope Settings: table header + cells ───────────────────── */
-        .st-head {
-          display: flex; align-items: center; justify-content: space-between; gap: 12px;
-          padding: 11px 14px; border-bottom: 1px solid var(--border-slate-200);
-          background: var(--bg-slate-50);
-        }
-        .st-head__title { font-size: 13px; font-weight: 650; color: var(--text-slate-900); }
-        .st-head__desc { font-size: 11.5px; color: var(--text-slate-400); margin-top: 2px; }
-        .st-option { display: flex; align-items: center; gap: 10px; }
-        .st-option__tag { margin: 0 !important; font-size: 12px; border-radius: 6px; }
-        .st-option__hint { font-size: 11px; color: var(--text-slate-400); }
-        .st-code {
-          font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          padding: 2px 7px; border-radius: 6px;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-          color: var(--text-slate-600);
-        }
-        .st-usage { font-size: 12px; font-weight: 600; color: var(--text-slate-600); }
-        .st-usage.is-empty { font-weight: 500; color: var(--text-slate-400); }
-
-        /* ── Settings option modal ──────────────────────────────────── */
-        .so-modal { background: var(--bg-pure-white); }
-        .so-head {
-          display: flex; align-items: flex-start; gap: 12px;
-          padding: 18px 20px 16px; border-bottom: 1px solid var(--border-slate-100);
-        }
-        .so-head__icon {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 36px; height: 36px; border-radius: 10px;
-          background: rgba(59,130,246,.1); color: #3B82F6;
-          border: 1px solid rgba(59,130,246,.2);
-        }
-        .so-head__text { flex: 1; min-width: 0; }
-        .so-head__title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -.01em; }
-        .so-head__sub { margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--text-slate-500); }
-        .so-head__close {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 28px; height: 28px; border-radius: 8px; font-size: 12px;
-          color: var(--text-slate-400); transition: all .15s ease;
-        }
-        .so-head__close:hover { color: var(--text-slate-900); background: var(--bg-slate-50); }
-
-        .so-preview {
-          display: flex; align-items: center; gap: 12px;
-          padding: 12px 20px; background: var(--bg-slate-50);
-          border-bottom: 1px solid var(--border-slate-100);
-        }
-        .so-preview__label {
-          font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-          color: var(--text-slate-400);
-        }
-        .so-preview__tag { margin: 0 !important; font-size: 12.5px; border-radius: 6px; }
-
-        .so-form { padding: 18px 20px 4px; }
-        .so-form .ant-form-item { margin-bottom: 16px; }
-        .so-form .ant-input { border-radius: 8px; height: 36px; }
-        .so-label { font-size: 12.5px; font-weight: 600; color: var(--text-slate-700); }
-        .so-req { color: #ef4444; }
-        .so-extra { font-size: 11.5px; color: var(--text-slate-400); line-height: 1.45; }
-
-        .so-colorblock { padding-bottom: 18px; }
-        .so-colorblock .so-label { display: block; margin-bottom: 8px; }
-        .so-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
-        .so-swatch {
-          width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
-          display: inline-flex; align-items: center; justify-content: center;
-          color: #fff; border: 1px solid rgba(15,23,42,.08);
-          transition: transform .15s ease, box-shadow .15s ease;
-        }
-        .so-swatch:hover { transform: translateY(-1px); }
-        .so-swatch.is-active { box-shadow: 0 0 0 2px var(--bg-pure-white), 0 0 0 4px currentColor; }
-        .so-swatch--default { background: #94a3b8; color: #64748b; }
-        .so-swatch--blue { background: #3b82f6; color: #3b82f6; }
-        .so-swatch--green { background: #10b981; color: #10b981; }
-        .so-swatch--orange { background: #f59e0b; color: #f59e0b; }
-        .so-swatch--red { background: #ef4444; color: #ef4444; }
-        .so-swatch--purple { background: #8b5cf6; color: #8b5cf6; }
-        .so-swatch--cyan { background: #06b6d4; color: #06b6d4; }
-        .so-swatch--gold { background: #d97706; color: #d97706; }
-        .so-swatch.is-active svg { color: #fff; }
-
-        .so-foot {
-          display: flex; align-items: center; justify-content: flex-end; gap: 8px;
-          padding: 14px 20px; border-top: 1px solid var(--border-slate-100);
-          background: var(--bg-slate-50);
-        }
-        .so-foot .ant-btn { height: 34px; border-radius: 8px; }
-
         .sc-empty { padding: 44px 24px; text-align: center; }
         .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); }
         .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
@@ -1495,35 +1131,59 @@ function TestScopeContent() {
           </div>
 
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Workspace</span>
-            {([] as any[]).concat(
-              [{ key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }],
-              [{ key: 'scopes', label: 'Scopes', icon: Target, count: stats.totalScopes }],
-              canApproveScope ? [{ key: 'approvals', label: 'Approvals', icon: CheckSquare, count: stats.pendingApprovals }] : []
-            ).map(item => {
-              const Icon = item.icon;
-              const count = 'count' in item ? item.count : undefined;
-              return (
-                <button
-                  key={item.key}
-                  className={`pp-nav-item ${activeTab === item.key ? 'is-active' : ''}`}
-                  onClick={() => setActiveTab(item.key as TabKey)}
-                >
-                  <Icon size={15} className="pp-nav-icon" />
-                  <span className="pp-nav-label">{item.label}</span>
-                  {count !== undefined ? <span className="pp-nav-count">{count}</span> : null}
-                </button>
-              );
-            })}
+            <span className="pp-nav-caption">QA Owner</span>
+            <button
+              className={`pp-nav-item ${isMyScopes ? 'is-active' : ''}`}
+              onClick={() => { setOwnerFilter(user?.name); setMobileSidebarOpen(false); }}
+              disabled={!user?.name}
+            >
+              <User size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">My Scopes</span>
+              {myScopesCount !== null ? <span className="pp-nav-count">{myScopesCount}</span> : null}
+            </button>
+            <button
+              className={`pp-nav-item ${isAllScopes ? 'is-active' : ''}`}
+              onClick={() => { setOwnerFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Users size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Scopes</span>
+              <span className="pp-nav-count">{stats.totalScopes}</span>
+            </button>
 
-            {canManageQa && (
-              <>
-                <span className="pp-nav-caption">Configure</span>
-                <button className={`pp-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`} onClick={() => setActiveTab('settings')}>
-                  <Settings size={15} className="pp-nav-icon" />
-                  <span className="pp-nav-label">Settings</span>
-                </button>
-              </>
+            <span className="pp-nav-caption">Projects</span>
+            <button
+              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
+              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
+            >
+              <Boxes size={15} className="pp-nav-icon" />
+              <span className="pp-nav-label">All Projects</span>
+              {userProjects.length > 0 ? <span className="pp-nav-count">{userProjects.length}</span> : null}
+            </button>
+            {visibleProjects.map(pj => (
+              <button
+                key={pj.value}
+                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
+                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
+                title={pj.label}
+              >
+                {projectFilter === pj.value
+                  ? <FolderOpen size={15} className="pp-nav-icon" />
+                  : <Folder size={15} className="pp-nav-icon" />}
+                <span className="pp-nav-label">{pj.label}</span>
+              </button>
+            ))}
+            {userProjects.length === 0 && (
+              <span className="pp-nav-empty">No projects assigned</span>
+            )}
+            {hiddenProjectCount > 0 && (
+              <button
+                type="button"
+                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
+                onClick={() => setShowAllProjects(v => !v)}
+              >
+                <ChevronDown size={13} className="pp-nav-more-icon" />
+                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
+              </button>
             )}
           </div>
         </aside>
@@ -1538,30 +1198,9 @@ function TestScopeContent() {
                 icon={<Menu size={18} />}
                 onClick={() => setMobileSidebarOpen(true)}
               />
-              {activeTab === 'scopes' && (
-                <>
-                  <span className="sc-topbar__h1">All Scopes</span>
-                  <span className="sc-topbar__div" />
-                  <span className="sc-topbar__sub">Manage and track your QA test scopes</span>
-                </>
-              )}
-              {activeTab === 'settings' && (
-                <>
-                  <span className="sc-topbar__h1">Settings</span>
-                  <span className="sc-topbar__div" />
-                  <span className="sc-topbar__sub">Dropdown options for Scope Type, Priority and Status</span>
-                </>
-              )}
-              {activeTab === 'approvals' && (
-                <>
-                  <span className="sc-topbar__h1">Pending Approvals</span>
-                  <span className="sc-topbar__div" />
-                  <span className="sc-topbar__sub">Scopes assigned to you for review</span>
-                </>
-              )}
-              {!['scopes', 'approvals', 'settings'].includes(activeTab) && (
-                <span className="sc-topbar__h1" style={{ textTransform: 'capitalize' }}>{activeTab}</span>
-              )}
+              <span className="sc-topbar__h1">{isMyScopes ? 'My Scopes' : isAllScopes ? 'All Scopes' : `${ownerFilter}'s Scopes`}</span>
+              <span className="sc-topbar__div" />
+              <span className="sc-topbar__sub">{projectFilter || 'All projects'}</span>
             </div>
 
             <div className="dh-main-controls">
@@ -1573,449 +1212,163 @@ function TestScopeContent() {
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
-              {activeTab === 'settings' && canManageQa && (
-                <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
-              )}
-              {['scopes', 'approvals'].includes(activeTab) && (
-                <>
-                  <div className="pp-segmented">
-                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
-                    <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
-                  </div>
-                  {canCreateScope && activeTab === 'scopes' && (
-                    <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>
-                      New Scope
-                    </Button>
-                  )}
-                </>
+              <div className="pp-segmented">
+                <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
+                <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
+              </div>
+              {canCreateScope && (
+                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>
+                  New Scope
+                </Button>
               )}
             </div>
           </div>
 
           <div className="dh-main-scroll">
-            {activeTab === 'scopes' && (
-              <>
-
-
-                {/* Stats — product-standard StatTile, clickable to filter by status */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-                  {[
-                    { key: undefined, label: "Total Scopes", value: stats.totalScopes, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${stats.routedForApproval} routed for approval` },
-                    { key: 'Draft', label: "In Draft", value: stats.inDraft, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${stats.draftNoDueDate} without a due date` },
-                    { key: 'In Review', label: "In Review", value: stats.inReview, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${stats.overdueCount} past due date` },
-                    { key: 'Approved', label: "Approved", value: stats.approved, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${stats.totalScopes ? Math.round((stats.approved / stats.totalScopes) * 100) : 0}% of all scopes` }
-                  ].map((stat) => {
-                    return (
-                      <div key={stat.label}>
-                        <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Filter bar — one row, uniform control heights */}
-                <div className="sc-filters">
-                  <Input
-                    className="sc-filters__search"
-                    placeholder="Search scopes…"
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    allowClear
-                  />
-                  <SearchableDropdown
-                    options={userProjects}
-                    value={projectFilter}
-                    onChange={(v) => setProjectFilter(v)}
-                    placeholder="Any project"
-                    hideAvatar
-                    itemNoun="projects"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={statusOptions}
-                    value={statusFilter}
-                    onChange={(v) => setStatusFilter(v)}
-                    placeholder="All statuses"
-                    itemNoun="statuses"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={priorityOptions}
-                    value={priorityFilter}
-                    onChange={(v) => setPriorityFilter(v)}
-                    placeholder="All priorities"
-                    itemNoun="priorities"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={ownerOptions}
-                    value={ownerFilter}
-                    onChange={(v) => setOwnerFilter(v)}
-                    placeholder="All QA owners"
-                    itemNoun="owners"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={TIMELINE_FILTERS}
-                    value={timelineFilter}
-                    onChange={(v) => setTimelineFilter(v)}
-                    placeholder="Any timeline"
-                    hideAvatar
-                    itemNoun="ranges"
-                    className="sc-filters__field"
-                  />
-                  {activeFilterCount > 0 && (
-                    <button type="button" className="sc-clear" onClick={clearFilters}>
-                      Clear ({activeFilterCount})
-                    </button>
-                  )}
-                </div>
-
-                {/* Table or Grid — only the results blur, so the filters above
-                    stay usable while a search refetches. */}
-                <ZukvoLoadingOverlay loading={loading} message="Loading test scopes…" minHeight={loading ? 320 : undefined}>
-                  {viewMode === 'list' ? (
-                    <div className="sc-tablewrap">
-                      <Table
-                        className="ts-table sc-table"
-                        dataSource={scopes}
-                        columns={columns}
-                        rowKey="id"
-                        pagination={false}
-                        expandable={{
-                          expandedRowRender: renderLinkedRow,
-                          rowExpandable: () => true,
-                          // The row itself navigates to the scope, so the chevron
-                          // has to swallow its click or expanding would leave the page.
-                          expandIcon: ({ expanded, onExpand, record }) => (
-                            <button
-                              type="button"
-                              className={`sc-expand${expanded ? ' is-open' : ''}`}
-                              aria-label={expanded ? 'Hide linked items' : 'Show linked items'}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onExpand(record, e);
-                              }}
-                            >
-                              <RightOutlined />
-                            </button>
-                          ),
-                        }}
-                        locale={{
-                          /* Holding the height beats claiming "no scopes" mid-fetch. */
-                          emptyText: <NoData description={loading ? (
-                                                            <div style={{ minHeight: 240 }} />
-                                                          ) : (
-                                                            <div className="sc-empty">
-                                                              <SnippetsOutlined className="sc-empty__icon" />
-                                                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                                                              <p className="sc-empty__desc">
-                                                                {activeFilterCount > 0
-                                                                  ? 'Try widening your search or clearing the filters.'
-                                                                  : 'Create your first scope to define what gets tested and when it\'s done.'}
-                                                              </p>
-                                                              {activeFilterCount > 0
-                                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
-                                                            </div>
-                                                          )} />
-                        }}
-                        onRow={(record) => ({
-                          onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
-                        })}
-                      />
-                    </div>
-                  ) : (
-                    <div className="pp-grid">
-                      {loading ? null : scopes.length === 0 ? (
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <NoData description={
-                            <div className="sc-empty pp-empty">
-                              <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
-                              <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
-                              <p className="sc-empty__desc pp-empty-sub">
-                                {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
-                              </p>
-                              {activeFilterCount > 0
-                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
-                            </div>
-                          } />
-                        </div>
-                      ) : (
-                        scopes.map(r => renderScopeCard(r, false))
-                      )}
-                    </div>
-                  )}
-                </ZukvoLoadingOverlay>
-
-              </>
-            )}
-
-            {activeTab === 'approvals' && (
-              <>
-                {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                  <StatTile label="Approved" value={stats.approved} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="signed off by you" />
-                  <StatTile label="Rejected" value={0 /* need rejected stat if required, but leaving 0 for now or compute it */} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="sent back for rework" />
-                  <StatTile label="Pending" value={stats.pendingApprovals} icon={SendOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="waiting on you" />
-                </div>
-
-                <div className="sc-filters">
-                  <Input
-                    className="sc-filters__search"
-                    placeholder="Search scopes…"
-                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    allowClear
-                  />
-                  <SearchableDropdown
-                    options={userProjects}
-                    value={projectFilter}
-                    onChange={(v) => setProjectFilter(v)}
-                    placeholder="Any project"
-                    hideAvatar
-                    itemNoun="projects"
-                    className="sc-filters__field"
-                  />
-                  <SearchableDropdown
-                    options={statusOptions}
-                    value={statusFilter}
-                    onChange={(v) => setStatusFilter(v)}
-                    placeholder="All statuses"
-                    itemNoun="statuses"
-                    className="sc-filters__field"
-                  />
-                  {(searchTerm || projectFilter || statusFilter) && (
-                    <button type="button" className="sc-clear" onClick={() => { setSearchTerm(''); setProjectFilter(undefined); setStatusFilter(undefined); }}>
-                      Clear
-                    </button>
-                  )}
-                </div>
-
-                <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>
-                  {viewMode === 'list' ? (
-                    <div className="sc-tablewrap">
-                      <Table
-                        className="ts-table sc-table"
-                        dataSource={scopes}
-                        columns={approvalColumns}
-                        rowKey="id"
-                        pagination={false}
-                        scroll={{ x: 'max-content' }}
-                        onRow={(record) => ({
-                          onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
-                        })} locale={{ emptyText: <NoData /> }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="pp-grid">
-                      {loading ? null : stats.pendingApprovals === 0 ? (
-                        <div className="pp-grid-loading" style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-slate-400)' }}>
-                          <SendOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br />
-                          No pending approvals
-                        </div>
-                      ) : (
-                        scopes.map(r => renderScopeCard(r, true))
-                      )}
-                    </div>
-                  )}
-                </ZukvoLoadingOverlay>
-              </>
-            )}
-
-            {activeTab === 'dashboard' && (
-              <>
-                {/* STATS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
-                  <StatTile label="Total Scopes" value={stats.totalScopes} icon={FileTextOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub="All-time" />
-                  <StatTile label="Approved" value={stats.approved} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub="Completed" />
-                  <StatTile label="In Review" value={stats.inReview} icon={SendOutlined} color="#f59e0b" bgColor="rgba(245,158,11,0.1)" sub="Pending approval" />
-                  <StatTile label="In Draft" value={stats.inDraft} icon={FileTextOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="Currently drafting" />
-                </div>
-
-                {/* CHART */}
-                <div className="grid grid-cols-1 gap-4 mb-4">
-                  <div className="rounded-none overflow-hidden" style={{ background: "transparent", border: "1px solid var(--border-slate-200)" }}>
-                    <SectionHeader icon={TrendingUp} title="Monthly Scopes" subtitle={`Year ${currentYear}`} />
-                    <div className="px-4 py-4">
-                      <div style={{ height: 220 }}>
-                        {loading ? (
-                          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ZukvoLoader size="md" message="Plotting the year…" /></div>
-                        ) : mounted && stats.yearlyScopesData.length > 0 ? (
-                          <Line key={theme} {...monthlyScopesConfig} />
-                        ) : (
-                          <div className="h-full flex items-center justify-center text-[12px]" style={{ color: "var(--text-slate-500)" }}>No data</div>
-                        )}
-                      </div>
-                    </div>
+            {/* Stats — product-standard StatTile, clickable to filter by status */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+              {[
+                { key: undefined, label: "Total Scopes", value: stats.totalScopes, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${stats.routedForApproval} routed for approval` },
+                { key: 'Draft', label: "In Draft", value: stats.inDraft, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${stats.draftNoDueDate} without a due date` },
+                { key: 'In Review', label: "In Review", value: stats.inReview, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${stats.overdueCount} past due date` },
+                { key: 'Approved', label: "Approved", value: stats.approved, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${stats.totalScopes ? Math.round((stats.approved / stats.totalScopes) * 100) : 0}% of all scopes` }
+              ].map((stat) => {
+                return (
+                  <div key={stat.label}>
+                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
                   </div>
-                </div>
+                );
+              })}
+            </div>
 
-                {/* RECENT SCOPES */}
-                <div className="rounded-none overflow-hidden" style={{ background: "transparent", border: "1px solid var(--border-slate-200)" }}>
-                  <SectionHeader icon={FileText} title="Recent Scopes" subtitle="Latest 5" right={
-                    <button type="button" onClick={() => setActiveTab('scopes')} className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold transition-colors" style={{ color: "#3B82F6", background: 'none', border: 'none', cursor: 'pointer' }}>
-                      View all <ArrowRight size={12} />
-                    </button>
-                  } />
-                  <Table
-                    className="dashboard-table ts-table"
-                    columns={columns.filter(c => c.key !== 'actions')}
-                    dataSource={scopes.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5)}
-                    rowKey="id"
-                    pagination={false}
-                    size="middle"
-                    scroll={{ x: "max-content" }}
-                    onRow={(record) => ({ onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`), style: { cursor: "pointer" } })}
-                    locale={{
-                      emptyText: <NoData description={(
-                                                    <div className="py-10 text-center">
-                                                      <FileText size={28} className="mx-auto mb-2" style={{ color: "var(--text-slate-400)" }} />
-                                                      <div className="text-[13px] font-semibold" style={{ color: "var(--text-slate-900)" }}>No test scopes yet</div>
-                                                      <div className="text-[11.5px] mt-1" style={{ color: "var(--text-slate-500)" }}>Create your first test scope to see it here</div>
-                                                    </div>
-                                                  )} />
-                    }}
-                  />
-                </div>
-              </>
-            )}
+            {/* Filter bar — one row, uniform control heights */}
+            <div className="sc-filters">
+              <Input
+                className="sc-filters__search"
+                placeholder="Search scopes…"
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+              <SearchableDropdown
+                options={statusOptions}
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v)}
+                placeholder="All statuses"
+                itemNoun="statuses"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={priorityOptions}
+                value={priorityFilter}
+                onChange={(v) => setPriorityFilter(v)}
+                placeholder="All priorities"
+                itemNoun="priorities"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={ownerOptions}
+                value={ownerFilter}
+                onChange={(v) => setOwnerFilter(v)}
+                placeholder="All QA owners"
+                itemNoun="owners"
+                className="sc-filters__field"
+              />
+              <SearchableDropdown
+                options={TIMELINE_FILTERS}
+                value={timelineFilter}
+                onChange={(v) => setTimelineFilter(v)}
+                placeholder="Any timeline"
+                hideAvatar
+                itemNoun="ranges"
+                className="sc-filters__field"
+              />
+              {activeFilterCount > 0 && (
+                <button type="button" className="sc-clear" onClick={clearFilters}>
+                  Clear ({activeFilterCount})
+                </button>
+              )}
+            </div>
 
-            {activeTab === 'settings' && (
-              <>
-                {/* Category tabs */}
-                <Tabs
-                  className="st-tabs"
-                  activeKey={settingsActiveCategory}
-                  onChange={(key: any) => setSettingsActiveCategory(key)}
-                  moreIcon={null}
-                  items={SETTING_CATEGORIES.map(cat => {
-                    const count = scopeSettings.filter(s => s.category === cat.key).length;
-                    const Icon = cat.icon;
-                    return {
-                      key: cat.key,
-                      label: (
-                        <span className="st-tab">
-                          <Icon size={14} className="st-tab__icon" />
-                          <span className="st-tab__label">{cat.label}</span>
-                          <span className="st-tab__count">{count}</span>
-                        </span>
-                      ),
-                    };
-                  })}
-                />
-
-                {/* Options table for the selected category */}
+            {/* Table or Grid — only the results blur, so the filters above
+                stay usable while a search refetches. */}
+            <ZukvoLoadingOverlay loading={loading} message="Loading test scopes…" minHeight={loading ? 320 : undefined}>
+              {viewMode === 'list' ? (
                 <div className="sc-tablewrap">
-                  <div className="st-head">
-                    <div className="min-w-0">
-                      <div className="st-head__title">{CATEGORY_LABELS[settingsActiveCategory]} options</div>
-                      <div className="st-head__desc">{activeCategoryMeta?.help}</div>
-                    </div>
-                    {canManageQa && (
-                      <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add Option</Button>
-                    )}
-                  </div>
-
                   <Table
                     className="ts-table sc-table"
-                    dataSource={scopeSettings.filter(s => s.category === settingsActiveCategory)}
+                    dataSource={scopes}
+                    columns={columns}
                     rowKey="id"
                     pagination={false}
-                    locale={{
-                      emptyText: <NoData description={settingsLoading ? (
-                                                    <ZukvoLoader size="md" message="Loading options…" />
-                                                  ) : (
-                                                    <div className="sc-empty">
-                                                      <Settings size={26} className="sc-empty__icon" />
-                                                      <p className="sc-empty__title">No {CATEGORY_LABELS[settingsActiveCategory].toLowerCase()} options yet</p>
-                                                      <p className="sc-empty__desc">{activeCategoryMeta?.help}</p>
-                                                      {canManageQa && (
-                                                        <Button type="primary" size="small" icon={<Plus size={14} />} onClick={openCreateSetting}>Add the first option</Button>
-                                                      )}
-                                                    </div>
-                                                  )} />
+                    expandable={{
+                      expandedRowRender: renderLinkedRow,
+                      rowExpandable: () => true,
+                      // The row itself navigates to the scope, so the chevron
+                      // has to swallow its click or expanding would leave the page.
+                      expandIcon: ({ expanded, onExpand, record }) => (
+                        <button
+                          type="button"
+                          className={`sc-expand${expanded ? ' is-open' : ''}`}
+                          aria-label={expanded ? 'Hide linked items' : 'Show linked items'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onExpand(record, e);
+                          }}
+                        >
+                          <RightOutlined />
+                        </button>
+                      ),
                     }}
-                    columns={[
-                      {
-                        title: 'Option',
-                        dataIndex: 'label',
-                        render: (label: string, record: any) => (
-                          <div className="st-option">
-                            <Tag color={record.color && record.color !== 'default' ? record.color : undefined} className="st-option__tag">
-                              {label}
-                            </Tag>
-                            <span className="st-option__hint">as it appears in dropdowns</span>
-                          </div>
-                        ),
-                      },
-                      {
-                        title: 'Value key',
-                        dataIndex: 'value',
-                        width: 220,
-                        render: (v: string) => <code className="st-code">{v}</code>,
-                      },
-                      {
-                        title: 'Used by',
-                        key: 'usage',
-                        width: 140,
-                        render: (_: any, record: any) => {
-                          const n = usageCountFor(record);
-                          return n > 0
-                            ? <span className="st-usage">{n} scope{n === 1 ? '' : 's'}</span>
-                            : <span className="st-usage is-empty">Not used</span>;
-                        },
-                      },
-                      {
-                        title: 'Actions',
-                        key: 'actions',
-                        width: 100,
-                        align: 'right' as const,
-                        render: (_: any, record: any) => {
-                          const inUse = usageCountFor(record);
-                          // Curating the option lists is a QA-manage action
-                          if (!canManageQa) return <span className="sc-muted">—</span>;
-                          return (
-                            <div className="sc-rowactions">
-                              <Tooltip title="Edit">
-                                <button onClick={() => openEditSetting(record)} aria-label="Edit"><Pencil size={15} /></button>
-                              </Tooltip>
-                              <ConfirmDialog
-                                tone="danger"
-                                title="Delete this option?"
-                                description={inUse > 0
-                                  ? `${inUse} scope${inUse === 1 ? '' : 's'} still use this — they'll keep the value but it won't be selectable.`
-                                  : 'It will no longer be selectable on test scopes.'}
-                                confirmText="Delete"
-                                onConfirm={() => handleDeleteSetting(record.id)}
-                              >
-                                <Tooltip title="Delete">
-                                  <button className="is-danger" aria-label="Delete"><Trash2 size={15} /></button>
-                                </Tooltip>
-                              </ConfirmDialog>
-                            </div>
-                          );
-                        },
-                      },
-                    ]}
+                    locale={{
+                      /* Holding the height beats claiming "no scopes" mid-fetch. */
+                      emptyText: loading ? (
+                        <div style={{ minHeight: 240 }} />
+                      ) : (
+                        <div className="sc-empty">
+                          <SnippetsOutlined className="sc-empty__icon" />
+                          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                          <p className="sc-empty__desc">
+                            {activeFilterCount > 0
+                              ? 'Try widening your search or clearing the filters.'
+                              : 'Create your first scope to define what gets tested and when it\'s done.'}
+                          </p>
+                          {activeFilterCount > 0
+                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                            : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                        </div>
+                      )
+                    }}
+                    onRow={(record) => ({
+                      onClick: () => router.push(`/qa-workspace/test-scope/${record.id}`)
+                    })}
                   />
                 </div>
-              </>
-            )}
-
-            {!['dashboard', 'scopes', 'approvals', 'settings'].includes(activeTab) && (
-              <div style={{ padding: 40, background: 'transparent', border: '1px solid var(--border-slate-200)', borderRadius: 8, textAlign: 'center' }}>
-                <NoData description={`${activeTab} view coming soon`} />
-              </div>
-            )}
+              ) : (
+                <div className="pp-grid">
+                  {loading ? null : scopes.length === 0 ? (
+                    <div className="sc-empty" style={{ gridColumn: '1 / -1' }}>
+                      <SnippetsOutlined className="sc-empty__icon" />
+                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No scopes match these filters' : 'No test scopes yet'}</p>
+                      <p className="sc-empty__desc">
+                        {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first scope to get started.'}
+                      </p>
+                      {activeFilterCount > 0
+                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                        : canCreateScope && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>Create Scope</Button>}
+                    </div>
+                  ) : (
+                    scopes.map(r => renderScopeCard(r))
+                  )}
+                </div>
+              )}
+            </ZukvoLoadingOverlay>
           </div>
 
           {/* Pager sits outside the scroll area, so it stays pinned to the
               bottom of the pane whether or not the list overflows. */}
-          {['scopes', 'approvals'].includes(activeTab) && scopes.length > 0 && (
+          {scopes.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalScopes}</strong>
@@ -2041,106 +1394,6 @@ function TestScopeContent() {
         </main>
       </div>
 
-      {/* Settings Modal */}
-      <Modal
-        title={null}
-        open={settingsModalOpen}
-        onCancel={() => setSettingsModalOpen(false)}
-        footer={null}
-        closable={false}
-        width={480}
-        destroyOnHidden
-        centered
-        styles={{
-          content: { padding: 0, borderRadius: 16, overflow: 'hidden' },
-          body: { padding: 0 },
-          mask: { backdropFilter: 'blur(3px)', background: 'rgba(15,23,42,0.45)' },
-        }}
-      >
-        <div className="so-modal">
-          <div className="so-head">
-            <span className="so-head__icon">
-              {(() => { const Icon = activeCategoryMeta?.icon || Settings; return <Icon size={17} />; })()}
-            </span>
-            <div className="so-head__text">
-              <div className="so-head__title">
-                {editingSetting ? 'Edit' : 'New'} {CATEGORY_LABELS[settingsActiveCategory]} option
-              </div>
-              <div className="so-head__sub">{activeCategoryMeta?.help}</div>
-            </div>
-            <button className="so-head__close" onClick={() => setSettingsModalOpen(false)} aria-label="Close">
-              <CloseOutlined />
-            </button>
-          </div>
-
-          {/* Live preview of the badge being configured */}
-          <div className="so-preview">
-            <span className="so-preview__label">Preview</span>
-            <Tag
-              color={draftColor && draftColor !== 'default' ? draftColor : undefined}
-              className="so-preview__tag"
-            >
-              {draftLabel?.trim() || `New ${CATEGORY_LABELS[settingsActiveCategory].toLowerCase()}`}
-            </Tag>
-          </div>
-
-          <Form form={settingsForm} layout="vertical" className="so-form" requiredMark={false}>
-            <Form.Item
-              name="label"
-              label={<span className="so-label">Display label <span className="so-req">*</span></span>}
-              rules={[{ required: true, message: 'Please enter a label' }]}
-            >
-              <Input
-                placeholder="e.g. Feature Release"
-                autoFocus
-                onChange={(e) => {
-                  // Keep the key in sync until the user edits it themselves
-                  if (!keyTouched && !editingSetting) {
-                    settingsForm.setFieldsValue({ value: slugify(e.target.value) });
-                  }
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="value"
-              label={<span className="so-label">Value key <span className="so-req">*</span></span>}
-              rules={[{ required: true, message: 'Please enter a value key' }]}
-              extra={<span className="so-extra">Stored on each scope. Auto-filled from the label — edit it if you need a different key.</span>}
-            >
-              <Input placeholder="e.g. feature_release" onChange={() => setKeyTouched(true)} />
-            </Form.Item>
-
-            {/* The field stays registered here; the swatches drive it directly,
-                so antd never injects value/onChange onto a plain element. */}
-            <Form.Item name="color" hidden><Input /></Form.Item>
-            <div className="so-colorblock">
-              <span className="so-label">Badge colour</span>
-              <div className="so-swatches">
-                {COLOR_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    title={opt.label}
-                    aria-label={opt.label}
-                    onClick={() => settingsForm.setFieldsValue({ color: opt.value })}
-                    className={`so-swatch so-swatch--${opt.value}${draftColor === opt.value ? ' is-active' : ''}`}
-                  >
-                    {draftColor === opt.value ? <Check size={12} strokeWidth={3.5} /> : null}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Form>
-
-          <div className="so-foot">
-            <Button onClick={() => setSettingsModalOpen(false)}>Cancel</Button>
-            <Button type="primary" onClick={handleSaveSetting}>
-              {editingSetting ? 'Save changes' : 'Create option'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <Modal
         open={!!previewFile}
@@ -2278,27 +1531,6 @@ function TestScopeContent() {
         .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
         .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
 
-        .dashboard-table .ant-table-thead > tr > th {
-          background: transparent !important;
-          color: var(--text-slate-500) !important;
-          font-weight: 700 !important;
-          font-size: 11px !important;
-          padding: 10px 16px !important;
-          letter-spacing: 0.05em !important;
-          border-bottom: 1px solid var(--border-slate-200) !important;
-          text-transform: uppercase !important;
-        }
-        .dashboard-table .ant-table-tbody > tr > td {
-          padding: 12px 16px !important;
-          border-bottom: 1px solid var(--border-slate-100) !important;
-          font-size: 13px !important;
-        }
-        .dashboard-table .ant-table-row:hover > td {
-          background: rgba(255,255,255,0.03) !important;
-        }
-        .dashboard-table .ant-table-tbody > tr:last-child > td {
-          border-bottom: none !important;
-        }
       `}} />
     </MainLayout>
   );

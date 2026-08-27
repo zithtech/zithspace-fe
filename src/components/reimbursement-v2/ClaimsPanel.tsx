@@ -226,9 +226,13 @@ export default function ClaimsPanel({ hideSidebarToggle }: { hideSidebarToggle?:
   const renderItemFields = () => (
     <>
       <Form.Item name="categoryId" label="Category" rules={[{ required: true, message: 'Pick a category' }]}>
-        <Select showSearch optionFilterProp="label" placeholder="Category"
+        <SearchableDropdown
+          placeholder="Select category"
           options={cats.map((c) => ({ value: c.id, label: c.name }))}
-          notFoundContent={cats.length === 0 ? 'No categories yet — ask an admin to add expense categories' : 'No match'} />
+          itemNoun="categories"
+          hideAvatar
+          width="100%"
+        />
       </Form.Item>
       <Form.Item name="expenseDate" label="Date" rules={[{ required: true, message: 'Date required' }]}>
         <DatePicker inputReadOnly style={{ width: '100%' }} format="YYYY-MM-DD" />

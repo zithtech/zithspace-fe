@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button, Input, Tag, Tooltip, Select } from 'antd';
 import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import SearchableDropdown from '@/components/common/SearchableDropdown';
 
 // Shared visual kit for every Reimbursement 2.0 panel. Keeps panels lean and the
 // look consistent. Class prefix `rvp-`; the header class contains "-header" so
@@ -97,19 +98,20 @@ export function CurrencySelect(props: {
   disabled?: boolean;
 }) {
   return (
-    <Select
-      showSearch
-      optionFilterProp="label"
-      placeholder="Select currency"
-      value={props.value}
-      onChange={props.onChange}
-      disabled={props.disabled}
-      style={props.style}
-      options={CURRENCIES.map((c) => ({
-        value: c.code,
-        label: `${c.flag}  ${c.code} · ${c.name}`,
-      }))}
-    />
+    <div style={props.style}>
+      <SearchableDropdown
+        placeholder="Select currency"
+        value={props.value}
+        onChange={props.onChange}
+        disabled={props.disabled}
+        options={CURRENCIES.map((c) => ({
+          value: c.code,
+          label: `${c.flag}  ${c.code} · ${c.name}`,
+        }))}
+        hideAvatar
+        width="100%"
+      />
+    </div>
   );
 }
 

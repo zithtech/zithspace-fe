@@ -4,6 +4,7 @@ import { Modal, Breadcrumb, List, Checkbox, Button, Spin, Empty, message, Progre
 import { Folder, File, ArrowLeft } from "lucide-react";
 import { CloudDownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { api } from "@/lib/axios";
+import { NotionService } from "@/services/notionService";
 import { useTheme } from "@/context/ThemeContext";
 import {
   TicketFlowHeader,
@@ -113,7 +114,8 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
       setFiles(data || []);
     } catch (error: any) {
       if (error.status === 403 || error.status === 401) {
-        let msg = `Your ${provider === "google_drive" ? "Google" : provider === "zoho_drive" ? "Zoho" : provider === "notion" ? "Notion" : "Microsoft"} connection is missing Drive permissions. Please reconnect it from Integrations.`;
+        const providerName = provider === "google_drive" ? "Google Drive" : provider === "zoho_drive" ? "Zoho Drive" : provider === "notion" ? "Notion" : "OneDrive";
+        let msg = `${providerName} is not connected yet. Please click the button below to connect it.`;
         if (error.message && error.message.includes("Google Error:")) {
            msg += `\n\nDetail: ${error.message}`;
         }
@@ -149,9 +151,9 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
   const handleConnectNotion = async () => {
     try {
       setLoading(true);
-      const data = await api.get('/api/v2/auth/notion/connect');
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
+      const url = await NotionService.getConnectUrl(window.location.pathname);
+      if (url) {
+        window.location.href = url;
       }
     } catch (err) {
       console.error("Failed to get notion auth url", err);

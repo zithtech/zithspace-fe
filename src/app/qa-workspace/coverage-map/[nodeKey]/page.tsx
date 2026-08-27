@@ -17,8 +17,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button, Drawer, Tooltip } from "antd";
 import { BugOutlined } from "@ant-design/icons";
 import {
-  ArrowLeft, ArrowUpRight, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
-  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
+  ArrowLeft, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
+  ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
   PlayCircle, Repeat, RotateCw, Search, Target, TrendingDown, TrendingUp, X,
 } from "lucide-react";
 import dayjs from "dayjs";
@@ -30,7 +30,7 @@ import { apiClient } from "@/lib/axios";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import {
-  ResultBar, fmtAgo, fmtDate, fmtDateTime, initialsOf, statusTone,
+  fmtAgo, fmtDate, fmtDateTime, initialsOf,
   useCoverageData, useUserProjects, type ModuleNode,
 } from "../shared";
 
@@ -39,14 +39,6 @@ const EAGER_FAILURE_RUNS = 8;
 
 /** How many run-result reads Case stability keeps in flight at once. */
 const RESULT_CONCURRENCY = 5;
-
-const SECTIONS = [
-  { key: "suites", label: "Suites & runs", icon: Layers },
-  { key: "failures", label: "Failures", icon: Flame },
-  { key: "scopes", label: "Scopes", icon: Target },
-  { key: "scenarios", label: "Scenarios", icon: ClipboardList },
-] as const;
-type SectionKey = (typeof SECTIONS)[number]["key"];
 
 const runDate = (r: any) => r?.started_at || r?.created_at || null;
 
@@ -227,6 +219,176 @@ function buildInsights(suites: any[], chrono: any[], hotspots: { name: string; r
   return out;
 }
 
+/** One entry in the suite rail — a suite, or the catch-all beside them. */
+interface SuiteStat {
+  id: string;
+  name: string;
+  runs: number;
+  passed: number;
+  failed: number;
+  /** Days since the suite last ran, null if it never has. */
+  idleDays: number | null;
+}
+
+/** How the rail orders its suites. Activity is the default — busiest first. */
+const RAIL_SORTS = [
+  { key: "activity", label: "Activity", hint: "Busiest suites first" },
+  { key: "risk", label: "Risk", hint: "Most failures first" },
+  { key: "name", label: "Name", hint: "A to Z" },
+] as const;
+type RailSort = (typeof RAIL_SORTS)[number]["key"];
+
+/** Pass rate over what a suite actually resolved, null if nothing has. */
+const rateOfStat = (s: { passed: number; failed: number }) => {
+  const total = s.passed + s.failed;
+  return total > 0 ? Math.round((s.passed / total) * 100) : null;
+};
+
+/**
+ * The suite rail — every suite the module has, down the left of the page.
+ *
+ * The panels beside it all read the same selection, so switching suite is one
+ * click rather than three dropdowns kept in sync by hand. Each row carries the
+ * numbers you would otherwise open the suite to find: how much it has run, what
+ * share of that passed, and whether it has gone quiet — enough to pick the
+ * suite worth looking at without opening any of them.
+ */
+function SuiteRail({ stats, value, onChange, totalRuns }: {
+  stats: SuiteStat[];
+  value: string;
+  onChange: (id: string) => void;
+  totalRuns: number;
+}) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<RailSort>("activity");
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = q ? stats.filter(s => s.name.toLowerCase().includes(q)) : stats;
+    return rows.slice().sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "risk") return b.failed - a.failed || b.runs - a.runs;
+      return b.runs - a.runs || a.name.localeCompare(b.name);
+    });
+  }, [stats, query, sort]);
+
+  /** Suites nobody has executed sit under their own heading rather than in the ranking. */
+  const live = shown.filter(s => s.runs > 0);
+  const dormant = shown.filter(s => s.runs === 0);
+
+  const totals = stats.reduce(
+    (a, s) => ({ passed: a.passed + s.passed, failed: a.failed + s.failed }),
+    { passed: 0, failed: 0 },
+  );
+  const atRisk = stats.filter(s => s.failed > 0).length;
+
+  const row = (s: SuiteStat, all = false) => {
+    const active = value === s.id;
+    const rate = rateOfStat(s);
+    const dead = s.runs === 0;
+    return (
+      <button
+        key={s.id}
+        type="button"
+        className={`sr__row${active ? " is-active" : ""}${dead ? " is-dormant" : ""}`}
+        onClick={() => onChange(s.id)}
+        disabled={dead}
+        title={dead ? `${s.name} — never run` : `${s.name} — ${s.runs} run${s.runs === 1 ? "" : "s"}, ${s.failed} failed case${s.failed === 1 ? "" : "s"}`}
+      >
+        <span className="sr__row-top">
+          {all
+            ? <Boxes size={13} className="sr__row-ic" />
+            : <span className={`sr__dot${s.failed > 0 ? " is-fail" : dead ? " is-dead" : " is-ok"}`} />}
+          <span className="sr__name">{s.name}</span>
+          <span className="sr__count">{s.runs}</span>
+        </span>
+
+        {dead ? (
+          <span className="sr__row-meta"><span className="sr__flag">Never run</span></span>
+        ) : (
+          <>
+            <span className="sr__row-meta">
+              {rate !== null && <span className={`sr__rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>}
+              <span className="sr__sep" />
+              {s.failed > 0
+                ? <span className="sr__fails">{s.failed} failed</span>
+                : <span className="sr__clean">no failures</span>}
+              {s.idleDays !== null && s.idleDays > 30 && (
+                <span className="sr__flag">{s.idleDays}d quiet</span>
+              )}
+            </span>
+            {rate !== null && (
+              <span className="sr__track"><i style={{ width: `${rate}%` }} /></span>
+            )}
+          </>
+        )}
+        <ChevronRight size={13} className="sr__go" />
+      </button>
+    );
+  };
+
+  return (
+    <aside className="sr">
+      <header className="sr__head">
+        <span className="sr__head-ic"><Layers size={14} /></span>
+        <div className="min-w-0">
+          <div className="sr__head-title">Suites</div>
+          <div className="sr__head-sub">
+            {stats.length} total{atRisk > 0 && <> · <b>{atRisk}</b> with failures</>}
+          </div>
+        </div>
+      </header>
+
+      <div className="sr__controls">
+        <div className="sr__search">
+          <Search size={12} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Find a suite" />
+          {query && <button type="button" onClick={() => setQuery("")} title="Clear"><X size={12} /></button>}
+        </div>
+        {stats.length > 1 && (
+          <div className="sr__sorts">
+            {RAIL_SORTS.map(o => (
+              <button
+                key={o.key}
+                type="button"
+                className={sort === o.key ? "is-active" : ""}
+                onClick={() => setSort(o.key)}
+                title={o.hint}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="sr__list">
+        {row({
+          id: "all", name: "All suites", runs: totalRuns,
+          passed: totals.passed, failed: totals.failed, idleDays: null,
+        }, true)}
+
+        {live.length > 0 && (
+          <div className="sr__group"><span>Executed</span><i />{live.length}</div>
+        )}
+        {live.map(s => row(s))}
+
+        {dormant.length > 0 && (
+          <div className="sr__group"><span>Never run</span><i />{dormant.length}</div>
+        )}
+        {dormant.map(s => row(s))}
+
+        {shown.length === 0 && <div className="sr__empty">No suite matches “{query}”.</div>}
+      </div>
+
+      <footer className="sr__foot">
+        <b>{totalRuns}</b> run{totalRuns === 1 ? "" : "s"} ·{" "}
+        <b>{totals.passed + totals.failed}</b> case result{totals.passed + totals.failed === 1 ? "" : "s"}
+      </footer>
+    </aside>
+  );
+}
+
 /**
  * "What the history says" — the read-out that opens the page.
  *
@@ -234,57 +396,20 @@ function buildInsights(suites: any[], chrono: any[], hotspots: { name: string; r
  * different things, so the same picker the calendar uses narrows every insight
  * below it to one suite's runs.
  */
-function HistoryInsights({ suites, runs, hotspots }: {
+function HistoryInsights({ suites, runs, hotspots, suiteName }: {
+  /** Suites in scope — every one of the module's, or just the picked one. */
   suites: any[];
-  /** Every run this module has, oldest first. */
+  /** Runs in scope, oldest first. */
   runs: any[];
   /** Cases that failed more than once, each carrying the runs it failed in. */
   hotspots: { name: string; runs: { run: any }[] }[];
+  /** Name of the suite the rail has picked, or null while reading all of them. */
+  suiteName: string | null;
 }) {
-  const [suiteId, setSuiteId] = useState<string>("all");
-
-  const options = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
-
-  const inScope = (r: any) => {
-    if (suiteId === "all") return true;
-    if (suiteId === "__none") return !suites.some(su => String(su.id) === String(r.suite_id));
-    return String(r.suite_id) === suiteId;
-  };
-
-  const scoped = useMemo(() => runs.filter(inScope), [runs, suites, suiteId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Only the picked suite counts as "never run" once the panel is narrowed to it. */
-  const scopedSuites = useMemo(
-    () => (suiteId === "all" ? suites : suites.filter(su => String(su.id) === suiteId)),
-    [suites, suiteId],
-  );
-
-  /** A hotspot keeps only the failures that happened inside the picked suite. */
-  const scopedHotspots = useMemo(() => {
-    if (suiteId === "all") return hotspots;
-    return hotspots
-      .map(h => ({ ...h, runs: h.runs.filter(x => inScope(x.run)) }))
-      .filter(h => h.runs.length)
-      .sort((a, b) => b.runs.length - a.runs.length);
-  }, [hotspots, suiteId, suites]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const insights = useMemo(
-    () => buildInsights(scopedSuites, scoped, scopedHotspots),
-    [scopedSuites, scoped, scopedHotspots],
+    () => buildInsights(suites, runs, hotspots),
+    [suites, runs, hotspots],
   );
-
-  const activeName = suiteId === "all"
-    ? null
-    : options.find(o => o.id === suiteId)?.name ?? "this suite";
 
   return (
     <section className="mx-insights">
@@ -293,31 +418,10 @@ function HistoryInsights({ suites, runs, hotspots }: {
         <div className="min-w-0">
           <div className="mx-insights__title">What the history says</div>
           <div className="mx-insights__sub">
-            {activeName
-              ? <>Read from the <b>{scoped.length}</b> run{scoped.length === 1 ? "" : "s"} of “{activeName}”</>
+            {suiteName
+              ? <>Read from the <b>{runs.length}</b> run{runs.length === 1 ? "" : "s"} of “{suiteName}”</>
               : "Read from every scope, suite and run attached to this module"}
           </div>
-        </div>
-        <div className="mx-insights__tools">
-          <SearchableDropdown
-            value={suiteId}
-            onChange={(v: any) => setSuiteId(v || "all")}
-            options={[
-              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
-              ...options.map(o => ({
-                value: o.id,
-                label: o.name,
-                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
-                disabled: o.n === 0,
-              })),
-            ]}
-            searchPlaceholder="Search suites"
-            itemNoun="suites"
-            hideAvatar
-            allowClear={false}
-            width={280}
-            style={{ width: 230 }}
-          />
         </div>
       </header>
       <ol className="mx-insights__list">
@@ -343,37 +447,21 @@ function HistoryInsights({ suites, runs, hotspots }: {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 /**
- * Run calendar — the same execution history laid out by date instead of by
- * bar. Pick a suite, walk the months, and every day carries the runs that
- * executed on it; clicking a day (or a single run beside it) sends it to the
- * inspector exactly like clicking a bar does.
+ * Run calendar — the execution history laid out by date. Walk the months and
+ * every day carries the runs that executed on it, with the day's pass and fail
+ * split; picking a day lists those runs in the rail beside it.
  */
 function RunCalendar({ suites, runs }: {
+  /** Every suite the module has — used to name the suite a run belongs to. */
   suites: any[];
+  /** Runs in scope, oldest first. */
   runs: any[];
 }) {
   const router = useRouter();
-  const [suiteId, setSuiteId] = useState<string>("all");
   const [cursor, setCursor] = useState(() => dayjs().startOf("month"));
   const [day, setDay] = useState<string | null>(null);
 
-  /** Every suite plus a catch-all, with how many runs each one carries. */
-  const options = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
-
-  const scoped = useMemo(() => {
-    if (suiteId === "all") return runs;
-    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
-    return runs.filter(r => String(r.suite_id) === suiteId);
-  }, [runs, suites, suiteId]);
+  const scoped = runs;
 
   /** Runs keyed by the day they ran, so painting a cell is one lookup. */
   const byDay = useMemo(() => {
@@ -393,7 +481,7 @@ function RunCalendar({ suites, runs }: {
     const d = newest ? dayjs(runDate(newest)) : null;
     setCursor(d?.isValid() ? d.startOf("month") : dayjs().startOf("month"));
     setDay(null);
-  }, [suiteId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Six weeks from the Monday on or before the 1st — a stable grid every month. */
   const cells = useMemo(() => {
@@ -460,25 +548,6 @@ function RunCalendar({ suites, runs }: {
         </div>
 
         <div className="cal__tools">
-          <SearchableDropdown
-            value={suiteId}
-            onChange={(v: any) => setSuiteId(v || "all")}
-            options={[
-              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
-              ...options.map(o => ({
-                value: o.id,
-                label: o.name,
-                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
-                disabled: o.n === 0,
-              })),
-            ]}
-            searchPlaceholder="Search suites"
-            itemNoun="suites"
-            hideAvatar
-            allowClear={false}
-            width={280}
-            style={{ width: 230 }}
-          />
           <div className="cal__nav">
             <button type="button" onClick={() => setCursor(c => c.subtract(1, "month"))} title="Previous month">
               <ChevronLeft size={14} />
@@ -556,6 +625,7 @@ function RunCalendar({ suites, runs }: {
           })}
         </div>
 
+        <div className="cal__rail">
         <aside className="cal__side">
           {!selected || !selected.runs.length ? (
             <div className="cal__side-empty">
@@ -608,6 +678,7 @@ function RunCalendar({ suites, runs }: {
             </>
           )}
         </aside>
+        </div>
       </div>
     </section>
   );
@@ -640,6 +711,9 @@ const SHAPES: Record<Shape, { label: string; hint: string; rank: number }> = {
   failing:   { label: "Failing",   hint: "Failing, with no passing run to compare against", rank: 2 },
   fixed:     { label: "Fixed",     hint: "Failed earlier, passing on the latest run", rank: 3 },
 };
+
+/** Failed cases rendered per page; scrolling to the end reveals the next batch. */
+const CASE_PAGE = 15;
 
 /** Fail more times than this and the case is flagged, not just listed. */
 const CONCERN_FAILS = 2;
@@ -792,35 +866,26 @@ interface CaseRow {
  * a row gives its whole history in a drawer, without leaving the page.
  */
 function StabilityMatrix({ suites, runs, results, onNeed }: {
+  /** Every suite the module has — used to name the suite a run belongs to. */
   suites: any[];
-  /** Every run this module has, oldest first. */
+  /** Runs in scope, oldest first. */
   runs: any[];
   results: Record<string, ResultCell[]>;
   /** Asks the page to load a run's full result list, once. */
   onNeed: (runId: string) => void;
 }) {
-  const [suiteId, setSuiteId] = useState<string>("all");
   const [filter, setFilter] = useState<MatrixFilter>("all");
   const [query, setQuery] = useState("");
   /** The case whose history is open in the drawer. */
   const [openCase, setOpenCase] = useState<string | null>(null);
+  /** How many rows are on screen — one page at a time, grown by scrolling. */
+  const [limit, setLimit] = useState(CASE_PAGE);
+  const sentinel = useRef<HTMLLIElement | null>(null);
 
-  const options = useMemo(() => {
-    const counted = suites.map(su => ({
-      id: String(su.id),
-      name: su.suite_name || "Untitled suite",
-      n: runs.filter(r => String(r.suite_id) === String(su.id)).length,
-    }));
-    const orphan = runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id))).length;
-    if (orphan) counted.push({ id: "__none", name: "Without a suite", n: orphan });
-    return counted.sort((a, b) => b.n - a.n);
-  }, [suites, runs]);
+  const scoped = runs;
 
-  const scoped = useMemo(() => {
-    if (suiteId === "all") return runs;
-    if (suiteId === "__none") return runs.filter(r => !suites.some(su => String(su.id) === String(r.suite_id)));
-    return runs.filter(r => String(r.suite_id) === suiteId);
-  }, [runs, suites, suiteId]);
+  /** A different suite redraws the rows, so the open drawer closes with them. */
+  useEffect(() => { setOpenCase(null); }, [runs]);
 
   /** Every run in scope is read, and only once each. */
   useEffect(() => {
@@ -888,6 +953,27 @@ function StabilityMatrix({ suites, runs, results, onNeed }: {
     });
   }, [rows, filter, query]);
 
+  /** Any change to what is listed starts the paging over. */
+  useEffect(() => { setLimit(CASE_PAGE); }, [runs, filter, query]);
+
+  const page = useMemo(() => shown.slice(0, limit), [shown, limit]);
+  const more = shown.length - page.length;
+
+  /**
+   * The next page arrives when the end of the list reaches the viewport, so
+   * the reader never hits a "load more" button.
+   */
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || more === 0) return;
+    const io = new IntersectionObserver(
+      entries => { if (entries[0]?.isIntersecting) setLimit(n => n + CASE_PAGE); },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more]);
+
   const active = rows.find(r => r.key === openCase) ?? null;
 
   return (
@@ -903,28 +989,13 @@ function StabilityMatrix({ suites, runs, results, onNeed }: {
                 {concerning > 0 && <> · <b className="sm__sub-warn">{concerning}</b> need{concerning === 1 ? "s" : ""} attention</>}
                 {pending > 0 && <> · reading {ready}/{scoped.length}</>}</>}
           </div>
+          {shown.length > CASE_PAGE && (
+            <div className="sm__sub">
+              Showing <b>{page.length}</b> of <b>{shown.length}</b> — scroll for more
+            </div>
+          )}
         </div>
 
-        <div className="sm__tools">
-          <SearchableDropdown
-            value={suiteId}
-            onChange={(v: any) => setSuiteId(v || "all")}
-            options={[
-              { value: "all", label: "All suites", meta: `${runs.length} run${runs.length === 1 ? "" : "s"}` },
-              ...options.map(o => ({
-                value: o.id, label: o.name,
-                meta: `${o.n} run${o.n === 1 ? "" : "s"}`,
-                disabled: o.n === 0,
-              })),
-            ]}
-            searchPlaceholder="Search suites"
-            itemNoun="suites"
-            hideAvatar
-            allowClear={false}
-            width={280}
-            style={{ width: 216 }}
-          />
-        </div>
       </div>
 
       {scoped.length === 0 ? (
@@ -974,7 +1045,7 @@ function StabilityMatrix({ suites, runs, results, onNeed }: {
             <div className="sm__empty">No failed case matches this filter.</div>
           ) : (
             <ul className="sm__list">
-              {shown.map(row => (
+              {page.map(row => (
                 <li key={row.key}>
                   <button
                     type="button"
@@ -1018,6 +1089,11 @@ function StabilityMatrix({ suites, runs, results, onNeed }: {
                   </button>
                 </li>
               ))}
+              {more > 0 && (
+                <li ref={sentinel} className="sm__more">
+                  <ZukvoLoader size="sm" message={`Loading ${Math.min(more, CASE_PAGE)} more of ${shown.length}`} />
+                </li>
+              )}
             </ul>
           )}
 
@@ -1075,8 +1151,8 @@ function ModuleDetail() {
     [nodes, nodeKey],
   );
 
-  const [section, setSection] = useState<SectionKey>("suites");
-  const [openRuns, setOpenRuns] = useState<Record<string, boolean>>({});
+  /** The suite the rail has picked — every panel on the page reads it. */
+  const [suiteId, setSuiteId] = useState<string>("all");
   const [failures, setFailures] = useState<Record<string, FailureRow[]>>({});
   const [loadingRun, setLoadingRun] = useState<Record<string, boolean>>({});
   /** Every case result of a run — what the stability matrix reads, unlike the failures-only list. */
@@ -1180,123 +1256,70 @@ function ModuleDetail() {
     return Array.from(byCase.values()).sort((a, b) => b.runs.length - a.runs.length);
   }, [node, failures]);
 
-  const runsBySuite = useMemo(() => {
-    const map = new Map<string, any[]>();
-    (node?.runs ?? []).forEach((r: any) => {
-      const key = String(r.suite_id ?? "__none");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    });
-    return map;
-  }, [node]);
-
   /** Every run this module has, oldest first — "#5" means the fifth executed. */
   const allRuns = useMemo(() => chronological(node?.runs ?? []), [node]);
+
+  /** What the rail lists: every suite, plus a catch-all for runs without one. */
+  const suiteStats = useMemo<SuiteStat[]>(() => {
+    const suites = node?.suites ?? [];
+    const statOf = (id: string, name: string, rows: any[]): SuiteStat => {
+      const last = rows.length ? runDate(rows[rows.length - 1]) : null;
+      return {
+        id, name,
+        runs: rows.length,
+        passed: rows.reduce((a, r) => a + countsOf(r).passed, 0),
+        failed: rows.reduce((a, r) => a + countsOf(r).failed, 0),
+        idleDays: last ? dayjs().diff(dayjs(last), "day") : null,
+      };
+    };
+    const out = suites.map((su: any) => statOf(
+      String(su.id),
+      su.suite_name || "Untitled suite",
+      allRuns.filter(r => String(r.suite_id) === String(su.id)),
+    ));
+    const orphans = allRuns.filter(r => !suites.some((su: any) => String(su.id) === String(r.suite_id)));
+    if (orphans.length) out.push(statOf("__none", "Without a suite", orphans));
+    /* Busiest first, but a suite nobody runs still has to be visible. */
+    return out.sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name));
+  }, [node, allRuns]);
+
+  /** Runs of the picked suite — what every panel below the rail reads. */
+  const scopedRuns = useMemo(() => {
+    if (suiteId === "all") return allRuns;
+    if (suiteId === "__none") {
+      return allRuns.filter(r => !(node?.suites ?? []).some((su: any) => String(su.id) === String(r.suite_id)));
+    }
+    return allRuns.filter(r => String(r.suite_id) === suiteId);
+  }, [allRuns, node, suiteId]);
+
+  /** Only the picked suite counts as "never run" once the page narrows to it. */
+  const scopedSuites = useMemo(() => {
+    const suites = node?.suites ?? [];
+    if (suiteId === "all") return suites;
+    return suites.filter((su: any) => String(su.id) === suiteId);
+  }, [node, suiteId]);
+
+  /** A hotspot keeps only the failures that happened inside the picked suite. */
+  const scopedHotspots = useMemo(() => {
+    if (suiteId === "all") return hotspots;
+    const ids = new Set(scopedRuns.map(r => String(r.id)));
+    return hotspots
+      .map(h => ({ ...h, runs: h.runs.filter(x => ids.has(String(x.run.id))) }))
+      .filter(h => h.runs.length)
+      .sort((a, b) => b.runs.length - a.runs.length);
+  }, [hotspots, suiteId, scopedRuns]);
+
+  const suiteName = suiteId === "all"
+    ? null
+    : suiteStats.find(su => su.id === suiteId)?.name ?? "this suite";
 
   const name = node?.name || hintedName || "Module";
   const canRead = canReadScope || canReadCase || canReadSuite || canReadRun;
   if (!canRead) return null;
 
-  const toggleRun = (runId: string) => {
-    setOpenRuns(prev => ({ ...prev, [runId]: !prev[runId] }));
-    fetchFailures(runId);
-  };
-
   const backToMap = () => router.push(
     `/qa-workspace/coverage-map${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`,
   );
-
-  /* ── Rows ─────────────────────────────────────────────────────────────── */
-
-  const renderFailureList = (runId: string) => {
-    const rows = failures[runId];
-    if (loadingRun[runId] && !rows) {
-      return <div className="md-fail__loading"><ZukvoLoader size="sm" message="Loading failures…" /></div>;
-    }
-    if (!rows?.length) {
-      return <div className="md-fail__none">No failing cases recorded on this run.</div>;
-    }
-    return (
-      <div className="md-fail">
-        <div className="md-fail__head">
-          <Flame size={12} />
-          {rows.length} failed case{rows.length === 1 ? "" : "s"}
-        </div>
-        {rows.map(row => (
-          <div key={row.id} className="md-failrow">
-            <span className="md-failrow__dot" />
-            <div className="md-failrow__body">
-              <div className="md-failrow__title">
-                {row.tc_ref_id && <code className="md-ref">{row.tc_ref_id}</code>}
-                {row.name}
-              </div>
-              <div className="md-failrow__meta">
-                {[
-                  row.severity && `Severity ${row.severity}`,
-                  row.priority && `${row.priority} priority`,
-                  row.test_type,
-                  fmtDateTime(row.executed_at) && `failed ${fmtDateTime(row.executed_at)}`,
-                ].filter(Boolean).join(" · ")}
-              </div>
-              {row.notes && <div className="md-failrow__note">“{row.notes}”</div>}
-            </div>
-            {row.bug_logged ? (
-              <Tooltip title="A bug is already filed for this failure">
-                <span className="cm-pill cm-pill--blue">{row.bug_number || "Bug filed"}</span>
-              </Tooltip>
-            ) : (
-              <span className="cm-pill cm-pill--ash">No bug</span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderRun = (run: any, index: number, total: number) => {
-    const id = String(run.id);
-    const isOpen = !!openRuns[id];
-    const failed = Number(run.failed_count || 0);
-    const passed = Number(run.passed_count || 0);
-    const blocked = Number(run.blocked_count || 0);
-    const notRun = Number(run.not_executed_count || 0);
-    return (
-      <div key={id} className={`md-run${isOpen ? " is-open" : ""}${failed > 0 ? " has-fail" : ""}`}>
-        <button className="md-run__head" onClick={() => toggleRun(id)}>
-          <span className="md-run__chev">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
-          <span className="md-run__ord" title={`Run ${index + 1} of ${total}`}>#{index + 1}</span>
-          <span className="md-run__id">
-            <span className="md-run__name">{run.run_name || "Untitled run"}</span>
-            <span className="md-run__meta">
-              {[
-                fmtDateTime(runDate(run)),
-                run.created_by_name && `by ${run.created_by_name}`,
-                run.scope_name && `scope: ${run.scope_name}`,
-              ].filter(Boolean).join(" · ")}
-            </span>
-          </span>
-          <span className="md-run__bar">
-            <ResultBar passed={passed} failed={failed} blocked={blocked} notExecuted={notRun} />
-          </span>
-          <span className="md-run__counts">
-            <span className="md-count is-pass">{passed}</span>
-            <span className={`md-count${failed > 0 ? " is-fail" : ""}`}>{failed}</span>
-            <span className="md-count">{notRun}</span>
-          </span>
-          <span
-            className="md-run__go"
-            role="link"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-runs/${id}`); }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); router.push(`/qa-workspace/test-runs/${id}`); } }}
-          >
-            <ArrowUpRight size={14} />
-          </span>
-        </button>
-        {isOpen && <div className="md-run__body">{renderFailureList(id)}</div>}
-      </div>
-    );
-  };
 
   return (
     <MainLayout noPadding>
@@ -1342,263 +1365,63 @@ function ModuleDetail() {
             ) : node ? (
               <>
                 {/* The QA pipeline for this module, stage by stage — planned,
-                    written, assembled, executed. Each stage jumps to its list. */}
+                    written, assembled, executed. */}
                 <nav className="md-flow">
                   {([
-                    { key: "scopes", icon: Target, n: node.scopes.length, label: "Scopes", hint: "planned this module", tab: "scopes" },
-                    { key: "scenarios", icon: ClipboardList, n: node.cases.length, label: "Scenarios", hint: "written for it", tab: "scenarios" },
-                    { key: "cases", icon: FileText, n: node.childCases, label: "Cases", hint: "beneath those scenarios", tab: "scenarios" },
-                    { key: "suites", icon: Layers, n: node.suites.length, label: "Suites", hint: "assembled to execute", tab: "suites" },
-                    { key: "runs", icon: PlayCircle, n: node.runs.length, label: "Runs", hint: "executed so far", tab: "suites" },
+                    { key: "scopes", icon: Target, n: node.scopes.length, label: "Scopes", hint: "planned this module" },
+                    { key: "scenarios", icon: ClipboardList, n: node.cases.length, label: "Scenarios", hint: "written for it" },
+                    { key: "cases", icon: FileText, n: node.childCases, label: "Cases", hint: "beneath those scenarios" },
+                    { key: "suites", icon: Layers, n: node.suites.length, label: "Suites", hint: "assembled to execute" },
+                    { key: "runs", icon: PlayCircle, n: node.runs.length, label: "Runs", hint: "executed so far" },
                   ] as const).map((step, i, arr) => {
                     const Icon = step.icon;
                     return (
                       <React.Fragment key={step.key}>
-                        <button
-                          type="button"
+                        <div
                           className={`md-step${step.n === 0 ? " is-zero" : ""}`}
-                          onClick={() => setSection(step.tab as SectionKey)}
                           title={`${step.n} ${step.label.toLowerCase()} ${step.hint}`}
                         >
                           <Icon size={13} className="md-step__ic" />
                           <span className="md-step__n">{step.n}</span>
                           <span className="md-step__label">{step.label}</span>
-                        </button>
+                        </div>
                         {i < arr.length - 1 && <span className="md-flow__sep" />}
                       </React.Fragment>
                     );
                   })}
                 </nav>
 
-                {/* What the history says, before any of the raw lists. */}
-                <HistoryInsights suites={node.suites} runs={allRuns} hotspots={hotspots} />
-
-                {allRuns.length > 0 && (
-                  <RunCalendar suites={node.suites} runs={allRuns} />
-                )}
-
-                {allRuns.length > 0 && (
-                  <StabilityMatrix
-                    suites={node.suites}
-                    runs={allRuns}
-                    results={runResults}
-                    onNeed={fetchRunResults}
+                <div className="md-body">
+                  <SuiteRail
+                    stats={suiteStats}
+                    value={suiteId}
+                    onChange={setSuiteId}
+                    totalRuns={allRuns.length}
                   />
-                )}
 
-                <div className="md-tabs">
-                  {SECTIONS.map(sct => {
-                    const Icon = sct.icon;
-                    const count = sct.key === "suites" ? node.suites.length
-                      : sct.key === "failures" ? hotspots.length
-                        : sct.key === "scopes" ? node.scopes.length
-                          : node.cases.length;
-                    return (
-                      <button
-                        key={sct.key}
-                        className={`md-tab${section === sct.key ? " is-active" : ""}`}
-                        onClick={() => setSection(sct.key)}
-                      >
-                        <Icon size={14} />
-                        {sct.label}
-                        <span className="md-tab__n">{count}</span>
-                      </button>
-                    );
-                  })}
+                  <div className="md-main">
+                    {/* What the history says, before any of the raw lists. */}
+                    <HistoryInsights
+                      suites={scopedSuites}
+                      runs={scopedRuns}
+                      hotspots={scopedHotspots}
+                      suiteName={suiteName}
+                    />
+
+                    {scopedRuns.length > 0 && (
+                      <RunCalendar suites={node.suites} runs={scopedRuns} />
+                    )}
+
+                    {scopedRuns.length > 0 && (
+                      <StabilityMatrix
+                        suites={node.suites}
+                        runs={scopedRuns}
+                        results={runResults}
+                        onNeed={fetchRunResults}
+                      />
+                    )}
+                  </div>
                 </div>
-
-                {/* ── Suites, each with its whole run history ───────────── */}
-                {section === "suites" && (
-                  <div className="md-list">
-                    {node.suites.length === 0 && (
-                      <div className="cm-col__empty">No suite has been assembled for this module.</div>
-                    )}
-                    {node.suites.map((suite: any) => {
-                      const suiteRuns = chronological(runsBySuite.get(String(suite.id)) ?? []);
-                      const failedRuns = suiteRuns.filter((r: any) => Number(r.failed_count || 0) > 0).length;
-                      return (
-                        <section key={suite.id} className="md-card">
-                          <header className="md-card__head">
-                            <span className="md-card__ic"><Layers size={14} /></span>
-                            <div className="md-card__id">
-                              <div className="md-card__title">{suite.suite_name || "Untitled suite"}</div>
-                              <div className="md-card__meta">
-                                {[
-                                  `${Number(suite.case_count || 0)} cases`,
-                                  `${suiteRuns.length} run${suiteRuns.length === 1 ? "" : "s"}`,
-                                  failedRuns ? `${failedRuns} with failures` : null,
-                                  suite.parent_title,
-                                  suite.created_by_name && `by ${suite.created_by_name}`,
-                                  fmtDate(suite.created_at) && `added ${fmtDate(suite.created_at)}`,
-                                ].filter(Boolean).join(" · ")}
-                              </div>
-                            </div>
-                            <Button
-                              size="small"
-                              onClick={() => router.push(`/qa-workspace/test-suites/${suite.id}`)}
-                            >
-                              Open suite
-                            </Button>
-                          </header>
-
-                          {suiteRuns.length === 0 ? (
-                            <div className="md-card__empty">Nothing has been executed against this suite yet.</div>
-                          ) : (
-                            <div className="md-runs">
-                              {suiteRuns.map((run, i) => renderRun(run, i, suiteRuns.length))}
-                            </div>
-                          )}
-                        </section>
-                      );
-                    })}
-
-                    {/* Runs whose suite sits outside this module's suite list */}
-                    {(runsBySuite.get("__none")?.length ?? 0) > 0 && (
-                      <section className="md-card">
-                        <header className="md-card__head">
-                          <span className="md-card__ic"><PlayCircle size={14} /></span>
-                          <div className="md-card__id">
-                            <div className="md-card__title">Runs without a suite</div>
-                            <div className="md-card__meta">Executed here but no longer linked to a suite</div>
-                          </div>
-                        </header>
-                        <div className="md-runs">
-                          {chronological(runsBySuite.get("__none")!).map((run, i, arr) => renderRun(run, i, arr.length))}
-                        </div>
-                      </section>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Failure hotspots across every run ─────────────────── */}
-                {section === "failures" && (
-                  <div className="md-list">
-                    {failingRuns.length === 0 ? (
-                      <div className="cm-col__empty">No run in this module has recorded a failure.</div>
-                    ) : (
-                      <>
-                        <div className="md-note">
-                          <AlertTriangle size={13} />
-                          <span>
-                            Failures from the {Math.min(failingRuns.length, EAGER_FAILURE_RUNS)} most recent failing
-                            run{failingRuns.length === 1 ? "" : "s"} are loaded.
-                            {failingRuns.length > EAGER_FAILURE_RUNS
-                              ? ` Open an older run under Suites & runs to add it here.`
-                              : ""}
-                          </span>
-                        </div>
-
-                        {hotspots.length === 0 ? (
-                          <div className="md-card__empty">Loading failure detail…</div>
-                        ) : hotspots.map(spot => (
-                          <section key={spot.ref || spot.name} className="md-card">
-                            <header className="md-card__head">
-                              <span className="md-card__ic is-fail"><Flame size={14} /></span>
-                              <div className="md-card__id">
-                                <div className="md-card__title">
-                                  {spot.ref && <code className="md-ref">{spot.ref}</code>}
-                                  {spot.name}
-                                </div>
-                                <div className="md-card__meta">
-                                  failed in {spot.runs.length} run{spot.runs.length === 1 ? "" : "s"}
-                                </div>
-                              </div>
-                              {spot.runs.length > 1 && <span className="cm-pill cm-pill--red">recurring</span>}
-                            </header>
-                            <div className="md-spot">
-                              {spot.runs
-                                .slice()
-                                .sort((a, b) => dayjs(runDate(b.run) || 0).valueOf() - dayjs(runDate(a.run) || 0).valueOf())
-                                .map(({ run, row }) => (
-                                  <button
-                                    key={`${run.id}-${row.id}`}
-                                    className="md-spotrow"
-                                    onClick={() => router.push(`/qa-workspace/test-runs/${run.id}`)}
-                                  >
-                                    <span className="md-spotrow__run">{run.run_name || "Untitled run"}</span>
-                                    <span className="md-spotrow__meta">
-                                      {[
-                                        fmtDateTime(row.executed_at || runDate(run)),
-                                        run.created_by_name && `by ${run.created_by_name}`,
-                                      ].filter(Boolean).join(" · ")}
-                                    </span>
-                                    {row.notes && <span className="md-spotrow__note">“{row.notes}”</span>}
-                                    <ArrowUpRight size={13} className="md-spotrow__go" />
-                                  </button>
-                                ))}
-                            </div>
-                          </section>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Scopes that planned this module ───────────────────── */}
-                {section === "scopes" && (
-                  <div className="md-list">
-                    {node.scopes.length === 0 && (
-                      <div className="cm-col__empty">No scope has planned this module.</div>
-                    )}
-                    {node.scopes.map((sc: any) => (
-                      <button
-                        key={sc.id}
-                        className="md-card md-card--row"
-                        onClick={() => router.push(`/qa-workspace/test-scope/${sc.id}`)}
-                      >
-                        <span className="md-card__ic"><Target size={14} /></span>
-                        <div className="md-card__id">
-                          <div className="md-card__title">{sc.name || "Untitled scope"}</div>
-                          <div className="md-card__meta">
-                            {[
-                              sc.type,
-                              sc.priority && `${sc.priority} priority`,
-                              sc.qa_owner,
-                              fmtDate(sc.created_at) && `created ${fmtDate(sc.created_at)}`,
-                              sc.start_date && sc.end_date
-                                ? `${fmtDate(sc.start_date)} → ${fmtDate(sc.end_date)}`
-                                : sc.end_date ? `due ${fmtDate(sc.end_date)}` : null,
-                            ].filter(Boolean).join(" · ")}
-                          </div>
-                        </div>
-                        {sc.status && <span className={`cm-pill cm-pill--${statusTone(sc.status)}`}>{sc.status}</span>}
-                        <ArrowUpRight size={13} className="md-card__go" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* ── Scenarios written for it ──────────────────────────── */}
-                {section === "scenarios" && (
-                  <div className="md-list">
-                    {node.cases.length === 0 && (
-                      <div className="cm-col__empty">No scenario has been written for this module.</div>
-                    )}
-                    {node.cases.map((c: any) => (
-                      <button
-                        key={c.id}
-                        className="md-card md-card--row"
-                        onClick={() => router.push(`/qa-workspace/test-cases/${c.id}`)}
-                      >
-                        <span className="md-card__ic"><FileText size={14} /></span>
-                        <div className="md-card__id">
-                          <div className="md-card__title">{c.title || "Untitled scenario"}</div>
-                          <div className="md-card__meta">
-                            {[
-                              `${Number(c.child_count || 0)} module cases`,
-                              c.feature,
-                              c.automation,
-                              (c.owner_name || c.qa_owner) && `owner ${c.owner_name || c.qa_owner}`,
-                              fmtDate(c.created_at) && `added ${fmtDate(c.created_at)}`,
-                            ].filter(Boolean).join(" · ")}
-                          </div>
-                        </div>
-                        {c.status && <span className={`cm-pill cm-pill--${statusTone(c.status)}`}>{c.status}</span>}
-                        <ArrowUpRight size={13} className="md-card__go" />
-                      </button>
-                    ))}
-                  </div>
-                )}
               </>
             ) : null}
           </ZukvoLoadingOverlay>
@@ -1657,10 +1480,8 @@ const STYLES = `
 .md-step {
   display: inline-flex; align-items: center; gap: 7px;
   height: 32px; padding: 0 12px; border: none; border-radius: 7px;
-  background: transparent; cursor: pointer; white-space: nowrap;
-  transition: background .15s ease, color .15s ease;
+  background: transparent; white-space: nowrap;
 }
-.md-step:hover { background: rgba(59,130,246,.06); }
 .md-step__ic { color: #2563eb; flex-shrink: 0; }
 .md-step__n {
   font-size: 15px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
@@ -1676,6 +1497,171 @@ const STYLES = `
   .md-flow__sep { display: none; }
 }
 
+/* ── Suite rail: the page's one selector, down the left ────────────────── */
+.md-body { display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 16px; align-items: start; }
+.md-main { min-width: 0; }
+
+.sr {
+  position: sticky; top: 0; align-self: start;
+  /* The shell is 100vh - 64 topbar - 56 header; keep the rail inside that. */
+  display: flex; flex-direction: column; max-height: calc(100vh - 140px);
+  border: 1px solid var(--border-slate-200); border-radius: 14px;
+  background: var(--bg-pure-white); overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.03);
+}
+
+.sr__head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border-slate-100);
+  background: linear-gradient(180deg, rgba(59,130,246,.05), transparent);
+}
+.sr__head-ic {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
+}
+.sr__head-title { font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900); }
+.sr__head-sub { margin-top: 1px; font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+.sr__head-sub b { color: #dc2626; font-weight: 800; }
+
+.sr__controls { padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.sr__search {
+  display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 9px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-slate-50);
+  color: var(--text-slate-400);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.sr__search:focus-within {
+  border-color: rgba(59,130,246,.45); background: var(--bg-pure-white);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+}
+.sr__search input {
+  border: none; outline: none; background: transparent; width: 100%; min-width: 0;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-800);
+}
+.sr__search button { display: inline-flex; border: none; background: transparent; cursor: pointer; color: var(--text-slate-400); padding: 0; }
+.sr__search button:hover { color: var(--text-slate-700); }
+
+.sr__sorts {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-slate-50);
+}
+.sr__sorts button {
+  height: 22px; border: none; border-radius: 6px; background: transparent; cursor: pointer;
+  font-size: 10px; font-weight: 700; color: var(--text-slate-500);
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.sr__sorts button:hover { color: var(--text-slate-800); }
+.sr__sorts button.is-active {
+  background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.07);
+}
+
+.sr__list { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; min-height: 0; padding: 0 8px 10px; }
+.sr__list::-webkit-scrollbar { width: 5px; }
+.sr__list::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
+
+/* A hairline heading that splits what runs from what never has. */
+.sr__group {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 12px 4px 5px;
+  font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-slate-300);
+  font-variant-numeric: tabular-nums;
+}
+.sr__group i { flex: 1; height: 1px; background: var(--border-slate-100); }
+
+.sr__row {
+  position: relative; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 4px; width: 100%;
+  padding: 9px 24px 9px 11px; border-radius: 10px; border: 1px solid transparent;
+  background: transparent; cursor: pointer; text-align: left;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+/* The accent bar that marks the live selection. */
+.sr__row::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 0; border-radius: 0 3px 3px 0; background: #2563eb;
+  transition: height .18s ease;
+}
+.sr__row:hover:not(:disabled) { background: var(--bg-slate-50); }
+.sr__row.is-active {
+  background: rgba(59,130,246,.07); border-color: rgba(59,130,246,.26);
+  box-shadow: 0 1px 3px rgba(37,99,235,.07);
+}
+.sr__row.is-active::before { height: 60%; }
+.sr__row.is-dormant { opacity: .5; cursor: default; }
+
+.sr__row-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.sr__row-ic { color: #2563eb; flex-shrink: 0; }
+/* A one-glance verdict before any of the numbers are read. */
+.sr__dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+.sr__dot.is-ok { background: #10b981; }
+.sr__dot.is-fail { background: #ef4444; }
+.sr__dot.is-dead { background: var(--border-slate-300, #cbd5e1); }
+.sr__name {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 650; color: var(--text-slate-700); letter-spacing: -.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sr__row.is-active .sr__name { color: var(--text-slate-900); font-weight: 750; }
+.sr__count {
+  flex-shrink: 0; min-width: 22px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
+  font-size: 10px; font-weight: 800; color: var(--text-slate-500); font-variant-numeric: tabular-nums;
+}
+.sr__row.is-active .sr__count { background: rgba(59,130,246,.14); border-color: transparent; color: #2563eb; }
+
+.sr__row-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-left: 13px; }
+.sr__row-meta > * { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sr__rate { color: #059669; }
+.sr__rate.is-low { color: #dc2626; }
+.sr__sep { width: 2px; height: 2px; border-radius: 999px; background: var(--border-slate-200); }
+.sr__fails { color: #dc2626; }
+.sr__clean { color: var(--text-slate-400); font-weight: 600; }
+.sr__flag {
+  padding: 0 6px; border-radius: 999px; font-weight: 700;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-100); color: var(--text-slate-400);
+}
+
+/* Green as far as the pass rate goes, red for the rest. */
+.sr__track {
+  display: block; height: 3px; margin: 2px 0 0 13px; border-radius: 999px; overflow: hidden;
+  background: #ef4444;
+}
+.sr__track i { display: block; height: 100%; background: #10b981; border-radius: 999px; transition: width .3s ease; }
+
+.sr__go {
+  position: absolute; right: 7px; top: 50%; transform: translateY(-50%) translateX(-3px);
+  color: var(--text-slate-300); opacity: 0; transition: opacity .16s ease, transform .16s ease;
+}
+.sr__row:hover:not(:disabled) .sr__go { opacity: 1; transform: translateY(-50%) translateX(0); }
+.sr__row.is-active .sr__go { opacity: 1; transform: translateY(-50%) translateX(0); color: #2563eb; }
+
+.sr__empty { padding: 18px 10px; text-align: center; font-size: 11px; color: var(--text-slate-400); }
+.sr__foot {
+  flex-shrink: 0; padding: 9px 14px; border-top: 1px solid var(--border-slate-100);
+  background: var(--bg-slate-50);
+  font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); font-variant-numeric: tabular-nums;
+}
+.sr__foot b { font-weight: 800; color: var(--text-slate-600); }
+
+@media (max-width: 1180px) {
+  .md-body { grid-template-columns: minmax(0, 1fr); }
+  .sr { position: static; max-height: none; }
+  /* Stacked, the rail reads as a row of cards rather than a column. */
+  .sr__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); overflow: visible; gap: 6px; }
+  .sr__group { grid-column: 1 / -1; }
+  .sr__row { border-color: var(--border-slate-100); }
+}
+
+/**
+ * The suite picker's value row is a flex child that never declared min-width:0,
+ * so a long suite name pushed past the trigger instead of ellipsising. Every
+ * picker on this page is capped and truncated here.
+ */
+.cal__tools .sd-trigger { max-width: 100%; }
+.cal__tools .sd-trigger-content > div { min-width: 0; }
+.cal__tools .sd-trigger-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Insights: the read-out, before any raw list ───────────────────────── */
 .mx-insights {
   border: 1px solid var(--border-slate-200); border-radius: 14px;
@@ -1686,7 +1672,6 @@ const STYLES = `
   border-bottom: 1px solid var(--border-slate-100);
   background: linear-gradient(180deg, rgba(59,130,246,.05), transparent);
 }
-.mx-insights__tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .mx-insights__ic {
   width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
@@ -1801,7 +1786,14 @@ const STYLES = `
 .cal__bar i.is-pass { background: #10b981; }
 .cal__bar i.is-fail { background: #ef4444; }
 
+/**
+ * The rail is measured by the calendar beside it, never the other way round: it
+ * contributes no height of its own, and the card fills it absolutely, so a busy
+ * day scrolls its list instead of stretching the whole panel.
+ */
+.cal__rail { position: relative; min-height: 0; }
 .cal__side {
+  position: absolute; inset: 0;
   border: 1px solid var(--border-slate-200); border-radius: 12px; background: var(--bg-slate-50);
   padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
 }
@@ -1818,6 +1810,8 @@ const STYLES = `
   display: flex; flex-direction: column; gap: 6px;
   flex: 1; min-height: 0; overflow-y: auto;
 }
+/* Cards keep their natural height — the list scrolls, they never compress. */
+.cal__runs > li { flex-shrink: 0; }
 .cal__runs::-webkit-scrollbar { width: 5px; }
 .cal__runs::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
 .cal__run {
@@ -1841,6 +1835,9 @@ const STYLES = `
 
 @media (max-width: 1080px) {
   .cal__body { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked, there is no calendar beside the rail to take its height from. */
+  .cal__rail { position: static; }
+  .cal__side { position: static; max-height: 420px; }
 }
 
 /* ── Case stability matrix ─────────────────────────────────────────────── */
@@ -1848,14 +1845,13 @@ const STYLES = `
   border: 1px solid var(--border-slate-200); border-radius: 14px;
   background: var(--bg-pure-white); padding: 14px 16px 14px; margin-bottom: 16px;
 }
-.sm__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.sm__head { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
 .sm__title {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 750; letter-spacing: -.01em; color: var(--text-slate-900);
 }
 .sm__title svg { color: #2563eb; }
 .sm__sub { margin-top: 2px; font-size: 11px; color: var(--text-slate-400); }
-.sm__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sm__filters {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   margin-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-slate-100);
@@ -1891,6 +1887,8 @@ const STYLES = `
 
 /* ── The failed-case list ──────────────────────────────────────────────── */
 .sm__list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+/* The tripwire that pulls the next page in as it comes into view. */
+.sm__more { display: flex; justify-content: center; padding: 14px 0 6px; }
 .sm__row {
   width: 100%; display: flex; align-items: center; gap: 14px; cursor: pointer; text-align: left;
   padding: 10px 12px; border-radius: 11px;
@@ -2030,164 +2028,6 @@ const STYLES = `
 .sm__empty--clean svg { color: #047857; }
 .sm__loading { padding: 28px 0; display: flex; justify-content: center; }
 
-
-/* ── Section tabs ──────────────────────────────────────────────────────── */
-.md-tabs {
-  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
-  padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border-slate-200);
-}
-.md-tab {
-  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px;
-  border: 1px solid transparent; border-radius: 9px; background: transparent; cursor: pointer;
-  font-size: 12.5px; font-weight: 600; color: var(--text-slate-500);
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-.md-tab:hover { background: var(--bg-slate-50); color: var(--text-slate-800); }
-.md-tab.is-active { background: var(--bg-blue-50); color: #2563eb; border-color: rgba(59,130,246,.22); }
-.md-tab__n {
-  min-width: 18px; padding: 0 6px; border-radius: 999px; text-align: center;
-  font-size: 10.5px; font-weight: 700;
-  background: var(--bg-slate-50); color: var(--text-slate-500); border: 1px solid var(--border-slate-100);
-}
-.md-tab.is-active .md-tab__n { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
-
-/* ── Cards ─────────────────────────────────────────────────────────────── */
-.md-list { display: flex; flex-direction: column; gap: 10px; }
-.md-card {
-  border: 1px solid var(--border-slate-200); border-radius: 12px;
-  background: var(--bg-pure-white); overflow: hidden;
-  transition: border-color .18s ease, box-shadow .18s ease;
-}
-.md-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 16px rgba(15,23,42,.04); }
-.md-card--row {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 12px 14px; cursor: pointer; text-align: left;
-}
-.md-card__head { display: flex; align-items: center; gap: 11px; padding: 12px 14px; }
-.md-card__ic {
-  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
-}
-.md-card__ic.is-fail { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.2); }
-.md-card__id { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-card__title {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; color: var(--text-slate-900);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-card__meta {
-  font-size: 11.5px; color: var(--text-slate-400);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-card__go { color: var(--text-slate-300); flex-shrink: 0; }
-.md-card--row:hover .md-card__go { color: #3B82F6; }
-.md-card__empty {
-  padding: 12px 14px; border-top: 1px solid var(--border-slate-100);
-  font-size: 11.5px; color: var(--text-slate-400); background: var(--bg-slate-50);
-}
-.md-ref {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; font-weight: 700;
-  padding: 1px 6px; border-radius: 5px; flex-shrink: 0;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.md-note {
-  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px;
-  border: 1px solid rgba(59,130,246,.2); border-radius: 10px; background: rgba(59,130,246,.05);
-  font-size: 11.5px; line-height: 1.5; color: var(--text-slate-600);
-}
-.md-note svg { color: #3B82F6; flex-shrink: 0; margin-top: 1px; }
-
-/* ── Run history ───────────────────────────────────────────────────────── */
-.md-runs { border-top: 1px solid var(--border-slate-200); }
-.md-run + .md-run { border-top: 1px solid var(--border-slate-100); }
-.md-run.is-open { background: var(--bg-slate-50); }
-.md-run__head {
-  display: flex; align-items: center; gap: 11px; width: 100%;
-  padding: 9px 14px; border: none; background: transparent; cursor: pointer; text-align: left;
-  transition: background .15s ease;
-}
-.md-run__head:hover { background: var(--bg-slate-50); }
-.md-run__chev { color: var(--text-slate-400); display: inline-flex; flex-shrink: 0; }
-.md-run__ord {
-  min-width: 30px; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; text-align: center;
-  font-size: 10.5px; font-weight: 800;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-}
-.md-run.has-fail .md-run__ord { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.2); }
-.md-run__id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
-.md-run__name {
-  font-size: 12.5px; font-weight: 650; color: var(--text-slate-800);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-run__meta {
-  font-size: 11px; color: var(--text-slate-400);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.md-run__bar { display: flex; flex: 0 1 160px; min-width: 90px; }
-.md-run__counts { display: inline-flex; gap: 4px; flex-shrink: 0; }
-.md-count {
-  min-width: 24px; padding: 1px 6px; border-radius: 6px; text-align: center;
-  font-size: 10.5px; font-weight: 700;
-  color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
-.md-count.is-pass { color: #047857; background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.2); }
-.md-count.is-fail { color: #dc2626; background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.2); }
-.md-run__go {
-  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 26px; height: 26px; border-radius: 7px; cursor: pointer;
-  color: var(--text-slate-300); transition: background .15s ease, color .15s ease;
-}
-.md-run__go:hover { background: var(--bg-pure-white); color: #3B82F6; }
-
-/* ── Failures inside a run ─────────────────────────────────────────────── */
-.md-run__body { padding: 4px 14px 14px 52px; }
-.md-fail__loading, .md-fail__none {
-  padding: 10px 12px; font-size: 11.5px; color: var(--text-slate-400);
-  border: 1px dashed var(--border-slate-200); border-radius: 9px; background: var(--bg-pure-white);
-}
-.md-fail {
-  border: 1px solid rgba(239,68,68,.18); border-radius: 10px;
-  background: var(--bg-pure-white); overflow: hidden;
-}
-.md-fail__head {
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
-  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: #dc2626; background: rgba(239,68,68,.06); border-bottom: 1px solid rgba(239,68,68,.14);
-}
-.md-failrow { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; }
-.md-failrow + .md-failrow { border-top: 1px solid var(--border-slate-100); }
-.md-failrow__dot {
-  width: 7px; height: 7px; border-radius: 999px; background: #ef4444; flex-shrink: 0; margin-top: 6px;
-}
-.md-failrow__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-failrow__title {
-  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
-  font-size: 12.5px; font-weight: 650; color: var(--text-slate-800);
-}
-.md-failrow__meta { font-size: 11px; color: var(--text-slate-400); }
-.md-failrow__note {
-  margin-top: 2px; padding: 6px 9px; border-radius: 7px;
-  font-size: 11.5px; font-style: italic; line-height: 1.45; color: var(--text-slate-600);
-  background: var(--bg-slate-50); border-left: 2px solid var(--border-slate-200);
-}
-
-/* ── Hotspot rows ──────────────────────────────────────────────────────── */
-.md-spot { border-top: 1px solid var(--border-slate-100); }
-.md-spotrow {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 9px 14px; border: none; background: transparent; cursor: pointer; text-align: left;
-  transition: background .15s ease;
-}
-.md-spotrow + .md-spotrow { border-top: 1px solid var(--border-slate-100); }
-.md-spotrow:hover { background: var(--bg-slate-50); }
-.md-spotrow__run { font-size: 12.5px; font-weight: 650; color: var(--text-slate-800); flex-shrink: 0; }
-.md-spotrow__meta { font-size: 11px; color: var(--text-slate-400); flex-shrink: 0; }
-.md-spotrow__note {
-  font-size: 11px; font-style: italic; color: var(--text-slate-500);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
-}
-.md-spotrow__go { color: var(--text-slate-300); flex-shrink: 0; margin-left: auto; }
 
 /* ── Borrowed vocabulary from the map ──────────────────────────────────── */
 .cm-bar {

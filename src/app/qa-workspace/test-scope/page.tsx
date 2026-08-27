@@ -222,7 +222,7 @@ function TestScopeContent() {
   // Any filter change resets to the first page
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
+  }, [debouncedSearch, statusFilter, priorityFilter, ownerFilter, timelineFilter, projectFilter]);
 
   const fetchStats = async () => {
     try {
@@ -271,7 +271,7 @@ function TestScopeContent() {
     if (!isLoading && canReadScope) {
       fetchScopes();
     }
-  }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey]);
+  }, [isLoading, canReadScope, page, pageSize, debouncedSearch, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey]);
 
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */

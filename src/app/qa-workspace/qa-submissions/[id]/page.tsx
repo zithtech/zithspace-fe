@@ -773,6 +773,7 @@ export default function QaSubmissionDetailPage() {
                   size="small"
                   rowKey="test_case_id"
                   pagination={false}
+                  scroll={{ x: 'max-content' }}
                   dataSource={summary.failedCases}
                   columns={[
                     {

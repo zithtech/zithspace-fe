@@ -550,6 +550,9 @@ export function OpeningStyles() {
         z-index: 20;
         box-shadow: 0 -4px 14px rgba(15,23,42,0.02);
       }
+      .omp-table-wrap .ant-pagination .ant-pagination-total-text {
+        margin-right: auto;
+      }
 
       /* Section card */
       .omp-section {
@@ -569,6 +572,8 @@ export function OpeningStyles() {
 
       /* Tables — matches the ticket/reimbursement table look */
       .omp-table-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .omp-table-wrap .zlo,
+      .omp-table-wrap .zlo__content,
       .omp-table-wrap .ant-table-wrapper,
       .omp-table-wrap .ant-spin-nested-loading,
       .omp-table-wrap .ant-spin-container { display: flex; flex-direction: column; flex: 1; min-height: 0; }

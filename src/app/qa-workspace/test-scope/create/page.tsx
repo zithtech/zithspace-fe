@@ -909,7 +909,7 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingSprints(true);
-        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10 } });
+        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, project_id: formData.details.product || undefined } });
         const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
         setSprints(fetchedSprints);
       } catch (err) {
@@ -918,7 +918,7 @@ export default function CreateScopePage() {
         setLoadingSprints(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchDevTicketsSearch = React.useCallback(
@@ -934,7 +934,7 @@ export default function CreateScopePage() {
         setLoadingDevTickets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchBugSheetsSearch = React.useCallback(
@@ -950,7 +950,7 @@ export default function CreateScopePage() {
         setLoadingBugSheets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   // The tenant's module list, offered on the Product & Modules step.
@@ -972,12 +972,12 @@ export default function CreateScopePage() {
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all?limit=1000'),
-          axios.get('/api/v2/qa/runs/all?limit=1000'),
+          axios.get('/api/v2/qa/suites/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
+          axios.get('/api/v2/qa/runs/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
           axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents?limit=1000'),
+          axios.get('/api/v2/qa/parents?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -993,7 +993,7 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     })();
-  }, []);
+  }, [formData.details.product]);
 
   const fetchTestCasesSearch = React.useCallback(
     debounce(async (search: string) => {
@@ -1011,7 +1011,7 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestSuitesSearch = React.useCallback(
@@ -1028,7 +1028,7 @@ export default function CreateScopePage() {
         setLoadingTestSuites(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestRunsSearch = React.useCallback(
@@ -1045,7 +1045,7 @@ export default function CreateScopePage() {
         setLoadingTestRuns(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const d = formData.details;

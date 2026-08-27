@@ -253,7 +253,7 @@ export default function GovernmentHolidaysPanel() {
       </div>
 
       {total > 0 && (
-        <div className="lvgh-footer">
+        <div className="lvgh-footer lvgh-footer--sticky">
           <div className="lvgh-footer-info">
             Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong>
             {selected.length > 0 && (
@@ -326,7 +326,8 @@ export default function GovernmentHolidaysPanel() {
         .lvgh-search { flex: 1; border: none; outline: none; background: transparent; margin-left: 9px; font-size: 13px; }
         .lvgh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; }
         .lvgh-add-btn { height: 36px !important; border-radius: 8px !important; font-weight: 600 !important; }
-        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+        .lvgh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: auto; flex: 1; min-height: 0; }
+        .lvgh-table .ant-table-content { overflow: visible !important; }
         .lvgh-table, .lvgh-table.ant-table-wrapper, .lvgh-table .ant-table, .lvgh-table .ant-table-container, .lvgh-table .ant-table-content, .lvgh-table .ant-table-header, .lvgh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lvgh-table .ant-table-thead > tr > th,
         .lvgh-table .ant-table-thead > tr > td {
@@ -335,23 +336,13 @@ export default function GovernmentHolidaysPanel() {
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
           white-space: nowrap !important; border-radius: 0 !important;
           border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
-        }
+         position: sticky !important; top: 0 !important; z-index: 10 !important; }
         .lvgh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvgh-table .ant-table-tbody > tr.lvgh-row:hover > td { background: var(--bg-slate-50) !important; }
         .lvgh-table .ant-pagination { display: none; }
         
-        .lvgh-footer {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 10px;
-          padding: 0 4px;
-          height: 52px;
-          box-sizing: border-box;
-          background: transparent;
-          flex-shrink: 0;
-        }
+        .lvgh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
+        .lvgh-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvgh-footer-info {
           font-size: 12px;
           color: var(--text-slate-500);

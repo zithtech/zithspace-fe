@@ -47,6 +47,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  ArrowRight,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
@@ -82,6 +83,7 @@ import {
   useBulkMoveBugs,
 } from "@/hooks/useBugList";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useProjectQaModules } from "@/hooks/useQaOptions";
 import type {
   BugFolder,
   BugListItem,
@@ -119,6 +121,9 @@ interface FilterState {
 
 const DEFAULT_FILTERS: FilterState = { search: "" };
 
+/** How many projects the empty-state picker shows before "Show more". */
+const PROJECT_PICKER_PREVIEW = 6;
+
 const stringToHash = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -130,6 +135,9 @@ const stringToHash = (str: string) => {
 export default function BugListPage() {
   console.log("Forcing HMR reload for BugListPage");
   const { message } = App.useApp();
+  /** The project picker on the empty state shows a first page of projects. */
+  const [showAllPickerProjects, setShowAllPickerProjects] = useState(false);
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("buglist_selected_project") || null;
@@ -437,11 +445,36 @@ export default function BugListPage() {
     !!bugsResponse?.pagination &&
     total > 0;
 
-  const moduleOptions = useMemo(() => {
+  /**
+   * The modules this project owns, from QA Space → Settings → Modules. Bugs,
+   * scopes and test cases all file against the same list, so the capture form
+   * offers those rather than whatever text past bugs happen to carry.
+   */
+  const { options: projectModuleOptions, refetch: refetchProjectModules } = useProjectQaModules(selectedProjectId);
+
+  /** Module names already on this project's bugs — kept so old values still read back. */
+  const legacyModules = useMemo(() => {
+    const known = new Set(projectModuleOptions.map((o) => o.value.toLowerCase()));
     const set = new Set<string>();
-    bugs.forEach((b) => b.module && set.add(b.module));
+    bugs.forEach((b) => {
+      const name = (b.module || "").trim();
+      if (name && !known.has(name.toLowerCase())) set.add(name);
+    });
     return Array.from(set).sort();
-  }, [bugs]);
+  }, [bugs, projectModuleOptions]);
+
+  /** Switching project starts from the top of that project's tree. */
+  const chooseProject = (id: string) => {
+    setSelectedProjectId(id);
+    setSelectedFolderId(null);
+    setSelectedSheetId(null);
+  };
+
+  const pickerProjects = projects || [];
+  const visiblePickerProjects = showAllPickerProjects
+    ? pickerProjects
+    : pickerProjects.slice(0, PROJECT_PICKER_PREVIEW);
+  const hiddenPickerCount = Math.max(0, pickerProjects.length - PROJECT_PICKER_PREVIEW);
 
   const memberOptions = useMemo(
     () => members.map((m: any) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl, description: m.description })),
@@ -1365,25 +1398,81 @@ export default function BugListPage() {
 
         <div className="hb-content">
           {!selectedProjectId ? (
-            <div className="hb-empty-state hb-project-empty">
-              <div className="hb-empty-icon">
-                <div className="hb-empty-icon-ring">
-                  <Briefcase size={40} />
-                </div>
+            /* Nothing to show until a project is chosen — so choose it here,
+               rather than pointing at the switcher and leaving the page blank.
+               `.hb-content` clips its overflow, so the picker owns its own
+               scroll — otherwise the expanded grid runs off the bottom. */
+            <div className="hb-pp-scroll">
+            <div className="hb-projectpicker">
+              <div className="hb-pp-head">
+                <span className="hb-pp-badge"><Briefcase size={20} /></span>
+                <h3 className="hb-pp-title">Choose a project</h3>
+                <p className="hb-pp-sub">
+                  Bugs, sheets and folders all live inside a project. Pick one to open its bug list.
+                </p>
               </div>
-              <h3>Choose a Project</h3>
-              <p>To view bugs and manage your workflow, please select a project from the header above.</p>
-              <div className="hb-empty-actions">
-                <button
-                  className="hb-btn hb-btn-primary hb-btn-lg"
-                  onClick={() => {
-                    message.info("Click the project switcher in the top-left");
-                  }}
-                >
-                  <Search size={14} />
-                  Find Project
-                </button>
+
+              <div className="hb-pp-search">
+                <SearchableDropdown
+                  options={pickerProjects.map(p => ({
+                    value: p.value,
+                    label: p.label,
+                    description: p.code ? `#${p.code}` : undefined,
+                  }))}
+                  value={undefined}
+                  onChange={(v: any) => v && chooseProject(v)}
+                  placeholder={projectsLoading ? "Loading projects…" : "Search all projects"}
+                  searchPlaceholder="Type a project name or code…"
+                  itemNoun="projects"
+                  loading={projectsLoading}
+                  allowClear={false}
+                  style={{ width: "100%" }}
+                />
               </div>
+
+              {pickerProjects.length > 0 && (
+                <>
+                  <div className="hb-pp-divider">
+                    <span>{showAllPickerProjects ? "All projects" : "Recent projects"}</span>
+                  </div>
+
+                  <div className="hb-pp-grid">
+                    {visiblePickerProjects.map(p => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        className="hb-pp-card"
+                        onClick={() => chooseProject(p.value)}
+                      >
+                        <span className="hb-pp-card__code">
+                          {(p.code || "PRJ").substring(0, 3).toUpperCase()}
+                        </span>
+                        <span className="hb-pp-card__text">
+                          <span className="hb-pp-card__name">{p.label}</span>
+                          <span className="hb-pp-card__meta">#{p.code || "N/A"}</span>
+                        </span>
+                        <ArrowRight size={14} className="hb-pp-card__go" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {hiddenPickerCount > 0 && (
+                    <button
+                      type="button"
+                      className="hb-pp-more"
+                      onClick={() => setShowAllPickerProjects(v => !v)}
+                    >
+                      <ChevronDown size={13} className={showAllPickerProjects ? "is-open" : ""} />
+                      {showAllPickerProjects ? "Show less" : `Show ${hiddenPickerCount} more`}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {!projectsLoading && pickerProjects.length === 0 && (
+                <p className="hb-pp-none">You don’t belong to any project yet — ask a project manager to add you.</p>
+              )}
+            </div>
             </div>
           ) : viewMode === "calendar" ? (
             <BugCalendarView
@@ -1609,7 +1698,10 @@ export default function BugListPage() {
         folderId={selectedFolderId}
         sheetId={selectedSheetId}
         editingBug={editingBug}
-        modules={moduleOptions}
+        moduleOptions={projectModuleOptions}
+        legacyModules={legacyModules}
+        projectName={projects?.find(p => p.value === selectedProjectId)?.label}
+        onModulesRefresh={() => refetchProjectModules()}
         onSubmit={handleSubmitBug}
         submitting={createBug.isPending || updateBug.isPending}
       />

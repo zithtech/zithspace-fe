@@ -2,26 +2,28 @@
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, message, Modal, List, Typography, Input, Select, Form, Drawer, Tooltip } from "antd";
 import { BugOutlined, PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, ClockCircleOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Target, Trash2, Pencil, Layers, Folder, FolderOpen, Boxes, User, Users, ChevronDown, Menu, RotateCw } from "lucide-react";
+import { Target, Trash2, Pencil, Layers, Folder, User, Users, ChevronDown, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { MembersService } from "@/services/membersService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
-import { ProjectService } from "@/services/projectService";
+import { useQaProject, QaProjectPicker, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 import { useDebounce } from "@/hooks/useDebounce";
 
+const norm = (v: any) => String(v ?? "").trim().toLowerCase();
+
 /** How many entries each sidebar section shows before "Show more". */
-const PROJECTS_PREVIEW = 3;
 const MODULES_PREVIEW = 5;
 
 /** Collapses a list to its preview window, keeping the selected entry visible. */
@@ -88,13 +90,15 @@ export default function TestCasesPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showAllProjects, setShowAllProjects] = useState(false);
   const [showAllModules, setShowAllModules] = useState(false);
 
   const [parentCases, setParentCases] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
   const [totalItems, setTotalItems] = useState(0);
   const [modules, setModules] = useState<any[]>([]);
+  const [scopes, setScopes] = useState<any[]>([]);
+  /** False once the scope list comes back empty or forbidden — the drawer then asks for a module directly. */
+  const [scopesAvailable, setScopesAvailable] = useState(false);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -104,7 +108,16 @@ export default function TestCasesPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [automationFilter, setAutomationFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
-  const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  /* Cases are read inside one project, the way the Bug List works — the choice
+     is remembered and shared with the other QA Space lists. */
+  const {
+    projects: projectOptions,
+    loading: loadingProjects,
+    ready: projectReady,
+    projectId: selectedProjectId,
+    setProjectId,
+  } = useQaProject();
+  const projectFilter = selectedProjectId || undefined;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [suitesModalVisible, setSuitesModalVisible] = useState(false);
@@ -124,12 +137,13 @@ export default function TestCasesPage() {
     status: "Draft",
     owner: undefined as string | undefined
   });
+  /**
+   * The scope the drawer is filing against. It picks the module rather than
+   * being stored on the case — a parent case has no scope column.
+   */
+  const [scopeId, setScopeId] = useState<string | undefined>(undefined);
 
-  // Projects the user belongs to — a test case is filed against one
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-
-  const { canReadCase, canCreateCase, canUpdateCase, canDeleteCase } = usePermission();
+  const { canReadCase, canCreateCase, canUpdateCase, canDeleteCase, canReadScope } = usePermission();
   const { user } = useAuth();
 
   const fetchData = async () => {
@@ -151,7 +165,7 @@ export default function TestCasesPage() {
             allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
         }),
-        axios.get("/api/v2/qa/modules?limit=1000"),
+        axios.get("/api/v2/qa/modules", { params: { limit: 1000, project_id: projectFilter } }),
         MembersService.getMembers({ limit: 500 }).catch(() => ({ data: [] }))
       ]);
       const body = (parentsRes as any).data;
@@ -168,38 +182,52 @@ export default function TestCasesPage() {
   };
 
   useEffect(() => {
-    if (canReadCase) {
-      fetchProjects();
+    if (canReadCase && projectFilter) {
+      fetchScopes();
     }
-  }, [canReadCase]);
+  }, [canReadCase, canReadScope, projectFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * The test scopes the drawer offers. A case belongs to the module its scope
+   * plans against, so the scope is picked first; someone who cannot read scopes
+   * just picks the module.
+   */
+  const fetchScopes = async () => {
+    if (!canReadScope) return setScopesAvailable(false);
+    try {
+      // Scopes are keyed by project *name*, not id.
+      const res: any = await axios.get("/api/v2/qa/test-scopes", {
+        params: {
+          pageSize: 1000,
+          product: projectOptions.find(p => p.value === projectFilter)?.label || undefined,
+        },
+      });
+      const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+      setScopes(Array.isArray(list) ? list : []);
+      setScopesAvailable(Array.isArray(list) && list.length > 0);
+    } catch (err) {
+      console.error("Failed to fetch test scopes:", err);
+      setScopesAvailable(false);
+    }
+  };
 
   useEffect(() => {
-    if (canReadCase) {
+    /* Nothing is worth fetching until a project is chosen — an unscoped list
+       is exactly what this page moved away from. */
+    if (canReadCase && projectFilter) {
       fetchData();
     }
-  }, [canReadCase, page, pageSize, debouncedSearch, moduleFilter, statusFilter, automationFilter, ownerFilter, projectFilter, projectOptions]);
+  }, [canReadCase, projectFilter, page, pageSize, debouncedSearch, moduleFilter, statusFilter, automationFilter, ownerFilter]);
 
-  /** Active projects the signed-in user belongs to. */
-  const fetchProjects = async () => {
-    try {
-      setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects(true);
-      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
-      setProjectOptions(
-        list
-          .map((p: any) => ({
-            value: String(p.value ?? p.id ?? ''),
-            label: String(p.label ?? p.name ?? ''),
-            description: p.code || undefined,
-          }))
-          .filter(o => o.value && o.label)
-      );
-    } catch (err) {
-      // No project access — the field falls back to an empty list
-      console.error("Failed to fetch projects:", err);
-    } finally {
-      setLoadingProjects(false);
-    }
+  /** Switching project drops filters that name things from the old one. */
+  const chooseProject = (id: string | null) => {
+    setProjectId(id);
+    setModuleFilter(undefined);
+    setStatusFilter(undefined);
+    setAutomationFilter(undefined);
+    setOwnerFilter(undefined);
+    setSearchTerm('');
+    setPage(1);
   };
 
   // Any filter change resets to the first page
@@ -210,10 +238,11 @@ export default function TestCasesPage() {
   const handleOpenCreateModal = () => {
     setEditingId(null);
     setEditingRecord(null);
+    setScopeId(undefined);
     setFormData({
       title: "",
       module_id: undefined,
-      project_id: projectOptions.length === 1 ? projectOptions[0].value : undefined,
+      project_id: projectFilter,
       feature: "",
       automation: "Manual",
       status: "Draft",
@@ -226,10 +255,13 @@ export default function TestCasesPage() {
     e.stopPropagation();
     setEditingId(r.id);
     setEditingRecord(r);
+    // A saved case carries a module, not a scope — the picker starts empty and
+    // the module it already has stays editable.
+    setScopeId(undefined);
     setFormData({
       title: r.title || "",
       module_id: r.module_id || undefined,
-      project_id: r.project_id || undefined,
+      project_id: r.project_id || projectFilter,
       feature: r.feature || "",
       automation: r.automation || "Manual",
       status: r.status || "Draft",
@@ -238,6 +270,177 @@ export default function TestCasesPage() {
     setDrawerVisible(true);
   };
 
+  const selectedScope = useMemo(
+    () => scopes.find(sc => String(sc.id) === scopeId),
+    [scopes, scopeId],
+  );
+
+  /** The name the drawer's project goes by on a scope — scopes store the project's *name*. */
+  const selectedProjectName = useMemo(
+    () => projectOptions.find(p => p.value === formData.project_id)?.label,
+    [projectOptions, formData.project_id],
+  );
+
+  /** A scope's product, matched back to a project the user can actually file against. */
+  const projectIdForProduct = (product: any) => {
+    const key = norm(product);
+    if (!key) return undefined;
+    return projectOptions.find(p => norm(p.label) === key)?.value;
+  };
+
+  /**
+   * The scopes on offer. Choosing a project narrows the list to that project's
+   * scopes; scopes that name no product stay in, since nothing says they belong
+   * elsewhere.
+   */
+  const visibleScopes = useMemo(() => {
+    const key = norm(selectedProjectName);
+    if (!key) return scopes;
+    return scopes.filter((sc: any) => {
+      const product = norm(sc.details?.product);
+      return !product || product === key;
+    });
+  }, [scopes, selectedProjectName]);
+
+  /** Picking a scope fills in the project it plans against. */
+  const handleScopeChange = (val?: string) => {
+    setScopeId(val || undefined);
+    const sc = scopes.find((s: any) => String(s.id) === String(val));
+    const projectId = projectIdForProduct(sc?.details?.product);
+    if (!projectId) return;
+    setFormData(prev => (prev.project_id === projectId ? prev : { ...prev, project_id: projectId }));
+  };
+
+  /** Changing the project drops a scope that plans against a different one. */
+  const handleProjectChange = (val?: string) => {
+    setFormData(prev => ({ ...prev, project_id: val }));
+    if (!scopeId) return;
+    const name = norm(projectOptions.find(p => p.value === val)?.label);
+    const product = norm(scopes.find((s: any) => String(s.id) === scopeId)?.details?.product);
+    if (name && product && product !== name) setScopeId(undefined);
+  };
+
+  /**
+   * The modules a scope plans against, resolved from the names it stores in
+   * `details.modules` to the rows a case is filed under. Modules are per-project,
+   * so a name is matched inside the scope's own product first.
+   */
+  const scopeModules = useMemo(() => {
+    const named: any[] = Array.isArray(selectedScope?.details?.modules)
+      ? selectedScope.details.modules
+      : [];
+    const product = norm(selectedScope?.details?.product);
+    const seen = new Set<string>();
+
+    return named
+      .map((raw: any) => String(raw ?? "").trim())
+      .filter(name => {
+        const key = norm(name);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(name => {
+        const matches = modules.filter((m: any) => norm(m.module_name || m.name) === norm(name));
+        const match =
+          matches.find((m: any) => product && norm(m.project_name) === product) ||
+          matches.find((m: any) => !m.project_name) ||
+          matches[0];
+        return { name, id: match?.id as string | undefined };
+      });
+  }, [selectedScope, modules]);
+
+  /** Only modules that exist as rows can be saved — a name alone has no id to file under. */
+  const resolvedScopeModules = useMemo(() => scopeModules.filter(m => m.id), [scopeModules]);
+
+  /**
+   * One module on the scope → the field is settled, so it is shown read-only.
+   * Several → the scope's own shortlist. None → the whole list, since the scope
+   * never said which module its cases belong to.
+   */
+  const moduleMode: "locked" | "scoped" | "open" =
+    !selectedScope
+      ? "open"
+      : resolvedScopeModules.length === 1
+        ? "locked"
+        : resolvedScopeModules.length > 1
+          ? "scoped"
+          : "open";
+
+  /**
+   * With no module of its own, a scope still narrows the list to its product —
+   * and with no scope at all, the chosen project does the same job.
+   */
+  const openModules = useMemo(() => {
+    const product = norm(selectedScope?.details?.product) || norm(selectedProjectName);
+    if (!product) return modules;
+    const ofProduct = modules.filter((m: any) => norm(m.project_name) === product);
+    return ofProduct.length ? ofProduct : modules;
+  }, [modules, selectedScope, selectedProjectName]);
+
+  // Picking a scope decides the module for you when it names exactly one; any
+  // other change clears a module the new scope may not even have.
+  useEffect(() => {
+    if (!scopeId) return;
+    setFormData(prev => {
+      if (resolvedScopeModules.length === 1) {
+        return prev.module_id === resolvedScopeModules[0].id
+          ? prev
+          : { ...prev, module_id: resolvedScopeModules[0].id };
+      }
+      const keep =
+        resolvedScopeModules.length > 1 &&
+        prev.module_id &&
+        resolvedScopeModules.some(m => m.id === prev.module_id);
+      return keep || prev.module_id === undefined ? prev : { ...prev, module_id: undefined };
+    });
+  }, [scopeId, resolvedScopeModules]);
+
+  const scopeOptions = visibleScopes.map((sc: any) => ({
+    value: String(sc.id),
+    label: sc.name || "Untitled scope",
+    description: [sc.details?.product, sc.status].filter(Boolean).join(" · ") || undefined,
+  }));
+
+  /**
+   * A project with no scopes of its own must not trap the drawer behind a
+   * required, empty dropdown — the module is then picked directly.
+   */
+  const scopeRequired = scopesAvailable && visibleScopes.length > 0;
+
+  /**
+   * What the Module dropdown offers: the scope's own modules once it names any,
+   * otherwise the list narrowed to the scope's product.
+   */
+  const moduleOptions =
+    moduleMode === "open"
+      ? openModules.map((mod: any) => ({
+          value: mod.id,
+          label: mod.module_name || mod.name || "Module",
+          description: mod.project_name || undefined,
+        }))
+      : scopeModules.map(mod => ({
+          value: mod.id ?? `missing:${mod.name}`,
+          label: mod.name,
+          description: mod.id ? "From the selected scope" : "No longer in the module list",
+          disabled: !mod.id,
+        }));
+
+  const moduleHint =
+    moduleMode === "locked"
+      ? "Set by the selected scope."
+      : moduleMode === "scoped"
+        ? "This scope plans against several modules — pick the one this case belongs to."
+        : selectedScope
+          ? "This scope doesn’t name a module — choose the one this case belongs to."
+          : "";
+
+  /**
+   * On create the module only appears once the scope has been chosen; an
+   * existing case already has one, so editing never hides it.
+   */
+  const showModuleField = !!editingId || !scopeRequired || !!scopeId;
+
   const handleSaveParent = async () => {
     if (!formData.title.trim()) {
       message.error("Please enter a Test Case Title");
@@ -245,6 +448,10 @@ export default function TestCasesPage() {
     }
     if (!formData.project_id) {
       message.error("Please select a Project — bugs raised from this case are filed against it");
+      return;
+    }
+    if (!editingId && scopeRequired && !scopeId) {
+      message.error("Please select a Test Scope — it decides the module this case is filed under");
       return;
     }
     try {
@@ -310,20 +517,17 @@ export default function TestCasesPage() {
   const ownerFilterOptions = usersList.map(u => ({ value: u.name, label: u.name }));
 
   /* Sidebar sections — same option lists the filter row used to own. */
-  const visibleProjects = previewList(projectOptions, PROJECTS_PREVIEW, showAllProjects, projectFilter);
   const moduleNavOptions = modules.map(m => ({ value: String(m.module_name), label: String(m.module_name) }));
   const moduleFilterOptions = [{ value: 'Unassigned', label: 'Unassigned' }, ...moduleNavOptions];
   const visibleModules = previewList(moduleNavOptions, MODULES_PREVIEW, showAllModules, moduleFilter);
-  const hiddenProjectCount = Math.max(0, projectOptions.length - PROJECTS_PREVIEW);
   const hiddenModuleCount = Math.max(0, moduleNavOptions.length - MODULES_PREVIEW);
 
-  const selectedProjectLabel = projectOptions.find(p => p.value === projectFilter)?.label;
 
   /* The rail offers mine-vs-all; the filter row still narrows to any other owner. */
   const isMyCases = !!user?.name && ownerFilter === user.name;
 
   const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) + 
-    (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0) + (projectFilter ? 1 : 0);
+    (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -331,7 +535,6 @@ export default function TestCasesPage() {
     setStatusFilter(undefined);
     setAutomationFilter(undefined);
     setOwnerFilter(undefined);
-    setProjectFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -967,7 +1170,7 @@ export default function TestCasesPage() {
               </div>
             </div>
 
-            {canCreateCase && (
+            {canCreateCase && projectFilter && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -980,42 +1183,6 @@ export default function TestCasesPage() {
             )}
           </div>
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Projects</span>
-            <button
-              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
-              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Boxes size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Projects</span>
-              {projectOptions.length > 0 ? <span className="pp-nav-count">{projectOptions.length}</span> : null}
-            </button>
-            {visibleProjects.map(pj => (
-              <button
-                key={pj.value}
-                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
-                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
-                title={pj.label}
-              >
-                {projectFilter === pj.value
-                  ? <FolderOpen size={15} className="pp-nav-icon" />
-                  : <Folder size={15} className="pp-nav-icon" />}
-                <span className="pp-nav-label">{pj.label}</span>
-              </button>
-            ))}
-            {!loadingProjects && projectOptions.length === 0 && (
-              <span className="pp-nav-empty">No projects assigned</span>
-            )}
-            {hiddenProjectCount > 0 && (
-              <button
-                type="button"
-                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
-                onClick={() => setShowAllProjects(v => !v)}
-              >
-                <ChevronDown size={13} className="pp-nav-more-icon" />
-                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
-              </button>
-            )}
-
             <span className="pp-nav-caption">QA Owner</span>
             <button
               className={`pp-nav-item ${isMyCases ? 'is-active' : ''}`}
@@ -1088,9 +1255,20 @@ export default function TestCasesPage() {
               />
               <span className="sc-topbar__h1">Cases</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">
-                {[selectedProjectLabel || 'All projects', ownerFilter, moduleFilter].filter(Boolean).join(' · ')}
-              </span>
+              <QaProjectSwitcher
+                projects={projectOptions}
+                value={selectedProjectId}
+                onChange={chooseProject}
+                loading={loadingProjects}
+              />
+              {[ownerFilter, moduleFilter].filter(Boolean).length > 0 && (
+                <>
+                  <span className="sc-topbar__div" />
+                  <span className="sc-topbar__sub">
+                    {[ownerFilter, moduleFilter].filter(Boolean).join(' · ')}
+                  </span>
+                </>
+              )}
             </div>
 
             <div className="dh-main-controls">
@@ -1098,7 +1276,7 @@ export default function TestCasesPage() {
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
                 onClick={fetchData}
-                disabled={loading}
+                disabled={loading || !projectFilter}
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
@@ -1106,7 +1284,7 @@ export default function TestCasesPage() {
                 <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} title="List View"><UnorderedListOutlined /></button>
                 <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} title="Grid View"><AppstoreOutlined /></button>
               </div>
-              {canCreateCase && (
+              {canCreateCase && projectFilter && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
                   New Case
                 </Button>
@@ -1115,6 +1293,23 @@ export default function TestCasesPage() {
           </div>
 
           <div className="dh-main-scroll">
+            {!projectFilter ? (
+              /* Until the project is known there are no cases, stats or filters
+                 worth showing — the picker takes the whole area. */
+              !projectReady ? (
+                /* Reading the remembered project — showing the picker first
+                   would flash it away a frame later. */
+                <ZukvoLoader size="md" message="Loading projects…" />
+              ) : (
+                <QaProjectPicker
+                  projects={projectOptions}
+                  loading={loadingProjects}
+                  onChoose={chooseProject}
+                  subtitle="Test cases are written against one project. Pick one to open its cases."
+                />
+              )
+            ) : (
+            <>
             {/* Stats — product-standard StatTile, clickable to filter */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
@@ -1236,10 +1431,12 @@ export default function TestCasesPage() {
                 </div>
               )}
             </ZukvoLoadingOverlay>
+            </>
+            )}
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {filteredData.length > 0 && (
+          {projectFilter && filteredData.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
@@ -1273,6 +1470,7 @@ export default function TestCasesPage() {
         maskClosable={!submitting}
       >
         <style>{formStyles}</style>
+        <style>{NO_MODULES_STYLES}</style>
         <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
           {/* Drawer Header */}
           <div
@@ -1345,7 +1543,7 @@ export default function TestCasesPage() {
                 step="STEP 1"
                 icon={<InfoCircleOutlined />}
                 title="Test Case Information"
-                subtitle="Define the test case title, target module, and feature area"
+                subtitle="Define the test case title, the scope it plans against, and its module"
               >
                 <Form.Item
                   label="Title (Test Case)"
@@ -1368,35 +1566,109 @@ export default function TestCasesPage() {
                   style={{ marginBottom: 16 }}
                   extra={
                     <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>
-                      Bugs raised from runs of this test case are filed under this project&apos;s bug list.
+                      The project you are viewing — switch it in the sidebar to file against another.
+                      Bugs raised from runs of this test case are filed under its bug list.
                     </span>
                   }
                 >
+                  {/* Fixed to the project the list is showing — a case filed
+                      against another one would vanish the moment it saved. */}
                   <SearchableDropdown
                     options={projectOptions}
                     value={formData.project_id}
-                    onChange={(val: any) => setFormData({ ...formData, project_id: val })}
+                    onChange={(val: any) => handleProjectChange(val || undefined)}
                     placeholder={loadingProjects ? "Loading projects…" : projectOptions.length ? "Select a project" : "No projects available"}
                     searchPlaceholder="Search your projects…"
                     itemNoun="projects"
                     loading={loadingProjects}
+                    disabled
+                    allowClear={false}
                     style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
                   />
                 </Form.Item>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <Form.Item label="Module (Business Module)" style={{ marginBottom: 0 }}>
+                {/* The scope decides the module, so it is picked first. */}
+                {scopesAvailable && (
+                  <Form.Item
+                    label="Test Scope"
+                    required={!editingId && scopeRequired}
+                    style={{ marginBottom: 16 }}
+                    extra={
+                      <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>
+                        {!scopeRequired && selectedProjectName
+                          ? `${selectedProjectName} has no test scopes yet — pick the module directly.`
+                          : editingId
+                            ? "Pick a scope to re-file this case under the module that scope plans against."
+                            : selectedProjectName
+                              ? `Scopes planning against ${selectedProjectName}. Picking one decides the module below.`
+                              : "The plan this case is written against — picking one fills in its project and module."}
+                      </span>
+                    }
+                  >
                     <SearchableDropdown
-                      options={modules.map((mod: any) => ({
-                        value: mod.id,
-                        label: mod.module_name || mod.name || "Module",
-                      }))}
-                      value={formData.module_id}
-                      onChange={(val: any) => setFormData({ ...formData, module_id: val })}
-                      placeholder="Select business module"
+                      options={scopeOptions}
+                      value={scopeId}
+                      onChange={(val: any) => handleScopeChange(val || undefined)}
+                      placeholder={scopeRequired ? "Select a test scope" : "No scopes for this project"}
+                      searchPlaceholder="Search scopes…"
+                      itemNoun="scopes"
+                      disabled={!scopeRequired}
                       style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
                     />
                   </Form.Item>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: showModuleField ? "1fr 1fr" : "1fr", gap: 16 }}>
+                  {/* Before a scope is chosen there is nothing to file the case under. */}
+                  {showModuleField && (
+                  <Form.Item
+                    label={
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        Module (Business Module)
+                        {moduleMode === "locked" && (
+                          <span
+                            style={{
+                              padding: "1px 7px",
+                              borderRadius: 999,
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              letterSpacing: ".02em",
+                              color: "#3B82F6",
+                              background: "rgba(59,130,246,.09)",
+                              border: "1px solid rgba(59,130,246,.2)",
+                            }}
+                          >
+                            From scope
+                          </span>
+                        )}
+                      </span>
+                    }
+                    style={{ marginBottom: 0 }}
+                    extra={
+                      moduleHint ? (
+                        <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>{moduleHint}</span>
+                      ) : undefined
+                    }
+                  >
+                    <SearchableDropdown
+                      options={moduleOptions}
+                      value={formData.module_id}
+                      onChange={(val: any) => setFormData({ ...formData, module_id: val })}
+                      placeholder={moduleMode === "scoped" ? "Pick one of this scope’s modules" : "Select business module"}
+                      searchPlaceholder="Search modules…"
+                      itemNoun="modules"
+                      disabled={moduleMode === "locked"}
+                      allowClear={moduleMode !== "locked"}
+                      emptyComponent={
+                        <NoModulesEmpty
+                          projectName={selectedScope?.details?.product || selectedProjectName}
+                          onRefresh={fetchData}
+                        />
+                      }
+                      style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
+                    />
+                  </Form.Item>
+                  )}
 
                   <Form.Item label="Feature (Feature Name)" style={{ marginBottom: 0 }}>
                     <Input

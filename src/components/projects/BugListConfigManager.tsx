@@ -3,7 +3,8 @@
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Button,
   ColorPicker,
@@ -38,6 +39,7 @@ import {
 } from "@ant-design/icons";
 import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2 } from "lucide-react";
 import {
+  MODULE_SETTINGS_STYLES,
   ModuleModal,
   ModulesTable,
   useQaModules,
@@ -156,12 +158,26 @@ export default function BugListConfigManager() {
 
   const [editing, setEditing] = useState<EditState>(null);
   const [activeKey, setActiveKey] = useState<NavKey>("severity");
+
+  /**
+   * `?section=modules` opens straight onto a pane. The module dropdowns across
+   * QA Space link here when a project has no modules yet, and landing on the
+   * severity list would leave the reader to hunt for the screen they asked for.
+   */
+  const searchParams = useSearchParams();
+  const requestedSection = searchParams?.get("section");
+  useEffect(() => {
+    if (requestedSection === MODULES_KEY) setActiveKey(MODULES_KEY);
+    else if (requestedSection && SCOPE_SETTING_CATEGORIES.some(c => c.key === requestedSection)) {
+      setActiveKey(`scope:${requestedSection}` as ScopeNavKey);
+    }
+  }, [requestedSection]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // ── QA modules ───────────────────────────────────────────────────────────
   const qaModules = useQaModules(canManageQa);
-  /** Module names already typed onto test scopes — offered as quick adds. */
-  const scopeModuleNames = useScopeModuleNames(canManageQa);
+  /** Module names already typed onto test scopes — they name what blocks a delete. */
+  const scopeModuleIndex = useScopeModuleNames(canManageQa);
   /** null while closed; { item: null } means "create a new module". */
   const [moduleEditing, setModuleEditing] = useState<{ item: QaModule | null } | null>(null);
 
@@ -229,7 +245,7 @@ export default function BugListConfigManager() {
   return (
     <>
       <BcmStyles />
-      <style dangerouslySetInnerHTML={{ __html: SCOPE_SETTINGS_STYLES }} />
+      <style dangerouslySetInnerHTML={{ __html: SCOPE_SETTINGS_STYLES + MODULE_SETTINGS_STYLES }} />
       <div className={`dh-shell bcm-root ${isDark ? 'bcm-dark' : 'bcm-light'}`}>
         <div
           className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
@@ -353,7 +369,7 @@ export default function BugListConfigManager() {
                 items={qaModules.items}
                 loading={qaModules.loading}
                 canManage={canManageQa}
-                scopeCounts={scopeModuleNames}
+                scopeIndex={scopeModuleIndex}
                 onCreate={() => setModuleEditing({ item: null })}
                 onEdit={(item) => setModuleEditing({ item })}
                 onChanged={qaModules.refetch}

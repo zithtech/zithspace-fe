@@ -1,13 +1,13 @@
 "use client";
 
-import React, { Suspense, useState, useMemo, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Tooltip, Result, Table, Typography, message, Modal, Input, Select, Dropdown } from "antd";
 import { BugOutlined, InboxOutlined, PlusOutlined, SnippetsOutlined, FileTextOutlined, SendOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, EllipsisOutlined, RightOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { Menu, User, Users, Folder, FolderOpen, ChevronDown, Link2, Monitor, AlertCircle, CheckCircle, Pencil, Trash2, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
+import { Menu, User, Users, Link2, Monitor, AlertCircle, CheckCircle, Pencil, Trash2, PlayCircle, Boxes, ClipboardList, ExternalLink, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import TiptapViewer from "@/components/common/TiptapViewer";
@@ -15,12 +15,10 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
-import { ProjectService } from "@/services/projectService";
+import { useQaProject, QaProjectPicker, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 
 const { Text, Paragraph } = Typography;
 
-/** How many projects the sidebar shows before "Show more". */
-const PROJECTS_PREVIEW = 3;
 
 function initialsOf(name: string) {
   if (!name) return 'TS';
@@ -196,15 +194,23 @@ function TestScopeContent() {
   const [priorityFilter, setPriorityFilter] = useState<string | undefined>();
   const [ownerFilter, setOwnerFilter] = useState<string | undefined>();
   const [timelineFilter, setTimelineFilter] = useState<string | undefined>();
-  const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  /* Scopes are read inside one project, the way the Bug List works — the
+     choice is remembered and shared with the other QA Space lists. Scopes
+     store the project's *name* as `details.product`, so that is what the
+     queries below filter on. */
+  const {
+    projects: userProjects,
+    ready: projectReady,
+    loading: loadingProjects,
+    projectId: selectedProjectId,
+    projectName: projectFilter,
+    setProjectId,
+  } = useQaProject();
   const [sortKey] = useState<string>('recent');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
-  // User's accessible projects — drives both dropdown options and visibility restriction
-  const [userProjects, setUserProjects] = useState<{ value: string; label: string }[]>([]);
-  const [showAllProjects, setShowAllProjects] = useState(false);
   /** Total scopes owned by the signed-in user, for the "My Scopes" badge. */
   const [myScopesCount, setMyScopesCount] = useState<number | null>(null);
 
@@ -228,7 +234,9 @@ function TestScopeContent() {
     try {
       // api.get() auto-unwraps: returns response.data.data directly
       // So `res` is already { totalScopes, approved, inReview, ... }
-      const res: any = await axios.get("/api/v2/qa/test-scopes/stats");
+      const res: any = await axios.get("/api/v2/qa/test-scopes/stats", {
+        params: { product: projectFilter || undefined },
+      });
       if (res && res.totalScopes !== undefined) {
         setStats(res);
       }
@@ -268,10 +276,24 @@ function TestScopeContent() {
   };
 
   useEffect(() => {
-    if (!isLoading && canReadScope) {
+    /* Nothing is worth fetching until a project is chosen — an unscoped list
+       is exactly what this page moved away from. */
+    if (!isLoading && canReadScope && projectFilter) {
       fetchScopes();
+      fetchStats();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canReadScope, page, pageSize, statusFilter, priorityFilter, ownerFilter, projectFilter, userProjects, sortKey]);
+
+  /** Switching project drops filters that name things from the old one. */
+  const chooseProject = (id: string | null) => {
+    setProjectId(id);
+    setStatusFilter(undefined);
+    setPriorityFilter(undefined);
+    setTimelineFilter(undefined);
+    setSearchTerm('');
+    setPage(1);
+  };
 
 
   /** Confirmation lives in the ConfirmDialog wrapping each delete trigger. */
@@ -317,6 +339,7 @@ function TestScopeContent() {
           page: 1,
           pageSize: 1,
           qa_owner: user.name,
+          ...(projectFilter ? { product: projectFilter } : {}),
           ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
         }
       });
@@ -329,7 +352,7 @@ function TestScopeContent() {
   useEffect(() => {
     if (!isLoading && canReadScope) fetchMyScopesCount();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, canReadScope, user?.name, userProjects]);
+  }, [isLoading, canReadScope, user?.name, userProjects, projectFilter]);
 
   const handleRefresh = async () => {
     try {
@@ -348,17 +371,6 @@ function TestScopeContent() {
   useEffect(() => {
     if (!isLoading && canReadScope) {
       fetchScopeSettings();
-      fetchStats();
-      // Fetch user's accessible projects for the visibility restriction + dropdown
-      ProjectService.getUserProjects(true)
-        .then((projects: any) => {
-          const list = Array.isArray(projects) ? projects : (projects?.data ?? []);
-          setUserProjects(
-            list.map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
-                .filter((p: any) => p.value)
-          );
-        })
-        .catch(console.error);
       axios.get("/api/release-plans").then((res: any) => {
         const data = Array.isArray(res) ? res : (res.data || []);
         const map: Record<string, string> = {};
@@ -372,22 +384,6 @@ function TestScopeContent() {
   /* "My Scopes" vs "All Scopes" both drive the same qa_owner filter. */
   const isMyScopes = !!user?.name && ownerFilter === user.name;
   const isAllScopes = !ownerFilter;
-
-  /**
-   * Only the first few projects are listed; a selected project that falls
-   * outside that window is appended so the active item is never hidden.
-   */
-  const visibleProjects = useMemo(() => {
-    if (showAllProjects) return userProjects;
-    const head = userProjects.slice(0, PROJECTS_PREVIEW);
-    if (projectFilter && !head.some(p => p.value === projectFilter)) {
-      const selected = userProjects.find(p => p.value === projectFilter);
-      if (selected) return [...head, selected];
-    }
-    return head;
-  }, [userProjects, showAllProjects, projectFilter]);
-
-  const hiddenProjectCount = Math.max(0, userProjects.length - PROJECTS_PREVIEW);
 
   if (isLoading) return null;
 
@@ -558,7 +554,7 @@ function TestScopeContent() {
 
   const activeFilterCount =
     (statusFilter ? 1 : 0) + (priorityFilter ? 1 : 0) + (ownerFilter ? 1 : 0) +
-    (timelineFilter ? 1 : 0) + (projectFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+    (timelineFilter ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -566,7 +562,6 @@ function TestScopeContent() {
     setPriorityFilter(undefined);
     setOwnerFilter(user?.name || undefined);
     setTimelineFilter(undefined);
-    setProjectFilter(undefined);
   };
 
   const ownerOptions = Array.from(new Set(scopes.map(s => s.qa_owner).filter(Boolean)))
@@ -1117,7 +1112,7 @@ function TestScopeContent() {
               </div>
             </div>
 
-            {canCreateScope && (
+            {canCreateScope && projectFilter && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -1149,42 +1144,6 @@ function TestScopeContent() {
               <span className="pp-nav-label">All Scopes</span>
               <span className="pp-nav-count">{stats.totalScopes}</span>
             </button>
-
-            <span className="pp-nav-caption">Projects</span>
-            <button
-              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
-              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Boxes size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Projects</span>
-              {userProjects.length > 0 ? <span className="pp-nav-count">{userProjects.length}</span> : null}
-            </button>
-            {visibleProjects.map(pj => (
-              <button
-                key={pj.value}
-                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
-                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
-                title={pj.label}
-              >
-                {projectFilter === pj.value
-                  ? <FolderOpen size={15} className="pp-nav-icon" />
-                  : <Folder size={15} className="pp-nav-icon" />}
-                <span className="pp-nav-label">{pj.label}</span>
-              </button>
-            ))}
-            {userProjects.length === 0 && (
-              <span className="pp-nav-empty">No projects assigned</span>
-            )}
-            {hiddenProjectCount > 0 && (
-              <button
-                type="button"
-                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
-                onClick={() => setShowAllProjects(v => !v)}
-              >
-                <ChevronDown size={13} className="pp-nav-more-icon" />
-                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
-              </button>
-            )}
           </div>
         </aside>
 
@@ -1200,7 +1159,12 @@ function TestScopeContent() {
               />
               <span className="sc-topbar__h1">{isMyScopes ? 'My Scopes' : isAllScopes ? 'All Scopes' : `${ownerFilter}'s Scopes`}</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">{projectFilter || 'All projects'}</span>
+              <QaProjectSwitcher
+                projects={userProjects}
+                value={selectedProjectId}
+                onChange={chooseProject}
+                loading={loadingProjects}
+              />
             </div>
 
             <div className="dh-main-controls">
@@ -1208,7 +1172,7 @@ function TestScopeContent() {
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
                 onClick={handleRefresh}
-                disabled={loading}
+                disabled={loading || !projectFilter}
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
@@ -1216,7 +1180,7 @@ function TestScopeContent() {
                 <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                 <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
-              {canCreateScope && (
+              {canCreateScope && projectFilter && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push('/qa-workspace/test-scope/create')}>
                   New Scope
                 </Button>
@@ -1225,6 +1189,23 @@ function TestScopeContent() {
           </div>
 
           <div className="dh-main-scroll">
+            {!projectFilter ? (
+              /* Until the project is known there are no scopes, stats or
+                 filters worth showing — the picker takes the whole area. */
+              !projectReady ? (
+                /* Reading the remembered project — showing the picker first
+                   would flash it away a frame later. */
+                <ZukvoLoader size="md" message="Loading projects…" />
+              ) : (
+                <QaProjectPicker
+                  projects={userProjects}
+                  loading={loadingProjects}
+                  onChoose={chooseProject}
+                  subtitle="A test scope plans the testing of one project. Pick one to open its scopes."
+                />
+              )
+            ) : (
+            <>
             {/* Stats — product-standard StatTile, clickable to filter by status */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
@@ -1364,11 +1345,13 @@ function TestScopeContent() {
                 </div>
               )}
             </ZukvoLoadingOverlay>
+            </>
+            )}
           </div>
 
           {/* Pager sits outside the scroll area, so it stays pinned to the
               bottom of the pane whether or not the list overflows. */}
-          {scopes.length > 0 && (
+          {projectFilter && scopes.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalScopes}</strong>

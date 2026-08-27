@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Table, Tabs, Modal, Input, Form, message, Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -108,7 +109,7 @@ export default function FinancePanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={claimCols} dataSource={claims}
-                  locale={{ emptyText: <Empty description="Nothing to pay" /> }}
+                  locale={{ emptyText: <NoData description="Nothing to pay" /> }}
                   pagination={{
                     current: claimsPage,
                     pageSize: claimsSize,
@@ -130,7 +131,7 @@ export default function FinancePanel() {
             children: (
               <div className="rvp-table-wrap">
                 <Table rowKey="id" size="middle" loading={loading} columns={advanceCols} dataSource={advances}
-                  locale={{ emptyText: <Empty description="Nothing to pay" /> }}
+                  locale={{ emptyText: <NoData description="Nothing to pay" /> }}
                   pagination={{
                     current: advancesPage,
                     pageSize: advancesSize,

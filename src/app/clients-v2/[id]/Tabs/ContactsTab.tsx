@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState } from "react";
 import dayjs from "dayjs";
 import {
@@ -516,17 +517,17 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
             className="pp-table"
             scroll={{ x: "max-content" }}
             locale={{
-              emptyText: (
-                <div className="ptab-empty">
-                  <div className="ptab-empty-icon">
-                    <Users size={26} />
-                  </div>
-                  <div className="ptab-empty-title">No contacts yet</div>
-                  <div className="ptab-empty-desc">
-                    Add representatives, emails, and phone numbers to keep client communication organized.
-                  </div>
-                </div>
-              ),
+              emptyText: <NoData description={(
+                                    <div className="ptab-empty">
+                                      <div className="ptab-empty-icon">
+                                        <Users size={26} />
+                                      </div>
+                                      <div className="ptab-empty-title">No contacts yet</div>
+                                      <div className="ptab-empty-desc">
+                                        Add representatives, emails, and phone numbers to keep client communication organized.
+                                      </div>
+                                    </div>
+                                  )} />,
             }}
           />
         </div>

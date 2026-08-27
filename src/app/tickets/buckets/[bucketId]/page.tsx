@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, use, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -748,24 +749,26 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 </div>
               ))
             ) : pagedTickets.length === 0 ? (
-              <div className="bd2-empty">
-                <div className="bd2-empty-icon" style={{ background: `${accent}14`, borderColor: `${accent}33`, color: accent }}>
-                  <FolderOpenOutlined style={{ fontSize: 28 }} />
+              <NoData description={
+                <div className="bd2-empty pp-empty">
+                  <div className="bd2-empty-icon pp-empty-orb" style={{ background: `${accent}14`, borderColor: `${accent}33`, color: accent }}>
+                    <FolderOpenOutlined style={{ fontSize: 28 }} />
+                  </div>
+                  <Title level={5} className="bd2-empty-title pp-empty-title">
+                    {activeFilterCount > 0 ? 'No tickets match these filters' : 'This bucket is empty'}
+                  </Title>
+                  <Text className="bd2-empty-sub pp-empty-sub">
+                    {activeFilterCount > 0
+                      ? 'Try adjusting search, status, priority, or assignee filters.'
+                      : 'Drag tickets here from a sprint or backlog to start organizing.'}
+                  </Text>
+                  {activeFilterCount > 0 && (
+                    <Button onClick={resetFilters} style={{ marginTop: 14, fontWeight: 700 }}>
+                      Reset filters
+                    </Button>
+                  )}
                 </div>
-                <Title level={5} className="bd2-empty-title">
-                  {activeFilterCount > 0 ? 'No tickets match these filters' : 'This bucket is empty'}
-                </Title>
-                <Text className="bd2-empty-sub">
-                  {activeFilterCount > 0
-                    ? 'Try adjusting search, status, priority, or assignee filters.'
-                    : 'Drag tickets here from a sprint or backlog to start organizing.'}
-                </Text>
-                {activeFilterCount > 0 && (
-                  <Button onClick={resetFilters} style={{ marginTop: 14, fontWeight: 700 }}>
-                    Reset filters
-                  </Button>
-                )}
-              </div>
+              } />
             ) : (
               pagedTickets.map((t) => {
                 const sCfg = statusMeta(t.status);

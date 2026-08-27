@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState, useEffect } from 'react';
@@ -716,40 +717,40 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                     className="premium-table workstation-grid"
                     scroll={{ x: 800, y: screens.lg ? 'calc(100vh - 420px)' : 'calc(100vh - 520px)' }}
                     locale={{
-                      emptyText: (
-                        <div className="dm-empty-state">
-                          <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
-                            {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
-                          </div>
-                          <div className="dm-empty-title">
-                            {searchQuery || filterStatus !== 'all'
-                              ? 'No matching definitions'
-                              : `No ${type.label.toLowerCase()} configured yet`}
-                          </div>
-                          <div className="dm-empty-desc">
-                            {searchQuery || filterStatus !== 'all'
-                              ? 'Try a different search term or clear your filters.'
-                              : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
-                          </div>
-                          {canCreateTicketSetting && (
-                            <Button
-                              type="primary"
-                              icon={<PlusOutlined />}
-                              onClick={handleCreate}
-                              style={{
-                                marginTop: 16,
-                                borderRadius: 8,
-                                height: 38,
-                                fontWeight: 700,
-                                background: type.color,
-                                borderColor: type.color,
-                              }}
-                            >
-                              Create Definition
-                            </Button>
-                          )}
-                        </div>
-                      ),
+                      emptyText: <NoData description={(
+                                                    <div className="dm-empty-state">
+                                                      <div className="dm-empty-icon" style={{ background: `${type.color}14`, color: type.color }}>
+                                                        {React.cloneElement(type.icon as React.ReactElement, { style: { fontSize: 28 } })}
+                                                      </div>
+                                                      <div className="dm-empty-title">
+                                                        {searchQuery || filterStatus !== 'all'
+                                                          ? 'No matching definitions'
+                                                          : `No ${type.label.toLowerCase()} configured yet`}
+                                                      </div>
+                                                      <div className="dm-empty-desc">
+                                                        {searchQuery || filterStatus !== 'all'
+                                                          ? 'Try a different search term or clear your filters.'
+                                                          : `Create your first ${type.label.toLowerCase().replace(/s$/, '')} definition to get started.`}
+                                                      </div>
+                                                      {canCreateTicketSetting && (
+                                                        <Button
+                                                          type="primary"
+                                                          icon={<PlusOutlined />}
+                                                          onClick={handleCreate}
+                                                          style={{
+                                                            marginTop: 16,
+                                                            borderRadius: 8,
+                                                            height: 38,
+                                                            fontWeight: 700,
+                                                            background: type.color,
+                                                            borderColor: type.color,
+                                                          }}
+                                                        >
+                                                          Create Definition
+                                                        </Button>
+                                                      )}
+                                                    </div>
+                                                  )} />,
                     }}
                   />
                   </div>
@@ -880,7 +881,15 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   rules={[{ required: true }]}
                   extra="Lower numbers appear first in dropdowns"
                 >
-                  <InputNumber min={1} style={{ width: '100%' }} />
+                  <InputNumber 
+                    min={1} 
+                    style={{ width: '100%' }} 
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  />
                 </Form.Item>
               </SectionCard>
 
@@ -888,14 +897,22 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                 <Form.Item
                   name="label"
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Display Label</Text>}
-                  rules={[{ required: true, message: 'Label is required' }]}
+                  rules={[
+                    { required: true, message: 'Label is required' },
+                    { pattern: /^[a-zA-Z0-9\s\-_]+$/, message: 'Special characters are not allowed' }
+                  ]}
+                  normalize={(value) => (value || '').replace(/[^a-zA-Z0-9\s\-_]/g, '')}
                 >
                   <Input placeholder="e.g. High Priority" />
                 </Form.Item>
                 <Form.Item
                   name="value"
                   label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>System Key (Value)</Text>}
-                  rules={[{ required: true, message: 'Key is required' }]}
+                  rules={[
+                    { required: true, message: 'Key is required' },
+                    { pattern: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, and underscores are allowed (no spaces or special characters)' }
+                  ]}
+                  normalize={(value) => (value || '').replace(/[^a-zA-Z0-9_]/g, '')}
                   extra="Internal identifier (uppercase/lowercase without spaces)"
                 >
                   <Input placeholder="e.g. HIGH" className="dm-input-mono" />

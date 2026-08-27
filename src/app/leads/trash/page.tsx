@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Table,
@@ -693,10 +694,7 @@ export default function LeadsTrashPage() {
             <div className="es-body">
               {!loading && filteredLeads.length === 0 ? (
                 <div className="es-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={<Text type="secondary">No trashed leads found</Text>}
-                  />
+                  <NoData description={<Text type="secondary">No trashed leads found</Text>} />
                 </div>
               ) : view === 'list' ? (
                 <div className="es-table-wrap">
@@ -722,10 +720,7 @@ export default function LeadsTrashPage() {
                       className="es-table"
                       locale={{
                         emptyText: (
-                          <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description={<Text type="secondary">No trashed leads found</Text>}
-                          />
+                          <NoData description={<Text type="secondary">No trashed leads found</Text>} />
                         )
                       }}
                     />

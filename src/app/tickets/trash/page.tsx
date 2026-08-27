@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -453,30 +455,30 @@ export default function TicketsTrashPage() {
             }}
             className="trs2-table"
             locale={{
-              emptyText: isLoading ? null : (
-                <div className="trs2-empty">
-                  <div className="trs2-empty-icon">
-                    <RestOutlined />
-                  </div>
-                  <Text className="trs2-empty-title">
-                    {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
-                  </Text>
-                  <Text className="trs2-empty-sub">
-                    {isFiltered
-                      ? "Try adjusting your filters or search query."
-                      : "Tickets you delete will appear here for 7 days before they are permanently removed."}
-                  </Text>
-                  {isFiltered && (
-                    <Button
-                      size="small"
-                      onClick={() => { setSearchText(""); setSelectedProject(null); }}
-                      style={{ marginTop: 12 }}
-                    >
-                      Clear filters
-                    </Button>
-                  )}
-                </div>
-              ),
+              emptyText: <NoData description={isLoading ? null : (
+                                    <div className="trs2-empty">
+                                      <div className="trs2-empty-icon">
+                                        <RestOutlined />
+                                      </div>
+                                      <Text className="trs2-empty-title">
+                                        {isFiltered ? "No matching deleted tickets" : "Trash is empty"}
+                                      </Text>
+                                      <Text className="trs2-empty-sub">
+                                        {isFiltered
+                                          ? "Try adjusting your filters or search query."
+                                          : "Tickets you delete will appear here for 7 days before they are permanently removed."}
+                                      </Text>
+                                      {isFiltered && (
+                                        <Button
+                                          size="small"
+                                          onClick={() => { setSearchText(""); setSelectedProject(null); }}
+                                          style={{ marginTop: 12 }}
+                                        >
+                                          Clear filters
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )} />,
             }}
             pagination={false}
             scroll={{ x: 'max-content', y: 'calc(100vh - 275px)' }}

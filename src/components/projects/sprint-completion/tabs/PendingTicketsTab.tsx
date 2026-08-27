@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState } from "react";
 import {
   Table,
@@ -324,14 +325,11 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
             boxShadow: 'var(--sc-shadow-sm)',
           }}
         >
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span style={{ fontSize: 14, color: 'var(--sc-text-muted)' }}>
-                All tickets have been resolved — you're ready to complete this sprint.
-              </span>
-            }
-          />
+          <NoData description={
+                                <span style={{ fontSize: 14, color: 'var(--sc-text-muted)' }}>
+                                  All tickets have been resolved — you're ready to complete this sprint.
+                                </span>
+                              } />
         </div>
       ) : (
         <>
@@ -494,7 +492,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                 onChange: setSelectedRowKeys,
               }}
               scroll={{ x: 1000, y: 'calc(90vh - 400px)' }}
-              size="middle"
+              size="middle" locale={{ emptyText: <NoData /> }}
             />
           </div>
 

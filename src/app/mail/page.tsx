@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -1629,17 +1630,19 @@ function MailPageContent() {
                 ))}
               </>
             ) : threads.length === 0 ? (
-              <div className="mail-empty">
-                <div className="mail-empty-icon">
-                  <activeFolder.icon size={32} strokeWidth={1.8} />
+              <NoData description={
+                <div className="mail-empty pp-empty">
+                  <div className="mail-empty-icon pp-empty-icon">
+                    <activeFolder.icon size={32} strokeWidth={1.8} />
+                  </div>
+                  <h3 className="pp-empty-title">No conversations in {activeFolder.label}</h3>
+                  <p className="pp-empty-sub">
+                    {search
+                      ? "Try adjusting your search or filters."
+                      : "When you receive new mail, it will appear here."}
+                  </p>
                 </div>
-                <h3>No conversations in {activeFolder.label}</h3>
-                <p>
-                  {search
-                    ? "Try adjusting your search or filters."
-                    : "When you receive new mail, it will appear here."}
-                </p>
-              </div>
+              } />
             ) : (
               threads.map((item: any) => {
                 const isSent = selectedFolder === "SENT";

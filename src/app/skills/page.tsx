@@ -1,4 +1,5 @@
 "use client";
+import NoData from "@/components/common/NoData";
 
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useMemo, useState } from "react";
@@ -848,7 +849,7 @@ export default function SkillsPage() {
                         style: { cursor: "pointer" }
                       })}
                       locale={{
-                        emptyText: (
+                        emptyText: <NoData description={
                           <div className="pp-empty">
                             <div className="pp-empty-orb"><Inbox size={26} /></div>
                             <div className="pp-empty-title">
@@ -858,7 +859,7 @@ export default function SkillsPage() {
                               {searchText ? "Try a different keyword." : "Add your first entry."}
                             </div>
                           </div>
-                        )
+                        } />
                       }}
                     />
 
@@ -868,14 +869,18 @@ export default function SkillsPage() {
                     {loading ? (
                       <div style={{ padding: 20 }}>Loading...</div>
                     ) : (activeTab === "1" && filteredSkills.length === 0) || (activeTab === "2" && filteredExperience.length === 0) ? (
-                      <div className="pp-empty" style={{ gridColumn: "1 / -1" }}>
-                        <div className="pp-empty-orb"><Inbox size={26} /></div>
-                        <div className="pp-empty-title">
-                          {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
-                        </div>
-                        <div className="pp-empty-sub">
-                          {searchText ? "Try a different keyword." : "Add your first entry."}
-                        </div>
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <NoData description={
+                          <div className="pp-empty">
+                            <div className="pp-empty-orb"><Inbox size={26} /></div>
+                            <div className="pp-empty-title">
+                              {searchText ? "No matches" : activeTab === "1" ? "No skills yet" : "No experience yet"}
+                            </div>
+                            <div className="pp-empty-sub">
+                              {searchText ? "Try a different keyword." : "Add your first entry."}
+                            </div>
+                          </div>
+                        } />
                       </div>
                     ) : activeTab === "1" ? (
                       filteredSkills.map(skill => (

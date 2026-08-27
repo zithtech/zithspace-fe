@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -712,36 +713,36 @@ export default function TrashManagementPage() {
                               rowKey={(record: any) => record.id || Math.random()}
                               className="tr-table"
                               locale={{
-                                emptyText: isLoading ? null : (
-                                  <div className="tr-empty">
-                                    <div className="tr-empty-icon">
-                                      <InboxOutlined />
-                                    </div>
-                                    <Text className="tr-empty-title">
-                                      {isFiltered ? "No matching tickets" : "Trash is empty"}
-                                    </Text>
-                                    <Text className="tr-empty-sub">
-                                      {isFiltered
-                                        ? "Try adjusting your filters or search query."
-                                        : "Deleted tickets appear here for 7 days before permanent purge."}
-                                    </Text>
-                                    {isFiltered && (
-                                      <Button
-                                        size="small"
-                                        onClick={() => {
-                                          setSearchQuery("");
-                                          setProjectFilter(undefined);
-                                          setStatusFilter(undefined);
-                                          setDeletedByFilter(undefined);
-                                          setDateRange(null);
-                                        }}
-                                        className="tr-empty-action"
-                                      >
-                                        Clear filters
-                                      </Button>
-                                    )}
-                                  </div>
-                                ),
+                                emptyText: <NoData description={isLoading ? null : (
+                                                                        <div className="tr-empty">
+                                                                          <div className="tr-empty-icon">
+                                                                            <InboxOutlined />
+                                                                          </div>
+                                                                          <Text className="tr-empty-title">
+                                                                            {isFiltered ? "No matching tickets" : "Trash is empty"}
+                                                                          </Text>
+                                                                          <Text className="tr-empty-sub">
+                                                                            {isFiltered
+                                                                              ? "Try adjusting your filters or search query."
+                                                                              : "Deleted tickets appear here for 7 days before permanent purge."}
+                                                                          </Text>
+                                                                          {isFiltered && (
+                                                                            <Button
+                                                                              size="small"
+                                                                              onClick={() => {
+                                                                                setSearchQuery("");
+                                                                                setProjectFilter(undefined);
+                                                                                setStatusFilter(undefined);
+                                                                                setDeletedByFilter(undefined);
+                                                                                setDateRange(null);
+                                                                              }}
+                                                                              className="tr-empty-action"
+                                                                            >
+                                                                              Clear filters
+                                                                            </Button>
+                                                                          )}
+                                                                        </div>
+                                                                      )} />,
                               }}
                               pagination={false}
                               scroll={{ x: 1100 }}

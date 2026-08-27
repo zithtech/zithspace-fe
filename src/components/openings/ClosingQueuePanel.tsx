@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Alert, Button, Empty, Skeleton, Table } from 'antd';
@@ -129,17 +130,14 @@ export default function ClosingQueuePanel() {
             locale={{
               emptyText: (
                 <div className="omp-empty">
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={
-                      <>
-                        <div className="omp-empty-title">Nothing ready to close</div>
-                        <div className="omp-empty-sub">
-                          Openings appear here once hires reach the number of positions.
-                        </div>
-                      </>
-                    }
-                  />
+                  <NoData description={
+                                              <>
+                                                <div className="omp-empty-title">Nothing ready to close</div>
+                                                <div className="omp-empty-sub">
+                                                  Openings appear here once hires reach the number of positions.
+                                                </div>
+                                              </>
+                                            } />
                 </div>
               ),
             }}

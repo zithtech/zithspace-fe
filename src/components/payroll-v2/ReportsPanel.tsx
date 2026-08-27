@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -128,7 +130,7 @@ export default function ReportsPanel() {
       {loadingReg ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><ZukvoLoader size="md" /></div>
       ) : !reg ? (
-        <div style={{ padding: 56 }}><Empty description={runs.length ? 'Select a pay run' : 'No pay runs yet'} /></div>
+        <div style={{ padding: 56 }}><NoData description={runs.length ? 'Select a pay run' : 'No pay runs yet'} /></div>
       ) : (
         <>
           <div className="rpt-summary">
@@ -153,7 +155,7 @@ export default function ReportsPanel() {
           <div className="rpt-table-wrap">
             <Table
               rowKey="employeeId" size="small" className="rpt-table" columns={columns} dataSource={reg.rows}
-              pagination={false} scroll={{ x: 'max-content' }}
+              pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
             />
           </div>
         </>

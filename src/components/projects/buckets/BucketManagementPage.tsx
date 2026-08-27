@@ -1,5 +1,5 @@
 "use client";
-
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -732,7 +732,7 @@ export default function BucketManagementPage() {
               setExpandedBucketId((prev) => (prev === record.id ? null : record.id));
             },
             className: "cursor-pointer group",
-          })}
+          })} locale={{ emptyText: <NoData /> }}
         />
       </div>
     );
@@ -1137,46 +1137,49 @@ export default function BucketManagementPage() {
                     </div>
                   ))
                 ) : filteredBuckets.length === 0 ? (
-                  <div className="bh2-empty">
-                    <div className="bh2-empty-icon">
-                      <FolderOpenOutlined style={{ fontSize: 28, color: "#3b82f6" }} />
-                    </div>
-                    <Title level={5} style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
-                      {allBuckets.length === 0 ? "No buckets yet" : "No matches for these filters"}
-                    </Title>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: "var(--text-slate-500)",
-                        display: "block",
-                        marginBottom: 20,
-                        maxWidth: 360,
-                        textAlign: "center",
-                      }}
-                    >
-                      {allBuckets.length === 0
-                        ? "Organize tickets across projects with collaborative hubs."
-                        : "Try adjusting visibility, project, size, or search."}
-                    </Text>
-                    {allBuckets.length === 0 && canCreateTicketBucket ? (
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleCreate}
+                  <NoData description={
+                    <div className="bh2-empty pp-empty">
+                      <div className="bh2-empty-icon pp-empty-orb">
+                        <FolderOpenOutlined style={{ fontSize: 28, color: "#3b82f6" }} />
+                      </div>
+                      <Title level={5} className="pp-empty-title" style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--text-slate-900)" }}>
+                        {allBuckets.length === 0 ? "No buckets yet" : "No matches for these filters"}
+                      </Title>
+                      <Text
+                        className="pp-empty-sub"
                         style={{
-                          height: 36,
-                          fontWeight: 700,
-                          borderRadius: 8,
-                          background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                          border: "none",
+                          fontSize: 13,
+                          color: "var(--text-slate-500)",
+                          display: "block",
+                          marginBottom: 20,
+                          maxWidth: 360,
+                          textAlign: "center",
                         }}
                       >
-                        Create your first bucket
-                      </Button>
-                    ) : (
-                      <Button onClick={resetFilters}>Reset filters</Button>
-                    )}
-                  </div>
+                        {allBuckets.length === 0
+                          ? "Organize tickets across projects with collaborative hubs."
+                          : "Try adjusting visibility, project, size, or search."}
+                      </Text>
+                      {allBuckets.length === 0 && canCreateTicketBucket ? (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={handleCreate}
+                          style={{
+                            height: 36,
+                            fontWeight: 700,
+                            borderRadius: 8,
+                            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+                            border: "none",
+                          }}
+                        >
+                          Create your first bucket
+                        </Button>
+                      ) : (
+                        <Button onClick={resetFilters}>Reset filters</Button>
+                      )}
+                    </div>
+                  } />
                 ) : (
                   tableBuckets.map((bucket) => {
                     const accent = bucket.color || PALETTE_FALLBACK;

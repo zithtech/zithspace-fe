@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, Space, message, Drawer } from 'antd';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
@@ -213,7 +214,7 @@ export default function ReferralsTab({ openingId }: { openingId: string }) {
             onRow={(record) => ({
               onClick: () => setSelectedReferral(record),
               style: { cursor: 'pointer' },
-            })}
+            })} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

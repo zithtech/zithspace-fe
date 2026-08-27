@@ -1,8 +1,10 @@
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import { Modal, Breadcrumb, List, Checkbox, Button, Spin, Empty, message, Progress, ConfigProvider, theme as antdTheme } from "antd";
 import { Folder, File, ArrowLeft } from "lucide-react";
 import { CloudDownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import { api } from "@/lib/axios";
+import { NotionService } from "@/services/notionService";
 import { useTheme } from "@/context/ThemeContext";
 import {
   TicketFlowHeader,
@@ -112,7 +114,8 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
       setFiles(data || []);
     } catch (error: any) {
       if (error.status === 403 || error.status === 401) {
-        let msg = `Your ${provider === "google_drive" ? "Google" : provider === "zoho_drive" ? "Zoho" : provider === "notion" ? "Notion" : "Microsoft"} connection is missing Drive permissions. Please reconnect it from Integrations.`;
+        const providerName = provider === "google_drive" ? "Google Drive" : provider === "zoho_drive" ? "Zoho Drive" : provider === "notion" ? "Notion" : "OneDrive";
+        let msg = `${providerName} is not connected yet. Please click the button below to connect it.`;
         if (error.message && error.message.includes("Google Error:")) {
            msg += `\n\nDetail: ${error.message}`;
         }
@@ -148,9 +151,9 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
   const handleConnectNotion = async () => {
     try {
       setLoading(true);
-      const data = await api.get('/api/v2/auth/notion/connect');
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
+      const url = await NotionService.getConnectUrl(window.location.pathname);
+      if (url) {
+        window.location.href = url;
       }
     } catch (err) {
       console.error("Failed to get notion auth url", err);
@@ -378,10 +381,7 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
               <span className="mt-4 font-medium text-sm">Loading files...</span>
             </div>
           ) : files.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-full text-slate-500 py-16 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20">
-              <Folder size={40} className="mb-4 text-slate-300 dark:text-slate-600" />
-              <span className="font-medium">This folder is empty</span>
-            </div>
+            <NoData description={<span className="text-slate-500 font-medium">No files found</span>} />
           ) : (
             <div className="flex flex-col border border-slate-200/80 dark:border-slate-700/80 rounded-2xl bg-white dark:bg-[#151b28] shadow-sm overflow-hidden">
               {files.map((file) => {

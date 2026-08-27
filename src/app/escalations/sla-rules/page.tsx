@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState } from 'react';
 import { 
   Typography, 
@@ -191,7 +192,7 @@ export default function SLARulesEnginePage() {
                         pagination={false}
                         rowKey="id"
                         style={{ margin: 0, background: 'var(--bg-pure-white)' }}
-                        className="premium-table"
+                        className="premium-table" locale={{ emptyText: <NoData /> }}
                       />
                     </Card>
                     

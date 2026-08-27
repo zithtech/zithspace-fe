@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from 'react';
 import {
     Table,
@@ -520,7 +521,7 @@ export default function OpeningManagementPage() {
                             rowKey="id"
                             pagination={{ pageSizeOptions: [10, 20, 25, 50, 100], pageSize: 10, position: ["bottomRight"] }}
                             className="custom-table"
-                            size="middle"
+                            size="middle" locale={{ emptyText: <NoData /> }}
                         />
                     </Card>
 

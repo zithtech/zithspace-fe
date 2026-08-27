@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Tooltip, message, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -247,7 +248,7 @@ export default function GovernmentHolidaysPanel() {
               preserveSelectedRowKeys: true,
               getCheckboxProps: (r) => ({ disabled: r.added }),
             } : undefined}
-            onRow={() => ({ className: 'lvgh-row' })}
+            onRow={() => ({ className: 'lvgh-row' })} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

@@ -13,13 +13,20 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Input, Select, Tooltip, DatePicker, App } from "antd";
+import { Button, Table, Input, Select, Tooltip, DatePicker, App, Popover, Space } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
   FileDoneOutlined,
+  FilterOutlined,
+  ExpandAltOutlined,
+  ProjectOutlined,
+  AimOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import {
   FileCheck2,
@@ -45,7 +52,8 @@ import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import QaSubmissionsFilters from "./QaSubmissionsFilters";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
@@ -127,6 +135,8 @@ function QaSubmissionsContent() {
   const [projectOptions, setProjectOptions] = useState<{ value: string; label: string }[]>([]);
   const [sortBy, setSortBy] = useState("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -189,21 +199,27 @@ function QaSubmissionsContent() {
     fetchStats();
     (async () => {
       try {
-        const [scopeRes, memberRes, projectRes] = await Promise.all([
-          axios.get("/api/v2/qa/test-scopes?limit=1000"),
-          MembersService.getMembers({ limit: 500 }),
-          ProjectService.getUserProjects(true),
-        ]);
-        setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
-        setMembers(memberRes.data || []);
-        const plist: any[] = Array.isArray(projectRes) ? projectRes : (projectRes as any)?.data ?? [];
-        setProjectOptions(
-          plist
-            .map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
-            .filter(o => o.value)
-        );
-      } catch {
-        /* filters degrade to free-text search */
+        const scopeRes = await axios.get("/api/v2/qa/test-scopes?limit=1000").catch(() => null);
+        if (scopeRes) {
+          setScopes(Array.isArray(scopeRes) ? scopeRes : (scopeRes as any)?.data?.data || (scopeRes as any)?.data || []);
+        }
+
+        const memberRes = await MembersService.getMembers({ limit: 500 }).catch(() => null);
+        if (memberRes) {
+          setMembers(memberRes.data || []);
+        }
+
+        const projectRes = await ProjectService.getUserProjects(true).catch(() => null);
+        if (projectRes) {
+          const plist: any[] = Array.isArray(projectRes) ? projectRes : (projectRes as any)?.data ?? [];
+          setProjectOptions(
+            plist
+              .map((p: any) => ({ value: String(p.label ?? p.name ?? ''), label: String(p.label ?? p.name ?? '') }))
+              .filter(o => o.value)
+          );
+        }
+      } catch (err) {
+        console.error("Error loading QA filter options:", err);
       }
     })();
   }, [canReadSubmission, fetchStats]);
@@ -529,6 +545,86 @@ function QaSubmissionsContent() {
           .sc-topbar__sub, .sc-topbar__div { display: none !important; }
           .pp-footer-info { font-size: 11px; }
         }
+
+        /* ── Inline filter row — mirrors TicketList exactly ──────────────── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tl-filter-row {
+          background: #0f1419;
+          border-color: #1f2937;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .sc-clear {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 28px;
+          padding: 0 10px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .sc-clear:hover {
+          color: #1d4ed8;
+          border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06);
+          border-style: solid;
+        }
+        [data-theme='dark'] .sc-clear {
+          border-color: #2d3748;
+          color: #94a3b8;
+        }
       `}} />
 
       <div className="dh-shell">
@@ -646,74 +742,143 @@ function QaSubmissionsContent() {
               })}
             </div>
 
-            {/* Filters (§5) */}
-            <div className="sc-filters">
+            {/* Filters and Search (§5) — matches Ticket List pattern exactly */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 0', flexWrap: 'wrap' }}>
               <Input
-                className="sc-filters__search"
+                style={{ width: 240, height: 30 }}
                 placeholder="Search submissions, scopes…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+                className="saas-input"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 allowClear
               />
-              <SearchableDropdown
-                options={projectOptions}
-                value={projectFilter}
-                onChange={setProjectFilter}
-                placeholder="Any project"
-                hideAvatar
-                itemNoun="projects"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={scopeOptions}
-                value={scopeFilter}
-                onChange={setScopeFilter}
-                placeholder="All scopes"
-                itemNoun="scopes"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={memberOptions}
-                value={ownerFilter}
-                onChange={setOwnerFilter}
-                placeholder="Any QA owner"
-                itemNoun="people"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={SUBMISSION_STATUSES.map((s) => ({ value: s, label: s }))}
-                value={statusFilter}
-                onChange={setStatusFilter}
-                placeholder="Any status"
-                hideAvatar
-                itemNoun="statuses"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={RECOMMENDATIONS.map((r) => ({ value: r, label: r }))}
-                value={recommendationFilter}
-                onChange={setRecommendationFilter}
-                placeholder="Any recommendation"
-                hideAvatar
-                itemNoun="recommendations"
-                className="sc-filters__field"
-              />
-              <RangePicker
-                value={dateRange as any}
-                onChange={(v) => setDateRange(v as any)}
-                format="DD MMM YYYY"
-                allowEmpty={[true, true]}
-              />
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
+
+              <Space.Compact className="ticket-filter-group">
+                <Popover
+                  content={
+                    <QaSubmissionsFilters
+                      filters={{ projectFilter, scopeFilter, ownerFilter, statusFilter, recommendationFilter, dateRange }}
+                      onFilterChange={(key: keyof import('./QaSubmissionsFilters').QaSubmissionsFiltersState, val: any) => {
+                        if (key === 'projectFilter') setProjectFilter(val);
+                        if (key === 'scopeFilter') setScopeFilter(val);
+                        if (key === 'ownerFilter') setOwnerFilter(val);
+                        if (key === 'statusFilter') setStatusFilter(val);
+                        if (key === 'recommendationFilter') setRecommendationFilter(val);
+                        if (key === 'dateRange') setDateRange(val);
+                      }}
+                      onReset={clearFilters}
+                      projectOptions={projectOptions}
+                      scopeOptions={scopeOptions}
+                      ownerOptions={memberOptions}
+                      statusOptions={SUBMISSION_STATUSES.map(s => ({ value: s, label: s }))}
+                      recommendationOptions={RECOMMENDATIONS.map(r => ({ value: r, label: r }))}
+                    />
+                  }
+                  trigger="click"
+                  open={isFilterPanelOpen}
+                  onOpenChange={setIsFilterPanelOpen}
+                  placement="bottomLeft"
+                  overlayClassName="tf-popover-overlay"
+                  styles={{ body: { padding: 0 } }}
+                >
+                  <Button
+                    icon={<FilterOutlined />}
+                    className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                    style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                  >
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </Button>
+                </Popover>
+                <Button
+                  icon={<ExpandAltOutlined />}
+                  style={{ height: 30 }}
+                  aria-label="Expand filters"
+                  onClick={() => setIsFilterRowOpen(prev => !prev)}
+                />
+              </Space.Compact>
             </div>
+
+            {/* Inline Filter Row — compact TicketFilterPill row, same as Ticket List */}
+            {isFilterRowOpen && (
+              <div className="tl-filter-row">
+                <div className="tl-filter-row-label">
+                  <FilterOutlined style={{ fontSize: 11 }} />
+                  <span>Filters</span>
+                  <span className="tl-filter-row-count">
+                    {activeFilterCount > 0 ? activeFilterCount : '0'}
+                  </span>
+                </div>
+                <div className="tl-filter-row-pills">
+                  <TicketFilterPill
+                    icon={<ProjectOutlined style={{ fontSize: 11 }} />}
+                    label="Project"
+                    value={projectFilter || ""}
+                    options={projectOptions}
+                    onChange={setProjectFilter}
+                    itemNoun="projects"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<AimOutlined style={{ fontSize: 11 }} />}
+                    label="Scope"
+                    value={scopeFilter || ""}
+                    options={scopeOptions}
+                    onChange={setScopeFilter}
+                    itemNoun="scopes"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<UserOutlined style={{ fontSize: 11 }} />}
+                    label="Owner"
+                    value={ownerFilter || ""}
+                    options={memberOptions}
+                    onChange={setOwnerFilter}
+                    itemNoun="people"
+                    multiple={false}
+                    showAvatar
+                  />
+                  <TicketFilterPill
+                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                    label="Status"
+                    value={statusFilter || ""}
+                    options={SUBMISSION_STATUSES.map(s => ({ value: s, label: s }))}
+                    onChange={setStatusFilter}
+                    itemNoun="statuses"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                    label="Outcome"
+                    value={recommendationFilter || ""}
+                    options={RECOMMENDATIONS.map(r => ({ value: r, label: r }))}
+                    onChange={setRecommendationFilter}
+                    itemNoun="recommendations"
+                    multiple={false}
+                  />
+                  {dateRange && dateRange[0] && dateRange[1] && (
+                    <TicketFilterPill
+                      icon={<CalendarOutlined style={{ fontSize: 11 }} />}
+                      label="Date"
+                      value={`${dayjs(dateRange[0]).format('MMM D')} – ${dayjs(dateRange[1]).format('MMM D')}`}
+                      options={[]}
+                      onChange={() => setDateRange(null)}
+                      itemNoun="dates"
+                      multiple={false}
+                    />
+                  )}
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="sc-clear" onClick={clearFilters} style={{ marginLeft: 'auto' }}>
+                      Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Only the results blur — blurring the filters above would disable
                 the search box mid-keystroke, since every keystroke refetches. */}
+            <div style={{ marginTop: 12 }}>
             <ZukvoLoadingOverlay
               loading={loading}
               message="Loading QA submissions…"
@@ -793,6 +958,7 @@ function QaSubmissionsContent() {
               </div>
             )}
             </ZukvoLoadingOverlay>
+            </div>
           </div>
 
           {total > 0 && (

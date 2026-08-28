@@ -672,7 +672,7 @@ export default function CreateScopePage() {
   const [customAttachmentFields, setCustomAttachmentFields] = useState<{ key: string; label: string; hint: string }[]>([]);
   const [addingKind, setAddingKind] = useState<'testing' | 'exit' | 'attachment' | null>(null);
   const [customDraft, setCustomDraft] = useState('');
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [projectOptions, setProjectOptions] = useState<{ id?: string; value: string; label: string; description?: string }[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -870,10 +870,11 @@ export default function CreateScopePage() {
   const fetchUserProjects = async () => {
     try {
       setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects();
+      const res: any = await ProjectService.getUserProjects(true);
       const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
       const opts = list
         .map((p: any) => ({
+          id: p.value || p.id,
           value: String(p.label ?? p.name ?? ''),
           label: String(p.label ?? p.name ?? ''),
           description: p.code || undefined,
@@ -918,7 +919,9 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingSprints(true);
-        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, project_id: formData.details.product || undefined } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, projectId: projectId || undefined } });
         const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
         setSprints(fetchedSprints);
       } catch (err) {
@@ -934,7 +937,9 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingDevTickets(true);
-        const res: any = await axios.get("/api/tickets", { params: { search, limit: 10 } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/tickets", { params: { search, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setDevTickets(data);
       } catch (err) {
@@ -950,7 +955,9 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingBugSheets(true);
-        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search, limit: 10 } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setBugSheets(data);
       } catch (err) {
@@ -981,13 +988,15 @@ export default function CreateScopePage() {
         setLoadingTestRuns(true);
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
-          axios.get('/api/v2/qa/runs/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
+          axios.get('/api/v2/qa/suites/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
+          axios.get('/api/v2/qa/runs/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
           axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
+          axios.get('/api/v2/qa/parents?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -1003,6 +1012,11 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     })();
+    
+    // Also re-fetch the search-based dropdowns for the new project
+    fetchSprintsSearch("");
+    fetchDevTicketsSearch("");
+    fetchBugSheetsSearch("");
   }, [formData.details.product]);
 
   const fetchTestCasesSearch = React.useCallback(

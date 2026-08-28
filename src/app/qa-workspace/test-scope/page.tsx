@@ -211,19 +211,33 @@ function TestScopeContent() {
   const [pageSize, setPageSize] = useState(10);
   const [sprintsMap, setSprintsMap] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<any>(null);
-  /** Total scopes owned by the signed-in user, for the "My Scopes" badge. */
-  const [myScopesCount, setMyScopesCount] = useState<number | null>(null);
+  const [sidebarCounts, setSidebarCounts] = useState({ all: 0, mine: 0 });
 
   const { canReadScope, canCreateScope, canUpdateScope, canDeleteScope } = usePermission();
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
-  // Pre-fill the QA Owner filter with the current user's name once auth loads
+  const [hasInitializedOwner, setHasInitializedOwner] = useState(false);
+
+  // Pre-fill the QA Owner filter with the current user's name once auth loads,
+  // or restore the last selected filter from session storage.
   useEffect(() => {
-    if (!isLoading && user?.name) {
-      setOwnerFilter(user.name);
+    if (!isLoading && user?.name && !hasInitializedOwner) {
+      const stored = sessionStorage.getItem('testScopeOwnerFilter');
+      if (stored !== null) {
+        setOwnerFilter(stored || undefined);
+      } else {
+        setOwnerFilter(user.name);
+      }
+      setHasInitializedOwner(true);
     }
-  }, [isLoading, user?.name]);
+  }, [isLoading, user?.name, hasInitializedOwner]);
+
+  useEffect(() => {
+    if (hasInitializedOwner) {
+      sessionStorage.setItem('testScopeOwnerFilter', ownerFilter || '');
+    }
+  }, [ownerFilter, hasInitializedOwner]);
 
   // Any filter change resets to the first page
   useEffect(() => {
@@ -235,7 +249,10 @@ function TestScopeContent() {
       // api.get() auto-unwraps: returns response.data.data directly
       // So `res` is already { totalScopes, approved, inReview, ... }
       const res: any = await axios.get("/api/v2/qa/test-scopes/stats", {
-        params: { product: projectFilter || undefined },
+        params: { 
+          product: projectFilter || undefined,
+          qa_owner: ownerFilter || undefined
+        },
       });
       if (res && res.totalScopes !== undefined) {
         setStats(res);
@@ -327,29 +344,28 @@ function TestScopeContent() {
     }
   };
   /**
-   * The list endpoint is the only place that knows how many scopes a given QA
-   * owner has, so the sidebar badge asks for a single row and reads the total.
+   * Fetch the total counts for the sidebar badges independent of current filters.
    */
-  const fetchMyScopesCount = async () => {
-    if (!user?.name) return;
+  const fetchSidebarCounts = async () => {
     try {
-      const res: any = await apiClient.get("/api/v2/qa/test-scopes", {
-        params: {
-          page: 1,
-          pageSize: 1,
-          qa_owner: user.name,
-          ...(projectFilter ? { product: projectFilter } : {}),
-          ...(userProjects.length > 0 ? { allowed_products: userProjects.map(p => p.label).join(',') } : {}),
-        }
+      const allRes: any = await axios.get("/api/v2/qa/test-scopes/stats", {
+        params: { product: projectFilter || undefined }
       });
-      setMyScopesCount(res?.data?.pagination?.total ?? 0);
+      const mineRes: any = user?.name ? await axios.get("/api/v2/qa/test-scopes/stats", {
+        params: { product: projectFilter || undefined, qa_owner: user.name }
+      }) : null;
+      
+      setSidebarCounts({
+        all: allRes?.totalScopes ?? 0,
+        mine: mineRes?.totalScopes ?? 0
+      });
     } catch (err) {
-      console.error('fetchMyScopesCount error:', err);
+      console.error('fetchSidebarCounts error:', err);
     }
   };
 
   useEffect(() => {
-    if (!isLoading && canReadScope) fetchMyScopesCount();
+    if (!isLoading && canReadScope && projectFilter) fetchSidebarCounts();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, canReadScope, user?.name, userProjects, projectFilter]);
 
@@ -359,7 +375,7 @@ function TestScopeContent() {
         fetchScopes(),
         fetchStats(),
         fetchScopeSettings(),
-        fetchMyScopesCount()
+        fetchSidebarCounts()
       ]);
     } catch (err) {
       console.error('Refresh error:', err);
@@ -559,7 +575,7 @@ function TestScopeContent() {
     setSearchTerm('');
     setStatusFilter(undefined);
     setPriorityFilter(undefined);
-    setOwnerFilter(user?.name || undefined);
+    setOwnerFilter(undefined);
     setTimelineFilter(undefined);
   };
 
@@ -1133,7 +1149,7 @@ function TestScopeContent() {
             >
               <User size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">My Scopes</span>
-              {myScopesCount !== null ? <span className="pp-nav-count">{myScopesCount}</span> : null}
+              <span className="pp-nav-count">{sidebarCounts.mine}</span>
             </button>
             <button
               className={`pp-nav-item ${isAllScopes ? 'is-active' : ''}`}
@@ -1141,7 +1157,7 @@ function TestScopeContent() {
             >
               <Users size={15} className="pp-nav-icon" />
               <span className="pp-nav-label">All Scopes</span>
-              <span className="pp-nav-count">{stats.totalScopes}</span>
+              <span className="pp-nav-count">{sidebarCounts.all}</span>
             </button>
           </div>
         </aside>
@@ -1208,7 +1224,7 @@ function TestScopeContent() {
             {/* Stats — product-standard StatTile, clickable to filter by status */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
-                { key: undefined, label: "Total Scopes", value: stats.totalScopes, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${stats.routedForApproval} routed for approval` },
+                { key: undefined, label: isMyScopes ? "My Scopes" : "Total Scopes", value: stats.totalScopes, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `${stats.routedForApproval} routed for approval` },
                 { key: 'Draft', label: "In Draft", value: stats.inDraft, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: FileTextOutlined, sub: `${stats.draftNoDueDate} without a due date` },
                 { key: 'In Review', label: "In Review", value: stats.inReview, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SendOutlined, sub: `${stats.overdueCount} past due date` },
                 { key: 'Approved', label: "Approved", value: stats.approved, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${stats.totalScopes ? Math.round((stats.approved / stats.totalScopes) * 100) : 0}% of all scopes` }

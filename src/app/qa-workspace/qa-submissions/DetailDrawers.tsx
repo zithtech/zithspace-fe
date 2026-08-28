@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 /**
  * Side drawers for the two records a QA Submission points at: the Test Runs it
  * reports on, and the Test Scope it covers.
@@ -342,7 +343,7 @@ const DrawerShell = ({
           </div>
         ) : error ? (
           <div className="qd-state">
-            <Empty description={error} />
+            <NoData description={error} />
           </div>
         ) : (
           children

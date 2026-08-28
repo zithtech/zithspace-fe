@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Drawer, Form, Input, InputNumber, DatePicker, Tooltip, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -141,7 +142,7 @@ export default function AdvancesPanel() {
               setCurrentPage(page);
               setPageSize(size ?? pageSize);
             },
-          }} />
+          }} locale={{ emptyText: <NoData /> }} />
       </div>
 
       <Drawer

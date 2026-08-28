@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Tag, Tooltip, message, Empty } from 'antd';
@@ -161,7 +162,7 @@ export default function DashboardPanel() {
         )}
       </div>
       {balances.length === 0 ? (
-        <div className="lvd-card"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No leave balances yet" /></div>
+        <div className="lvd-card"><NoData description="No leave balances yet" /></div>
       ) : (
         <div className="lvd-balances">
           {(showAllBalances ? balances : balances.slice(0, BAL_LIMIT)).map((b) => {

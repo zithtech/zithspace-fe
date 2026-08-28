@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button, Table, Tag, Drawer, Form, Input, InputNumber, Select, Switch, Tooltip, AutoComplete, message,
@@ -247,7 +248,7 @@ export default function CategoriesPanel() {
               setPage(p);
               setLimit(s ?? limit);
             },
-          }} />
+          }} locale={{ emptyText: <NoData /> }} />
       </div>
 
       <Drawer

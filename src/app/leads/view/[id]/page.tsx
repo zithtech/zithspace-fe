@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -350,21 +352,11 @@ export default function LeadProfilePage() {
       <ProtectedRoute>
         <MainLayout>
           <div className="lv-page lv-empty-page">
-            <Empty
-              description={
-                <span style={{ color: "var(--text-slate-500)" }}>
-                  {error || "Lead not found"}
-                </span>
-              }
-            >
-              <Button
-                type="primary"
-                className="lv-primary-btn"
-                onClick={() => router.push("/leads")}
-              >
-                Back to leads
-              </Button>
-            </Empty>
+            <NoData description={
+                                    <span style={{ color: "var(--text-slate-500)" }}>
+                                      {error || "Lead not found"}
+                                    </span>
+                                  } />
             {leadViewStyles}
           </div>
         </MainLayout>
@@ -593,7 +585,7 @@ export default function LeadProfilePage() {
                 <ZukvoLoader size="lg" />
               </div>
             ) : timelineData.length === 0 ? (
-              <Empty description="No activity recorded yet" />
+              <NoData description="No activity recorded yet" />
             ) : (
               <Timeline
                 mode="left"

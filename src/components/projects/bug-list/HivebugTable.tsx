@@ -13,6 +13,7 @@ import {
   CheckCircle,
   History,
   Repeat,
+  ScrollText,
 } from "lucide-react";
 import type {
   BugListItem,
@@ -22,6 +23,7 @@ import type {
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { usePermission } from "@/hooks/usePermission";
 import TicketHistoryDrawer from "./TicketHistoryDrawer";
+import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useMarkBugRecurring } from "@/hooks/useBugList";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -167,6 +169,7 @@ export default function HivebugTable({
   }, [users]);
 
   const [historyDrawerBug, setHistoryDrawerBug] = useState<BugListItem | null>(null);
+  const [activityBug, setActivityBug] = useState<BugListItem | null>(null);
 
   const selectableBugs = bugs.filter((b) => !b.ticketId);
   const allChecked =
@@ -233,6 +236,7 @@ export default function HivebugTable({
               isNestedInSheet={isNestedInSheet}
               isNestedInFolder={isNestedInFolder}
               onOpenHistory={() => setHistoryDrawerBug(bug)}
+              onOpenActivity={() => setActivityBug(bug)}
               creatorAvatarUrl={membersMap.get(bug.createdById)}
             />
           ))}
@@ -243,6 +247,15 @@ export default function HivebugTable({
         open={!!historyDrawerBug} 
         onClose={() => setHistoryDrawerBug(null)} 
       />
+      {activityBug && (
+        <TransactionHistoryDrawer
+          open={!!activityBug}
+          onClose={() => setActivityBug(null)}
+          entityType="bug"
+          entityId={activityBug.id}
+          subtitle={`${activityBug.bugNumber || "Bug"}${activityBug.title ? ` — ${activityBug.title}` : ""}`}
+        />
+      )}
     </div>
   );
 }
@@ -265,6 +278,7 @@ interface BugRowProps {
   isNestedInSheet?: boolean;
   isNestedInFolder?: boolean;
   onOpenHistory: () => void;
+  onOpenActivity: () => void;
   creatorAvatarUrl?: string;
 }
 
@@ -286,6 +300,7 @@ function BugRow({
   isNestedInSheet,
   isNestedInFolder,
   onOpenHistory,
+  onOpenActivity,
   creatorAvatarUrl,
 }: BugRowProps) {
   const { message, modal } = App.useApp();
@@ -294,14 +309,15 @@ function BugRow({
     canUpdateBug, 
     canDeleteBug, 
     canCreateTicket, 
-    canManageBugs 
+    canManageBugs,
+    canReadActivityLog
   } = usePermission();
   const { mutateAsync: markRecurringAsync, isPending: isMarkingRecurring } = useMarkBugRecurring();
   const severity = bug.severity;
   const status = toDisplayStatus(bug.status);
   const creatorName = bug.createdBy?.name || "Unknown";
   const creatorId = bug.createdBy?.id || bug.createdById;
-  const ticketLinked = !!bug.ticketId;
+  const ticketLinked = !!bug.ticketId || !!bug.linearIssueIdentifier || !!bug.jiraIssueKey;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -430,7 +446,31 @@ function BugRow({
       </td>
 
       <td className="hb-col-ticket">
-        {bug.ticketNumber ? (
+        {bug.linearIssueUrl ? (
+          <a
+            href={bug.linearIssueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hb-ticket-link"
+            onClick={(e) => e.stopPropagation()}
+            style={{ color: '#5E6AD2', borderColor: '#5E6AD2', textDecoration: 'none' }}
+          >
+            <LinkIcon size={11} />
+            {bug.linearIssueIdentifier || "Linear Issue"}
+          </a>
+        ) : bug.jiraIssueUrl ? (
+          <a
+            href={bug.jiraIssueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hb-ticket-link"
+            onClick={(e) => e.stopPropagation()}
+            style={{ color: '#0052CC', borderColor: '#0052CC', textDecoration: 'none' }}
+          >
+            <LinkIcon size={11} />
+            {bug.jiraIssueKey || "Jira Issue"}
+          </a>
+        ) : bug.ticketNumber ? (
           <button
             type="button"
             className={`hb-ticket-link ${bug.ticketStatus?.toLowerCase() === 'live' ? 'is-live' : ''}`}
@@ -508,6 +548,12 @@ function BugRow({
                       label: menuLabel("Restore", "Restore from trash", <RotateCcw size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)"),
                       disabled: isNestedInFolder || isNestedInSheet
                     },
+                    ...(canReadActivityLog
+                      ? [
+                          { type: "divider" as const },
+                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                        ]
+                      : []),
                     { type: "divider" as const },
                     { key: "delete", label: menuLabel("Delete Permanently", "Permanently delete", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
                   ]
@@ -522,6 +568,12 @@ function BugRow({
                       ),
                       disabled: isNestedInFolder || isNestedInSheet
                     },
+                    ...(canReadActivityLog
+                      ? [
+                          { type: "divider" as const },
+                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                        ]
+                      : []),
                     { type: "divider" as const },
                     { key: "delete", label: menuLabel("Delete", "Delete this bug", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true },
                   ]
@@ -538,6 +590,12 @@ function BugRow({
                       disabled: !ticketLinked || bug.isRecurring || isMarkingRecurring || !canUpdateBug,
                     },
                     { key: "archive", label: menuLabel("Archive", "Archive this bug", <Archive size={15}/>, "#64748b", "rgba(100,116,139,0.12)"), disabled: !canUpdateBug },
+                    ...(canReadActivityLog
+                      ? [
+                          { type: "divider" as const },
+                          { key: "activity", label: menuLabel("Activity History", "Who changed what, and when", <ScrollText size={15}/>, "#3b82f6", "rgba(59,130,246,0.12)") },
+                        ]
+                      : []),
                     { type: "divider" as const },
                     { key: "delete", label: menuLabel("Move to Trash", "Move this bug to trash", <Trash2 size={15}/>, "#ef4444", "rgba(239,68,68,0.12)"), danger: true, disabled: !canDeleteBug },
                   ],
@@ -550,6 +608,7 @@ function BugRow({
                 if (key === "delete") onDelete();
                 if (key === "restore") onRestore();
                 if (key === "archive") onArchive();
+                if (key === "activity") onOpenActivity();
               },
             }}
           >

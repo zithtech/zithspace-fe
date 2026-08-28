@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Typography,
@@ -1073,7 +1074,7 @@ export default function ProposalsListPage() {
                     scroll={{ x: 1282 }}
                     rowSelection={{ selectedRowKeys: selectedKeys, onChange: (keys) => setSelectedKeys(keys), columnWidth: 40 }}
                     pagination={false}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: <NoData description={emptyState} /> }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;
@@ -1089,7 +1090,7 @@ export default function ProposalsListPage() {
                   {loading ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : paginatedProposals.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                    <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                   ) : (
                     paginatedProposals.map((p) => {
                       const sKey = (p.status?.toLowerCase() || 'draft') as Exclude<StatusKey, 'all'>;

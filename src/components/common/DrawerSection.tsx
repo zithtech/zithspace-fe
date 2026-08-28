@@ -85,6 +85,27 @@ export const drawerFormStyles = `
     background: transparent !important;
     border-color: #334155 !important;
   }
+  
+  /* Fix InputNumber affix wrappers to prevent double borders */
+  .customer-drawer-form .ant-input-number-affix-wrapper {
+    border-radius: 8px !important;
+    background: var(--bg-pure-white, #ffffff) !important;
+    border: 1px solid var(--border-slate-300, #cbd5e1) !important;
+    overflow: hidden;
+    padding-left: 11px;
+    align-items: center;
+  }
+  .customer-drawer-form .ant-input-number-affix-wrapper .ant-input-number,
+  [data-theme='dark'] .customer-drawer-form .ant-input-number-affix-wrapper .ant-input-number {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+  }
+  [data-theme='dark'] .customer-drawer-form .ant-input-number-affix-wrapper {
+    background: transparent !important;
+    border-color: #334155 !important;
+  }
   .customer-drawer-form .sd-trigger {
     height: 40px !important;
     padding: 6px 12px !important;

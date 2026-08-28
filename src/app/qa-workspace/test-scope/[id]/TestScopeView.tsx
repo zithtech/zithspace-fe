@@ -1200,7 +1200,7 @@ export default function TestScopeView({ id }: { id: string }) {
               a shared 32px axis so the mixed type sizes don't read as uneven. */}
           <div className="flex items-center gap-3 min-h-[32px]">
             <button
-              onClick={() => router.push("/qa-workspace/test-scope?tab=scopes")}
+              onClick={() => router.push("/qa-workspace/test-scope")}
               className="inline-flex h-8 items-center gap-1.5 -ml-2 px-2 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800/60 transition-colors flex-shrink-0"
             >
               <ArrowLeft size={14} />

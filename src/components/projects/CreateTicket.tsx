@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -45,7 +46,6 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { ProjectService } from "@/services/projectService";
-import { MembersService } from "@/services/membersService";
 import TicketService from "@/services/ticketService";
 import {
   SettingsService,
@@ -54,7 +54,7 @@ import {
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useCreateTicket } from "@/hooks/useTickets";
 import { usePermission } from "@/hooks/usePermission";
-import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
+import { useUserProjects, useProjectMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, getPriorityColor } from "@/utils/ticketUtils";
 
 const { Title, Text, Paragraph } = Typography;
@@ -90,15 +90,12 @@ export default function CreateTicket() {
   const [loading, setLoading] = useState(false);
   const [ticketId] = useState(`TKT-${Date.now().toString().slice(-6)}`);
 
+  const [selectedProject, setSelectedProject] = useState<string>("");
+
   // Use cached global data hooks
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
-  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const { data: projectMembers = [], isLoading: membersLoading } = useProjectMembers(selectedProject);
   const { data: ticketConfig, isLoading: configLoading } = useTicketConfig();
-
-  // Local state for company members
-  const [companyMembers, setCompanyMembers] = useState<
-    Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>
-  >([]);
   const [parentTickets, setParentTickets] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -114,7 +111,6 @@ export default function CreateTicket() {
       completedTickets?: number;
     }>
   >([]);
-  const [selectedProject, setSelectedProject] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
 
   // Watch form values for dynamic step completion tracking
@@ -164,18 +160,7 @@ export default function CreateTicket() {
     { user: "David Brown", action: "completed testing", time: "15 mins ago" },
   ];
 
-  // Load company members once when component mounts
-  useEffect(() => {
-    const loadCompanyMembers = async () => {
-      try {
-        const membersData = await MembersService.getMembersForSelect();
-        setCompanyMembers(membersData || []);
-      } catch (error) {
-        console.error("Error loading company members:", error);
-      }
-    };
-    loadCompanyMembers();
-  }, []);
+  // Removed global company members fetch
 
   // Load project-dependent data when project changes
   useEffect(() => {
@@ -664,7 +649,7 @@ export default function CreateTicket() {
                         optionFilterProp="label"
                         optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
                       >
-                        {companyMembers.map((member) => (
+                        {projectMembers.map((member) => (
                           <Option key={member.value} value={member.value} label={member.label}>
                             <Space align="center" size={12}>
                               <Avatar size="small" src={member.avatarUrl || undefined} style={{ backgroundColor: "#87d068", flexShrink: 0 }}>
@@ -699,7 +684,7 @@ export default function CreateTicket() {
                         optionFilterProp="label"
                         optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
                       >
-                        {companyMembers.map((member) => (
+                        {projectMembers.map((member) => (
                           <Option key={member.value} value={member.value} label={member.label}>
                             <Space align="center" size={12}>
                               <Avatar size="small" src={member.avatarUrl || undefined} style={{ backgroundColor: "#1677ff", flexShrink: 0 }}>
@@ -795,7 +780,7 @@ export default function CreateTicket() {
               >
                 {!selectedProject ? (
                   <div style={{ textAlign: "center", padding: "12px 0" }}>
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
+                    <NoData description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
                   </div>
                 ) : releasePlans.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "12px 0" }}>

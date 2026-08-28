@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React from "react";
 import {
   Table,
@@ -218,11 +219,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ sprintId }) => {
 
       {/* Audit Log Table */}
       {!data || data.logs.length === 0 ? (
-        <Empty
-          description="No audit logs yet"
-          style={{ marginTop: 100 }}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <NoData description="No audit logs yet" />
       ) : (
         <ZukvoLoadingOverlay loading={isLoading} message="">
                   <Table
@@ -237,7 +234,7 @@ export const AuditLogTab: React.FC<AuditLogTabProps> = ({ sprintId }) => {
                               onChange: (newPage) => setPage(newPage),
                             }}
                             scroll={{ x: 1200 }}
-                            size="small"
+                            size="small" locale={{ emptyText: <NoData /> }}
                           />
                   </ZukvoLoadingOverlay>
       )}

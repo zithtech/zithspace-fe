@@ -129,6 +129,10 @@ class ReleasePlanService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     type?: string;
+    fromMonth?: string;   // YYYY-MM
+    toMonth?: string;     // YYYY-MM
+    minTickets?: number;
+    maxTickets?: number;
   } = {}): Promise<ReleasePlanListResponse> {
     try {
       const queryParams = new URLSearchParams();

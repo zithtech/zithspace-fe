@@ -190,7 +190,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     content: { borderRadius: 18, padding: 0, overflow: 'hidden' },
                     body: { padding: 0 },
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
                 {contextHolder}
 

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -820,7 +822,7 @@ export default function GeneratedReportsPanel() {
             {candidatesLoading ? (
               <div className="wz-center"><ZukvoLoader size="md" /></div>
             ) : wizResolved.length === 0 ? (
-              <div className="wz-center"><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No members match" /></div>
+              <div className="wz-center"><NoData description="No members match" /></div>
             ) : (
               <div className="wz-list">
                 {wizResolved.map((c) => (

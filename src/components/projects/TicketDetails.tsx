@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Card, Form, Alert, Row, Col, message, Space, Button } from "antd";
 import { History } from "lucide-react";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
-import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
+import { useUserProjects, useProjectMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import {
   useTicketDetails,
   useTicketComments,
@@ -57,9 +57,11 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const uploadAttachmentMutation = useUploadAttachment();
   const deleteAttachmentMutation = useDeleteAttachment();
 
+  const projectId = typeof ticket?.project === 'string' ? ticket.project : ticket?.project?.id;
+
   // Use cached global data hooks - only fetch when editing
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects({ enabled: editing });
-  const { data: members = [], isLoading: membersLoading } = useMembers({ enabled: editing });
+  const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId, { enabled: editing });
   const { data: ticketConfig, isLoading: configLoading } = useTicketConfig({ enabled: editing });
 
   // Extract dropdown options from cached config

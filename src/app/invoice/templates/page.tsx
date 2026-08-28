@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import NoData from "@/components/common/NoData";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Typography,
@@ -606,35 +607,39 @@ export default function InvoiceTemplatePage() {
                 ))}
               </div>
             ) : !pagedTemplates || pagedTemplates.length === 0 ? (
-              <div className="pp-empty">
-                <div className="pp-empty-orb"><Sparkles size={26} /></div>
-                <div className="pp-empty-title">
-                  {searchText || statusFilter !== "all"
-                    ? "No templates match your filters"
-                    : "No templates yet"}
-                </div>
-                <div className="pp-empty-sub">
-                  {searchText || statusFilter !== "all"
-                    ? "Try adjusting your search or filter."
-                    : "Create your first invoice template to get started."}
-                </div>
-                {!searchText && statusFilter === "all" && canCreateInvoiceTemplate && (
-                  <Button
-                    type="primary"
-                    icon={<Plus size={14} />}
-                    onClick={handleCreate}
-                    className="pp-btn-primary"
-                    style={{
-                      marginTop: 14,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    New Template
-                  </Button>
-                )}
+              <div className="pp-empty-wrapper">
+                <NoData 
+                  title={searchText || statusFilter !== "all" ? "No templates match your filters" : "No templates yet"}
+                  description={
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ color: 'var(--text-slate-500)', fontSize: 14 }}>
+                        {searchText || statusFilter !== "all"
+                          ? "Try adjusting your search or filter."
+                          : "Create your first invoice template to get started."}
+                      </span>
+                      {!searchText && statusFilter === "all" && canCreateInvoiceTemplate && (
+                        <Button
+                          type="primary"
+                          icon={<Plus size={14} />}
+                          onClick={handleCreate}
+                          style={{
+                            borderRadius: 8,
+                            height: 38,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            padding: '0 20px',
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          New Template
+                        </Button>
+                      )}
+                    </div>
+                  }
+                />
               </div>
             ) : viewMode === "card" ? (
               <div className="pp-grid">
@@ -810,7 +815,7 @@ export default function InvoiceTemplatePage() {
                     onClick: () =>
                       router.push(`/invoice/newinvoice?templateId=${record.id}`),
                     className: "pp-row",
-                  })}
+                  })} locale={{ emptyText: <NoData /> }}
                 />
               </div>
             )}
@@ -1048,13 +1053,7 @@ export default function InvoiceTemplatePage() {
         }
 
         /* Empty + grid */
-        .pp-empty { display: flex; flex-direction: column; align-items: center; padding: 56px 20px; }
-        .pp-empty-orb {
-          width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
-          background: var(--bg-blue-50); color: #3B82F6; margin-bottom: 16px;
-        }
-        .pp-empty-title { font-size: 16px; font-weight: 700; color: var(--text-slate-900); }
-        .pp-empty-sub { font-size: 13px; color: var(--text-slate-400); margin-top: 4px; }
+
 
         @media (max-width: 700px) {
           .pp-grid { grid-template-columns: 1fr; }

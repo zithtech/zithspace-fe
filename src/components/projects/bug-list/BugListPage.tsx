@@ -1,6 +1,21 @@
 "use client";
 import dayjs from "dayjs";
-import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+import { 
+  MenuFoldOutlined, 
+  MenuUnfoldOutlined,
+  FilterOutlined,
+  ExpandAltOutlined,
+  CheckCircleOutlined,
+  ThunderboltOutlined,
+  AppstoreOutlined,
+  UserOutlined,
+  LinkOutlined,
+  FolderOutlined,
+  ApartmentOutlined,
+  CalendarOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
+import { TicketFilterPill } from "../TicketFilterPill";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
@@ -12,6 +27,9 @@ import {
   Dropdown,
   App,
   Drawer,
+  Popover,
+  Button,
+  Space,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
@@ -33,32 +51,69 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   Folder,
   Layers,
   CircleDot,
   AlertTriangle,
   Tag,
-  Box,
   Calendar,
   CalendarDays,
   ChevronDown,
+  CornerUpRight,
   Briefcase,
   List,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  ArrowRight,
 } from "lucide-react";
 import { useAllProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
+
+const DateFilterPill = ({ icon, label, value, onChange }: { icon?: React.ReactNode, label: string, value: any, onChange: (dates: any) => void }) => {
+  const [open, setOpen] = useState(false);
+  const active = !!(value && value[0] && value[1]);
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <DatePicker.RangePicker
+        open={open}
+        onOpenChange={setOpen}
+        value={value}
+        onChange={onChange}
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, width: '100%', height: '100%',
+          opacity: 0, zIndex: 2, cursor: 'pointer'
+        }}
+      />
+      <button
+        type="button"
+        className={`fp-trigger ${active ? "is-active" : ""} ${open ? "is-open" : ""}`}
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        {icon && <span className="fp-trigger-icon">{icon}</span>}
+        <span className="fp-trigger-label">{label}</span>
+        {active && (
+           <span className="fp-trigger-count" style={{ background: 'var(--bg-slate-100)', borderRadius: 4, padding: '0 4px', color: 'var(--text-slate-700)', fontSize: 10, fontWeight: 700, marginLeft: 4 }}>
+             {dayjs(value[0]).format('MMM D')} - {dayjs(value[1]).format('MMM D')}
+           </span>
+        )}
+        <ChevronDown size={12} className={`fp-trigger-chevron ${open ? "is-open" : ""}`} />
+      </button>
+    </div>
+  );
+};
+
 import ArchiveView from "./ArchiveView";
 import TrashView from "./TrashView";
 import CreateBugDrawer from "./CreateBugDrawer";
 import { FolderModal, SheetModal } from "./FolderSheetModals";
-import AiReviewModal from "./AiReviewModal";
-import BulkTicketModal from "./BulkTicketModal";
+import CreateTicketWizard from "./CreateTicketWizard";
 import BugCalendarView from "./BugCalendarView";
+import BugFilters from "./BugFilters";
+
 import {
   useBugFolders,
   useBugSheets,
@@ -83,6 +138,7 @@ import {
   useBulkMoveBugs,
 } from "@/hooks/useBugList";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useProjectQaModules } from "@/hooks/useQaOptions";
 import type {
   BugFolder,
   BugListItem,
@@ -90,6 +146,7 @@ import type {
   BugSheet,
   BugStatus,
   BugType,
+  BugWorkStatus,
   CreateBugInput,
   UpdateBugInput,
 } from "@/services/bugListService";
@@ -104,21 +161,27 @@ const SEVERITY_OPTS: BugSeverity[] = ["blocker", "critical", "major", "minor"];
 const STATUS_OPTS: BugStatus[] = ["new", "converted", "ignored", "verified", "reopened"];
 const TYPE_OPTS: BugType[] = ["ui", "functional", "api"];
 
+/** Every value filter is multi-select, so each one holds the full picked set. */
 interface FilterState {
   search: string;
-  severity?: BugSeverity;
-  status?: BugStatus;
-  bugStatus?: "not started" | "pending" | "completed";
-  bugType?: BugType;
-  module?: string;
-  assigneeId?: string;
-  createdById?: string;
-  ticketStatus?: string;
+  folderIds?: string[];
+  sheetIds?: string[];
+  severity?: BugSeverity[];
+  status?: BugStatus[];
+  bugStatus?: BugWorkStatus[];
+  bugType?: BugType[];
+  module?: string[];
+  assigneeId?: string[];
+  createdById?: string[];
+  ticketStatus?: string[];
   createdRange?: [any, any] | null;
   updatedRange?: [any, any] | null;
 }
 
 const DEFAULT_FILTERS: FilterState = { search: "" };
+
+/** How many projects the empty-state picker shows before "Show more". */
+const PROJECT_PICKER_PREVIEW = 6;
 
 const stringToHash = (str: string) => {
   let hash = 0;
@@ -131,6 +194,9 @@ const stringToHash = (str: string) => {
 export default function BugListPage() {
   console.log("Forcing HMR reload for BugListPage");
   const { message } = App.useApp();
+  /** The project picker on the empty state shows a first page of projects. */
+  const [showAllPickerProjects, setShowAllPickerProjects] = useState(false);
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("buglist_selected_project") || null;
@@ -186,12 +252,13 @@ export default function BugListPage() {
 
   const [bugDrawerOpen, setBugDrawerOpen] = useState(false);
   const [editingBug, setEditingBug] = useState<BugListItem | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [bulkTicketOpen, setBulkTicketOpen] = useState(false);
+  const [creationTargetOpen, setCreationTargetOpen] = useState(false);
+
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const [quickTitle, setQuickTitle] = useState("");
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: projects, isLoading: projectsLoading } = useAllProjects();
@@ -286,6 +353,42 @@ export default function BugListPage() {
     return res;
   }, [sheets, projectSheets, archivedSheets, trashedSheets]);
 
+  /** Rich rows for the bulk-bar "Move to sheet" picker: sheet, its folder,
+   *  how many bugs already live there and when it last changed. */
+  const moveSheetOptions = useMemo(
+    () =>
+      (projectSheets || [])
+        .filter((s) => s.id !== selectedSheetId)
+        .map((s) => {
+          const bugCount = s._count?.bugs ?? 0;
+          return {
+            value: s.id,
+            label: s.name,
+            description: s.folderName || "Ungrouped",
+            badge: (
+              <span className="hb-move-badge">
+                <Layers size={14} />
+              </span>
+            ),
+            meta: (
+              <span className="hb-move-meta">
+                {s.status && s.status !== "active" && (
+                  <span className={`hb-move-status is-${s.status}`}>{s.status}</span>
+                )}
+                <span className="hb-move-count">
+                  <BugIcon size={10} />
+                  {bugCount}
+                </span>
+                {s.updatedAt && (
+                  <span className="hb-move-when">{dayjs(s.updatedAt).format("MMM D")}</span>
+                )}
+              </span>
+            ),
+          };
+        }),
+    [projectSheets, selectedSheetId]
+  );
+
   const workspaceStats = {
     totalFolders: folders?.length || 0,
     totalSheets: projectSheets?.length || 0,
@@ -321,6 +424,8 @@ export default function BugListPage() {
     () => ({
       folderId: selectedFolderId || undefined,
       sheetId: selectedSheetId || undefined,
+      folderIds: filters.folderIds,
+      sheetIds: filters.sheetIds,
       projectId: selectedProjectId || undefined,
       scope,
       search: filters.search || undefined,
@@ -330,7 +435,7 @@ export default function BugListPage() {
       bugType: filters.bugType,
       module: filters.module,
       assigneeId: filters.assigneeId,
-      createdById: filters.createdById || undefined,
+      createdById: filters.createdById,
       ticketStatus: filters.ticketStatus,
       createdFrom: filters.createdRange?.[0] ? dayjs(filters.createdRange[0]).startOf("day").toISOString() : undefined,
       createdTo: filters.createdRange?.[1] ? dayjs(filters.createdRange[1]).endOf("day").toISOString() : undefined,
@@ -382,8 +487,10 @@ export default function BugListPage() {
 
   const rawBugs = bugsResponse?.bugs || [];
   const bugs = useMemo(() => {
-    if (!filters.bugStatus) return rawBugs;
-    return rawBugs.filter(b => b.bugStatus === filters.bugStatus || (!b.bugStatus && filters.bugStatus === "not started"));
+    const wanted = filters.bugStatus || [];
+    if (!wanted.length) return rawBugs;
+    // Bugs saved before the work-status column existed read as "not started".
+    return rawBugs.filter(b => wanted.includes(b.bugStatus || "not started"));
   }, [rawBugs, filters.bugStatus]);
   const total = bugsResponse?.pagination.total || 0;
   const shown = bugs.length;
@@ -397,15 +504,95 @@ export default function BugListPage() {
     !!selectedProjectId &&
     !(folders?.length === 0 && scope === "all" && !foldersLoading) &&
     (scope !== "archived" || !!selectedSheetId) &&
-    (scope !== "trash" || !!selectedSheetId) &&
     !!bugsResponse?.pagination &&
     total > 0;
 
-  const moduleOptions = useMemo(() => {
+  /**
+   * The modules this project owns, from QA Space → Settings → Modules. Bugs,
+   * scopes and test cases all file against the same list, so the capture form
+   * offers those rather than whatever text past bugs happen to carry.
+   */
+  const { options: projectModuleOptions, refetch: refetchProjectModules } = useProjectQaModules(selectedProjectId);
+
+  /** Module names already on this project's bugs — kept so old values still read back. */
+  const legacyModules = useMemo(() => {
+    const known = new Set(projectModuleOptions.map((o) => o.value.toLowerCase()));
     const set = new Set<string>();
-    bugs.forEach((b) => b.module && set.add(b.module));
+    bugs.forEach((b) => {
+      const name = (b.module || "").trim();
+      if (name && !known.has(name.toLowerCase())) set.add(name);
+    });
     return Array.from(set).sort();
-  }, [bugs]);
+  }, [bugs, projectModuleOptions]);
+
+  /** Switching project starts from the top of that project's tree. */
+  const chooseProject = (id: string) => {
+    setSelectedProjectId(id);
+    setSelectedFolderId(null);
+    setSelectedSheetId(null);
+  };
+
+  const pickerProjects = projects || [];
+  const visiblePickerProjects = showAllPickerProjects
+    ? pickerProjects
+    : pickerProjects.slice(0, PROJECT_PICKER_PREVIEW);
+  const hiddenPickerCount = Math.max(0, pickerProjects.length - PROJECT_PICKER_PREVIEW);
+
+  /** Filter pills offer the project's modules plus any legacy names still on bugs. */
+  const formattedModuleOptions = useMemo(
+    () => [
+      ...projectModuleOptions.map((m) => ({ value: m.value, label: m.label })),
+      ...legacyModules.map((m) => ({ value: m, label: m })),
+    ],
+    [projectModuleOptions, legacyModules]
+  );
+
+  const folderFilterOptions = useMemo(
+    () => allFolders.map((f) => ({ value: f.id, label: f.name })),
+    [allFolders]
+  );
+
+  /** Sheets narrow to the picked folders so the two pills can't contradict. */
+  const sheetFilterOptions = useMemo(() => {
+    const picked = new Set(filters.folderIds || []);
+    return allSheets
+      .filter((s) => (picked.size ? picked.has(s.folderId) : !selectedFolderId || s.folderId === selectedFolderId))
+      .map((s) => ({ value: s.id, label: s.name }));
+  }, [allSheets, filters.folderIds, selectedFolderId]);
+
+  /**
+   * Folder and sheet are multi-select filters rather than navigation, so picking
+   * them drops the sidebar drill-down — otherwise the two scopes AND together
+   * and the list silently comes back empty.
+   */
+  const applyFilter = useCallback(
+    (key: keyof FilterState, val: any) => {
+      setFilters((f) => {
+        const next: FilterState = { ...f, [key]: val };
+        if (key === "folderIds") {
+          const picked = new Set<string>(val || []);
+          if (picked.size) {
+            next.sheetIds = (f.sheetIds || []).filter((id) => {
+              const sheet = allSheets.find((s) => s.id === id);
+              return !!sheet && picked.has(sheet.folderId);
+            });
+          }
+        }
+        return next;
+      });
+      if (key === "folderIds" || key === "sheetIds") {
+        setSelectedFolderId(null);
+        setSelectedSheetId(null);
+      }
+    },
+    [allSheets]
+  );
+
+  const resetFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSelectedFolderId(null);
+    setSelectedSheetId(null);
+  }, []);
 
   const memberOptions = useMemo(
     () => members.map((m: any) => ({ value: m.value, label: m.label, avatarUrl: m.avatarUrl, description: m.description })),
@@ -414,19 +601,23 @@ export default function BugListPage() {
 
   const activeFilterCount = useMemo(() => {
     let n = 0;
-    if (filters.search) n++;
-    if (filters.severity) n++;
-    if (filters.status) n++;
-    if (filters.bugStatus) n++;
-    if (filters.bugType) n++;
-    if (filters.module) n++;
-    if (filters.assigneeId) n++;
-    if (filters.createdById) n++;
-    if (filters.ticketStatus) n++;
+    n += filters.severity?.length || 0;
+    n += filters.bugStatus?.length || 0;
+    n += filters.bugType?.length || 0;
+    n += filters.module?.length || 0;
+    n += filters.assigneeId?.length || 0;
+    n += filters.createdById?.length || 0;
+    n += filters.ticketStatus?.length || 0;
+    n += filters.folderIds?.length || 0;
+    n += filters.sheetIds?.length || 0;
     if (filters.createdRange) n++;
     if (filters.updatedRange) n++;
+    // The sidebar drill-down narrows the list too, so it reads as a filter here.
+    if (selectedFolderId) n++;
+    if (selectedSheetId) n++;
     return n;
-  }, [filters]);
+  }, [filters, selectedFolderId, selectedSheetId]);
+
 
   const breadcrumbScope = useMemo(() => {
     if (scope === "mine") return "My Bugs";
@@ -867,20 +1058,65 @@ export default function BugListPage() {
                 <RotateCw size={14} className={isFetching ? "animate-spin" : ""} />
               </button>
 
-              <button
-                className={`hb-btn hb-btn-ghost hb-filter-toggle ${filtersVisible ? "active" : ""
-                  }`}
-                onClick={() => setFiltersVisible((v) => !v)}
-                aria-pressed={filtersVisible}
-                disabled={viewMode === "calendar"}
-                style={viewMode === "calendar" ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-              >
-                <SlidersHorizontal size={14} />
-                <span className="hb-btn-text">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="hb-filter-badge">{activeFilterCount}</span>
-                )}
-              </button>
+              <Space.Compact className="ticket-filter-group">
+                <Popover
+                  content={
+                    <BugFilters
+                      filters={filters}
+                      onFilterChange={(key, val) => applyFilter(key as keyof FilterState, val)}
+                      onReset={resetFilters}
+                      folders={folderFilterOptions}
+                      sheets={sheetFilterOptions}
+                      members={memberOptions}
+                      severityOptions={[
+                        { value: "critical", label: "Critical" },
+                        { value: "high", label: "High" },
+                        { value: "medium", label: "Medium" },
+                        { value: "low", label: "Low" }
+                      ]}
+                      statusOptions={[
+                        { value: "not started", label: "Not Started" },
+                        { value: "pending", label: "Pending" },
+                        { value: "completed", label: "Completed" }
+                      ]}
+                      typeOptions={[
+                        { value: "functional", label: "Functional" },
+                        { value: "visual", label: "Visual" },
+                        { value: "crash", label: "Crash" },
+                        { value: "performance", label: "Performance" },
+                        { value: "security", label: "Security" },
+                        { value: "other", label: "Other" }
+                      ]}
+                      moduleOptions={formattedModuleOptions}
+                      ticketStatusOptions={[
+                        { value: "all", label: "All bugs" },
+                        { value: "linked", label: "Linked to tickets" },
+                        { value: "unlinked", label: "No ticket" }
+                      ]}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
+                  overlayClassName="tf-popover-overlay"
+                  styles={{ body: { padding: 0 } }}
+                >
+                  <Button
+                    icon={<FilterOutlined />}
+                    className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                    style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                    disabled={viewMode === "calendar"}
+                  >
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </Button>
+                </Popover>
+                <Button
+                  icon={<ExpandAltOutlined />}
+                  style={{ height: 30 }}
+                  aria-label="Expand filters"
+                  onClick={() => setFiltersVisible(prev => !prev)}
+                  disabled={viewMode === "calendar"}
+                />
+              </Space.Compact>
 
               {/* <Tooltip title="Trash Bin">
                 <button
@@ -915,6 +1151,142 @@ export default function BugListPage() {
             </div>
           )}
         </header>
+
+        {filtersVisible && viewMode === "list" && (
+          <div className="tl-filter-row" style={{ padding: '10px 24px', marginBottom: '2px' }}>
+            <div className="tl-filter-row-label">
+              <FilterOutlined style={{ fontSize: 11 }} />
+              <span>Filters</span>
+              <span className="tl-filter-row-count">
+                {activeFilterCount > 0 ? activeFilterCount : '0'}
+              </span>
+            </div>
+            <div className="tl-filter-row-pills">
+              <TicketFilterPill
+                icon={<FolderOutlined style={{ fontSize: 11 }} />}
+                label="Folder"
+                values={filters.folderIds || []}
+                options={folderFilterOptions}
+                onChange={(val: any) => applyFilter("folderIds", val)}
+                itemNoun="folders"
+              />
+              <TicketFilterPill
+                icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
+                label="Sheet"
+                values={filters.sheetIds || []}
+                options={sheetFilterOptions}
+                onChange={(val: any) => applyFilter("sheetIds", val)}
+                itemNoun="sheets"
+              />
+              <TicketFilterPill
+                icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                label="Status"
+                values={filters.bugStatus || []}
+                options={[
+                  { value: "not started", label: "Not Started" },
+                  { value: "pending", label: "Pending" },
+                  { value: "completed", label: "Completed" }
+                ]}
+                onChange={(val: any) => setFilters(f => ({ ...f, bugStatus: val }))}
+                itemNoun="statuses"
+              />
+              <TicketFilterPill
+                icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+                label="Severity"
+                values={filters.severity || []}
+                options={[
+                  { value: "critical", label: "Critical" },
+                  { value: "high", label: "High" },
+                  { value: "medium", label: "Medium" },
+                  { value: "low", label: "Low" }
+                ]}
+                onChange={(val: any) => setFilters(f => ({ ...f, severity: val }))}
+                itemNoun="severities"
+              />
+              <TicketFilterPill
+                icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                label="Type"
+                values={filters.bugType || []}
+                options={[
+                  { value: "functional", label: "Functional" },
+                  { value: "visual", label: "Visual" },
+                  { value: "crash", label: "Crash" },
+                  { value: "performance", label: "Performance" },
+                  { value: "security", label: "Security" },
+                  { value: "other", label: "Other" }
+                ]}
+                onChange={(val: any) => setFilters(f => ({ ...f, bugType: val }))}
+                itemNoun="types"
+              />
+              {formattedModuleOptions.length > 0 && (
+                <TicketFilterPill
+                  icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                  label="Module"
+                  values={filters.module || []}
+                  options={formattedModuleOptions}
+                  onChange={(val: any) => setFilters(f => ({ ...f, module: val }))}
+                  itemNoun="modules"
+                />
+              )}
+              <TicketFilterPill
+                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                label="Assignee"
+                values={filters.assigneeId || []}
+                options={memberOptions}
+                onChange={(val: any) => setFilters(f => ({ ...f, assigneeId: val }))}
+                itemNoun="members"
+                width={290}
+                showAvatar
+              />
+              <TicketFilterPill
+                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                label="Created By"
+                values={filters.createdById || []}
+                options={memberOptions}
+                onChange={(val: any) => setFilters(f => ({ ...f, createdById: val }))}
+                itemNoun="members"
+                width={290}
+                showAvatar
+              />
+              <TicketFilterPill
+                icon={<LinkOutlined style={{ fontSize: 11 }} />}
+                label="Ticket"
+                values={filters.ticketStatus || []}
+                options={[
+                  { value: "all", label: "All bugs" },
+                  { value: "linked", label: "Linked to tickets" },
+                  { value: "unlinked", label: "No ticket" }
+                ]}
+                onChange={(val: any) => setFilters(f => ({ ...f, ticketStatus: val }))}
+                itemNoun="ticket statuses"
+              />
+              <DateFilterPill
+                icon={<CalendarOutlined style={{ fontSize: 11 }} />}
+                label="Created"
+                value={filters.createdRange ? [dayjs(filters.createdRange[0]), dayjs(filters.createdRange[1])] : null}
+                onChange={(dates) => setFilters(f => ({ ...f, createdRange: dates ? [dates[0]?.toDate(), dates[1]?.toDate()] : null }))}
+              />
+              <DateFilterPill
+                icon={<CalendarOutlined style={{ fontSize: 11 }} />}
+                label="Updated"
+                value={filters.updatedRange ? [dayjs(filters.updatedRange[0]), dayjs(filters.updatedRange[1])] : null}
+                onChange={(dates) => setFilters(f => ({ ...f, updatedRange: dates ? [dates[0]?.toDate(), dates[1]?.toDate()] : null }))}
+              />
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  className="fp-trigger"
+                  onClick={resetFilters}
+                  title="Clear all filters"
+                >
+                  <span className="fp-trigger-icon"><ReloadOutlined style={{ fontSize: 11 }} /></span>
+                  <span className="fp-trigger-label">Clear</span>
+                  <span className="fp-trigger-count">{activeFilterCount}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {showWorkspaceStats && (
           <div className="hb-stats-row">
@@ -985,218 +1357,6 @@ export default function BugListPage() {
           </div>
         )}
 
-        {filtersVisible && viewMode === "list" && (
-          <>
-
-            <div className="hb-filterbar" style={{ position: 'relative', overflow: 'visible', marginTop: '16px' }}>
-              <div className="hb-filterbar-badge">
-                Filter
-                {activeFilterCount > 0 && (
-                  <span className="hb-filter-badge-count-inner">{activeFilterCount}</span>
-                )}
-              </div>
-
-              <Tooltip title="Hide filters">
-                <button
-                  className="hb-icon-btn hb-filterbar-close"
-                  onClick={() => setFiltersVisible(false)}
-                  aria-label="Hide filters"
-                  style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    right: '-1px',
-                    zIndex: 10,
-                    width: '22px',
-                    height: '22px',
-                    padding: 0,
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <X size={13} />
-                </button>
-              </Tooltip>
-
-              <div className="hb-filter-grid">
-                <SearchableDropdown
-                  triggerLabel="Folder"
-                  placeholder="All folders"
-                  searchPlaceholder="Search folders…"
-                  itemNoun="folders"
-                  value={selectedFolderId || undefined}
-                  onChange={(v) => {
-                    setSelectedFolderId(v || null);
-                    setSelectedSheetId(null);
-                  }}
-                  options={allFolders.map((f) => ({
-                    value: f.id,
-                    label: f.name,
-                    badge: <Folder size={14} />,
-                  }))}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Sheet"
-                  placeholder="All sheets"
-                  searchPlaceholder="Search sheets…"
-                  itemNoun="sheets"
-                  value={selectedSheetId || undefined}
-                  onChange={(v) => setSelectedSheetId(v || null)}
-                  options={allSheets
-                    .filter((s) => !selectedFolderId || s.folderId === selectedFolderId)
-                    .map((s) => ({
-                      value: s.id,
-                      label: s.name,
-                      badge: <Layers size={14} />,
-                    }))}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Created by"
-                  placeholder="Anyone"
-                  searchPlaceholder="Search people…"
-                  itemNoun="members"
-                  value={filters.createdById || undefined}
-                  onChange={(v) => setFilters((f) => ({ ...f, createdById: v }))}
-                  options={memberOptions}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Assignee"
-                  placeholder="Anyone"
-                  searchPlaceholder="Search people…"
-                  itemNoun="members"
-                  value={filters.assigneeId || undefined}
-                  onChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}
-                  options={memberOptions}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Status"
-                  placeholder="Any status"
-                  itemNoun="statuses"
-                  value={filters.status || undefined}
-                  onChange={(v) =>
-                    setFilters((f) => ({ ...f, status: v as BugStatus | undefined }))
-                  }
-                  options={STATUS_OPTS.map((s) => ({
-                    value: s,
-                    label: cap(s),
-                    badge: <CircleDot size={14} />,
-                  }))}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Bug status"
-                  placeholder="Any progress"
-                  itemNoun="states"
-                  value={filters.bugStatus || undefined}
-                  onChange={(v) =>
-                    setFilters((f) => ({
-                      ...f,
-                      bugStatus: v as "not started" | "pending" | "completed" | undefined,
-                    }))
-                  }
-                  options={[
-                    { value: "not started", label: "Not Started", badge: <Activity size={14} /> },
-                    { value: "pending", label: "Pending", badge: <Activity size={14} /> },
-                    { value: "completed", label: "Completed", badge: <Activity size={14} /> },
-                  ]}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Severity"
-                  placeholder="Any severity"
-                  itemNoun="levels"
-                  value={filters.severity || undefined}
-                  onChange={(v) =>
-                    setFilters((f) => ({ ...f, severity: v as BugSeverity | undefined }))
-                  }
-                  options={SEVERITY_OPTS.map((s) => ({
-                    value: s,
-                    label: cap(s),
-                    badge: <AlertTriangle size={14} />,
-                  }))}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Type"
-                  placeholder="Any type"
-                  itemNoun="types"
-                  value={filters.bugType || undefined}
-                  onChange={(v) =>
-                    setFilters((f) => ({ ...f, bugType: v as BugType | undefined }))
-                  }
-                  options={TYPE_OPTS.map((s) => ({
-                    value: s,
-                    label: s.toUpperCase(),
-                    badge: <Tag size={14} />,
-                  }))}
-                />
-
-                <SearchableDropdown
-                  triggerLabel="Ticket status"
-                  placeholder="Any ticket status"
-                  itemNoun="statuses"
-                  value={filters.ticketStatus || undefined}
-                  onChange={(v) =>
-                    setFilters((f) => ({ ...f, ticketStatus: v || undefined }))
-                  }
-                  options={STATUS_OPTIONS.map((s) => ({
-                    value: s.value,
-                    label: s.label,
-                    badge: <CircleDot size={14} />,
-                  }))}
-                />
-
-                <div
-                  className={`hb-filter-range ${filters.createdRange ? "is-active" : ""}`}
-                >
-                  <span className="hb-filter-range-label">
-                    <Calendar size={11} /> Created
-                  </span>
-                  <RangePicker
-                    size="small"
-                    variant="borderless"
-                    value={filters.createdRange}
-                    onChange={(v) =>
-                      setFilters((f) => ({ ...f, createdRange: v as any }))
-                    }
-                  />
-                </div>
-
-                <div
-                  className={`hb-filter-range ${filters.updatedRange ? "is-active" : ""}`}
-                >
-                  <span className="hb-filter-range-label">
-                    <Calendar size={11} /> Updated
-                  </span>
-                  <RangePicker
-                    size="small"
-                    variant="borderless"
-                    value={filters.updatedRange}
-                    onChange={(v) =>
-                      setFilters((f) => ({ ...f, updatedRange: v as any }))
-                    }
-                  />
-                </div>
-
-                {activeFilterCount > 0 && (
-                  <button
-                    className="hb-filter-reset"
-                    onClick={() => setFilters(DEFAULT_FILTERS)}
-                    title="Reset filters"
-                  >
-                    <RotateCcw size={12} />
-                    Reset
-                  </button>
-                )}
-              </div>
-            </div>
-          </>
-        )}
 
         {viewMode === "list" && selectedSheetId && (scope === "all" || scope === "mine") && (
           <div className="hb-quickadd">
@@ -1241,47 +1401,54 @@ export default function BugListPage() {
                 </>
               ) : (
                 <>
-                  <Select
-                    placeholder="Move to Sheet"
-                    size="small"
-                    className="hb-bulk-move-select"
-                    popupClassName="hb-bulk-move-popup"
-                    suffixIcon={<ChevronDown size={12} />}
-                    style={{ width: 160 }}
+                  <SearchableDropdown
                     value={null}
-                    loading={bulkMoveBugs.isPending}
                     onChange={(targetSheetId) => {
                       if (!targetSheetId) return;
                       bulkMoveBugs.mutate(
                         {
                           bugIds: Array.from(selectedIds),
-                          targetSheetId
+                          targetSheetId,
                         },
                         {
                           onSuccess: () => {
                             setSelectedIds(new Set());
-                          }
+                          },
                         }
                       );
                     }}
-                    options={(projectSheets || [])
-                      .filter(s => s.id !== selectedSheetId)
-                      .map(s => ({
-                        value: s.id,
-                        label: (
-                          <div className="hb-move-option">
-                            <Box size={12} className="hb-move-icon" />
-                            <div className="hb-move-info">
-                              <div className="hb-move-name">{s.name}</div>
-                              <div className="hb-move-folder">{s.folderName}</div>
-                            </div>
-                          </div>
-                        )
-                      }))}
+                    options={moveSheetOptions}
+                    loading={bulkMoveBugs.isPending}
+                    disabled={bulkMoveBugs.isPending}
+                    searchPlaceholder="Search sheets or folders…"
+                    itemNoun="sheets"
+                    allowClear={false}
+                    overlayClassName="hb-move-pop"
+                    onOpenChange={setMoveMenuOpen}
+                    emptyComponent={
+                      <div className="hb-move-empty">
+                        <Layers size={18} />
+                        <div className="hb-move-empty-title">No other sheet to move into</div>
+                        <div className="hb-move-empty-sub">
+                          Create another sheet in this project first.
+                        </div>
+                      </div>
+                    }
+                    customTrigger={
+                      <button
+                        type="button"
+                        className={`hb-btn hb-move-trigger ${moveMenuOpen ? "is-open" : ""}`}
+                        disabled={bulkMoveBugs.isPending}
+                      >
+                        <CornerUpRight size={13} />
+                        {bulkMoveBugs.isPending ? "Moving…" : "Move to sheet"}
+                        <ChevronDown size={12} className="hb-move-trigger-caret" />
+                      </button>
+                    }
                   />
                   <button
                     className="hb-btn hb-btn-primary"
-                    onClick={() => setBulkTicketOpen(true)}
+                    onClick={() => setCreationTargetOpen(true)}
                   >
                     <Sparkles size={13} />
                     Create ticket{selectedIds.size === 1 ? "" : "s"}
@@ -1322,25 +1489,81 @@ export default function BugListPage() {
 
         <div className="hb-content">
           {!selectedProjectId ? (
-            <div className="hb-empty-state hb-project-empty">
-              <div className="hb-empty-icon">
-                <div className="hb-empty-icon-ring">
-                  <Briefcase size={40} />
-                </div>
+            /* Nothing to show until a project is chosen — so choose it here,
+               rather than pointing at the switcher and leaving the page blank.
+               `.hb-content` clips its overflow, so the picker owns its own
+               scroll — otherwise the expanded grid runs off the bottom. */
+            <div className="hb-pp-scroll">
+            <div className="hb-projectpicker">
+              <div className="hb-pp-head">
+                <span className="hb-pp-badge"><Briefcase size={20} /></span>
+                <h3 className="hb-pp-title">Choose a project</h3>
+                <p className="hb-pp-sub">
+                  Bugs, sheets and folders all live inside a project. Pick one to open its bug list.
+                </p>
               </div>
-              <h3>Choose a Project</h3>
-              <p>To view bugs and manage your workflow, please select a project from the header above.</p>
-              <div className="hb-empty-actions">
-                <button
-                  className="hb-btn hb-btn-primary hb-btn-lg"
-                  onClick={() => {
-                    message.info("Click the project switcher in the top-left");
-                  }}
-                >
-                  <Search size={14} />
-                  Find Project
-                </button>
+
+              <div className="hb-pp-search">
+                <SearchableDropdown
+                  options={pickerProjects.map(p => ({
+                    value: p.value,
+                    label: p.label,
+                    description: p.code ? `#${p.code}` : undefined,
+                  }))}
+                  value={undefined}
+                  onChange={(v: any) => v && chooseProject(v)}
+                  placeholder={projectsLoading ? "Loading projects…" : "Search all projects"}
+                  searchPlaceholder="Type a project name or code…"
+                  itemNoun="projects"
+                  loading={projectsLoading}
+                  allowClear={false}
+                  style={{ width: "100%" }}
+                />
               </div>
+
+              {pickerProjects.length > 0 && (
+                <>
+                  <div className="hb-pp-divider">
+                    <span>{showAllPickerProjects ? "All projects" : "Recent projects"}</span>
+                  </div>
+
+                  <div className="hb-pp-grid">
+                    {visiblePickerProjects.map(p => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        className="hb-pp-card"
+                        onClick={() => chooseProject(p.value)}
+                      >
+                        <span className="hb-pp-card__code">
+                          {(p.code || "PRJ").substring(0, 3).toUpperCase()}
+                        </span>
+                        <span className="hb-pp-card__text">
+                          <span className="hb-pp-card__name">{p.label}</span>
+                          <span className="hb-pp-card__meta">#{p.code || "N/A"}</span>
+                        </span>
+                        <ArrowRight size={14} className="hb-pp-card__go" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {hiddenPickerCount > 0 && (
+                    <button
+                      type="button"
+                      className="hb-pp-more"
+                      onClick={() => setShowAllPickerProjects(v => !v)}
+                    >
+                      <ChevronDown size={13} className={showAllPickerProjects ? "is-open" : ""} />
+                      {showAllPickerProjects ? "Show less" : `Show ${hiddenPickerCount} more`}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {!projectsLoading && pickerProjects.length === 0 && (
+                <p className="hb-pp-none">You don’t belong to any project yet — ask a project manager to add you.</p>
+              )}
+            </div>
             </div>
           ) : viewMode === "calendar" ? (
             <BugCalendarView
@@ -1474,7 +1697,7 @@ export default function BugListPage() {
                     }}
                     onCreateTicket={(bug) => {
                       setSelectedIds(new Set([bug.id]));
-                      setBulkTicketOpen(true);
+                      setCreationTargetOpen(true);
                     }}
                     onVerify={(bug) => {
                       verifyBug.mutate(bug.id);
@@ -1566,7 +1789,10 @@ export default function BugListPage() {
         folderId={selectedFolderId}
         sheetId={selectedSheetId}
         editingBug={editingBug}
-        modules={moduleOptions}
+        moduleOptions={projectModuleOptions}
+        legacyModules={legacyModules}
+        projectName={projects?.find(p => p.value === selectedProjectId)?.label}
+        onModulesRefresh={() => refetchProjectModules()}
         onSubmit={handleSubmitBug}
         submitting={createBug.isPending || updateBug.isPending}
       />
@@ -1591,22 +1817,79 @@ export default function BugListPage() {
         }}
       />
 
-      <AiReviewModal
-        open={aiOpen}
-        onClose={() => setAiOpen(false)}
+      <CreateTicketWizard
+        open={creationTargetOpen}
+        onClose={() => setCreationTargetOpen(false)}
         bugs={selectedBugs}
-      />
-
-      <BulkTicketModal
-        open={bulkTicketOpen}
-        bugs={selectedBugs}
-        prefilledProjectId={prefilledProjectId}
-        onClose={() => setBulkTicketOpen(false)}
-        onPickAi={() => {
-          setBulkTicketOpen(false);
-          setAiOpen(true);
+        count={selectedIds.size}
+        bugIds={Array.from(selectedIds)}
+        prefilledProjectId={selectedProjectId || undefined}
+        onManageIntegrations={() => {
+          setCreationTargetOpen(false);
+          router.push("/integrations");
+        }}
+        onLinearSuccess={() => {
+          setCreationTargetOpen(false);
+          setSelectedIds(new Set());
+          refetch();
         }}
       />
+
+      <style>{`
+        /* ── Inline filter row (compact pill strip) ────────── */
+        .tl-filter-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .tl-filter-row {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-filter-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0;
+          font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        .tl-filter-row-pills {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px 6px;
+        }
+      `}</style>
     </div>
   );
 }

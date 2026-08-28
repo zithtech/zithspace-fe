@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -656,7 +658,7 @@ export default function MilestonesTab({ clientId, projects = [], onRefresh }: Pr
               onRow={(record) => ({
                 onClick: () => setViewingMilestoneId(record.id),
                 style: { cursor: "pointer" },
-              })}
+              })} locale={{ emptyText: <NoData /> }}
             />
           </div>
         ) : (

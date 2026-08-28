@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React from 'react';
 import { 
   Modal, 
@@ -71,7 +72,7 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({ visible, o
                 { title: 'Qty', dataIndex: 'quantity', key: 'quantity' },
                 { title: 'Price', dataIndex: 'price', key: 'price', render: (val: any) => `$${Number(val).toLocaleString()}` },
                 { title: 'Total', key: 'total', render: (_, r: any) => `$${(Number(r.price) * Number(r.quantity)).toFixed(2)}` }
-              ]}
+              ]} locale={{ emptyText: <NoData /> }}
             />
           </div>
         );
@@ -90,7 +91,7 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({ visible, o
       default:
         return (
           <div style={{ padding: '20px', textAlign: 'center' }}>
-            <Empty description={`Details for ${block.type} block`} />
+            <NoData description={`Details for ${block.type} block`} />
             <pre style={{ textAlign: 'left', background: '#eee', padding: 10 }}>
               {JSON.stringify(block.data || block, null, 2)}
             </pre>
@@ -155,7 +156,7 @@ export const ProposalViewModal: React.FC<ProposalViewModalProps> = ({ visible, o
           className="premium-tabs"
         />
       ) : (
-        <Empty description="No details found in this proposal." />
+        <NoData description="No details found in this proposal." />
       )}
     </Modal>
   );

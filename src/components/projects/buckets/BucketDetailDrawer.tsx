@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -257,7 +259,7 @@ export function BucketDetailDrawer({
             <ZukvoLoader size="lg" />
           </div>
         ) : !bucket ? (
-          <Empty description="Bucket not found" />
+          <NoData description="Bucket not found" />
         ) : (
           <Tabs
             activeKey={activeTab}
@@ -343,10 +345,7 @@ export function BucketDetailDrawer({
                       pagination={false}
                       locale={{
                         emptyText: (
-                          <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description="No members yet"
-                          />
+                          <NoData description="No members yet" />
                         ),
                       }}
                     />
@@ -362,11 +361,7 @@ export function BucketDetailDrawer({
                   </span>
                 ),
                 children: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Ticket list view coming soon"
-                    style={{ marginTop: 40 }}
-                  />
+                  <NoData description="Ticket list view coming soon" />
                 ),
               },
             ]}

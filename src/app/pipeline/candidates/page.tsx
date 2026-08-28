@@ -1,4 +1,5 @@
 'use client';
+import NoData from "@/components/common/NoData";
 
 import React, { useEffect, useState } from 'react';
 import { PipelineService as pipelineClient } from '@/services/pipelineService';
@@ -381,6 +382,7 @@ export default function CandidatesPage() {
                 pagination={false}
                 className="pp-table"
                 scroll={{ x: 800 }}
+                locale={{ emptyText: <NoData /> }}
                 onRow={(record) => ({
                   onClick: (e) => {
                     const t = e.target as HTMLElement;
@@ -398,7 +400,9 @@ export default function CandidatesPage() {
               {loading ? (
                 <div className="col-span-full text-center py-8 text-slate-500 w-full">Loading...</div>
               ) : filteredCandidates.length === 0 ? (
-                <div className="col-span-full text-center py-8 text-slate-500 w-full">No candidates found.</div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <NoData description="No candidates found." />
+                </div>
               ) : (
                 filteredCandidates.map((c) => {
                   const initials = c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();

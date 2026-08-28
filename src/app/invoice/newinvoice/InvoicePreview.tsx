@@ -1,4 +1,4 @@
-
+import NoData from "@/components/common/NoData";
 import React from 'react';
 import { Card, Typography, Table, Divider, Row, Col, Space } from 'antd';
 import dayjs from 'dayjs';
@@ -399,7 +399,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 })}
               </Table.Summary.Row>
             </>
-          )}
+          )} locale={{ emptyText: <NoData /> }}
         />
 
         {/* Amount in Words */}

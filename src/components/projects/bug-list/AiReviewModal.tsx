@@ -32,13 +32,19 @@ import type {
   BugListItem,
   ConvertedTicket,
 } from "@/services/bugListService";
+import { LinearService } from "@/services/linearService";
 
 type Step = "review" | "group" | "done";
 
 interface Props {
+  /** Step back to the method picker without discarding the selection. */
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
+  /** Render as a wizard step body — no Modal of its own. */
+  embedded?: boolean;
   bugs: BugListItem[];
+  integration?: "zukvo" | "linear" | "jira";
 }
 
 interface EditableGroup {
@@ -51,9 +57,11 @@ interface EditableGroup {
   acceptanceCriteria: string;
   projectId?: string;
   assigneeId?: string;
+  teamId?: string;
+  labelIds?: string[];
 }
 
-export default function AiReviewModal({ open, onClose, bugs }: Props) {
+export default function AiReviewModal({ open, onClose, onBack, embedded, bugs, integration = "zukvo" }: Props) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
@@ -64,6 +72,12 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
   const [reviewStarted, setReviewStarted] = useState(false);
   const [groups, setGroups] = useState<EditableGroup[]>([]);
   const [createdTickets, setCreatedTickets] = useState<ConvertedTicket[]>([]);
+
+  // Linear Metadata
+  const [linearTeams, setLinearTeams] = useState<{ id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[]>([]);
+  const [linearUsers, setLinearUsers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [linearLabels, setLinearLabels] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [fetchingLinear, setFetchingLinear] = useState(false);
 
   const review = useAiReviewBugs();
   const suggest = useAiSuggestGroups();
@@ -91,8 +105,28 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
       setReviewResults([]);
       setGroups([]);
       setCreatedTickets([]);
+    } else if (integration === "linear") {
+      fetchLinearData();
     }
-  }, [open]);
+  }, [open, integration]);
+
+  const fetchLinearData = async () => {
+    setFetchingLinear(true);
+    try {
+      const [teamsData, usersData, labelsData] = await Promise.all([
+        LinearService.getTeams(),
+        LinearService.getUsers(),
+        LinearService.getLabels(),
+      ]);
+      setLinearTeams(teamsData || []);
+      setLinearUsers(usersData || []);
+      setLinearLabels(labelsData || []);
+    } catch (error: any) {
+      console.error("Failed to load Linear data", error);
+    } finally {
+      setFetchingLinear(false);
+    }
+  };
 
   const startReview = async () => {
     if (bugs.length === 0) return;
@@ -123,31 +157,80 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
       message.warning("Nothing to convert");
       return;
     }
+    
+    // Add validation for Linear
+    if (integration === "linear") {
+      const missingTeam = groups.find(g => !g.teamId);
+      if (missingTeam) {
+        message.error(`Please select a Team for group: ${missingTeam.title}`);
+        return;
+      }
+    }
+    
     try {
-      const created = await convert.mutateAsync(
-        groups.map((g) => {
+      if (integration === "linear") {
+        const linearCreated: ConvertedTicket[] = [];
+        for (const g of groups) {
           const groupBugs = g.bugIds
             .map((id) => bugsById.get(id))
             .filter((b): b is BugListItem => !!b);
-          const allAttachments = groupBugs.flatMap((b) => b.attachments || []);
-          const allExternalLinks = groupBugs.flatMap((b) => b.externalLinks || []);
-
-          return {
+          
+          let description = g.description;
+          if (g.acceptanceCriteria) {
+            description += `\n\n## Acceptance Criteria\n${g.acceptanceCriteria}`;
+          }
+          
+          description += `\n\n### Linked Bugs\n`;
+          groupBugs.forEach(b => {
+            description += `- ${b.bugNumber || b.id.slice(-6)}: ${b.title || b.description}\n`;
+          });
+          
+          const issue = await LinearService.createIssue({
             title: g.title,
-            description: g.description,
-            acceptanceCriteria: g.acceptanceCriteria || undefined,
-            bugIds: g.bugIds,
+            description,
+            teamId: g.teamId!,
             projectId: g.projectId,
             assigneeId: g.assigneeId,
-            attachments: allAttachments,
-            externalLinks: allExternalLinks,
-          };
-        }),
-      );
-      setCreatedTickets(created);
+            labelIds: g.labelIds,
+            bugIds: g.bugIds,
+          });
+          
+          linearCreated.push({
+            ticketId: issue.id,
+            ticketNumber: issue.identifier,
+            status: 'todo',
+            timestamp: new Date().toISOString(),
+            bugIds: g.bugIds,
+            url: issue.url, // Ensure we can pass this to DoneStep
+          } as any);
+        }
+        setCreatedTickets(linearCreated);
+      } else {
+        const created = await convert.mutateAsync(
+          groups.map((g) => {
+            const groupBugs = g.bugIds
+              .map((id) => bugsById.get(id))
+              .filter((b): b is BugListItem => !!b);
+            const allAttachments = groupBugs.flatMap((b) => b.attachments || []);
+            const allExternalLinks = groupBugs.flatMap((b) => b.externalLinks || []);
+
+            return {
+              title: g.title,
+              description: g.description,
+              acceptanceCriteria: g.acceptanceCriteria || undefined,
+              bugIds: g.bugIds,
+              projectId: g.projectId,
+              assigneeId: g.assigneeId,
+              attachments: allAttachments,
+              externalLinks: allExternalLinks,
+            };
+          }),
+        );
+        setCreatedTickets(created);
+      }
       setStep("done");
     } catch {
-      // hook surfaces the error toast
+      // hook surfaces the error toast, or catch LinearService errors
     }
   };
 
@@ -163,17 +246,7 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
 
   if (!hasPrime) return null;
 
-  return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={960}
-      destroyOnHidden
-      closable={false}
-      className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
-      maskClosable={false}
-    >
+  const body = (
       <ConfigProvider
         theme={{
           algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -183,12 +256,13 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
           }
         }}
       >
-        <div className="hb-aim">
+        <div className={`hb-aim ${embedded ? "hb-aim-flat" : ""}`}>
         <ModalHeader
           step={step}
           bugCount={bugs.length}
           ticketCount={createdTickets.length}
-          onClose={onClose}
+          onClose={embedded ? undefined : onClose}
+          onBack={embedded ? undefined : onBack}
         />
 
         <Stepper step={step} />
@@ -212,6 +286,10 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
               members={members}
               onUpdate={updateGroup}
               onRemove={removeGroup}
+              integration={integration}
+              linearTeams={linearTeams}
+              linearUsers={linearUsers}
+              linearLabels={linearLabels}
             />
           )}
           {step === "done" && (
@@ -234,6 +312,22 @@ export default function AiReviewModal({ open, onClose, bugs }: Props) {
         />
       </div>
       </ConfigProvider>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={960}
+      destroyOnHidden
+      closable={false}
+      className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
+      maskClosable={false}
+    >
+      {body}
     </Modal>
   );
 }
@@ -247,11 +341,13 @@ function ModalHeader({
   bugCount,
   ticketCount,
   onClose,
+  onBack,
 }: {
   step: Step;
   bugCount: number;
   ticketCount: number;
-  onClose: () => void;
+  onClose?: () => void;
+  onBack?: () => void;
 }) {
   const titleByStep: Record<Step, { title: string; sub: string }> = {
     review: {
@@ -271,16 +367,28 @@ function ModalHeader({
   return (
     <div className="hb-aim-header">
       <div className="hb-aim-titleblock">
-        <div className="hb-aim-eyebrow">
-          <Sparkles size={12} />
-          Hivebug AI
-        </div>
         <div className="hb-aim-title">{meta.title}</div>
         <div className="hb-aim-sub">{meta.sub}</div>
       </div>
-      <button className="hb-aim-close" aria-label="Close" onClick={onClose}>
-        <X size={16} />
-      </button>
+      {(onBack || onClose) && (
+      <div className="hb-aim-headactions">
+        {onBack && step !== "done" && (
+          <button
+            className="hb-aim-back"
+            aria-label="Back to method picker"
+            title="Back to method picker"
+            onClick={onBack}
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
+        {onClose && (
+          <button className="hb-aim-close" aria-label="Close" onClick={onClose}>
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      )}
     </div>
   );
 }
@@ -467,14 +575,22 @@ function GroupStep({
   members,
   onUpdate,
   onRemove,
+  integration,
+  linearTeams,
+  linearUsers,
+  linearLabels,
 }: {
   groups: EditableGroup[];
   bugsById: Map<string, BugListItem>;
   reviewByBugId: Map<string, AiReviewResult>;
   projects: { value: string; label: string; code?: string }[] | undefined;
   members: { value: string; label: string }[];
-  onUpdate: (idx: number, patch: Partial<EditableGroup>) => void;
+  onUpdate: (idx: number, p: Partial<EditableGroup>) => void;
   onRemove: (idx: number) => void;
+  integration?: "zukvo" | "linear" | "jira";
+  linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
+  linearUsers?: { id: string; name: string; email: string }[];
+  linearLabels?: { id: string; name: string; color: string }[];
 }) {
   if (groups.length === 0) {
     return (
@@ -499,6 +615,10 @@ function GroupStep({
           members={members}
           onUpdate={(patch) => onUpdate(idx, patch)}
           onRemove={() => onRemove(idx)}
+          integration={integration}
+          linearTeams={linearTeams}
+          linearUsers={linearUsers}
+          linearLabels={linearLabels}
         />
       ))}
     </div>
@@ -514,6 +634,10 @@ function GroupCard({
   members,
   onUpdate,
   onRemove,
+  integration,
+  linearTeams,
+  linearUsers,
+  linearLabels,
 }: {
   index: number;
   group: EditableGroup;
@@ -523,6 +647,10 @@ function GroupCard({
   members: { value: string; label: string }[];
   onUpdate: (patch: Partial<EditableGroup>) => void;
   onRemove: () => void;
+  integration?: "zukvo" | "linear" | "jira";
+  linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
+  linearUsers?: { id: string; name: string; email: string }[];
+  linearLabels?: { id: string; name: string; color: string }[];
 }) {
   const [expanded, setExpanded] = useState(index === 0);
   return (
@@ -576,43 +704,114 @@ function GroupCard({
               onChange={(e) => onUpdate({ acceptanceCriteria: e.target.value })}
             />
           </Field>
-          <div className="hb-aim-twocol">
-            <Field label="Project">
-              <Select
-                allowClear
-                showSearch
-                placeholder="Inherit from folder"
-                value={group.projectId}
-                onChange={(v) => onUpdate({ projectId: v })}
-                options={projects.map((p) => ({
-                  value: p.value,
-                  label: p.code ? `${p.code} · ${p.label}` : p.label,
-                }))}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                style={{ width: "100%" }}
-              />
-            </Field>
-            <Field label="Assignee">
-              <Select
-                allowClear
-                showSearch
-                placeholder="Unassigned"
-                value={group.assigneeId}
-                onChange={(v) => onUpdate({ assigneeId: v })}
-                options={members}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                style={{ width: "100%" }}
-              />
-            </Field>
-          </div>
+          {integration === "linear" ? (
+            <>
+              <div className="hb-aim-twocol">
+                <Field label="Team (Linear)">
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder="Select team"
+                    value={group.teamId}
+                    onChange={(v) => onUpdate({ teamId: v, projectId: undefined })}
+                    options={linearTeams?.map((t) => ({ value: t.id, label: t.name })) || []}
+                    filterOption={(input, option) =>
+                      (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </Field>
+                <Field label="Project (Linear)">
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder="Select project"
+                    value={group.projectId}
+                    onChange={(v) => onUpdate({ projectId: v })}
+                    options={
+                      linearTeams
+                        ?.find((t) => t.id === group.teamId)
+                        ?.projects.nodes.map((p) => ({ value: p.id, label: p.name })) || []
+                    }
+                    filterOption={(input, option) =>
+                      (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                    disabled={!group.teamId}
+                  />
+                </Field>
+              </div>
+              <div className="hb-aim-twocol" style={{ marginTop: 12 }}>
+                <Field label="Assignee (Linear)">
+                  <Select
+                    allowClear
+                    showSearch
+                    placeholder="Unassigned"
+                    value={group.assigneeId}
+                    onChange={(v) => onUpdate({ assigneeId: v })}
+                    options={linearUsers?.map((u) => ({ value: u.id, label: u.name })) || []}
+                    filterOption={(input, option) =>
+                      (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </Field>
+                <Field label="Labels (Linear)">
+                  <Select
+                    allowClear
+                    mode="multiple"
+                    showSearch
+                    placeholder="Select labels"
+                    value={group.labelIds}
+                    onChange={(v) => onUpdate({ labelIds: v })}
+                    options={linearLabels?.map((l) => ({ value: l.id, label: l.name })) || []}
+                    filterOption={(input, option) =>
+                      (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                    }
+                    style={{ width: "100%" }}
+                  />
+                </Field>
+              </div>
+            </>
+          ) : (
+            <div className="hb-aim-twocol">
+              <Field label="Project">
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Inherit from folder"
+                  value={group.projectId}
+                  onChange={(v) => onUpdate({ projectId: v })}
+                  options={projects.map((p) => ({
+                    value: p.value,
+                    label: p.code ? `${p.code} · ${p.label}` : p.label,
+                  }))}
+                  filterOption={(input, option) =>
+                    (option?.label as string)
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  style={{ width: "100%" }}
+                />
+              </Field>
+              <Field label="Assignee">
+                <Select
+                  allowClear
+                  showSearch
+                  placeholder="Unassigned"
+                  value={group.assigneeId}
+                  onChange={(v) => onUpdate({ assigneeId: v })}
+                  options={members}
+                  filterOption={(input, option) =>
+                    (option?.label as string)
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  style={{ width: "100%" }}
+                />
+              </Field>
+            </div>
+          )}
 
           <div className="hb-aim-buglist">
             <div className="hb-aim-buglist-title">Bugs in this ticket</div>
@@ -680,7 +879,11 @@ function DoneStep({
             type="button"
             className="hb-aim-ticket"
             onClick={() => {
-              openTicketDrawer(t.ticketId);
+              if (t.url) {
+                window.open(t.url, '_blank');
+              } else {
+                openTicketDrawer(t.ticketId);
+              }
             }}
           >
             <div>

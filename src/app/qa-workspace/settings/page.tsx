@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { BugOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
@@ -12,8 +12,11 @@ import { QA_SUBMISSION_STYLES } from "../qa-submissions/shared";
 export default function QaSettingsPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "QaSettings" });
 
-  const { canManageBugs } = usePermission();
-  if (!canManageBugs) return null;
+  // Bug definitions need bug.manage, the test scope option lists need qa.manage.
+  // Either grant is enough to reach the screen; the sidebar shows only the
+  // groups the viewer can actually configure.
+  const { canManageBugs, canManageQa } = usePermission();
+  if (!canManageBugs && !canManageQa) return null;
 
   return (
     <MainLayout noPadding>
@@ -53,7 +56,11 @@ export default function QaSettingsPage() {
           .sc-topbar__sub, .sc-topbar__div { display: none !important; }
         }
       `}} />
-      <BugListConfigManager />
+      {/* The manager reads ?section= to open straight onto a pane, and
+          useSearchParams needs a boundary to render under. */}
+      <Suspense fallback={null}>
+        <BugListConfigManager />
+      </Suspense>
     </MainLayout>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 //Components
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import React, { useState, useEffect } from "react";
 import {
   Drawer,
@@ -685,12 +686,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
             <Space size={8} wrap>
               {isInBacklog && activeSprint && (canUpdateTicket || canManageTickets) && (
-                <Tooltip title={`Add to ${activeSprint.version || activeSprint.name || "sprint"}`}>
+                <ConfirmDialog
+                  tone="primary"
+                  title={`Add to ${activeSprint.version || activeSprint.name || "Sprint"}`}
+                  description="Are you sure you want to add this ticket to the active sprint?"
+                  confirmText="Add to Sprint"
+                  onConfirm={() => handleSprintAssignment("add")}
+                  placement="bottomRight"
+                >
                   <Button
                     type="default"
                     size="middle"
                     icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
-                    onClick={() => handleSprintAssignment("add")}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       height: 32,
                       borderRadius: 6,
@@ -704,16 +712,23 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   >
                     Add to Sprint
                   </Button>
-                </Tooltip>
+                </ConfirmDialog>
               )}
               {isInActiveSprint && (canUpdateTicket || canManageTickets) && (
-                <Tooltip title="Remove from sprint, return to backlog">
+                <ConfirmDialog
+                  tone="danger"
+                  title="Remove from Sprint"
+                  description="Are you sure you want to remove this ticket from the active sprint?"
+                  confirmText="Remove"
+                  onConfirm={() => handleSprintAssignment("remove")}
+                  placement="bottomRight"
+                >
                   <Button
                     danger
                     type="default"
                     size="middle"
                     icon={<MinusCircleOutlined />}
-                    onClick={() => handleSprintAssignment("remove")}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       height: 32,
                       borderRadius: 6,
@@ -727,7 +742,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   >
                     Remove from Sprint
                   </Button>
-                </Tooltip>
+                </ConfirmDialog>
               )}
 
               <Space size={0} style={{ border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', marginRight: 8 }}>

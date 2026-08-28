@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Typography, ConfigProvider, theme as antdTheme } from 'antd';
-import Logo from '@/assets/logo/Zukvologo.png';
+import { useProduct } from '@/context/ProductContext';
 
 const { Title, Text } = Typography;
 
@@ -231,6 +231,8 @@ interface AuthShellProps {
  * Zukvo lockup and footer. Matches the login page exactly.
  */
 export default function AuthShell({ subtitle, children }: AuthShellProps) {
+  const { brand, manifest, product } = useProduct();
+
   return (
     <ConfigProvider theme={authTheme}>
       <div
@@ -257,7 +259,12 @@ export default function AuthShell({ subtitle, children }: AuthShellProps) {
             maxWidth: 380,
           }}
         >
-          {/* Logo + wordmark lockup */}
+          {/* Logo + wordmark lockup.
+              The canvas is charcoal, so the mark needs inverting — but only the
+              Zukvo one, which is drawn dark-on-light. Testiez ships artwork cut
+              for dark surfaces already, and inverting it would wreck it. Where a
+              product has real wordmark artwork it is used instead of type,
+              because a wordmark is a drawing, not a font. */}
           <div
             style={{
               display: 'flex',
@@ -268,25 +275,37 @@ export default function AuthShell({ subtitle, children }: AuthShellProps) {
             }}
           >
             <Image
-              src={Logo}
-              alt="Zukvo"
+              src={brand.mark}
+              alt=""
               width={44}
               height={44}
-              style={{ objectFit: 'contain', filter: 'invert(1)' }}
-            />
-            <Title
-              level={2}
               style={{
-                margin: 0,
-                color: '#F8FAFC',
-                fontWeight: 600,
-                fontSize: 32,
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
+                objectFit: 'contain',
+                filter: product === 'zukvo' ? 'invert(1)' : undefined,
               }}
-            >
-              Zukvo
-            </Title>
+            />
+            {brand.wordmarkLight ? (
+              <Image
+                src={brand.wordmarkLight}
+                alt={manifest.name}
+                height={32}
+                style={{ objectFit: 'contain', width: 'auto' }}
+              />
+            ) : (
+              <Title
+                level={2}
+                style={{
+                  margin: 0,
+                  color: '#F8FAFC',
+                  fontWeight: 600,
+                  fontSize: 32,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1,
+                }}
+              >
+                {manifest.name}
+              </Title>
+            )}
           </div>
 
           {subtitle && (
@@ -299,7 +318,7 @@ export default function AuthShell({ subtitle, children }: AuthShellProps) {
 
           <div style={{ textAlign: 'center', marginTop: 32 }}>
             <Text style={{ fontSize: 12, color: '#4A566B' }}>
-              © {new Date().getFullYear()} Zukvo. All rights reserved.
+              © {new Date().getFullYear()} {brand.legalName}. All rights reserved.
             </Text>
           </div>
         </div>

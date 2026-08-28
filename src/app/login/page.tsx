@@ -25,7 +25,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
-import Logo from '@/assets/logo/Zukvologo.png';
+import { useProduct } from '@/context/ProductContext';
 
 
 const { Title, Text } = Typography;
@@ -936,6 +936,11 @@ const loginTheme = {
 };
 
 export default function LoginPage() {
+  // Which brand this door belongs to. Resolved server-side from the Host, so
+  // the first painted frame is already correct — a Testiez customer must
+  // never glimpse the Zukvo mark.
+  const { brand, manifest, product } = useProduct();
+
   return (
     <ConfigProvider theme={loginTheme}>
       <div
@@ -972,26 +977,41 @@ export default function LoginPage() {
               marginBottom: 32,
             }}
           >
+            {/* The canvas is charcoal, so the mark needs inverting — but only
+                the Zukvo one, which is drawn dark-on-light. Testiez ships
+                artwork cut for dark surfaces already. */}
             <Image
-              src={Logo}
-              alt="Zukvo"
+              src={brand.mark}
+              alt=""
               width={44}
               height={44}
-              style={{ objectFit: 'contain', filter: 'invert(1)' }}
-            />
-            <Title
-              level={2}
               style={{
-                margin: 0,
-                color: '#F8FAFC',
-                fontWeight: 600,
-                fontSize: 32,
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
+                objectFit: 'contain',
+                filter: product === 'zukvo' ? 'invert(1)' : undefined,
               }}
-            >
-              Zukvo
-            </Title>
+            />
+            {brand.wordmarkLight ? (
+              <Image
+                src={brand.wordmarkLight}
+                alt={manifest.name}
+                height={32}
+                style={{ objectFit: 'contain', width: 'auto' }}
+              />
+            ) : (
+              <Title
+                level={2}
+                style={{
+                  margin: 0,
+                  color: '#F8FAFC',
+                  fontWeight: 600,
+                  fontSize: 32,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1,
+                }}
+              >
+                {manifest.name}
+              </Title>
+            )}
           </div>
 
           <Suspense fallback={<LoginFormSkeleton />}>
@@ -1000,7 +1020,7 @@ export default function LoginPage() {
 
           <div style={{ textAlign: 'center', marginTop: 32 }}>
             <Text style={{ fontSize: 12, color: '#4A566B' }}>
-              © {new Date().getFullYear()} Zukvo. All rights reserved.
+              © {new Date().getFullYear()} {brand.legalName}. All rights reserved.
             </Text>
           </div>
         </div>

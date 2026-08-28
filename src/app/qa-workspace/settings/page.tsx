@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { BugOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
@@ -56,7 +56,11 @@ export default function QaSettingsPage() {
           .sc-topbar__sub, .sc-topbar__div { display: none !important; }
         }
       `}} />
-      <BugListConfigManager />
+      {/* The manager reads ?section= to open straight onto a pane, and
+          useSearchParams needs a boundary to render under. */}
+      <Suspense fallback={null}>
+        <BugListConfigManager />
+      </Suspense>
     </MainLayout>
   );
 }

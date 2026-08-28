@@ -6,7 +6,7 @@ import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typograph
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { PlayCircle, Target, Activity, Trash2, Folder, FolderOpen, Boxes, Layers, ChevronDown, Menu, RotateCw } from "lucide-react";
+import { PlayCircle, Target, Activity, Trash2, Layers, ChevronDown, Menu, RotateCw } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -15,12 +15,11 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
-import { ProjectService } from "@/services/projectService";
+import { useQaProject, QaProjectPicker, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 
 const { Text } = Typography;
 
 /** How many entries each sidebar section shows before "Show more". */
-const PROJECTS_PREVIEW = 3;
 const SUITES_PREVIEW = 5;
 
 const PROGRESS_OPTIONS = [
@@ -92,7 +91,6 @@ function TestRunsContent() {
 
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [showAllProjects, setShowAllProjects] = useState(false);
   const [showAllSuites, setShowAllSuites] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   
@@ -106,9 +104,16 @@ function TestRunsContent() {
   const [suiteFilter, setSuiteFilter] = useState<string | undefined>();
   const [progressFilter, setProgressFilter] = useState<string | undefined>();
   const [moduleFilter, setModuleFilter] = useState<string | undefined>();
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [projectFilter, setProjectFilter] = useState<string | undefined>();
+  /* Runs are read inside one project, the way the Bug List works — the choice
+     is remembered and shared with the other QA Space lists. */
+  const {
+    projects: projectOptions,
+    loading: loadingProjects,
+    ready: projectReady,
+    projectId: selectedProjectId,
+    setProjectId,
+  } = useQaProject();
+  const projectFilter = selectedProjectId || undefined;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -129,7 +134,7 @@ function TestRunsContent() {
     const searchSuites = async () => {
       try {
         const res = await axios.get("/api/v2/qa/suites/all", {
-          params: { search: debouncedSuiteSearch, limit: 50 }
+          params: { search: debouncedSuiteSearch, limit: 50, project_id: projectFilter }
         });
         const fetched = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setSuites((prev: any[]) => {
@@ -140,7 +145,7 @@ function TestRunsContent() {
       } catch (e) {}
     };
     searchSuites();
-  }, [debouncedSuiteSearch]);
+  }, [debouncedSuiteSearch, projectFilter]);
   
   // Create Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -177,10 +182,16 @@ function TestRunsContent() {
             allowed_projects: projectOptions.length > 0 ? projectOptions.map(p => p.value).join(',') : undefined
           }
         }),
-        axios.get("/api/v2/qa/suites/all?limit=1000"),
-        axios.get("/api/v2/qa/parents?limit=1000"),
+        axios.get("/api/v2/qa/suites/all", { params: { limit: 1000, project_id: projectFilter } }),
+        axios.get("/api/v2/qa/parents", { params: { limit: 1000, project_id: projectFilter } }),
         // The scopes endpoint paginates on pageSize, not limit — without it we'd only get 10.
-        axios.get("/api/v2/qa/test-scopes?pageSize=1000"),
+        // Scopes are keyed by project *name*, not id.
+        axios.get("/api/v2/qa/test-scopes", {
+          params: {
+            pageSize: 1000,
+            product: projectOptions.find(pj => pj.value === projectFilter)?.label || undefined,
+          },
+        }),
       ]);
       const body = (runsRes as any).data;
       setRuns(body?.data || []);
@@ -197,37 +208,21 @@ function TestRunsContent() {
   };
 
   useEffect(() => {
-    if (canReadRun) {
-      fetchProjects();
-    }
-  }, [canReadRun]);
-
-  useEffect(() => {
-    if (canReadRun) {
+    /* Nothing is worth fetching until a project is chosen — an unscoped list
+       is exactly what this page moved away from. */
+    if (canReadRun && projectFilter) {
       fetchData();
     }
-  }, [canReadRun, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter, projectFilter, projectOptions]);
+  }, [canReadRun, projectFilter, page, pageSize, debouncedSearch, suiteFilter, progressFilter, moduleFilter]);
 
-  /** Active projects the signed-in user belongs to. */
-  const fetchProjects = async () => {
-    try {
-      setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects(true);
-      const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
-      setProjectOptions(
-        list
-          .map((p: any) => ({
-            value: String(p.value ?? p.id ?? ''),
-            label: String(p.label ?? p.name ?? ''),
-            description: p.code || undefined,
-          }))
-          .filter(o => o.value && o.label)
-      );
-    } catch (err) {
-      console.error("Failed to fetch projects:", err);
-    } finally {
-      setLoadingProjects(false);
-    }
+  /** Switching project drops filters that name things from the old one. */
+  const chooseProject = (id: string | null) => {
+    setProjectId(id);
+    setSuiteFilter(undefined);
+    setModuleFilter(undefined);
+    setProgressFilter(undefined);
+    setSearchTerm('');
+    setPage(1);
   };
 
   const openCreateModal = () => {
@@ -283,22 +278,18 @@ function TestRunsContent() {
   const suiteFilterOptions = suites.map(s => ({ value: s.id, label: s.suite_name }));
 
   /* Sidebar sections — the same option lists the filter row uses. */
-  const visibleProjects = previewList(projectOptions, PROJECTS_PREVIEW, showAllProjects, projectFilter);
   const visibleSuites = previewList(suiteFilterOptions, SUITES_PREVIEW, showAllSuites, suiteFilter);
-  const hiddenProjectCount = Math.max(0, projectOptions.length - PROJECTS_PREVIEW);
   const hiddenSuiteCount = Math.max(0, suiteFilterOptions.length - SUITES_PREVIEW);
-  const selectedProjectLabel = projectOptions.find(p => p.value === projectFilter)?.label;
   const selectedSuiteLabel = suiteFilterOptions.find(o => o.value === suiteFilter)?.label;
 
   const activeFilterCount =
-    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (projectFilter ? 1 : 0);
+    (searchTerm.trim() ? 1 : 0) + (suiteFilter ? 1 : 0) + (progressFilter ? 1 : 0) + (moduleFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSuiteFilter(undefined);
     setProgressFilter(undefined);
     setModuleFilter(undefined);
-    setProjectFilter(undefined);
   };
 
   // Client-side pagination variables are now derived from totalItems for the footer
@@ -882,7 +873,7 @@ function TestRunsContent() {
               </div>
             </div>
 
-            {canCreateRun && (
+            {canCreateRun && projectFilter && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -896,42 +887,6 @@ function TestRunsContent() {
           </div>
 
           <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Projects</span>
-            <button
-              className={`pp-nav-item ${!projectFilter ? 'is-active' : ''}`}
-              onClick={() => { setProjectFilter(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Boxes size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Projects</span>
-              {projectOptions.length > 0 ? <span className="pp-nav-count">{projectOptions.length}</span> : null}
-            </button>
-            {visibleProjects.map(pj => (
-              <button
-                key={pj.value}
-                className={`pp-nav-item ${projectFilter === pj.value ? 'is-active' : ''}`}
-                onClick={() => { setProjectFilter(pj.value); setMobileSidebarOpen(false); }}
-                title={pj.label}
-              >
-                {projectFilter === pj.value
-                  ? <FolderOpen size={15} className="pp-nav-icon" />
-                  : <Folder size={15} className="pp-nav-icon" />}
-                <span className="pp-nav-label">{pj.label}</span>
-              </button>
-            ))}
-            {!loadingProjects && projectOptions.length === 0 && (
-              <span className="pp-nav-empty">No projects assigned</span>
-            )}
-            {hiddenProjectCount > 0 && (
-              <button
-                type="button"
-                className={`pp-nav-more ${showAllProjects ? 'is-open' : ''}`}
-                onClick={() => setShowAllProjects(v => !v)}
-              >
-                <ChevronDown size={13} className="pp-nav-more-icon" />
-                {showAllProjects ? 'Show less' : `Show ${hiddenProjectCount} more`}
-              </button>
-            )}
-
             <span className="pp-nav-caption">Suites</span>
             <button
               className={`pp-nav-item ${!suiteFilter ? 'is-active' : ''}`}
@@ -999,9 +954,18 @@ function TestRunsContent() {
               />
               <span className="sc-topbar__h1">All Test Runs</span>
               <span className="sc-topbar__div" />
-              <span className="sc-topbar__sub">
-                {[selectedProjectLabel || 'All projects', selectedSuiteLabel].filter(Boolean).join(' · ')}
-              </span>
+              <QaProjectSwitcher
+                projects={projectOptions}
+                value={selectedProjectId}
+                onChange={chooseProject}
+                loading={loadingProjects}
+              />
+              {selectedSuiteLabel && (
+                <>
+                  <span className="sc-topbar__div" />
+                  <span className="sc-topbar__sub">{selectedSuiteLabel}</span>
+                </>
+              )}
             </div>
 
             <div className="dh-main-controls">
@@ -1009,7 +973,7 @@ function TestRunsContent() {
                 type="default"
                 icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
                 onClick={fetchData}
-                disabled={loading}
+                disabled={loading || !projectFilter}
                 title="Refresh"
                 style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
               />
@@ -1017,7 +981,7 @@ function TestRunsContent() {
                 <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-label="Grid view"><AppstoreOutlined /></button>
                 <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="List view"><UnorderedListOutlined /></button>
               </div>
-              {canCreateRun && (
+              {canCreateRun && projectFilter && (
                 <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openCreateModal}>
                   New Run
                 </Button>
@@ -1026,6 +990,23 @@ function TestRunsContent() {
           </div>
 
           <div className="dh-main-scroll">
+            {!projectFilter ? (
+              /* Until the project is known there are no runs, stats or filters
+                 worth showing — the picker takes the whole area. */
+              !projectReady ? (
+                /* Reading the remembered project — showing the picker first
+                   would flash it away a frame later. */
+                <ZukvoLoader size="md" message="Loading projects…" />
+              ) : (
+                <QaProjectPicker
+                  projects={projectOptions}
+                  loading={loadingProjects}
+                  onChoose={chooseProject}
+                  subtitle="Test runs are executed inside a project. Pick one to open its runs."
+                />
+              )
+            ) : (
+            <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
               {[
                 { key: undefined, label: "Total Runs", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: SnippetsOutlined, sub: `across ${suites.length} suites` },
@@ -1140,10 +1121,12 @@ function TestRunsContent() {
               </div>
             )}
             </ZukvoLoadingOverlay>
+            </>
+            )}
           </div>
 
           {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {filteredRuns.length > 0 && (
+          {projectFilter && filteredRuns.length > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>

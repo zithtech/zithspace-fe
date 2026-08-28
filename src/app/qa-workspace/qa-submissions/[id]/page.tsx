@@ -770,11 +770,15 @@ export default function QaSubmissionDetailPage() {
                 <EmptyNote>No failing cases in this submission.</EmptyNote>
               ) : (
                 <Table
-                  className="sc-table"
+                  className="sc-table qs-failtable"
                   size="small"
                   rowKey="test_case_id"
                   pagination={false}
-                  scroll={{ x: 'max-content' }}
+                  /* Fixed layout keeps the long case and run names inside the
+                     card; sized to their content the columns push the table
+                     clear out of the 1080px page column. */
+                  tableLayout="fixed"
+                  scroll={{ x: 880 }}
                   dataSource={summary.failedCases}
                   columns={[
                     {
@@ -782,24 +786,45 @@ export default function QaSubmissionDetailPage() {
                       key: "case",
                       render: (_: any, r: FailedCase) => (
                         <div className="sc-name__text">
-                          <span className="sc-name__title">{r.case_name}</span>
+                          <Tooltip title={r.case_name}>
+                            <span className="sc-name__title">{r.case_name}</span>
+                          </Tooltip>
                           <span className="sc-name__meta">{r.case_ref}</span>
                         </div>
                       ),
                     },
-                    { title: "Run", dataIndex: "run_name", key: "run_name", width: 170 },
-                    { title: "Severity", dataIndex: "severity", key: "severity", width: 110, render: (v: string) => v || "—" },
+                    {
+                      title: "Run",
+                      key: "run_name",
+                      width: 190,
+                      render: (_: any, r: FailedCase) => (
+                        <Tooltip title={r.run_name}>
+                          <span className="qs-cell-1line">{r.run_name || "—"}</span>
+                        </Tooltip>
+                      ),
+                    },
+                    {
+                      title: "Severity",
+                      dataIndex: "severity",
+                      key: "severity",
+                      width: 96,
+                      render: (v: string) => <span className="qs-cell-1line">{v || "—"}</span>,
+                    },
                     {
                       title: "Bug",
                       key: "bug",
-                      width: 200,
+                      width: 170,
                       render: (_: any, r: FailedCase) =>
                         r.bug_number ? (
                           <div className="sc-name__text">
                             <button className="qs-linkbtn" onClick={() => router.push(`/qa-workspace/bug-list?bugId=${r.bug_id}`)}>
                               {r.bug_number}
                             </button>
-                            {r.bug_title && <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.bug_title}</span>}
+                            {r.bug_title && (
+                              <Tooltip title={r.bug_title}>
+                                <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.bug_title}</span>
+                              </Tooltip>
+                            )}
                           </div>
                         ) : (
                           <span className="qs-muted">Not filed</span>
@@ -808,14 +833,18 @@ export default function QaSubmissionDetailPage() {
                     {
                       title: "Ticket",
                       key: "ticket",
-                      width: 200,
+                      width: 170,
                       render: (_: any, r: FailedCase) =>
                         r.ticket_number ? (
                           <div className="sc-name__text">
                             <button className="qs-linkbtn" onClick={() => router.push(`/tickets/${r.ticket_id}`)}>
                               {r.ticket_number}
                             </button>
-                            {r.ticket_title && <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.ticket_title}</span>}
+                            {r.ticket_title && (
+                              <Tooltip title={r.ticket_title}>
+                                <span className="sc-name__meta" style={{ marginTop: 2 }}>{r.ticket_title}</span>
+                              </Tooltip>
+                            )}
                           </div>
                         ) : (
                           <span className="qs-muted">—</span>
@@ -824,7 +853,7 @@ export default function QaSubmissionDetailPage() {
                     {
                       title: "Status",
                       key: "status",
-                      width: 120,
+                      width: 118,
                       render: (_: any, r: FailedCase) => (
                         <span className="qs-pill qs-pill--ash qs-pill--sm">
                           <span className="qs-pill__dot" />

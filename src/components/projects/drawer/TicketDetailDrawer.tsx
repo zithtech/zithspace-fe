@@ -694,26 +694,24 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   onConfirm={() => handleSprintAssignment("add")}
                   placement="bottomRight"
                 >
-                  <Tooltip title={`Add to ${activeSprint.version || activeSprint.name || "sprint"}`}>
-                    <Button
-                      type="default"
-                      size="middle"
-                      icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        height: 32,
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        padding: "0 10px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      Add to Sprint
-                    </Button>
-                  </Tooltip>
+                  <Button
+                    type="default"
+                    size="middle"
+                    icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      height: 32,
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      padding: "0 10px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    Add to Sprint
+                  </Button>
                 </ConfirmDialog>
               )}
               {isInActiveSprint && (canUpdateTicket || canManageTickets) && (
@@ -725,27 +723,25 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   onConfirm={() => handleSprintAssignment("remove")}
                   placement="bottomRight"
                 >
-                  <Tooltip title="Remove from sprint, return to backlog">
-                    <Button
-                      danger
-                      type="default"
-                      size="middle"
-                      icon={<MinusCircleOutlined />}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        height: 32,
-                        borderRadius: 6,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        padding: "0 10px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      Remove from Sprint
-                    </Button>
-                  </Tooltip>
+                  <Button
+                    danger
+                    type="default"
+                    size="middle"
+                    icon={<MinusCircleOutlined />}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      height: 32,
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      padding: "0 10px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    Remove from Sprint
+                  </Button>
                 </ConfirmDialog>
               )}
 

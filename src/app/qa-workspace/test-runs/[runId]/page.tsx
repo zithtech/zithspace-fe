@@ -296,7 +296,9 @@ export default function TestRunExecutionPage() {
           sheetId: bugSheetId,
           title: c.name || "Failed test case",
           description,
-          module: run?.suite_name || undefined,
+          // The run's module, not its suite — bugs, scopes and test cases all
+          // file against the same module list.
+          module: run?.module_name || undefined,
           ...(severityKey ? { severity: severityKey } : {}),
           ...(bugTypeKey ? { bugType: bugTypeKey } : {}),
           attachments: attachments.length ? attachments : undefined,

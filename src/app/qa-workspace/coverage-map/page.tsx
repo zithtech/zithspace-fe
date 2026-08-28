@@ -112,24 +112,33 @@ export default function CoverageMapPage() {
   );
   const { scopes, cases, suites, runs } = source;
 
+  /**
+   * The map is what the project has actually touched: a module earns its row by
+   * having at least one scope, case, suite or run behind it. A module sitting in
+   * the settings list with nothing filed against it is not part of this project's
+   * coverage, so it is left out rather than padding the list with empty rows.
+   */
+  const mappedNodes = useMemo(
+    () => nodes.filter(n => n.scopes.length > 0 || n.cases.length > 0 || n.suites.length > 0 || n.runs.length > 0),
+    [nodes],
+  );
+
   /** One health read per module, shared by the header chips and the rows. */
   const healthByKey = useMemo(() => {
     const map = new Map<string, ReturnType<typeof healthOf>>();
-    nodes.forEach(n => map.set(n.key, healthOf(n)));
+    mappedNodes.forEach(n => map.set(n.key, healthOf(n)));
     return map;
-  }, [nodes]);
+  }, [mappedNodes]);
 
   /** Everything the search and gap filters leave — before the band filter. */
   const baseNodes = useMemo(() => {
     const q = norm(debouncedSearch);
-    return nodes.filter(n => {
-      // An empty catch-all bucket is noise; an empty real module is a finding.
-      if ((n.unassigned || n.adhoc) && !n.scopes.length && !n.cases.length && !n.suites.length && !n.runs.length) return false;
+    return mappedNodes.filter(n => {
       if (q && !norm(n.name).includes(q)) return false;
       if (gapsOnly && n.runs.length > 0 && n.cases.length > 0) return false;
       return true;
     });
-  }, [nodes, debouncedSearch, gapsOnly]);
+  }, [mappedNodes, debouncedSearch, gapsOnly]);
 
   const bandCounts = useMemo(() => {
     const counts: Record<HealthBand, number> = { green: 0, blue: 0, orange: 0, red: 0, none: 0 };
@@ -152,22 +161,23 @@ export default function CoverageMapPage() {
     return list;
   }, [baseNodes, healthByKey, bandFilter, sortKey]);
 
+  // Counted over the mapped modules so the headline matches the list beneath it.
   const totals = useMemo(() => {
-    const passed = nodes.reduce((n, m) => n + m.passed, 0);
-    const failed = nodes.reduce((n, m) => n + m.failed, 0);
-    const executed = passed + failed + nodes.reduce((n, m) => n + m.blocked, 0);
+    const passed = mappedNodes.reduce((n, m) => n + m.passed, 0);
+    const failed = mappedNodes.reduce((n, m) => n + m.failed, 0);
+    const executed = passed + failed + mappedNodes.reduce((n, m) => n + m.blocked, 0);
     return {
-      modules: nodes.filter(n => !n.unassigned).length,
-      covered: nodes.filter(n => n.runs.length > 0).length,
+      modules: mappedNodes.filter(n => !n.unassigned).length,
+      covered: mappedNodes.filter(n => n.runs.length > 0).length,
       scopes: new Set(scopes.map((s: any) => s.id)).size,
       cases: cases.length,
-      childCases: nodes.reduce((n, m) => n + m.childCases, 0),
+      childCases: mappedNodes.reduce((n, m) => n + m.childCases, 0),
       suites: suites.length,
       runs: runs.length,
       passRate: executed > 0 ? Math.round((passed / executed) * 100) : null,
       failed,
     };
-  }, [nodes, scopes, cases, suites, runs]);
+  }, [mappedNodes, scopes, cases, suites, runs]);
 
   const visibleProjects = showAllProjects ? projects : projects.slice(0, PROJECTS_PREVIEW);
   const hiddenProjectCount = Math.max(0, projects.length - PROJECTS_PREVIEW);
@@ -387,12 +397,18 @@ export default function CoverageMapPage() {
                   <div className="cm-empty">
                     <Sparkles size={26} className="cm-empty__ic" />
                     <p className="cm-empty__title">
-                      {gapsOnly ? "No gaps in this project" : "Nothing mapped yet"}
+                      {debouncedSearch
+                        ? "No modules match that search"
+                        : bandFilter
+                          ? `No ${HEALTH_LABEL[bandFilter].toLowerCase()} modules`
+                          : gapsOnly ? "No gaps in this project" : "Nothing mapped yet"}
                     </p>
                     <p className="cm-empty__desc">
-                      {gapsOnly
-                        ? "Every module here has cases written and runs executed against them."
-                        : "Once this project has scopes, cases, suites or runs, each module's coverage shows up here."}
+                      {debouncedSearch || bandFilter
+                        ? "The map lists a module only once it has a scope, case, suite or run behind it."
+                        : gapsOnly
+                          ? "Every module here has cases written and runs executed against them."
+                          : "Once this project has scopes, cases, suites or runs, each module's coverage shows up here."}
                     </p>
                   </div>
                 )}

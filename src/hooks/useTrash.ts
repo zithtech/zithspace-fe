@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import TrashService, { TrashTicket } from '@/services/trashService';
 import { message } from 'antd';
 
@@ -36,11 +36,15 @@ export function useTrashTickets(params: {
   endDate?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  enabled?: boolean;
 } = {}) {
+  const { enabled = true, ...restParams } = params;
   return useQuery({
-    queryKey: trashKeys.list(params),
-    queryFn: () => TrashService.getTrashTickets(params),
+    queryKey: trashKeys.list(restParams),
+    queryFn: () => TrashService.getTrashTickets(restParams),
     staleTime: 30 * 1000, // 30 seconds (trash changes frequently)
+    placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

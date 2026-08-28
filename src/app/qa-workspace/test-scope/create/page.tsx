@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popover, Popconfirm } from "antd";
 import {
@@ -22,10 +22,12 @@ import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
+import { useQaProject } from "@/components/qa/QaProjectGate";
 import debounce from "lodash/debounce";
 
 const { Dragger } = Upload;
@@ -747,6 +749,8 @@ export default function CreateScopePage() {
   const skipDirtyRef = useRef(false);
   const defaultsAppliedRef = useRef(false);
   const productDefaultRef = useRef(false);
+  /** The project the QA Space lists are scoped to — a new scope starts there. */
+  const { projectName: qaProjectName, ready: qaProjectReady } = useQaProject();
   const saveRef = useRef<() => void>(() => { });
 
   useEffect(() => {
@@ -801,16 +805,21 @@ export default function CreateScopePage() {
   useEffect(() => {
     if (productDefaultRef.current) return;
     if (loadingProjects || projectOptions.length === 0) return;
+    if (!qaProjectReady) return; // wait for the remembered project before deciding
 
     productDefaultRef.current = true;
     const current = formData.details.product;
     if (current && projectOptions.some(p => p.value === current)) return;
     if (current && current !== 'Zukvo') return; // user already typed their own
 
-    const next = projectOptions.length === 1 ? projectOptions[0].value : undefined;
+    /* Scopes are keyed by project name, which is what the QA lists remember. */
+    const fromQaSpace = qaProjectName && projectOptions.some(p => p.value === qaProjectName)
+      ? qaProjectName
+      : undefined;
+    const next = fromQaSpace ?? (projectOptions.length === 1 ? projectOptions[0].value : undefined);
     skipDirtyRef.current = true;
     setFormData((prev: any) => ({ ...prev, details: { ...prev.details, product: next } }));
-  }, [projectOptions, loadingProjects]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectOptions, loadingProjects, qaProjectReady, qaProjectName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warn before losing an in-progress scope
   useEffect(() => {
@@ -955,7 +964,7 @@ export default function CreateScopePage() {
 
   // The tenant's module list, offered on the Product & Modules step.
   const [qaModules, setQaModules] = useState<any[]>([]);
-  useEffect(() => {
+  const fetchQaModules = useCallback(() => {
     axios.get('/api/v2/qa/modules')
       .then((res: any) => {
         const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
@@ -963,6 +972,7 @@ export default function CreateScopePage() {
       })
       .catch(() => { /* typing a module still works without the list */ });
   }, []);
+  useEffect(() => { fetchQaModules(); }, [fetchQaModules]);
 
   useEffect(() => {
     (async () => {
@@ -1801,6 +1811,7 @@ export default function CreateScopePage() {
       {previewImg && (
         <ImageModal src={previewImg.src} name={previewImg.name} onClose={() => setPreviewImg(null)} />
       )}
+      <style dangerouslySetInnerHTML={{ __html: NO_MODULES_STYLES }} />
       <style dangerouslySetInnerHTML={{
         __html: `
         .ts-create {
@@ -2510,6 +2521,12 @@ export default function CreateScopePage() {
                       searchPlaceholder="Search or type a new module…"
                       itemNoun="modules"
                       freeText={true}
+                      emptyComponent={
+                        <NoModulesEmpty
+                          projectName={formData.details.product}
+                          onRefresh={fetchQaModules}
+                        />
+                      }
                       style={{ width: '100%' }}
                     />
                     <TokenList
@@ -3362,7 +3379,11 @@ export default function CreateScopePage() {
                       validated by several of each, and forcing one meant the
                       rest went unrecorded. Both read through a normaliser so
                       scopes saved under the old single-value shape still load. */}
-                  <Field label="Linked Test Suites" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Suites${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Pick every suite that validates this scope — the rest stay in the dropdown."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3392,6 +3413,7 @@ export default function CreateScopePage() {
                       loading={loadingTestSuites}
                       placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
                       itemNoun="suites"
+                      maxTagCount={6}
                       /* The overlay takes this width verbatim \u2014 names plus their
                          scenario and case count need the room. */
                       width={560}
@@ -3399,7 +3421,11 @@ export default function CreateScopePage() {
                     />
                   </Field>
 
-                  <Field label="Linked Test Runs" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Runs${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Runs executed against this scope."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3431,6 +3457,7 @@ export default function CreateScopePage() {
                       loading={loadingTestRuns}
                       placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
                       itemNoun="runs"
+                      maxTagCount={6}
                       width={560}
                       style={{ width: '100%' }}
                     />

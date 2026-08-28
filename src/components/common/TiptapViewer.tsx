@@ -10,6 +10,10 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 
 interface TiptapViewerProps {
   content: string;
@@ -48,6 +52,12 @@ export default function TiptapViewer({
       Highlight.configure({
         multicolor: false,
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     editable: false,
@@ -238,6 +248,35 @@ export default function TiptapViewer({
         [data-theme='dark'] .tiptap-viewer-content u,
         [data-theme='dark'] .tiptap-viewer-content s {
           color: var(--text-primary);
+        }
+
+        /* Table Styles */
+        .tiptap-viewer-content table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          margin: 0;
+          overflow: hidden;
+        }
+
+        .tiptap-viewer-content table td,
+        .tiptap-viewer-content table th {
+          min-width: 1em;
+          border: 1px solid var(--border-color);
+          padding: 3px 5px;
+          vertical-align: top;
+          box-sizing: border-box;
+          position: relative;
+        }
+
+        .tiptap-viewer-content table th {
+          font-weight: bold;
+          text-align: left;
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        [data-theme='dark'] .tiptap-viewer-content table th {
+          background-color: rgba(255, 255, 255, 0.05);
         }
       `}</style>
     </div>

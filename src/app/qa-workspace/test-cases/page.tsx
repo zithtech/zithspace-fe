@@ -256,9 +256,25 @@ export default function TestCasesPage() {
     e.stopPropagation();
     setEditingId(r.id);
     setEditingRecord(r);
-    // A saved case carries a module, not a scope — the picker starts empty and
-    // the module it already has stays editable.
-    setScopeId(undefined);
+
+    // Try to infer the saved scope from the case's module — find a scope whose
+    // details.modules list contains this module's name. This lets the Test Scope
+    // field show the right value when the drawer is re-opened.
+    let inferredScopeId: string | undefined = undefined;
+    if (r.module_id && scopes.length > 0) {
+      // Find the module object so we can compare by name.
+      const mod = modules.find((m: any) => String(m.id) === String(r.module_id));
+      const modName = norm(mod?.module_name || mod?.name || r.module_name);
+      if (modName) {
+        const matchedScope = scopes.find((sc: any) => {
+          const names: string[] = Array.isArray(sc.details?.modules) ? sc.details.modules : [];
+          return names.some((n: string) => norm(n) === modName);
+        });
+        if (matchedScope) inferredScopeId = String(matchedScope.id);
+      }
+    }
+    setScopeId(inferredScopeId);
+
     setFormData({
       title: r.title || "",
       module_id: r.module_id || undefined,
@@ -352,7 +368,13 @@ export default function TestCasesPage() {
   }, [selectedScope, modules]);
 
   /** Only modules that exist as rows can be saved — a name alone has no id to file under. */
-  const resolvedScopeModules = useMemo(() => scopeModules.filter(m => m.id), [scopeModules]);
+  const resolvedScopeModules = useMemo(() => {
+    if (!selectedScope) return [];
+    // The scope stores an array of module names in details.modules.
+    // Map those back to the full module objects we loaded.
+    const names = selectedScope.details?.modules || [];
+    return modules.filter(m => names.includes(m.module_name));
+  }, [selectedScope, modules]);
 
   /**
    * One module on the scope → the field is settled, so it is shown read-only.

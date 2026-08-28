@@ -202,7 +202,7 @@ export function CaptureDiagram() {
       <Arrow x1={176} y1={212} x2={244} y2={212} color={RED} />
 
       <Box x={246} y={100} w={150} h={46} tint={GREEN} title="Capture" />
-      <Box x={246} y={190} w={150} h={44} tint={RED} title="Yapiez engine" sub="creates / updates / deletes" />
+      <Box x={246} y={190} w={150} h={44} tint={RED} title="API Hub engine" sub="creates / updates / deletes" />
       <Arrow x1={321} y1={188} x2={321} y2={150} color={RED} />
       <Caption x={321} y={262}>every click fires it again</Caption>
 
@@ -354,7 +354,7 @@ export function CaptureHelpModal({ open, onClose }: { open: boolean; onClose: ()
             </Text>
             <Text style={{ fontSize: 11.5, color: "#991b1b", lineHeight: 1.6 }}>
               There is no dry run. Two sends of <code>POST /api/users</code> create two users; a{" "}
-              <code>DELETE</code> really deletes. Nothing in Yapiez can undo it, which is why write methods stay
+              <code>DELETE</code> really deletes. Nothing in API Hub can undo it, which is why write methods stay
               disabled behind an explicit switch and the three routes above exist. If you have already run the
               command in a terminal, paste the whole session instead — the response is right there.
             </Text>

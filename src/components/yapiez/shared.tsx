@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Shared Yapiez presentation pieces.
+ * Shared API Hub presentation pieces.
  *
  * Palette note: blue for informational and read operations, green for success,
  * ash/light-grey for neutral chrome, and light red reserved for failure and

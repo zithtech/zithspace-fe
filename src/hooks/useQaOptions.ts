@@ -106,6 +106,18 @@ export function useQaOptions() {
  * A viewer without the grant simply gets an empty list — the field is optional
  * on every form that uses it.
  */
+/**
+ * Delete a curated module.
+ *
+ * Refused by the server while a test scope, case or suite still names it —
+ * the caller must surface that rather than pressing on, because the module is
+ * part of those records' plan. On success the server also unfiles whatever API
+ * Hub had under the name, so the two cannot drift.
+ */
+export async function deleteQaModule(id: string) {
+  return api.delete(`/api/v2/qa/modules/${id}`);
+}
+
 export function useProjectQaModules(projectId?: string | null) {
   const query = useQuery({
     queryKey: ["qa-modules"],

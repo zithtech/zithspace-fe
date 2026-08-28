@@ -61,7 +61,6 @@ import {
   Building2,
   Settings,
   Chrome,
-  Workflow,
   Handshake,
   TrendingUp,
   KeyRound,
@@ -215,7 +214,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/yapiez", "/escalations"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/api-hub", "/escalations"],
     defaultPath: "/tickets/select",
     requiredSubscriptionFeature: ["work"],
     requiredAnyPermission: [
@@ -424,62 +423,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        // Yapiez — API definition + flow execution. A sibling of QA Space
-        // rather than a page inside it: developers publish the API catalog,
-        // QA composes and runs flows, and the results feed QA Space's scopes,
-        // submissions and Bug List.
-        key: "yapiez",
-        label: "Yapiez",
-        icon: I(Zap),
+        // API Hub — the endpoint catalog QA Space builds on. A sibling of QA
+        // Space rather than a page inside it: developers publish each API
+        // once, and QA reads the catalog from its own screens.
+        key: "/api-hub",
+        label: "API Hub",
+        icon: I(Plug2),
+        path: "/api-hub",
         requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
-        requiredAnyPermission: [
-          Permissions.YAPIEZ_API_READ,
-          Permissions.YAPIEZ_FLOW_READ,
-          Permissions.YAPIEZ_RUN_READ,
-          Permissions.YAPIEZ_ENV_READ,
-          Permissions.YAPIEZ_MANAGE,
-        ],
-        children: [
-          {
-            key: "/yapiez",
-            label: "Overview",
-            icon: I(LayoutDashboard),
-            path: "/yapiez",
-            requiredAnyPermission: [
-              Permissions.YAPIEZ_API_READ,
-              Permissions.YAPIEZ_FLOW_READ,
-              Permissions.YAPIEZ_MANAGE,
-            ],
-          },
-          {
-            key: "/yapiez/apis",
-            label: "API Catalog",
-            icon: I(Plug2),
-            path: "/yapiez/apis",
-            requiredPermission: Permissions.YAPIEZ_API_READ,
-          },
-          {
-            key: "/yapiez/flows",
-            label: "Flows",
-            icon: I(Workflow),
-            path: "/yapiez/flows",
-            requiredPermission: Permissions.YAPIEZ_FLOW_READ,
-          },
-          {
-            key: "/yapiez/runs",
-            label: "Executions",
-            icon: I(PlayCircle),
-            path: "/yapiez/runs",
-            requiredPermission: Permissions.YAPIEZ_RUN_READ,
-          },
-          {
-            key: "/yapiez/environments",
-            label: "Environments",
-            icon: I(Layers),
-            path: "/yapiez/environments",
-            requiredPermission: Permissions.YAPIEZ_ENV_READ,
-          },
-        ],
+        requiredAnyPermission: [Permissions.YAPIEZ_API_READ, Permissions.YAPIEZ_MANAGE],
       },
       {
         key: "projects-manage-group",

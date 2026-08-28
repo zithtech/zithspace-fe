@@ -1,18 +1,18 @@
 import { apiClient } from "@/lib/axios";
 
 /**
- * Yapiez — the API definition and flow execution layer that feeds QA Space.
+ * API Hub — the endpoint catalog that feeds QA Space.
  *
- * Two audiences, one catalog:
- *   Developers publish an API definition once (method, URL, headers, payload,
- *   sample data, expected response).
- *   QA composes those definitions into an ordered Flow, runs it against an
- *   Environment, and the results become QA evidence — with a failed step able
- *   to become a BugList entry without retyping anything.
+ * Developers publish an API definition once (method, URL, headers, payload,
+ * sample data, expected response) and QA reads it from its own screens rather
+ * than retyping any of it. Definitions are filed Project → Module → Collection,
+ * the same taxonomy bugs and test cases use.
  *
- * Yapiez is a sibling of QA Space, not a page inside it: it has its own
- * permissions and its own mount (/api/v2/yapiez). The join is the Test Scope a
- * flow reports against, and the Bug List a failure lands in.
+ * API Hub is a sibling of QA Space, not a page inside it: it has its own
+ * permissions and its own mount. The transport names below are unchanged —
+ * the module was called Yapiez before it was called API Hub, and renaming a
+ * live route and its permission keys would log every user out of the feature
+ * for the sake of a URL.
  */
 
 const BASE = "/api/v2/yapiez";
@@ -196,6 +196,8 @@ export const DEFAULT_SOURCE_COLOR = "#64748b";
 export interface YapiezCollection {
   id: string;
   name: string;
+  /** The module this collection sits inside — its parent in the catalog tree. */
+  moduleName: string | null;
   projectId: string | null;
   projectName?: string | null;
   sourceId: string | null;
@@ -220,7 +222,13 @@ export interface YapiezApi {
    */
   projectId: string | null;
   projectName?: string | null;
-  /** Derived from the collection — an API's tier is its collection's tier. */
+  /**
+   * The QA module this endpoint belongs to, from QA Space → Settings → Modules.
+   * Stored as the module's NAME, the same value bugs and test cases carry, so
+   * renaming or re-creating a module never orphans a definition.
+   */
+  moduleName: string | null;
+  /** The deployment tier the definition describes. */
   sourceId?: string | null;
   sourceLabel?: string | null;
   sourceColor?: string | null;
@@ -248,6 +256,43 @@ export interface YapiezApi {
   usedInFlows?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * The module filter value meaning "definitions filed under no module".
+ *
+ * A sentinel rather than a second control, so the one module dropdown can
+ * offer it alongside the real names.
+ */
+export const UNFILED_MODULE = "__unfiled__";
+
+/** What one module holds, for the catalog's module cards. */
+export interface YapiezModuleSummary {
+  /** Null is the unfiled bucket. */
+  moduleName: string | null;
+  apiCount: number;
+  /** Collections inside this module — the level between it and the APIs. */
+  collectionCount: number;
+  /** APIs by HTTP method, e.g. { GET: 4, POST: 2 } — drives the card's mix. */
+  methodCounts: Record<string, number>;
+  updatedAt: string | null;
+}
+
+/** One thrown-away definition or collection, as the trash lists it. */
+export interface YapiezTrashEntry {
+  kind: "api" | "collection";
+  id: string;
+  name: string;
+  /** An endpoint's method and URL; both null for a collection. */
+  method: string | null;
+  url: string | null;
+  description: string | null;
+  moduleName: string | null;
+  collectionName: string | null;
+  projectName: string | null;
+  /** For a collection: how many live endpoints come back with it. */
+  itemCount: number;
+  deletedAt: string;
 }
 
 export interface EnvVariable {
@@ -418,6 +463,76 @@ export interface YapiezStats {
   failed_runs: number;
 }
 
+// ─── Case payloads ──────────────────────────────────────────────────────────
+//
+// The request bodies QA keeps against a module test case, so a tester opening
+// that case already has the body that should work and the ones that should not,
+// rather than writing each one at the keyboard.
+
+export const PAYLOAD_TYPES = ["Positive", "Negative", "Valid", "Invalid"] as const;
+export type PayloadType = (typeof PAYLOAD_TYPES)[number];
+
+/** What each type is for, shown under the picker so the choice is not a guess. */
+export const PAYLOAD_TYPE_HELP: Record<PayloadType, string> = {
+  Positive: "Happy path — every field populated with a realistic value. Should succeed.",
+  Valid: "The minimum the API accepts — required fields only. Should succeed.",
+  Negative: "Well-formed but breaks a business rule. Should be rejected with intent.",
+  Invalid: "Malformed against the contract — wrong types, missing fields. Should fail validation.",
+};
+
+/**
+ * Tone per type. Green and blue for the two that should succeed, two weights of
+ * ash for the two that should not — light red stays reserved for destructive
+ * actions, so a payload that is merely expected to fail never wears it.
+ */
+export const PAYLOAD_TYPE_TONE: Record<PayloadType, { text: string; bg: string; border: string }> = {
+  Positive: { text: "#047857", bg: "#ecfdf5", border: "#a7f3d0" },
+  Valid: { text: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe" },
+  Negative: { text: "#475569", bg: "#f8fafc", border: "#e2e8f0" },
+  Invalid: { text: "#334155", bg: "#f1f5f9", border: "#cbd5e1" },
+};
+
+export interface CasePayload {
+  id: string;
+  /** Null once the definition it was drafted from has been retired. */
+  apiId: string | null;
+  /** Snapshot of the endpoint at the moment the payload was confirmed. */
+  apiName: string | null;
+  apiMethod: string | null;
+  apiUrl: string | null;
+  /** Null while the case it belongs to is still being drafted in the drawer. */
+  testCaseId: string | null;
+  parentTestCaseId: string | null;
+  projectId: string | null;
+  moduleName: string | null;
+  payloadType: PayloadType;
+  name: string;
+  /** { body?, query?, pathParams? } — only the parts the method uses. */
+  payload: Record<string, unknown>;
+  expectedStatus: number | null;
+  notes: string | null;
+  /** ai | structure | manual — which generator produced it. */
+  generatedBy: string;
+  createdBy: string | null;
+  createdByName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A draft, not yet stored. Nothing is written until the tester confirms it. */
+export interface DraftedPayload {
+  payload: Record<string, unknown>;
+  expectedStatus: number | null;
+  notes: string;
+  generatedBy: string;
+  apiId: string;
+  apiName: string;
+  apiMethod: string;
+  apiUrl: string;
+  payloadType: PayloadType;
+  suggestedName: string;
+}
+
 export interface Paged<T> {
   data: T[];
   total: number;
@@ -479,7 +594,13 @@ export class YapiezService {
 
   // Collections
   static async listCollections(
-    params: { sourceId?: string; projectId?: string; includeUnfiled?: boolean } = {}
+    params: {
+      sourceId?: string;
+      projectId?: string;
+      /** A module name, or UNFILED_MODULE for collections filed under none. */
+      moduleName?: string;
+      includeUnfiled?: boolean;
+    } = {}
   ): Promise<YapiezCollection[]> {
     const res = await apiClient.get<Envelope<YapiezCollection[]>>(`${BASE}/collections`, { params });
     return res.data.data;
@@ -499,12 +620,70 @@ export class YapiezService {
     await apiClient.delete(`${BASE}/collections/${id}`);
   }
 
+  // Trash
+  //
+  // Deleting a definition or a collection sets a timestamp rather than
+  // removing the row, so everything here is recoverable until it is purged.
+
+  static async listTrash(params: { projectId?: string | null } = {}): Promise<YapiezTrashEntry[]> {
+    const res = await apiClient.get<Envelope<YapiezTrashEntry[]>>(`${BASE}/trash`, { params });
+    return res.data.data;
+  }
+
+  static async restoreFromTrash(input: { kind: "api" | "collection"; id: string }): Promise<void> {
+    await apiClient.post(`${BASE}/trash/restore`, input);
+  }
+
+  /** Irreversible. Refused for a definition something still references. */
+  static async purgeFromTrash(params: { kind: "api" | "collection"; id: string }): Promise<void> {
+    await apiClient.delete(`${BASE}/trash/item`, { params });
+  }
+
+  static async emptyTrash(params: { projectId?: string | null } = {}): Promise<{
+    apis: number;
+    collections: number;
+  }> {
+    const res = await apiClient.delete<Envelope<{ apis: number; collections: number }>>(`${BASE}/trash`, {
+      params,
+    });
+    return res.data.data;
+  }
+
+  // Modules
+  //
+  // A module is a NAME on the collections and definitions filed under it, not
+  // a row of its own — the curated list belongs to QA Settings, and renaming
+  // there cascades into the catalog on the server. This only unfiles a name
+  // the catalog still holds, which is the case settings knows nothing about.
+
+  /** Clear the module from everything under it. Nothing is deleted. */
+  static async unfileModule(params: {
+    projectId?: string | null;
+    name: string;
+  }): Promise<{ apis: number; collections: number }> {
+    const res = await apiClient.delete<Envelope<{ apis: number; collections: number }>>(
+      `${BASE}/modules`,
+      { params }
+    );
+    return res.data.data;
+  }
+
   // API definitions
   static async listApis(params: {
     search?: string;
     collectionId?: string;
     sourceId?: string;
+    /** A module name, or UNFILED_MODULE for the definitions filed under none. */
+    moduleName?: string;
+    /** Only definitions sitting directly under a module, in no collection. */
+    unfiledOnly?: boolean;
     method?: string;
+    /** inherit | none | bearer | basic | api_key */
+    authType?: string;
+    /** Show ONLY the deprecated ones — the opposite of includeDeprecated. */
+    deprecatedOnly?: boolean;
+    /** recent (default) | created | name | method */
+    sort?: string;
     projectId?: string;
     /** Comma-separated ids the caller may see; shared definitions always show. */
     allowedProjects?: string;
@@ -520,6 +699,26 @@ export class YapiezService {
       pageSize: res.data.pageSize,
       totalPages: res.data.totalPages,
     };
+  }
+
+  /**
+   * What each module holds, for the catalog's module cards.
+   *
+   * Only covers modules that actually have definitions — merge it with the
+   * curated list from QA Settings to show the empty ones too.
+   */
+  static async listModuleSummaries(
+    params: {
+      projectId?: string;
+      sourceId?: string;
+      allowedProjects?: string;
+      includeDeprecated?: boolean;
+    } = {}
+  ): Promise<YapiezModuleSummary[]> {
+    const res = await apiClient.get<Envelope<YapiezModuleSummary[]>>(`${BASE}/apis/module-summary`, {
+      params,
+    });
+    return res.data.data;
   }
 
   static async getApi(id: string): Promise<YapiezApi> {
@@ -571,12 +770,14 @@ export class YapiezService {
   static async tryApi(input: {
     definition: Partial<YapiezApi> & { url: string };
     environmentId?: string | null;
+    /** Resolve a relative URL against this; wins over any environment. */
+    baseUrl?: string | null;
     variables?: Record<string, string>;
     authApiId?: string | null;
     authConfig?: FlowAuthConfig;
   }): Promise<TryApiResult> {
     const res = await apiClient.post<Envelope<TryApiResult>>(`${BASE}/apis/try`, input, {
-      // A slow endpoint under test should not look like a Yapiez failure.
+      // A slow endpoint under test should not look like an API Hub failure.
       timeout: 2 * 60 * 1000,
     });
     return res.data.data;
@@ -794,6 +995,91 @@ export class YapiezService {
 
   static async linkExistingBug(stepId: string, bugId: string): Promise<void> {
     await apiClient.post(`${BASE}/run-steps/${stepId}/link-bug`, { bugId });
+  }
+
+  // Case payloads
+  //
+  // Drafting and storing are two calls on purpose: the tester regenerates until
+  // the body looks right, and nothing is written until they confirm it.
+
+  /** Draft a payload from an API definition. Writes nothing. */
+  static async generatePayload(input: {
+    apiId: string;
+    payloadType: PayloadType;
+    /** Optional steer, e.g. "an order with no line items". */
+    hint?: string;
+  }): Promise<DraftedPayload> {
+    const res = await apiClient.post<Envelope<DraftedPayload>>(`${BASE}/payloads/generate`, input);
+    return res.data.data;
+  }
+
+  static async listPayloads(
+    params: {
+      testCaseId?: string;
+      parentTestCaseId?: string;
+      apiId?: string;
+      moduleName?: string;
+      projectId?: string;
+      payloadType?: PayloadType;
+      /** Only drafts no case has adopted yet. */
+      unlinkedOnly?: boolean;
+    } = {}
+  ): Promise<CasePayload[]> {
+    const res = await apiClient.get<Envelope<CasePayload[]>>(`${BASE}/payloads`, { params });
+    return res.data.data;
+  }
+
+  /** Payloads for many cases at once, keyed by case id — one call for a list. */
+  static async payloadsForCases(caseIds: string[]): Promise<Record<string, CasePayload[]>> {
+    if (!caseIds.length) return {};
+    const res = await apiClient.get<Envelope<Record<string, CasePayload[]>>>(
+      `${BASE}/payloads/for-cases`,
+      { params: { caseIds: caseIds.join(",") } }
+    );
+    return res.data.data;
+  }
+
+  /** Store a confirmed payload. Omit testCaseId while the case is still a draft. */
+  static async createPayload(input: {
+    apiId: string;
+    payloadType: PayloadType;
+    name: string;
+    payload: Record<string, unknown>;
+    expectedStatus?: number | null;
+    notes?: string | null;
+    generatedBy?: string;
+    testCaseId?: string | null;
+    parentTestCaseId?: string | null;
+  }): Promise<CasePayload> {
+    const res = await apiClient.post<Envelope<CasePayload>>(`${BASE}/payloads`, input);
+    return res.data.data;
+  }
+
+  static async updatePayload(
+    id: string,
+    input: {
+      payloadType?: PayloadType;
+      name?: string;
+      payload?: Record<string, unknown>;
+      expectedStatus?: number | null;
+      notes?: string | null;
+    }
+  ): Promise<CasePayload> {
+    const res = await apiClient.put<Envelope<CasePayload>>(`${BASE}/payloads/${id}`, input);
+    return res.data.data;
+  }
+
+  /** Adopt the drafts confirmed before the case existed, once it is saved. */
+  static async linkPayloads(testCaseId: string, payloadIds: string[]): Promise<{ linked: number }> {
+    const res = await apiClient.post<Envelope<{ linked: number }>>(`${BASE}/payloads/link`, {
+      testCaseId,
+      payloadIds,
+    });
+    return res.data.data;
+  }
+
+  static async deletePayload(id: string): Promise<void> {
+    await apiClient.delete(`${BASE}/payloads/${id}`);
   }
 }
 

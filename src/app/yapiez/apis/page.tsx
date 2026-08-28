@@ -126,6 +126,9 @@ dayjs.extend(relativeTime);
 const { Text } = Typography;
 const { TextArea } = Input;
 
+/** The "Capture a real response" panel in the API drawer, hidden for now. */
+const SHOW_CAPTURE_PANEL = false;
+
 /** Shapes the cURL import understands, and what each one adds. */
 const CURL_FORMATS = [
   { label: "Chrome — Copy as cURL", detail: "Request only — no response is in that clipboard" },
@@ -1951,152 +1954,158 @@ function ApiCatalogContent() {
 
             {activeTab === "response" && (
               <>
-                {/* Capture the expected result from reality rather than memory. */}
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 10,
-                    background: "var(--input-bg, #f8fafc)",
-                    border: "1px solid var(--border-color, #e2e8f0)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  <div>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Text style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>
-                        Capture a real response
-                      </Text>
-                      <CaptureHelpButton onClick={() => setCaptureHelpOpen(true)} />
-                    </span>
-                    <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                      Send this request once and fill the expected status, sample response, assertions and schema
-                      from what actually comes back.
-                    </Text>
-                  </div>
-
-                  {/* Four routes to the same result. The three above the rule
-                      cost nothing; only the last one touches the API. */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <RouteButton
-                      icon={History}
-                      label="From a previous run"
-                      hint={editing.id ? "A real response, already recorded" : "Available once this API has run in a flow"}
-                      disabled={!editing.id}
-                      onClick={openHistory}
-                    />
-                    <RouteButton
-                      icon={ClipboardPaste}
-                      label="Paste a response"
-                      hint="You already have it in front of you"
-                      onClick={() => setPasteOpen(true)}
-                    />
-                    <RouteButton
-                      icon={Sparkles}
-                      label="Generate from payload"
-                      hint="Derived offline — a shape to correct"
-                      onClick={generateOffline}
-                    />
-                  </div>
-
-                  <div style={{ height: 1, background: "var(--border-color, #e2e8f0)" }} />
-
-                  {/* The live route, gated for anything that changes data. */}
-                  {isWriteMethod(editing.method) && (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 8,
-                        background: allowWriteSend ? "#fef2f2" : "var(--card-bg, #ffffff)",
-                        border: `1px solid ${allowWriteSend ? "#fecaca" : "var(--border-color, #e2e8f0)"}`,
-                      }}
-                    >
-                      <span style={{ color: allowWriteSend ? "#b91c1c" : "#b45309", flexShrink: 0, marginTop: 1 }}>
-                        <ShieldAlert size={15} />
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 11.5, color: "var(--text-primary)", display: "block", lineHeight: 1.6 }}>
-                          Sending <strong>{editing.method}</strong> changes real data in the selected environment,
-                          and does it again on every click — two sends of a create make two records. Nothing here
-                          can undo that.
+                {/* Hidden for now — the "Capture a real response" panel is kept in place,
+                    flip SHOW_CAPTURE_PANEL back to true to bring it back. */}
+                {SHOW_CAPTURE_PANEL && (
+                  <>
+                  {/* Capture the expected result from reality rather than memory. */}
+                  <div
+                    style={{
+                      padding: 14,
+                      borderRadius: 10,
+                      background: "var(--input-bg, #f8fafc)",
+                      border: "1px solid var(--border-color, #e2e8f0)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <Text style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>
+                          Capture a real response
                         </Text>
-                        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 7, cursor: "pointer" }}>
-                          <Switch size="small" checked={allowWriteSend} onChange={setAllowWriteSend} />
-                          <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-primary)" }}>
-                            Allow write requests
-                          </Text>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <SearchableDropdown
-                      value={sendEnvironmentId ?? null}
-                      onChange={(value: string) => setSendEnvironmentId(value || undefined)}
-                      options={environments.map((environment) => ({
-                        value: environment.id,
-                        label: environment.name,
-                        description: environment.baseUrl,
-                      }))}
-                      placeholder="Environment"
-                      itemNoun="environments"
-                      width={260}
-                    />
-                    <SearchableDropdown
-                      value={sendAuthApiId ?? null}
-                      onChange={(value: string) => setSendAuthApiId(value || undefined)}
-                      options={apis
-                        .filter((api) => api.id !== editing.id)
-                        .map((api) => ({
-                          value: api.id,
-                          label: api.name,
-                          description: `${api.method} ${api.url}`,
-                        }))}
-                      placeholder="No authentication"
-                      itemNoun="APIs"
-                      width={280}
-                    />
-                    <Tooltip
-                      title={
-                        isWriteMethod(editing.method) && !allowWriteSend
-                          ? `${editing.method} is blocked — it would change real data. Use one of the routes above, or allow write requests.`
-                          : "Send this request and capture the real status and response"
-                      }
-                    >
-                      <span>
-                        <Button
-                          type="primary"
-                          danger={isWriteMethod(editing.method) && allowWriteSend}
-                          icon={<Send size={13} />}
-                          loading={sending}
-                          disabled={isWriteMethod(editing.method) && !allowWriteSend}
-                          onClick={sendDraft}
-                        >
-                          Send {editing.method}
-                        </Button>
+                        <CaptureHelpButton onClick={() => setCaptureHelpOpen(true)} />
                       </span>
-                    </Tooltip>
+                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
+                        Send this request once and fill the expected status, sample response, assertions and schema
+                        from what actually comes back.
+                      </Text>
+                    </div>
+
+                    {/* Four routes to the same result. The three above the rule
+                        cost nothing; only the last one touches the API. */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <RouteButton
+                        icon={History}
+                        label="From a previous run"
+                        hint={editing.id ? "A real response, already recorded" : "Available once this API has run in a flow"}
+                        disabled={!editing.id}
+                        onClick={openHistory}
+                      />
+                      <RouteButton
+                        icon={ClipboardPaste}
+                        label="Paste a response"
+                        hint="You already have it in front of you"
+                        onClick={() => setPasteOpen(true)}
+                      />
+                      <RouteButton
+                        icon={Sparkles}
+                        label="Generate from payload"
+                        hint="Derived offline — a shape to correct"
+                        onClick={generateOffline}
+                      />
+                    </div>
+
+                    <div style={{ height: 1, background: "var(--border-color, #e2e8f0)" }} />
+
+                    {/* The live route, gated for anything that changes data. */}
+                    {isWriteMethod(editing.method) && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          background: allowWriteSend ? "#fef2f2" : "var(--card-bg, #ffffff)",
+                          border: `1px solid ${allowWriteSend ? "#fecaca" : "var(--border-color, #e2e8f0)"}`,
+                        }}
+                      >
+                        <span style={{ color: allowWriteSend ? "#b91c1c" : "#b45309", flexShrink: 0, marginTop: 1 }}>
+                          <ShieldAlert size={15} />
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 11.5, color: "var(--text-primary)", display: "block", lineHeight: 1.6 }}>
+                            Sending <strong>{editing.method}</strong> changes real data in the selected environment,
+                            and does it again on every click — two sends of a create make two records. Nothing here
+                            can undo that.
+                          </Text>
+                          <label style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 7, cursor: "pointer" }}>
+                            <Switch size="small" checked={allowWriteSend} onChange={setAllowWriteSend} />
+                            <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-primary)" }}>
+                              Allow write requests
+                            </Text>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <SearchableDropdown
+                        value={sendEnvironmentId ?? null}
+                        onChange={(value: string) => setSendEnvironmentId(value || undefined)}
+                        options={environments.map((environment) => ({
+                          value: environment.id,
+                          label: environment.name,
+                          description: environment.baseUrl,
+                        }))}
+                        placeholder="Environment"
+                        itemNoun="environments"
+                        width={260}
+                      />
+                      <SearchableDropdown
+                        value={sendAuthApiId ?? null}
+                        onChange={(value: string) => setSendAuthApiId(value || undefined)}
+                        options={apis
+                          .filter((api) => api.id !== editing.id)
+                          .map((api) => ({
+                            value: api.id,
+                            label: api.name,
+                            description: `${api.method} ${api.url}`,
+                          }))}
+                        placeholder="No authentication"
+                        itemNoun="APIs"
+                        width={280}
+                      />
+                      <Tooltip
+                        title={
+                          isWriteMethod(editing.method) && !allowWriteSend
+                            ? `${editing.method} is blocked — it would change real data. Use one of the routes above, or allow write requests.`
+                            : "Send this request and capture the real status and response"
+                        }
+                      >
+                        <span>
+                          <Button
+                            type="primary"
+                            danger={isWriteMethod(editing.method) && allowWriteSend}
+                            icon={<Send size={13} />}
+                            loading={sending}
+                            disabled={isWriteMethod(editing.method) && !allowWriteSend}
+                            onClick={sendDraft}
+                          >
+                            Send {editing.method}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </div>
+
+                    {!environments.length && (
+                      <Text style={{ fontSize: 11.5, color: "#b45309" }}>
+                        No environments yet — a relative URL has no {"{{baseUrl}}"} to resolve against. Add one under
+                        Yapiez → Environments, or give this API an absolute URL.
+                      </Text>
+                    )}
+
+                    {sendAuthApiId && (
+                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
+                        That login runs first and its token is attached to this request — the same way a flow does it.
+                      </Text>
+                    )}
+
+                    {tryResult && <TryResultPanel result={tryResult} onCapture={captureAsExpected} />}
                   </div>
-
-                  {!environments.length && (
-                    <Text style={{ fontSize: 11.5, color: "#b45309" }}>
-                      No environments yet — a relative URL has no {"{{baseUrl}}"} to resolve against. Add one under
-                      Yapiez → Environments, or give this API an absolute URL.
-                    </Text>
-                  )}
-
-                  {sendAuthApiId && (
-                    <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                      That login runs first and its token is attached to this request — the same way a flow does it.
-                    </Text>
-                  )}
-
-                  {tryResult && <TryResultPanel result={tryResult} onCapture={captureAsExpected} />}
-                </div>
+                  </>
+                )}
 
                 <Field label="Expected status" hint="Used as the default assertion when none is authored">
                   <Input

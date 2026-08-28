@@ -921,7 +921,7 @@ export default function CreateScopePage() {
         setLoadingSprints(true);
         const selectedProject = projectOptions.find(p => p.value === formData.details.product);
         const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, projectId: projectId || undefined } });
+        const res: any = await axios.get("/api/release-plans", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
         const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
         setSprints(fetchedSprints);
       } catch (err) {
@@ -930,7 +930,7 @@ export default function CreateScopePage() {
         setLoadingSprints(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   const fetchDevTicketsSearch = React.useCallback(
@@ -939,7 +939,7 @@ export default function CreateScopePage() {
         setLoadingDevTickets(true);
         const selectedProject = projectOptions.find(p => p.value === formData.details.product);
         const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/tickets", { params: { search, limit: 10, projectId: projectId || undefined } });
+        const res: any = await axios.get("/api/tickets", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setDevTickets(data);
       } catch (err) {
@@ -948,7 +948,7 @@ export default function CreateScopePage() {
         setLoadingDevTickets(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   const fetchBugSheetsSearch = React.useCallback(
@@ -957,7 +957,7 @@ export default function CreateScopePage() {
         setLoadingBugSheets(true);
         const selectedProject = projectOptions.find(p => p.value === formData.details.product);
         const projectId = selectedProject?.id;
-        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search, limit: 10, projectId: projectId || undefined } });
+        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search: search || undefined, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setBugSheets(data);
       } catch (err) {
@@ -966,7 +966,7 @@ export default function CreateScopePage() {
         setLoadingBugSheets(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   // The tenant's module list, offered on the Product & Modules step.
@@ -1023,10 +1023,10 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingTestCases(true);
-        // Parent test cases only — the children belonging to a parent are
-        // covered by linking the parent, so they are never listed here.
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/parents', {
-          params: search ? { search } : undefined,
+          params: { search: search || undefined, project_id: projectId || undefined },
         });
         setTestCases(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
       } catch (err) {
@@ -1035,15 +1035,17 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   const fetchTestSuitesSearch = React.useCallback(
     debounce(async (search: string) => {
       try {
         setLoadingTestSuites(true);
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/suites/all', {
-          params: search ? { search, limit: 50 } : { limit: 1000 },
+          params: { search: search || undefined, limit: 50, project_id: projectId || undefined },
         });
         setTestSuites(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
       } catch (err) {
@@ -1052,15 +1054,17 @@ export default function CreateScopePage() {
         setLoadingTestSuites(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   const fetchTestRunsSearch = React.useCallback(
     debounce(async (search: string) => {
       try {
         setLoadingTestRuns(true);
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
         const res: any = await axios.get('/api/v2/qa/runs/all', {
-          params: search ? { search, limit: 50 } : { limit: 1000 },
+          params: { search: search || undefined, limit: 50, project_id: projectId || undefined },
         });
         setTestRuns(Array.isArray(res) ? res : (res?.data?.data || res?.data || []));
       } catch (err) {
@@ -1069,7 +1073,7 @@ export default function CreateScopePage() {
         setLoadingTestRuns(false);
       }
     }, 400),
-    [formData.details.product]
+    [formData.details.product, projectOptions]
   );
 
   const d = formData.details;

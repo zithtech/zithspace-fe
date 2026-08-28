@@ -17,9 +17,9 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Button, Drawer, Tooltip } from "antd";
 import { BugOutlined } from "@ant-design/icons";
 import {
-  ArrowLeft, AlertTriangle, Activity, Boxes, CalendarDays, CheckCircle2,
-  ChevronLeft, ChevronRight, ClipboardList, Clock, FileText, Flame, Grid3x3, Layers, Lightbulb,
-  PlayCircle, Repeat, RotateCw, Search, Target, TrendingDown, TrendingUp, X,
+  ArrowLeft, AlertTriangle, Activity, Boxes, Bug, CalendarDays, CheckCircle2,
+  ChevronLeft, ChevronRight, ClipboardList, Clock, ExternalLink, FileText, Flame, Grid3x3, Layers, Lightbulb,
+  PlayCircle, Repeat, RotateCw, Search, Target, Ticket, TrendingDown, TrendingUp, UserRound, X,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -696,12 +696,48 @@ interface ResultCell {
   status: string;
   bugLogged: boolean;
   bugNumber?: string | null;
+  bugId?: string | null;
+  bugTitle?: string | null;
+  bugSeverity?: string | null;
+  bugState?: string | null;
+  bugCreatedAt?: string | null;
+  bugAssignee?: string | null;
+  /** The ticket the bug was converted into, if anyone converted it. */
+  ticket?: TicketRef | null;
   executedAt?: string | null;
   notes?: string | null;
   priority?: string | null;
   severity?: string | null;
   testType?: string | null;
 }
+
+/**
+ * The ticket a bug became — enough of it to be read in place, and an id to
+ * open the real thing with.
+ */
+interface TicketRef {
+  id: string;
+  number?: string | null;
+  title?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  assignee?: string | null;
+  createdAt?: string | null;
+  dueDate?: string | null;
+}
+
+/** "in_progress" is a column value, not something to show a reader. */
+const ticketStatusLabel = (s?: string | null) =>
+  String(s || "").split(/[_\s-]+/).filter(Boolean)
+    .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ") || "No status";
+
+/** Done is green, moving is blue, everything else stays neutral. */
+const ticketTone = (s?: string | null) => {
+  const v = String(s || "").toLowerCase();
+  if (v === "completed" || v === "live") return "green";
+  if (!v || v === "not_started" || v === "pause") return "ash";
+  return "blue";
+};
 
 type Shape = "flaky" | "regressed" | "failing" | "fixed";
 
@@ -773,6 +809,28 @@ function CaseDrawer({ row, runs, suites, onClose }: {
 
   const passes = events.filter(e => e.cell!.status?.toLowerCase() === "pass").length;
 
+  /**
+   * The bugs this case produced, newest filing first.
+   *
+   * A bug filed once but hit by three runs is one bug, so entries are collapsed
+   * on the bug itself and remember only the newest run that carried it.
+   */
+  const bugs = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { cell: ResultCell; run: any; no: number }[] = [];
+    events.forEach(({ cell, run, no }) => {
+      const c = cell!;
+      if (!c.bugLogged) return;
+      const key = c.bugId || c.bugNumber || String(run.id);
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ cell: c, run, no });
+    });
+    return out;
+  }, [events]);
+
+  const ticketed = bugs.filter(b => !!b.cell.ticket).length;
+
   return (
     <Drawer
       open={!!row}
@@ -806,6 +864,68 @@ function CaseDrawer({ row, runs, suites, onClose }: {
             </div>
           )}
 
+          {bugs.length > 0 && (
+            <>
+              <div className="sm__dr-label">
+                Bugs raised from this case
+                <span className="sm__dr-count">
+                  {bugs.length} bug{bugs.length === 1 ? "" : "s"} · {ticketed} ticketed
+                </span>
+              </div>
+              <ul className="sm__bugs">
+                {bugs.map(({ cell: c, run, no }) => (
+                  <li key={c.bugId || c.bugNumber || run.id} className="sm__bug">
+                    <div className="sm__bug-head">
+                      <Bug size={12} className="sm__bug-ic" />
+                      <code className="sm__ref">{c.bugNumber || "Bug"}</code>
+                      <span className="sm__bug-title">{c.bugTitle || "Untitled bug"}</span>
+                      {c.bugState && <span className="cm-tag">{c.bugState}</span>}
+                    </div>
+                    <div className="sm__bug-meta">
+                      {c.bugSeverity && <span>{c.bugSeverity} severity</span>}
+                      <span><UserRound size={10} />{c.bugAssignee || "Unassigned"}</span>
+                      <span><CalendarDays size={10} />{fmtDate(c.bugCreatedAt) || "no date recorded"}</span>
+                      <span>from run #{no}</span>
+                    </div>
+
+                    {c.ticket ? (
+                      /* The ticket opens in its own tab so the drawer, and the run
+                         history being read in it, is still there on the way back. */
+                      <a
+                        className="sm__tkt"
+                        href={`/tickets/${c.ticket.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open the full ticket in a new tab"
+                      >
+                        <span className="sm__tkt-head">
+                          <Ticket size={12} className="sm__tkt-ic" />
+                          <code className="sm__tkt-no">{c.ticket.number || "Ticket"}</code>
+                          <span className="sm__tkt-name">{c.ticket.title || "Untitled ticket"}</span>
+                          <span className={`sm__tkt-status is-${ticketTone(c.ticket.status)}`}>
+                            {ticketStatusLabel(c.ticket.status)}
+                          </span>
+                          <ExternalLink size={12} className="sm__tkt-go" />
+                        </span>
+                        <span className="sm__tkt-meta">
+                          <span><UserRound size={10} />{c.ticket.assignee || "Unassigned"}</span>
+                          <span><CalendarDays size={10} />{fmtDate(c.ticket.createdAt) || "no date recorded"}</span>
+                          {c.ticket.dueDate && <span><Clock size={10} />due {fmtDate(c.ticket.dueDate)}</span>}
+                          {c.ticket.priority && <span>{c.ticket.priority}</span>}
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="sm__tkt is-none">
+                        <Ticket size={12} />
+                        No ticket has been created from this bug yet
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
           <div className="sm__dr-label">Every run that touched this case</div>
           <ol className="sm__events">
             {events.map(({ run, no, cell }) => {
@@ -821,6 +941,18 @@ function CaseDrawer({ row, runs, suites, onClose }: {
                       {c.bugLogged
                         ? <span className="cm-pill cm-pill--blue">{c.bugNumber || "Bug filed"}</span>
                         : c.status?.toLowerCase() === "fail" && <span className="cm-pill cm-pill--ash">No bug</span>}
+                      {c.ticket && (
+                        <a
+                          className="cm-pill cm-pill--green sm__ev-tkt"
+                          href={`/tickets/${c.ticket.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`${c.ticket.title || "Ticket"} — open in a new tab`}
+                        >
+                          {c.ticket.number || "Ticket"}
+                          <ExternalLink size={10} />
+                        </a>
+                      )}
                     </div>
                     <div className="sm__ev-meta">
                       <span><Clock size={10} />{when || "no execution time recorded"}</span>
@@ -1190,6 +1322,25 @@ function ModuleDetail() {
           status: String(r.status || "Not Executed"),
           bugLogged: !!r.bug_logged,
           bugNumber: r.bug_number ?? null,
+          /* A trashed bug comes back unjoined, so the id only counts when the row did. */
+          bugId: r.bug_logged ? (r.bug_id ? String(r.bug_id) : null) : null,
+          bugTitle: r.bug_title ?? null,
+          bugSeverity: r.bug_severity ?? null,
+          bugState: r.bug_state ?? null,
+          bugCreatedAt: r.bug_created_at ?? null,
+          bugAssignee: r.bug_assignee_name ?? null,
+          ticket: r.ticket_id
+            ? {
+              id: String(r.ticket_id),
+              number: r.ticket_number ?? null,
+              title: r.ticket_title ?? null,
+              status: r.ticket_status ?? null,
+              priority: r.ticket_priority ?? null,
+              assignee: r.ticket_assignee_name ?? null,
+              createdAt: r.ticket_created_at ?? null,
+              dueDate: r.ticket_due_date ?? null,
+            }
+            : null,
           executedAt: r.executed_at ?? null,
           notes: r.notes ?? null,
           priority: r.priority ?? null,
@@ -1982,6 +2133,64 @@ const STYLES = `
   background: var(--bg-slate-50); border-left: 2px solid var(--border-slate-200);
 }
 .sm__ev.is-fail .sm__ev-note { border-left-color: rgba(239,68,68,.35); }
+.sm__ev-tkt { gap: 4px; text-decoration: none; }
+.sm__ev-tkt:hover { filter: brightness(.96); }
+
+/* ── Bugs raised from a case, and the tickets they became ─────────────── */
+.sm__dr-count {
+  margin-left: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
+  text-transform: none; color: var(--text-slate-400);
+}
+.sm__bugs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sm__bug {
+  padding: 10px 11px; border-radius: 10px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+}
+.sm__bug-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+.sm__bug-ic { color: var(--text-slate-400); flex-shrink: 0; }
+.sm__bug-title {
+  flex: 1; min-width: 0; font-size: 11.5px; font-weight: 700; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sm__bug-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.sm__bug-meta span { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--text-slate-400); }
+.sm__bug-meta svg { color: var(--text-slate-300); }
+
+.sm__tkt {
+  display: block; margin-top: 8px; padding: 8px 10px; border-radius: 8px; text-decoration: none;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+  transition: border-color .15s ease, background .15s ease;
+}
+a.sm__tkt:hover { background: rgba(59,130,246,.06); border-color: rgba(59,130,246,.3); }
+a.sm__tkt:hover .sm__tkt-go { color: #2563eb; }
+.sm__tkt.is-none {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; color: var(--text-slate-400);
+  background: transparent; border-style: dashed;
+}
+.sm__tkt.is-none svg { color: var(--text-slate-300); }
+.sm__tkt-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+.sm__tkt-ic { color: #2563eb; flex-shrink: 0; }
+.sm__tkt-no {
+  flex-shrink: 0; padding: 1px 6px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22);
+}
+.sm__tkt-name {
+  flex: 1; min-width: 0; font-size: 11.5px; font-weight: 650; color: var(--text-slate-800);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sm__tkt-status {
+  flex-shrink: 0; padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+  font-size: 9.5px; font-weight: 750;
+  color: var(--text-slate-500); background: rgba(100,116,139,.1); border: 1px solid rgba(100,116,139,.2);
+}
+.sm__tkt-status.is-blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
+.sm__tkt-status.is-green { color: #047857; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.24); }
+.sm__tkt-go { flex-shrink: 0; color: var(--text-slate-300); }
+.sm__tkt-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
+.sm__tkt-meta span { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--text-slate-400); }
+.sm__tkt-meta svg { color: var(--text-slate-300); }
 
 .sm__shape {
   min-width: 66px; padding: 2px 8px; border-radius: 999px; text-align: center;

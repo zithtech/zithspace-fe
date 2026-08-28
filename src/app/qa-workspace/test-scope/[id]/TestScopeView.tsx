@@ -27,6 +27,7 @@ import {
   ZoomIn,
   Link2,
   ExternalLink,
+  Zap,
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
 import { Drawer, Button, Dropdown, MenuProps, message, Tag as AntTag } from "antd";

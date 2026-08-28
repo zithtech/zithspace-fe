@@ -10,7 +10,7 @@ import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrum
 import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, Menu, RotateCw } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, Menu, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -19,6 +19,18 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
+import {
+  YapiezService,
+  PAYLOAD_TYPES,
+  PAYLOAD_TYPE_HELP,
+  PAYLOAD_TYPE_TONE,
+  METHOD_COLORS,
+  type YapiezApi,
+  type CasePayload,
+  type DraftedPayload,
+  type PayloadType,
+  type HttpMethod,
+} from "@/services/yapiezService";
 
 const { TextArea } = Input;
 
@@ -94,6 +106,78 @@ const Fact = ({ icon: Icon, label, accent, loading, title, children }: {
   </div>
 );
 
+/**
+ * One saved request payload, in the drawer and in the read-only case view.
+ *
+ * Collapsed to its name and type by default — a tester scanning a case wants to
+ * know WHICH bodies exist before they want to read one. Copy is the primary
+ * action, because the point of storing a payload is pasting it somewhere else.
+ */
+const PayloadRow = ({ payload, onDelete }: { payload: CasePayload; onDelete?: () => void }) => {
+  const [open, setOpen] = useState(false);
+  const tone = PAYLOAD_TYPE_TONE[payload.payloadType] ?? PAYLOAD_TYPE_TONE.Positive;
+  const json = JSON.stringify(payload.payload ?? {}, null, 2);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(json);
+      message.success('Payload copied');
+    } catch {
+      message.error('Could not copy — select the text and copy it by hand');
+    }
+  };
+
+  return (
+    <div className="pl-row">
+      <div className="pl-row__head">
+        <button type="button" className="pl-row__toggle" onClick={() => setOpen(!open)}>
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+        <span
+          className="pl-tag"
+          style={{ color: tone.text, background: tone.bg, borderColor: tone.border }}
+        >
+          {payload.payloadType}
+        </span>
+        <span className="pl-row__name" title={payload.name}>{payload.name}</span>
+        {payload.expectedStatus && <span className="pl-row__status">{payload.expectedStatus}</span>}
+        <Tooltip title="Copy payload">
+          <button type="button" className="pl-row__act" onClick={copy} aria-label="Copy payload">
+            <Copy size={13} />
+          </button>
+        </Tooltip>
+        {onDelete && (
+          <ConfirmDialog
+            tone="danger"
+            title="Remove this payload?"
+            description={`"${payload.name}" will be deleted from this test case.`}
+            confirmText="Remove"
+            onConfirm={onDelete}
+          >
+            <button type="button" className="pl-row__act pl-row__act--danger" aria-label="Remove payload">
+              <Trash2 size={13} />
+            </button>
+          </ConfirmDialog>
+        )}
+      </div>
+
+      {payload.apiMethod && (
+        <div className="pl-row__api">
+          <span className="pl-row__method">{payload.apiMethod}</span>
+          <span className="pl-row__url" title={payload.apiUrl || undefined}>{payload.apiUrl}</span>
+        </div>
+      )}
+
+      {open && (
+        <>
+          {payload.notes && <p className="pl-row__notes">{payload.notes}</p>}
+          <pre className="pl-row__json">{json}</pre>
+        </>
+      )}
+    </div>
+  );
+};
+
 function initialsOf(name: string) {
   if (!name) return 'TC';
   const parts = name.split(' ').filter(Boolean);
@@ -166,6 +250,33 @@ export default function ParentTestCaseDetailsPage() {
     automation: "Manual",
     status: "Active"
   });
+
+  /* ── Advanced: API request payloads ──────────────────────────────────────
+     The tester picks an endpoint from THIS case's module, picks which of the
+     four shapes they want, and the server drafts a body from the definition.
+     Nothing is stored until they confirm it — a draft is disposable, and the
+     table should only ever hold payloads somebody chose. */
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [moduleApis, setModuleApis] = useState<YapiezApi[]>([]);
+  const [apisLoading, setApisLoading] = useState(false);
+  const [apisLoaded, setApisLoaded] = useState(false);
+  const [payloadApiId, setPayloadApiId] = useState<string | undefined>();
+  const [payloadType, setPayloadType] = useState<PayloadType>("Positive");
+  const [payloadHint, setPayloadHint] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draft, setDraft] = useState<DraftedPayload | null>(null);
+  /* The draft as editable text, so a tester can correct a value the model got
+     wrong without regenerating the whole body. Parsed back on confirm. */
+  const [draftText, setDraftText] = useState("");
+  const [draftName, setDraftName] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  /** Payloads already confirmed — the case's own when editing, plus this session's. */
+  const [casePayloads, setCasePayloads] = useState<CasePayload[]>([]);
+  /** Confirmed before the case existed; adopted by it the moment it is saved. */
+  const [pendingPayloadIds, setPendingPayloadIds] = useState<string[]>([]);
+  /** Payloads on the case the read-only view is showing. */
+  const [viewPayloads, setViewPayloads] = useState<CasePayload[]>([]);
+  const [viewPayloadsLoading, setViewPayloadsLoading] = useState(false);
 
   const { canReadCase, canCreateCase } = usePermission();
   // Priority / severity / type come from QA Settings
@@ -270,6 +381,159 @@ export default function ParentTestCaseDetailsPage() {
     }
   };
 
+  /* ── Advanced payload handlers ───────────────────────────────────────── */
+
+  /** Clear the draft, keeping the API and type the tester already chose. */
+  const resetPayloadDraft = () => {
+    setDraft(null);
+    setDraftText("");
+    setDraftName("");
+    setPayloadHint("");
+  };
+
+  /**
+   * The endpoints this case can be written against.
+   *
+   * Scoped to the scenario's module, because that is the taxonomy the API
+   * catalog files under too — a case about Billing should not be offered the
+   * Auth endpoints. A scenario with no module falls back to the project's
+   * definitions rather than an empty list, and the field says which it is.
+   */
+  const loadModuleApis = async () => {
+    if (apisLoading) return;
+    setApisLoading(true);
+    try {
+      const moduleName = String(parentData?.module_name || "").trim();
+      const res = await YapiezService.listApis({
+        moduleName: moduleName && moduleName !== "Unassigned" ? moduleName : undefined,
+        projectId: parentData?.project_id || undefined,
+        sort: "name",
+        pageSize: 200,
+      });
+      setModuleApis(res.data || []);
+      setApisLoaded(true);
+    } catch (err: any) {
+      // A tester without API Hub access still gets the rest of the drawer.
+      setModuleApis([]);
+      setApisLoaded(true);
+      if (err?.response?.status !== 403) {
+        message.error(err?.response?.data?.error || "Failed to load APIs for this module");
+      }
+    } finally {
+      setApisLoading(false);
+    }
+  };
+
+  /** Draft a payload. Writes nothing — the tester confirms before it is stored. */
+  const handleGeneratePayload = async () => {
+    if (!payloadApiId) {
+      message.error("Pick an API first");
+      return;
+    }
+    setDrafting(true);
+    try {
+      const drafted = await YapiezService.generatePayload({
+        apiId: payloadApiId,
+        payloadType,
+        hint: payloadHint.trim() || undefined,
+      });
+      setDraft(drafted);
+      setDraftText(JSON.stringify(drafted.payload, null, 2));
+      setDraftName(drafted.suggestedName);
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to generate the payload");
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+  /**
+   * Store the drafted payload against this case.
+   *
+   * While the case is still being created there is no id to attach it to, so it
+   * is parented to the scenario and picked up by `handleSaveChildCase`.
+   */
+  const handleConfirmPayload = async () => {
+    if (!draft || !payloadApiId) return;
+    if (!draftName.trim()) {
+      message.error("Give the payload a name");
+      return;
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(draftText);
+    } catch {
+      message.error("The payload is not valid JSON — fix it before confirming");
+      return;
+    }
+
+    setConfirming(true);
+    try {
+      const saved = await YapiezService.createPayload({
+        apiId: payloadApiId,
+        payloadType,
+        name: draftName.trim(),
+        payload: parsed,
+        expectedStatus: draft.expectedStatus,
+        notes: draft.notes || null,
+        generatedBy: draft.generatedBy,
+        testCaseId: editingCaseId || null,
+        parentTestCaseId: parentId,
+      });
+      setCasePayloads((prev) => [...prev, saved]);
+      if (!editingCaseId) setPendingPayloadIds((prev) => [...prev, saved.id]);
+      resetPayloadDraft();
+      message.success(`${payloadType} payload saved`);
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to save the payload");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleDeletePayload = async (id: string) => {
+    try {
+      await YapiezService.deletePayload(id);
+      setCasePayloads((prev) => prev.filter((p) => p.id !== id));
+      setPendingPayloadIds((prev) => prev.filter((pid) => pid !== id));
+      setViewPayloads((prev) => prev.filter((p) => p.id !== id));
+      message.success("Payload removed");
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to remove the payload");
+    }
+  };
+
+  /**
+   * Close the create/edit drawer, throwing away payloads confirmed for a case
+   * that was never saved. They belong to nothing once the drawer is abandoned,
+   * and leaving them would fill the table with bodies no case ever reads.
+   */
+  const closeCaseDrawer = () => {
+    const orphans = pendingPayloadIds;
+    setDrawerOpen(false);
+    setPendingPayloadIds([]);
+    if (orphans.length) {
+      Promise.all(orphans.map((id) => YapiezService.deletePayload(id).catch(() => null)));
+    }
+  };
+
+  /** Open the read-only view, pulling in the payloads the case carries. */
+  const openCaseView = async (record: any) => {
+    setViewCase(record);
+    setViewOpen(true);
+    setViewPayloads([]);
+    setViewPayloadsLoading(true);
+    try {
+      setViewPayloads(await YapiezService.listPayloads({ testCaseId: record.id }));
+    } catch {
+      // The case still reads without them; no toast for a side panel.
+      setViewPayloads([]);
+    } finally {
+      setViewPayloadsLoading(false);
+    }
+  };
+
   const handleOpenCreateDrawer = () => {
     setEditingCaseId(null);
     setNewStepInput("");
@@ -288,6 +552,12 @@ export default function ParentTestCaseDetailsPage() {
       automation: parentData?.automation || "Manual",
       status: "Active"
     });
+    setAdvancedOpen(false);
+    setPayloadApiId(undefined);
+    setPayloadType("Positive");
+    setCasePayloads([]);
+    setPendingPayloadIds([]);
+    resetPayloadDraft();
     setDrawerOpen(true);
   };
 
@@ -309,6 +579,17 @@ export default function ParentTestCaseDetailsPage() {
       automation: record.automation || "Manual",
       status: record.status || "Active"
     });
+    setAdvancedOpen(false);
+    setPayloadApiId(undefined);
+    setPayloadType("Positive");
+    setPendingPayloadIds([]);
+    resetPayloadDraft();
+    // Payloads already on this case, so the section opens showing what exists
+    // rather than looking empty until the tester generates something.
+    setCasePayloads([]);
+    YapiezService.listPayloads({ testCaseId: record.id })
+      .then(setCasePayloads)
+      .catch(() => setCasePayloads([]));
     setDrawerOpen(true);
   };
 
@@ -337,10 +618,25 @@ export default function ParentTestCaseDetailsPage() {
         message.success("Test case updated successfully!");
         setDrawerOpen(false);
       } else {
-        await axios.post(`/api/v2/qa`, payload);
+        const created: any = await axios.post(`/api/v2/qa`, payload);
+        const newCaseId = created?.data?.data?.id || created?.data?.id;
+        // Payloads confirmed before the case existed are adopted by it now.
+        // A failure here must not read as a failed save — the case is written,
+        // and the payloads are still recoverable from the scenario.
+        if (newCaseId && pendingPayloadIds.length) {
+          try {
+            await YapiezService.linkPayloads(newCaseId, pendingPayloadIds);
+          } catch {
+            message.warning("Test case saved, but its API payloads could not be attached.");
+          }
+          setPendingPayloadIds([]);
+        }
         message.success("Module Test Case created successfully!");
         if (addAnother) {
           setNewStepInput("");
+          setCasePayloads([]);
+          setPayloadApiId(undefined);
+          resetPayloadDraft();
           // Reset form for next entry without closing drawer or losing context
           setFormData({
             name: "",
@@ -892,6 +1188,148 @@ export default function ParentTestCaseDetailsPage() {
           background: none; border: none; cursor: pointer; padding: 0;
         }
 
+        /* ── Advanced: API payloads (drawer + case view) ─────────────── */
+        .pl-adv {
+          border: 1px solid var(--border-color); border-radius: 0;
+          margin-bottom: 16px; overflow: hidden; background: transparent;
+        }
+        .pl-adv__head {
+          display: flex; align-items: flex-start; gap: 12px; width: 100%;
+          padding: 14px 18px; text-align: left; cursor: pointer;
+          background: var(--bg-slate-50); border: none; border-bottom: 1px solid transparent;
+        }
+        .pl-adv__head:hover { background: var(--bg-slate-100, #f1f5f9); }
+        .pl-adv__icon {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px;
+          background: rgba(59,130,246,.12); color: #2563eb;
+        }
+        .pl-adv__headtext { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+        .pl-adv__title { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); }
+        .pl-adv__sub { font-size: 11.5px; color: var(--text-slate-500); margin-top: 2px; line-height: 1.45; }
+        .pl-adv__count {
+          flex-shrink: 0; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 700; background: rgba(16,185,129,.12); color: #047857;
+        }
+        .pl-adv__chev { flex-shrink: 0; color: var(--text-slate-400); display: inline-flex; }
+        .pl-adv__body { padding: 16px 18px 18px; border-top: 1px solid var(--border-color); }
+
+        .pl-method, .pl-row__method {
+          display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 4px;
+          border: 1px solid transparent; font-size: 10px; font-weight: 700; letter-spacing: .03em;
+        }
+        .pl-row__method { background: var(--bg-slate-100, #f1f5f9); color: var(--text-slate-500); }
+
+        .pl-types { display: flex; flex-wrap: wrap; gap: 8px; }
+        .pl-type {
+          padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500); transition: all .15s ease;
+        }
+        .pl-type:hover { border-color: var(--border-slate-300, #cbd5e1); color: var(--text-slate-800); }
+        .pl-type.is-on { font-weight: 700; }
+        .pl-typehelp {
+          margin: 8px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500);
+        }
+
+        .pl-genrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .pl-genrow__note { font-size: 11.5px; color: var(--text-slate-400); }
+
+        .pl-draft {
+          margin-top: 16px; padding: 14px; border-radius: 10px;
+          border: 1px solid rgba(59,130,246,.28); background: rgba(59,130,246,.04);
+        }
+        .pl-draft__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .pl-draft__api {
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 11.5px; color: var(--text-slate-500);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+        }
+        .pl-draft__src { margin-left: auto; font-size: 11px; color: var(--text-slate-400); }
+        .pl-draft__notes {
+          margin: 0 0 12px; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500);
+        }
+        .pl-draft__foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .pl-draft__status { font-size: 11.5px; color: var(--text-slate-500); }
+        .pl-json {
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+          font-size: 12px !important; line-height: 1.55 !important; border-radius: 8px !important;
+          background: var(--bg-pure-white) !important;
+        }
+
+        .pl-tag {
+          display: inline-flex; align-items: center; flex-shrink: 0;
+          padding: 1px 9px; border-radius: 999px; border: 1px solid transparent;
+          font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
+        }
+
+        .pl-saved { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .pl-saved--view { margin-top: 0; }
+        .pl-saved__title {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+          color: var(--text-slate-500);
+        }
+        .pl-saved__count {
+          min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10.5px; font-weight: 700; background: rgba(59,130,246,.12); color: #2563eb;
+        }
+        .pl-saved__hint { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--text-slate-400); }
+
+        .pl-row {
+          border: 1px solid var(--border-slate-200); border-radius: 8px;
+          padding: 10px 12px; background: var(--bg-pure-white);
+        }
+        .pl-row__head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .pl-row__toggle {
+          display: inline-flex; flex-shrink: 0; padding: 0; border: none; cursor: pointer;
+          background: none; color: var(--text-slate-400);
+        }
+        .pl-row__name {
+          flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pl-row__status {
+          flex-shrink: 0; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+          background: var(--bg-slate-100, #f1f5f9); color: var(--text-slate-500);
+        }
+        .pl-row__act {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          color: var(--text-slate-500); transition: all .15s ease;
+        }
+        .pl-row__act:hover { color: #2563eb; border-color: rgba(59,130,246,.4); }
+        .pl-row__act--danger:hover { color: #ef4444; border-color: rgba(239,68,68,.4); background: #fef2f2; }
+        .pl-row__api { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-left: 22px; min-width: 0; }
+        .pl-row__url {
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 11px; color: var(--text-slate-400);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pl-row__notes {
+          margin: 8px 0 0; padding-left: 22px; font-size: 11.5px; line-height: 1.5;
+          color: var(--text-slate-500);
+        }
+        .pl-row__json {
+          margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; overflow-x: auto;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 11.5px; line-height: 1.55; color: var(--text-slate-800);
+          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+        }
+
+        .pl-empty { padding: 18px 16px; text-align: center; color: var(--text-slate-400); }
+        .pl-empty__title { margin: 8px 0 2px; font-size: 12.5px; font-weight: 700; color: var(--text-slate-800); }
+        .pl-empty__text { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500); }
+        .pl-empty__btn {
+          display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+          padding: 4px 12px; border-radius: 6px; cursor: pointer;
+          font-size: 11.5px; font-weight: 600; color: #2563eb;
+          background: var(--bg-pure-white); border: 1px solid rgba(59,130,246,.35);
+        }
+
         /* ── Pager pinned to the bottom ─────────────────────────────── */
         .pp-footer {
           display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
@@ -1261,7 +1699,7 @@ export default function ParentTestCaseDetailsPage() {
                 rowKey="id"
                 pagination={false}
                 onRow={(record) => ({
-                  onClick: () => { setViewCase(record); setViewOpen(true); },
+                  onClick: () => { openCaseView(record); },
                 })}
                 locale={{
                   /* Holding the height beats claiming "no cases" mid-fetch. */
@@ -1320,7 +1758,7 @@ export default function ParentTestCaseDetailsPage() {
       <Drawer
         {...commonDrawerProps}
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={closeCaseDrawer}
       >
         <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg-primary, #ffffff)" }}>
           {/* Drawer Header */}
@@ -1372,7 +1810,7 @@ export default function ParentTestCaseDetailsPage() {
               type="text"
               shape="circle"
               icon={<CloseOutlined />}
-              onClick={() => setDrawerOpen(false)}
+              onClick={closeCaseDrawer}
               style={{ color: "var(--text-slate-500)" }}
             />
           </div>
@@ -1631,6 +2069,220 @@ export default function ParentTestCaseDetailsPage() {
                   />
                 </Form.Item>
               </SectionCard>
+
+              {/* STEP 3: Advanced — API request payloads
+                  Optional, and collapsed by default: a manual UI case has no
+                  endpoint behind it and should not be asked about one. */}
+              <div className="pl-adv">
+                <button
+                  type="button"
+                  className="pl-adv__head"
+                  onClick={() => {
+                    const next = !advancedOpen;
+                    setAdvancedOpen(next);
+                    if (next && !apisLoaded) loadModuleApis();
+                  }}
+                >
+                  <span className="pl-adv__icon"><Braces size={14} /></span>
+                  <span className="pl-adv__headtext">
+                    <span className="pl-adv__title">Advanced · API payloads</span>
+                    <span className="pl-adv__sub">
+                      Pick an endpoint from {parentData?.module_name && parentData.module_name !== "Unassigned"
+                        ? `the ${parentData.module_name} module`
+                        : "this project"}, generate the request body to test with, and keep it on this case.
+                    </span>
+                  </span>
+                  {casePayloads.length > 0 && (
+                    <span className="pl-adv__count">{casePayloads.length}</span>
+                  )}
+                  <span className="pl-adv__chev">
+                    {advancedOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </span>
+                </button>
+
+                {advancedOpen && (
+                  <div className="pl-adv__body">
+                    <Form.Item label="API" style={{ marginBottom: 14 }}>
+                      <SearchableDropdown
+                        options={moduleApis.map((a) => ({
+                          value: a.id,
+                          label: a.name,
+                          description: a.url,
+                          badge: (
+                            <span
+                              className="pl-method"
+                              style={{
+                                color: METHOD_COLORS[a.method as HttpMethod]?.text,
+                                background: METHOD_COLORS[a.method as HttpMethod]?.bg,
+                                borderColor: METHOD_COLORS[a.method as HttpMethod]?.border,
+                              }}
+                            >
+                              {a.method}
+                            </span>
+                          ),
+                        }))}
+                        value={payloadApiId}
+                        onChange={(val: any) => {
+                          setPayloadApiId(val || undefined);
+                          // A body drafted for another endpoint means nothing here.
+                          resetPayloadDraft();
+                        }}
+                        placeholder={apisLoading ? "Loading APIs…" : moduleApis.length ? "Select an API" : "No APIs available"}
+                        searchPlaceholder="Search endpoints…"
+                        itemNoun="APIs"
+                        loading={apisLoading}
+                        hideAvatar
+                        width="100%"
+                        style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 8 }}
+                        emptyComponent={
+                          <div className="pl-empty">
+                            <Plug size={18} />
+                            <p className="pl-empty__title">No APIs for this module yet</p>
+                            <p className="pl-empty__text">
+                              Publish an endpoint in API Hub under{" "}
+                              <strong>{parentData?.module_name || "this module"}</strong>, then reopen this drawer.
+                            </p>
+                            <button type="button" className="pl-empty__btn" onClick={loadModuleApis}>
+                              <RotateCw size={12} /> Refresh
+                            </button>
+                          </div>
+                        }
+                      />
+                    </Form.Item>
+
+                    <Form.Item label="Payload type" style={{ marginBottom: 14 }}>
+                      <div className="pl-types">
+                        {PAYLOAD_TYPES.map((t) => {
+                          const tone = PAYLOAD_TYPE_TONE[t];
+                          const on = payloadType === t;
+                          return (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`pl-type${on ? " is-on" : ""}`}
+                              style={on ? { color: tone.text, background: tone.bg, borderColor: tone.border } : undefined}
+                              onClick={() => {
+                                setPayloadType(t);
+                                // The type IS the payload — keeping the old body
+                                // under a new label would be a lie.
+                                resetPayloadDraft();
+                              }}
+                            >
+                              {t}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="pl-typehelp">{PAYLOAD_TYPE_HELP[payloadType]}</p>
+                    </Form.Item>
+
+                    <Form.Item label="Extra instruction (optional)" style={{ marginBottom: 14 }}>
+                      <Input
+                        placeholder="e.g. an order with no line items, or a user already registered"
+                        value={payloadHint}
+                        onChange={(e) => setPayloadHint(e.target.value)}
+                        onPressEnter={(e) => { e.preventDefault(); handleGeneratePayload(); }}
+                        style={{ borderRadius: 6 }}
+                      />
+                    </Form.Item>
+
+                    <div className="pl-genrow">
+                      <Button
+                        type="primary"
+                        loading={drafting}
+                        disabled={!payloadApiId}
+                        icon={!drafting ? <Sparkles size={13} /> : undefined}
+                        onClick={handleGeneratePayload}
+                        style={{ borderRadius: 8, fontWeight: 600, background: "#2563eb", borderColor: "#2563eb" }}
+                      >
+                        {drafting ? "Generating…" : draft ? `Regenerate ${payloadType.toLowerCase()} payload` : `Generate ${payloadType.toLowerCase()} payload`}
+                      </Button>
+                      <span className="pl-genrow__note">Nothing is saved until you confirm it.</span>
+                    </div>
+
+                    {draft && (
+                      <div className="pl-draft">
+                        <div className="pl-draft__head">
+                          <span
+                            className="pl-tag"
+                            style={{
+                              color: PAYLOAD_TYPE_TONE[payloadType].text,
+                              background: PAYLOAD_TYPE_TONE[payloadType].bg,
+                              borderColor: PAYLOAD_TYPE_TONE[payloadType].border,
+                            }}
+                          >
+                            {payloadType}
+                          </span>
+                          <span className="pl-draft__api">{draft.apiMethod} {draft.apiUrl}</span>
+                          <span className="pl-draft__src">
+                            {draft.generatedBy === "ai" ? "drafted by Zai" : "drafted from the API structure"}
+                          </span>
+                        </div>
+
+                        {draft.notes && <p className="pl-draft__notes">{draft.notes}</p>}
+
+                        <Form.Item label="Payload name" style={{ marginBottom: 10 }}>
+                          <Input
+                            value={draftName}
+                            onChange={(e) => setDraftName(e.target.value)}
+                            placeholder="What a tester will see in the list"
+                            style={{ borderRadius: 6 }}
+                          />
+                        </Form.Item>
+
+                        <Form.Item label="Request payload (JSON)" style={{ marginBottom: 10 }}>
+                          <TextArea
+                            rows={12}
+                            value={draftText}
+                            onChange={(e) => setDraftText(e.target.value)}
+                            className="pl-json"
+                            spellCheck={false}
+                          />
+                        </Form.Item>
+
+                        <div className="pl-draft__foot">
+                          {draft.expectedStatus && (
+                            <span className="pl-draft__status">Expects <strong>{draft.expectedStatus}</strong></span>
+                          )}
+                          <div style={{ flex: 1 }} />
+                          <Button
+                            size="small"
+                            onClick={resetPayloadDraft}
+                            style={{ borderRadius: 6, fontWeight: 600 }}
+                          >
+                            Discard
+                          </Button>
+                          <Button
+                            type="primary"
+                            size="small"
+                            loading={confirming}
+                            icon={!confirming ? <CheckCircleOutlined /> : undefined}
+                            onClick={handleConfirmPayload}
+                            style={{ borderRadius: 6, fontWeight: 600, background: "#10b981", borderColor: "#10b981" }}
+                          >
+                            Confirm &amp; save payload
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {casePayloads.length > 0 && (
+                      <div className="pl-saved">
+                        <div className="pl-saved__title">
+                          Saved payloads
+                          <span className="pl-saved__count">{casePayloads.length}</span>
+                          {!editingCaseId && (
+                            <span className="pl-saved__hint">attached when you save this case</span>
+                          )}
+                        </div>
+                        {casePayloads.map((pl) => (
+                          <PayloadRow key={pl.id} payload={pl} onDelete={() => handleDeletePayload(pl.id)} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </Form>
           </div>
 
@@ -1652,7 +2304,7 @@ export default function ParentTestCaseDetailsPage() {
               {editingCaseId ? "Changes take effect immediately" : "Fill required fields to save test case"}
             </span>
             <div style={{ display: "flex", gap: 10 }}>
-              <Button onClick={() => setDrawerOpen(false)} style={{ borderRadius: 8, fontWeight: 600, padding: "0 18px", height: 36 }}>
+              <Button onClick={closeCaseDrawer} style={{ borderRadius: 8, fontWeight: 600, padding: "0 18px", height: 36 }}>
                 Cancel
               </Button>
               <Button
@@ -1775,6 +2427,28 @@ export default function ParentTestCaseDetailsPage() {
                 {viewCase.expected_result
                   ? <p className="cv__expected">{viewCase.expected_result}</p>
                   : <p className="cv__empty">Not recorded.</p>}
+              </section>
+
+              {/* What a tester actually runs this case with — the bodies are
+                  here so the page they visit IS the page they copy from. */}
+              <section className="cv__sec">
+                <h3 className="cv__sec-title">
+                  <span className="cv__sec-icon"><Braces size={12} /></span>
+                  <span>API Payloads</span>
+                  {viewPayloads.length > 0 && <span className="cv__count">{viewPayloads.length}</span>}
+                  <span className="cv__rule" />
+                </h3>
+                {viewPayloadsLoading ? (
+                  <p className="cv__empty">Loading payloads…</p>
+                ) : viewPayloads.length === 0 ? (
+                  <p className="cv__empty">No API payloads saved on this case.</p>
+                ) : (
+                  <div className="pl-saved pl-saved--view">
+                    {viewPayloads.map((pl) => (
+                      <PayloadRow key={pl.id} payload={pl} />
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section className="cv__sec">

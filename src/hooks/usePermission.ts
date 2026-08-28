@@ -510,6 +510,25 @@ export const usePermission = () => {
     canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
     canManageQa:    hasPermission(Permissions.QA_MANAGE),
 
+    // ─── Yapiez (API definition + flow execution) ───────────────────
+    // Every flag folds in YAPIEZ_MANAGE, so the module admin never needs the
+    // granular grants enumerated on top of it.
+    canReadYapiezApi:    hasAnyPermission(Permissions.YAPIEZ_API_READ, Permissions.YAPIEZ_MANAGE),
+    canCreateYapiezApi:  hasAnyPermission(Permissions.YAPIEZ_API_CREATE, Permissions.YAPIEZ_MANAGE),
+    canUpdateYapiezApi:  hasAnyPermission(Permissions.YAPIEZ_API_UPDATE, Permissions.YAPIEZ_MANAGE),
+    canDeleteYapiezApi:  hasAnyPermission(Permissions.YAPIEZ_API_DELETE, Permissions.YAPIEZ_MANAGE),
+    canReadYapiezFlow:   hasAnyPermission(Permissions.YAPIEZ_FLOW_READ, Permissions.YAPIEZ_MANAGE),
+    canCreateYapiezFlow: hasAnyPermission(Permissions.YAPIEZ_FLOW_CREATE, Permissions.YAPIEZ_MANAGE),
+    canUpdateYapiezFlow: hasAnyPermission(Permissions.YAPIEZ_FLOW_UPDATE, Permissions.YAPIEZ_MANAGE),
+    canDeleteYapiezFlow: hasAnyPermission(Permissions.YAPIEZ_FLOW_DELETE, Permissions.YAPIEZ_MANAGE),
+    /** Running a flow sends real requests — separate from reading it. */
+    canExecuteYapiezFlow: hasAnyPermission(Permissions.YAPIEZ_FLOW_EXECUTE, Permissions.YAPIEZ_MANAGE),
+    canReadYapiezRun:    hasAnyPermission(Permissions.YAPIEZ_RUN_READ, Permissions.YAPIEZ_MANAGE),
+    canDeleteYapiezRun:  hasAnyPermission(Permissions.YAPIEZ_RUN_DELETE, Permissions.YAPIEZ_MANAGE),
+    canReadYapiezEnv:    hasAnyPermission(Permissions.YAPIEZ_ENV_READ, Permissions.YAPIEZ_MANAGE),
+    canManageYapiezEnv:  hasAnyPermission(Permissions.YAPIEZ_ENV_MANAGE, Permissions.YAPIEZ_MANAGE),
+    canManageYapiez:     hasPermission(Permissions.YAPIEZ_MANAGE),
+
     // ─── System / General ───────────────────────────────────────────
     canCreateMail:   hasPermission(Permissions.MAIL_CREATE),
     canReadMail:     hasPermission(Permissions.MAIL_READ),

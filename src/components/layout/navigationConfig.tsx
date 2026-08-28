@@ -61,7 +61,6 @@ import {
   Building2,
   Settings,
   Chrome,
-  Workflow,
   Handshake,
   TrendingUp,
   KeyRound,
@@ -248,7 +247,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/escalations"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/api-hub", "/escalations"],
     defaultPath: "/tickets/select",
     requiredSubscriptionFeature: ["work"],
     requiredAnyPermission: [
@@ -455,6 +454,17 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.BUG_MANAGE,
           },
         ],
+      },
+      {
+        // API Hub — the endpoint catalog QA Space builds on. A sibling of QA
+        // Space rather than a page inside it: developers publish each API
+        // once, and QA reads the catalog from its own screens.
+        key: "/api-hub",
+        label: "API Hub",
+        icon: I(Plug2),
+        path: "/api-hub",
+        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
+        requiredAnyPermission: [Permissions.YAPIEZ_API_READ, Permissions.YAPIEZ_MANAGE],
       },
       {
         key: "projects-manage-group",

@@ -371,18 +371,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.QA_RUN_READ,
           },
           {
-            key: "/qa-workspace/coverage-map",
-            label: "Coverage Map",
-            icon: I(Network),
-            path: "/qa-workspace/coverage-map",
-            requiredAnyPermission: [
-              Permissions.QA_SCOPE_READ,
-              Permissions.QA_CASE_READ,
-              Permissions.QA_SUITE_READ,
-              Permissions.QA_RUN_READ,
-            ],
-          },
-          {
             key: "/qa-workspace/bug-list",
             label: "Bug List",
             icon: I(Bug),
@@ -405,6 +393,18 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
               Permissions.QA_APPROVAL_READ,
               Permissions.QA_APPROVAL_APPROVE,
               Permissions.QA_MANAGE,
+            ],
+          },
+          {
+            key: "/qa-workspace/coverage-map",
+            label: "Coverage Map",
+            icon: I(Network),
+            path: "/qa-workspace/coverage-map",
+            requiredAnyPermission: [
+              Permissions.QA_SCOPE_READ,
+              Permissions.QA_CASE_READ,
+              Permissions.QA_SUITE_READ,
+              Permissions.QA_RUN_READ,
             ],
           },
           {

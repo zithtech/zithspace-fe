@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   useBugPriorityOptions,
   useBugSeverityOptions,
   useBugTypeOptions,
 } from "@/hooks/useBugList";
+import { api } from "@/lib/axios";
 
 export interface QaSelectOption {
   value: string;
@@ -91,4 +93,47 @@ export function useQaOptions() {
     toBugTypeKey: (label?: string) => keyFor(types.data, label),
     isLoading: priorities.isLoading || severities.isLoading || types.isLoading,
   };
+}
+
+/**
+ * The QA module list — the single taxonomy bugs, scopes and test cases are all
+ * filed under, curated in QA Space → Settings → Modules.
+ *
+ * Modules belong to a project, so a project only sees its own. Modules added
+ * before projects were required carry no project yet and stay selectable
+ * everywhere rather than vanishing from every dropdown at once.
+ *
+ * A viewer without the grant simply gets an empty list — the field is optional
+ * on every form that uses it.
+ */
+export function useProjectQaModules(projectId?: string | null) {
+  const query = useQuery({
+    queryKey: ["qa-modules"],
+    queryFn: async () => {
+      const res: any = await api.get("/api/v2/qa/modules?limit=1000").catch(() => []);
+      const rows = Array.isArray(res) ? res : (res?.data ?? []);
+      return Array.isArray(rows) ? rows : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const modules = useMemo(
+    () => (query.data || []).filter((m: any) => !m.project_id || String(m.project_id) === String(projectId ?? "")),
+    [query.data, projectId],
+  );
+
+  const options: QaSelectOption[] = useMemo(
+    () =>
+      modules
+        .map((m: any) => ({
+          value: String(m.module_name || m.name || ""),
+          label: String(m.module_name || m.name || ""),
+          description: m.description || undefined,
+        }))
+        .filter((o: QaSelectOption) => o.value)
+        .sort((a: QaSelectOption, b: QaSelectOption) => a.label.localeCompare(b.label)),
+    [modules],
+  );
+
+  return { modules, options, isLoading: query.isLoading, refetch: query.refetch };
 }

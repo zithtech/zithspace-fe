@@ -54,6 +54,8 @@ import {
   UserOutlined,
   WarningOutlined,
   ArrowRightOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
   CalendarTwoTone,
   DownOutlined,
   LeftOutlined,
@@ -207,7 +209,7 @@ export default function SprintPlanComponent() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerSprintPlan, setDrawerSprintPlan] = useState<ReleasePlan | null>(null);
   const [ticketBoardFilter, setTicketBoardFilter] = useState<'all' | 'done' | 'progress' | 'todo'>('all');
-  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'progress' | 'endDate'>('recent');
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'progress' | 'endDate' | 'ticketsDesc' | 'ticketsAsc'>('recent');
 
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
@@ -221,7 +223,70 @@ export default function SprintPlanComponent() {
     search: "",
     projectId: "",
     status: "",
+    fromMonth: "",   // YYYY-MM
+    toMonth: "",     // YYYY-MM
+    minTickets: "",
+    maxTickets: "",
   });
+
+  const EMPTY_FILTERS = {
+    search: "",
+    projectId: "",
+    status: "",
+    fromMonth: "",
+    toMonth: "",
+    minTickets: "",
+    maxTickets: "",
+  };
+
+  // Raw ticket-range inputs; debounced into tableFilters so typing a two digit
+  // bound does not fire a request per keystroke.
+  const [ticketRangeInput, setTicketRangeInput] = useState({ min: "", max: "" });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTableFilters(prev =>
+        prev.minTickets === ticketRangeInput.min && prev.maxTickets === ticketRangeInput.max
+          ? prev
+          : { ...prev, minTickets: ticketRangeInput.min, maxTickets: ticketRangeInput.max }
+      );
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [ticketRangeInput]);
+
+  const ticketRangeInvalid =
+    ticketRangeInput.min !== "" &&
+    ticketRangeInput.max !== "" &&
+    Number(ticketRangeInput.min) > Number(ticketRangeInput.max);
+
+  const TICKET_RANGE_PRESETS = [
+    { label: "1 – 10", min: "1", max: "10" },
+    { label: "11 – 20", min: "11", max: "20" },
+  ];
+
+  const applyTicketRange = (min: string, max: string) => {
+    setTicketRangeInput({ min, max });
+    setTableFilters(prev => ({ ...prev, minTickets: min, maxTickets: max }));
+  };
+
+  // "YYYY-MM" -> first day of that month (customParseFormat isn't loaded here)
+  const monthToDayjs = (month: string) => dayjs(`${month}-01`);
+
+  // A plan matches the month window when its own date range overlaps it, so a
+  // sprint spanning the whole window is kept. Mirrors the backend rule.
+  const matchesRangeFilters = useCallback((p: ReleasePlan, f: typeof tableFilters) => {
+    if (f.fromMonth || f.toMonth) {
+      const start = dayjs(p.startDate || p.releaseDate || p.createdAt);
+      const end = dayjs(p.endDate || p.releaseDate || p.startDate || p.createdAt);
+      if (f.toMonth && start.isAfter(monthToDayjs(f.toMonth).endOf("month"))) return false;
+      if (f.fromMonth && end.isBefore(monthToDayjs(f.fromMonth).startOf("month"))) return false;
+    }
+
+    const total = p.totalTickets || 0;
+    if (f.minTickets !== "" && total < Number(f.minTickets)) return false;
+    if (f.maxTickets !== "" && total > Number(f.maxTickets)) return false;
+
+    return true;
+  }, []);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -278,6 +343,7 @@ export default function SprintPlanComponent() {
       if (activeFilters.status) {
         filteredPlans = filteredPlans.filter(p => p.status === activeFilters.status);
       }
+      filteredPlans = filteredPlans.filter(p => matchesRangeFilters(p, activeFilters));
       setSprintPlans(filteredPlans);
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
@@ -299,10 +365,17 @@ export default function SprintPlanComponent() {
     return () => clearTimeout(timer);
   }, [tableFilters.search]);
 
-  // Immediate load for status/project
+  // Immediate load for status/project/timeframe/ticket-range
   useEffect(() => {
     loadData();
-  }, [tableFilters.projectId, tableFilters.status]);
+  }, [
+    tableFilters.projectId,
+    tableFilters.status,
+    tableFilters.fromMonth,
+    tableFilters.toMonth,
+    tableFilters.minTickets,
+    tableFilters.maxTickets,
+  ]);
 
   const loadProjects = async () => {
     try {
@@ -582,6 +655,7 @@ export default function SprintPlanComponent() {
   const projectCounts = useMemo(() => {
     const base = allPlans.filter(p => {
       if (tableFilters.status && p.status !== tableFilters.status) return false;
+      if (!matchesRangeFilters(p, tableFilters)) return false;
       if (tableFilters.search) {
         const q = tableFilters.search.toLowerCase();
         const name = (p.name || '').toLowerCase();
@@ -597,7 +671,7 @@ export default function SprintPlanComponent() {
       if (pid) map.set(pid, (map.get(pid) || 0) + 1);
     });
     return { map, total: base.length };
-  }, [allPlans, tableFilters.status, tableFilters.search]);
+  }, [allPlans, tableFilters, matchesRangeFilters]);
 
   const PROJECT_PALETTE = ['#3b82f6'];
 
@@ -608,6 +682,7 @@ export default function SprintPlanComponent() {
         const pid = typeof p.project === 'object' ? p.project?.id : p.project;
         if (pid !== tableFilters.projectId) return false;
       }
+      if (!matchesRangeFilters(p, tableFilters)) return false;
       if (tableFilters.search) {
         const q = tableFilters.search.toLowerCase();
         const name = (p.name || '').toLowerCase();
@@ -623,7 +698,7 @@ export default function SprintPlanComponent() {
       planning: base.filter(p => p.status === 'planning').length,
       completed: base.filter(p => p.status === 'completed').length,
     };
-  }, [allPlans, tableFilters.projectId, tableFilters.search]);
+  }, [allPlans, tableFilters, matchesRangeFilters]);
 
   // List vs Calendar vs Table view
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'table'>('table');
@@ -645,13 +720,13 @@ export default function SprintPlanComponent() {
   }, []);
 
   // Sidebar projects show more/less
-  const PROJECTS_COLLAPSED_LIMIT = 8;
+  const PROJECTS_COLLAPSED_LIMIT = 5;
   const [showAllProjects, setShowAllProjects] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  useEffect(() => { setCurrentPage(1); }, [tableFilters.search, tableFilters.projectId, tableFilters.status, sortBy]);
+  useEffect(() => { setCurrentPage(1); }, [tableFilters, sortBy]);
 
   async function loadTableData() {
     try {
@@ -663,6 +738,9 @@ export default function SprintPlanComponent() {
       switch (sortBy) {
         case 'recent': apiSortBy = 'updatedAt'; apiSortOrder = 'desc'; break;
         case 'endDate': apiSortBy = 'endDate'; apiSortOrder = 'asc'; break;
+        // ticketCount is a relation count; the API sorts it for us
+        case 'ticketsDesc': apiSortBy = 'ticketCount'; apiSortOrder = 'desc'; break;
+        case 'ticketsAsc': apiSortBy = 'ticketCount'; apiSortOrder = 'asc'; break;
         // name and progress aren't direct Prisma columns in this schema, omit to avoid 500 errors
         default: apiSortBy = undefined; break;
       }
@@ -672,6 +750,10 @@ export default function SprintPlanComponent() {
         search: tableFilters.search || undefined,
         projectId: tableFilters.projectId || undefined,
         status: tableFilters.status || undefined,
+        fromMonth: tableFilters.fromMonth || undefined,
+        toMonth: tableFilters.toMonth || undefined,
+        minTickets: tableFilters.minTickets === "" ? undefined : Number(tableFilters.minTickets),
+        maxTickets: tableFilters.maxTickets === "" ? undefined : Number(tableFilters.maxTickets),
         page: currentPage,
         limit: pageSize,
         sortBy: apiSortBy,
@@ -701,6 +783,8 @@ export default function SprintPlanComponent() {
     const arr = [...sprintPlans];
     if (sortBy === 'name') arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     else if (sortBy === 'progress') arr.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+    else if (sortBy === 'ticketsDesc') arr.sort((a, b) => (b.totalTickets || 0) - (a.totalTickets || 0));
+    else if (sortBy === 'ticketsAsc') arr.sort((a, b) => (a.totalTickets || 0) - (b.totalTickets || 0));
     else if (sortBy === 'endDate') arr.sort((a, b) => {
       const ax = a.endDate ? dayjs(a.endDate).valueOf() : Infinity;
       const bx = b.endDate ? dayjs(b.endDate).valueOf() : Infinity;
@@ -854,7 +938,137 @@ export default function SprintPlanComponent() {
     return { weeks, weekRibbons, maxLanesByWeek };
   }, [sortedSprintPlans, calendarMonth, getProjectColor]);
 
-  const activeFilterCount = (tableFilters.search ? 1 : 0) + (tableFilters.projectId ? 1 : 0) + (tableFilters.status ? 1 : 0);
+  const rangeFiltersActive =
+    !!tableFilters.fromMonth ||
+    !!tableFilters.toMonth ||
+    tableFilters.minTickets !== "" ||
+    tableFilters.maxTickets !== "";
+
+  // Timeframe + ticket-count filters. Styled after the Tickets page toolbar:
+  // pills on the left, range controls on the right.
+  const inlineFilterBar = (
+    <section className="sp-filterbar">
+      <div className="sp-filterbar-pills">
+        <span className="sp-filterbar-label">Tickets</span>
+        {TICKET_RANGE_PRESETS.map(preset => {
+          const active =
+            ticketRangeInput.min === preset.min && ticketRangeInput.max === preset.max;
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              className={`sp-pill ${active ? 'is-active' : ''}`}
+              onClick={() => (active ? applyTicketRange("", "") : applyTicketRange(preset.min, preset.max))}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+
+        <div className="sp-filterbar-range">
+          <input
+            className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
+            type="number"
+            min={0}
+            placeholder="Min"
+            aria-label="Minimum tickets"
+            value={ticketRangeInput.min}
+            onChange={(e) => setTicketRangeInput(prev => ({ ...prev, min: e.target.value }))}
+          />
+          <span className="sp-range-sep">to</span>
+          <input
+            className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
+            type="number"
+            min={0}
+            placeholder="Max"
+            aria-label="Maximum tickets"
+            value={ticketRangeInput.max}
+            onChange={(e) => setTicketRangeInput(prev => ({ ...prev, max: e.target.value }))}
+          />
+          {ticketRangeInvalid && (
+            <Tooltip title="Minimum is higher than maximum">
+              <WarningOutlined className="sp-filterbar-warn" />
+            </Tooltip>
+          )}
+        </div>
+
+        <span className="sp-filterbar-sep" />
+
+        <button
+          type="button"
+          className={`sp-pill ${sortBy === 'ticketsDesc' ? 'is-active' : ''}`}
+          onClick={() => setSortBy(sortBy === 'ticketsDesc' ? 'recent' : 'ticketsDesc')}
+          title="Sprints carrying the most tickets first"
+        >
+          <ArrowUpOutlined style={{ fontSize: 11 }} /> Highest tickets
+        </button>
+        <button
+          type="button"
+          className={`sp-pill ${sortBy === 'ticketsAsc' ? 'is-active' : ''}`}
+          onClick={() => setSortBy(sortBy === 'ticketsAsc' ? 'recent' : 'ticketsAsc')}
+          title="Sprints carrying the fewest tickets first"
+        >
+          <ArrowDownOutlined style={{ fontSize: 11 }} /> Lowest tickets
+        </button>
+      </div>
+
+      <div className="sp-filterbar-right">
+        <div className="sp-filterbar-field">
+          <span className="sp-filterbar-label">Months</span>
+          <DatePicker
+            picker="month"
+            allowClear
+            format="MMM YYYY"
+            placeholder="From"
+            className="sp-month-picker"
+            value={tableFilters.fromMonth ? monthToDayjs(tableFilters.fromMonth) : null}
+            disabledDate={(d) =>
+              !!tableFilters.toMonth && d.isAfter(monthToDayjs(tableFilters.toMonth), "month")
+            }
+            onChange={(d) =>
+              setTableFilters(prev => ({ ...prev, fromMonth: d ? d.format("YYYY-MM") : "" }))
+            }
+          />
+          <ArrowRightOutlined className="sp-filterbar-arrow" />
+          <DatePicker
+            picker="month"
+            allowClear
+            format="MMM YYYY"
+            placeholder="To"
+            className="sp-month-picker"
+            value={tableFilters.toMonth ? monthToDayjs(tableFilters.toMonth) : null}
+            disabledDate={(d) =>
+              !!tableFilters.fromMonth && d.isBefore(monthToDayjs(tableFilters.fromMonth), "month")
+            }
+            onChange={(d) =>
+              setTableFilters(prev => ({ ...prev, toMonth: d ? d.format("YYYY-MM") : "" }))
+            }
+          />
+        </div>
+
+        {(rangeFiltersActive || sortBy === 'ticketsDesc' || sortBy === 'ticketsAsc') && (
+          <button
+            type="button"
+            className="sp-filterbar-reset"
+            onClick={() => {
+              setTicketRangeInput({ min: "", max: "" });
+              setTableFilters(prev => ({ ...prev, fromMonth: "", toMonth: "", minTickets: "", maxTickets: "" }));
+              if (sortBy === 'ticketsDesc' || sortBy === 'ticketsAsc') setSortBy('recent');
+            }}
+          >
+            <CloseCircleOutlined style={{ fontSize: 12 }} /> Reset
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
+  const activeFilterCount =
+    (tableFilters.search ? 1 : 0) +
+    (tableFilters.projectId ? 1 : 0) +
+    (tableFilters.status ? 1 : 0) +
+    (tableFilters.fromMonth || tableFilters.toMonth ? 1 : 0) +
+    (tableFilters.minTickets !== "" || tableFilters.maxTickets !== "" ? 1 : 0);
 
 
   return (
@@ -999,8 +1213,9 @@ export default function SprintPlanComponent() {
                   <button
                     className="sp-sidebar-clear"
                     onClick={() => {
-                      setTableFilters({ search: "", projectId: "", status: "" });
-                      loadData({ search: "", projectId: "", status: "" });
+                      setTicketRangeInput({ min: "", max: "" });
+                      setTableFilters(EMPTY_FILTERS);
+                      loadData(EMPTY_FILTERS);
                     }}
                   >
                     <CloseCircleOutlined style={{ fontSize: 12 }} /> Clear filters
@@ -1086,6 +1301,18 @@ export default function SprintPlanComponent() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <LineChartOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
                       <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Progress · highest</Text>
+                    </div>
+                  </Option>
+                  <Option value="ticketsDesc">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ArrowUpOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · highest</Text>
+                    </div>
+                  </Option>
+                  <Option value="ticketsAsc">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <ArrowDownOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · lowest</Text>
                     </div>
                   </Option>
                   <Option value="name">
@@ -1191,6 +1418,7 @@ export default function SprintPlanComponent() {
             </Row>
 
             {/* Main Content — List or Calendar */}
+            {viewMode === 'calendar' && inlineFilterBar}
             {viewMode === 'calendar' && (
               <div className="sp-cal-card">
                 <div className="sp-cal-header">
@@ -1516,6 +1744,7 @@ export default function SprintPlanComponent() {
                       Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
                     </span>
                   </div>
+                  {inlineFilterBar}
                 </div>
                 {/* Premium card list */}
                 <div className="sp-plist">
@@ -1942,6 +2171,7 @@ export default function SprintPlanComponent() {
                       Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
                     </span>
                   </div>
+                  {inlineFilterBar}
                 </div>
 
                 {loading ? (
@@ -3507,6 +3737,7 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
           gap: 12px;
           padding: 4px 4px 10px;
           border-bottom: none;
@@ -3550,6 +3781,7 @@ export default function SprintPlanComponent() {
           display: flex;
           align-items: center;
           gap: 10px;
+          margin-left: auto;
         }
         .sp-table-toolbar-meta-item {
           display: inline-flex;
@@ -5375,6 +5607,183 @@ export default function SprintPlanComponent() {
         [data-theme='dark'] .sp-sidebar-toggle:hover {
           background: rgba(59,130,246,0.15);
         }
+        /* ── Filter bar (matches the Tickets page toolbar) ────── */
+        .sp-filterbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+          width: 100%;
+          padding: 10px 0 12px;
+          border-top: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .sp-filterbar {
+          border-top-color: #1f2937 !important;
+        }
+        .sp-filterbar-pills {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .sp-filterbar-right {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .sp-filterbar-field {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sp-filterbar-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-slate-500);
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+        [data-theme='dark'] .sp-filterbar-label {
+          color: #94a3b8 !important;
+        }
+        .sp-filterbar-sep {
+          width: 1px;
+          height: 18px;
+          background: var(--border-slate-200);
+          margin: 0 2px;
+        }
+        [data-theme='dark'] .sp-filterbar-sep {
+          background: #2d3748 !important;
+        }
+        .sp-filterbar-arrow {
+          font-size: 9px;
+          color: var(--text-slate-400);
+        }
+        .sp-filterbar-warn {
+          font-size: 13px;
+          color: #b45309;
+        }
+        [data-theme='dark'] .sp-filterbar-warn {
+          color: #fbbf24 !important;
+        }
+
+        /* Pill — same shape/weight as .zs-pill on the Tickets page */
+        .sp-pill {
+          appearance: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          padding: 6px 12px;
+          border-radius: 10px;
+          font-family: inherit;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-slate-600);
+          cursor: pointer;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+          transition: all 0.15s ease;
+        }
+        .sp-pill:hover {
+          color: var(--text-slate-900);
+          border-color: var(--text-slate-400);
+        }
+        .sp-pill.is-active {
+          background: #3b82f6;
+          color: #fff;
+          border-color: #3b82f6;
+        }
+        [data-theme='dark'] .sp-pill {
+          background: #131922 !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .sp-pill.is-active {
+          background: #3b82f6 !important;
+          border-color: #3b82f6 !important;
+          color: #fff !important;
+        }
+
+        .sp-filterbar .sp-month-picker {
+          width: 132px;
+          height: 38px;
+          border-radius: 10px;
+          font-size: 13px;
+        }
+        .sp-filterbar-range {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sp-range-input {
+          width: 62px;
+          height: 32px;
+          padding: 0 10px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          background: var(--bg-pure-white);
+          color: var(--text-slate-700);
+          font-family: inherit;
+          font-size: 12.5px;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+          outline: none;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .sp-range-input::placeholder {
+          font-weight: 500;
+          color: var(--text-slate-400);
+        }
+        .sp-range-input:hover {
+          border-color: var(--text-slate-400);
+        }
+        .sp-range-input:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+        .sp-range-input.is-invalid {
+          border-color: #f59e0b;
+        }
+        [data-theme='dark'] .sp-range-input {
+          background: #131922 !important;
+          border-color: #2d3748 !important;
+          color: #e2e8f0 !important;
+        }
+        .sp-range-sep {
+          font-size: 11.5px;
+          font-weight: 600;
+          color: var(--text-slate-400);
+        }
+        .sp-filterbar-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          height: 38px;
+          padding: 0 12px;
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          background: var(--bg-pure-white);
+          color: var(--text-slate-600);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .sp-filterbar-reset:hover {
+          border-color: var(--text-slate-400);
+          color: var(--text-slate-900);
+        }
+        [data-theme='dark'] .sp-filterbar-reset {
+          background: #131922 !important;
+          border-color: #2d3748 !important;
+          color: #94a3b8 !important;
+        }
+
         .sp-sidebar-clear {
           display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
           background: none; border: none; cursor: pointer; padding: 3px;

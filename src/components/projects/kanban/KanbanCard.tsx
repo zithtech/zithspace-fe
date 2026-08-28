@@ -10,6 +10,7 @@ import {
   Button,
   Tooltip,
 } from 'antd';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { Ticket } from '@/services/ticketService';
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
 import {
@@ -106,6 +107,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     'title' | 'priority' | 'type' | 'storyPoint' | 'assignee' | null
   >(null);
   const [activeValue, setActiveValue] = useState<any>(null);
+  // Pending sprint assignment awaiting confirmation — mirrors the confirm-first
+  // behaviour of the list view's Actions column and the ticket drawer.
+  const [sprintConfirm, setSprintConfirm] = useState<'add' | 'remove' | null>(null);
 
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent | React.UIEvent) => {
     e.stopPropagation();
@@ -166,7 +170,10 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         key: 'addToSprint',
         label: 'Add to Active Sprint',
         icon: <RocketOutlined />,
-        onClick: () => onSprintAssignment(ticket.id, 'add'),
+        onClick: ({ domEvent }) => {
+          domEvent.stopPropagation();
+          setSprintConfirm('add');
+        },
       });
     }
     if (kanbanScope === 'active' && onSprintAssignment && (canUpdateTicket || canManageTickets)) {
@@ -175,7 +182,10 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         label: 'Remove from Sprint',
         icon: <CloseCircleOutlined />,
         danger: true,
-        onClick: () => onSprintAssignment(ticket.id, 'remove'),
+        onClick: ({ domEvent }) => {
+          domEvent.stopPropagation();
+          setSprintConfirm('remove');
+        },
       });
     }
     return items;
@@ -397,6 +407,37 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                 onToggleSelected();
               }}
             />
+          )}
+
+          {/* Sprint add/remove confirmation — anchored top-right of the card.
+              Opened from the hover menu / context menu instead of firing the
+              assignment straight away. */}
+          {sprintConfirm && (
+            <ConfirmDialog
+              open
+              onOpenChange={(v) => { if (!v) setSprintConfirm(null); }}
+              tone={sprintConfirm === 'remove' ? 'danger' : 'primary'}
+              title={sprintConfirm === 'remove' ? 'Remove from Sprint' : 'Add to Sprint'}
+              description={
+                sprintConfirm === 'remove'
+                  ? 'Are you sure you want to remove this ticket from the active sprint?'
+                  : 'Are you sure you want to add this ticket to the active sprint?'
+              }
+              confirmText={sprintConfirm === 'remove' ? 'Remove' : 'Add to Sprint'}
+              placement="bottomRight"
+              onConfirm={() => {
+                onSprintAssignment?.(ticket.id, sprintConfirm);
+                setSprintConfirm(null);
+              }}
+              onCancel={() => setSprintConfirm(null)}
+            >
+              <span
+                style={{ position: 'absolute', top: 8, right: 8, width: 1, height: 1 }}
+                onPointerDown={stopPropagation}
+                onMouseDown={stopPropagation}
+                onClick={stopPropagation}
+              />
+            </ConfirmDialog>
           )}
 
           {/* Hover-only action menu, top-right */}

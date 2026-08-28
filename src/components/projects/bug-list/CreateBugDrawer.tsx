@@ -36,6 +36,7 @@ import { useAuth } from '@/context/AuthContext';
 const { Text } = Typography;
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import { useTheme } from "@/context/ThemeContext";
 import BugListService, {
   BugAttachment,
@@ -574,7 +575,14 @@ interface Props {
   folderId: string | null;
   sheetId: string | null;
   editingBug?: BugListItem | null;
-  modules?: string[];
+  /** The project's own QA modules — the list bugs, scopes and cases share. */
+  moduleOptions?: { value: string; label: string; description?: string }[];
+  /** Named in the empty module dropdown, so the reader knows which project has none. */
+  projectName?: string | null;
+  /** Re-reads the module list, for once one has been added in QA settings. */
+  onModulesRefresh?: () => void;
+  /** Module names on older bugs that predate the shared list, so they still read back. */
+  legacyModules?: string[];
   onSubmit: (
     payload: CreateBugInput | (UpdateBugInput & { id: string }),
   ) => Promise<void>;
@@ -608,7 +616,10 @@ export default function CreateBugDrawer({
   folderId,
   sheetId,
   editingBug,
-  modules = [],
+  moduleOptions = [],
+  legacyModules = [],
+  projectName,
+  onModulesRefresh,
   onSubmit,
   submitting,
 }: Props) {
@@ -639,6 +650,25 @@ export default function CreateBugDrawer({
   const [comments, setComments] = useState("");
   const [previewAttachment, setPreviewAttachment] = useState<BugAttachment | null>(null);
   const [dropdownWidth, setDropdownWidth] = useState<number | undefined>(undefined);
+
+  /**
+   * The project's modules, plus any name an existing bug already carries that
+   * the list no longer has — editing a bug must never silently drop its module.
+   */
+  const moduleChoices = useMemo(() => {
+    const known = new Set(moduleOptions.map((o) => o.value.toLowerCase()));
+    const extras = [...legacyModules, module]
+      .map((m) => (m || "").trim())
+      .filter((m) => m && !known.has(m.toLowerCase()));
+    return [
+      ...moduleOptions,
+      ...Array.from(new Set(extras)).map((m) => ({
+        value: m,
+        label: m,
+        description: "Not in this project's module list",
+      })),
+    ];
+  }, [moduleOptions, legacyModules, module]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -933,6 +963,7 @@ export default function CreateBugDrawer({
         }}
       >
         <style>{captureDrawerStyles}</style>
+        <style>{NO_MODULES_STYLES}</style>
         <div
           className="hbcap-shell"
           onKeyDown={onShellKeyDown}
@@ -1049,6 +1080,33 @@ export default function CreateBugDrawer({
                     maxLength={140}
                   />
                 </Form.Item>
+
+                {/* Sits with the title, not with severity: the module is what
+                    ties this bug to the project's scopes and test cases. */}
+                <Form.Item
+                  labelCol={{ span: 24 }}
+                  wrapperCol={{ span: 24 }}
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Module</Text>}
+                  extra={
+                    <span style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
+                      {moduleChoices.length
+                        ? "The project's modules — the same list its scopes and test cases file under."
+                        : "No modules yet — open the dropdown to add the first one."}
+                    </span>
+                  }
+                >
+                  <SearchableDropdown
+                    placeholder={moduleChoices.length ? "Select module" : "No modules yet — add one"}
+                    searchPlaceholder="Search modules…"
+                    itemNoun="modules"
+                    value={module || undefined}
+                    onChange={(v) => setModule(v || "")}
+                    options={moduleChoices}
+                    emptyComponent={<NoModulesEmpty projectName={projectName} onRefresh={onModulesRefresh} />}
+                    width={dropdownWidth}
+                    style={{ flex: 1, width: "100%", height: 32 }}
+                  />
+                </Form.Item>
                 <div>
                   <div className="hbcap-fieldhead">
                     <span className="premium-form-label hbcap-fieldlabel">
@@ -1086,7 +1144,7 @@ export default function CreateBugDrawer({
                 </Form.Item>
               </SectionCard>
 
-              <SectionCard step="STEP 2" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Classification" subtitle="Severity and module">
+              <SectionCard step="STEP 2" icon={<AppstoreOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Classification" subtitle="Severity and type">
                 <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Severity</Text>} required validateStatus={!severity && descriptionTouched ? 'error' : ''}>
                   <SearchableDropdown
                     placeholder="Select severity"
@@ -1112,17 +1170,6 @@ export default function CreateBugDrawer({
                     width={dropdownWidth}
                     style={{ flex: 1, width: "100%", height: 32 }}
                   />
-                </Form.Item>
-                <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Module</Text>}>
-                  <Input
-                    placeholder="e.g. Auth, Payments"
-                    value={module}
-                    onChange={(e) => setModule(e.target.value)}
-                    list="hb-cbd-module-options"
-                  />
-                  <datalist id="hb-cbd-module-options">
-                    {modules.map((m) => <option key={m} value={m} />)}
-                  </datalist>
                 </Form.Item>
               </SectionCard>
 

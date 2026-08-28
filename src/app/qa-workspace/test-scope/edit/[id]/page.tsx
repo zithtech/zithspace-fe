@@ -921,7 +921,7 @@ export default function EditScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingSprints(true);
-        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10 } });
+        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, project_id: formData.details.product || undefined } });
         const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
         setSprints(fetchedSprints);
       } catch (err) {
@@ -930,7 +930,7 @@ export default function EditScopePage() {
         setLoadingSprints(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchDevTicketsSearch = React.useCallback(
@@ -946,7 +946,7 @@ export default function EditScopePage() {
         setLoadingDevTickets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchBugSheetsSearch = React.useCallback(
@@ -962,7 +962,7 @@ export default function EditScopePage() {
         setLoadingBugSheets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   // The tenant's module list, offered on the Product & Modules step.
@@ -984,12 +984,12 @@ export default function EditScopePage() {
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all?limit=1000'),
-          axios.get('/api/v2/qa/runs/all?limit=1000'),
+          axios.get('/api/v2/qa/suites/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
+          axios.get('/api/v2/qa/runs/all?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
           axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents?limit=1000'),
+          axios.get('/api/v2/qa/parents?limit=1000' + (formData.details.product ? `&project_id=${encodeURIComponent(formData.details.product)}` : '')),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -1005,7 +1005,7 @@ export default function EditScopePage() {
         setLoadingTestCases(false);
       }
     })();
-  }, []);
+  }, [formData.details.product]);
 
   const fetchTestCasesSearch = React.useCallback(
     debounce(async (search: string) => {
@@ -1023,7 +1023,7 @@ export default function EditScopePage() {
         setLoadingTestCases(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestSuitesSearch = React.useCallback(
@@ -1040,7 +1040,7 @@ export default function EditScopePage() {
         setLoadingTestSuites(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestRunsSearch = React.useCallback(
@@ -1057,7 +1057,7 @@ export default function EditScopePage() {
         setLoadingTestRuns(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const d = formData.details;
@@ -3381,7 +3381,11 @@ export default function EditScopePage() {
                       validated by several of each, and forcing one meant the
                       rest went unrecorded. Both read through a normaliser so
                       scopes saved under the old single-value shape still load. */}
-                  <Field label="Linked Test Suites" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Suites${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Pick every suite that validates this scope — the rest stay in the dropdown."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3411,6 +3415,7 @@ export default function EditScopePage() {
                       loading={loadingTestSuites}
                       placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
                       itemNoun="suites"
+                      maxTagCount={6}
                       /* The overlay takes this width verbatim \u2014 names plus their
                          scenario and case count need the room. */
                       width={560}
@@ -3418,7 +3423,11 @@ export default function EditScopePage() {
                     />
                   </Field>
 
-                  <Field label="Linked Test Runs" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Runs${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Runs executed against this scope."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3450,6 +3459,7 @@ export default function EditScopePage() {
                       loading={loadingTestRuns}
                       placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
                       itemNoun="runs"
+                      maxTagCount={6}
                       width={560}
                       style={{ width: '100%' }}
                     />

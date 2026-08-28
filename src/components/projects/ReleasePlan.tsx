@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -732,7 +734,7 @@ export default function ReleasePlanComponent() {
                           showQuickJumper: true,
                           showTotal: (total, range) =>
                             `${range[0]}-${range[1]} of ${total} items`,
-                        }}
+                        }} locale={{ emptyText: <NoData /> }}
                       />
               </ZukvoLoadingOverlay>
       </Card>

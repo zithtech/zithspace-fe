@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   useMemberTrash,
@@ -847,7 +848,7 @@ export default function MemberTrashManagementPage() {
                 loading={false}
                 pagination={false}
                 scroll={{ x: 1024 }}
-                locale={{ emptyText: emptyState }}
+                locale={{ emptyText: <NoData description={emptyState} /> }}
               />
             </div>
           ) : (
@@ -859,7 +860,7 @@ export default function MemberTrashManagementPage() {
                   </div>
                 ))
               ) : paginatedMembers.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
               ) : (
                 paginatedMembers.map((item) => {
                   const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;

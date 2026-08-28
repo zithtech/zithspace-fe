@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
@@ -483,7 +485,7 @@ export default function AccountsSettingsPage() {
                   ))}
                 </div>
               ) : pagedCategories.length === 0 ? (
-                emptyState
+                <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
               ) : (
                 <div className="pp-grid">
                   {pagedCategories.map((category: any) => {
@@ -658,7 +660,7 @@ export default function AccountsSettingsPage() {
                     className="pp-table"
                     pagination={false}
                     scroll={{ x: 'max-content' }}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: <NoData description={emptyState} /> }}
                     onRow={(record) => ({
                       onClick: (e) => {
                         const t = e.target as HTMLElement;

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { Table, Tag, DatePicker, message, Row, Col, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -89,14 +90,14 @@ export default function DashboardPanel() {
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by category" style={{ marginBottom: 16, borderRadius: 0 }}>
             <ZukvoLoadingOverlay loading={loading} message="">
-                      <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+                      <Table scroll={{ x: 'max-content' }} rowKey="categoryId" size="small" columns={catCols} dataSource={byCat} pagination={{ pageSize: 8, hideOnSinglePage: true }} locale={{ emptyText: <NoData /> }} />
                       </ZukvoLoadingOverlay>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card size="small" title="Spend by employee" style={{ marginBottom: 16, borderRadius: 0 }}>
             <ZukvoLoadingOverlay loading={loading} message="">
-                      <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} />
+                      <Table scroll={{ x: 'max-content' }} rowKey="userId" size="small" columns={userCols} dataSource={byUser} pagination={{ pageSize: 8, hideOnSinglePage: true }} locale={{ emptyText: <NoData /> }} />
                       </ZukvoLoadingOverlay>
           </Card>
         </Col>

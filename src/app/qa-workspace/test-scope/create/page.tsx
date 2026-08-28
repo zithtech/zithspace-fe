@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popover, Popconfirm } from "antd";
 import {
@@ -22,10 +22,12 @@ import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { MembersService } from "@/services/membersService";
 import { ProjectService } from "@/services/projectService";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
+import { useQaProject } from "@/components/qa/QaProjectGate";
 import debounce from "lodash/debounce";
 
 const { Dragger } = Upload;
@@ -670,7 +672,7 @@ export default function CreateScopePage() {
   const [customAttachmentFields, setCustomAttachmentFields] = useState<{ key: string; label: string; hint: string }[]>([]);
   const [addingKind, setAddingKind] = useState<'testing' | 'exit' | 'attachment' | null>(null);
   const [customDraft, setCustomDraft] = useState('');
-  const [projectOptions, setProjectOptions] = useState<{ value: string; label: string; description?: string }[]>([]);
+  const [projectOptions, setProjectOptions] = useState<{ id?: string; value: string; label: string; description?: string }[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
@@ -747,6 +749,8 @@ export default function CreateScopePage() {
   const skipDirtyRef = useRef(false);
   const defaultsAppliedRef = useRef(false);
   const productDefaultRef = useRef(false);
+  /** The project the QA Space lists are scoped to — a new scope starts there. */
+  const { projectName: qaProjectName, ready: qaProjectReady } = useQaProject();
   const saveRef = useRef<() => void>(() => { });
 
   useEffect(() => {
@@ -801,16 +805,21 @@ export default function CreateScopePage() {
   useEffect(() => {
     if (productDefaultRef.current) return;
     if (loadingProjects || projectOptions.length === 0) return;
+    if (!qaProjectReady) return; // wait for the remembered project before deciding
 
     productDefaultRef.current = true;
     const current = formData.details.product;
     if (current && projectOptions.some(p => p.value === current)) return;
     if (current && current !== 'Zukvo') return; // user already typed their own
 
-    const next = projectOptions.length === 1 ? projectOptions[0].value : undefined;
+    /* Scopes are keyed by project name, which is what the QA lists remember. */
+    const fromQaSpace = qaProjectName && projectOptions.some(p => p.value === qaProjectName)
+      ? qaProjectName
+      : undefined;
+    const next = fromQaSpace ?? (projectOptions.length === 1 ? projectOptions[0].value : undefined);
     skipDirtyRef.current = true;
     setFormData((prev: any) => ({ ...prev, details: { ...prev.details, product: next } }));
-  }, [projectOptions, loadingProjects]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectOptions, loadingProjects, qaProjectReady, qaProjectName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Warn before losing an in-progress scope
   useEffect(() => {
@@ -861,10 +870,11 @@ export default function CreateScopePage() {
   const fetchUserProjects = async () => {
     try {
       setLoadingProjects(true);
-      const res: any = await ProjectService.getUserProjects();
+      const res: any = await ProjectService.getUserProjects(true);
       const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);
       const opts = list
         .map((p: any) => ({
+          id: p.value || p.id,
           value: String(p.label ?? p.name ?? ''),
           label: String(p.label ?? p.name ?? ''),
           description: p.code || undefined,
@@ -909,7 +919,9 @@ export default function CreateScopePage() {
     debounce(async (search: string) => {
       try {
         setLoadingSprints(true);
-        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10 } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/release-plans", { params: { search, limit: 10, projectId: projectId || undefined } });
         const fetchedSprints = Array.isArray(res) ? res : (res.data || []);
         setSprints(fetchedSprints);
       } catch (err) {
@@ -918,14 +930,16 @@ export default function CreateScopePage() {
         setLoadingSprints(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchDevTicketsSearch = React.useCallback(
     debounce(async (search: string) => {
       try {
         setLoadingDevTickets(true);
-        const res: any = await axios.get("/api/tickets", { params: { search, limit: 10 } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/tickets", { params: { search, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setDevTickets(data);
       } catch (err) {
@@ -934,14 +948,16 @@ export default function CreateScopePage() {
         setLoadingDevTickets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchBugSheetsSearch = React.useCallback(
     debounce(async (search: string) => {
       try {
         setLoadingBugSheets(true);
-        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search, limit: 10 } });
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
+        const res: any = await axios.get("/api/bug-list/sheets/all", { params: { search, limit: 10, projectId: projectId || undefined } });
         const data = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
         setBugSheets(data);
       } catch (err) {
@@ -950,8 +966,20 @@ export default function CreateScopePage() {
         setLoadingBugSheets(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
+
+  // The tenant's module list, offered on the Product & Modules step.
+  const [qaModules, setQaModules] = useState<any[]>([]);
+  const fetchQaModules = useCallback(() => {
+    axios.get('/api/v2/qa/modules')
+      .then((res: any) => {
+        const list = Array.isArray(res) ? res : (res?.data?.data || res?.data || []);
+        setQaModules(Array.isArray(list) ? list : []);
+      })
+      .catch(() => { /* typing a module still works without the list */ });
+  }, []);
+  useEffect(() => { fetchQaModules(); }, [fetchQaModules]);
 
   useEffect(() => {
     (async () => {
@@ -960,13 +988,15 @@ export default function CreateScopePage() {
         setLoadingTestRuns(true);
         setLoadingHubDocs(true);
         setLoadingTestCases(true);
+        const selectedProject = projectOptions.find(p => p.value === formData.details.product);
+        const projectId = selectedProject?.id;
         const [suiteRes, runRes, docRes, parentRes]: any[] = await Promise.all([
-          axios.get('/api/v2/qa/suites/all?limit=1000'),
-          axios.get('/api/v2/qa/runs/all?limit=1000'),
+          axios.get('/api/v2/qa/suites/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
+          axios.get('/api/v2/qa/runs/all?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
           axios.get('/api/v2/qa/test-scopes/documents?limit=1000'),
           // Parent cases (modules/scenarios) only — child cases are linked
           // through their parent, not scoped individually.
-          axios.get('/api/v2/qa/parents?limit=1000'),
+          axios.get('/api/v2/qa/parents?limit=1000' + (projectId ? `&project_id=${encodeURIComponent(projectId)}` : '')),
         ]);
         const unwrap = (r: any) => (Array.isArray(r) ? r : (r?.data?.data || r?.data || []));
         setTestSuites(unwrap(suiteRes));
@@ -982,7 +1012,12 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     })();
-  }, []);
+    
+    // Also re-fetch the search-based dropdowns for the new project
+    fetchSprintsSearch("");
+    fetchDevTicketsSearch("");
+    fetchBugSheetsSearch("");
+  }, [formData.details.product]);
 
   const fetchTestCasesSearch = React.useCallback(
     debounce(async (search: string) => {
@@ -1000,7 +1035,7 @@ export default function CreateScopePage() {
         setLoadingTestCases(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestSuitesSearch = React.useCallback(
@@ -1017,7 +1052,7 @@ export default function CreateScopePage() {
         setLoadingTestSuites(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const fetchTestRunsSearch = React.useCallback(
@@ -1034,7 +1069,7 @@ export default function CreateScopePage() {
         setLoadingTestRuns(false);
       }
     }, 400),
-    []
+    [formData.details.product]
   );
 
   const d = formData.details;
@@ -1635,7 +1670,7 @@ export default function CreateScopePage() {
       await axios.post("/api/v2/qa/test-scopes", payload);
       setIsDirty(false);
       message.success(`Scope published successfully`);
-      router.push("/qa-workspace/test-scope?tab=scopes");
+      router.push("/qa-workspace/test-scope");
     } catch (error) {
       console.error(error);
       message.error("Failed to save Test Scope");
@@ -1675,7 +1710,7 @@ export default function CreateScopePage() {
       await axios.post("/api/v2/qa/test-scopes", payload);
       setIsDirty(false);
       message.success(`Scope published and approval requested successfully`);
-      router.push("/qa-workspace/test-scope?tab=scopes");
+      router.push("/qa-workspace/test-scope");
     } catch (error) {
       console.error(error);
       message.error("Failed to request approval for Test Scope");
@@ -1716,11 +1751,12 @@ export default function CreateScopePage() {
 
   const sprintOptions = sprints.map(s => ({ value: s.id || s.name, label: s.name }));
 
-  const moduleOpts = [
-    { value: 'Home', label: 'Home' }, { value: 'Work', label: 'Work' },
-    { value: 'Admin', label: 'Admin' }, { value: 'HRMS', label: 'HRMS' },
-    { value: 'Finance', label: 'Finance' }, { value: 'My Hub', label: 'My Hub' }
-  ];
+  /* The workspace's own module list — the same one QA Space → Settings curates.
+     Anything typed here that isn't on it is registered on save. */
+  const moduleOpts = qaModules.map((m: any) => ({
+    value: String(m.module_name),
+    label: String(m.module_name),
+  }));
   const customModules = (formData.details.modules || []).filter((m: string) => !moduleOpts.find(o => o.value === m)).map((m: string) => ({ value: m, label: m }));
   const allModuleOpts = [...moduleOpts, ...customModules];
 
@@ -1789,6 +1825,7 @@ export default function CreateScopePage() {
       {previewImg && (
         <ImageModal src={previewImg.src} name={previewImg.name} onClose={() => setPreviewImg(null)} />
       )}
+      <style dangerouslySetInnerHTML={{ __html: NO_MODULES_STYLES }} />
       <style dangerouslySetInnerHTML={{
         __html: `
         .ts-create {
@@ -2263,7 +2300,7 @@ export default function CreateScopePage() {
                   <div className="ts-crumb">
                     <button onClick={() => router.push('/qa-workspace/test-scope')}>QA Workspace</button>
                     <span>›</span>
-                    <button onClick={() => router.push('/qa-workspace/test-scope?tab=scopes')}>Test Scopes</button>
+                    <button onClick={() => router.push('/qa-workspace/test-scope')}>Test Scopes</button>
                     <span>›</span>
                     <span style={{ color: 'var(--ts-text-2)' }}>New</span>
                   </div>
@@ -2498,6 +2535,12 @@ export default function CreateScopePage() {
                       searchPlaceholder="Search or type a new module…"
                       itemNoun="modules"
                       freeText={true}
+                      emptyComponent={
+                        <NoModulesEmpty
+                          projectName={formData.details.product}
+                          onRefresh={fetchQaModules}
+                        />
+                      }
                       style={{ width: '100%' }}
                     />
                     <TokenList
@@ -3350,7 +3393,11 @@ export default function CreateScopePage() {
                       validated by several of each, and forcing one meant the
                       rest went unrecorded. Both read through a normaliser so
                       scopes saved under the old single-value shape still load. */}
-                  <Field label="Linked Test Suites" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Suites${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testSuites) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Pick every suite that validates this scope — the rest stay in the dropdown."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3380,6 +3427,7 @@ export default function CreateScopePage() {
                       loading={loadingTestSuites}
                       placeholder={testSuites.length ? 'Search test suites\u2026' : 'No test suites created yet'}
                       itemNoun="suites"
+                      maxTagCount={6}
                       /* The overlay takes this width verbatim \u2014 names plus their
                          scenario and case count need the room. */
                       width={560}
@@ -3387,7 +3435,11 @@ export default function CreateScopePage() {
                     />
                   </Field>
 
-                  <Field label="Linked Test Runs" className="md:col-span-2">
+                  <Field
+                    label={`Linked Test Runs${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length ? ` (${(asLinkedIds(formData.details.linkedItems?.testRuns) || []).length})` : ''}`}
+                    className="md:col-span-2"
+                    hint="Runs executed against this scope."
+                  >
                     <SearchableDropdown
                       mode="multiple"
                       renderTags
@@ -3419,6 +3471,7 @@ export default function CreateScopePage() {
                       loading={loadingTestRuns}
                       placeholder={testRuns.length ? 'Search test runs\u2026' : 'No test runs recorded yet'}
                       itemNoun="runs"
+                      maxTagCount={6}
                       width={560}
                       style={{ width: '100%' }}
                     />

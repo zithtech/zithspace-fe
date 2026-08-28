@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
@@ -2362,7 +2363,7 @@ export default function MembersPage() {
                     rowKey="id"
                     pagination={false}
                     scroll={{ x: 1024 }}
-                    locale={{ emptyText: emptyState }}
+                    locale={{ emptyText: <NoData description={emptyState} /> }}
                     rowClassName="pp-row"
                     onRow={(record) => ({
                       onClick: () => showPreviewDrawer(record),
@@ -2375,7 +2376,7 @@ export default function MembersPage() {
                   {loading && members.length === 0 ? (
                     <div className="pp-grid-loading">Loading…</div>
                   ) : members.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                    <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
                   ) : (
                     members.map((item) => {
                       const reportsTo = item.reportsTo && typeof item.reportsTo === 'object' ? item.reportsTo.name : null;

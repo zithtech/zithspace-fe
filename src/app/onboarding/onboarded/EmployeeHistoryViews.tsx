@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React from "react";
 import {
   Card,
@@ -34,10 +35,7 @@ const EmployeeHistoryView = ({ data }: any) => {
   if (!data || data.length === 0) {
     return (
       <div style={{ padding: "40px 0", textAlign: "center", background: "var(--bg-pure-white, #ffffff)", borderRadius: 16, border: "1px dashed var(--border-slate-200, #e2e8f0)" }}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={<Text type="secondary">No employment history available</Text>}
-        />
+        <NoData description={<Text type="secondary">No employment history available</Text>} />
       </div>
     );
   }

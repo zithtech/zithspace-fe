@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useMemo } from 'react';
 import { Typography, Tag, Empty, Avatar, Tooltip } from 'antd';
@@ -98,18 +99,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
     if (!activities || activities.length === 0) {
         return (
             <div style={{ padding: 32 }}>
-                <Empty
-                    image={
-                        <div style={{
-                            width: 56, height: 56, margin: '0 auto', borderRadius: 16,
-                            background: 'rgba(148, 163, 184, 0.1)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <HistoryOutlined style={{ fontSize: 24, color: '#94a3b8' }} />
-                        </div>
-                    }
-                    description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>}
-                />
+                <NoData description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>} />
             </div>
         );
     }
@@ -184,10 +174,45 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                     {Object.entries(details).map(([key, value]: [string, any], idx) => {
                         if (key === 'changes') return null;
                         if (key === 'status' && action === 'Ticket Created') return null;
+                        // Format Jira changelog items beautifully
+                        if (key === 'items' && Array.isArray(value)) {
+                            return (
+                                <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                    {value.map((item: any, i: number) => {
+                                        // Hide bulky text for description changes
+                                        if (item.field?.toLowerCase() === 'description') {
+                                            return (
+                                                <div key={i} style={{ marginBottom: 4 }}>
+                                                    Updated <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{item.field}</span>
+                                                </div>
+                                            );
+                                        }
+
+                                        const cleanStr = (str: any) => typeof str === 'string' ? str.replace(/\\n|\n|\r/g, ' ').trim() : String(str || '');
+                                        const fromStr = item.fromString ? cleanStr(item.fromString) : '';
+                                        const toStr = item.toString ? cleanStr(item.toString) : '';
+
+                                        const fromText = fromStr ? ` from "${fromStr.length > 50 ? fromStr.substring(0, 50) + '...' : fromStr}"` : '';
+                                        const toText = toStr ? ` to "${toStr.length > 50 ? toStr.substring(0, 50) + '...' : toStr}"` : ' (cleared)';
+                                        
+                                        return (
+                                            <div key={i} style={{ marginBottom: 4 }}>
+                                                Updated <span style={{ color: 'var(--text-primary)', fontWeight: 500, textTransform: 'capitalize' }}>{item.field}</span>
+                                                {fromText}
+                                                {toText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        }
+
                         return (
                             <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>
                                 <span style={{ textTransform: 'capitalize' }}>{key}</span>:{' '}
-                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{String(value)}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                                    {typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}
+                                </span>
                             </div>
                         );
                     })}

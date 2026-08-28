@@ -1,3 +1,4 @@
+import NoData from "@/components/common/NoData";
 import React from "react";
 import { Typography, Empty } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
@@ -105,10 +106,7 @@ export const SprintProgressList: React.FC<SprintProgressListProps> = ({ sprints 
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 18px" }}>
         {sprints.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No sprints yet</Text>}
-            />
+            <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No sprints yet</Text>} />
           </div>
         ) : (
           sprints.map((item) => {

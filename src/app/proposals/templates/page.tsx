@@ -1,5 +1,7 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
+
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Button, Dropdown, message, Select, Tooltip,
@@ -333,7 +335,7 @@ function TemplatesContent() {
           <div className="pp-body">
             <div className="pp-grid" style={view === 'list' ? { gridTemplateColumns: '1fr' } : undefined}>
               {paged.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }}>{emptyState}</div>
+                <div style={{ gridColumn: '1 / -1' }}><NoData description={emptyState} /></div>
               ) : paged.map((t) => {
                 const theme = resolveTheme(t.themeId);
                 const chips = chipLabels(t);

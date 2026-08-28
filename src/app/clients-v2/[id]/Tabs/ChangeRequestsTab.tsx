@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -691,7 +692,7 @@ export default function ChangeRequestsTab({ clientId, projects = [], onRefresh }
             onRow={(record) => ({
               onClick: () => setOpenId(record.id),
               style: { cursor: "pointer" }
-            })}
+            })} locale={{ emptyText: <NoData /> }}
           />
         </div>
       ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -667,17 +668,17 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                 style: { cursor: "pointer" },
               })}
               locale={{
-                emptyText: (
-                  <div className="ptab-empty">
-                    <div className="ptab-empty-icon">
-                      <Layers size={26} />
-                    </div>
-                    <div className="ptab-empty-title">No projects yet</div>
-                    <div className="ptab-empty-desc">
-                      Initiate the first project under this client to start tracking budget, timelines, and ownership.
-                    </div>
-                  </div>
-                ),
+                emptyText: <NoData description={(
+                                        <div className="ptab-empty">
+                                          <div className="ptab-empty-icon">
+                                            <Layers size={26} />
+                                          </div>
+                                          <div className="ptab-empty-title">No projects yet</div>
+                                          <div className="ptab-empty-desc">
+                                            Initiate the first project under this client to start tracking budget, timelines, and ownership.
+                                          </div>
+                                        </div>
+                                      )} />,
               }}
             />
 

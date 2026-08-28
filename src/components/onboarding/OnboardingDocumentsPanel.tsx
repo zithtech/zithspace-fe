@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -635,14 +637,11 @@ export default function OnboardingDocumentsPanel() {
           </div>
         ) : documents.length === 0 ? (
           <div className="ob-doc-center">
-            <Empty
-              image={<FileOutlined style={{ fontSize: 48, color: 'var(--text-slate-300)' }} />}
-              description={
-                <Text style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
-                  No documents found. Click <strong>Add Document</strong> to upload the first one.
-                </Text>
-              }
-            />
+            <NoData description={
+                                          <Text style={{ color: 'var(--text-slate-400)', fontSize: 13 }}>
+                                            No documents found. Click <strong>Add Document</strong> to upload the first one.
+                                          </Text>
+                                        } />
           </div>
         ) : (
           pagedDocs.map((doc) => {

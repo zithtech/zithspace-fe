@@ -10,11 +10,13 @@ import {
   CheckCircle2,
   ShieldCheck,
   Info,
+  CalendarDays,
 } from "lucide-react";
-import { Drawer, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { useBugs } from "@/hooks/useBugList";
 import type { BugListItem, BugSeverity } from "@/services/bugListService";
 import type { BugScope } from "./HivebugSidebar";
+import BugDayDrawer from "./BugDayDrawer";
 
 interface Props {
   projectId: string | null;
@@ -152,6 +154,20 @@ export default function BugCalendarView({
     }
   }
 
+  /** Busiest day in view — every cell's wash is scaled against it. */
+  const { peakActivity, activeDays } = useMemo(() => {
+    let peak = 0;
+    let active = 0;
+    const monthKey = currentMonth.format("YYYY-MM");
+    Object.entries(buckets).forEach(([k, b]) => {
+      const total =
+        b.created.length + b.completed.length + b.verified.length + b.tickets.length;
+      if (total > peak) peak = total;
+      if (total > 0 && k.startsWith(monthKey)) active += 1;
+    });
+    return { peakActivity: peak, activeDays: active };
+  }, [buckets, currentMonth]);
+
   const isLoading = loadingCreated || loadingUpdated;
   const selectedBucket = selectedDay
     ? buckets[selectedDay.format("YYYY-MM-DD")] || EMPTY_BUCKET()
@@ -166,35 +182,50 @@ export default function BugCalendarView({
   return (
     <div className="hb-cal">
       <div className="hb-cal-toolbar">
+        <div className="hb-cal-toolbar-glow" aria-hidden />
         <div className="hb-cal-nav">
-          <Tooltip title="Previous month">
-            <button
-              className="hb-cal-nav-btn"
-              onClick={() => setCurrentMonth((m) => m.subtract(1, "month"))}
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={15} />
-            </button>
-          </Tooltip>
+          <div className="hb-cal-navrow">
+          <div className="hb-cal-navgroup">
+            <Tooltip title="Previous month">
+              <button
+                className="hb-cal-nav-btn"
+                onClick={() => setCurrentMonth((m) => m.subtract(1, "month"))}
+                aria-label="Previous month"
+              >
+                <ChevronLeft size={15} />
+              </button>
+            </Tooltip>
+            <span className="hb-cal-navgroup-sep" aria-hidden />
+            <Tooltip title="Next month">
+              <button
+                className="hb-cal-nav-btn"
+                onClick={() => setCurrentMonth((m) => m.add(1, "month"))}
+                aria-label="Next month"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </Tooltip>
+          </div>
           <button
             className="hb-cal-today"
             onClick={() => setCurrentMonth(dayjs())}
+            disabled={currentMonth.isSame(dayjs(), "month")}
           >
+            <CalendarDays size={12} />
             Today
           </button>
-          <Tooltip title="Next month">
-            <button
-              className="hb-cal-nav-btn"
-              onClick={() => setCurrentMonth((m) => m.add(1, "month"))}
-              aria-label="Next month"
-            >
-              <ChevronRight size={15} />
-            </button>
-          </Tooltip>
           <div className="hb-cal-month-label">
             <span className="hb-cal-month-name">{currentMonth.format("MMMM")}</span>
             <span className="hb-cal-month-year">{currentMonth.format("YYYY")}</span>
           </div>
+          </div>
+
+          <div className="hb-cal-metarow">
+            <span className="hb-cal-month-sub">
+              {activeDays > 0
+                ? `${activeDays} active day${activeDays === 1 ? "" : "s"} · peak ${peakActivity}`
+                : "No activity this month"}
+            </span>
           <div className="hb-cal-avgs" aria-label="Per-day averages">
             <Tooltip
               title={`Average bugs created per day across ${daysInMonth} days in ${currentMonth.format("MMMM")}`}
@@ -215,7 +246,13 @@ export default function BugCalendarView({
               </span>
             </Tooltip>
           </div>
-          {isLoading && <span className="hb-cal-loading">Loading…</span>}
+          {isLoading && (
+            <span className="hb-cal-loading">
+              <span className="hb-cal-loading-dot" />
+              Syncing
+            </span>
+          )}
+          </div>
         </div>
 
         <div className="hb-cal-summary">
@@ -254,9 +291,39 @@ export default function BugCalendarView({
         </div>
       </div>
 
+      <div className="hb-cal-legend">
+        <span className="hb-cal-legend-title">Severity mix</span>
+        {(["blocker", "critical", "major", "minor"] as const).map((sev) => (
+          <span key={sev} className="hb-cal-legend-item">
+            <span
+              className="hb-cal-legend-dot"
+              style={{ background: SEVERITY_TONE[sev] }}
+            />
+            {sev}
+            {monthBuckets.bySeverity[sev] ? (
+              <b>{monthBuckets.bySeverity[sev]}</b>
+            ) : null}
+          </span>
+        ))}
+        <span className="hb-cal-legend-scale">
+          <span className="hb-cal-legend-scale-label">Quiet</span>
+          {[0.12, 0.35, 0.6, 0.85, 1].map((step) => (
+            <span
+              key={step}
+              className="hb-cal-legend-step"
+              style={{ ["--cal-heat" as string]: step }}
+            />
+          ))}
+          <span className="hb-cal-legend-scale-label">Busy</span>
+        </span>
+      </div>
+
       <div className="hb-cal-weekdays">
-        {DAY_NAMES.map((name) => (
-          <div key={name} className="hb-cal-weekday">
+        {DAY_NAMES.map((name, i) => (
+          <div
+            key={name}
+            className={`hb-cal-weekday ${i > 4 ? "is-weekend" : ""}`}
+          >
             {name}
           </div>
         ))}
@@ -293,14 +360,22 @@ export default function BugCalendarView({
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  style={{
+                    ["--cal-heat" as string]:
+                      peakActivity > 0 ? Math.min(1, activity / peakActivity) : 0,
+                  }}
                   onClick={() => setSelectedDay(date)}
                 >
+                  <span className="hb-cal-cell-wash" aria-hidden />
                   <div className="hb-cal-cell-head">
                     <span className="hb-cal-cell-date">{date.date()}</span>
                     {date.date() === 1 && (
                       <span className="hb-cal-cell-monthtag">
                         {date.format("MMM")}
                       </span>
+                    )}
+                    {activity > 0 && (
+                      <span className="hb-cal-cell-total">{activity}</span>
                     )}
                   </div>
 
@@ -369,34 +444,20 @@ export default function BugCalendarView({
         ))}
       </div>
 
-      <Drawer
-        open={!!selectedDay}
+      <BugDayDrawer
+        day={selectedDay}
+        bucket={selectedBucket}
         onClose={() => setSelectedDay(null)}
-        width={460}
-        title={
-          selectedDay ? (
-            <div className="hb-cal-drawer-title">
-              <span className="hb-cal-drawer-day">
-                {selectedDay.format("dddd")}
-              </span>
-              <span className="hb-cal-drawer-date">
-                {selectedDay.format("MMM D, YYYY")}
-              </span>
-            </div>
-          ) : null
-        }
-        styles={{ body: { padding: 0 } }}
-      >
-        {selectedBucket && (
-          <DaySections
-            bucket={selectedBucket}
-            onSelectBug={(bug) => {
-              setSelectedDay(null);
-              onSelectBug(bug);
-            }}
-          />
-        )}
-      </Drawer>
+        onChangeDay={(d) => {
+          setSelectedDay(d);
+          if (!d.isSame(currentMonth, "month")) setCurrentMonth(d.startOf("month"));
+        }}
+        onSelectBug={(bug) => {
+          setSelectedDay(null);
+          onSelectBug(bug);
+        }}
+      />
+
     </div>
   );
 }
@@ -415,8 +476,10 @@ function SummaryStat({
   return (
     <div className={`hb-cal-summary-stat tone-${tone}`}>
       <span className="hb-cal-summary-icon">{icon}</span>
-      <span className="hb-cal-summary-value">{value}</span>
-      <span className="hb-cal-summary-label">{label}</span>
+      <span className="hb-cal-summary-text">
+        <span className="hb-cal-summary-value">{value}</span>
+        <span className="hb-cal-summary-label">{label}</span>
+      </span>
     </div>
   );
 }
@@ -438,78 +501,5 @@ function MetricChip({
       <span className="hb-cal-chip-count">{count}</span>
       <span className="hb-cal-chip-label">{label}</span>
     </span>
-  );
-}
-
-function DaySections({
-  bucket,
-  onSelectBug,
-}: {
-  bucket: DayBucket;
-  onSelectBug: (bug: BugListItem) => void;
-}) {
-  const sections: Array<{
-    key: string;
-    title: string;
-    tone: "info" | "success" | "warning" | "accent";
-    icon: React.ReactNode;
-    items: BugListItem[];
-  }> = [
-    { key: "created", title: "Created", tone: "info", icon: <BugIcon size={13} />, items: bucket.created },
-    { key: "completed", title: "Completed", tone: "success", icon: <CheckCircle2 size={13} />, items: bucket.completed },
-    { key: "tickets", title: "Tickets created", tone: "warning", icon: <TicketIcon size={13} />, items: bucket.tickets },
-    { key: "verified", title: "Verified", tone: "accent", icon: <ShieldCheck size={13} />, items: bucket.verified },
-  ];
-
-  const hasAny = sections.some((s) => s.items.length > 0);
-
-  if (!hasAny) {
-    return (
-      <div className="hb-cal-drawer-empty">
-        <Info size={18} />
-        <p>No activity on this day.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="hb-cal-drawer-body">
-      {sections.map((s) =>
-        s.items.length === 0 ? null : (
-          <section key={s.key} className={`hb-cal-section tone-${s.tone}`}>
-            <header className="hb-cal-section-head">
-              <span className="hb-cal-section-icon">{s.icon}</span>
-              <span className="hb-cal-section-title">{s.title}</span>
-              <span className="hb-cal-section-count">{s.items.length}</span>
-            </header>
-            <ul className="hb-cal-section-list">
-              {s.items.map((b) => (
-                <li key={b.id}>
-                  <button
-                    type="button"
-                    className="hb-cal-bug-row"
-                    onClick={() => onSelectBug(b)}
-                  >
-                    <span className="hb-cal-bug-num">
-                      {b.bugNumber ?? b.id.slice(0, 6)}
-                    </span>
-                    <span className="hb-cal-bug-title">
-                      {b.title || b.description?.slice(0, 80) || "Untitled bug"}
-                    </span>
-                    {b.severity && (
-                      <span
-                        className="hb-cal-bug-sev"
-                        style={{ background: SEVERITY_TONE[b.severity as string] || "#94a3b8" }}
-                        title={b.severity as string}
-                      />
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )
-      )}
-    </div>
   );
 }

@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -558,15 +560,12 @@ export default function ReportsPanel() {
           </div>
         ) : !hasRun ? (
           <div className="prr-center">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
-                  Choose your filters to see tickets
-                  worked in the selected window.
-                </Text>
-              }
-            />
+            <NoData description={
+                                          <Text style={{ fontSize: 12.5, color: 'var(--text-slate-500)' }}>
+                                            Choose your filters to see tickets
+                                            worked in the selected window.
+                                          </Text>
+                                        } />
           </div>
         ) : (
           <>

@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React from "react";
 import { Table, Avatar, Tag, Space, Typography, Button, Tooltip, Pagination, Select, Dropdown } from "antd";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -468,7 +469,7 @@ export default function UpdateTable({
             style={{
               background: "transparent",
             }}
-            className="premium-table"
+            className="premium-table" locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

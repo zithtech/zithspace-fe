@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -357,17 +358,17 @@ export default function AllocationsTab({
                             className="pp-table"
                             scroll={{ x: "max-content" }}
                             locale={{
-                              emptyText: (
-                                <div className="ptab-empty">
-                                  <div className="ptab-empty-icon">
-                                    <Briefcase size={26} />
-                                  </div>
-                                  <div className="ptab-empty-title">No allocations yet</div>
-                                  <div className="ptab-empty-desc">
-                                    Assign team members, set billing roles and budgets to start tracking work for this client.
-                                  </div>
-                                </div>
-                              ),
+                              emptyText: <NoData description={(
+                                                                    <div className="ptab-empty">
+                                                                      <div className="ptab-empty-icon">
+                                                                        <Briefcase size={26} />
+                                                                      </div>
+                                                                      <div className="ptab-empty-title">No allocations yet</div>
+                                                                      <div className="ptab-empty-desc">
+                                                                        Assign team members, set billing roles and budgets to start tracking work for this client.
+                                                                      </div>
+                                                                    </div>
+                                                                  )} />,
                             }}
                           />
                   </ZukvoLoadingOverlay>

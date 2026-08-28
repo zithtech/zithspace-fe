@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useEffect, useState } from "react";
 import { Table, Typography, Tag, Avatar, Tooltip, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -71,14 +72,11 @@ const TicketChildTable: React.FC<{ tickets: SprintTicket[] }> = ({ tickets }) =>
   if (!tickets.length) {
     return (
       <div style={{ padding: "16px 0" }}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
-              No tickets in this sprint
-            </Text>
-          }
-        />
+        <NoData description={
+                        <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
+                          No tickets in this sprint
+                        </Text>
+                      } />
       </div>
     );
   }
@@ -193,7 +191,7 @@ const TicketChildTable: React.FC<{ tickets: SprintTicket[] }> = ({ tickets }) =>
       size="small"
       columns={cols}
       dataSource={tickets}
-      pagination={false}
+      pagination={false} locale={{ emptyText: <NoData /> }}
     />
   );
 };
@@ -339,12 +337,9 @@ export const SprintTable: React.FC<SprintTableProps> = ({
           padding: "48px 0",
         }}
       >
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No sprints yet</Text>
-          }
-        />
+        <NoData description={
+                        <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No sprints yet</Text>
+                      } />
       </div>
     );
   }
@@ -441,7 +436,7 @@ export const SprintTable: React.FC<SprintTableProps> = ({
             </Tooltip>
           ),
         }}
-        rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")}
+        rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")} locale={{ emptyText: <NoData /> }}
       />
     </div>
 

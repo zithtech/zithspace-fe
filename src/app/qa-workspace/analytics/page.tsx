@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 /**
  * QA Space — Reporting & Analytics.
  *
@@ -275,7 +276,7 @@ function AnalyticsContent() {
             },
             { title: "Runs", dataIndex: "runs", key: "runs", width: 75, align: "right" as const },
             ...outcomeColumns,
-          ]}
+          ]} locale={{ emptyText: <NoData /> }}
         />
       </div>
     </>
@@ -568,7 +569,7 @@ function AnalyticsContent() {
                         { title: breakdownLabel, dataIndex: "label", key: "label", fixed: "left" as const, width: 220 },
                         { title: "Runs", dataIndex: "runs", key: "runs", width: 75, align: "right" as const },
                         ...outcomeColumns,
-                      ]}
+                      ]} locale={{ emptyText: <NoData /> }}
                     />
                   </div>
                 ) : (
@@ -669,7 +670,7 @@ function AnalyticsContent() {
                       rowKey="test_case_id"
                       dataSource={quality.flakyCases}
                       pagination={false}
-                      locale={{ emptyText: <div className="qa-chart__empty">No unstable cases — every case is consistent.</div> }}
+                      locale={{ emptyText: <NoData description={<div className="qa-chart__empty">No unstable cases — every case is consistent.</div>} /> }}
                       columns={[
                         {
                           title: "Test case",
@@ -701,7 +702,7 @@ function AnalyticsContent() {
                       rowKey="id"
                       dataSource={quality.scopesAtRisk}
                       pagination={false}
-                      locale={{ emptyText: <div className="qa-chart__empty">Nothing overdue — every scope is on track.</div> }}
+                      locale={{ emptyText: <NoData description={<div className="qa-chart__empty">Nothing overdue — every scope is on track.</div>} /> }}
                       columns={[
                         { title: "Scope", dataIndex: "name", key: "name" },
                         { title: "QA Owner", dataIndex: "qa_owner", key: "qa_owner", width: 150, render: (v: string) => v || "—" },

@@ -429,6 +429,18 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             ],
           },
           {
+            key: "/qa-workspace/coverage-map",
+            label: "Coverage Map",
+            icon: I(Network),
+            path: "/qa-workspace/coverage-map",
+            requiredAnyPermission: [
+              Permissions.QA_SCOPE_READ,
+              Permissions.QA_CASE_READ,
+              Permissions.QA_SUITE_READ,
+              Permissions.QA_RUN_READ,
+            ],
+          },
+          {
             key: "/qa-workspace/analytics",
             label: "Analytics",
             icon: I(BarChart3),

@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -101,11 +103,7 @@ export function BucketSelector({
 
       {/* No Buckets Message */}
       {buckets.length === 0 && !loading && (
-        <Empty
-          description="No buckets available"
-          style={{ marginBottom: 12 }}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <NoData description="No buckets available" />
       )}
 
       {/* Create New Bucket Button */}

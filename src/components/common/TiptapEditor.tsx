@@ -10,6 +10,10 @@ import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { message } from "antd";
 import {
   BoldOutlined,
@@ -82,6 +86,12 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
       Highlight.configure({
         multicolor: false,
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     editable,
@@ -620,6 +630,35 @@ const TiptapEditor = React.forwardRef<TiptapEditorRef, TiptapEditorProps>(({
         .is-active {
           background-color: var(--bg-blue-50) !important;
           color: var(--premium-blue) !important;
+        }
+
+        /* Table Styles */
+        .tiptap-editor-content table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          margin: 0;
+          overflow: hidden;
+        }
+
+        .tiptap-editor-content table td,
+        .tiptap-editor-content table th {
+          min-width: 1em;
+          border: 1px solid var(--border-color);
+          padding: 3px 5px;
+          vertical-align: top;
+          box-sizing: border-box;
+          position: relative;
+        }
+
+        .tiptap-editor-content table th {
+          font-weight: bold;
+          text-align: left;
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        [data-theme='dark'] .tiptap-editor-content table th {
+          background-color: rgba(255, 255, 255, 0.05);
         }
       `}</style>
     </div>

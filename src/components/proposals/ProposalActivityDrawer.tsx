@@ -1,4 +1,6 @@
 "use client";
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -161,18 +163,7 @@ const ProposalActivityDrawer: React.FC<Props> = ({ open, onClose, proposal }) =>
           </div>
         ) : rows.length === 0 ? (
           <div style={{ padding: 32 }}>
-            <Empty
-              image={
-                <div style={{
-                  width: 56, height: 56, margin: '0 auto', borderRadius: 16,
-                  background: 'rgba(148, 163, 184, 0.1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <HistoryOutlined style={{ fontSize: 24, color: '#94a3b8' }} />
-                </div>
-              }
-              description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>}
-            />
+            <NoData description={<Text type="secondary" style={{ fontSize: 13 }}>No activity recorded yet</Text>} />
           </div>
         ) : (
           <div className="activity-timeline-v2">

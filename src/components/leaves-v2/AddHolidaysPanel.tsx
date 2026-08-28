@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Table, Tag, Drawer, Form, Input, Switch, Select, DatePicker, message, Tooltip, Row, Col, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -319,12 +320,12 @@ export default function AddHolidaysPanel() {
 
       <div className="lvh-table-wrap">
         <ZukvoLoadingOverlay loading={loading} message="">
-          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} />
+          <Table rowKey="id" size="small" className="lvh-table" columns={columns} dataSource={paged} pagination={false} scroll={{ x: 'max-content' }} onRow={() => ({ className: 'lvh-row' })} locale={{ emptyText: <NoData /> }} />
         </ZukvoLoadingOverlay>
       </div>
 
       {total > 0 && (
-        <div className="lvh-footer">
+        <div className="lvh-footer lvh-footer--sticky">
           <div className="lvh-footer-info">Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong></div>
           <div className="lvh-pager">
             <button type="button" className="lvh-pager-btn" disabled={tablePage <= 1} onClick={() => setTablePage((p) => Math.max(1, p - 1))}>‹</button>
@@ -498,7 +499,8 @@ export default function AddHolidaysPanel() {
         .lvh-filter-label .anticon { color: var(--text-slate-400); }
         .lvh-filter-count { font-size: 12px; color: var(--text-slate-500); }
         .lvh-clear { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer; padding: 3px 6px; font-size: 12px; font-weight: 600; color: ${PALETTE.red}; margin-left: auto; }
-        .lvh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+        .lvh-table-wrap { background: var(--bg-pure-white); border: 1px solid var(--border-slate-200); border-radius: 0; overflow: auto; flex: 1; min-height: 0; }
+        .lvh-table .ant-table-content { overflow: visible !important; }
         .lvh-table, .lvh-table.ant-table-wrapper, .lvh-table .ant-table, .lvh-table .ant-table-container, .lvh-table .ant-table-content, .lvh-table .ant-table-header, .lvh-table .ant-table-body { background: transparent; font-size: 12px; border-radius: 0 !important; }
         .lvh-table .ant-table-thead > tr > th,
         .lvh-table .ant-table-thead > tr > td {
@@ -507,11 +509,12 @@ export default function AddHolidaysPanel() {
           text-transform: uppercase; color: var(--text-slate-400) !important; padding: 8px 12px !important;
           white-space: nowrap !important; border-radius: 0 !important;
           border-start-start-radius: 0 !important; border-start-end-radius: 0 !important;
-        }
+         position: sticky !important; top: 0 !important; z-index: 10 !important; }
         .lvh-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 8px 12px !important; }
         .lvh-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
         .lvh-table .ant-table-tbody > tr.lvh-row:hover > td { background: var(--bg-slate-50) !important; }
-        .lvh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; padding: 0 4px; box-sizing: border-box; background: transparent; flex-shrink: 0; }
+        .lvh-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; height: 52px; box-sizing: border-box; }
+        .lvh-footer--sticky { position: sticky; bottom: 0; z-index: 20; margin: 20px -32px 0; padding: 0 32px; background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200); box-shadow: 0 -4px 14px rgba(15,23,42,0.05); }
         .lvh-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .lvh-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
         .lvh-pager { display: flex; align-items: center; gap: 3px; }

@@ -1,5 +1,6 @@
 'use client';
 
+import NoData from "@/components/common/NoData";
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { App, Button, Empty, Progress, Skeleton, Table, Tooltip } from 'antd';
@@ -340,7 +341,7 @@ export default function DashboardPanel() {
               locale={{
                 emptyText: (
                   <div className="omp-empty">
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No openings match this filter" />
+                    <NoData description="No openings match this filter" />
                   </div>
                 ),
               }}

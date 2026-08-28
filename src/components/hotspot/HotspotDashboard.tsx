@@ -1,4 +1,5 @@
 'use client';
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -241,15 +242,19 @@ export default function HotspotDashboard() {
           <ZukvoLoader size="md" />
         </div>
       ) : visible.length === 0 ? (
-        <div className="omp-empty">
-          <div className="omp-empty-title">
-            {activeFilters > 0 ? 'No matching roles' : 'No Internal Openings'}
-          </div>
-          <div className="omp-empty-sub">
-            {activeFilters > 0
-              ? 'Try a different search, position, department or work type.'
-              : 'There are currently no internal job postings available.'}
-          </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <NoData description={
+            <div className="omp-empty pp-empty">
+              <div className="omp-empty-title pp-empty-title">
+                {activeFilters > 0 ? 'No matching roles' : 'No Internal Openings'}
+              </div>
+              <div className="omp-empty-sub pp-empty-sub">
+                {activeFilters > 0
+                  ? 'Try a different search, position, department or work type.'
+                  : 'There are currently no internal job postings available.'}
+              </div>
+            </div>
+          } />
         </div>
       ) : (
         <div className="hotspot-grid">

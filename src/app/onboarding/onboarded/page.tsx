@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
@@ -486,7 +487,7 @@ const Onboarded = () => {
             dataSource={pagedRows}
             pagination={false}
             onRow={() => ({ className: "onb-row" })}
-            scroll={{ x: 'max-content' }}
+            scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }}
           />
         </ZukvoLoadingOverlay>
       </div>

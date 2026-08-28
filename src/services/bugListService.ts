@@ -6,6 +6,8 @@ import { apiClient } from "@/lib/axios";
 export type BugSeverity = "blocker" | "critical" | "major" | "minor" | (string & {});
 export type BugType = "ui" | "functional" | "api" | (string & {});
 export type BugStatus = "new" | "converted" | "ignored" | "verified" | "reopened" | "trash" | "archived";
+/** Where a bug sits in the QA workflow, independent of its lifecycle status. */
+export type BugWorkStatus = "not started" | "pending" | "completed";
 
 export interface BugAttachment {
   id?: string;
@@ -78,6 +80,9 @@ export interface BugListItem {
   linearIssueId?: string | null;
   linearIssueUrl?: string | null;
   linearIssueIdentifier?: string | null;
+  jiraIssueId?: string | null;
+  jiraIssueUrl?: string | null;
+  jiraIssueKey?: string | null;
   /** Set when the bug was raised from a QA test run. */
   testCaseId?: string | null;
   testCaseRef?: string | null;
@@ -134,21 +139,26 @@ export interface UpdateBugInput {
 }
 
 export interface BugListFilters {
+  /** Sidebar drill-down scope. */
   folderId?: string;
   sheetId?: string;
+  /** Multi-select folder/sheet pills, independent of the drill-down. */
+  folderIds?: string[];
+  sheetIds?: string[];
   projectId?: string;
   page?: number;
   limit?: number;
   search?: string;
-  module?: string;
-  severity?: BugSeverity;
-  status?: BugStatus;
-  bugStatus?: "not started" | "pending" | "completed";
-  bugType?: BugType;
-  createdById?: string;
-  assigneeId?: string;
+  /** Multi-select filters accept several values; they go over the wire comma-separated. */
+  module?: string | string[];
+  severity?: BugSeverity | BugSeverity[];
+  status?: BugStatus | BugStatus[];
+  bugStatus?: BugWorkStatus | BugWorkStatus[];
+  bugType?: BugType | BugType[];
+  createdById?: string | string[];
+  assigneeId?: string | string[];
   scope?: "all" | "mine" | "trash" | "archived";
-  ticketStatus?: string;
+  ticketStatus?: string | string[];
   createdFrom?: string;
   createdTo?: string;
   updatedFrom?: string;
@@ -404,7 +414,14 @@ class BugListService {
   static async listBugs(filters: BugListFilters = {}): Promise<BugListResponse> {
     const qs = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") qs.append(k, String(v));
+      if (v === undefined || v === null || v === "") return;
+      if (Array.isArray(v)) {
+        // Multi-select pills send every picked value in one comma-separated param.
+        const joined = v.filter((x) => x !== undefined && x !== null && x !== "").join(",");
+        if (joined) qs.append(k, joined);
+        return;
+      }
+      qs.append(k, String(v));
     });
     const res = await apiClient.get<{ success: boolean; data: BugListResponse }>(
       `/api/bug-list/bugs${qs.toString() ? `?${qs.toString()}` : ""}`

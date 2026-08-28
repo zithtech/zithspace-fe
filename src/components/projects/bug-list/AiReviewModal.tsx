@@ -37,10 +37,14 @@ import { LinearService } from "@/services/linearService";
 type Step = "review" | "group" | "done";
 
 interface Props {
+  /** Step back to the method picker without discarding the selection. */
   open: boolean;
   onClose: () => void;
+  onBack?: () => void;
+  /** Render as a wizard step body — no Modal of its own. */
+  embedded?: boolean;
   bugs: BugListItem[];
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
 }
 
 interface EditableGroup {
@@ -57,7 +61,7 @@ interface EditableGroup {
   labelIds?: string[];
 }
 
-export default function AiReviewModal({ open, onClose, bugs, integration = "zukvo" }: Props) {
+export default function AiReviewModal({ open, onClose, onBack, embedded, bugs, integration = "zukvo" }: Props) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
@@ -242,17 +246,7 @@ export default function AiReviewModal({ open, onClose, bugs, integration = "zukv
 
   if (!hasPrime) return null;
 
-  return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={960}
-      destroyOnHidden
-      closable={false}
-      className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
-      maskClosable={false}
-    >
+  const body = (
       <ConfigProvider
         theme={{
           algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -262,12 +256,13 @@ export default function AiReviewModal({ open, onClose, bugs, integration = "zukv
           }
         }}
       >
-        <div className="hb-aim">
+        <div className={`hb-aim ${embedded ? "hb-aim-flat" : ""}`}>
         <ModalHeader
           step={step}
           bugCount={bugs.length}
           ticketCount={createdTickets.length}
-          onClose={onClose}
+          onClose={embedded ? undefined : onClose}
+          onBack={embedded ? undefined : onBack}
         />
 
         <Stepper step={step} />
@@ -317,6 +312,22 @@ export default function AiReviewModal({ open, onClose, bugs, integration = "zukv
         />
       </div>
       </ConfigProvider>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={960}
+      destroyOnHidden
+      closable={false}
+      className={`hb-aimodal ${theme === "dark" ? "hb-aimodal-dark" : "hb-aimodal-light"}`}
+      maskClosable={false}
+    >
+      {body}
     </Modal>
   );
 }
@@ -330,11 +341,13 @@ function ModalHeader({
   bugCount,
   ticketCount,
   onClose,
+  onBack,
 }: {
   step: Step;
   bugCount: number;
   ticketCount: number;
-  onClose: () => void;
+  onClose?: () => void;
+  onBack?: () => void;
 }) {
   const titleByStep: Record<Step, { title: string; sub: string }> = {
     review: {
@@ -354,16 +367,28 @@ function ModalHeader({
   return (
     <div className="hb-aim-header">
       <div className="hb-aim-titleblock">
-        <div className="hb-aim-eyebrow">
-          <Sparkles size={12} />
-          Hivebug AI
-        </div>
         <div className="hb-aim-title">{meta.title}</div>
         <div className="hb-aim-sub">{meta.sub}</div>
       </div>
-      <button className="hb-aim-close" aria-label="Close" onClick={onClose}>
-        <X size={16} />
-      </button>
+      {(onBack || onClose) && (
+      <div className="hb-aim-headactions">
+        {onBack && step !== "done" && (
+          <button
+            className="hb-aim-back"
+            aria-label="Back to method picker"
+            title="Back to method picker"
+            onClick={onBack}
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
+        {onClose && (
+          <button className="hb-aim-close" aria-label="Close" onClick={onClose}>
+            <X size={16} />
+          </button>
+        )}
+      </div>
+      )}
     </div>
   );
 }
@@ -562,7 +587,7 @@ function GroupStep({
   members: { value: string; label: string }[];
   onUpdate: (idx: number, p: Partial<EditableGroup>) => void;
   onRemove: (idx: number) => void;
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
   linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
   linearUsers?: { id: string; name: string; email: string }[];
   linearLabels?: { id: string; name: string; color: string }[];
@@ -622,7 +647,7 @@ function GroupCard({
   members: { value: string; label: string }[];
   onUpdate: (patch: Partial<EditableGroup>) => void;
   onRemove: () => void;
-  integration?: "zukvo" | "linear";
+  integration?: "zukvo" | "linear" | "jira";
   linearTeams?: { id: string; name: string, projects: { nodes: { id: string; name: string }[] } }[];
   linearUsers?: { id: string; name: string; email: string }[];
   linearLabels?: { id: string; name: string; color: string }[];

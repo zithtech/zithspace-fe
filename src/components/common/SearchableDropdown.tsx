@@ -44,6 +44,12 @@ export interface SearchableDropdownProps {
   placeholder?: string;
   /** Instead of "N selected", render the selected items as visual tags. */
   renderTags?: boolean;
+  /**
+   * With `renderTags`, how many tags show before the rest collapse into a
+   * "+N more" chip. A long selection otherwise turns the trigger into a wall
+   * of tags taller than the form around it. Default 8.
+   */
+  maxTagCount?: number;
   /** Small uppercase eyebrow above the value in the trigger (activity-page style). */
   triggerLabel?: string;
   searchPlaceholder?: string;
@@ -78,6 +84,8 @@ export interface SearchableDropdownProps {
   getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   /** Custom UI to show when there are no matches or options */
   emptyComponent?: React.ReactNode;
+  /** Extra class on the popup overlay, for per-consumer list styling. */
+  overlayClassName?: string;
 }
 
 export const initialsFor = (s: string): string => {
@@ -127,6 +135,8 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   getPopupContainer,
   emptyComponent,
   renderTags,
+  maxTagCount = 8,
+  overlayClassName,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -356,7 +366,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         onOpenChange?.(v);
       }}
       placement="bottomLeft"
-      overlayClassName="sd-overlay-popover"
+      overlayClassName={`sd-overlay-popover ${overlayClassName || ""}`.trim()}
       destroyOnHidden
       getPopupContainer={getPopupContainer}
     >
@@ -404,26 +414,31 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
               )}
               <span className="sd-trigger-value" style={{ flex: 1 }}>
                 {renderTags && mode === "multiple" && Array.isArray(value) && value.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 0', minWidth: 0 }}>
-                    {value.map(val => {
+                  <div className="sd-tags">
+                    {value.slice(0, maxTagCount).map(val => {
                       const opt = options.find((o) => o.value === val);
                       const label = opt ? opt.label : val;
                       return (
-                        <span key={val} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 6px', background: 'var(--bg-blue-50, #eff6ff)', color: 'var(--text-blue-600, #2563eb)', borderRadius: 4, fontSize: 12, border: '1px solid var(--border-blue-100, #dbeafe)' }}>
-                          <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                        <span key={val} className="sd-tag" title={String(label)}>
+                          <span className="sd-tag__label">{label}</span>
                           <XIcon
-                            size={12}
-                            style={{ cursor: 'pointer', opacity: 0.6 }}
+                            className="sd-tag__x"
+                            size={11}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!disabled) onChange?.(value.filter(v => v !== val));
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
                           />
                         </span>
                       );
                     })}
+                    {/* The rest stay one click away in the overlay rather than
+                        growing the field past the form around it. */}
+                    {value.length > maxTagCount && (
+                      <span className="sd-tag sd-tag--more">
+                        +{value.length - maxTagCount} more
+                      </span>
+                    )}
                   </div>
                 ) : (
                   displayLabel
@@ -470,9 +485,70 @@ const SEARCHABLE_DROPDOWN_CSS = `
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
   user-select: none;
 }
-.sd-trigger.has-tags {
+/* Tags wrap, so the trigger has to grow with them. This has to out-specify
+   \`.is-compact\`, which pins a 30px height and used to leave the tags spilling
+   out over whatever sat below the field. */
+.sd-trigger.has-tags,
+.sd-trigger.is-compact.has-tags {
   height: auto;
   min-height: 42px;
+  align-items: center;
+  padding: 5px 12px;
+}
+/* The single-value trigger ellipsises one line; tags need to wrap instead. */
+.sd-trigger.has-tags .sd-trigger-value {
+  overflow: visible;
+  white-space: normal;
+  width: 100%;
+}
+.sd-trigger.has-tags .sd-trigger-content > div {
+  width: 100%;
+  min-width: 0;
+}
+.sd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 0;
+  /* A raised maxTagCount still cannot run away with the layout. */
+  max-height: 96px;
+  overflow-y: auto;
+}
+.sd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  background: var(--bg-blue-50, #eff6ff);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+}
+.sd-tag__label {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sd-tag__x {
+  flex-shrink: 0;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity .15s ease;
+}
+.sd-tag__x:hover {
+  opacity: 1;
+}
+.sd-tag--more {
+  background: var(--bg-slate-50, #f8fafc);
+  color: var(--text-slate-500, #64748b);
+  border-color: var(--border-slate-200, #e2e8f0);
+  font-weight: 600;
 }
 .sd-trigger.is-compact {
   height: 30px;

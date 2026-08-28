@@ -1,4 +1,6 @@
 'use client';
+
+import NoData from "@/components/common/NoData";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -375,9 +377,9 @@ export default function PayRunPanel() {
 
       <div className="pvr-table-wrap">
         {runs.length === 0 && !loading
-          ? <div style={{ padding: 48 }}><Empty description="No pay runs yet — create one to get started" /></div>
+          ? <div style={{ padding: 48 }}><NoData description="No pay runs yet — create one to get started" /></div>
           : <ZukvoLoadingOverlay loading={loading} message="">
-                  <Table rowKey="id" size="small" className="pvr-table" columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} />
+                  <Table rowKey="id" size="small" className="pvr-table" columns={runColumns} dataSource={runs} pagination={false} onRow={(r) => ({ onClick: () => openDetail(r), style: { cursor: 'pointer' } })} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData /> }} />
                   </ZukvoLoadingOverlay>}
       </div>
 
@@ -628,7 +630,7 @@ export default function PayRunPanel() {
                         {it.lopDeduction > 0 && <div className="pvr-bd-lop">LOP deduction: −{money(it.lopDeduction)} ({it.lopDays} day{it.lopDays === 1 ? '' : 's'})</div>}
                       </div>
                     ),
-                  }}
+                  }} locale={{ emptyText: <NoData /> }}
                 />
               </>
             )}

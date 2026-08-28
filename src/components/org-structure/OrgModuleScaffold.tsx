@@ -1,5 +1,6 @@
 "use client";
 
+import NoData from "@/components/common/NoData";
 import React, { useMemo, useState, useEffect } from "react";
 import { Table, Select, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -271,7 +272,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
                 size="small"
                 pagination={false}
                 scroll={{ x: "max-content" }}
-                locale={{ emptyText: emptyState }}
+                locale={{ emptyText: <NoData description={emptyState} /> }}
                 onRow={(record) =>
                   onRowClick
                     ? {
@@ -292,7 +293,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
             {loading ? (
               <div className="omx-grid-loading">Loading…</div>
             ) : total === 0 ? (
-              <div style={{ gridColumn: "1 / -1" }}>{emptyState}</div>
+              <div style={{ gridColumn: "1 / -1" }}><NoData description={emptyState} /></div>
             ) : (
               paged.map((record) => (
                 <React.Fragment key={record[rowKey]}>{renderCard(record)}</React.Fragment>

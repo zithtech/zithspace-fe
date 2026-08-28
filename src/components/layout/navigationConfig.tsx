@@ -773,7 +773,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Chrome Extension",
         icon: I(Chrome),
         path: "/settings/chrome-extension",
-        // The Zukvo browser extension. Testiez ships no extension.
+        // The Zukvo browser extension is used for Lead Management (LinkedIn importing)
+        requiredSubscriptionFeature: ["work_lead_management"],
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {

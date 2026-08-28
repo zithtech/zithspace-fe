@@ -3,12 +3,17 @@
 import React from "react";
 import { ConfigProvider, theme as antdTheme } from "antd";
 import { useTheme } from "@/context/ThemeContext";
+import { useProduct } from "@/context/ProductContext";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { theme } = useTheme();
+  // Accent follows the product. Everything else — greys, radii, shadows — is
+  // shared chrome and stays identical across both surfaces; only the colour
+  // carrying identity and primary action changes.
+  const { brand } = useProduct();
 
   return (
     <ConfigProvider
@@ -19,12 +24,12 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
             ? antdTheme.darkAlgorithm
             : antdTheme.defaultAlgorithm,
         token: {
-          // Primary colors (Vivid SaaS Blue)
-          colorPrimary: "#3B82F6",
+          // Primary colors (Vivid SaaS Blue on Zukvo; the Testiez blue on Testiez)
+          colorPrimary: brand.accent,
           colorSuccess: "#10B981",
           colorWarning: "#F59E0B",
           colorError: "#EF4444",
-          colorInfo: "#3B82F6",
+          colorInfo: brand.accent,
 
           // Backgrounds & Surface
           colorBgContainer: theme === "dark" ? "#0B0F1A" : "#ffffff",
@@ -80,7 +85,7 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
           Input: {
             borderRadius: 10,
             controlHeight: 38,
-            activeBorderColor: "#3B82F6",
+            activeBorderColor: brand.accent,
           },
           Modal: {
             borderRadiusLG: 16,

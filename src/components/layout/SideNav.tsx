@@ -1,11 +1,12 @@
 
 import { Layout, Menu, Button } from 'antd';
-import { NavItem, ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
+import { NavItem, ModuleType } from './navigationConfig';
 import { usePathname, useRouter } from 'next/navigation';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useProductNavigation } from '@/hooks/useProductNavigation';
 
 const { Sider } = Layout;
 
@@ -22,7 +23,9 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const [openKeys, setOpenKeys] = useState<string[]>([]);
     const { hasPermission, hasAnyPermission,user, hasAnySubscriptionFeature } = useAuth();
 
-    const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
+    const { modules: navigation } = useProductNavigation();
+
+    const currentModuleConfig = navigation.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
 
     const filterItemsByPermission = (navItems: NavItem[]): NavItem[] => {

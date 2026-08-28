@@ -19,7 +19,10 @@ const TenantUtils = {
         // On *.localhost, only trust the stored ID if it matches the URL subdomain
         const hostname = window.location.hostname;
         if (hostname.endsWith('.localhost') && hostname !== 'localhost') {
-          const urlSubdomain = hostname.split('.localhost')[0];
+          // First label only — the dev host for the Testiez surface is
+          // {tenant}.testiez.localhost, so splitting on '.localhost' would
+          // yield 'kabs.testiez' instead of 'kabs'.
+          const urlSubdomain = hostname.split('.')[0];
           if (tenant.subdomain !== urlSubdomain) return null;
         }
         return tenant.tenantId || null;
@@ -40,9 +43,12 @@ const TenantUtils = {
       return localStorage.getItem('devTenantSubdomain') || null;
     }
 
-    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005)
+    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005, and
+    // kabs.testiez.localhost:3005 for the Testiez surface). Take the FIRST
+    // label: the tenant slug is always leftmost, and anything between it and
+    // `.localhost` is the brand, not part of the slug.
     if (hostname.endsWith('.localhost')) {
-      const subdomain = hostname.split('.localhost')[0];
+      const subdomain = hostname.split('.')[0];
       if (subdomain && !['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
         return subdomain;
       }

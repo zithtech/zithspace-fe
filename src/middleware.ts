@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PRODUCT_HEADER, productFromHostname } from "@/lib/product";
 
 /**
  * Next.js Edge Middleware — runs before every request server-side.
@@ -49,18 +50,34 @@ function isPortalPath(pathname: string): boolean {
   return PORTAL_PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+/**
+ * Continue the request, stamping the resolved product on the REQUEST headers so
+ * the root layout can read it with headers() and hand it to ProductProvider.
+ *
+ * It has to be the request headers, not the response: resolving the product on
+ * the client instead would paint the full Zukvo navigation for one frame on a
+ * testiez.com load, showing a Testiez customer a brand they are not supposed to
+ * know about. Public paths get the header too — the login screen is the first
+ * thing a customer sees and it needs to be branded correctly.
+ */
+function nextWithProduct(request: NextRequest): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.set(PRODUCT_HEADER, productFromHostname(request.headers.get("host")));
+  return NextResponse.next({ request: { headers } });
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip all public/static paths
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    return nextWithProduct(request);
   }
 
   // Portal routes have their own client-side guard — never bounce them to
   // staff /login.
   if (isPortalPath(pathname)) {
-    return NextResponse.next();
+    return nextWithProduct(request);
   }
 
   // Check for access token in localStorage is not possible in Edge middleware.
@@ -83,7 +100,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  return nextWithProduct(request);
 }
 
 export const config = {

@@ -478,8 +478,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const hasAnySubscriptionFeature = (...features: string[]): boolean => {
     if (!user || !user.subscriptionFeatures) return true;
-    return features.some(k => 
-      user.subscriptionFeatures!.some(feature => feature === k || feature.startsWith(k + "_") || k.startsWith(feature + "_"))
+    // UPWARD ONLY — a granted descendant satisfies the requirement, but a
+    // granted parent does not grant its children. Products hold CORE rows as
+    // nav containers; treating them as grants defeated every item-level
+    // exclusion. Mirrors satisfies() in useProductNavigation and on the API.
+    return features.some(k =>
+      user.subscriptionFeatures!.some(feature => feature === k || feature.startsWith(k + "_"))
     );
   };
 

@@ -514,7 +514,7 @@ export default function OpeningManagementPage() {
                     </Card>
 
                     {/* Table */}
-                    <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'none' }}>
+                    <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: '1px solid var(--border-color)', overflow: 'visible', boxShadow: 'none' }}>
                         <Table
                             columns={columns}
                             dataSource={filteredOpenings}
@@ -805,6 +805,26 @@ export default function OpeningManagementPage() {
                 box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
                 width: 380px !important;
               }
+              
+              .custom-table .ant-table-thead > tr > th:first-child {
+                border-top-left-radius: 16px !important;
+              }
+              .custom-table .ant-table-thead > tr > th:last-child {
+                border-top-right-radius: 16px !important;
+              }
+              .custom-table .ant-table-pagination {
+                position: sticky !important;
+                bottom: 0 !important;
+                z-index: 20;
+                background: var(--bg-pure-white) !important;
+                margin: 0 !important;
+                padding: 16px 24px !important;
+                border-top: 1px solid var(--border-color) !important;
+                border-bottom-left-radius: 16px !important;
+                border-bottom-right-radius: 16px !important;
+                box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+              }
+
               .custom-table .ant-table-thead > tr > th {
                 background: var(--bg-table-header) !important;
                 color: var(--text-slate-500) !important;

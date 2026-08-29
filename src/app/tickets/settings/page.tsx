@@ -22,7 +22,13 @@ export default function ProjectsSettingsPage() {
 
   // Show loading spinner while authentication is being checked
   if (authLoading) {
-    return <ZukvoLoader message="Loading settings..." />;
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ZukvoLoader size="lg" message="Loading settings..." />
+        </div>
+      </MainLayout>
+    );
   }
 
   // Don't render if no permission

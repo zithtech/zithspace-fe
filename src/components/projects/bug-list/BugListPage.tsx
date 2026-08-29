@@ -67,7 +67,7 @@ import {
   PanelLeftOpen,
   ArrowRight,
 } from "lucide-react";
-import { useAllProjects } from "@/hooks/useGlobalData";
+import { useUserProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
 
@@ -261,7 +261,8 @@ export default function BugListPage() {
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const { data: projects, isLoading: projectsLoading } = useAllProjects();
+  // Only show projects the current user is a member of in the project switcher
+  const { data: projects, isLoading: projectsLoading } = useUserProjects();
   const { data: folders, isLoading: foldersLoading } = useBugFolders(selectedProjectId || undefined);
   const { data: projectSheets } = useProjectSheets(selectedProjectId);
   const { data: sheets } = useBugSheets(selectedFolderId);

@@ -495,6 +495,7 @@ export default function SprintPlanComponent() {
 
       handleCloseModal();
       loadData();
+      loadTableData();
     } catch (error: any) {
       console.error("Failed to save Sprint Plan:", error);
       const errorMessage = error?.message || "Failed to save Sprint Plan";
@@ -552,6 +553,7 @@ export default function SprintPlanComponent() {
       await ReleasePlanService.deleteReleasePlan(planId);
       message.success("Sprint Plan deleted successfully");
       loadData();
+      loadTableData();
     } catch (error) {
       console.error("Failed to delete Sprint Plan:", error);
     }
@@ -559,9 +561,21 @@ export default function SprintPlanComponent() {
 
   const handleStartSprint = async (plan: ReleasePlan) => {
     try {
+      const projectId = typeof plan.project === 'object' ? plan.project?.id : plan.project;
+      const hasActiveSprint = allPlans.some(p => {
+        const pid = typeof p.project === 'object' ? p.project?.id : p.project;
+        return pid === projectId && p.status === 'active' && p.id !== plan.id;
+      });
+
+      if (hasActiveSprint) {
+        message.info("Please complete the existing active sprint first, then activate this sprint.");
+        return;
+      }
+
       await ReleasePlanService.startSprint(plan.id);
       message.success("Sprint started successfully");
       loadData();
+      loadTableData();
     } catch (error: any) {
       const errorMessage = error?.message || "Failed to start sprint";
       message.error(`Error!, ${errorMessage}`);
@@ -581,6 +595,7 @@ export default function SprintPlanComponent() {
     setSprintCompletionModalOpen(false);
     setSelectedSprintId(null);
     loadData();
+    loadTableData();
     message.success("Sprint completed successfully");
   };
 
@@ -713,7 +728,7 @@ export default function SprintPlanComponent() {
   const [pageSize, setPageSize] = useState(20);
   useEffect(() => { setCurrentPage(1); }, [tableFilters, sortBy]);
 
-  const loadTableData = async () => {
+  async function loadTableData() {
     try {
       setLoading(true);
 
@@ -2056,9 +2071,18 @@ export default function SprintPlanComponent() {
                             </div>
 
                             <div className="sp-plist-actions">
-                              {record.status === 'planning' && canUpdateTicketPlan && (
-                                <Popconfirm title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
-                                  <Tooltip title="Start sprint">
+                              {canUpdateTicketPlan && record.status === 'planning' && (
+                                <ConfirmDialog
+                                  tone="primary"
+                                  icon={<RocketOutlined />}
+                                  title="Activate this sprint?"
+                                  description={`Start "${record.name}" now?`}
+                                  confirmText="Start"
+                                  cancelText="Cancel"
+                                  placement="bottomRight"
+                                  onConfirm={() => handleStartSprint(record)}
+                                >
+                                  <Tooltip title="Start Sprint">
                                     <Button
                                       type="text"
                                       size="small"
@@ -2068,7 +2092,7 @@ export default function SprintPlanComponent() {
                                       Start Sprint
                                     </Button>
                                   </Tooltip>
-                                </Popconfirm>
+                                </ConfirmDialog>
                               )}
                               {record.status === 'active' && canUpdateTicketPlan && (
                                 <Tooltip title="Complete sprint">
@@ -2290,10 +2314,22 @@ export default function SprintPlanComponent() {
                             {/* Actions */}
                             <span className="sp-tbl-td sp-tbl-col-actions">
                               {[
-                                record.status === 'planning' && canUpdateTicketPlan && (
-                                  <Popconfirm key="start" title="Activate this sprint?" onConfirm={() => handleStartSprint(record)}>
-                                    <Tooltip title="Start sprint"><Button type="text" size="small" icon={<RocketOutlined style={{ fontSize: 13, color: '#10b981' }} />} className="sp-plist-action-btn" /></Tooltip>
-                                  </Popconfirm>
+                                canUpdateTicketPlan && record.status === 'planning' && (
+                                  <ConfirmDialog
+                                    key="start"
+                                    tone="primary"
+                                    icon={<RocketOutlined />}
+                                    title="Activate this sprint?"
+                                    description={`Start "${record.name}" now?`}
+                                    confirmText="Start"
+                                    cancelText="Cancel"
+                                    placement="bottomRight"
+                                    onConfirm={() => handleStartSprint(record)}
+                                  >
+                                    <Tooltip title="Start Sprint">
+                                      <Button type="text" size="small" icon={<RocketOutlined style={{ fontSize: 13, color: '#10b981' }} />} className="sp-plist-action-btn" />
+                                    </Tooltip>
+                                  </ConfirmDialog>
                                 ),
                                 record.status === 'active' && canUpdateTicketPlan && (
                                   <Tooltip key="complete" title="Complete sprint"><Button type="text" size="small" icon={<CheckCircleOutlined style={{ fontSize: 13, color: '#3b82f6' }} />} onClick={() => handleCompleteSprint(record)} className="sp-plist-action-btn" /></Tooltip>
@@ -2672,12 +2708,21 @@ export default function SprintPlanComponent() {
                   </Button>
                 </Tooltip>
               )}
-              {drawerSprintPlan?.status === 'planning' && (
-                <Popconfirm title="Activate this sprint?" onConfirm={() => { handleStartSprint(drawerSprintPlan); setDrawerVisible(false); }}>
-                  <Button icon={<PlayCircleOutlined />} style={{ borderRadius: 8, fontWeight: 600, height: 36 }}>
+              {canUpdateTicketPlan && drawerSprintPlan?.status === 'planning' && (
+                <ConfirmDialog
+                  tone="primary"
+                  icon={<RocketOutlined />}
+                  title="Activate this sprint?"
+                  description={`Start "${drawerSprintPlan.name}" now?`}
+                  confirmText="Start"
+                  cancelText="Cancel"
+                  placement="bottomRight"
+                  onConfirm={async () => { await handleStartSprint(drawerSprintPlan); setDrawerVisible(false); }}
+                >
+                  <Button type="primary" style={{ background: '#10b981', borderColor: '#10b981' }} icon={<RocketOutlined />}>
                     Start Sprint
                   </Button>
-                </Popconfirm>
+                </ConfirmDialog>
               )}
               <Button icon={<EditOutlined />} onClick={() => { handleEdit(drawerSprintPlan!); setDrawerVisible(false); }} style={{ borderRadius: 8, fontWeight: 600, height: 36 }}>
                 Edit

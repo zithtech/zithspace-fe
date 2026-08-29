@@ -12,7 +12,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Button, Form, Input, Modal, Table, Tag, Tooltip, message } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
-import { Check, CheckCircle2, FileText, Pencil, Plus, Settings, Trash2, TrendingUp } from "lucide-react";
+import { Check, CheckCircle2, FileText, Pencil, Plus, Settings, Trash2, TrendingUp, Search } from "lucide-react";
 
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
@@ -148,6 +148,8 @@ export function ScopeOptionsTable({
 }: ScopeOptionsTableProps) {
   const meta = SCOPE_SETTING_CATEGORIES.find(c => c.key === category);
 
+  const [searchTerm, setSearchTerm] = useState("");
+
   /** How many scopes currently reference an option — shown before deleting. */
   const usageCountFor = (record: any) => {
     const field = FIELD_FOR[category];
@@ -162,6 +164,18 @@ export function ScopeOptionsTable({
     } catch { message.error("Failed to delete"); }
   };
 
+  const visible = items.filter(s => {
+    if (s.category !== category) return false;
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      return (
+        s.label.toLowerCase().includes(lowerSearch) ||
+        s.value.toLowerCase().includes(lowerSearch)
+      );
+    }
+    return true;
+  });
+
   return (
     <div className="sc-tablewrap">
       <div className="st-head">
@@ -169,14 +183,24 @@ export function ScopeOptionsTable({
           <div className="st-head__title">{SCOPE_CATEGORY_LABELS[category]} options</div>
           <div className="st-head__desc">{meta?.help}</div>
         </div>
-        {canManage && (
-          <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
-        )}
+        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Input
+            placeholder="Search…"
+            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: 200 }}
+            allowClear
+          />
+          {canManage && (
+            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
+          )}
+        </div>
       </div>
 
       <Table
         className="ts-table sc-table"
-        dataSource={items.filter(s => s.category === category)}
+        dataSource={visible}
         rowKey="id"
         pagination={false}
         scroll={{ x: "max-content" }}

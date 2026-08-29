@@ -38,7 +38,7 @@ import {
   BugOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2 } from "lucide-react";
+import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2, Search } from "lucide-react";
 import {
   MODULE_SETTINGS_STYLES,
   ModuleModal,
@@ -536,6 +536,18 @@ function ConfigSection({
 }: ConfigSectionProps) {
   const { canManageBugs } = usePermission();
   const lowerTitle = title.toLowerCase();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const visibleOptions = React.useMemo(() => {
+    if (!searchTerm) return options;
+    const lowerSearch = searchTerm.toLowerCase();
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(lowerSearch) ||
+        o.key.toLowerCase().includes(lowerSearch) ||
+        (o.description && o.description.toLowerCase().includes(lowerSearch))
+    );
+  }, [options, searchTerm]);
 
   const columns: ColumnsType<BugConfigOption> = [
     {
@@ -628,9 +640,19 @@ function ConfigSection({
           <div className="st-head__title">{title} options</div>
           <div className="st-head__desc">{description}</div>
         </div>
-        {canManageBugs && (
-          <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
-        )}
+        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Input
+            placeholder="Search…"
+            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: 200 }}
+            allowClear
+          />
+          {canManageBugs && (
+            <Button type="primary" size="small" icon={<Plus size={14} />} onClick={onCreate}>Add Option</Button>
+          )}
+        </div>
       </div>
 
       <Table
@@ -638,7 +660,7 @@ function ConfigSection({
         rowKey="id"
         size="middle"
         columns={columns}
-        dataSource={options}
+        dataSource={visibleOptions}
         pagination={false}
         scroll={{ x: "max-content" }}
         locale={{

@@ -2006,9 +2006,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         align: "right" as const,
         fixed: "right",
         render: (_: any, record: Ticket) => {
-          const handleShare = () => {
+          const handleShare = (e: any) => {
+            if (e?.domEvent) e.domEvent.stopPropagation();
+            if (e?.stopPropagation) e.stopPropagation();
             const url = `${window.location.origin}/public/tickets/${record.id}`;
             navigator.clipboard.writeText(url);
+            message.success('Public link copied to clipboard');
           };
 
           return (

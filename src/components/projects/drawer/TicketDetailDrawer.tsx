@@ -2009,6 +2009,11 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                     value={ticket.endDate}
                                     onSave={(val) => handleUpdate("endDate", val)}
                                     placeholder="Due By"
+                                    disabledDate={(current) => {
+                                      if (!current || !ticket.startDate) return false;
+                                      // Cannot be before start date
+                                      return current.isBefore(dayjs(ticket.startDate).startOf('day'));
+                                    }}
                                   />
                                   {ticket.endDate && (() => {
                                     const due = dayjs(ticket.endDate).startOf('day');

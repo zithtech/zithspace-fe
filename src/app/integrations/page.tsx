@@ -29,6 +29,7 @@ import JiraMigrationWizard from "@/components/jira/JiraMigrationWizard";
 import LinearMigrationWizard from "@/components/linear/LinearMigrationWizard";
 import { JiraService } from "@/services/jiraService";
 import { LinearService } from "@/services/linearService";
+import { MailService } from "@/services/mailService";
 import { api } from "@/lib/axios";
 import { NotionService, NotionStatus } from "@/services/notionService";
 import {
@@ -278,6 +279,11 @@ function IntegrationContent() {
     setLoading((prev) => ({ ...prev, [provider]: true }));
     try {
       await CalendarService.disconnect(provider);
+      try {
+        await MailService.disconnect(provider);
+      } catch (err: any) {
+        console.warn("Mail disconnect error:", err);
+      }
       messageApi.success(`${provider} disconnected successfully`);
       await fetchStatuses();
     } catch (error: any) {

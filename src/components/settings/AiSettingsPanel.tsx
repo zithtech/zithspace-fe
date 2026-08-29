@@ -205,14 +205,16 @@ export default function AiSettingsPanel({ canManage = true }: Props) {
         setMode(settings.mode);
         setIsActive(settings.isActive);
         if (settings.mode === 'platform') {
-          setModelKey(settings.model || platformCatalog[0]?.key);
+          const deepseekKey = platformCatalog.find(c => c.key.toLowerCase().includes('deepseek'))?.key;
+          setModelKey(settings.model || deepseekKey || platformCatalog[0]?.key);
         } else {
           setProvider((settings.provider as AiProviderKind) || 'openai_compatible');
           setModel(settings.model || '');
           setBaseUrl(settings.baseUrl || '');
         }
       } else {
-        setModelKey(platformCatalog[0]?.key);
+        const deepseekKey = platformCatalog.find(c => c.key.toLowerCase().includes('deepseek'))?.key;
+        setModelKey(deepseekKey || platformCatalog[0]?.key);
       }
     } catch (e: any) {
       messageApi.error(e?.message || 'Failed to load AI settings');

@@ -8,6 +8,7 @@
  */
 
 import React, { useMemo, useState } from "react";
+import { useProduct } from "@/context/ProductContext";
 import {
   Search,
   Check,
@@ -56,6 +57,7 @@ export interface DestinationStepProps {
 }
 
 export default function DestinationStep({
+
   count,
   onPick,
   onPickAi,
@@ -64,6 +66,7 @@ export default function DestinationStep({
   linearConnected,
   jiraConnected,
 }: DestinationStepProps) {
+  const { isTestiez } = useProduct();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
 
@@ -73,7 +76,7 @@ export default function DestinationStep({
 
   const connected = useMemo(() => {
     const all = [
-      { key: "zukvo", hay: "zukvo tickets native workspace" },
+      { key: "zukvo", hay: `zukvo testiez tickets native workspace` },
       { key: "linear", hay: "linear issues sync team project" },
       { key: "jira", hay: "jira issues sync epics team project" },
     ];
@@ -165,14 +168,14 @@ export default function DestinationStep({
                   plate
                   tone="blue"
                   badge={{ label: "Native", tone: "ok", dot: true }}
-                  name="Zukvo Tickets"
+                  name={isTestiez ? "Testiez Tickets" : "Zukvo Tickets"}
                   sub="Create tickets inside this workspace — no external account, no sync lag."
                   feats={[
                     "Instant, built-in tracking",
                     "Bug context carried over",
                     "Assignees, severity & due dates",
                   ]}
-                  cta="Continue to Zukvo"
+                  cta={isTestiez ? "Continue to Testiez" : "Continue to Zukvo"}
                   onClick={() => onPick("zukvo")}
                 />
               )}

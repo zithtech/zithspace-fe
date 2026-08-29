@@ -8,7 +8,7 @@ import {
   Input,
   Form,
   Switch,
-  notification,
+  App,
   Tooltip,
   Drawer,
   Popover,
@@ -58,7 +58,7 @@ export default function EmploymentTypesPage() {
   const [searchText, setSearchText] = useState("");
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const [api, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
@@ -103,12 +103,7 @@ export default function EmploymentTypesPage() {
   const handleDelete = async (id: string) => {
     const success = await deleteEmploymentType(id);
     if (success) {
-      api.success({
-        message: "Employment Type Removed",
-        description: "The employment type has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Employment Type Removed");
     }
   };
 
@@ -127,12 +122,7 @@ export default function EmploymentTypesPage() {
         : await createEmploymentType(payload);
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: `Employment Type ${editingKey ? "Updated" : "Added"}`,
-          description: `Employment type "${formValues.typeName}" was successfully saved.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        message.success(`Employment Type ${editingKey ? "Updated" : "Added"}`);
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -335,7 +325,7 @@ export default function EmploymentTypesPage() {
 
   return (
     <>
-      {contextHolder}
+      
       <div className="orgx-shell">
         <TimeTrackingHeader
             icon={<Briefcase size={20} color="#3b82f6" />}

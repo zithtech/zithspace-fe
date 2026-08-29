@@ -425,6 +425,7 @@ function CalendarPageContent() {
 }
 
 function EmptyState() {
+    const router = useRouter();
     return (
         <NoData description={
           <div className="pp-empty" style={{
@@ -460,7 +461,7 @@ function EmptyState() {
                 <Button
                     type="primary"
                     size="large"
-                    href="/integrations"
+                    onClick={() => router.push('/integrations')}
                     style={{
                         height: 44,
                         padding: '0 22px',
@@ -475,7 +476,7 @@ function EmptyState() {
                 </Button>
                 <Button
                     size="large"
-                    href="/integrations"
+                    onClick={() => router.push('/integrations')}
                     style={{
                         height: 44,
                         padding: '0 18px',

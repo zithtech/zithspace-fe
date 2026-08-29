@@ -33,14 +33,18 @@ export const useAllProjects = (options?: { enabled?: boolean }) => {
 };
 
 /**
- * Hook to fetch and cache user projects
+ * Hook to fetch and cache user projects.
+ * Always passes explicitOnly=true so only projects the user is a member of
+ * (or project manager of) are returned, regardless of their role/permissions.
+ * This is used for the project-switcher popup in TicketList.
  * Cached for 5 minutes (rarely changes)
  */
 export const useUserProjects = (options?: { enabled?: boolean }) => {
   const { user } = useAuth();
   return useQuery({
-    queryKey: [...globalDataKeys.projects, user?.tenantId, user?.id],
-    queryFn: () => ProjectService.getUserProjects(),
+    // Use a distinct cache key so this doesn't collide with the non-explicit variant
+    queryKey: [...globalDataKeys.projects, user?.tenantId, user?.id, 'explicit'],
+    queryFn: () => ProjectService.getUserProjects(true), // explicitOnly=true: always filter by membership
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     enabled: !!user && options?.enabled !== false,

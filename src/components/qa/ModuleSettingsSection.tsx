@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Form, Input, Modal, Table, Tooltip, message } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
-import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2, Search } from "lucide-react";
 
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
@@ -49,8 +49,7 @@ export interface ScopeLink {
 /** Module name (lowercased) → the scopes that name it. */
 export type ScopeModuleIndex = Record<string, ScopeLink[]>;
 
-export const MODULES_HELP =
-  "Modules group everything in QA Space — scopes, scenarios, cases and suites are all filed under one. Each belongs to a project.";
+export const MODULES_HELP = "Groups scopes, scenarios, cases, and suites by project.";
 
 const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 
@@ -226,6 +225,7 @@ export function ModulesTable({
 }: ModulesTableProps) {
   /** "" = every project. Modules are filed per project, so this is how you read the list. */
   const [projectFilter, setProjectFilter] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleDelete = async (id: string) => {
     try {
@@ -254,9 +254,19 @@ export function ModulesTable({
   }, [items]);
 
   const visible = useMemo(() => {
-    if (!projectFilter) return items;
-    return items.filter(m => (m.project_id || norm(m.project_name) || "__none__") === projectFilter);
-  }, [items, projectFilter]);
+    let result = items;
+    if (projectFilter) {
+      result = result.filter(m => (m.project_id || norm(m.project_name) || "__none__") === projectFilter);
+    }
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(m => 
+        m.module_name.toLowerCase().includes(lowerSearch) ||
+        (m.description && m.description.toLowerCase().includes(lowerSearch))
+      );
+    }
+    return result;
+  }, [items, projectFilter, searchTerm]);
 
   return (
     <div className="sc-tablewrap">
@@ -265,7 +275,15 @@ export function ModulesTable({
           <div className="st-head__title">Modules</div>
           <div className="st-head__desc">{MODULES_HELP}</div>
         </div>
-        <div className="st-head__actions">
+        <div className="st-head__actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Input
+            placeholder="Search modules…"
+            prefix={<Search size={14} style={{ color: "var(--text-slate-400)" }} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: 200 }}
+            allowClear
+          />
           {projectOptions.length > 2 && (
             <SearchableDropdown
               options={projectOptions}

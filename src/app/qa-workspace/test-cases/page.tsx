@@ -416,16 +416,16 @@ export default function TestCasesPage() {
   const moduleOptions =
     moduleMode === "open"
       ? openModules.map((mod: any) => ({
-          value: mod.id,
-          label: mod.module_name || mod.name || "Module",
-          description: mod.project_name || undefined,
-        }))
+        value: mod.id,
+        label: mod.module_name || mod.name || "Module",
+        description: mod.project_name || undefined,
+      }))
       : scopeModules.map(mod => ({
-          value: mod.id ?? `missing:${mod.name}`,
-          label: mod.name,
-          description: mod.id ? "From the selected scope" : "No longer in the module list",
-          disabled: !mod.id,
-        }));
+        value: mod.id ?? `missing:${mod.name}`,
+        label: mod.name,
+        description: mod.id ? "From the selected scope" : "No longer in the module list",
+        disabled: !mod.id,
+      }));
 
   const moduleHint =
     moduleMode === "locked"
@@ -509,7 +509,7 @@ export default function TestCasesPage() {
     { value: 'Active', label: 'Active' },
     { value: 'Deprecated', label: 'Deprecated' }
   ];
-  
+
   const automationFilterOptions = [
     { value: 'Manual', label: 'Manual' },
     { value: 'Automated', label: 'Automated' }
@@ -527,7 +527,7 @@ export default function TestCasesPage() {
   /* The rail offers mine-vs-all; the filter row still narrows to any other owner. */
   const isMyCases = !!user?.name && ownerFilter === user.name;
 
-  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) + 
+  const activeFilterCount = (searchTerm.trim() ? 1 : 0) + (moduleFilter ? 1 : 0) + (statusFilter ? 1 : 0) +
     (automationFilter ? 1 : 0) + (ownerFilter ? 1 : 0);
 
   const clearFilters = () => {
@@ -1310,133 +1310,133 @@ export default function TestCasesPage() {
                 />
               )
             ) : (
-            <>
-            {/* Stats — product-standard StatTile, clickable to filter */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {[
-                { key: undefined, label: "Total Test Cases", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Folder, sub: `${modules.length} modules covered` },
-                { key: 'ready', label: "Ready", value: readyCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round((readyCount / totalItems) * 100) : 0}% of all cases` },
-                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${totalItems - automatedCount} still manual` },
-                { key: undefined, label: "Module Cases", value: totalChildCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'nested under these cases' }
-              ].map((stat, i) => {
-                return (
-                  <div key={`${stat.label}-${i}`}>
-                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Filter row */}
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search cases, modules, features…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={moduleFilterOptions}
-                value={moduleFilter}
-                onChange={(v) => setModuleFilter(v)}
-                placeholder="All modules"
-                itemNoun="modules"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={ownerFilterOptions}
-                value={ownerFilter}
-                onChange={(v) => setOwnerFilter(v)}
-                placeholder="All owners"
-                itemNoun="owners"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={statusFilterOptions}
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v)}
-                placeholder="All statuses"
-                itemNoun="statuses"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={[{ value: 'Automated', label: 'Automated' }, { value: 'Manual', label: 'Manual' }]}
-                value={automationFilter}
-                onChange={(v) => setAutomationFilter(v)}
-                placeholder="Any automation"
-                hideAvatar
-                itemNoun="types"
-                className="sc-filters__field"
-              />
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
-
-            {/* Table or Grid — only the results blur, so the filters above stay
-                usable while a search refetches. */}
-            <ZukvoLoadingOverlay loading={loading} message="Loading test cases…" minHeight={loading ? 320 : undefined}>
-              {viewMode === 'list' ? (
-                <div className="sc-tablewrap">
-                  <Table
-                    className="ts-table sc-table"
-                    dataSource={pagedCases}
-                    columns={columns}
-                    rowKey="id"
-                    pagination={false}
-                    onRow={(record) => ({
-                      onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
-                    })}
-                    locale={{
-                      /* "No test cases yet" would be a lie while the first page is
-                         still in flight — hold the height instead. */
-                      emptyText: <NoData description={loading ? (
-                                                    <div style={{ minHeight: 240 }} />
-                                                  ) : (
-                                                    <div className="sc-empty">
-                                                      <Folder size={26} className="sc-empty__icon" />
-                                                      <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                                                      <p className="sc-empty__desc">
-                                                        {activeFilterCount > 0
-                                                          ? 'Try widening your search or clearing the filters.'
-                                                          : 'Create your first test case to start grouping testing scenarios.'}
-                                                      </p>
-                                                      {activeFilterCount > 0
-                                                        ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                                        : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                                                    </div>
-                                                  )} />
-                    }}
-                  />
+              <>
+                {/* Stats — product-standard StatTile, clickable to filter */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                  {[
+                    { key: undefined, label: "Total Test Cases", value: totalItems, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: Folder, sub: `${modules.length} modules covered` },
+                    { key: 'ready', label: "Ready", value: readyCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${totalItems ? Math.round((readyCount / totalItems) * 100) : 0}% of all cases` },
+                    { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${totalItems - automatedCount} still manual` },
+                    { key: undefined, label: "Module Cases", value: totalChildCases, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Target, sub: 'nested under these cases' }
+                  ].map((stat, i) => {
+                    return (
+                      <div key={`${stat.label}-${i}`}>
+                        <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="pp-grid">
-                  {loading ? null : filteredData.length === 0 ? (
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <NoData description={
-                        <div className="sc-empty pp-empty">
-                          <Folder size={26} className="sc-empty__icon pp-empty-orb" />
-                          <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
-                          <p className="sc-empty__desc pp-empty-sub">
-                            {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
-                          </p>
-                          {activeFilterCount > 0
-                            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
-                        </div>
-                      } />
-                    </div>
-                  ) : (
-                    pagedCases.map(r => renderCaseCard(r))
+
+                {/* Filter row */}
+                <div className="sc-filters">
+                  <Input
+                    className="sc-filters__search"
+                    placeholder="Search cases, modules, features…"
+                    prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    allowClear
+                  />
+                  <SearchableDropdown
+                    options={moduleFilterOptions}
+                    value={moduleFilter}
+                    onChange={(v) => setModuleFilter(v)}
+                    placeholder="All modules"
+                    itemNoun="modules"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={ownerFilterOptions}
+                    value={ownerFilter}
+                    onChange={(v) => setOwnerFilter(v)}
+                    placeholder="All owners"
+                    itemNoun="owners"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={statusFilterOptions}
+                    value={statusFilter}
+                    onChange={(v) => setStatusFilter(v)}
+                    placeholder="All statuses"
+                    itemNoun="statuses"
+                    className="sc-filters__field"
+                  />
+                  <SearchableDropdown
+                    options={[{ value: 'Automated', label: 'Automated' }, { value: 'Manual', label: 'Manual' }]}
+                    value={automationFilter}
+                    onChange={(v) => setAutomationFilter(v)}
+                    placeholder="Any automation"
+                    hideAvatar
+                    itemNoun="types"
+                    className="sc-filters__field"
+                  />
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="sc-clear" onClick={clearFilters}>
+                      Clear ({activeFilterCount})
+                    </button>
                   )}
                 </div>
-              )}
-            </ZukvoLoadingOverlay>
-            </>
+
+                {/* Table or Grid — only the results blur, so the filters above stay
+                usable while a search refetches. */}
+                <ZukvoLoadingOverlay loading={loading} message="Loading test cases…" minHeight={loading ? 320 : undefined}>
+                  {viewMode === 'list' ? (
+                    <div className="sc-tablewrap">
+                      <Table
+                        className="ts-table sc-table"
+                        dataSource={pagedCases}
+                        columns={columns}
+                        rowKey="id"
+                        pagination={false}
+                        onRow={(record) => ({
+                          onClick: () => router.push(`/qa-workspace/test-cases/${record.id}`),
+                        })}
+                        locale={{
+                          /* "No test cases yet" would be a lie while the first page is
+                             still in flight — hold the height instead. */
+                          emptyText: <NoData description={loading ? (
+                            <div style={{ minHeight: 240 }} />
+                          ) : (
+                            <div className="sc-empty">
+                              <Folder size={26} className="sc-empty__icon" />
+                              <p className="sc-empty__title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                              <p className="sc-empty__desc">
+                                {activeFilterCount > 0
+                                  ? 'Try widening your search or clearing the filters.'
+                                  : 'Create your first test case to start grouping testing scenarios.'}
+                              </p>
+                              {activeFilterCount > 0
+                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                            </div>
+                          )} />
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pp-grid">
+                      {loading ? null : filteredData.length === 0 ? (
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <NoData description={
+                            <div className="sc-empty pp-empty">
+                              <Folder size={26} className="sc-empty__icon pp-empty-orb" />
+                              <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No cases match these filters' : 'No test cases yet'}</p>
+                              <p className="sc-empty__desc pp-empty-sub">
+                                {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Create your first test case to get started.'}
+                              </p>
+                              {activeFilterCount > 0
+                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+                                : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>Create Test Case</Button>}
+                            </div>
+                          } />
+                        </div>
+                      ) : (
+                        pagedCases.map(r => renderCaseCard(r))
+                      )}
+                    </div>
+                  )}
+                </ZukvoLoadingOverlay>
+              </>
             )}
           </div>
 
@@ -1626,53 +1626,53 @@ export default function TestCasesPage() {
                 <div style={{ display: "grid", gridTemplateColumns: showModuleField ? "1fr 1fr" : "1fr", gap: 16 }}>
                   {/* Before a scope is chosen there is nothing to file the case under. */}
                   {showModuleField && (
-                  <Form.Item
-                    label={
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        Module (Business Module)
-                        {moduleMode === "locked" && (
-                          <span
-                            style={{
-                              padding: "1px 7px",
-                              borderRadius: 999,
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              letterSpacing: ".02em",
-                              color: "#3B82F6",
-                              background: "rgba(59,130,246,.09)",
-                              border: "1px solid rgba(59,130,246,.2)",
-                            }}
-                          >
-                            From scope
-                          </span>
-                        )}
-                      </span>
-                    }
-                    style={{ marginBottom: 0 }}
-                    extra={
-                      moduleHint ? (
-                        <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>{moduleHint}</span>
-                      ) : undefined
-                    }
-                  >
-                    <SearchableDropdown
-                      options={moduleOptions}
-                      value={formData.module_id}
-                      onChange={(val: any) => setFormData({ ...formData, module_id: val })}
-                      placeholder={moduleMode === "scoped" ? "Pick one of this scope’s modules" : "Select business module"}
-                      searchPlaceholder="Search modules…"
-                      itemNoun="modules"
-                      disabled={moduleMode === "locked"}
-                      allowClear={moduleMode !== "locked"}
-                      emptyComponent={
-                        <NoModulesEmpty
-                          projectName={selectedScope?.details?.product || selectedProjectName}
-                          onRefresh={fetchData}
-                        />
+                    <Form.Item
+                      label={
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          Module (Business Module)
+                          {moduleMode === "locked" && (
+                            <span
+                              style={{
+                                padding: "1px 7px",
+                                borderRadius: 999,
+                                fontSize: 10.5,
+                                fontWeight: 600,
+                                letterSpacing: ".02em",
+                                color: "#3B82F6",
+                                background: "rgba(59,130,246,.09)",
+                                border: "1px solid rgba(59,130,246,.2)",
+                              }}
+                            >
+                              From scope
+                            </span>
+                          )}
+                        </span>
                       }
-                      style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
-                    />
-                  </Form.Item>
+                      style={{ marginBottom: 0 }}
+                      extra={
+                        moduleHint ? (
+                          <span style={{ fontSize: 11.5, color: "var(--text-slate-400)" }}>{moduleHint}</span>
+                        ) : undefined
+                      }
+                    >
+                      <SearchableDropdown
+                        options={moduleOptions}
+                        value={formData.module_id}
+                        onChange={(val: any) => setFormData({ ...formData, module_id: val })}
+                        placeholder={moduleMode === "scoped" ? "Pick one of this scope’s modules" : "Select business module"}
+                        searchPlaceholder="Search modules…"
+                        itemNoun="modules"
+                        disabled={moduleMode === "locked"}
+                        allowClear={moduleMode !== "locked"}
+                        emptyComponent={
+                          <NoModulesEmpty
+                            projectName={selectedScope?.details?.product || selectedProjectName}
+                            onRefresh={fetchData}
+                          />
+                        }
+                        style={{ width: "100%", height: 40, padding: "6px 12px", borderRadius: 0 }}
+                      />
+                    </Form.Item>
                   )}
 
                   <Form.Item label="Feature (Feature Name)" style={{ marginBottom: 0 }}>

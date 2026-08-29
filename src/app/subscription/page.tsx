@@ -9,11 +9,14 @@ import { loadRazorpay } from '@/utils/loadRazorpay';
 import { paymentService } from '@/services/payment.service';
 import dayjs from 'dayjs';
 
+import { useProduct } from '@/context/ProductContext';
+
 const { Title, Text } = Typography;
 
 const SubscriptionPaywallContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { manifest } = useProduct();
   const [plans, setPlans] = useState<any[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
@@ -161,7 +164,7 @@ const SubscriptionPaywallContent = () => {
           </div>
           <Title level={2} className="!text-slate-900 dark:!text-white !font-bold tracking-tight !mb-4">
             {searchParams.get('reason') === 'new' 
-              ? 'Welcome to Zukvo!' 
+              ? `Welcome to ${manifest.name}!`
               : searchParams.get('reason') === 'limit'
               ? 'Upgrade Required'
               : 'Access Restricted'}

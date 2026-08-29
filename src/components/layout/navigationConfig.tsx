@@ -61,7 +61,6 @@ import {
   Building2,
   Settings,
   Chrome,
-  Workflow,
   Handshake,
   TrendingUp,
   KeyRound,
@@ -150,6 +149,7 @@ export interface ModuleConfig {
    * visibility; if absent, chip visibility falls back to requiredAnyPermission.
    */
   requiredChipAnyPermission?: string[];
+  /** Catalogue feature this module belongs to. Absent means always included. */
   requiredSubscriptionFeature?: string[];
 }
 
@@ -158,10 +158,17 @@ export interface StandalonePage {
   path: string;
   requiredPermission?: string;
   requiredAnyPermission?: string[];
+  /** Plan feature — what the tenant pays for. */
   requiredSubscriptionFeature?: string[];
 }
 
 export const STANDALONE_PAGES: StandalonePage[] = [
+  // Every user has a profile, whatever the tenant bought. It is reached from
+  // the avatar menu, not from the HRMS nav -- but /profile is one of HRMS's
+  // pathPrefixes, so without an entry here the route guard denies it to any
+  // tenant without the hrms feature and the avatar menu leads nowhere.
+  // No permission requirement: this is your own profile.
+  { path: "/profile" },
   { path: "/mail", requiredPermission: Permissions.MAIL_READ, requiredSubscriptionFeature: ["home_home_general_mail"] },
   { path: "/calendar", requiredPermission: Permissions.CALENDAR_READ, requiredSubscriptionFeature: ["home_home_general_calendar"] },
   { path: "/chat", requiredPermission: Permissions.CHAT_READ, requiredSubscriptionFeature: ["home_home_general_team_chat"] },
@@ -170,6 +177,31 @@ export const STANDALONE_PAGES: StandalonePage[] = [
   { path: "/bookmarks", requiredPermission: Permissions.BOOKMARK_READ, requiredSubscriptionFeature: ["home_home_general_bookmarks"] },
   { path: "/hotspot", requiredAnyPermission: [Permissions.HOTSPOT_OPENING_READ, Permissions.HOTSPOT_CIRCULATION_READ, Permissions.HOTSPOT_BLOG_READ], requiredSubscriptionFeature: ["home_home_general_hotspot"] },
 ];
+
+/**
+ * Routes that have NO nav entry but still belong to a catalogue feature.
+ *
+ * Without these they are reachable by URL on every surface: the denied list is
+ * built from the nav config, so a page the nav has never heard of is a page
+ * nothing can deny. Recruitment is the clearest case — REC_SUITE is a declared
+ * ModuleType with no module entry at all, so none of its paths were registered
+ * anywhere.
+ *
+ * Keys are admin_feature_catalog ids. Recruitment lives under hrms in the
+ * catalogue (hrms_candidate_pipeline, hrms_openings), so hrms covers it.
+ *
+ * Auth and public routes (/login, /onboard, /portal, /public, …) are absent on
+ * purpose: they must stay reachable everywhere.
+ */
+export const EXTRA_ROUTE_FEATURES: ReadonlyArray<readonly [string, string]> = [
+  ["/recruitment", "hrms"],
+  ["/recruitment-client", "hrms"],
+  ["/recruitment-settings", "hrms"],
+  ["/position-configuration", "hrms"],
+  // FINANCE prefixes cover /reimbursement and /reimbursement-v2 but not this.
+  ["/reimburseCreate", "finance"],
+];
+
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
   {
@@ -215,7 +247,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/escalations"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/api-hub", "/escalations"],
     defaultPath: "/tickets/select",
     requiredSubscriptionFeature: ["work"],
     requiredAnyPermission: [
@@ -424,6 +456,17 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
+        // API Hub — the endpoint catalog QA Space builds on. A sibling of QA
+        // Space rather than a page inside it: developers publish each API
+        // once, and QA reads the catalog from its own screens.
+        key: "/api-hub",
+        label: "API Hub",
+        icon: I(Plug2),
+        path: "/api-hub",
+        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
+        requiredAnyPermission: [Permissions.YAPIEZ_API_READ, Permissions.YAPIEZ_MANAGE],
+      },
+      {
         key: "projects-manage-group",
         label: "Projects",
         icon: I(FolderKanban),
@@ -449,6 +492,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "timesheet-group",
         label: "Timesheet",
         icon: I(CalendarClock),
+        // Not sold with Testiez — Time Tracking covers what a QA engagement
+        // needs; Timesheet is the HR-facing approval workflow.
         requiredSubscriptionFeature: ["work_timesheet"],
         requiredAnyPermission: [
           Permissions.TIMESHEET_READ,
@@ -750,6 +795,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Chrome Extension",
         icon: I(Chrome),
         path: "/settings/chrome-extension",
+        // The Zukvo browser extension is used for Lead Management (LinkedIn importing)
+        requiredSubscriptionFeature: ["work_lead_management"],
         requiredPermission: Permissions.SETTINGS_READ,
       },
       // {

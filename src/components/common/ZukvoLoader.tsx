@@ -23,7 +23,7 @@
 
 import React from "react";
 import Image from "next/image";
-import ZukvoMark from "@/assets/logo/Zukvologo.png";
+import { useProduct } from "@/context/ProductContext";
 
 export type ZukvoLoaderSize = "sm" | "md" | "lg";
 
@@ -50,6 +50,12 @@ export default function ZukvoLoader({
   fullscreen = false,
   className,
 }: ZukvoLoaderProps) {
+  // NOTE: the stride animation was choreographed around the Zukvo mark — a
+  // figure mid-run with a briefcase. Swapping in another product's mark keeps
+  // the brand correct (which is the bug worth fixing) but the motion no longer
+  // illustrates the artwork. Testiez likely wants its own loader motion; that
+  // is a design decision, not one to make silently here.
+  const { brand } = useProduct();
   const px = RUNNER_PX[size];
   const showScenery = size !== "sm";
   const fill = fullscreen === "viewport" ? " zl--viewport" : fullscreen ? " zl--fullscreen" : "";
@@ -77,7 +83,7 @@ export default function ZukvoLoader({
         )}
 
         <div className="zl__runner" aria-hidden="true">
-          <Image src={ZukvoMark} alt="" width={px} height={px} priority unoptimized />
+          <Image src={brand.mark} alt="" width={px} height={px} priority unoptimized />
         </div>
 
         <div className="zl__shadow" aria-hidden="true" />

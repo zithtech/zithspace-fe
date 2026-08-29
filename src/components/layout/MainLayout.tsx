@@ -7,7 +7,9 @@ import { Layout, App as AntApp, theme } from "antd";
 import ZukvoLoader from "../common/ZukvoLoader";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
-import { NAVIGATION_CONFIG, ModuleType, STANDALONE_PAGES } from "./navigationConfig";
+import { ModuleType } from "./navigationConfig";
+import { useProduct } from "@/context/ProductContext";
+import { useProductNavigation } from "@/hooks/useProductNavigation";
 import { useLayout } from "@/context/LayoutContext";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useDocumentSocketEvents } from "@/hooks/useDocumentSocketEvents";
@@ -31,7 +33,35 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
   const router = useRouter();
   const pathname = usePathname();
   const { collapsed, toggleCollapsed } = useLayout();
-  const [activeModule, setActiveModule] = useState<ModuleType>("WORK");
+  const { manifest } = useProduct();
+  const { modules: navigation, standalonePages, deniedPrefixes } = useProductNavigation();
+
+  /**
+   * Is this path excluded on this surface?
+   *
+   * Deny only when the path matches an excluded prefix AND no allowed one — an
+   * excluded prefix can legitimately be a prefix of something still reachable,
+   * and rejecting on the exclusion alone would lock people out of pages they do
+   * have. Presentation only: the API enforces the same boundary independently.
+   */
+  const isDeniedPath = React.useCallback(
+    (path: string): boolean => {
+      const matches = (p: string) => path === p || path.startsWith(`${p}/`);
+      if (!deniedPrefixes.some(matches)) return false;
+
+      const allowed =
+        navigation.some((m) => m.pathPrefixes.some(matches)) ||
+        standalonePages.some((p) => matches(p.path));
+      return !allowed;
+    },
+    [deniedPrefixes, navigation, standalonePages],
+  );
+
+  // "WORK" is the right landing module for Zukvo but may not exist on every
+  // surface, so seed from whatever this one actually renders first.
+  const [activeModule, setActiveModule] = useState<ModuleType>(
+    () => (navigation.find((m) => m.key === "WORK") ?? navigation[0])?.key ?? "HOME",
+  );
 
   // Global socket event listeners
   useTicketSocketEvents();
@@ -42,8 +72,15 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
     if (!pathname) return;
     if (authLoading || !user) return;
 
+    // Excluded on this surface — checked FIRST and independently of the module
+    // lookup below, which only ever sees routes this surface still has.
+    if (isDeniedPath(pathname)) {
+      router.replace(manifest.homeRoute);
+      return;
+    }
+
     // Find module that matches the path prefix
-    const foundModule = NAVIGATION_CONFIG.find((module) =>
+    const foundModule = navigation.find((module) =>
       module.pathPrefixes.some((prefix) => pathname.startsWith(prefix)),
     );
 
@@ -61,8 +98,8 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
 
       const hasAccess = hasSubAccess && hasPermAccess;
 
-      if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
-        router.push("/dashboard");
+      if (foundModule.key !== "HOME" && !hasAccess && pathname !== manifest.homeRoute) {
+        router.push(manifest.homeRoute);
         return;
       }
 
@@ -96,14 +133,14 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       };
 
       if (!checkItemAccess(foundModule.items)) {
-        router.push("/dashboard");
+        router.push(manifest.homeRoute);
         return;
       }
 
       setActiveModule(foundModule.key);
     } else {
       // Check standalone pages
-      const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
+      const foundStandalone = standalonePages.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
         const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
           ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
@@ -115,12 +152,12 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
             : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
         
         if (!hasSubAccess || !hasPermAccess) {
-          router.push("/dashboard");
+          router.push(manifest.homeRoute);
           return;
         }
       }
     }
-  }, [pathname, user, authLoading, hasPermission, hasAnyPermission, hasAnySubscriptionFeature]);
+  }, [pathname, user, authLoading, hasPermission, hasAnyPermission, hasAnySubscriptionFeature, navigation, manifest, standalonePages, isDeniedPath, router]);
 
   // Listen for service worker messages to play custom notification sounds in-tab
   useEffect(() => {
@@ -201,7 +238,14 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
   // Synchronous permission check to prevent flash of unauthorized content
   let isAuthorized = true;
   if (user && pathname) {
-    const foundModule = NAVIGATION_CONFIG.find((module) =>
+    // Surface exclusion, checked synchronously for the same reason the rest of
+    // this block exists: the effect above redirects, but not before React has
+    // already painted a frame of a page this surface should not show.
+    if (isDeniedPath(pathname)) {
+      isAuthorized = false;
+    }
+
+    const foundModule = navigation.find((module) =>
       module.pathPrefixes.some((prefix) => pathname.startsWith(prefix)),
     );
 
@@ -218,7 +262,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
 
       const hasAccess = hasSubAccess && hasPermAccess;
 
-      if (foundModule.key !== "HOME" && !hasAccess && pathname !== "/dashboard") {
+      if (foundModule.key !== "HOME" && !hasAccess && pathname !== manifest.homeRoute) {
         isAuthorized = false;
       }
 
@@ -256,7 +300,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       }
     } else {
       // Check standalone pages
-      const foundStandalone = STANDALONE_PAGES.find(p => pathname.startsWith(p.path));
+      const foundStandalone = standalonePages.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
         const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
           ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)

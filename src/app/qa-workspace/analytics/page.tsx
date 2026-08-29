@@ -106,6 +106,7 @@ function AnalyticsContent() {
   const [asTable, setAsTable] = useState(false);
   const [loading, setLoading] = useState(true);
 
+
   const [options, setOptions] = useState<FilterOptions | null>(null);
   const [range, setRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>([
     dayjs().subtract(90, "day"),

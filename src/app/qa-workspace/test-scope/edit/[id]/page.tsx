@@ -753,6 +753,12 @@ export default function EditScopePage() {
   const skipDirtyRef = useRef(false);
   const saveRef = useRef<() => void>(() => { });
 
+  const [moreModalState, setMoreModalState] = useState<{
+    visible: boolean;
+    title: string;
+    items: { name: string; description?: string; badge?: React.ReactNode }[];
+  }>({ visible: false, title: '', items: [] });
+
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
     if (skipDirtyRef.current) { skipDirtyRef.current = false; return; }
@@ -1123,20 +1129,20 @@ export default function EditScopePage() {
   const handleCorrectAcGrammar = async () => {
     const criteria = formData.details.acceptanceCriteria || [];
     if (criteria.length === 0) return;
-    
+
     setIsCorrectingAcGrammar(true);
     try {
       const combinedText = criteria.map((c: any, i: number) => `${i + 1}. ${typeof c === 'string' ? c : c.text}`).join('\n');
       const res: any = await axios.post('/api/v2/qa/test-scopes/enhance-text', { text: combinedText });
-      
+
       const correctedText = typeof res === 'string' ? res : (res?.text || res?.data?.text || res?.data?.data?.text);
-      
+
       if (correctedText) {
         const lines = correctedText.split('\n');
         const updatedCriteria = lines
           .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
           .filter(Boolean);
-        
+
         updateDetail('acceptanceCriteria', updatedCriteria);
         message.success('Grammar corrected successfully');
       } else {
@@ -1247,8 +1253,8 @@ export default function EditScopePage() {
   const isZaiGenerating = (field: ZaiField | null) =>
     field === 'inScope' ? generatingInScope
       : field === 'outScope' ? generatingOutScope
-      : field === 'description' ? generatingDescription
-        : false;
+        : field === 'description' ? generatingDescription
+          : false;
 
   const handleGenerateScopeWithAI = (
     field: ZaiField,
@@ -2607,42 +2613,42 @@ export default function EditScopePage() {
                         ))}
                       </div>
                       <div className="ts-prd__control">
-                      {prdMode === 'document' ? (
-                        <SearchableDropdown
-                          options={hubDocs.map((d: any) => ({
-                            value: String(d.id),
-                            label: d.title || 'Untitled document',
-                            description: [d.hub_name, d.updated_at ? `updated ${new Date(d.updated_at).toLocaleDateString()}` : null].filter(Boolean).join(' \u00b7 '),
-                          }))}
-                          value={formData.details.reqReferences?.prdDocumentId || undefined}
-                          onChange={(v: any) => {
-                            const doc = hubDocs.find((d: any) => String(d.id) === v);
-                            updateReqRef('prdDocumentId', v || '');
-                            updateReqRef('prdDocumentTitle', doc?.title || '');
-                            // Keep the link field in step so exports and the
-                            // detail view still have somewhere to point.
-                            updateReqRef('prd', v ? `/documenthub/${v}` : '');
-                          }}
-                          loading={loadingHubDocs}
-                          placeholder={hubDocs.length ? 'Search documents\u2026' : 'No documents in the hub yet'}
-                          itemNoun="documents"
-                          hideAvatar
-                          width={460}
-                          style={{ width: '100%' }}
-                        />
-                      ) : (
-                        <Input
-                          placeholder="Paste PRD link"
-                          value={formData.details.reqReferences?.prd}
-                          onChange={e => {
-                            updateReqRef('prd', e.target.value);
-                            updateReqRef('prdDocumentId', '');
-                            updateReqRef('prdDocumentTitle', '');
-                          }}
-                          prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
-                          suffix={linkFieldSuffix(formData.details.reqReferences?.prd)}
-                        />
-                      )}
+                        {prdMode === 'document' ? (
+                          <SearchableDropdown
+                            options={hubDocs.map((d: any) => ({
+                              value: String(d.id),
+                              label: d.title || 'Untitled document',
+                              description: [d.hub_name, d.updated_at ? `updated ${new Date(d.updated_at).toLocaleDateString()}` : null].filter(Boolean).join(' \u00b7 '),
+                            }))}
+                            value={formData.details.reqReferences?.prdDocumentId || undefined}
+                            onChange={(v: any) => {
+                              const doc = hubDocs.find((d: any) => String(d.id) === v);
+                              updateReqRef('prdDocumentId', v || '');
+                              updateReqRef('prdDocumentTitle', doc?.title || '');
+                              // Keep the link field in step so exports and the
+                              // detail view still have somewhere to point.
+                              updateReqRef('prd', v ? `/documenthub/${v}` : '');
+                            }}
+                            loading={loadingHubDocs}
+                            placeholder={hubDocs.length ? 'Search documents\u2026' : 'No documents in the hub yet'}
+                            itemNoun="documents"
+                            hideAvatar
+                            width={460}
+                            style={{ width: '100%' }}
+                          />
+                        ) : (
+                          <Input
+                            placeholder="Paste PRD link"
+                            value={formData.details.reqReferences?.prd}
+                            onChange={e => {
+                              updateReqRef('prd', e.target.value);
+                              updateReqRef('prdDocumentId', '');
+                              updateReqRef('prdDocumentTitle', '');
+                            }}
+                            prefix={<Link2 size={14} style={{ color: 'var(--ts-text-3)' }} />}
+                            suffix={linkFieldSuffix(formData.details.reqReferences?.prd)}
+                          />
+                        )}
                       </div>
                     </div>
                   </Field>
@@ -2753,107 +2759,107 @@ export default function EditScopePage() {
                         discovered in the first place. */}
                     {hasPrime && (
                       prdDocumentId ? (
-                      <Popover
-                        open={prdPopoverOpen}
-                        onOpenChange={(o) => {
-                          setPrdPopoverOpen(o);
-                          if (o) setPrdContext('');
-                        }}
-                        trigger="click"
-                        placement="bottomRight"
-                        arrow={false}
-                        overlayClassName="zprd-pop"
-                        content={
-                          <div className="zprd" onClick={(e) => e.stopPropagation()}>
-                            <div className="zprd__head">
-                              <span className="zprd__orb"><Sparkles size={13} /></span>
-                              <div className="zprd__headtext">
-                                <div className="zprd__title">Create with Zai using PRD</div>
-                                <div className="zprd__doc" title={prdDocumentTitle || undefined}>
-                                  <FileText size={11} />
-                                  <span>{prdDocumentTitle || 'Linked document'}</span>
+                        <Popover
+                          open={prdPopoverOpen}
+                          onOpenChange={(o) => {
+                            setPrdPopoverOpen(o);
+                            if (o) setPrdContext('');
+                          }}
+                          trigger="click"
+                          placement="bottomRight"
+                          arrow={false}
+                          overlayClassName="zprd-pop"
+                          content={
+                            <div className="zprd" onClick={(e) => e.stopPropagation()}>
+                              <div className="zprd__head">
+                                <span className="zprd__orb"><Sparkles size={13} /></span>
+                                <div className="zprd__headtext">
+                                  <div className="zprd__title">Create with Zai using PRD</div>
+                                  <div className="zprd__doc" title={prdDocumentTitle || undefined}>
+                                    <FileText size={11} />
+                                    <span>{prdDocumentTitle || 'Linked document'}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="zprd__label">
-                              Add context <span className="zprd__opt">optional</span>
-                            </div>
-                            <Input.TextArea
-                              className="zprd__ta"
-                              rows={3}
-                              value={prdContext}
-                              onChange={(e) => setPrdContext(e.target.value)}
-                              placeholder="e.g. focus on the checkout flow, skip the admin screens"
-                              onPressEnter={(e) => {
-                                // Enter sends, Shift+Enter keeps writing.
-                                if (!e.shiftKey) {
-                                  e.preventDefault();
-                                  handleGenerateFromPrd();
-                                }
-                              }}
-                            />
+                              <div className="zprd__label">
+                                Add context <span className="zprd__opt">optional</span>
+                              </div>
+                              <Input.TextArea
+                                className="zprd__ta"
+                                rows={3}
+                                value={prdContext}
+                                onChange={(e) => setPrdContext(e.target.value)}
+                                placeholder="e.g. focus on the checkout flow, skip the admin screens"
+                                onPressEnter={(e) => {
+                                  // Enter sends, Shift+Enter keeps writing.
+                                  if (!e.shiftKey) {
+                                    e.preventDefault();
+                                    handleGenerateFromPrd();
+                                  }
+                                }}
+                              />
 
-                            <div className="zprd__foot">
-                              <span className="zprd__hint">Zai reads the PRD — this only steers it.</span>
-                              <Button
-                                type="primary"
-                                size="small"
-                                loading={generatingInScope}
-                                icon={!generatingInScope ? <Sparkles size={12} /> : null}
-                                onClick={handleGenerateFromPrd}
-                              >
-                                Generate
-                              </Button>
+                              <div className="zprd__foot">
+                                <span className="zprd__hint">Zai reads the PRD — this only steers it.</span>
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  loading={generatingInScope}
+                                  icon={!generatingInScope ? <Sparkles size={12} /> : null}
+                                  onClick={handleGenerateFromPrd}
+                                >
+                                  Generate
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="ts-minibtn ts-minibtn--ai"
-                          disabled={generatingInScope}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          }
                         >
-                          <FileText size={12} /> {generatingInScope ? 'Generating…' : 'Create with Zai using PRD'}
-                        </button>
-                      </Popover>
-                    ) : (
-                      <Tooltip
-                        placement="bottomRight"
-                        overlayClassName="zprd-tip"
-                        title={
-                          <div className="zprd-tip__in">
-                            <div className="zprd-tip__title">
-                              <span className="zprd-tip__icon"><FileText size={12} /></span>
-                              Needs a PRD from the Document Hub
-                            </div>
-                            <p className="zprd-tip__body">
-                              Zai drafts this section from the document itself. Link one here to turn it on:
-                            </p>
-                            <div className="zprd-tip__path">
-                              <span className="zprd-tip__step">Requirement References</span>
-                              <span className="zprd-tip__sep">›</span>
-                              <span className="zprd-tip__step">PRD</span>
-                              <span className="zprd-tip__sep">›</span>
-                              <span className="zprd-tip__step zprd-tip__step--goal">Document Hub</span>
-                            </div>
-                            <p className="zprd-tip__note">
-                              <Link2 size={11} />
-                              <span>A pasted link won&apos;t do — Zai can only read a document stored in the hub.</span>
-                            </p>
-                          </div>
-                        }
-                      >
-                        {/* A disabled button fires no mouse events, so the tooltip
-                            needs a wrapper that is still interactive. */}
-                        <span style={{ display: 'inline-flex' }}>
-                          <button type="button" className="ts-minibtn ts-minibtn--ai" disabled>
-                            <FileText size={12} /> Create with Zai using PRD
+                          <button
+                            type="button"
+                            className="ts-minibtn ts-minibtn--ai"
+                            disabled={generatingInScope}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          >
+                            <FileText size={12} /> {generatingInScope ? 'Generating…' : 'Create with Zai using PRD'}
                           </button>
-                        </span>
-                      </Tooltip>
-                    ))}
+                        </Popover>
+                      ) : (
+                        <Tooltip
+                          placement="bottomRight"
+                          overlayClassName="zprd-tip"
+                          title={
+                            <div className="zprd-tip__in">
+                              <div className="zprd-tip__title">
+                                <span className="zprd-tip__icon"><FileText size={12} /></span>
+                                Needs a PRD from the Document Hub
+                              </div>
+                              <p className="zprd-tip__body">
+                                Zai drafts this section from the document itself. Link one here to turn it on:
+                              </p>
+                              <div className="zprd-tip__path">
+                                <span className="zprd-tip__step">Requirement References</span>
+                                <span className="zprd-tip__sep">›</span>
+                                <span className="zprd-tip__step">PRD</span>
+                                <span className="zprd-tip__sep">›</span>
+                                <span className="zprd-tip__step zprd-tip__step--goal">Document Hub</span>
+                              </div>
+                              <p className="zprd-tip__note">
+                                <Link2 size={11} />
+                                <span>A pasted link won&apos;t do — Zai can only read a document stored in the hub.</span>
+                              </p>
+                            </div>
+                          }
+                        >
+                          {/* A disabled button fires no mouse events, so the tooltip
+                            needs a wrapper that is still interactive. */}
+                          <span style={{ display: 'inline-flex' }}>
+                            <button type="button" className="ts-minibtn ts-minibtn--ai" disabled>
+                              <FileText size={12} /> Create with Zai using PRD
+                            </button>
+                          </span>
+                        </Tooltip>
+                      ))}
 
                     {hasPrime && (() => {
                       const scopeVal = formData.details.inScope || '';
@@ -3123,9 +3129,9 @@ export default function EditScopePage() {
                       okText="Yes"
                       cancelText="No"
                     >
-                      <Button 
-                        size="small" 
-                        type="default" 
+                      <Button
+                        size="small"
+                        type="default"
                         icon={<CheckCircleOutlined />}
                         loading={isCorrectingAcGrammar}
                       >
@@ -3241,76 +3247,76 @@ export default function EditScopePage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
                   {SHOW_BUG_AND_TICKET_LINKS && (
-                  <Field label="Linked Bug Sheets">
-                    <SearchableDropdown
-                      options={bugSheets.map(b => ({
-                        label: b.name,
-                        value: String(b.id),
-                        description: b.folderName || 'Bug Sheet',
-                        badge: <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>B</span>
-                      }))}
-                      value={formData.details.linkedItems?.bugSheets?.link ? String(formData.details.linkedItems.bugSheets.link) : undefined}
-                      onChange={v => {
-                        if (!v) {
-                          updateLinkedItem('bugSheets', 'name', '');
-                          updateLinkedItem('bugSheets', 'link', '');
-                        } else {
-                          const selected = bugSheets.find(b => String(b.id) === v);
-                          if (selected) {
-                            updateLinkedItem('bugSheets', 'name', selected.name);
-                            updateLinkedItem('bugSheets', 'link', String(selected.id));
+                    <Field label="Linked Bug Sheets">
+                      <SearchableDropdown
+                        options={bugSheets.map(b => ({
+                          label: b.name,
+                          value: String(b.id),
+                          description: b.folderName || 'Bug Sheet',
+                          badge: <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>B</span>
+                        }))}
+                        value={formData.details.linkedItems?.bugSheets?.link ? String(formData.details.linkedItems.bugSheets.link) : undefined}
+                        onChange={v => {
+                          if (!v) {
+                            updateLinkedItem('bugSheets', 'name', '');
+                            updateLinkedItem('bugSheets', 'link', '');
+                          } else {
+                            const selected = bugSheets.find(b => String(b.id) === v);
+                            if (selected) {
+                              updateLinkedItem('bugSheets', 'name', selected.name);
+                              updateLinkedItem('bugSheets', 'link', String(selected.id));
+                            }
                           }
-                        }
-                      }}
-                      onSearch={fetchBugSheetsSearch}
-                      loading={loadingBugSheets}
-                      placeholder="Search Bug Sheets…"
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                        }}
+                        onSearch={fetchBugSheetsSearch}
+                        loading={loadingBugSheets}
+                        placeholder="Search Bug Sheets…"
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
                   )}
 
                   {SHOW_BUG_AND_TICKET_LINKS && (
-                  <Field label="Linked Development Tickets">
-                    <SearchableDropdown
-                      mode="multiple"
-                      freeText
-                      options={devTickets.map(t => ({
-                        label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
-                        value: String(t.id),
-                        description: t.status || '',
-                        badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
-                      }))}
-                      value={
-                        Array.isArray(formData.details.linkedItems?.devTickets)
-                          ? formData.details.linkedItems.devTickets.map((t: any) => String(t.link))
-                          : formData.details.linkedItems?.devTickets?.link
-                            ? [String(formData.details.linkedItems.devTickets.link)]
-                            : undefined
-                      }
-                      onChange={(v: string[]) => {
-                        if (!v || v.length === 0) {
-                          updateLinkedItemArray('devTickets', []);
-                        } else {
-                          const updated = v.map((idVal) => {
-                            const selected = devTickets.find(t => String(t.id) === idVal);
-                            if (selected) {
-                              return {
-                                name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
-                                link: String(selected.id)
-                              };
-                            }
-                            return { name: idVal, link: idVal };
-                          });
-                          updateLinkedItemArray('devTickets', updated);
+                    <Field label="Linked Development Tickets">
+                      <SearchableDropdown
+                        mode="multiple"
+                        freeText
+                        options={devTickets.map(t => ({
+                          label: `${t.ticketNumber || t.id.substring(0, 8)} - ${t.title}`,
+                          value: String(t.id),
+                          description: t.status || '',
+                          badge: <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>T</span>
+                        }))}
+                        value={
+                          Array.isArray(formData.details.linkedItems?.devTickets)
+                            ? formData.details.linkedItems.devTickets.map((t: any) => String(t.link))
+                            : formData.details.linkedItems?.devTickets?.link
+                              ? [String(formData.details.linkedItems.devTickets.link)]
+                              : undefined
                         }
-                      }}
-                      onSearch={fetchDevTicketsSearch}
-                      loading={loadingDevTickets}
-                      placeholder="Search Dev Tickets…"
-                      style={{ width: '100%' }}
-                    />
-                  </Field>
+                        onChange={(v: string[]) => {
+                          if (!v || v.length === 0) {
+                            updateLinkedItemArray('devTickets', []);
+                          } else {
+                            const updated = v.map((idVal) => {
+                              const selected = devTickets.find(t => String(t.id) === idVal);
+                              if (selected) {
+                                return {
+                                  name: `${selected.ticketNumber || selected.id.substring(0, 8)} - ${selected.title}`,
+                                  link: String(selected.id)
+                                };
+                              }
+                              return { name: idVal, link: idVal };
+                            });
+                            updateLinkedItemArray('devTickets', updated);
+                          }
+                        }}
+                        onSearch={fetchDevTicketsSearch}
+                        loading={loadingDevTickets}
+                        placeholder="Search Dev Tickets…"
+                        style={{ width: '100%' }}
+                      />
+                    </Field>
                   )}
 
                   <Field label="Linked Sprints">
@@ -3420,6 +3426,25 @@ export default function EditScopePage() {
                          scenario and case count need the room. */
                       width={560}
                       style={{ width: '100%' }}
+                      onMoreClick={() => {
+                        const allIds = asLinkedIds(formData.details.linkedItems?.testSuites) || [];
+                        const hiddenIds = allIds.slice(6);
+                        const hiddenItems = hiddenIds.map(id => {
+                          const hit = testSuites.find((s: any) => String(s.id) === id);
+                          return {
+                            name: hit?.suite_name || 'Untitled suite',
+                            description: [
+                              hit?.parent_title,
+                              hit?.module_name && hit?.module_name !== 'Unassigned' ? hit?.module_name : null,
+                              `${hit?.case_count ?? 0} case${Number(hit?.case_count) === 1 ? '' : 's'}`,
+                            ].filter(Boolean).join(' · '),
+                            badge: (
+                              <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TS</span>
+                            ),
+                          };
+                        });
+                        setMoreModalState({ visible: true, title: "Additional Linked Test Suites", items: hiddenItems });
+                      }}
                     />
                   </Field>
 
@@ -3462,6 +3487,27 @@ export default function EditScopePage() {
                       maxTagCount={6}
                       width={560}
                       style={{ width: '100%' }}
+                      onMoreClick={() => {
+                        const allIds = asLinkedIds(formData.details.linkedItems?.testRuns) || [];
+                        const hiddenIds = allIds.slice(6);
+                        const hiddenItems = hiddenIds.map(id => {
+                          const r = testRuns.find((r: any) => String(r.id) === id);
+                          return {
+                            name: r?.run_name || 'Untitled run',
+                            description: [
+                              r?.suite_name,
+                              r?.execution_type,
+                              r?.total_cases !== undefined
+                                ? `${r?.passed_count ?? 0}/${r?.total_cases ?? 0} passed`
+                                : null,
+                            ].filter(Boolean).join(' · '),
+                            badge: (
+                              <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>TR</span>
+                            ),
+                          };
+                        });
+                        setMoreModalState({ visible: true, title: "Additional Linked Test Runs", items: hiddenItems });
+                      }}
                     />
                   </Field>
                 </div>
@@ -3826,6 +3872,30 @@ export default function EditScopePage() {
               </>
             )}
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title={moreModalState.title}
+        open={moreModalState.visible}
+        onCancel={() => setMoreModalState({ ...moreModalState, visible: false })}
+        footer={null}
+        width={400}
+      >
+        <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: '12px 0' }}>
+          {moreModalState.items.map((item, idx) => (
+            <div key={idx} style={{ padding: '12px', borderBottom: '1px solid var(--border-slate-100)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {item.badge}
+                <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text-slate-900)' }}>{item.name}</div>
+              </div>
+              {item.description && (
+                <div style={{ fontSize: 12, color: 'var(--text-slate-500)', marginLeft: item.badge ? 32 : 0 }}>
+                  {item.description}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </Modal>
     </MainLayout>

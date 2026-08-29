@@ -104,7 +104,7 @@ import {
 } from "@/utils/ticketUtils";
 import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket, useAllTicketTags } from "@/hooks/useTickets";
-import { useAllProjects, useProjectMembers } from "@/hooks/useGlobalData";
+import { useAllProjects, useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -495,7 +495,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
   // Use cached global data hooks
-  const { data: projects = [], isLoading: projectsLoading } = useAllProjects();
+  // Only show projects the current user is a member of in the project switcher
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: members = [], isLoading: membersLoading } = useProjectMembers(projectId);
 
   // Pagination state

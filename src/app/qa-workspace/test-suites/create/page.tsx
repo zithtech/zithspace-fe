@@ -599,6 +599,7 @@ function CreateTestSuiteContent() {
     try {
       setSaving(true);
       const payload = { ...formData, module_id: chosenModuleId };
+      console.log("PAYLOAD BEING SENT TO BACKEND:", payload);
       if (editingId) {
         await axios.put(`/api/v2/qa/suites/${editingId}`, payload);
         message.success("Test Suite updated successfully");
@@ -1342,17 +1343,17 @@ function CreateTestSuiteContent() {
                           const isFilteredType =
                             !!typeFilter && (tc.test_type || "").toLowerCase() === typeFilter.toLowerCase();
                           return (
-                            <label key={tc.id} className={`lk-item${checked ? " is-on" : ""}`}>
+                            <div key={tc.id} className={`lk-item${checked ? " is-on" : ""}`} onClick={() => {
+                              const current: string[] = formData.test_case_ids || [];
+                              patch({
+                                test_case_ids: !checked
+                                  ? [...current, tc.id]
+                                  : current.filter((id: string) => id !== tc.id),
+                              });
+                            }}>
                               <Checkbox
                                 checked={checked}
-                                onChange={(e) => {
-                                  const current: string[] = formData.test_case_ids || [];
-                                  patch({
-                                    test_case_ids: e.target.checked
-                                      ? [...current, tc.id]
-                                      : current.filter((id: string) => id !== tc.id),
-                                  });
-                                }}
+                                // The onChange is handled by the parent div's onClick to make the whole row clickable reliably
                               />
                               <span className="lk-item__body">
                                 <span className="lk-item__top">
@@ -1368,7 +1369,7 @@ function CreateTestSuiteContent() {
                                   {tc.status && <span className="lk-chip">{tc.status}</span>}
                                 </span>
                               </span>
-                            </label>
+                            </div>
                           );
                         })}
 

@@ -59,6 +59,8 @@ export interface SearchableDropdownProps {
   freeText?: boolean;
   /** Suffix for the footer count, e.g. "categories" → "12 categories". */
   itemNoun?: string;
+  /** Called when the "+N more" tag is clicked. */
+  onMoreClick?: (e: React.MouseEvent) => void;
   /** Overlay width (default 290). */
   width?: number | string;
   /** Show a trailing X when a value is set. Default true. */
@@ -137,6 +139,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   renderTags,
   maxTagCount = 8,
   overlayClassName,
+  onMoreClick,
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
@@ -435,7 +438,15 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                     {/* The rest stay one click away in the overlay rather than
                         growing the field past the form around it. */}
                     {value.length > maxTagCount && (
-                      <span className="sd-tag sd-tag--more">
+                      <span 
+                        className="sd-tag sd-tag--more" 
+                        onClick={(e) => {
+                          if (onMoreClick) {
+                            e.stopPropagation();
+                            onMoreClick(e);
+                          }
+                        }}
+                      >
                         +{value.length - maxTagCount} more
                       </span>
                     )}

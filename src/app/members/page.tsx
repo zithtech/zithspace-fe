@@ -302,6 +302,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const { canReadActivityLog } = usePermission();
+  const { user, hasAnySubscriptionFeature } = useAuth();
 
   const ROLE_OPTIONS = [
     {
@@ -436,7 +437,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           requiredMark="optional"
         >
           {/* ── Import from Employee (Add mode only) ── */}
-          {mode === 'add' && (
+          {mode === 'add' && hasAnySubscriptionFeature('onboarding', 'hrms_onboarding') && (
             <div
               style={{
                 padding: '14px 16px',

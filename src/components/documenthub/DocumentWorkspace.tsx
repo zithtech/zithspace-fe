@@ -38,9 +38,11 @@ import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Dr
 import { documentHubService as DocumentHubService } from '@/services/documentHub'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCreateBlockNote } from "@blocknote/react";
+import { defaultBlockSpecs, BlockNoteSchema } from "@blocknote/core";
+import { IframeBlock, parseEmbedUrl } from "@/components/documenthub/blocks/IframeBlock";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined, ThunderboltOutlined, YoutubeOutlined } from '@ant-design/icons'
 import DocumentHistory from '@/components/common/DocumentHistory'
 import ShareModal from '@/components/documenthub/ShareModal'
 import AiEditDocModal from '@/components/documenthub/AiEditDocModal'
@@ -605,7 +607,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [addNodeParentId, setAddNodeParentId] = useState<string | null>(null);
     const [addNodeType, setAddNodeType] = useState<'file' | 'folder'>('folder');
     const [isCreatingNode, setIsCreatingNode] = useState(false);
-    
+
     // Upload Modal State
     const [uploadModalVisible, setUploadModalVisible] = useState(false);
     const [uploadProvider, setUploadProvider] = useState<"google_drive" | "zoho_drive" | "my_computer" | "microsoft_onedrive" | "notion">("my_computer");
@@ -650,28 +652,32 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         refetchOnMount: 'always', // Ensure fresh history
     });
 
+    // Create the custom schema
+    const customSchema = useMemo(() => {
+        return BlockNoteSchema.create({
+            blockSpecs: { ...defaultBlockSpecs, iframe: IframeBlock() }
+        });
+    }, []);
+
     // Initialize editor
     const editor = useCreateBlockNote({
+        schema: customSchema,
         initialContent: undefined, // We'll handle content updates via useEffect
         uploadFile: async (file: File) => {
             try {
-                // Convert to base64
-                const base64Image = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = (error) => reject(error);
-                });
+                // We use FormData for generic file upload (images, audio, video, etc.)
+                const formData = new FormData();
+                formData.append("file", file);
 
                 // Use the API client to upload
                 const { api } = await import('@/lib/axios');
-                const res = await api.post("/api/tickets/upload-image", {
-                    image: base64Image,
+                const res = await api.post("/api/v2/document-hubs/editor/media", formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 return res.url;
             } catch (error) {
-                console.error("Failed to upload image:", error);
-                messageApi.error("Failed to upload image");
+                console.error("Failed to upload media:", error);
+                messageApi.error("Failed to upload media file");
                 return ""; // Return empty string on failure as per BlockNote expectations
             }
         }
@@ -679,7 +685,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
     // Headless editor used only to convert AI HTML output into BlockNote blocks
     // when creating a new file via Zai.
-    const aiParserEditor = useCreateBlockNote();
+    const aiParserEditor = useCreateBlockNote({
+        schema: customSchema,
+    });
 
     // Autosave: debounced save + max-wait + localStorage draft + version
     // optimistic-locking. Disabled while previewing a historical version.
@@ -726,7 +734,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     useEffect(() => {
         if (documentHub?.treeNodes && !isExpandedInitialized.current) {
             isExpandedInitialized.current = true;
-            
+
             const stored = typeof window !== 'undefined' ? window.localStorage.getItem(`documenthub:expanded:${documentId}`) : null;
             if (stored) {
                 try {
@@ -863,10 +871,30 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 ]
                             }
                         ],
-                        children: []
+                        children: block.children ? sanitizeBlocks(block.children) : []
                     };
                 }
-                return block;
+
+                // Migrate legacy broken YouTube / iframe videos to the custom iframe block
+                if (block.type === 'video' && block.props?.url) {
+                    const url = block.props.url.toLowerCase();
+                    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('<iframe')) {
+                        return {
+                            ...block,
+                            type: 'iframe',
+                            props: {
+                                ...block.props,
+                                url: parseEmbedUrl(block.props.url)
+                            },
+                            children: block.children ? sanitizeBlocks(block.children) : []
+                        };
+                    }
+                }
+
+                return {
+                    ...block,
+                    children: block.children ? sanitizeBlocks(block.children) : []
+                };
             });
         };
 
@@ -926,9 +954,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         const selection = editor.getTextCursorPosition();
 
         if (contentToLoad.length > 0) {
-            editor.replaceBlocks(editor.document, contentToLoad);
+            editor.replaceBlocks(editor.document as any, contentToLoad as any);
         } else {
-            editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
+            editor.replaceBlocks(editor.document as any, [{ type: "paragraph", content: [] }] as any);
         }
 
         endProgrammaticUpdate();
@@ -1778,8 +1806,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             <Dropdown
                                                 menu={{
                                                     items: [
-                                                        { 
-                                                            key: 'my_computer', 
+                                                        {
+                                                            key: 'my_computer',
                                                             label: (
                                                                 <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
                                                                     <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}>
@@ -1791,10 +1819,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                     </span>
                                                                 </div>
                                                             ),
-                                                            onClick: () => { setUploadProvider('my_computer'); setUploadModalVisible(true); } 
+                                                            onClick: () => { setUploadProvider('my_computer'); setUploadModalVisible(true); }
                                                         },
-                                                        { 
-                                                            key: 'google_drive', 
+                                                        {
+                                                            key: 'google_drive',
                                                             label: (
                                                                 <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
                                                                     <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
@@ -1806,10 +1834,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                     </span>
                                                                 </div>
                                                             ),
-                                                            onClick: () => { setUploadProvider('google_drive'); setUploadModalVisible(true); } 
+                                                            onClick: () => { setUploadProvider('google_drive'); setUploadModalVisible(true); }
                                                         },
-                                                        { 
-                                                            key: 'zoho_drive', 
+                                                        {
+                                                            key: 'zoho_drive',
                                                             label: (
                                                                 <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
                                                                     <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
@@ -1821,10 +1849,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                     </span>
                                                                 </div>
                                                             ),
-                                                            onClick: () => { setUploadProvider('zoho_drive'); setUploadModalVisible(true); } 
+                                                            onClick: () => { setUploadProvider('zoho_drive'); setUploadModalVisible(true); }
                                                         },
-                                                        { 
-                                                            key: 'microsoft_onedrive', 
+                                                        {
+                                                            key: 'microsoft_onedrive',
                                                             label: (
                                                                 <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
                                                                     <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0078d4', background: 'rgba(0,120,212,0.12)' }}>
@@ -1836,10 +1864,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                     </span>
                                                                 </div>
                                                             ),
-                                                            onClick: () => { setUploadProvider('microsoft_onedrive'); setUploadModalVisible(true); } 
+                                                            onClick: () => { setUploadProvider('microsoft_onedrive'); setUploadModalVisible(true); }
                                                         },
-                                                        { 
-                                                            key: 'notion', 
+                                                        {
+                                                            key: 'notion',
                                                             label: (
                                                                 <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
                                                                     <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
@@ -1851,7 +1879,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                                     </span>
                                                                 </div>
                                                             ),
-                                                            onClick: () => { setUploadProvider('notion'); setUploadModalVisible(true); } 
+                                                            onClick: () => { setUploadProvider('notion'); setUploadModalVisible(true); }
                                                         },
                                                     ]
                                                 }}
@@ -2701,7 +2729,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </Button>
                 </div>
             </Modal>
-            
+
             {uploadModalVisible && (
                 <ExternalDriveBrowserModal
                     open={uploadModalVisible}
@@ -2720,7 +2748,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     }}
                 />
             )}
-            
+
             <style jsx global>{`
                 .dh-action-pop .ant-dropdown-menu {
                     padding: 6px; border-radius: 0 !important; min-width: 236px;

@@ -2043,8 +2043,58 @@ const DocumentHubPage = () => {
                     </div>
                     <div className="dh-identity-body">
                       <div className="flex items-center gap-2 group/name">
-                        <span className="dh-doccount-title">{hub.name}</span>
-                        {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+                        {isEditingThis ? (
+                          <div className="flex items-center gap-1 w-full" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              autoFocus
+                              size="small"
+                              value={editingNameValue}
+                              onChange={(e) => setEditingNameValue(e.target.value)}
+                              onPressEnter={() => saveNameEdit(hub)}
+                              onKeyDown={(e) => { if (e.key === 'Escape') cancelNameEdit(); }}
+                              onBlur={() => saveNameEdit(hub)}
+                              style={{ width: '100%', maxWidth: '200px' }}
+                            />
+                            <Tooltip title="Save (Enter)">
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => saveNameEdit(hub)}
+                                className="dh-name-edit-btn"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <CheckOutlined style={{ fontSize: 12, color: 'var(--text-emerald-600)' }} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip title="Cancel (Esc)">
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={cancelNameEdit}
+                                className="dh-name-edit-btn"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <CloseOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="dh-doccount-title">{hub.name}</span>
+                            {isNew && <span className="dh-new-badge" aria-label="New">NEW</span>}
+                            {isOwner && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); startNameEdit(hub); }}
+                                className="dh-name-pencil opacity-0 group-hover/name:opacity-100 transition-opacity"
+                                aria-label="Rename hub"
+                                style={{ marginLeft: 4, cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-slate-400)' }}
+                              >
+                                <EditOutlined style={{ fontSize: 12 }} />
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
                       <span className="dh-doccount" >
                         <span className="dh-doccount-key"> {docCount}</span>

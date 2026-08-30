@@ -163,7 +163,7 @@ function clearDraft(documentId: string) {
 /* -------------------------------------------------------------------------- */
 
 interface Args {
-  editor: BlockNoteEditor | null;
+  editor: BlockNoteEditor<any, any, any> | null;
   documentId: string | null;
   /** Server's current version when the doc was loaded. Re-keyed when doc changes. */
   initialVersion: number | null;

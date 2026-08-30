@@ -138,5 +138,9 @@ export const MailService = {
 
     async resendInvoiceMailVerification(email: string) {
         return await api.post("/api/mail/resend-verification", { email });
+    },
+    
+    async disconnect(provider: string) {
+        return await api.post(`/api/mail/${provider}/disconnect`);
     }
 };

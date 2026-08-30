@@ -6,7 +6,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App } from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload, Popover, Tooltip, Tag, App, Spin } from "antd";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { apiClient } from "@/lib/axios";
@@ -50,6 +50,12 @@ import {
   PaperClipOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  DownOutlined,
+  LoadingOutlined,
+  MailOutlined,
+  ArrowRightOutlined,
+  GoogleOutlined,
+  WindowsOutlined,
 } from "@ant-design/icons";
 import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts, useMailUnreadCount } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
@@ -211,7 +217,7 @@ function MailPageContent() {
     fromFilter || undefined
   );
   const { data: messages = [], isLoading: messagesLoading } = useThreadMessages(selectedThreadId);
-  const { data: mailStatus } = useMailStatus();
+  const { data: mailStatus, isLoading: statusLoading } = useMailStatus();
   const { data: folderCountsData } = useMailUnreadCount();
   const folderCounts = folderCountsData?.counts || {};
   const globalUnreadCount = folderCountsData?.unreadCount || 0;
@@ -1320,6 +1326,14 @@ function MailPageContent() {
         .mail-thread-list-wrap::-webkit-scrollbar-thumb:hover { background: ${PALETTE.slate300}; }
       `}</style>
 
+      {statusLoading ? (
+        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 28, color: 'var(--mail-primary)' }} spin />} />
+        </div>
+      ) : !mailStatus?.isConnected ? (
+        <EmptyState />
+      ) : (
+      <>
       <div className={`mail-shell ${isSidebarOpen ? 'is-sidebar-open' : 'is-sidebar-closed'}`}>
         <div
           className={`mail-sidebar-backdrop ${isSidebarOpen ? 'is-open' : ''}`}
@@ -2563,6 +2577,8 @@ function MailPageContent() {
           </div>
         </Form>
       </Drawer>
+      </>
+      )}
     </MainLayout>
   );
 }
@@ -2574,4 +2590,76 @@ export default function MailPage() {
       <MailPageContent />
     </Suspense>
   );
+}
+function EmptyState() {
+    const router = useRouter();
+    return (
+        <NoData description={
+          <div className="pp-empty" style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 48,
+              textAlign: 'center',
+              background: 'var(--cal-empty-grad)',
+          }}>
+              <div className="pp-empty-icon" style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: 24,
+                  background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 24,
+                  boxShadow: '0 12px 32px -8px rgba(79, 70, 229, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+              }}>
+                  <MailOutlined style={{ fontSize: 44, color: '#FFFFFF' }} />
+              </div>
+              <Typography.Title className="pp-empty-title" level={3} style={{ margin: 0, fontWeight: 600, color: 'var(--cal-text-strong)' }}>
+                  Connect a mail account to get started
+              </Typography.Title>
+              <Typography.Text className="pp-empty-sub" style={{ color: 'var(--cal-text-muted)', fontSize: 15, marginTop: 8, maxWidth: 460, display: 'inline-block' }}>
+                  Bring your Google, Outlook or Zoho mail into one beautiful, unified workspace — and let your team see what's planned at a glance.
+              </Typography.Text>
+            <div style={{ marginTop: 28, display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <Button
+                    type="primary"
+                    size="large"
+                    onClick={() => router.push('/integrations')}
+                    style={{
+                        height: 44,
+                        padding: '0 22px',
+                        borderRadius: 10,
+                        background: 'var(--cal-brand, #4F46E5)',
+                        borderColor: 'var(--cal-brand, #4F46E5)',
+                        boxShadow: '0 4px 12px -2px rgba(79, 70, 229, 0.45)',
+                        fontWeight: 600,
+                    }}
+                >
+                    Connect mail <ArrowRightOutlined />
+                </Button>
+                <Button
+                    size="large"
+                    onClick={() => router.push('/integrations')}
+                    style={{
+                        height: 44,
+                        padding: '0 18px',
+                        borderRadius: 10,
+                        fontWeight: 500,
+                    }}
+                >
+                    Learn more
+                </Button>
+            </div>
+            <div style={{ marginTop: 40, display: 'flex', gap: 28, color: 'var(--cal-text-faint)', fontSize: 12, fontWeight: 500, justifyContent: 'center' }}>
+                <span><GoogleOutlined style={{ marginRight: 6, color: '#EA4335' }} /> Google</span>
+                <span><WindowsOutlined style={{ marginRight: 6, color: '#0078D4' }} /> Outlook</span>
+                <span><MailOutlined style={{ marginRight: 6, color: '#E42527' }} /> Zoho</span>
+            </div>
+          </div>
+        } />
+    );
 }

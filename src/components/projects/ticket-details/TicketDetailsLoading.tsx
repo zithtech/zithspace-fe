@@ -1,91 +1,143 @@
 "use client";
 
 import React from "react";
-import { Row, Col, Card, Skeleton, Divider } from "antd";
+import { Skeleton } from "antd";
+import { TicketDetailStyles } from "./ticketDetailUI";
+
+const Block = ({ h, w = "100%", r = 8 }: { h: number; w?: number | string; r?: number }) => (
+  <span className="tdx-sk" style={{ height: h, width: w, borderRadius: r }} />
+);
 
 export default function TicketDetailsLoading() {
   return (
-    <div className="p-10">
-      {/* Header Skeleton */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Skeleton.Button active size="default" style={{ width: 80 }} />
-        </Col>
-      </Row>
+    <div className="tdx tdx-page">
+      <TicketDetailStyles />
 
-      <Row gutter={24}>
-        {/* Main Content Skeleton */}
-        <Col xs={24} lg={16}>
-          {/* Ticket Header Card Skeleton */}
-          <Card>
-            <div
-              style={{
-                background: "#fafafa",
-                borderRadius: "8px",
-                padding: "20px",
-                marginBottom: "24px",
-                border: "1px solid #e8e8e8",
-              }}
-            >
-              {/* Ticket Number */}
-              <Skeleton.Button active size="small" style={{ width: 100, marginBottom: 12 }} />
-              
-              {/* Title */}
-              <Skeleton active title={{ width: '70%' }} paragraph={false} style={{ marginBottom: 16 }} />
-              
-              {/* Description */}
-              <div
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "6px",
-                  padding: "16px",
-                  border: "1px solid #e8e8e8",
-                }}
-              >
-                <Skeleton active paragraph={{ rows: 4 }} />
-              </div>
+      <div className="tdx-topbar-sk">
+        <Block h={30} w={30} r={9} />
+        <Block h={12} w={220} r={6} />
+        <span style={{ flex: 1 }} />
+        <Block h={32} w={92} r={9} />
+        <Block h={32} w={112} r={9} />
+      </div>
+
+      <div className="tdx-card" style={{ marginBottom: 20 }}>
+        <div style={{ padding: "22px 24px" }}>
+          <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
+            <Block h={24} w={86} r={7} />
+            <Block h={24} w={62} r={7} />
+            <Block h={24} w={96} r={7} />
+          </div>
+          <Block h={26} w="62%" r={8} />
+          <div style={{ height: 18 }} />
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <Block h={24} w={96} r={7} />
+            <Block h={16} w={72} r={6} />
+            <Block h={26} w={150} r={8} />
+          </div>
+        </div>
+        <div className="tdx-sk-stats">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="tdx-sk-stat">
+              <Block h={10} w={82} r={4} />
+              <Block h={19} w={58} r={6} />
+              <Block h={4} w="100%" r={2} />
             </div>
+          ))}
+        </div>
+      </div>
 
-            {/* Ticket Information Skeleton */}
-            <Divider orientation="left">Ticket Information</Divider>
-            <Skeleton active paragraph={{ rows: 8 }} />
-          </Card>
-
-          {/* Related Links Card Skeleton */}
-          <Card title="Related Links" style={{ marginTop: 16 }}>
-            <Skeleton active avatar paragraph={{ rows: 2 }} />
-            <Divider />
-            <Skeleton active avatar paragraph={{ rows: 2 }} />
-          </Card>
-
-          {/* Attachments Card Skeleton */}
-          <Card title="Attachments" style={{ marginTop: 16 }}>
-            <Skeleton active paragraph={{ rows: 3 }} />
-          </Card>
-
-          {/* Comments Card Skeleton */}
-          <Card title="Comments" style={{ marginTop: 16 }}>
-            <Skeleton.Input active size="large" block style={{ marginBottom: 16 }} />
-            <Divider />
-            <Skeleton active avatar paragraph={{ rows: 2 }} />
-            <Divider />
-            <Skeleton active avatar paragraph={{ rows: 2 }} />
-          </Card>
-        </Col>
-
-        {/* Sidebar Skeleton */}
-        <Col xs={24} lg={8}>
-          <Card title="Workflow Progress">
-            {/* Progress Bar Skeleton */}
-            <div style={{ marginBottom: 16 }}>
-              <Skeleton.Input active size="small" block />
+      <div className="tdx-grid">
+        <div className="tdx-col">
+          <div className="tdx-card">
+            <div className="tdx-card__head">
+              <Block h={12} w={104} r={5} />
             </div>
-            
-            {/* Timeline Skeleton */}
-            <Skeleton active paragraph={{ rows: 10 }} />
-          </Card>
-        </Col>
-      </Row>
+            <div className="tdx-card__body">
+              <Skeleton active paragraph={{ rows: 6 }} title={false} />
+            </div>
+          </div>
+          <div className="tdx-card">
+            <div className="tdx-card__head">
+              <Block h={12} w={122} r={5} />
+            </div>
+            <div className="tdx-card__body">
+              <Skeleton active avatar paragraph={{ rows: 2 }} title={false} />
+            </div>
+          </div>
+        </div>
+
+        <div className="tdx-col">
+          <div className="tdx-card">
+            <div className="tdx-card__head">
+              <Block h={12} w={88} r={5} />
+            </div>
+            <div className="tdx-card__body">
+              <Skeleton active paragraph={{ rows: 8 }} title={false} />
+            </div>
+          </div>
+          <div className="tdx-card">
+            <div className="tdx-card__head">
+              <Block h={12} w={80} r={5} />
+            </div>
+            <div className="tdx-card__body">
+              <Skeleton active paragraph={{ rows: 5 }} title={false} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .tdx-sk {
+          display: block;
+          background: linear-gradient(
+            90deg,
+            var(--tdx-inset) 25%,
+            var(--tdx-line-soft) 37%,
+            var(--tdx-inset) 63%
+          );
+          background-size: 400% 100%;
+          animation: tdxShimmer 1.4s ease infinite;
+          flex-shrink: 0;
+        }
+        @keyframes tdxShimmer {
+          0% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0 50%;
+          }
+        }
+        .tdx-topbar-sk {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          height: 56px;
+          margin-bottom: 20px;
+          border-bottom: 1px solid var(--tdx-line-soft);
+        }
+        .tdx-sk-stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          border-top: 1px solid var(--tdx-line-soft);
+          background: var(--tdx-inset);
+        }
+        .tdx-sk-stat {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 14px 18px;
+          border-right: 1px solid var(--tdx-line-soft);
+        }
+        .tdx-sk-stat:last-child {
+          border-right: none;
+        }
+        @media (max-width: 1100px) {
+          .tdx-sk-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+      `}</style>
     </div>
   );
 }

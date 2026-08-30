@@ -190,15 +190,32 @@ export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = 
           flex-direction: column;
           flex: 1;
           min-height: 0;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+        [data-theme='dark'] .po-tm-wrap {
+          background: #111720;
+          border-color: #1f2937;
+          box-shadow: none;
         }
         .po-tm-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 14px;
+          margin: 0;
+          padding: 11px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
           flex-wrap: wrap;
           gap: 12px;
           flex-shrink: 0;
+        }
+        [data-theme='dark'] .po-tm-header {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
         }
         .po-tm-header-ic {
           width: 30px;
@@ -252,15 +269,16 @@ export const TeamProgressCards: React.FC<TeamProgressCardsProps> = ({ members = 
           box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
         }
         .po-tm-empty {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-color);
-          border-radius: 10px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          flex: 1;
           padding: 48px 0;
         }
         .po-tm-list {
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-color);
-          border-radius: 10px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
           overflow-y: auto;
           flex: 1;
           min-height: 0;

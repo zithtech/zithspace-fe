@@ -31,7 +31,7 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
   );
 
   return (
-    <div className="po-footer po-footer--sticky">
+    <div className="po-footer">
       <div className="po-footer-info">
         Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> {noun}
       </div>
@@ -73,23 +73,24 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
       </div>
 
       <style jsx global>{`
+        /* A footer band for the bottom of a .po-panel — full width, flush to
+           the panel's rounded corners, no negative margins. */
         .po-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 10px;
-          padding: 10px 14px;
+          margin-top: auto;
+          padding: 9px 14px;
+          background: var(--bg-slate-50);
           border-top: 1px solid var(--border-slate-200);
+          border-radius: 0 0 10px 10px;
+          flex-shrink: 0;
         }
-        .po-footer--sticky {
-          position: sticky;
-          bottom: 0;
-          z-index: 30;
-          margin: 12px -18px 0;
-          padding: 12px 18px;
-          background: var(--bg-pure-white);
-          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
+        [data-theme='dark'] .po-footer {
+          background: #0f1419;
+          border-top-color: #1f2937;
         }
         .po-footer-info {
           font-size: 12px;
@@ -99,6 +100,7 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
           color: var(--text-slate-700);
           font-weight: 700;
         }
+        [data-theme='dark'] .po-footer-info strong { color: #f1f5f9; }
         .po-pager {
           display: flex;
           align-items: center;
@@ -106,21 +108,45 @@ export const OverviewPager: React.FC<OverviewPagerProps> = ({
         }
         .po-pager-btn,
         .po-pager-num {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           min-width: 28px;
           height: 28px;
+          padding: 0 6px;
           border-radius: 7px;
           border: 1px solid var(--border-slate-200);
           background: var(--bg-pure-white);
           color: var(--text-slate-600);
           cursor: pointer;
+          font-family: inherit;
           font-size: 12.5px;
           font-weight: 600;
+          font-variant-numeric: tabular-nums;
+          transition: background .12s ease, border-color .12s ease, color .12s ease;
+        }
+        .po-pager-btn:hover:not(:disabled),
+        .po-pager-num:hover:not(.is-active) {
+          border-color: #bfdbfe;
+          color: #2563eb;
+          background: var(--bg-blue-50);
         }
         .po-pager-btn:disabled {
           opacity: 0.4;
           cursor: not-allowed;
         }
         .po-pager-num.is-active {
+          background: #3b82f6;
+          border-color: #3b82f6;
+          color: #fff;
+        }
+        [data-theme='dark'] .po-pager-btn,
+        [data-theme='dark'] .po-pager-num {
+          background: #111720;
+          border-color: #2d3748;
+          color: #cbd5e1;
+        }
+        [data-theme='dark'] .po-pager-num.is-active {
           background: #3b82f6;
           border-color: #3b82f6;
           color: #fff;

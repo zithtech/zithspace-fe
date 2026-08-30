@@ -346,14 +346,7 @@ export const SprintTable: React.FC<SprintTableProps> = ({
 
   return (
     <>
-    <div
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 6,
-        overflow: "hidden",
-      }}
-    >
+    <div className="po-panel">
       <div
         style={{
           display: "flex",
@@ -438,19 +431,20 @@ export const SprintTable: React.FC<SprintTableProps> = ({
         }}
         rowClassName={(record) => (record.id === selectedSprintId ? "po-row-active" : "")} locale={{ emptyText: <NoData /> }}
       />
-    </div>
 
-    <OverviewPager
-      total={sprints.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={(s) => {
-        setPageSize(s);
-        setPage(1);
-      }}
-      noun="sprints"
-    />
+      {/* The pager is the panel's own footer band, not a detached strip. */}
+      <OverviewPager
+        total={sprints.length}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
+        noun="sprints"
+      />
+    </div>
 
     <style jsx global>{`
         .po-sprint-table .ant-table {

@@ -29,6 +29,11 @@ interface TicketFilterPillProps {
   /** Show a colored avatar circle next to each option label */
   showAvatar?: boolean;
   multiple?: boolean;
+  /**
+   * Notified as the user types, on top of the local filter. Lets a caller whose
+   * option list is only the first page of a large set fetch the rest.
+   */
+  onSearch?: (term: string) => void;
 }
 
 export const initialsFor = (s: string): string => {
@@ -66,6 +71,7 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
   disabled = false,
   showAvatar = false,
   multiple = true,
+  onSearch,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -126,13 +132,19 @@ export const TicketFilterPill: React.FC<TicketFilterPillProps> = ({
           type="text"
           placeholder={searchPlaceholder || `Search ${label.toLowerCase()}…`}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            onSearch?.(e.target.value);
+          }}
         />
         {search && (
           <XIcon
             size={13}
             className="fp-search-clear"
-            onClick={() => setSearch("")}
+            onClick={() => {
+              setSearch("");
+              onSearch?.("");
+            }}
           />
         )}
       </div>

@@ -24,49 +24,17 @@ import {
   Tooltip,
   DatePicker,
   Segmented,
-  Dropdown,
   App,
   Drawer,
   Popover,
   Button,
   Space,
+  Divider,
 } from "antd";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const { RangePicker } = DatePicker;
-import {
-  Search,
-  Plus,
-  Sparkles,
-  Trash2,
-  Ban,
-  SlidersHorizontal,
-  X,
-  RotateCcw,
-  RotateCw,
-  FolderTree,
-  Bug as BugIcon,
-  Ticket as TicketIcon,
-  Activity,
-  Archive,
-  ChevronLeft,
-  ChevronRight,
-  Folder,
-  Layers,
-  CircleDot,
-  AlertTriangle,
-  Tag,
-  Calendar,
-  CalendarDays,
-  ChevronDown,
-  CornerUpRight,
-  Briefcase,
-  List,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ArrowRight,
-} from "lucide-react";
+import { Briefcase, Search, Plus, Sparkles, Trash2, Ban, SlidersHorizontal, RotateCcw, RotateCw, FolderTree, Bug as BugIcon, Ticket as TicketIcon, Activity, Archive, ChevronLeft, Folder, Layers, CircleDot, AlertTriangle, Tag, Calendar, CalendarDays, ChevronDown, CornerUpRight, List, Menu, PanelLeftClose, PanelLeftOpen, ArrowRight } from "lucide-react";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
@@ -153,6 +121,7 @@ import type {
 import { useTheme } from "@/context/ThemeContext";
 import { usePermission } from "@/hooks/usePermission";
 import { hivebugStyles } from "./hivebug-styles";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { STATUS_OPTIONS } from "@/utils/ticketUtils";
@@ -182,14 +151,6 @@ const DEFAULT_FILTERS: FilterState = { search: "" };
 
 /** How many projects the empty-state picker shows before "Show more". */
 const PROJECT_PICKER_PREVIEW = 6;
-
-const stringToHash = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-};
 
 export default function BugListPage() {
   console.log("Forcing HMR reload for BugListPage");
@@ -389,6 +350,13 @@ export default function BugListPage() {
         }),
     [projectSheets, selectedSheetId]
   );
+
+  /* The shared switcher renders a code badge, so hand it one. */
+  const projectSwitcherOptions = (projects || []).map((p: any) => ({
+    value: p.value,
+    label: p.label,
+    code: (p.code || p.label || '?').slice(0, 3).toUpperCase(),
+  }));
 
   const workspaceStats = {
     totalFolders: folders?.length || 0,
@@ -892,79 +860,35 @@ export default function BugListPage() {
                 )}
               </button>
             )}
-            <div className="hb-project-switcher-header">
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    {
-                      key: 'header',
-                      label: (
-                        <div className="hb-project-dropdown-header">
-                          <span className="hb-dropdown-title">Projects</span>
-                          <span className="hb-dropdown-count">{(projects || []).length} Total</span>
-                        </div>
-                      ),
-                      disabled: true,
-                    },
-                    { type: 'divider' },
-                    ...(projects || []).map(p => ({
-                      key: p.value,
-                      label: (
-                        <div className="pp-menu-item" style={{ background: p.value === selectedProjectId ? 'var(--bg-slate-50, #f8fafc)' : undefined }}>
-                          <span className="pp-menu-ic" style={{ 
-                            background: p.value === selectedProjectId ? 'var(--hb-accent, #3b82f6)' : `hsla(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%, 0.1)`,
-                            color: p.value === selectedProjectId ? '#fff' : `hsl(${stringToHash(p.code || 'PRJ') % 360}, 70%, 50%)`,
-                            fontSize: 10, fontWeight: 800
-                          }}>
-                            {p.code?.substring(0, 3).toUpperCase() || "PRJ"}
-                          </span>
-                          <span className="pp-menu-text">
-                            <span className="pp-menu-title" style={{ color: p.value === selectedProjectId ? 'var(--hb-accent, #3b82f6)' : undefined }}>
-                              {p.label}
-                            </span>
-                            <span className="pp-menu-desc">#{p.code || "N/A"}</span>
-                          </span>
-                        </div>
-                      ),
-                      onClick: () => {
-                        setSelectedProjectId(p.value);
-                        setSelectedFolderId(null);
-                        setSelectedSheetId(null);
-                      }
-                    }))
-                  ],
-                }}
-                overlayClassName="pp-action-pop"
-              >
-                <div className="hb-project-trigger">
-                  <div className="hb-project-trigger-main">
-                    <Briefcase size={14} className="hb-project-trigger-icon" />
-                    <span className="hb-project-name">
-                      {projects?.find(p => p.value === selectedProjectId)?.label || "Select Project"}
-                    </span>
-                  </div>
-                  <div className="hb-project-trigger-header">
-                    <span className="hb-project-trigger-hint">Switch Project</span>
-                    {selectedProjectId ? (
-                      <X 
-                        size={12} 
-                        className="hb-project-hint-arrow" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedProjectId(null);
-                          setSelectedFolderId(null);
-                          setSelectedSheetId(null);
-                        }}
-                        style={{ cursor: 'pointer', zIndex: 10 }}
-                      />
-                    ) : (
-                      <ChevronRight size={8} className="hb-project-hint-arrow" />
-                    )}
-                  </div>
+            {/* The shared switcher — same trigger and searchable menu as the
+                other pages, instead of this page's own copy. */}
+            <QaProjectSwitcher
+              projects={projectSwitcherOptions}
+              value={selectedProjectId ?? null}
+              onChange={(id: string | null) => {
+                setSelectedProjectId(id);
+                setSelectedFolderId(null);
+                setSelectedSheetId(null);
+              }}
+              loading={projectsLoading}
+            />
+
+            {((folders?.length || 0) > 0 || scope === "trash" || scope === "archived") && (
+              <>
+                <Divider type="vertical" style={{ height: 24, margin: "0 2px", opacity: 0.5 }} />
+                <div className="hb-search">
+                  <Search size={14} />
+                  <input
+                    ref={searchRef}
+                    placeholder="Search title, tags, assignee…"
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters((f) => ({ ...f, search: e.target.value }))
+                    }
+                  />
                 </div>
-              </Dropdown>
-            </div>
+              </>
+            )}
 
             {scope === "archived" && !selectedSheetId && (
               <>
@@ -1006,27 +930,10 @@ export default function BugListPage() {
                 )}
               </>
             ) : null}
-            {total > 0 && (
-              <span className="hb-bc-count">
-                {total} {total === 1 ? "bug" : "bugs"}
-              </span>
-            )}
           </div>
 
           {((folders?.length || 0) > 0 || scope === "trash" || scope === "archived") && (
             <div className="hb-header-tools">
-              <div className="hb-search">
-                <Search size={14} />
-                <input
-                  ref={searchRef}
-                  placeholder="Search title, tags, assignee…"
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters((f) => ({ ...f, search: e.target.value }))
-                  }
-                />
-              </div>
-
               <div className="hb-viewmode-toggle" role="tablist" aria-label="View mode">
                 <button
                   type="button"
@@ -1289,74 +1196,76 @@ export default function BugListPage() {
           </div>
         )}
 
-        {showWorkspaceStats && (
-          <div className="hb-stats-row">
-            <StatCard
-              icon={<FolderTree size={14} />}
-              label={workspaceStats.totalSheets > 0 ? "Folders / Sheets" : "Folders"}
-              value={
-                <>
-                  {workspaceStats.totalFolders}
-                  {workspaceStats.totalSheets > 0 && (
-                    <>
-                      <span className="hb-stat-sep">/</span>
-                      {workspaceStats.totalSheets}
-                    </>
-                  )}
-                </>
-              }
-            />
-            <StatCard
-              icon={<BugIcon size={14} />}
-              label="Total bugs"
-              value={workspaceStats?.total ?? "—"}
-            />
-            <StatCard
-              icon={<TicketIcon size={14} />}
-              label="Tickets created"
-              value={
-                <>
-                  {workspaceStats?.linked ?? "—"}
-                  <span className="hb-stat-sep">/</span>
-                  {workspaceStats?.total ?? "—"}
-                </>
-              }
-            />
-            {(() => {
-              const percentage = workspaceStats && workspaceStats.total > 0
-                ? Math.round((workspaceStats.completed / workspaceStats.total) * 100)
-                : 0;
+        {showWorkspaceStats && (() => {
+          /* The four stat cards folded into the banner — every figure they
+             carried is still here, just read as one line instead of four tiles. */
+          const total = workspaceStats.total || 0;
+          const health = total > 0 ? Math.round((workspaceStats.completed / total) * 100) : 0;
+          const linkedPct = total > 0 ? Math.round((workspaceStats.linked / total) * 100) : 0;
+          const accent = total === 0 ? "#64748b"
+            : health >= 80 ? "#10b981"
+              : health >= 60 ? "#3b82f6"
+                : health >= 30 ? "#f59e0b" : "#ef4444";
+          const projectName = projects?.find((p) => p.value === selectedProjectId)?.label || "Project";
 
-              let tone: "default" | "success" | "danger" | "warning" | "info" = "default";
-              if (workspaceStats && workspaceStats.total > 0) {
-                if (percentage < 30) tone = "danger";
-                else if (percentage < 60) tone = "warning";
-                else if (percentage < 80) tone = "info";
-                else tone = "success";
-              }
+          return (
+            <div className="hb-banner">
+              <div className="hb-banner__main">
+                <div className="hb-banner__row1">
+                  <span className="hb-banner__dot" style={{ background: accent, boxShadow: `0 0 0 3px ${accent}33` }} />
+                  <span className="hb-banner__title">{projectName} — Bug List</span>
+                  <span className="hb-banner__tags">
+                    <span className="hb-banner__tag">{total} {total === 1 ? "BUG" : "BUGS"}</span>
+                  </span>
+                </div>
 
-              return (
-                <StatCard
-                  icon={<Activity size={14} />}
-                  label="Health"
-                  value={
-                    workspaceStats && workspaceStats.total > 0 ? `${percentage}%` : "0%"
-                  }
-                  detail={
-                    workspaceStats && workspaceStats.total > 0 ? (
+                <div className="hb-banner__row2">
+                  <span className="hb-banner__meta">
+                    <FolderTree size={11} />
+                    <b>{workspaceStats.totalFolders}</b>
+                    {workspaceStats.totalFolders === 1 ? " folder" : " folders"}
+                    {workspaceStats.totalSheets > 0 && (
                       <>
-                        <strong>{workspaceStats.completed}</strong> completed out of{" "}
-                        <strong>{workspaceStats.total}</strong>{" "}
-                        {workspaceStats.total === 1 ? "Bug" : "Bugs"}
+                        <span className="hb-banner__sep">·</span>
+                        <b>{workspaceStats.totalSheets}</b>
+                        {workspaceStats.totalSheets === 1 ? " sheet" : " sheets"}
                       </>
-                    ) : undefined
-                  }
-                  tone={tone}
-                />
-              );
-            })()}
-          </div>
-        )}
+                    )}
+                  </span>
+                  <span className="hb-banner__meta">
+                    <BugIcon size={11} />
+                    <b>{workspaceStats.completed}</b>/{total} completed
+                  </span>
+                  <span className="hb-banner__meta">
+                    <Activity size={11} />
+                    <b>{workspaceStats.verified}</b> verified
+                  </span>
+                  <span className="hb-banner__meta">
+                    <TicketIcon size={11} />
+                    <b>{workspaceStats.linked}</b>/{total} have tickets
+                    {total > 0 && <span className="hb-banner__soft">({linkedPct}%)</span>}
+                  </span>
+                </div>
+              </div>
+
+              {/* Health reads as its own block, pinned to the right and
+                  spanning the banner's full height. */}
+              <div className="hb-banner__health">
+                <span className="hb-banner__health-ic" style={{ background: `${accent}1a`, color: accent }}>
+                  <Activity size={15} />
+                </span>
+                <span className="hb-banner__health-body">
+                  <span className="hb-banner__health-label">Health</span>
+                  <span className="hb-banner__health-value" style={{ color: accent }}>{health}%</span>
+                  <span className="hb-banner__health-detail">
+                    <strong style={{ color: accent }}>{workspaceStats.completed}</strong> completed out of{" "}
+                    <strong style={{ color: accent }}>{total}</strong> {total === 1 ? "Bug" : "Bugs"}
+                  </span>
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
 
         {viewMode === "list" && selectedSheetId && (scope === "all" || scope === "mine") && (
@@ -1891,43 +1800,6 @@ export default function BugListPage() {
           gap: 12px 6px;
         }
       `}</style>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  detail?: React.ReactNode;
-  tone?: "default" | "success" | "danger" | "warning" | "info";
-}) {
-  const toneClass =
-    tone === "success"
-      ? "hb-stat-success"
-      : tone === "danger"
-        ? "hb-stat-danger"
-        : tone === "warning"
-          ? "hb-stat-warning"
-          : tone === "info"
-            ? "hb-stat-info"
-            : "";
-  return (
-    <div className={`hb-stat-card ${toneClass}`}>
-      <div className="hb-stat-left">
-        <div className="hb-stat-icon">{icon}</div>
-      </div>
-      <div className="hb-stat-value-wrap">
-        <div className="hb-stat-label">{label}</div>
-        <div className="hb-stat-value">{value}</div>
-        {detail && <div className="hb-stat-detail">{detail}</div>}
-      </div>
     </div>
   );
 }

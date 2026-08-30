@@ -441,11 +441,21 @@ interface ModuleModalProps {
   open: boolean;
   /** null → creating a new module. */
   editing: QaModule | null;
+  /**
+   * Project to open a new module on, for callers that already know it — the
+   * API Hub is filing under one project, so making the reader pick it again
+   * is a question with only one right answer.
+   */
+  defaultProjectId?: string | null;
   onClose: () => void;
-  onSaved: () => void;
+  /**
+   * The module that was just written, so a caller can select it straight
+   * away. Callers that only need to refresh a list can ignore it.
+   */
+  onSaved: (saved?: QaModule) => void;
 }
 
-export function ModuleModal({ open, editing, onClose, onSaved }: ModuleModalProps) {
+export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved }: ModuleModalProps) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const { options: projectOptions, loading: loadingProjects } = useProjectOptions(open);
@@ -460,10 +470,11 @@ export function ModuleModal({ open, editing, onClose, onSaved }: ModuleModalProp
       });
     } else {
       form.resetFields();
+      if (defaultProjectId) form.setFieldsValue({ project_id: defaultProjectId });
     }
     // Deliberately not keyed on projectOptions: they arrive after the modal
     // opens, and re-running this would wipe whatever has been typed by then.
-  }, [open, editing, form]);
+  }, [open, editing, defaultProjectId, form]);
 
   /** Rows from before projects were required carry only the product's name — match it back. */
   useEffect(() => {
@@ -482,14 +493,18 @@ export function ModuleModal({ open, editing, onClose, onSaved }: ModuleModalProp
         description: values.description?.trim() || null,
         project_id: values.project_id,
       };
+      // `api` already unwraps to the row, so this is the module itself.
+      let saved: any;
       if (editing) {
-        await axios.put(`/api/v2/qa/modules/${editing.id}`, payload);
+        saved = await axios.put(`/api/v2/qa/modules/${editing.id}`, payload);
         message.success("Updated successfully");
       } else {
-        await axios.post("/api/v2/qa/modules", payload);
+        saved = await axios.post("/api/v2/qa/modules", payload);
         message.success("Created successfully");
       }
-      onSaved();
+      // The row the API echoes back is authoritative; the payload stands in
+      // for an endpoint that answers with nothing but a status.
+      onSaved(saved?.module_name ? (saved as QaModule) : ({ ...payload } as QaModule));
       onClose();
     } catch (err: any) {
       if (err?.errorFields) return;

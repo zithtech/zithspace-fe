@@ -5,58 +5,26 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, message, Input, Select, Tooltip } from "antd";
-import { PlusOutlined, SnippetsOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, message, Input, Select, Tooltip, Typography, Popover, Space, Segmented, Divider } from "antd";
+import { PlusOutlined, SnippetsOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, CloseOutlined, ApartmentOutlined, LinkOutlined, CopyOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import { Layers, Trash2, Pencil, Folder, Link2, ChevronDown, Menu, RotateCw } from "lucide-react";
+import { Layers, Trash2, Pencil, Folder, Link2 } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQaProject, QaProjectPicker, QaProjectSwitcher } from "@/components/qa/QaProjectGate";
-
-/** How many entries each sidebar section shows before "Show more". */
-const MODULES_PREVIEW = 5;
+import { MODULES_SETTINGS_HREF } from "@/components/qa/ModuleSettingsSection";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import TestSuiteFilters from "./TestSuiteFilters";
 
 const COVERAGE_OPTIONS = [
   { value: 'linked', label: 'Has linked cases' },
   { value: 'empty', label: 'No cases yet' },
 ];
-
-/** Collapses a list to its preview window, keeping the selected entry visible. */
-function previewList<T extends { value: string }>(items: T[], limit: number, expanded: boolean, selected?: string) {
-  if (expanded) return items;
-  const head = items.slice(0, limit);
-  if (selected && !head.some(i => i.value === selected)) {
-    const active = items.find(i => i.value === selected);
-    if (active) return [...head, active];
-  }
-  return head;
-}
-
-/* Product-standard stat tile */
-const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
-  <div className="pp-stat-card">
-    <div className="pp-stat-top">
-      <div className="pp-stat-left">
-        <span className="pp-stat-icon" style={{ background: bgColor, color }}>
-          <Icon size={14} style={{ fontSize: 14 }} />
-        </span>
-        <span className="pp-stat-label">{label}</span>
-      </div>
-    </div>
-    <div className="pp-stat-bottom">
-      <div className="pp-stat-value-wrap">
-        <span className="pp-stat-value">{value}</span>
-      </div>
-      {sub && <span className="pp-stat-period">{sub}</span>}
-    </div>
-  </div>
-);
 
 function hashCode(str: string) {
   let hash = 0;
@@ -90,8 +58,8 @@ export default function TestSuitesPage() {
 
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showAllModules, setShowAllModules] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [suites, setSuites] = useState<any[]>([]);
   const [parents, setParents] = useState<any[]>([]);
@@ -234,13 +202,18 @@ export default function TestSuitesPage() {
     ...modules.map(m => ({ value: m.id, label: m.module_name }))
   ];
 
-  /* Sidebar sections — the same option lists the filter row uses. */
   const moduleNavOptions = modules.map(m => ({ value: String(m.id), label: String(m.module_name) }));
-  const visibleModules = previewList(moduleNavOptions, MODULES_PREVIEW, showAllModules, moduleFilter);
-  const hiddenModuleCount = Math.max(0, moduleNavOptions.length - MODULES_PREVIEW);
   const selectedModuleLabel = moduleFilter === 'Unassigned'
     ? 'Unassigned'
     : moduleNavOptions.find(m => m.value === moduleFilter)?.label;
+
+  /* ── Banner figures ───────────────────────────────────────────────────
+     The Ticket List's sprint head reads a sprint's completion; here the same
+     three rows read how much of the suite library actually holds cases —
+     an empty suite runs nothing. */
+  const projectName = projectOptions.find(p => p.value === selectedProjectId)?.label;
+  const filledPct = totalItems > 0 ? Math.round(((totalItems - emptySuites) / totalItems) * 100) : 0;
+  const bannerAccent = filledPct >= 80 ? '#10b981' : filledPct > 0 ? '#3b82f6' : '#64748b';
 
   const activeFilterCount =
     (searchTerm.trim() ? 1 : 0) + (scenarioFilter ? 1 : 0) + (moduleFilter ? 1 : 0) + (coverageFilter ? 1 : 0);
@@ -270,19 +243,43 @@ export default function TestSuitesPage() {
     return record.module_name || mod?.module_name || mod?.name || 'Unassigned';
   };
 
+  /* Columns mirror the Ticket List: a copyable ID, the title, then the
+     one-glance attributes, with row actions pinned to the right. */
   const columns = [
     {
-      title: "Suite",
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 118,
+      render: (id: string) => (
+        <span
+          className="pp-suite-id"
+          onClick={(e) => { e.stopPropagation(); router.push("/qa-workspace/test-suites/" + id); }}
+          title={id}
+        >
+          {String(id || '').slice(0, 8).toUpperCase()}
+          <CopyOutlined
+            style={{ fontSize: 10, opacity: 0.6 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(id);
+              message.success("Suite ID copied!");
+            }}
+          />
+        </span>
+      ),
+    },
+    {
+      title: "Title",
       dataIndex: "suite_name",
       key: "suite_name",
-      width: 320,
+      width: 300,
+      ellipsis: true,
+      // Single line by design — the description reads in full on hover
       render: (t: string, record: any) => (
-        <div className="sc-name">
-          <span className="sc-name__badge">{initialsOf(t || '')}</span>
-          <span className="sc-name__text">
-            <span className="sc-name__title" title={t}>{t || 'Untitled suite'}</span>
-            {record.description && <span className="sc-name__meta">{record.description}</span>}
-          </span>
+        <div className="pp-name-cell" title={record.description || t || 'Untitled suite'}>
+          <span className="pp-name-icon"><Layers size={13} /></span>
+          <span className="pp-name-title">{t || 'Untitled suite'}</span>
         </div>
       )
     },
@@ -291,6 +288,7 @@ export default function TestSuitesPage() {
       dataIndex: "parent_test_case_id",
       key: "parent_test_case_id",
       width: 220,
+      ellipsis: true,
       render: (_: string, record: any) => {
         const title = scenarioTitleOf(record);
         if (!title) return <span className="sc-muted">—</span>;
@@ -306,30 +304,31 @@ export default function TestSuitesPage() {
       title: "Module",
       dataIndex: "module_id",
       key: "module_id",
-      width: 150,
-      render: (_: string, record: any) => <span className="cd-plain">{moduleNameOf(record)}</span>
+      width: 160,
+      ellipsis: true,
+      render: (_: string, record: any) => (
+        <span className="pp-vis-pill pp-vis-pill--ash">{moduleNameOf(record)}</span>
+      )
     },
     {
       title: "Testing Type",
       dataIndex: "testing_type",
       key: "testing_type",
       width: 170,
-      render: (t: string) =>
-        t ? (
-          <span className="ts-type" title={t}>{t}</span>
-        ) : (
-          <span className="sc-muted">—</span>
-        ),
+      ellipsis: true,
+      render: (t: string) => t
+        ? <span className="pp-vis-pill pp-vis-pill--ash" title={t}>{t}</span>
+        : <span className="sc-muted">—</span>,
     },
     {
       title: "Cases",
       dataIndex: "case_count",
       key: "case_count",
-      width: 110,
+      width: 90,
+      align: 'center' as const,
       render: (t: number) => {
         const n = t || 0;
-        if (!n) return <span className="sc-muted">—</span>;
-        return <span className="sc-pill sc-pill--blue"><span className="sc-pill__dot" />{n} case{n === 1 ? '' : 's'}</span>;
+        return <span className={`pp-count${n === 0 ? ' is-zero' : ''}`}>{n}</span>;
       }
     },
     {
@@ -346,6 +345,7 @@ export default function TestSuitesPage() {
       key: "actions",
       width: 100,
       align: "right" as const,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
           {canUpdateSuite && (
@@ -375,6 +375,27 @@ export default function TestSuitesPage() {
       )
     }
   ];
+
+  /** One empty state for the table and the card grid, on the shared NoData
+      illustration so every list reads the same when it has nothing to show. */
+  const renderEmpty = () => (
+    <NoData
+      description={
+        <div className="sc-empty">
+          <SnippetsOutlined className="sc-empty__icon" />
+          <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
+          <p className="sc-empty__desc">
+            {activeFilterCount > 0
+              ? 'Try widening your search or clearing the filters.'
+              : 'Group related test cases into a suite you can run together.'}
+          </p>
+          {activeFilterCount > 0
+            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+            : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
+        </div>
+      }
+    />
+  );
 
   const renderSuiteCard = (r: any) => {
     const accent = accentFor(r.suite_name || r.id);
@@ -455,785 +476,915 @@ export default function TestSuitesPage() {
 
   return (
     <MainLayout noPadding>
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .dh-shell { display: flex; height: calc(100vh - 64px); background: transparent; overflow: hidden; position: relative; }
-        .dh-sidebar {
-          width: 194px; background: transparent; border-right: 1px solid var(--border-slate-200);
-          display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
-        }
-        .dh-sidebar-top { padding: 12px 10px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border-slate-100); }
-        .pp-side-head { display: flex; align-items: center; gap: 9px; margin-bottom: 0; padding: 0 2px; }
-        .pp-side-logo {
-          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-          background: var(--bg-blue-50); color: #3B82F6;
-          display: flex; align-items: center; justify-content: center; font-size: 15px;
-          border: 1px solid rgba(59,130,246,.16);
-        }
-        .pp-side-title { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); line-height: 1.15; margin: 0; }
-        .pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; margin: 1px 0 0; letter-spacing: .02em; }
-        .pp-side-cta { margin-top: 12px; height: 34px !important; border-radius: 8px !important; font-size: 12.5px; font-weight: 600; }
+      <style dangerouslySetInnerHTML={{ __html: SUITES_PAGE_STYLES }} />
 
-        .dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px 8px 16px; }
-        .pp-nav-caption {
-          display: block; padding: 0 8px; margin: 0 0 6px;
-          font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-          color: var(--text-slate-400);
-        }
-        .pp-nav-item {
-          position: relative;
-          display: flex; align-items: center; gap: 9px; width: 100%; height: 33px; padding: 0 9px;
-          border-radius: 7px; border: none; background: transparent; color: var(--text-slate-600);
-          font-size: 12.5px; font-weight: 500; cursor: pointer; text-align: left;
-          transition: background .15s ease, color .15s ease; margin-bottom: 2px;
-        }
-        .pp-nav-icon { flex-shrink: 0; color: var(--text-slate-400); transition: color .15s ease; }
-        .pp-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pp-nav-count {
-          flex-shrink: 0; min-width: 20px; padding: 1px 6px; border-radius: 999px;
-          font-size: 10.5px; font-weight: 700; text-align: center;
-          background: var(--bg-slate-50); color: var(--text-slate-500);
-          border: 1px solid var(--border-slate-100); transition: all .15s ease;
-        }
-        .pp-nav-item:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .pp-nav-item:hover .pp-nav-icon { color: var(--text-slate-600); }
-        .pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
-        .pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
-        .pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
-        .pp-nav-caption + .pp-nav-item { margin-top: 0; }
-        .pp-nav-item ~ .pp-nav-caption, .pp-nav-more + .pp-nav-caption { margin-top: 16px; }
-        .pp-nav-more {
-          display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
-          margin-top: 2px; border: none; background: transparent; border-radius: 7px;
-          color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
-          transition: background .15s ease, color .15s ease;
-        }
-        .pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
-        .pp-nav-more-icon { transition: transform .18s ease; }
-        .pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
-        .pp-nav-empty { display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400); }
-        .pp-nav-item.is-active::before {
-          content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
-          width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
-        }
+      <div className="tl-shell-wrap">
+        <div className="tl-shell">
+          <div className="tl-main">
 
-        .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
-        .dh-main-topbar { height: 56px; border-bottom: 1px solid var(--border-slate-200); background: transparent; display: flex; align-items: center; padding: 0 18px; justify-content: space-between; }
-        .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px; background: transparent; }
-
-        /* ── Topbar: title + subtitle on one line ───────────────────── */
-        .sc-topbar { height: auto !important; min-height: 52px; padding: 8px 20px !important; }
-        .sc-topbar__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .sc-topbar__h1 { font-size: 15px; font-weight: 700; color: var(--text-slate-900); white-space: nowrap; }
-        .sc-topbar__div { width: 1px; height: 14px; background: var(--border-slate-200); flex-shrink: 0; }
-        .sc-topbar__sub { font-size: 12px; color: var(--text-slate-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        @media (max-width: 860px) { .sc-topbar__div, .sc-topbar__sub { display: none; } }
-        .sc-topbar .dh-main-controls { display: flex; align-items: center; gap: 8px; }
-        .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
-        .sc-topbar .pp-segmented { height: 32px; display: inline-flex; align-items: center; border-radius: 8px; overflow: hidden; }
-        .sc-topbar .pp-segmented button { height: 32px; width: 34px; display: inline-flex; align-items: center; justify-content: center; }
-
-        /* ── Stat tiles ─────────────────────────────────────────────── */
-        .pp-stat-card {
-          background: transparent; border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 10px 12px; min-height: 84px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
-        }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
-
-        /* ── Filter row ─────────────────────────────────────────────── */
-        .sc-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .sc-filters__search { width: 240px; }
-        .sc-filters .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
-        .sc-filters__field { min-width: 150px; }
-        .sc-filters .sd-trigger { height: 32px !important; min-height: 32px !important; border-radius: 8px !important; padding-block: 0 !important; }
-        .sc-clear {
-          height: 32px; display: inline-flex; align-items: center;
-          font-size: 12px; font-weight: 600; color: #3b82f6;
-          padding: 0 11px; border-radius: 8px;
-          border: 1px solid var(--border-slate-200); background: transparent;
-          cursor: pointer; transition: all .15s ease;
-        }
-        .sc-clear:hover { background: var(--bg-blue-50); border-color: #bfdbfe; }
-
-        /* ── Table ──────────────────────────────────────────────────── */
-        .sc-tablewrap { background: transparent; border: 1px solid var(--border-slate-200); border-radius: 0; overflow: hidden; }
-        .sc-table .ant-table { background: transparent; }
-        .sc-table, .sc-table.ant-table-wrapper, .sc-table .ant-table, .sc-table .ant-table-container, .sc-table .ant-table-content, .sc-table .ant-table-header, .sc-table .ant-table-body { border-radius: 0 !important; }
-        .sc-table .ant-table-thead > tr > th, .sc-table .ant-table-thead > tr > td { border-radius: 0 !important; border-start-start-radius: 0 !important; border-start-end-radius: 0 !important; }
-        .sc-table .ant-table-thead > tr > th { background: var(--bg-slate-50) !important; padding: 8px 14px !important; letter-spacing: .06em !important; }
-        .sc-table .ant-table-tbody > tr > td { padding: 8px 14px !important; }
-        .sc-table .ant-table-tbody > tr { cursor: pointer; }
-        .sc-table .ant-table-tbody > tr:hover > td { background: var(--bg-slate-50) !important; }
-        .sc-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
-        .sc-table .ant-table-tbody > tr > td:last-child { padding-right: 12px !important; }
-
-        .sc-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .sc-name__badge {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 27px; height: 27px; border-radius: 7px;
-          background: rgba(59,130,246,.1); color: #2563eb;
-          font-size: 10px; font-weight: 700; letter-spacing: .02em;
-        }
-        .sc-name__text { display: flex; flex-direction: column; min-width: 0; }
-        .sc-name__title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-        .sc-name__meta { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
-        .sc-muted { color: var(--text-slate-400); }
-        .cd-plain { font-size: 12.5px; color: var(--text-slate-700); }
-        .sc-timeline__range { font-size: 12.5px; color: var(--text-slate-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-        .sc-pill {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 3px 10px; border-radius: 999px; white-space: nowrap;
-          font-size: 11.5px; font-weight: 600;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200); color: var(--text-slate-600);
-        }
-        .sc-pill__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-        .sc-pill--blue { color: #2563eb; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.22); }
-
-        /* Reads as a quiet label, not a status — the testing type is a
-           property of the suite, so it must not compete with the Cases pill. */
-        .ts-type {
-          display: inline-block; max-width: 100%;
-          padding: 2px 9px; border-radius: 999px;
-          font-size: 11.5px; font-weight: 500; white-space: nowrap;
-          overflow: hidden; text-overflow: ellipsis;
-          color: var(--text-slate-600); background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-        }
-
-        .ts-scenario {
-          display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
-          font-size: 12.5px; color: var(--text-slate-700);
-        }
-        .ts-scenario .anticon { color: var(--text-slate-400); flex-shrink: 0; }
-        .ts-scenario .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        .sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
-        .sc-rowactions button {
-          display: inline-flex; align-items: center; justify-content: center;
-          width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
-          border: 1px solid transparent; background: transparent; color: var(--text-slate-400);
-          transition: all .15s ease;
-        }
-        .sc-rowactions button:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
-        .sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
-
-        .sc-empty { padding: 44px 24px; text-align: center; }
-        .sc-empty__icon { font-size: 26px; color: var(--border-slate-200); display: inline-block; }
-        .sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
-        .sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
-
-        /* ── Suite drawer chrome ───────────────────────────────────── */
-        .sd-body { flex: 1; overflow-y: auto; padding: 14px 16px; background: transparent; }
-        .sd-head {
-          display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-          padding: 12px 16px; border-bottom: 1px solid var(--border-slate-100);
-          background: var(--bg-pure-white);
-        }
-        .sd-head__icon {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 32px; height: 32px; border-radius: 9px; font-size: 15px;
-          background: rgba(59,130,246,.1); color: #3B82F6; border: 1px solid rgba(59,130,246,.18);
-        }
-        .sd-head__text { flex: 1; min-width: 0; }
-        .sd-head__title { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -.01em; }
-        .sd-head__sub { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.4; color: var(--text-slate-500); }
-        .sd-head__close {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 28px; height: 28px; border-radius: 8px; font-size: 12px;
-          color: var(--text-slate-400); background: none; border: none; cursor: pointer;
-          transition: all .15s ease;
-        }
-        .sd-head__close:hover { color: var(--text-slate-900); background: var(--bg-slate-50); }
-
-        .sd-foot {
-          display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;
-          padding: 10px 16px; border-top: 1px solid var(--border-slate-100);
-          background: var(--bg-slate-50);
-        }
-        .sd-foot__info { font-size: 11.5px; color: var(--text-slate-500); }
-        .sd-foot__info strong { color: var(--text-slate-900); font-weight: 700; }
-        .sd-foot__actions { display: flex; gap: 8px; }
-        .sd-foot .ant-btn { height: 32px; border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 0 14px; }
-
-        /* ── Suite drawer: compact form density ────────────────────── */
-        .sd-body .customer-drawer-card { margin-bottom: 10px !important; }
-        .sd-body .customer-drawer-card > div:last-child { padding: 12px 14px !important; }
-        .sd-body .customer-drawer-card > div:last-child > * + * { margin-top: 10px !important; }
-        .sd-body .ant-form-item { margin-bottom: 10px !important; }
-        .sd-body .ant-form-item-label { padding-bottom: 3px !important; }
-        .sd-body .ant-form-item-label > label { font-size: 12px !important; font-weight: 600; height: auto !important; }
-        .sd-body .ant-input, .sd-body .ant-input-affix-wrapper { border-radius: 8px !important; font-size: 12.5px; }
-        .sd-body .ant-input-lg { height: 34px !important; font-size: 12.5px !important; }
-        .sd-body .sd-trigger { height: 34px !important; min-height: 34px !important; padding: 0 12px !important; }
-
-        /* Description label row with inline AI actions */
-        .sd-labelrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
-        .sd-label { font-size: 12px; font-weight: 600; color: var(--text-slate-700); }
-        .sd-labelrow__actions { display: flex; align-items: center; gap: 6px; }
-        .sd-mini {
-          display: inline-flex; align-items: center; gap: 4px;
-          font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 7px;
-          color: var(--text-slate-500); background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); cursor: pointer;
-          transition: all .15s ease; white-space: nowrap;
-        }
-        .sd-mini:hover:not(:disabled) { color: #2563eb; border-color: #bfdbfe; background: var(--bg-blue-50); }
-        .sd-mini--ai { color: #2563eb; border-color: #bfdbfe; background: var(--bg-blue-50); }
-        .sd-mini:disabled { opacity: .55; cursor: not-allowed; }
-
-        /* ── Link Module Test Cases ────────────────────────────────── */
-        .lk-summary {
-          padding: 8px 10px; margin-bottom: 8px; border-radius: 8px;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-        }
-        .lk-summary__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .lk-summary__count { font-size: 12px; color: var(--text-slate-500); }
-        .lk-summary__count strong { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
-        .lk-summary__actions { display: flex; align-items: center; gap: 7px; }
-        .lk-link {
-          font-size: 11px; font-weight: 600; color: #2563eb;
-          background: none; border: none; cursor: pointer; padding: 1px 0;
-        }
-        .lk-link:hover:not(:disabled) { text-decoration: underline; }
-        .lk-link:disabled { color: var(--text-slate-300); cursor: not-allowed; }
-        .lk-dot { width: 3px; height: 3px; border-radius: 999px; background: var(--border-slate-200); }
-        .lk-bar { height: 3px; margin-top: 7px; border-radius: 999px; background: var(--border-slate-200); overflow: hidden; }
-        .lk-bar > span { display: block; height: 100%; background: #3B82F6; transition: width .25s ease; }
-
-        /* Search bar — reads as a filter, carries its own result counter */
-        .lk-search {
-          display: flex; align-items: center; gap: 8px;
-          height: 38px; margin-bottom: 8px; padding: 0 8px 0 7px;
-          border-radius: 9px; box-sizing: border-box;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-          transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
-        }
-        .lk-search:hover { border-color: #bfdbfe; }
-        .lk-search:focus-within {
-          background: var(--bg-pure-white); border-color: #3B82F6;
-          box-shadow: 0 0 0 3px rgba(59,130,246,.12);
-        }
-        .lk-search__icon {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 24px; height: 24px; border-radius: 7px; font-size: 12px;
-          background: rgba(59,130,246,.1); color: #2563eb;
-          transition: background .15s ease, color .15s ease;
-        }
-        .lk-search.is-filled .lk-search__icon { background: #3B82F6; color: #fff; }
-        .lk-search__input {
-          flex: 1; min-width: 0; height: 100%;
-          border: none; outline: none; background: transparent;
-          font-size: 12.5px; color: var(--text-slate-900);
-        }
-        .lk-search__input::placeholder { color: var(--text-slate-400); }
-        .lk-search__spin { flex-shrink: 0; font-size: 12px; color: #3B82F6; }
-        .lk-search__hint, .lk-search__count {
-          flex-shrink: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
-          padding: 2px 8px; border-radius: 999px; white-space: nowrap;
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          color: var(--text-slate-500);
-        }
-        .lk-search__count { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.24); color: #2563eb; }
-        .lk-search__clear {
-          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-          width: 22px; height: 22px; border-radius: 6px; font-size: 10px;
-          border: none; background: transparent; cursor: pointer;
-          color: var(--text-slate-400); transition: all .15s ease;
-        }
-        .lk-search__clear:hover { background: var(--bg-slate-100, #f1f5f9); color: var(--text-slate-700); }
-
-        .lk-list {
-          display: flex; flex-direction: column; gap: 5px;
-          max-height: 268px; overflow-y: auto; padding-right: 3px;
-          overscroll-behavior: contain;
-        }
-        .lk-list::-webkit-scrollbar { width: 6px; }
-        .lk-list::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 999px; }
-
-        .lk-item {
-          display: flex; align-items: flex-start; gap: 9px; cursor: pointer;
-          padding: 7px 10px; border-radius: 8px;
-          border: 1px solid var(--border-slate-100); background: var(--bg-pure-white);
-          transition: border-color .15s ease, background .15s ease;
-        }
-        .lk-item:hover { border-color: #bfdbfe; background: var(--bg-slate-50); }
-        .lk-item.is-on { border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.06); }
-        .lk-item .ant-checkbox-wrapper { margin-top: 1px; }
-        .lk-item__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-        .lk-item__top { display: flex; align-items: center; gap: 7px; min-width: 0; }
-        .lk-item__id {
-          flex-shrink: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          padding: 2px 6px; border-radius: 5px;
-          background: rgba(59,130,246,.1); color: #2563eb;
-        }
-        .lk-item__name {
-          font-size: 12.5px; font-weight: 600; color: var(--text-slate-900);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
-        }
-        .lk-item__meta { display: flex; flex-wrap: wrap; gap: 5px; }
-        .lk-chip {
-          font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-          color: var(--text-slate-500);
-        }
-        .lk-item.is-on .lk-chip { background: var(--bg-pure-white); }
-
-        /* Tail of the paged list — loader, manual trigger, end marker */
-        .lk-more {
-          display: flex; align-items: center; justify-content: center; gap: 7px;
-          padding: 9px 10px; margin-top: 1px; border-radius: 8px;
-          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
-        }
-        .lk-more--btn {
-          width: 100%; cursor: pointer; color: #2563eb;
-          background: var(--bg-blue-50); border: 1px dashed #bfdbfe;
-          transition: all .15s ease;
-        }
-        .lk-more--btn:hover { background: rgba(59,130,246,.12); border-style: solid; }
-        .lk-more--end { color: var(--text-slate-400); font-weight: 500; }
-
-        /* Holds roughly the height four rows would have taken, so the pane
-           doesn't collapse and jump when the cases arrive. */
-        .lk-list--loading {
-          align-items: center; justify-content: center;
-          min-height: 200px; overflow: hidden;
-        }
-
-        .lk-empty {
-          padding: 28px 20px; text-align: center; border-radius: 10px;
-          border: 1px dashed var(--border-slate-200); background: var(--bg-slate-50);
-        }
-        .lk-empty__icon { font-size: 20px; color: var(--border-slate-200); }
-        .lk-empty__title { margin: 10px 0 3px; font-size: 13px; font-weight: 600; color: var(--text-slate-700); }
-        .lk-empty__desc { margin: 0; font-size: 12px; color: var(--text-slate-400); }
-
-        /* ── Pager pinned to the bottom of the pane ─────────────────── */
-        .pp-footer {
-          display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 10px;
-          padding: 0 20px; border-top: 1px solid var(--border-slate-200);
-          height: 52px; min-height: 52px; box-sizing: border-box; flex-shrink: 0;
-          background: var(--bg-pure-white); box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
-        }
-        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
-        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
-        .pp-pager { display: flex; align-items: center; gap: 3px; }
-        .pp-pager-btn, .pp-pager-num {
-          min-width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white); color: var(--text-slate-600); cursor: pointer;
-          font-size: 12.5px; font-weight: 600;
-        }
-        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
-        .pp-pagesize { margin-left: 5px; }
-        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
-        
-        .pp-segmented { display: inline-flex; border: 1px solid var(--border-slate-200); border-radius: 9px; overflow: hidden; background: var(--bg-pure-white); margin-left: 12px; }
-        .pp-segmented button {
-          width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;
-          color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
-        }
-        .pp-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
-
-        .pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
-        @media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
-
-        .pc-card {
-          border: 1px solid var(--border-slate-200); border-radius: 8px; background: var(--bg-pure-white);
-          cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
-          transition: box-shadow .15s ease, border-color .15s ease;
-        }
-        .pc-card:hover { box-shadow: 0 4px 14px rgba(15,23,42,0.06); border-color: #cbd5e1; }
-
-        .pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 14px; flex: 1; }
-        .pc-avatar { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 13px; }
-        .pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
-        .pc-title { font-size: 15px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3; }
-        .pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 12px; min-width: 0; }
-        .pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-        .pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .pc-actions { border: none; background: transparent; cursor: pointer; color: var(--text-slate-400); font-size: 16px; padding: 4px; }
-
-        .pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
-        .pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
-        .pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
-        .pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-slate-700); }
-        .pc-foot-key { font-size: 11px; font-weight: 600; color: var(--text-slate-400); }
-        .pc-foot-div { width: 1px; height: 12px; background: #cbd5e1; }
-        
-        .ts-table .ant-table-thead > tr > th {
-          background: transparent !important; border-bottom: 1px solid var(--border-slate-200) !important;
-          font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; color: var(--text-slate-500) !important;
-          padding: 12px 16px !important;
-        }
-        .ts-table .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-100) !important; padding: 14px 16px !important; }
-        .ts-table, .ts-table .ant-table { background: transparent !important; }
-        .ts-table .ant-table-tbody > tr:hover > td { background: rgba(59, 130, 246, 0.04) !important; }
-
-        .dh-mobile-menu-btn { display: none !important; }
-
-        @media (max-width: 820px) {
-          .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
-          .dh-main { height: auto; overflow: visible; width: 100%; }
-          .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
-          .dh-mobile-menu-btn:hover { background: var(--bg-slate-100); }
-
-          .dh-sidebar-backdrop {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-            display: block !important;
-          }
-          .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
-
-          .dh-sidebar {
-            position: fixed; top: 0; left: -320px; bottom: 0;
-            z-index: 1100; height: 100%; max-height: none;
-            border-right: 1px solid var(--border-slate-200); border-bottom: 0;
-            display: flex; flex-direction: column; align-items: stretch;
-            background: var(--bg-pure-white); width: 280px; box-sizing: border-box;
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 4px 0 24px rgba(0,0,0,0.08);
-          }
-          .dh-sidebar.is-mobile-open { left: 0; }
-
-          /* Stats grid → 2 columns on mobile */
-          .dh-main-scroll { padding: 12px 14px !important; }
-          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
-
-          /* Filter bar: full-width search, other filters wrap */
-          .sc-filters { gap: 6px; }
-          .sc-filters__search { width: 100% !important; min-width: 0; }
-          .sc-filters__field { min-width: 130px; flex: 1 1 130px; }
-
-          /* Table: horizontal scroll */
-          .sc-tablewrap { overflow-x: auto !important; }
-          .sc-table .ant-table { min-width: 640px; }
-
-          /* Topbar: compress controls */
-          .sc-topbar { padding: 8px 14px !important; }
-
-          /* Footer: wrap on small screens */
-          .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
-        }
-
-        @media (max-width: 480px) {
-          .grid.grid-cols-2.lg\:grid-cols-4 { grid-template-columns: 1fr !important; }
-          .sc-topbar__sub, .sc-topbar__div { display: none !important; }
-          .pp-footer-info { font-size: 11px; }
-        }
-        `}} />
-
-      <div className="dh-shell">
-        <div
-          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
-          onClick={() => setMobileSidebarOpen(false)}
-          aria-hidden
-        />
-        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
-          <div className="dh-sidebar-top">
-            <div className="pp-side-head">
-              <div className="pp-side-logo"><SnippetsOutlined /></div>
-              <div className="pp-side-head-text">
-                <h1 className="pp-side-title">Suites</h1>
-                <p className="pp-side-subtitle">QA Space</p>
-              </div>
-            </div>
-
-            {canCreateSuite && projectFilter && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => openCreateModal()}
-                block
-                className="pp-side-cta"
-              >
-                Create Suite
-              </Button>
-            )}
-          </div>
-          <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Modules</span>
-            <button
-              className={`pp-nav-item ${!moduleFilter ? 'is-active' : ''}`}
-              onClick={() => { setModuleFilter(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Layers size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Modules</span>
-              {moduleNavOptions.length > 0 ? <span className="pp-nav-count">{moduleNavOptions.length}</span> : null}
-            </button>
-            <button
-              className={`pp-nav-item ${moduleFilter === 'Unassigned' ? 'is-active' : ''}`}
-              onClick={() => { setModuleFilter('Unassigned'); setMobileSidebarOpen(false); }}
-            >
-              <Folder size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Unassigned</span>
-            </button>
-            {visibleModules.map(m => (
-              <button
-                key={m.value}
-                className={`pp-nav-item ${moduleFilter === m.value ? 'is-active' : ''}`}
-                onClick={() => { setModuleFilter(m.value); setMobileSidebarOpen(false); }}
-                title={m.label}
-              >
-                <Folder size={15} className="pp-nav-icon" />
-                <span className="pp-nav-label">{m.label}</span>
-              </button>
-            ))}
-            {moduleNavOptions.length === 0 && (
-              <span className="pp-nav-empty">No modules yet</span>
-            )}
-            {hiddenModuleCount > 0 && (
-              <button
-                type="button"
-                className={`pp-nav-more ${showAllModules ? 'is-open' : ''}`}
-                onClick={() => setShowAllModules(v => !v)}
-              >
-                <ChevronDown size={13} className="pp-nav-more-icon" />
-                {showAllModules ? 'Show less' : `Show ${hiddenModuleCount} more`}
-              </button>
-            )}
-
-            <span className="pp-nav-caption">Coverage</span>
-            <button
-              className={`pp-nav-item ${!coverageFilter ? 'is-active' : ''}`}
-              onClick={() => { setCoverageFilter(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Layers size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Any coverage</span>
-            </button>
-            {COVERAGE_OPTIONS.map(c => (
-              <button
-                key={c.value}
-                className={`pp-nav-item ${coverageFilter === c.value ? 'is-active' : ''}`}
-                onClick={() => { setCoverageFilter(c.value); setMobileSidebarOpen(false); }}
-              >
-                <Link2 size={15} className="pp-nav-icon" />
-                <span className="pp-nav-label">{c.label}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <main className="dh-main">
-          <div className="dh-main-topbar sc-topbar">
-            {/* Title and subtitle share one line, split by a divider */}
-            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
-              <Button
-                className="dh-mobile-menu-btn"
-                type="text"
-                icon={<Menu size={18} />}
-                onClick={() => setMobileSidebarOpen(true)}
-              />
-              <span className="sc-topbar__h1">All Test Suites</span>
-              <span className="sc-topbar__div" />
+            {/* ── Header row — project, search, filters, view controls ───── */}
+            <div className="saas-header-container sc-header">
               <QaProjectSwitcher
                 projects={projectOptions}
                 value={selectedProjectId}
                 onChange={chooseProject}
                 loading={loadingProjects}
               />
-              {selectedModuleLabel && (
-                <>
-                  <span className="sc-topbar__div" />
-                  <span className="sc-topbar__sub">{selectedModuleLabel}</span>
-                </>
-              )}
-            </div>
 
-            <div className="dh-main-controls">
-              <Button
-                type="default"
-                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
-                onClick={fetchData}
-                disabled={loading || !projectFilter}
-                title="Refresh"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
-              />
-              <div className="pp-segmented">
-                <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} title="List View"><UnorderedListOutlined /></button>
-                <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} title="Grid View"><AppstoreOutlined /></button>
+              <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+              <div className="sc-header-controls">
+                <Input
+                  placeholder="Quick search suites, scenarios, modules..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                  className="saas-input"
+                  style={{ maxWidth: 260, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  disabled={!projectFilter}
+                  allowClear
+                />
+
+                <Space.Compact className="ticket-filter-group">
+                  <Popover
+                    content={
+                      <TestSuiteFilters
+                        filters={{ scenarioFilter, moduleFilter, coverageFilter }}
+                        onFilterChange={(key, val) => {
+                          if (key === 'scenarioFilter') setScenarioFilter(val || undefined);
+                          if (key === 'moduleFilter') setModuleFilter(val || undefined);
+                          if (key === 'coverageFilter') setCoverageFilter(val || undefined);
+                        }}
+                        onReset={clearFilters}
+                        scenarioOptions={scenarioFilterOptions}
+                        moduleOptions={moduleFilterOptions}
+                        coverageOptions={COVERAGE_OPTIONS}
+                        onScenarioSearch={setParentSearchTerm}
+                      />
+                    }
+                    trigger="click"
+                    open={isFilterPanelOpen}
+                    onOpenChange={setIsFilterPanelOpen}
+                    placement="bottomLeft"
+                    overlayClassName="tf-popover-overlay"
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      disabled={!projectFilter}
+                      className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                      style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                    >
+                      Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    </Button>
+                  </Popover>
+                  <Button
+                    icon={<ExpandAltOutlined />}
+                    style={{ height: 30 }}
+                    disabled={!projectFilter}
+                    aria-label="Expand filters"
+                    onClick={() => setIsFilterRowOpen(prev => !prev)}
+                  />
+                </Space.Compact>
               </div>
-              {canCreateSuite && projectFilter && (
-                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>
-                  New Suite
-                </Button>
-              )}
-            </div>
-          </div>
 
-          <div className="dh-main-scroll">
+              {/* Right side — the coverage switch that used to live in the
+                  rail, then the view controls. */}
+              <Space size={10} className="sc-header-right">
+                <Segmented
+                  className="saas-segmented-premium sc-owner-seg"
+                  value={coverageFilter || 'any'}
+                  onChange={(v) => setCoverageFilter(v === 'any' ? undefined : String(v))}
+                  options={[
+                    {
+                      value: 'any',
+                      label: (
+                        <span className="sc-owner-opt">
+                          <Layers size={13} />
+                          <span className="sc-owner-opt__label">All Suites</span>
+                          <span className="sc-owner-opt__count">{totalItems}</span>
+                        </span>
+                      ),
+                    },
+                    {
+                      value: 'linked',
+                      label: (
+                        <span className="sc-owner-opt">
+                          <Link2 size={13} />
+                          <span className="sc-owner-opt__label">With Cases</span>
+                        </span>
+                      ),
+                    },
+                    {
+                      value: 'empty',
+                      label: (
+                        <span className="sc-owner-opt">
+                          <Folder size={13} />
+                          <span className="sc-owner-opt__label">Empty</span>
+                          <span className="sc-owner-opt__count">{emptySuites}</span>
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+
+                <Segmented
+                  className="saas-segmented-premium"
+                  value={viewMode}
+                  onChange={(v) => setViewMode(v as 'list' | 'grid')}
+                  options={[
+                    {
+                      value: 'list',
+                      label: (
+                        <Tooltip title="List View" mouseEnterDelay={0.5}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', height: '100%' }}>
+                            <UnorderedListOutlined style={{ fontSize: 13 }} />
+                          </span>
+                        </Tooltip>
+                      )
+                    },
+                    {
+                      value: 'grid',
+                      label: (
+                        <Tooltip title="Grid View" mouseEnterDelay={0.5}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', height: '100%' }}>
+                            <AppstoreOutlined style={{ fontSize: 13 }} />
+                          </span>
+                        </Tooltip>
+                      )
+                    },
+                  ]}
+                />
+
+                <Tooltip title="Refresh view">
+                  <Button
+                    icon={<ReloadOutlined spin={loading} />}
+                    onClick={fetchData}
+                    disabled={loading || !projectFilter}
+                    style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </Tooltip>
+
+                {canCreateSuite && projectFilter && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => openCreateModal()}
+                    style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                  >
+                    Create Suite
+                  </Button>
+                )}
+              </Space>
+            </div>
+
+            {/* ── Inline filter row — the pill strip the Ticket List uses ── */}
+            {isFilterRowOpen && projectFilter && (
+              <div className="tl-filter-row">
+                <div className="tl-filter-row-label">
+                  <FilterOutlined style={{ fontSize: 11 }} />
+                  <span>Filters</span>
+                  <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
+                </div>
+                <div className="tl-filter-row-pills">
+                  <TicketFilterPill
+                    icon={<FolderOutlined style={{ fontSize: 11 }} />}
+                    label="Scenario"
+                    value={scenarioFilter || ""}
+                    options={scenarioFilterOptions}
+                    onChange={(val) => setScenarioFilter(val || undefined)}
+                    onSearch={setParentSearchTerm}
+                    itemNoun="scenarios"
+                    width={280}
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<ApartmentOutlined style={{ fontSize: 11 }} />}
+                    label="Module"
+                    value={moduleFilter || ""}
+                    options={moduleFilterOptions}
+                    onChange={(val) => setModuleFilter(val || undefined)}
+                    itemNoun="modules"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<LinkOutlined style={{ fontSize: 11 }} />}
+                    label="Coverage"
+                    value={coverageFilter || ""}
+                    options={COVERAGE_OPTIONS}
+                    onChange={(val) => setCoverageFilter(val || undefined)}
+                    itemNoun="options"
+                    multiple={false}
+                  />
+                </div>
+                <div className="tl-filter-row-actions">
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="tl-filter-row-reset" onClick={clearFilters}>
+                      <ReloadOutlined style={{ fontSize: 10 }} />
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tl-filter-row-close"
+                    onClick={() => setIsFilterRowOpen(false)}
+                    aria-label="Close filters"
+                    title="Close filters"
+                  >
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Body ───────────────────────────────────────────────────── */}
             {!projectFilter ? (
               /* Until the project is known there are no suites, stats or
                  filters worth showing — the picker takes the whole area. */
-              !projectReady ? (
-                /* Reading the remembered project — showing the picker first
-                   would flash it away a frame later. */
-                <ZukvoLoader size="md" message="Loading projects…" />
-              ) : (
-                <QaProjectPicker
-                  projects={projectOptions}
-                  loading={loadingProjects}
-                  onChoose={chooseProject}
-                  subtitle="Suites group the test cases of one project. Pick one to open its suites."
-                />
-              )
-            ) : (
-            <>
-            {/* Stats — product-standard tiles */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              <StatTile label="Total Suites" value={totalItems} icon={SnippetsOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${emptySuites} with no cases`} />
-              <StatTile label="Scenarios Covered" value={uniqueScenarios} icon={Folder} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub={`of ${parents.length} scenarios`} />
-              <StatTile label="Linked Cases" value={totalLinkedCases} icon={Layers} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${avgCasesPerSuite} per suite on average`} />
-              <StatTile label="Active Modules" value={modules.length} icon={CheckCircleOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="across the workspace" />
-            </div>
-
-            {/* Filter row */}
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search suites, scenarios, modules…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={scenarioFilterOptions}
-                value={scenarioFilter}
-                onSearch={(val) => setParentSearchTerm(val)}
-                onChange={(v) => setScenarioFilter(v)}
-                placeholder="All scenarios"
-                itemNoun="scenarios"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={moduleFilterOptions}
-                value={moduleFilter}
-                onChange={(v) => setModuleFilter(v)}
-                placeholder="All modules"
-                itemNoun="modules"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={COVERAGE_OPTIONS}
-                value={coverageFilter}
-                onChange={(v) => setCoverageFilter(v)}
-                placeholder="Any coverage"
-                hideAvatar
-                itemNoun="options"
-                className="sc-filters__field"
-              />
-
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
-
-            {/* Table or Grid — only the results blur, so the filters above stay
-                usable while a search refetches. */}
-            <ZukvoLoadingOverlay loading={loading} message="Loading test suites…" minHeight={loading ? 320 : undefined}>
-            {viewMode === 'list' ? (
-              <div className="sc-tablewrap">
-                <Table
-                  className="ts-table sc-table"
-                  dataSource={pagedSuites}
-                  columns={columns}
-                  rowKey="id"
-                  pagination={false}
-                  /* The columns now total ~1210px. Without this they would be
-                     squeezed on a 1280–1440px screen; scrolling keeps each one
-                     at a readable width instead. */
-                  scroll={{ x: 1210 }}
-                  onRow={(record) => ({
-                    onClick: () => router.push("/qa-workspace/test-suites/" + record.id),
-                  })}
-                  locale={{
-                    /* Holding the height beats claiming "no suites" mid-fetch. */
-                    emptyText: <NoData description={loading ? (
-                                                <div style={{ minHeight: 240 }} />
-                                              ) : (
-                                                <div className="sc-empty">
-                                                  <SnippetsOutlined className="sc-empty__icon" />
-                                                  <p className="sc-empty__title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                                                  <p className="sc-empty__desc">
-                                                    {activeFilterCount > 0
-                                                      ? 'Try widening your search or clearing the filters.'
-                                                      : 'Group related test cases into a suite you can run together.'}
-                                                  </p>
-                                                  {activeFilterCount > 0
-                                                    ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                                    : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
-                                                </div>
-                                              )} />
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="pp-grid">
-                {loading ? null : filteredSuites.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <NoData description={
-                      <div className="sc-empty pp-empty">
-                        <SnippetsOutlined className="sc-empty__icon pp-empty-orb" />
-                        <p className="sc-empty__title pp-empty-title">{activeFilterCount > 0 ? 'No suites match these filters' : 'No test suites yet'}</p>
-                        <p className="sc-empty__desc pp-empty-sub">
-                          {activeFilterCount > 0 ? 'Try widening your search or clearing the filters.' : 'Group related test cases into a suite you can run together.'}
-                        </p>
-                        {activeFilterCount > 0
-                          ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                          : canCreateSuite && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateModal()}>Create Suite</Button>}
-                      </div>
-                    } />
-                  </div>
+              <div className="sc-pickerwrap">
+                {!projectReady ? (
+                  /* Reading the remembered project — showing the picker first
+                     would flash it away a frame later. */
+                  <ZukvoLoader size="md" message="Loading projects…" />
                 ) : (
-                  pagedSuites.map(r => renderSuiteCard(r))
+                  <QaProjectPicker
+                    projects={projectOptions}
+                    loading={loadingProjects}
+                    onChoose={chooseProject}
+                    subtitle="Suites group the test cases of one project. Pick one to open its suites."
+                  />
                 )}
               </div>
-            )}
-            </ZukvoLoadingOverlay>
-            </>
+            ) : (
+              <div className="tl-section">
+                {/* ── Overview banner — the Ticket List's sprint head, reading
+                     the suite library instead: how much of it holds cases. ── */}
+                <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+                  <div className="tl-sprint-row1">
+                    <div className="tl-sprint-title-block">
+                      <span
+                        className="tl-sprint-dot"
+                        style={{ background: bannerAccent, boxShadow: `0 0 0 3px ${bannerAccent}33` }}
+                      />
+                      <Typography.Text
+                        className="tl-sprint-title"
+                        ellipsis={{ tooltip: `${projectName || 'Project'} — All Test Suites` }}
+                      >
+                        {projectName || 'Project'} — All Test Suites
+                      </Typography.Text>
+                      <span className="tl-sprint-tags">
+                        <span className="tl-sprint-tag tl-sprint-tag-active">{totalItems} SUITES</span>
+                        {emptySuites > 0 && (
+                          <span className="tl-sprint-tag tl-sprint-tag-empty">{emptySuites} EMPTY</span>
+                        )}
+                        {selectedModuleLabel && (
+                          <span className="tl-sprint-tag tl-sprint-tag-module">{selectedModuleLabel}</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="tl-sprint-actions">
+                      <Button
+                        type="default"
+                        size="small"
+                        icon={<ApartmentOutlined />}
+                        onClick={() => router.push(MODULES_SETTINGS_HREF)}
+                        className="saas-button-item tl-sprint-burndown-btn"
+                      >
+                        Modules{modules.length ? ` (${modules.length})` : ''}
+                      </Button>
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<Folder size={13} />}
+                        onClick={() => router.push('/qa-workspace/test-cases')}
+                        className="saas-button-item tl-sprint-complete-btn"
+                      >
+                        Test Cases
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="tl-sprint-row2">
+                    <span className="tl-sprint-meta">
+                      <FolderOutlined style={{ fontSize: 11 }} />
+                      <b>{uniqueScenarios}</b>/{parents.length} scenarios covered
+                    </span>
+                    <span className="tl-sprint-meta">
+                      <b>{totalLinkedCases}</b> linked cases
+                    </span>
+                    <span className="tl-sprint-meta">
+                      <b>{avgCasesPerSuite}</b> per suite on average
+                    </span>
+                    <span className="tl-sprint-meta">
+                      <b>{modules.length}</b> active modules
+                    </span>
+                  </div>
+
+                  {/* How many suites actually hold cases — an empty suite runs nothing. */}
+                  <div className="tl-sprint-row3">
+                    <div className="tl-sprint-progress-bar">
+                      <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, filledPct)}%` }} />
+                    </div>
+                    <span className="tl-sprint-progress-pct">{filledPct}%</span>
+                  </div>
+                </div>
+
+                <div className="tl-section-body">
+                  {/* Only the results blur, so the filters above stay usable
+                      while a search refetches. */}
+                  <ZukvoLoadingOverlay loading={loading} message="Loading test suites…">
+                    {viewMode === 'list' ? (
+                      <div className="pp-table-wrap">
+                        <Table
+                          className="saas-table tl-table pp-table"
+                          dataSource={pagedSuites}
+                          columns={columns}
+                          rowKey="id"
+                          size="small"
+                          pagination={false}
+                          scroll={{ x: 'max-content' }}
+                          onRow={(record) => ({
+                            className: 'pp-row',
+                            onClick: (e) => {
+                              const t = e.target as HTMLElement;
+                              if (t.closest('button, a, .ant-dropdown-trigger, .sc-rowactions, .pp-suite-id')) return;
+                              router.push("/qa-workspace/test-suites/" + record.id);
+                            },
+                          })}
+                          locale={{
+                            /* Holding the height beats claiming "no suites" mid-fetch. */
+                            emptyText: loading ? <div style={{ minHeight: 240 }} /> : renderEmpty()
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="sc-gridwrap">
+                        <div className="pp-grid">
+                          {loading ? null : filteredSuites.length === 0 ? (
+                            <div style={{ gridColumn: '1 / -1' }}>{renderEmpty()}</div>
+                          ) : (
+                            pagedSuites.map(r => renderSuiteCard(r))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </ZukvoLoadingOverlay>
+
+                  {/* Pager sits outside the scroll area so it stays pinned to
+                      the bottom of the pane whether or not the list overflows. */}
+                  {filteredSuites.length > 0 && (
+                    <div className="pp-footer">
+                      <div className="pp-footer-info">
+                        Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
+                      </div>
+                      <div className="pp-pager">
+                        <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                        {Array.from({ length: pageCount }, (_, i) => i + 1)
+                          .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                          .map((p) => (
+                            <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                          ))}
+                        <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                        <Select
+                          className="pp-pagesize"
+                          value={pageSize}
+                          onChange={(v) => { setPageSize(v); setPage(1); }}
+                          options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                          popupMatchSelectWidth={120}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {projectFilter && filteredSuites.length > 0 && (
-            <div className="pp-footer">
-              <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
-              </div>
-              <div className="pp-pager">
-                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1)
-                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
-                  .map((p) => (
-                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
-                  ))}
-                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
-                <Select
-                  className="pp-pagesize"
-                  value={pageSize}
-                  onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                  popupMatchSelectWidth={120}
-                />
-              </div>
-            </div>
-          )}
-        </main>
+        </div>
       </div>
 
     </MainLayout>
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Styles — the Ticket List's shell, header, banner, table and pager, with the
+   suite-specific cells layered on top.
+   ──────────────────────────────────────────────────────────────────────── */
+const SUITES_PAGE_STYLES = `
+/* ── Shell: one column, no rail ───────────────────────────────────────── */
+.tl-shell-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+.tl-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+.tl-main {
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Header row ───────────────────────────────────────────────────────── */
+.sc-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin: 0;
+  padding: 9.7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--bg-pure-white);
+  border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+}
+.sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.sc-header-right { flex-shrink: 0; }
+
+.sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
+.sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
+.sc-owner-opt__label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sc-owner-opt__count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 17px; padding: 0 5px;
+  border-radius: 999px; background: var(--bg-slate-100); color: var(--text-slate-500);
+  font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.ant-segmented-item-selected .sc-owner-opt__count { background: var(--bg-blue-50); color: #3B82F6; }
+[data-theme='dark'] .sc-owner-opt__count { background: #1e293b; color: #94a3b8; }
+
+/* ── Section + scope banner (Ticket List sprint head) ─────────────────── */
+.tl-section {
+  background: var(--bg-pure-white);
+  border-top: 1px solid var(--border-slate-200);
+  border-bottom: 1px solid var(--border-slate-200);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-theme='dark'] .tl-section {
+  background: transparent;
+  border-top-color: #1f2937;
+  border-bottom-color: #1f2937;
+}
+.tl-section-head {
+  padding: 6px 12px;
+  background: var(--bg-slate-50);
+  border-bottom: 1px solid var(--border-slate-200);
+  position: relative;
+  flex-shrink: 0;
+}
+[data-theme='dark'] .tl-section-head {
+  background: #0f1419;
+  border-bottom-color: #1f2937;
+}
+.tl-section-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* The loading overlay is a plain wrapper — it has to grow like the table would. */
+.tl-section-body > .zlo,
+.tl-section-body > .zlo > .zlo__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-sprint-head-v2 { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 12px !important; }
+.tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tl-sprint-title {
+  font-size: 14px !important; font-weight: 800 !important; color: var(--text-slate-900) !important;
+  letter-spacing: -0.01em; max-width: 460px;
+}
+[data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+.tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tl-sprint-tag {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+  border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+}
+.tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+.tl-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
+[data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+[data-theme='dark'] .tl-sprint-tag-delayed { color: #fca5a5; }
+
+.tl-sprint-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.tl-sprint-burndown-btn.ant-btn { height: 28px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+.tl-sprint-complete-btn.ant-btn.ant-btn-primary {
+  height: 28px; font-size: 12px; font-weight: 700;
+  background: #10b981; border-color: #10b981; border-radius: 6px;
+}
+.tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
+  background: #059669 !important; border-color: #059669 !important;
+}
+
+.tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+.tl-sprint-meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+}
+.tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+[data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+[data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+.tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+.tl-sprint-progress-bar {
+  flex: 1 1 auto; position: relative; height: 6px;
+  background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
+}
+[data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+.tl-sprint-progress-fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 999px; transition: width 0.4s ease;
+}
+.tl-sprint-progress-pct {
+  flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+  font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+}
+[data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+/* ── Inline filter row ────────────────────────────────────────────────── */
+.tl-filter-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+}
+[data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+.tl-filter-row-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+  text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+}
+[data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+.tl-filter-row-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 6px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  color: var(--text-slate-500); border-radius: 999px;
+  font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+[data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+.tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+.tl-filter-row-reset {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+  background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+  font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.tl-filter-row-reset:hover {
+  color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+  background: rgba(59,130,246,0.06); border-style: solid;
+}
+.tl-filter-row-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; background: transparent;
+  border: 1px solid var(--border-slate-200); border-radius: 8px;
+  color: var(--text-slate-500); cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+[data-theme='dark'] .tl-filter-row-reset,
+[data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+
+/* ── Table shell + rows ───────────────────────────────────────────────── */
+.pp-table-wrap {
+  background: var(--bg-pure-white);
+  border: 1px solid var(--border-slate-200);
+  border-left: none; border-right: none; border-radius: 0;
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; margin: 0;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.pp-table-wrap::-webkit-scrollbar,
+.pp-table-wrap .ant-table-body::-webkit-scrollbar,
+.pp-table-wrap .ant-table-content::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.pp-table-wrap .ant-table-body,
+.pp-table-wrap .ant-table-content { -ms-overflow-style: none; scrollbar-width: none; }
+[data-theme='dark'] .pp-table-wrap { background: #0f1419; border-color: #1f2937; }
+
+.pp-table .ant-table { background: transparent; font-size: 12px; }
+.pp-table .ant-table-thead > tr > th {
+  background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+  font-size: 10px !important; font-weight: 800 !important; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-slate-400) !important; padding: 5px 10px !important;
+  white-space: nowrap !important; position: sticky !important; top: 0 !important; z-index: 2 !important;
+}
+[data-theme='dark'] .pp-table .ant-table-thead > tr > th {
+  background: #0f1419 !important; border-bottom-color: #1f2937 !important; color: #94a3b8 !important;
+}
+.pp-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-slate-100) !important;
+  padding: 6px 10px !important; font-size: 11.5px !important; line-height: 1.35 !important;
+}
+[data-theme='dark'] .pp-table .ant-table-tbody > tr > td { border-bottom-color: #1f2937 !important; }
+.pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+.pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+.pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+[data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: #1e293b !important; }
+.pp-table .ant-table-pagination { display: none !important; }
+.pp-table .ant-table-cell-fix-right { background: var(--bg-pure-white) !important; }
+[data-theme='dark'] .pp-table .ant-table-cell-fix-right { background: #0f1419 !important; }
+.pp-table .ant-table-tbody > tr.pp-row:hover > td.ant-table-cell-fix-right { background: var(--bg-slate-50) !important; }
+[data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td.ant-table-cell-fix-right { background: #1e293b !important; }
+.pp-table .ant-table-row-expand-icon-cell { padding-inline: 6px !important; width: 34px; }
+
+/* ── Cells ────────────────────────────────────────────────────────────── */
+.pp-scope-id {
+  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
+  border: 1px solid var(--border-blue-200); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: opacity .15s ease;
+}
+.pp-scope-id:hover { opacity: 0.8; }
+
+.pp-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; overflow: hidden; }
+.pp-name-icon {
+  width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #3B82F6; background: var(--bg-blue-50);
+}
+[data-theme='dark'] .pp-name-icon { background: rgba(59,130,246,0.15); }
+.pp-name-icon .anticon { font-size: 12px !important; }
+.pp-name-title {
+  flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900);
+  letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme='dark'] .pp-name-title { color: #f1f5f9; }
+
+.pp-vis-pill {
+  display: inline-flex; align-items: center; gap: 5px; height: 23px; padding: 0 8px;
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.pp-vis-pill--ash { color: #64748b; background: rgba(100,116,139,0.10); border-color: rgba(100,116,139,0.25); }
+.pp-vis-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.pp-creator { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.pp-creator-name {
+  font-size: 11.5px; color: var(--text-slate-700); white-space: nowrap; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme='dark'] .pp-creator-name { color: #cbd5e1; }
+
+.pp-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 20px; padding: 0 6px; border-radius: 5px;
+  background: var(--bg-blue-50); color: #3B82F6;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.pp-count.is-zero { background: var(--bg-slate-100); color: var(--text-slate-400); }
+[data-theme='dark'] .pp-count { background: rgba(59,130,246,0.15); }
+[data-theme='dark'] .pp-count.is-zero { background: #1e293b; color: #64748b; }
+
+.sc-muted { color: var(--text-slate-400); }
+
+.sc-prio { display: inline-flex; align-items: center; gap: 8px; }
+.sc-prio__bars { display: inline-flex; align-items: flex-end; gap: 2px; }
+.sc-prio__bar { width: 4px; height: 12px; border-radius: 2px; background: var(--border-slate-200); }
+.sc-prio__bar.is-on { background: #60a5fa; }
+.sc-prio__bar.is-on.is-max { background: #2563eb; }
+.sc-prio__label { font-size: 11.5px; font-weight: 500; color: var(--text-slate-600); }
+[data-theme='dark'] .sc-prio__bar { background: #1f2937; }
+[data-theme='dark'] .sc-prio__label { color: #94a3b8; }
+
+.sc-person__av {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(59,130,246,.12); color: #2563eb; font-size: 9px; font-weight: 800;
+}
+.sc-person__av.is-muted { background: rgba(100,116,139,.12); color: #64748b; }
+
+.sc-timeline { display: flex; flex-direction: column; line-height: 1.3; }
+.sc-timeline__range { font-size: 11.5px; color: var(--text-slate-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-timeline__hint { font-size: 10px; color: var(--text-slate-400); }
+.sc-timeline__hint.is-late { color: #dc2626; font-weight: 600; }
+[data-theme='dark'] .sc-timeline__range { color: #cbd5e1; }
+
+.sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.sc-rowactions button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-slate-400); cursor: pointer;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.sc-rowactions button:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+.sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+
+/* ── Expander + linked-items child row ────────────────────────────────── */
+.sc-expand {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1px solid var(--border-slate-200); background: transparent;
+  color: var(--text-slate-400); cursor: pointer; font-size: 10px;
+  transition: transform .18s ease, color .15s ease, border-color .15s ease;
+}
+.sc-expand:hover { color: #2563eb; border-color: #bfdbfe; }
+.sc-expand.is-open { transform: rotate(90deg); color: #2563eb; border-color: #bfdbfe; }
+.sc-linked {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px; padding: 12px 14px; background: var(--bg-slate-50);
+}
+[data-theme='dark'] .sc-linked { background: #111720; }
+.sc-linked__col { min-width: 0; }
+.sc-linked__head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-slate-400); }
+.sc-linked__label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.sc-linked__count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--bg-slate-100); color: var(--text-slate-500); font-size: 9.5px; font-weight: 800;
+}
+.sc-linked__items { display: flex; flex-wrap: wrap; gap: 5px; }
+.sc-linked__chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  height: 22px; padding: 0 8px; border-radius: 6px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  font-size: 11.5px; color: var(--text-slate-700);
+}
+.sc-linked__chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-linked__chip-ext { flex-shrink: 0; opacity: 0; transition: opacity .15s ease; }
+.sc-linked__chip.is-link { cursor: pointer; text-decoration: none; }
+.sc-linked__chip.is-link:hover { color: #2563eb; border-color: #bfdbfe; background: var(--bg-blue-50); }
+.sc-linked__chip.is-link:hover .sc-linked__chip-ext { opacity: 1; }
+.sc-linked__chip.is-link:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+.sc-linked__none { font-size: 11.5px; color: var(--text-slate-300); }
+.sc-linked__empty { padding: 10px 14px; font-size: 12.5px; color: var(--text-slate-400); background: var(--bg-slate-50); }
+[data-theme='dark'] .sc-linked__empty { background: #111720; }
+
+/* ── Footer + pager ───────────────────────────────────────────────────── */
+.pp-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; padding: 8px 12px;
+  background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+  box-sizing: border-box; flex-shrink: 0;
+  box-shadow: 0 -4px 14px rgba(15,23,42,0.04); margin: 0;
+}
+[data-theme='dark'] .pp-footer { background: #0f1419; border-top-color: #1f2937; }
+.pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+.pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+[data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
+.pp-pager { display: flex; align-items: center; gap: 3px; }
+.pp-pager-btn, .pp-pager-num {
+  min-width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+  color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+  background: #1e293b; border-color: #334155; color: #cbd5e1;
+}
+.pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+.pp-pagesize { margin-left: 5px; }
+.pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+/* ── Grid view ────────────────────────────────────────────────────────── */
+.sc-gridwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
+.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
+
+.pc-card {
+  border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+  cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+.pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
+.pc-avatar {
+  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 13px;
+}
+.pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
+.pc-title {
+  font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+.pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+.pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-actions {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: var(--text-slate-400); cursor: pointer; flex-shrink: 0;
+}
+.pc-actions:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+.pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+.pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
+.pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+.pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+.pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+.pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+.pc-status-tag {
+  display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px;
+  border-radius: 5px; font-size: 10.5px; font-weight: 700;
+}
+
+/* ── Row action menu (grid card kebab) ────────────────────────────────── */
+.pp-action-pop .ant-dropdown-menu {
+  padding: 6px; border-radius: 0 !important; min-width: 236px; overflow: hidden !important;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-100);
+  box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+}
+.pp-action-pop .ant-dropdown-menu-item { padding: 7px 9px !important; border-radius: 0 !important; margin: 1px 0; transition: background .12s ease; }
+.pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+.pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+.pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+.pp-menu-item { display: flex; align-items: center; gap: 11px; }
+.pp-menu-ic { width: 30px; height: 30px; border-radius: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+.pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+.pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+.pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+.pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+.pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+.pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu { background: #0B0F1A !important; border: 1px solid #1E293B !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider { background: #1E293B !important; }
+[data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+[data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
+
+/* ── Empty + project picker ───────────────────────────────────────────── */
+.sc-pickerwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+.sc-empty { padding: 44px 24px; text-align: center; }
+.sc-empty__icon { font-size: 26px; color: var(--border-slate-200); }
+.sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
+.sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .sc-owner-opt__label { display: none; }
+}
+@media (max-width: 900px) {
+  .sc-header { padding: 8px 12px; }
+  .sc-header-controls { order: 3; flex-basis: 100%; }
+  .sc-header-right { margin-left: auto; }
+  .tl-sprint-row2 { gap: 12px; }
+}
+@media (max-width: 640px) {
+  .tl-shell-wrap { height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+  .tl-main { height: auto; overflow: visible; }
+  .tl-section { overflow: visible; }
+  .tl-section-body { overflow: visible; }
+  .pp-table-wrap { overflow-x: auto !important; }
+  .sc-linked { grid-template-columns: 1fr; }
+  .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+  .pp-footer-info { font-size: 11px; }
+  .tl-filter-row-label { display: none; }
+}
+/* ── Cases-specific cells ─────────────────────────────────────────────── */
+.pp-suite-id {
+  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
+  border: 1px solid var(--border-blue-200); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: opacity .15s ease;
+}
+.pp-suite-id:hover { opacity: 0.8; }
+
+.pp-plain { font-size: 11.5px; color: var(--text-slate-700); }
+[data-theme='dark'] .pp-plain { color: #cbd5e1; }
+
+/* The scenario a suite plans against. */
+.ts-scenario {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%;
+  font-size: 11.5px; font-weight: 500; color: var(--text-slate-700);
+}
+.ts-scenario .anticon { color: var(--text-slate-400); flex-shrink: 0; font-size: 12px; }
+.ts-scenario .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-theme='dark'] .ts-scenario { color: #cbd5e1; }
+
+/* A suite with no cases runs nothing — worth calling out in the banner. */
+.tl-sprint-tag-empty { background: transparent; color: #64748b; border-color: rgba(100,116,139,0.32); }
+
+/* The module the list is narrowed to, when one is picked. */
+.tl-sprint-tag-module { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+
+.sc-empty__icon { display: inline-block; }
+`;
+
+

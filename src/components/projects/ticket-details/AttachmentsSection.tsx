@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { Space, Tag, message, Typography } from "antd";
+import { message, Typography } from "antd";
+import { Paperclip } from "lucide-react";
 import AttachmentUploader from "@/components/common/AttachmentUploader";
 import AttachmentList from "@/components/common/AttachmentList";
-
+import { SectionCard, EmptyState } from "./ticketDetailUI";
 
 interface AttachmentsSectionProps {
   attachments: any[];
@@ -15,6 +16,8 @@ interface AttachmentsSectionProps {
   onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
   onOpen?: () => void;
   currentUserId?: string;
+  /** "card" renders inside the premium ticket-detail card shell. */
+  chrome?: "default" | "card";
 }
 
 export default function AttachmentsSection({
@@ -26,6 +29,7 @@ export default function AttachmentsSection({
   onRename,
   onOpen,
   currentUserId,
+  chrome = "default",
 }: AttachmentsSectionProps) {
   const handleUpload = async (file: string, fileName: string) => {
     try {
@@ -58,6 +62,52 @@ export default function AttachmentsSection({
     }
   };
 
+  const uploader = !isEditing ? (
+    <AttachmentUploader onUpload={handleUpload} maxSize={5} disabled={isEditing} />
+  ) : null;
+
+  const compactUploader = !isEditing ? (
+    <AttachmentUploader
+      onUpload={handleUpload}
+      maxSize={5}
+      disabled={isEditing}
+      label="Add file"
+      style={{ height: 28, fontSize: 12 }}
+    />
+  ) : null;
+
+  const list = (
+    <AttachmentList
+      attachments={attachments}
+      onDelete={handleDelete}
+      onRename={handleRename}
+      onOpen={onOpen}
+      currentUserId={currentUserId}
+      loading={isLoading}
+    />
+  );
+
+  if (chrome === "card") {
+    return (
+      <SectionCard
+        title="Attachments"
+        icon={<Paperclip size={13} strokeWidth={2} />}
+        count={attachments.length}
+        action={compactUploader}
+      >
+        {attachments.length === 0 && !isLoading ? (
+          <EmptyState
+            icon={<Paperclip size={20} strokeWidth={1.6} />}
+            title="No attachments"
+            hint="Drop specs, screenshots or logs here to keep them with the ticket."
+          />
+        ) : (
+          list
+        )}
+      </SectionCard>
+    );
+  }
+
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -69,26 +119,11 @@ export default function AttachmentsSection({
             </span>
           )}
         </Typography.Title>
-        
-        {!isEditing && (
-          <AttachmentUploader
-            onUpload={handleUpload}
-            maxSize={5}
-            disabled={isEditing}
-          />
-        )}
+
+        {uploader}
       </div>
 
-      <div style={{ padding: '0 4px' }}>
-        <AttachmentList
-          attachments={attachments}
-          onDelete={handleDelete}
-          onRename={handleRename}
-          onOpen={onOpen}
-          currentUserId={currentUserId}
-          loading={isLoading}
-        />
-      </div>
+      <div style={{ padding: '0 4px' }}>{list}</div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import ReportsHub from "./ReportsHub";
 
 export default function ReportsHubPage() {
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <ReportsHub />
     </MainLayout>
   );

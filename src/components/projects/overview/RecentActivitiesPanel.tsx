@@ -39,58 +39,22 @@ const colorForAction = (action: string) => {
   return "#94a3b8";
 };
 
+const HEAD_TINT = "rgba(59, 130, 246, 0.10)";
+const HEAD_COLOR = "#3b82f6";
+
 export const RecentActivitiesPanel: React.FC<RecentActivitiesPanelProps> = ({ activities, height = 292 }) => {
   return (
-    <div
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 0,
-        height,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 16px",
-          borderBottom: "1px solid var(--border-color)",
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 7,
-            background: "rgba(139, 92, 246, 0.10)",
-            color: "#8b5cf6",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-          }}
-        >
+    <div className="po-panel" style={{ height }}>
+      <div className="po-panel__head">
+        <div className="po-panel__head-ic" style={{ background: HEAD_TINT, color: HEAD_COLOR }}>
           <HistoryOutlined />
         </div>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--text-slate-900)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-          }}
-        >
+        <Text className="po-panel__title">
           Recent Activity
         </Text>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+      <div className="po-panel__body">
         {activities.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
             <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No recent activity</Text>} />

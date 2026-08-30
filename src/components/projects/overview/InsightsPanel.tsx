@@ -29,58 +29,22 @@ const classify = (text: string) => {
   return { color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)", icon: <BulbOutlined /> };
 };
 
+const HEAD_TINT = "rgba(245, 158, 11, 0.10)";
+const HEAD_COLOR = "#f59e0b";
+
 export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights, height = 292 }) => {
   return (
-    <div
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 0,
-        height,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 16px",
-          borderBottom: "1px solid var(--border-color)",
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 7,
-            background: "rgba(245, 158, 11, 0.10)",
-            color: "#f59e0b",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-          }}
-        >
+    <div className="po-panel" style={{ height }}>
+      <div className="po-panel__head">
+        <div className="po-panel__head-ic" style={{ background: HEAD_TINT, color: HEAD_COLOR }}>
           <BulbOutlined />
         </div>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--text-slate-900)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-          }}
-        >
+        <Text className="po-panel__title">
           Insights
         </Text>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+      <div className="po-panel__body">
         {insights.length === 0 ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
             <NoData description={<Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>No insights yet</Text>} />

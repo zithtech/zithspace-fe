@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Form, Alert, Row, Col, message, Space, Button } from "antd";
-import { History } from "lucide-react";
+import { Form, Alert, message } from "antd";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useUserProjects, useProjectMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import {
@@ -24,13 +23,15 @@ import { TicketDetailsProps } from "@/types/ticket";
 import { usePermission } from "@/hooks/usePermission";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 import {
-  TicketDetailsHeader,
+  TicketDetailStyles,
+  TicketDetailHero,
   TicketDetailsForm,
-  TicketInformation,
+  TicketDescription,
+  TicketProperties,
+  TicketPeople,
   RelatedLinksSection,
   AttachmentsSection,
   CommentsSection,
-  WorkflowProgress,
   TicketDetailsLoading,
 } from "./ticket-details";
 
@@ -189,18 +190,15 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   }
 
   return (
-    <div className="p-10">
-      <TicketDetailsHeader
-        rightContent={
-          canReadActivityLog ? (
-            <Button
-              icon={<History size={14} strokeWidth={1.75} />}
-              onClick={() => setHistoryOpen(true)}
-            >
-              History
-            </Button>
-          ) : null
-        }
+    <div className="tdx tdx-page">
+      <TicketDetailStyles />
+
+      <TicketDetailHero
+        ticket={ticket}
+        isEditing={editing}
+        onEdit={() => setEditing(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
+        canViewHistory={canReadActivityLog}
       />
 
       <TransactionHistoryDrawer
@@ -211,72 +209,122 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         subtitle={ticket ? `${ticket.ticketNumber ?? ""}${ticket.title ? ` — ${ticket.title}` : ""}` : undefined}
       />
 
-      <Row gutter={24}>
-        {/* Main Content */}
-        <Col xs={24} lg={16}>
+      <div className="tdx-grid">
+        {/* Primary column */}
+        <div className="tdx-col">
           <Form form={form} layout="vertical" component={false}>
             {editing ? (
-              <Card>
-                <TicketDetailsForm
-                  ticket={ticket}
-                  form={form}
-                  projects={projects}
-                  members={members}
-                  platforms={platforms}
-                  stacks={stacks}
-                  priorities={priorities}
-                  taskLevels={taskLevels}
-                  taskTypes={taskTypes}
-                  onSave={handleSave}
-                  onCancel={() => setEditing(false)}
-                  isSaving={updateTicketMutation.isPending}
-                  dataLoading={dataLoading}
-                  canAssignTicket={canAssignTicket}
-                />
-              </Card>
+              <div className="tdx-card tdx-card--form">
+                <div className="tdx-card__body">
+                  <TicketDetailsForm
+                    ticket={ticket}
+                    form={form}
+                    projects={projects}
+                    members={members}
+                    platforms={platforms}
+                    stacks={stacks}
+                    priorities={priorities}
+                    taskLevels={taskLevels}
+                    taskTypes={taskTypes}
+                    onSave={handleSave}
+                    onCancel={() => setEditing(false)}
+                    isSaving={updateTicketMutation.isPending}
+                    dataLoading={dataLoading}
+                    canAssignTicket={canAssignTicket}
+                  />
+                </div>
+              </div>
             ) : (
-              <TicketInformation ticket={ticket} onEdit={() => setEditing(true)} />
+              <TicketDescription ticket={ticket} />
             )}
           </Form>
 
-          <div style={{ marginTop: 24 }}>
-            <CommentsSection
-              comments={comments}
-              isEditing={editing}
-              onAddComment={handleAddComment}
-              onEditComment={handleEditComment}
-              onDeleteComment={handleDeleteComment}
-              isAddingComment={addCommentMutation.isPending}
-              isEditingComment={updateCommentMutation.isPending}
-              isDeletingComment={deleteCommentMutation.isPending}
-            />
-          </div>
-        </Col>
+          <CommentsSection
+            chrome="card"
+            comments={comments}
+            isEditing={editing}
+            onAddComment={handleAddComment}
+            onEditComment={handleEditComment}
+            onDeleteComment={handleDeleteComment}
+            isAddingComment={addCommentMutation.isPending}
+            isEditingComment={updateCommentMutation.isPending}
+            isDeletingComment={deleteCommentMutation.isPending}
+          />
+        </div>
 
-        {/* Sidebar */}
-        <Col xs={24} lg={8}>
-          <Space direction="vertical" size={24} style={{ width: "100%" }}>
-            <WorkflowProgress ticket={ticket} />
-            <RelatedLinksSection
-              relatedLinks={relatedLinks}
-              isEditing={editing}
-              onAddLink={handleAddLink}
-              onUpdateLink={handleUpdateLink}
-              onDeleteLink={handleDeleteLink}
-              isAddingLink={addLinkMutation.isPending}
-              isUpdatingLink={updateLinkMutation.isPending}
-              isDeletingLink={deleteLinkMutation.isPending}
-            />
-            <AttachmentsSection
-              attachments={attachments}
-              isLoading={attachmentsLoading}
-              isEditing={editing}
-              onUpload={handleUploadAttachment}
-              onDelete={handleDeleteAttachment}
-            />
-          </Space>
-        </Col>
-      </Row>
+        {/* Context rail */}
+        <aside className="tdx-col tdx-col--rail">
+          <TicketProperties ticket={ticket} />
+          <TicketPeople ticket={ticket} />
+          <RelatedLinksSection
+            chrome="card"
+            relatedLinks={relatedLinks}
+            isEditing={editing}
+            onAddLink={handleAddLink}
+            onUpdateLink={handleUpdateLink}
+            onDeleteLink={handleDeleteLink}
+            isAddingLink={addLinkMutation.isPending}
+            isUpdatingLink={updateLinkMutation.isPending}
+            isDeletingLink={deleteLinkMutation.isPending}
+          />
+          <AttachmentsSection
+            chrome="card"
+            attachments={attachments}
+            isLoading={attachmentsLoading}
+            isEditing={editing}
+            onUpload={handleUploadAttachment}
+            onDelete={handleDeleteAttachment}
+          />
+        </aside>
+      </div>
+
+      <style jsx global>{`
+        .tdx-page {
+          padding: 0 28px 48px;
+          max-width: 1520px;
+          margin: 0 auto;
+          background: var(--tdx-canvas);
+          min-height: 100%;
+        }
+        .tdx-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 384px;
+          gap: 20px;
+          align-items: start;
+        }
+        .tdx-col {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          min-width: 0;
+        }
+        .tdx-col--rail {
+          position: sticky;
+          top: 76px;
+        }
+        .tdx-card--form .tdx-card__body {
+          padding: 20px;
+        }
+
+        @media (max-width: 1280px) {
+          .tdx-grid {
+            grid-template-columns: minmax(0, 1fr) 340px;
+          }
+        }
+        @media (max-width: 1024px) {
+          .tdx-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+          .tdx-col--rail {
+            position: static;
+          }
+        }
+        @media (max-width: 640px) {
+          .tdx-page {
+            padding: 0 14px 36px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

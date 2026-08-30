@@ -77,6 +77,9 @@ import TiptapEditor from "@/components/common/TiptapEditor";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import type { SearchableDropdownOption } from "@/components/common/SearchableDropdown";
+import { ModuleModal, MODULE_SETTINGS_STYLES } from "@/components/qa/ModuleSettingsSection";
+import { SETTINGS_MODAL_STYLES } from "@/components/qa/ScopeSettingsSection";
 import { ProjectService } from "@/services/projectService";
 import {
   AssertionEditor,
@@ -170,8 +173,23 @@ const CURL_FORMATS = [
 /** Where the chosen project is remembered, matching the Bug List's own key. */
 const PROJECT_STORAGE_KEY = "yapiez_selected_project";
 
-/** The send bar's base URL, kept per project — a host belongs to one. */
+/**
+ * The base URL a send resolves relative paths against, kept per project.
+ *
+ * No longer typed in the send bar — that is one field holding the whole URL —
+ * but a project that had one remembered still uses it, and the capture panel
+ * sets it when that panel is switched back on.
+ */
 const BASE_URL_STORAGE_PREFIX = "api_hub_base_url:";
+
+/**
+ * The "Create new module" row pinned to the bottom of every module picker.
+ *
+ * It opens QA Settings' own module modal in place rather than sending the
+ * reader to that screen — the picker sits inside a half-written definition,
+ * and navigating away would throw that draft out.
+ */
+const CREATE_MODULE = "__create_module__";
 
 /** How many projects the empty-state picker shows before "Show more". */
 const PROJECT_PICKER_PREVIEW = 6;
@@ -459,6 +477,13 @@ function ApiCatalogContent() {
   const sendDraft = async () => {
     if (!editing.url?.trim()) {
       message.warning("Give the API a URL first");
+      return;
+    }
+
+    // The bar holds the whole URL now, so a relative path has nothing to
+    // resolve against unless this project already had a base URL remembered.
+    if (!/^https?:\/\//i.test(editing.url.trim()) && !sendBaseUrl.trim()) {
+      message.warning("This URL is relative and there is no base URL to resolve it against — give it a full URL.");
       return;
     }
 
@@ -778,6 +803,18 @@ function ApiCatalogContent() {
    * collection lands inside the module the definition is currently set to,
    * which is the only thing the author could have meant.
    */
+  /**
+   * Where a new collection will land — the tree row that opened the modal, or
+   * failing that the module the open definition is filed under.
+   */
+  const collectionTargetModule = newCollectionModule ?? editing.moduleName?.trim() ?? null;
+
+  const closeCollectionModal = () => {
+    setCollectionModalOpen(false);
+    setNewCollectionName("");
+    setNewCollectionModule(null);
+  };
+
   const createCollection = async () => {
     const name = newCollectionName.trim();
     if (!name) {
@@ -787,8 +824,8 @@ function ApiCatalogContent() {
     // Names are unique within a project, a module AND a source, so the check
     // must match all three — a global check would refuse a legitimate "Users"
     // under a second module, which is precisely what the tree is for.
-    const targetModule = newCollectionModule ?? editing.moduleName ?? null;
-    const moduleKey = targetModule?.trim().toLowerCase() ?? "";
+    const targetModule = collectionTargetModule;
+    const moduleKey = targetModule?.toLowerCase() ?? "";
     const clash = collections.some(
       (c) =>
         c.name.toLowerCase() === name.toLowerCase() &&
@@ -820,9 +857,7 @@ function ApiCatalogContent() {
       } else {
         setOpenCollections((previous) => new Set(previous).add(created.id));
       }
-      setNewCollectionName("");
-      setNewCollectionModule(null);
-      setCollectionModalOpen(false);
+      closeCollectionModal();
       message.success(`Collection "${created.name}" created`);
     } catch (error: any) {
       message.error(error?.response?.data?.error || "Could not create this collection");
@@ -1147,6 +1182,9 @@ function ApiCatalogContent() {
    */
   const { options: drawerModuleOptions } = useProjectQaModules(editing.projectId ?? projectId);
 
+  /** QA Settings' own "New module" modal, opened from the picker's pinned row. */
+  const [moduleModalOpen, setModuleModalOpen] = useState(false);
+
   /**
    * Module names already on this project's endpoints but no longer in settings.
    *
@@ -1256,8 +1294,13 @@ function ApiCatalogContent() {
         );
         const matchedLoose = looseApis.filter(apiMatches);
 
+        // A module earns a row once something is actually filed under it.
+        // Listing every curated module up front buried the two or three
+        // holding endpoints under a wall of empty branches, so an empty one
+        // stays out of the tree until an endpoint or collection lands in it.
+        const hasContent = moduleApis.length > 0 || moduleCollections.length > 0;
         const nameHit = !needle || module.name.toLowerCase().includes(needle);
-        const visible = nameHit || children.length > 0 || matchedLoose.length > 0;
+        const visible = hasContent && (nameHit || children.length > 0 || matchedLoose.length > 0);
 
         return {
           ...module,
@@ -1280,7 +1323,7 @@ function ApiCatalogContent() {
    * quietly blank its module the moment you saved.
    */
   const moduleOptions = useMemo(() => {
-    const options = drawerModuleOptions.map((option) => ({
+    const options: SearchableDropdownOption[] = drawerModuleOptions.map((option) => ({
       value: option.value,
       label: option.value,
       description: option.description,
@@ -1293,6 +1336,15 @@ function ApiCatalogContent() {
         description: "Not in Settings → Modules",
       });
     }
+    // Pinned, so it stays reachable when the list is long and is the only
+    // thing on offer when the project has no modules at all.
+    options.push({
+      value: CREATE_MODULE,
+      label: "Create new module",
+      description: "Add one without leaving this definition",
+      badge: <Boxes size={13} />,
+      pinned: true,
+    });
     return options;
   }, [drawerModuleOptions, editing.moduleName]);
 
@@ -1544,6 +1596,10 @@ function ApiCatalogContent() {
   };
 
   const onModuleChange = (value: string) => {
+    if (value === CREATE_MODULE) {
+      setModuleModalOpen(true);
+      return;
+    }
     const next = value || null;
     // A collection lives inside one module, so it cannot follow the definition
     // into another — kept only when it is unfiled, which belongs anywhere.
@@ -1557,6 +1613,24 @@ function ApiCatalogContent() {
       moduleName: next,
       collectionId: keepCollection ? editing.collectionId : null,
     });
+  };
+
+  /**
+   * Files the definition under the module that was just created.
+   *
+   * Same contract as the New collection modal: what you just added is
+   * selected for the open definition straight away, so the picker you came
+   * from is answered rather than left for you to reopen.
+   */
+  const onModuleCreated = async (saved?: { module_name?: string; project_id?: string | null }) => {
+    await refetchModules();
+    const name = saved?.module_name?.trim();
+    if (!name) return;
+    // Filed on another project, it is not on offer here — selecting it would
+    // put a name on the definition that this project's picker cannot show.
+    const target = editing.projectId ?? projectId;
+    if (saved?.project_id && target && String(saved.project_id) !== String(target)) return;
+    onModuleChange(name);
   };
 
   const onCollectionChange = (value: string) => {
@@ -1737,11 +1811,11 @@ function ApiCatalogContent() {
             ) : !tree.length ? (
               <div className="ph-tree-empty">
                 <Text style={{ fontSize: 12, color: "var(--text-secondary)", display: "block" }}>
-                  {needle ? "Nothing matches that." : "This project has no modules yet."}
+                  {needle ? "Nothing matches that." : "Nothing filed in this catalog yet."}
                 </Text>
                 {!needle && (
                   <Text style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    Modules are curated in QA Space → Settings → Modules.
+                    A module appears here once an endpoint or collection is filed under it.
                   </Text>
                 )}
               </div>
@@ -1880,18 +1954,15 @@ function ApiCatalogContent() {
                     }
                   />
                   <span className="ph-urlbar-sep" />
-                  <input
-                    className="ph-base-input"
-                    placeholder="https://staging.example.com"
-                    value={sendBaseUrl}
-                    onChange={(e) => setSendBaseUrl(e.target.value)}
-                    title="Base URL — a relative path below resolves against it. Remembered for this project."
-                  />
+                  {/* One field, holding the whole URL. A relative path still
+                      works — it resolves against the environment's base URL
+                      at run time, the same way {{baseUrl}} does. */}
                   <input
                     className="ph-url-input"
-                    placeholder="/api/users/{userId}"
+                    placeholder="https://staging.example.com/api/users/{userId}"
                     value={editing.url ?? ""}
                     onChange={(e) => setEditing({ ...editing, url: e.target.value })}
+                    title="The full URL. A relative path resolves against the base URL of whatever environment runs it."
                   />
                   {isWriteMethod(editing.method) && (
                     <Tooltip
@@ -1974,7 +2045,7 @@ function ApiCatalogContent() {
                     value={editing.moduleName ?? null}
                     onChange={onModuleChange}
                     options={moduleOptions}
-                    placeholder={moduleOptions.length ? "Unfiled" : "No modules in this project yet"}
+                    placeholder={drawerModuleOptions.length ? "Unfiled" : "No modules in this project yet"}
                     itemNoun="modules"
                     width={320}
                   />
@@ -2347,9 +2418,9 @@ function ApiCatalogContent() {
                       Variables this API expects
                     </Text>
                     <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
-                      {variablesInUse.map((v) => `{{${v}}}`).join("  ")} — {"{{baseUrl}}"} comes from the send
-                      bar, and {"{{accessToken}}"} from the login API you pick there. Anything else has to be
-                      supplied by whatever calls this endpoint.
+                      {variablesInUse.map((v) => `{{${v}}}`).join("  ")} — {"{{baseUrl}}"} comes from the
+                      environment a run uses, and {"{{accessToken}}"} from the login API picked for the send.
+                      Anything else has to be supplied by whatever calls this endpoint.
                     </Text>
                   </div>
                 )}
@@ -3329,7 +3400,6 @@ function ApiCatalogContent() {
         .ph-urlbar-sep {
           display: none;
         }
-        .ph-base-input,
         .ph-url-input {
           height: 36px;
           border: 1px solid var(--border-color);
@@ -3341,16 +3411,31 @@ function ApiCatalogContent() {
           font-size: 12.5px;
           outline: none;
         }
-        .ph-base-input {
-          width: 210px;
-          flex-shrink: 0;
-          color: var(--text-secondary);
-        }
         .ph-url-input {
           flex: 1;
           min-width: 0;
         }
-        .ph-base-input:focus,
+        /* The "goes into" chip in the New collection modal. */
+        .ph-dest {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 9px;
+          border-radius: 6px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-color);
+          color: var(--text-primary);
+          font-size: 12.5px;
+          font-weight: 650;
+          white-space: nowrap;
+        }
+        .ph-dest-note {
+          flex: 1;
+          min-width: 0;
+          font-size: 11.5px;
+          line-height: 1.4;
+          color: var(--text-secondary);
+        }
         .ph-url-input:focus {
           border-color: rgba(59, 130, 246, 0.55);
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
@@ -3530,41 +3615,99 @@ function ApiCatalogContent() {
         </div>
       </Modal>
 
-      {/* New collection — from the tree, or from the open definition. */}
+      {/* Curate a module without losing the definition being written. QA
+          Settings owns this modal, so both screens create modules the same
+          way — and its CSS travels with it. */}
+      <style dangerouslySetInnerHTML={{ __html: SETTINGS_MODAL_STYLES + MODULE_SETTINGS_STYLES }} />
+      <ModuleModal
+        open={moduleModalOpen}
+        editing={null}
+        defaultProjectId={editing.projectId ?? projectId}
+        onClose={() => setModuleModalOpen(false)}
+        onSaved={onModuleCreated}
+      />
+
+      {/* New collection — from the tree, or from the open definition. It wears
+          the same chrome as QA Settings' modals, so every creator in this
+          drawer is recognisably the same object. */}
       <Modal
         open={collectionModalOpen}
-        title="New collection"
-        okText="Create"
-        confirmLoading={creatingCollection}
-        onOk={createCollection}
-        onCancel={() => {
-          setCollectionModalOpen(false);
-          setNewCollectionName("");
-          setNewCollectionModule(null);
-        }}
-        width={440}
+        title={null}
+        footer={null}
+        closable={false}
+        onCancel={closeCollectionModal}
+        width={480}
         destroyOnHidden
+        centered
+        styles={{
+          content: { padding: 0, borderRadius: 16, overflow: "hidden" },
+          body: { padding: 0 },
+          mask: { backdropFilter: "blur(3px)", background: "rgba(15,23,42,0.45)" },
+        }}
       >
-        <Text style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 10 }}>
-          A collection groups related endpoints inside a module — Users, Invoices, Webhooks.
-          {newCollectionModule ? "" : " The new one is selected for the open definition straight away."}
-        </Text>
-        <Text style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 10 }}>
-          {(newCollectionModule ?? editing.moduleName) ? (
-            <>
-              It will be created inside <strong>{newCollectionModule ?? editing.moduleName}</strong>.
-            </>
-          ) : (
-            "No module is selected, so it will be created unfiled and available under every module."
-          )}
-        </Text>
-        <Input
-          autoFocus
-          placeholder="Users"
-          value={newCollectionName}
-          onChange={(e) => setNewCollectionName(e.target.value)}
-          onPressEnter={createCollection}
-        />
+        <div className="so-modal">
+          <div className="so-head">
+            <span className="so-head__icon"><FolderPlus size={17} /></span>
+            <div className="so-head__text">
+              <div className="so-head__title">New collection</div>
+              <div className="so-head__sub">
+                Groups related endpoints inside a module — Users, Invoices, Webhooks.
+              </div>
+            </div>
+            <button className="so-head__close" onClick={closeCollectionModal} aria-label="Close">
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Where it lands, stated before you name it — the answer is already
+              settled by the tree row or the definition you came from. */}
+          <div className="so-preview">
+            <span className="so-preview__label">Goes into</span>
+            <span className="ph-dest">
+              <Boxes size={12} />
+              {collectionTargetModule ?? "Unfiled"}
+            </span>
+            <span className="ph-dest-note">
+              {collectionTargetModule
+                ? "Only offered under this module."
+                : "Unfiled, so it is offered under every module."}
+            </span>
+          </div>
+
+          <div className="so-form">
+            <div style={{ marginBottom: 16 }}>
+              <label className="so-label" htmlFor="ph-new-collection" style={{ display: "block", marginBottom: 6 }}>
+                Name <span className="so-req">*</span>
+              </label>
+              <Input
+                id="ph-new-collection"
+                autoFocus
+                maxLength={120}
+                placeholder="Users"
+                value={newCollectionName}
+                onChange={(e) => setNewCollectionName(e.target.value)}
+                onPressEnter={createCollection}
+              />
+              <span className="so-extra" style={{ display: "block", marginTop: 6 }}>
+                {newCollectionModule
+                  ? "Opens in the tree as soon as it is created."
+                  : "Selected for the open definition straight away."}
+              </span>
+            </div>
+          </div>
+
+          <div className="so-foot">
+            <Button onClick={closeCollectionModal}>Cancel</Button>
+            <Button
+              type="primary"
+              onClick={createCollection}
+              loading={creatingCollection}
+              disabled={!newCollectionName.trim()}
+            >
+              Create collection
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Create a deployment tier without losing the definition being written. */}

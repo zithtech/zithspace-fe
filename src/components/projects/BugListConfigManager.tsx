@@ -50,6 +50,7 @@ import {
 import {
   SCOPE_CATEGORY_LABELS,
   SCOPE_SETTINGS_STYLES,
+  SETTINGS_MODAL_STYLES,
   SCOPE_SETTING_CATEGORIES,
   ScopeOptionModal,
   ScopeOptionsTable,
@@ -246,7 +247,7 @@ export default function BugListConfigManager() {
   return (
     <>
       <BcmStyles />
-      <style dangerouslySetInnerHTML={{ __html: SCOPE_SETTINGS_STYLES + MODULE_SETTINGS_STYLES }} />
+      <style dangerouslySetInnerHTML={{ __html: SCOPE_SETTINGS_STYLES + SETTINGS_MODAL_STYLES + MODULE_SETTINGS_STYLES }} />
       <div className={`dh-shell bcm-root ${isDark ? 'bcm-dark' : 'bcm-light'}`}>
         <div
           className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}

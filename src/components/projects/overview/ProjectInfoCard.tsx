@@ -36,12 +36,9 @@ export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
 }) => {
   return (
     <Card
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 6,
-        height: "100%",
-      }}
+      bordered={false}
+      className="po-panel"
+      style={{ height: "100%" }}
       styles={{ body: { padding: 20 } }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>

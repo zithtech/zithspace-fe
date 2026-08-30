@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dropdown } from "antd";
-import { ArrowRight, Briefcase, ChevronDown, ChevronRight, X } from "lucide-react";
+import { ArrowRight, Briefcase, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ProjectService } from "@/services/projectService";
 import { useAuth } from "@/context/AuthContext";
@@ -237,55 +237,103 @@ export function QaProjectSwitcher({
   value,
   onChange,
   loading,
+  placeholder = "Select Project",
 }: {
   projects: QaProject[];
   value: string | null;
   onChange: (id: string | null) => void;
   loading?: boolean;
+  /** What the trigger reads with nothing selected. Filters say "All projects". */
+  placeholder?: string;
 }) {
   const selected = projects.find((p) => p.value === value);
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement>(null);
+
+  /* A workspace can carry dozens of projects, so the menu filters as you type
+     rather than making you scroll for one. */
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(
+      (p) =>
+        p.label.toLowerCase().includes(q) ||
+        (p.code || "").toLowerCase().includes(q),
+    );
+  }, [projects, query]);
+
+  React.useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => searchRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+    setQuery("");
+  }, [open]);
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: QA_PROJECT_SWITCHER_STYLES }} />
       <Dropdown
         trigger={["click"]}
-        menu={{
-          items: [
-            {
-              key: "header",
-              label: (
-                <div className="qps-menu-head">
-                  <span className="qps-menu-head__title">Projects</span>
-                  <span className="qps-menu-head__count">
-                    {loading ? "Loading…" : `${projects.length} Total`}
-                  </span>
+        open={open}
+        onOpenChange={setOpen}
+        popupRender={() => (
+          <div className="qps-panel">
+            <div className="qps-menu-head">
+              <span className="qps-menu-head__title">Projects</span>
+              <span className="qps-menu-head__count">
+                {loading ? "Loading…" : `${projects.length} Total`}
+              </span>
+            </div>
+
+            <div className="qps-search">
+              <Search size={13} className="qps-search__ic" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search projects…"
+                aria-label="Search projects"
+              />
+              {query && (
+                <X size={12} className="qps-search__clear" onClick={() => setQuery("")} />
+              )}
+            </div>
+
+            <div className="qps-list">
+              {filtered.length === 0 ? (
+                <div className="qps-none">
+                  {projects.length === 0 ? "No projects available." : "No projects match."}
                 </div>
-              ),
-              disabled: true,
-            },
-            { type: "divider" as const },
-            ...projects.map((p) => ({
-              key: p.value,
-              label: (
-                <div className={`qps-menu-item ${p.value === value ? "is-active" : ""}`}>
-                  <span className="qps-menu-ic">{(p.code || "PRJ").substring(0, 3).toUpperCase()}</span>
-                  <span className="qps-menu-text">
-                    <span className="qps-menu-title">{p.label}</span>
-                    <span className="qps-menu-desc">#{p.code || "N/A"}</span>
-                  </span>
-                </div>
-              ),
-              onClick: () => onChange(p.value),
-            })),
-          ],
-        }}
+              ) : (
+                filtered.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`qps-menu-item ${p.value === value ? "is-active" : ""}`}
+                    onClick={() => {
+                      onChange(p.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="qps-menu-ic">{(p.code || "PRJ").substring(0, 3).toUpperCase()}</span>
+                    <span className="qps-menu-text">
+                      <span className="qps-menu-title">{p.label}</span>
+                      <span className="qps-menu-desc">#{p.code || "N/A"}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
         overlayClassName="qps-pop"
       >
         <div className="qps-trigger" role="button" tabIndex={0}>
           <div className="qps-trigger__main">
             <Briefcase size={14} className="qps-trigger__icon" />
-            <span className="qps-trigger__name">{selected?.label || "Select Project"}</span>
+            <span className="qps-trigger__name">{selected?.label || placeholder}</span>
           </div>
           <div className="qps-trigger__foot">
             <span className="qps-trigger__hint">Switch Project</span>
@@ -323,6 +371,48 @@ export const QA_PROJECT_SWITCHER_STYLES = `
 .qps-trigger__arrow { color: var(--text-slate-400); opacity: .8; }
 .qps-trigger__arrow:hover { color: #2563eb; opacity: 1; }
 .qps-pop .ant-dropdown-menu { max-height: 340px; overflow-y: auto; padding: 4px; border-radius: 10px; }
+.qps-panel {
+  width: 268px;
+  background: var(--bg-pure-white);
+  border: 1px solid var(--border-slate-200);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.06);
+}
+[data-theme='dark'] .qps-panel { background: #0f1419; border-color: #2d3748; }
+.qps-panel .qps-menu-head {
+  padding: 10px 12px 8px;
+  background: var(--bg-slate-50);
+  border-bottom: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .qps-panel .qps-menu-head { background: #111720; border-bottom-color: #1f2937; }
+.qps-search {
+  display: flex; align-items: center; gap: 7px;
+  margin: 8px 8px 4px; padding: 0 9px; height: 30px;
+  border: 1px solid var(--border-slate-200); border-radius: 8px;
+  background: var(--bg-pure-white);
+}
+.qps-search:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+[data-theme='dark'] .qps-search { background: #111720; border-color: #2d3748; }
+.qps-search__ic { color: var(--text-slate-400); flex-shrink: 0; }
+.qps-search input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+  font-family: inherit; font-size: 12.5px; color: var(--text-slate-900);
+}
+[data-theme='dark'] .qps-search input { color: #f1f5f9; }
+.qps-search input::placeholder { color: var(--text-slate-400); }
+.qps-search__clear { color: var(--text-slate-400); cursor: pointer; flex-shrink: 0; }
+.qps-search__clear:hover { color: var(--text-slate-900); }
+.qps-list { max-height: 268px; overflow-y: auto; padding: 4px 6px 8px; }
+.qps-list .qps-menu-item {
+  width: 100%; padding: 6px 7px; border-radius: 8px;
+  border: 1px solid transparent; background: none; cursor: pointer;
+  font-family: inherit; text-align: left;
+  transition: background .12s ease, border-color .12s ease;
+}
+.qps-list .qps-menu-item:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+[data-theme='dark'] .qps-list .qps-menu-item:hover { background: #161B22; border-color: #2d3748; }
+.qps-list .qps-menu-item.is-active { background: var(--bg-blue-50); border-color: rgba(59,130,246,0.22); }
 .qps-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 6px 2px; }
 .qps-menu-head__title { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-slate-400); }
 .qps-menu-head__count { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }

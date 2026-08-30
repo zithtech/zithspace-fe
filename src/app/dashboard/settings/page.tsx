@@ -118,7 +118,7 @@ const ME_CARDS = [
 
 const ORG_METRICS = [
   {
-    name: "metricTotalMembers", requiredFeatures: ["hrms_directory", "home_home_general_people"],
+    name: "metricTotalMembers", requiredFeatures: ["admin_members"],
     title: "Total Members",
     description: "Number of active team members in the organization.",
     icon: Users,

@@ -907,7 +907,7 @@ export default function TopNav({
               overlayClassName="nv-action-pop"
               menu={{
                 items: [
-                  ...(canReadHotspot ? [{
+                  ...(canReadHotspot && hasAnySubscriptionFeature("home_home_general_hotspot") ? [{
                     key: 'hotspot',
                     label: actionMenuLabel(
                       'Hotspot',
@@ -918,7 +918,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/hotspot')
                   }] : []),
-                  ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) ? [{
+                  ...(hasPermission(Permissions.TIME_TRACKING_READ) && hasPermission(Permissions.TIME_TRACKING_CREATE) && hasAnySubscriptionFeature("work_time_tracking") ? [{
                     key: 'timer',
                     label: actionMenuLabel(
                       'Time Tracking',
@@ -929,7 +929,7 @@ export default function TopNav({
                     ),
                     onClick: () => setPopoverOpen(true)
                   }] : []),
-                  ...(hasPermission(Permissions.MAIL_READ) ? [{
+                  ...(hasPermission(Permissions.MAIL_READ) && hasAnySubscriptionFeature("home_home_general_mail") ? [{
                     key: 'mail',
                     label: actionMenuLabel(
                       'Mail',
@@ -940,7 +940,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/mail')
                   }] : []),
-                  ...(hasPermission(Permissions.CALENDAR_READ) ? [{
+                  ...(hasPermission(Permissions.CALENDAR_READ) && hasAnySubscriptionFeature("home_home_general_calendar") ? [{
                     key: 'calendar',
                     label: actionMenuLabel(
                       'Calendar',
@@ -951,7 +951,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/calendar')
                   }] : []),
-                  ...(hasPermission(Permissions.CHAT_READ) ? [{
+                  ...(hasPermission(Permissions.CHAT_READ) && hasAnySubscriptionFeature("home_home_general_team_chat") ? [{
                     key: 'chat',
                     label: actionMenuLabel(
                       'Messages',
@@ -962,7 +962,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/chat')
                   }] : []),
-                  ...(canReadActivityLogAll ? [{
+                  ...(canReadActivityLogAll && hasAnySubscriptionFeature("home_home_general_activity") ? [{
                     key: 'activity',
                     label: actionMenuLabel(
                       'Activity',
@@ -973,7 +973,7 @@ export default function TopNav({
                     ),
                     onClick: () => router.push('/activity')
                   }] : []),
-                  ...(hasPermission(Permissions.BOOKMARK_READ) ? [{
+                  ...(hasPermission(Permissions.BOOKMARK_READ) && hasAnySubscriptionFeature("home_home_general_bookmarks") ? [{
                     key: 'bookmarks',
                     label: actionMenuLabel(
                       'Bookmarks',

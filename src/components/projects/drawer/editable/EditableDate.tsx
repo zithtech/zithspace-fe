@@ -14,6 +14,7 @@ interface EditableDateProps {
     emptyText?: string;
     format?: string;
     disabled?: boolean;
+    disabledDate?: (current: dayjs.Dayjs) => boolean;
 }
 
 export const EditableDate: React.FC<EditableDateProps> = ({
@@ -23,7 +24,8 @@ export const EditableDate: React.FC<EditableDateProps> = ({
     label,
     emptyText = 'Set date',
     format = 'MMM D, YYYY',
-    disabled = false
+    disabled = false,
+    disabledDate
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -73,6 +75,7 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 placeholder={placeholder}
                 open={true}
                 allowClear
+                disabledDate={disabledDate}
             />
         );
     }

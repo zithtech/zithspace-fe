@@ -4,6 +4,7 @@ import NoData from "@/components/common/NoData";
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useProduct } from "@/context/ProductContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import {
@@ -298,7 +299,7 @@ interface AccessGroup {
   accent: string;
 }
 
-const ACCESS_GROUPS: AccessGroup[] = [
+const getAccessGroups = (isTestiez: boolean): AccessGroup[] => [
   {
     key: 'all',
     label: 'All',
@@ -317,7 +318,7 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'home',
     label: 'Home',
     icon: <AppstoreOutlined />,
-    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log', 'hotspot'],
+    resources: ['dashboard', 'integration', 'mail', 'calendar', 'chat', 'skills', 'notification', 'bookmark', 'time_tracking', 'activity_log', 'hotspot', ...(isTestiez ? ['profile'] : [])],
     accent: '#3b82f6',
   },
   {
@@ -331,9 +332,10 @@ const ACCESS_GROUPS: AccessGroup[] = [
     key: 'hrms',
     label: 'HRMS',
     icon: <TeamOutlined />,
-    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'profile', 'recruitment', 'escalation', 'letter',
+    resources: ['attendance', 'leave', 'shift', 'onboarding', 'exit', 'performance', 'opening', 'recruitment', 'escalation', 'letter',
       'letter_template',
-      'letter.format'
+      'letter.format',
+      ...(isTestiez ? [] : ['profile'])
     ],
     accent: '#10b981',
   },
@@ -351,25 +353,19 @@ const ACCESS_GROUPS: AccessGroup[] = [
     resources: ['invoice', 'account', 'reimbursement', 'payroll', 'salary', 'vendor'],
     accent: '#0ea5e9',
   },
-  // {
-  //   key: 'others',
-  //   label: 'Others',
-  //   icon: <EllipsisOutlined />,
-  //   resources: null,
-  //   accent: '#94a3b8',
-  // },
 ];
 
-const ASSIGNED_RESOURCES = new Set(
-  ACCESS_GROUPS.flatMap((g) => g.resources || []),
+const getAssignedResources = (isTestiez: boolean) => new Set(
+  getAccessGroups(isTestiez).flatMap((g) => g.resources || []),
 );
 
-const getResourcesForGroup = (groupKey: string, allResources: string[]): string[] => {
+const getResourcesForGroup = (groupKey: string, allResources: string[], isTestiez: boolean): string[] => {
   if (groupKey === 'all') return allResources;
   if (groupKey === 'others') {
-    return allResources.filter((r) => !ASSIGNED_RESOURCES.has(r));
+    const assigned = getAssignedResources(isTestiez);
+    return allResources.filter((r) => !assigned.has(r));
   }
-  const group = ACCESS_GROUPS.find((g) => g.key === groupKey);
+  const group = getAccessGroups(isTestiez).find((g) => g.key === groupKey);
   return (group?.resources || []).filter((r) => allResources.includes(r));
 };
 
@@ -689,6 +685,8 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
 export default function RolesPage() {
   useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
   const { user, isLoading, hasAnySubscriptionFeature } = useAuth();
+  const { isTestiez } = useProduct();
+  const ACCESS_GROUPS = React.useMemo(() => getAccessGroups(isTestiez), [isTestiez]);
   const router = useRouter();
   const { canReadRole, canCreateRole, canUpdateRole, canDeleteRole, canAssignRole, canReadActivityLog } = usePermission();
   console.log("Forcing HMR reload for roles page 2");
@@ -1717,8 +1715,12 @@ export default function RolesPage() {
             </div>
           ) : (
             (() => {
-              const allResources = Object.keys(allPermissions);
-              const tabResources = getResourcesForGroup(accessTab, allResources);
+              const allResources = Object.keys(allPermissions).filter(res => {
+                const subFeatures = RESOURCE_TO_SUBSCRIPTION_FEATURE[res] || [res];
+                const isUniversal = ['notification', 'profile', 'role', 'settings', 'dashboard'].includes(res);
+                return isUniversal || hasAnySubscriptionFeature(...subFeatures);
+              });
+              const tabResources = getResourcesForGroup(accessTab, allResources, isTestiez);
               const searchQ = permSearch.trim().toLowerCase();
 
               // Filter perms by search across the current tab
@@ -1759,7 +1761,7 @@ export default function RolesPage() {
               // Counts per group for tab pills
               const groupCounts: Record<string, number> = {};
               ACCESS_GROUPS.forEach((g) => {
-                const res = getResourcesForGroup(g.key, allResources);
+                const res = getResourcesForGroup(g.key, allResources, isTestiez);
                 groupCounts[g.key] = res.reduce(
                   (sum, r) => sum + (allPermissions[r]?.length || 0),
                   0,
@@ -1800,7 +1802,7 @@ export default function RolesPage() {
                   <div className="rp-acc-sticky">
                     {/* Tabs row */}
                     <div className="rp-acc-tabs">
-                      {ACCESS_GROUPS.map((g) => {
+                      {ACCESS_GROUPS.filter(g => (groupCounts[g.key] || 0) > 0).map((g) => {
                         const count = groupCounts[g.key] || 0;
                         const isActive = accessTab === g.key;
                         return (
@@ -1931,14 +1933,13 @@ export default function RolesPage() {
                           ]
                           : (allPermissions[resource] || []);
                         const label = RESOURCE_LABELS[resource] || resource;
-                        const subFeatures = RESOURCE_TO_SUBSCRIPTION_FEATURE[resource] || [resource];
-                        const isFeatureEnabled = hasAnySubscriptionFeature(...subFeatures);
-                        const selectedCount = isFeatureEnabled ? allPermsForRes.filter((p) =>
+                        const isFeatureEnabled = true; // Pre-filtered at allResources
+                        const selectedCount = allPermsForRes.filter((p) =>
                           selectedPermIds.includes(p.id),
-                        ).length : 0;
+                        ).length;
                         const allInGroup = selectedCount === allPermsForRes.length;
                         const someInGroup = selectedCount > 0 && !allInGroup;
-                        const canModifyResource = canUpdateRole && isFeatureEnabled;
+                        const canModifyResource = canUpdateRole;
 
                         // Sub-grouping logic (preserved)
                         const subGroups: Record<string, RBACPermission[]> = {};
@@ -2057,14 +2058,9 @@ export default function RolesPage() {
                               label: (
                                 <div className="rp-acc-card__text" style={{ marginLeft: 8 }}>
                                   <div className="rp-acc-card__title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ color: !isFeatureEnabled ? 'var(--text-slate-400)' : 'inherit' }}>{label}</span>
-                                    {!isFeatureEnabled && (
-                                      <Tag color="default" style={{ fontSize: 10, lineHeight: '14px', border: 0, padding: '0 4px', margin: 0, background: 'var(--bg-secondary, #f1f5f9)' }}>
-                                        Not in Plan
-                                      </Tag>
-                                    )}
+                                    <span style={{ color: 'inherit' }}>{label}</span>
                                   </div>
-                                  <div className="rp-acc-card__sub" style={{ color: !isFeatureEnabled ? 'var(--text-slate-300)' : 'var(--text-slate-500)' }}>{resource}</div>
+                                  <div className="rp-acc-card__sub" style={{ color: 'var(--text-slate-500)' }}>{resource}</div>
                                 </div>
                               ),
                               extra: (

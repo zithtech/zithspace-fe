@@ -12,6 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useProduct } from "@/context/ProductContext";
 import { Modal } from "antd";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -61,6 +62,7 @@ export default function CreateTicketWizard({
   onLinearSuccess,
   onManageIntegrations,
 }: CreateTicketWizardProps) {
+  const { isTestiez } = useProduct();
   const { theme } = useTheme();
   const { user } = useAuth();
 
@@ -126,7 +128,7 @@ export default function CreateTicketWizard({
       <div className="tf">
         <TicketFlowBar
           mark={isLinear ? <LinearMark size={18} /> : isJira ? <JiraMark size={18} /> : <ZukvoLogo size={18} />}
-          label={step === 0 ? "Create tickets" : isLinear ? "Linear" : isJira ? "Jira" : "Zukvo Tickets"}
+          label={step === 0 ? "Create tickets" : isLinear ? "Linear" : isJira ? "Jira" : (isTestiez ? "Testiez Tickets" : "Zukvo Tickets")}
           steps={TICKET_FLOW_STEPS}
           current={step}
           onStepClick={goToStep}

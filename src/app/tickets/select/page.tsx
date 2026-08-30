@@ -430,21 +430,6 @@ function ProjectSelectContent() {
                             <span className="zs-status-dot" />
                             {project?.status || 'Active'}
                           </span>
-                          {canDeleteProject && searchParams.get('select') !== 'true' && (
-                            <Tooltip title="Delete project">
-                              <Button
-                                type="text"
-                                danger
-                                size="small"
-                                icon={<DeleteOutlined />}
-                                onClick={e =>
-                                  project?.id &&
-                                  handleDelete(e, project.id, project.name || 'Untitled Project')
-                                }
-                                className="zs-card-delete"
-                              />
-                            </Tooltip>
-                          )}
                         </div>
                       </div>
 

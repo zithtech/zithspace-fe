@@ -133,6 +133,11 @@ function ForgotPasswordForm() {
             prefix={<UserOutlined style={{ color: '#5A6982', marginRight: 8 }} />}
             placeholder="Email address"
             autoComplete="email"
+            onKeyDown={(e) => {
+              if (e.key === ' ') {
+                e.preventDefault();
+              }
+            }}
           />
         </Form.Item>
 

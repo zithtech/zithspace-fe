@@ -44,7 +44,7 @@ const { Text } = Typography;
 
 function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
   const { token } = theme.useToken();
-  const { user } = useAuth();
+  const { user, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
@@ -63,14 +63,14 @@ function DashboardContent({ dashboardSettings }: { dashboardSettings?: any }) {
     successMessage: calendarSuccess,
   } = useZohoCalendar();
 
-  const isMetricTotalMembersVisible = dashboardSettings?.metricTotalMembers !== false;
-  const isMetricActiveProjectsVisible = dashboardSettings?.metricActiveProjects !== false;
-  const isMetricOrgTicketsVisible = dashboardSettings?.metricOrgTickets !== false;
-  const isMetricOrgTeamTodayVisible = dashboardSettings?.metricOrgTeamToday !== false;
+  const isMetricTotalMembersVisible = dashboardSettings?.metricTotalMembers !== false && hasAnySubscriptionFeature("admin_members");
+  const isMetricActiveProjectsVisible = dashboardSettings?.metricActiveProjects !== false && hasAnySubscriptionFeature("work_projects");
+  const isMetricOrgTicketsVisible = dashboardSettings?.metricOrgTickets !== false && hasAnySubscriptionFeature("work_projects");
+  const isMetricOrgTeamTodayVisible = dashboardSettings?.metricOrgTeamToday !== false && hasAnySubscriptionFeature("hrms_attendance", "my_hub_my_hub_general_attendance");
 
-  const isCardProjectPulseVisible = dashboardSettings?.cardProjectPulse !== false;
+  const isCardProjectPulseVisible = dashboardSettings?.cardProjectPulse !== false && hasAnySubscriptionFeature("work_projects");
   const isUpcomingBirthdaysVisible = dashboardSettings?.upcomingBirthdays !== false;
-  const isCardTodayLeavesVisible = dashboardSettings?.cardTodayLeaves !== false;
+  const isCardTodayLeavesVisible = dashboardSettings?.cardTodayLeaves !== false && hasAnySubscriptionFeature("hrms_leaves", "my_hub_my_hub_general_leaves");
   const isCardRecentActivitiesVisible = dashboardSettings?.cardRecentActivities !== false;
 
   useEffect(() => {

@@ -10,7 +10,7 @@ import {
   Select,
   Row,
   Col,
-  notification,
+  App,
   Tooltip,
   Switch,
   Drawer,
@@ -68,7 +68,7 @@ export default function PositionsPage() {
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [subDepartmentFilter, setSubDepartmentFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [view, setView] = useState<OrgView>("grid");
@@ -142,12 +142,7 @@ export default function PositionsPage() {
   const handleDelete = async (id: string) => {
     const success = await deletePosition(id);
     if (success) {
-      api.success({
-        message: "Position Removed",
-        description: "The position has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Position Removed");
     }
   };
 
@@ -161,12 +156,7 @@ export default function PositionsPage() {
         : await createPosition(payload);
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: `Position ${editingKey ? "Updated" : "Created"}`,
-          description: `The role "${payload.title}" has been successfully saved.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        message.success(`Position ${editingKey ? "Updated" : "Created"}`);
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -363,7 +353,7 @@ export default function PositionsPage() {
 
   return (
     <>
-      {contextHolder}
+      
       <div className="orgx-shell">
         <TimeTrackingHeader
             icon={<Trophy size={20} color="#3b82f6" />}

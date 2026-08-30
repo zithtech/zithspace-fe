@@ -10,6 +10,7 @@ import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import TicketSkeleton from '@/components/projects/TicketSkeleton';
+import ZukvoLoader from '@/components/common/ZukvoLoader';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -43,7 +44,13 @@ export default function ProjectTicketsPage({ params }: PageProps) {
   }, [error, project, projectLoading, projectId]);
 
   if (authLoading || projectLoading) {
-    return <TicketSkeleton fullPage={true} />;
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ZukvoLoader size="lg" message="Loading tickets..." />
+        </div>
+      </MainLayout>
+    );
   }
 
   if (error || !project) {

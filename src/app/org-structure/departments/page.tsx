@@ -8,7 +8,7 @@ import {
   Input,
   Form,
   Select,
-  notification,
+  App,
   Tooltip,
   Switch,
   Drawer,
@@ -63,7 +63,7 @@ export default function DepartmentsPage() {
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -137,12 +137,7 @@ export default function DepartmentsPage() {
   const handleDelete = async (id: string) => {
     const success = await deleteDepartment(id);
     if (success) {
-      api.success({
-        message: "Department Removed",
-        description: "The department has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Department Removed");
     }
   };
 
@@ -163,12 +158,7 @@ export default function DepartmentsPage() {
         : await createDepartment(payload);
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: `Department ${editingKey ? "Updated" : "Added"}`,
-          description: `The department "${payload.name}" has been successfully saved.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        message.success(`Department ${editingKey ? "Updated" : "Added"}`);
       }
     } catch (error) {
       console.error("Save failed:", error);
@@ -370,7 +360,7 @@ export default function DepartmentsPage() {
 
   return (
     <>
-      {contextHolder}
+      
       <div className="orgx-shell">
         <TimeTrackingHeader
             icon={<Building2 size={20} color="#3b82f6" />}

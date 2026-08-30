@@ -8,7 +8,7 @@ import {
   Input,
   Form,
   Select,
-  notification,
+  App,
   Tooltip,
   Switch,
   Drawer,
@@ -56,7 +56,7 @@ export default function SubDepartmentsPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const { message } = App.useApp();
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -120,12 +120,7 @@ export default function SubDepartmentsPage() {
   const handleDelete = async (id: string) => {
     const success = await deleteSubDepartment(id);
     if (success) {
-      api.success({
-        message: "Sub-Department Removed",
-        description: "The sub-department has been successfully deleted.",
-        placement: "topRight",
-        duration: 2,
-      });
+      message.success("Sub-Department Removed");
       fetchSubDepartments();
     }
   };
@@ -139,12 +134,7 @@ export default function SubDepartmentsPage() {
         : await createSubDepartment(values);
       if (success) {
         setIsDrawerOpen(false);
-        api.success({
-          message: `Sub-Department ${editingId ? "Updated" : "Created"}`,
-          description: `The sub-department "${values.name}" has been successfully saved.`,
-          placement: "topRight",
-          duration: 2,
-        });
+        message.success(`Sub-Department ${editingId ? "Updated" : "Created"}`);
         fetchSubDepartments();
       }
     } catch (error) {
@@ -337,7 +327,7 @@ export default function SubDepartmentsPage() {
 
   return (
     <>
-      {contextHolder}
+      
       <div className="orgx-shell">
         <TimeTrackingHeader
             icon={<GitBranch size={20} color="#3b82f6" />}

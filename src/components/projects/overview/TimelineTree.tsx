@@ -434,13 +434,19 @@ export const TimelineTree: React.FC<TimelineTreeProps> = ({ tickets, hideColumnH
       <style jsx global>{`
         .tl-card {
           background: var(--bg-pure-white);
-          border: 1px solid var(--border-color);
+          border: 1px solid var(--border-slate-200);
           border-radius: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
           overflow: hidden;
           display: flex;
           flex-direction: column;
           flex: 1;
           min-height: 0;
+        }
+        [data-theme='dark'] .tl-card {
+          background: #111720;
+          border-color: #1f2937;
+          box-shadow: none;
         }
         .tl-toolbar {
           display: flex;

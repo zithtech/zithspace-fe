@@ -474,6 +474,16 @@ export const SCOPE_SETTINGS_STYLES = `
 .sc-rowactions button:hover { background: var(--bg-slate-50); color: var(--text-slate-700); }
 .sc-rowactions button.is-danger:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
 
+`;
+
+/**
+ * Chrome for the settings-option modal — head, form rows and footer.
+ *
+ * Split out from the pane styles because the modals themselves are reused
+ * outside QA Settings (the API Hub opens ModuleModal from its module picker),
+ * and a modal that travels without its CSS arrives unstyled.
+ */
+export const SETTINGS_MODAL_STYLES = `
 /* ── Settings option modal ──────────────────────────────────── */
 .so-modal { background: var(--bg-pure-white); }
 .so-head {

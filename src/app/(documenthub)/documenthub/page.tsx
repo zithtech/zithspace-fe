@@ -41,7 +41,6 @@ import {
   EditOutlined,
   MoreOutlined,
   SettingOutlined,
-  ColumnHeightOutlined,
   RightOutlined,
   CalendarOutlined,
   CheckOutlined,
@@ -52,8 +51,9 @@ import {
   CaretDownFilled,
   MenuOutlined,
   DownOutlined,
-  CloseCircleOutlined,
   CloudUploadOutlined,
+  FilterOutlined,
+  ExpandAltOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import VisibilityModal from "@/components/documenthub/VisibilityModal";
@@ -73,26 +73,28 @@ import {
   message,
   Divider,
   Avatar,
-  Segmented,
   Popover,
   Switch,
   Grid,
   Checkbox,
   Radio,
-  Pagination,
+  Select,
 } from "antd";
-import type { MenuProps } from "antd";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
+import DocumentHubFilters from "./DocumentHubFilters";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
 import { format, isWithinInterval, startOfDay, endOfDay, formatDistanceToNow } from "date-fns";
 import dayjs from "dayjs";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
-import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 import AiCreateHubModal from "@/components/documenthub/AiCreateHubModal";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
-import ExternalDriveBrowserModal, { DriveProvider } from "@/components/documenthub/ExternalDriveBrowserModal";
+import ExternalDriveBrowserModal, { DriveProvider, GoogleDriveMark } from "@/components/documenthub/ExternalDriveBrowserModal";
+import { NotionMark, AzureMark } from "@/components/projects/bug-list/ticket-flow";
+import { ZohoMark } from "@/app/integrations/integrations-ui";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
-import { Trash2, MonitorUp, HardDrive, Cloud, Book } from "lucide-react";
+import { Trash2, MonitorUp, ChevronRight, Sparkles } from "lucide-react";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 
@@ -127,7 +129,6 @@ const RECENT_KEY = 'dh_recent_v1';
 const VIEW_KEY = 'dh_view_v2';
 const SAVED_VIEW_KEY = 'dh_savedview_v1';
 const TOUR_KEY = 'dh_tour_seen_v1';
-const DENSITY_KEY = 'dh_density_v1';
 const COLS_KEY = 'dh_cols_v1';
 const COL_WIDTHS_KEY = 'dh_col_widths_v3';
 const RAILS_KEY = 'dh_rails_v1';
@@ -138,8 +139,57 @@ const DEFAULT_RAILS = { pinned: false, recent: true };
 type RailVisibility = typeof DEFAULT_RAILS;
 
 type ViewMode = 'cards' | 'table';
+/**
+ * Where documents can come from. Each row carries the same brand mark the
+ * drive browser shows once it opens, so the popup and the modal agree on what
+ * you picked. Vendor logos keep their own colours; the surrounding chrome
+ * stays on the workspace palette.
+ */
+const UPLOAD_SOURCES: {
+  key: DriveProvider;
+  title: string;
+  desc: string;
+  mark: React.ReactNode;
+  tint: string;
+}[] = [
+  {
+    key: 'my_computer',
+    title: 'My Computer',
+    desc: 'Pick a file from this device',
+    mark: <MonitorUp className="w-[18px] h-[18px]" strokeWidth={1.9} />,
+    tint: 'rgba(59,130,246,0.10)',
+  },
+  {
+    key: 'google_drive',
+    title: 'Google Drive',
+    desc: 'Docs, Sheets and Slides',
+    mark: <GoogleDriveMark size={18} />,
+    tint: 'rgba(100,116,139,0.08)',
+  },
+  {
+    key: 'zoho_drive',
+    title: 'Zoho WorkDrive',
+    desc: 'Files from your Zoho workspace',
+    mark: <ZohoMark size={18} />,
+    tint: 'rgba(100,116,139,0.08)',
+  },
+  {
+    key: 'microsoft_onedrive',
+    title: 'OneDrive',
+    desc: 'Files from Microsoft 365',
+    mark: <AzureMark size={18} />,
+    tint: 'rgba(100,116,139,0.08)',
+  },
+  {
+    key: 'notion',
+    title: 'Notion',
+    desc: 'Pages from your Notion workspace',
+    mark: <NotionMark size={18} />,
+    tint: 'rgba(100,116,139,0.08)',
+  },
+];
+
 type SavedView = 'all' | 'mine' | 'shared' | 'public' | 'starred';
-type Density = 'compact' | 'comfortable' | 'spacious';
 
 // Hubs created within this many ms get a "NEW" pulse badge.
 const NEW_BADGE_MS = 5 * 60 * 1000;
@@ -785,6 +835,8 @@ const DocumentHubPage = () => {
   // View / saved-view state — persisted to localStorage so it survives reloads.
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [savedView, setSavedView] = useState<SavedView>('all');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [tourOpen, setTourOpen] = useState(false);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
@@ -792,7 +844,6 @@ const DocumentHubPage = () => {
   // Table-level state (#A–#H).
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
-  const [density, setDensity] = useState<Density>('comfortable');
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>({});
   const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
@@ -918,8 +969,6 @@ const DocumentHubPage = () => {
       if (s && ['all', 'mine', 'shared', 'public', 'starred'].includes(s)) setSavedView(s);
       const r = localStorage.getItem(RECENT_KEY);
       if (r) setRecentIds(JSON.parse(r));
-      const d = localStorage.getItem(DENSITY_KEY) as Density | null;
-      if (d && ['compact', 'comfortable', 'spacious'].includes(d)) setDensity(d);
       const cols = localStorage.getItem(COLS_KEY);
       if (cols) setHiddenCols(JSON.parse(cols));
       const widths = localStorage.getItem(COL_WIDTHS_KEY);
@@ -953,9 +1002,6 @@ const DocumentHubPage = () => {
   useEffect(() => {
     try { localStorage.setItem(SAVED_VIEW_KEY, savedView); } catch { /* ignore */ }
   }, [savedView]);
-  useEffect(() => {
-    try { localStorage.setItem(DENSITY_KEY, density); } catch { /* ignore */ }
-  }, [density]);
   useEffect(() => {
     try { localStorage.setItem(COLS_KEY, JSON.stringify(hiddenCols)); } catch { /* ignore */ }
   }, [hiddenCols]);
@@ -1643,13 +1689,67 @@ const DocumentHubPage = () => {
     }
   };
 
+  /* ── Filter option lists ──────────────────────────────────────────────
+     The rail used to own these; they now feed the header's Filters panel and
+     the inline pill row. */
+  const projectFilterOptions = (projects as any[]).map((p: any) => ({
+    value: p.value, label: p.label, description: p.code,
+  }));
+  const projectSwitcherOptions = (projects as any[]).map((p: any) => ({
+    value: p.value,
+    label: p.label,
+    code: (p.code || p.label || '?').slice(0, 3).toUpperCase(),
+  }));
+
+  const ticketFilterOptions = (() => {
+    /* Without a project chosen there is no ticket list to page through, so the
+       hubs on screen supply the tickets they already name. */
+    const source = filterProjectId
+      ? filterTickets
+      : Array.from(
+        new Map(
+          documentHubs.filter((hub) => hub.ticket).map((hub) => [hub.ticket!.id, hub.ticket]),
+        ).values(),
+      );
+    return (source as any[]).map((t: any) => ({ value: t.id, label: t.ticketNumber, description: t.title }));
+  })();
+
+  const memberFilterOptions = (members as any[]).map((m: any) => ({
+    value: m.value, label: m.label, avatarUrl: m.avatarUrl || undefined,
+  }));
+
+  const activeFilterCount =
+    (searchText.trim() ? 1 : 0) + (filterProjectId ? 1 : 0) + (filterTicketId ? 1 : 0) +
+    (selectedUser ? 1 : 0) + (dateRange && (dateRange[0] || dateRange[1]) ? 1 : 0);
+
+  const clearHubFilters = () => {
+    setSearchText('');
+    setFilterProjectId(undefined);
+    setFilterTicketId(undefined);
+    setSelectedUser(undefined);
+    setDateRange(null);
+  };
+
+  /* ── Banner figures ───────────────────────────────────────────────────
+     The Ticket List's sprint head reads a sprint's completion; here the same
+     three rows read the library — an empty hub is a shell, so the bar tracks
+     how many hubs actually hold a document. */
+  const hubsWithDocs = statsHubs.filter(
+    (h: any) => (h.treeNodes || []).some((n: any) => n.type === 'file'),
+  ).length;
+  const bannerAccent = statsHubs.length === 0
+    ? '#64748b'
+    : hubsWithDocs === statsHubs.length ? '#10b981' : '#3b82f6';
+
   const savedViews: { key: SavedView; label: string; icon: React.ReactNode; color: string }[] = [
     { key: 'all', label: 'All hubs', icon: <FolderOutlined />, color: '#3B82F6' },
     { key: 'mine', label: 'My hubs', icon: <UserOutlined />, color: '#3B82F6' },
-    // { key: 'shared', label: 'Shared with me', icon: <TeamOutlined />, color: '#10B981' },
+    { key: 'shared', label: 'Shared with me', icon: <TeamOutlined />, color: '#3B82F6' },
     { key: 'public', label: 'Public', icon: <GlobalOutlined />, color: '#3B82F6' },
     { key: 'starred', label: 'Starred', icon: <StarFilled />, color: '#3B82F6' },
   ];
+
+  const activeViewLabel = savedViews.find((v) => v.key === savedView)?.label || 'All hubs';
 
   const renderEmpty = () => {
     const hasAnyHubs = documentHubs.length > 0;
@@ -1796,8 +1896,7 @@ const DocumentHubPage = () => {
     const pagedHubs = filteredHubs;
     return (
       <div
-        className="dh-table-shell"
-        data-density={density}
+        className="dh-table-shell pp-table-wrap"
         style={{
           borderRadius: 0,
           background: 'var(--bg-pure-white)',
@@ -1811,7 +1910,7 @@ const DocumentHubPage = () => {
             rowKey="id"
             pagination={false}
             size="small"
-            className="premium-table dh-table"
+            className="premium-table dh-table saas-table tl-table pp-table"
             tableLayout="fixed"
             sticky={{ offsetHeader: 0 }}
             scroll={{ x: 980 }}
@@ -1868,7 +1967,7 @@ const DocumentHubPage = () => {
                 openHub(record.id);
               },
               onMouseEnter: () => setFocusedRowId(record.id),
-              className: `cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
+              className: `pp-row cursor-pointer ${focusedRowId === record.id ? 'dh-row-focused' : ''}`,
             })}
           />
         </ZukvoLoadingOverlay>
@@ -2277,7 +2376,7 @@ const DocumentHubPage = () => {
           <div className="dh-sidebar-top">
             <div className="dh-sidebar-brand">
               <div className="dh-hero-icon-box">
-                <FileTextOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
+                <FileTextOutlined style={{ fontSize: 14 }} />
               </div>
               <div className="min-w-0">
                 <h1 className="dh-sidebar-title">Document Hub</h1>
@@ -2286,77 +2385,77 @@ const DocumentHubPage = () => {
             </div>
 
             {canCreateDocument && (
+              <div className="dh-side-cta">
               <Dropdown
                 trigger={['hover', 'click']}
                 placement="bottomLeft"
-                overlayClassName="create-document-menu"
-                menu={{
-                  items: [
-                    ...(hasGrid ? [{
-                      key: 'manual',
-                      label: (
-                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
-                          <div
-                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white"
-                            style={{
-                              background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                              boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)',
-                            }}
-                          >
+                overlayClassName="dh-create-pop"
+                popupRender={() => (
+                  <div className="dh-cr">
+                    <div className="dh-cr__head">
+                      <span className="dh-cr__head-ic"><PlusOutlined /></span>
+                      <span className="dh-cr__head-text">
+                        <span className="dh-cr__head-title">New document hub</span>
+                        <span className="dh-cr__head-sub">Choose how to start</span>
+                      </span>
+                    </div>
+
+                    <div className="dh-cr__body">
+                      {hasGrid && (
+                        <button type="button" className="dh-cr__row" onClick={() => setModalVisible(true)}>
+                          <span className="dh-cr__mark is-manual">
                             <FileTextOutlined style={{ fontSize: 15 }} />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-slate-900)' }}>
-                              Manual creation
+                          </span>
+                          <span className="dh-cr__text">
+                            <span className="dh-cr__title">Manual creation</span>
+                            <span className="dh-cr__desc">Start from a blank document hub</span>
+                          </span>
+                          <ChevronRight size={14} className="dh-cr__chev" />
+                        </button>
+                      )}
+
+                      {hasPrime && (
+                        <button type="button" className="dh-cr__row" onClick={() => setAiModalVisible(true)}>
+                          <span className="dh-cr__mark is-zai">
+                            <Sparkles size={15} strokeWidth={2} />
+                          </span>
+                          <span className="dh-cr__text">
+                            <span className="dh-cr__titlerow">
+                              <span className="dh-cr__title">Create with Zai</span>
+                              <span className="dh-cr__ai">AI</span>
                             </span>
-                            <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
-                              Start from a blank document hub
-                            </span>
-                          </div>
+                            <span className="dh-cr__desc">Generate a hub from a prompt</span>
+                          </span>
+                          <ChevronRight size={14} className="dh-cr__chev" />
+                        </button>
+                      )}
+
+                      {/* Both routes sit behind plan features — say so rather
+                          than opening an empty menu. */}
+                      {!hasGrid && !hasPrime && (
+                        <div className="dh-cr__empty">
+                          Creating hubs is not part of your current plan.
                         </div>
-                      ),
-                      onClick: () => setModalVisible(true),
-                    }] : []),
-                    ...(hasPrime ? [{
-                      key: 'zai',
-                      label: (
-                        <div className="flex items-start gap-3 py-1.5 pr-2" style={{ minWidth: 290 }}>
-                          <div
-                            className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0 text-white relative"
-                            style={{
-                              background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-                              boxShadow: '0 2px 6px rgba(139, 92, 246, 0.3)',
-                            }}
-                          >
-                            <span style={{ fontSize: 15, lineHeight: 1 }}>✨</span>
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[13px] font-semibold leading-tight" style={{ color: 'var(--text-slate-900)' }}>
-                                Create with Zai
-                              </span>
-                              <span
-                                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-[1px] rounded"
-                                style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: '#fff' }}
-                              >
-                                AI
-                              </span>
-                            </div>
-                            <span className="text-[11.5px] leading-snug mt-0.5" style={{ color: 'var(--text-slate-400)' }}>
-                              Generate a hub from a prompt
-                            </span>
-                          </div>
-                        </div>
-                      ),
-                      onClick: () => setAiModalVisible(true),
-                    }] : []),
-                  ] as MenuProps['items'],
-                }}
+                      )}
+                    </div>
+
+                    {(hasGrid || hasPrime) && (
+                      <div className="dh-cr__foot">
+                        {hasGrid && hasPrime
+                          ? 'Zai drafts the structure — you can edit everything after.'
+                          : hasPrime
+                            ? 'Zai drafts the structure — you can edit everything after.'
+                            : 'You can add documents to the hub once it exists.'}
+                      </div>
+                    )}
+                  </div>
+                )}
               >
-                <Button type="primary" icon={<PlusOutlined />} className="dh-side-create" block>
+                <Button type="primary" icon={<PlusOutlined />} className="dh-side-create">
                   Create Document
                 </Button>
               </Dropdown>
+              </div>
             )}
           </div>
 
@@ -2392,95 +2491,6 @@ const DocumentHubPage = () => {
                 </div>
               </div>
             )}
-
-            {/* Filters */}
-            <div className="dh-side-group">
-              <div className="dh-side-label">Filters</div>
-              <div className="dh-side-filters flex flex-col gap-2">
-                <SearchableDropdown
-                  value={filterProjectId}
-                  onChange={(v) => setFilterProjectId(v)}
-                  placeholder="Project"
-                  searchPlaceholder="Search by name or code"
-                  itemNoun="projects"
-                  loading={projectsLoading}
-                  width="100%"
-                  style={{ width: '100%' }}
-                  options={projects.map((p: any) => ({ value: p.value, label: p.label, description: p.code }))}
-                />
-                <SearchableDropdown
-                  value={filterTicketId}
-                  onChange={(v) => setFilterTicketId(v)}
-                  placeholder="Ticket"
-                  searchPlaceholder="Search by number or title"
-                  itemNoun="tickets"
-                  loading={filterTicketsLoading}
-                  width="100%"
-                  style={{ width: '100%' }}
-                  options={(() => {
-                    const source = filterProjectId
-                      ? filterTickets
-                      : Array.from(
-                        new Map(
-                          documentHubs
-                            .filter((hub) => hub.ticket)
-                            .map((hub) => [hub.ticket!.id, hub.ticket]),
-                        ).values(),
-                      );
-                    return (source as any[]).map((t: any) => ({ value: t.id, label: t.ticketNumber, description: t.title }));
-                  })()}
-                />
-                <SearchableDropdown
-                  value={selectedUser}
-                  onChange={(v) => setSelectedUser(v)}
-                  placeholder="Created by"
-                  searchPlaceholder="Search by name"
-                  itemNoun="people"
-                  loading={membersLoading}
-                  width="100%"
-                  style={{ width: '100%' }}
-                  options={members.map((m: any) => ({
-                    value: m.value,
-                    label: m.label,
-                    badge: (
-                      <Avatar
-                        src={m.avatarUrl || undefined}
-                        size={20}
-                        style={{
-                          background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                          fontSize: 9,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {(m.label || "?").charAt(0).toUpperCase()}
-                      </Avatar>
-                    )
-                  }))}
-                />
-                <RangePicker
-                  className="premium-range-picker"
-                  style={{ width: '100%', background: 'var(--bg-pure-white)', height: 32 }}
-                  value={dateRange}
-                  onChange={(dates) => setDateRange(dates as any)}
-                />
-                {(filterProjectId || filterTicketId || selectedUser || (dateRange && (dateRange[0] || dateRange[1])) || searchText) && (
-                  <button
-                    type="button"
-                    className="dh-side-clear"
-                    onClick={() => {
-                      setSearchText('');
-                      setFilterProjectId(undefined);
-                      setFilterTicketId(undefined);
-                      setSelectedUser(undefined);
-                      setDateRange(null);
-                    }}
-                  >
-                    <CloseCircleOutlined style={{ fontSize: 12 }} />
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* Pinned */}
             {/* {pinnedHubs.length > 0 && (
@@ -2540,126 +2550,132 @@ const DocumentHubPage = () => {
         {/* ===================== Main pane ===================== */}
         <main className="dh-main">
           {/* Top bar: search · live stats · view controls */}
-          <div className="dh-main-topbar">
-            <Tooltip title="Views & filters">
+          <div className="dh-main-topbar saas-header-container sc-header">
+            <Tooltip title="Views">
               <Button
                 className="dh-mobile-menu-btn"
                 icon={<MenuOutlined />}
                 onClick={() => setMobileSidebarOpen((v) => !v)}
-                aria-label="Open views and filters"
-                style={{ height: 38, width: 38, borderRadius: 10 }}
+                aria-label="Open views"
+                style={{ height: 32, width: 32, borderRadius: 8 }}
               />
             </Tooltip>
-            <div className="pp-search-wrap" style={{ maxWidth: 320, flex: 1 }}>
-              <SearchOutlined className="pp-search-icon" />
-              <input
-                className="pp-search"
-                placeholder="Search hubs, docs, tickets…"
+
+            {/* The project switcher the other pages carry, ahead of search. */}
+            <QaProjectSwitcher
+              projects={projectSwitcherOptions}
+              value={filterProjectId ?? null}
+              onChange={(id: string | null) => setFilterProjectId(id ?? undefined)}
+              loading={projectsLoading}
+              placeholder="All projects"
+            />
+
+            <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+            <div className="sc-header-controls">
+              <Input
+                placeholder="Quick search hubs, docs, tickets..."
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                className="saas-input"
+                style={{ maxWidth: 320, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                allowClear
               />
-              {/* {!searchText && <span className="pp-kbd">⌘K</span>} */}
             </div>
 
-            <div className="dh-main-stats">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="dh-pulse-dot" />
-                <span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{statsHubs.length}</span> hubs
-              </span>
-              <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-              <span><span className="font-semibold" style={{ color: 'var(--text-slate-700)' }}>{totalDocCount}</span> docs</span>
-              {lastUpdated && (
-                <>
-                  <span style={{ color: 'var(--text-slate-300)' }} className="hidden sm:inline">·</span>
-                  <span className="hidden sm:inline">Updated {lastUpdated}</span>
-                </>
-              )}
-            </div>
+            {/* Right side — the filters that used to sit in the rail, then the
+                view controls. */}
+            <div className="dh-main-controls sc-header-right">
+              <Space.Compact className="ticket-filter-group">
+                <Popover
+                  content={
+                    <DocumentHubFilters
+                      filters={{ filterProjectId, filterTicketId, selectedUser, dateRange }}
+                      onFilterChange={(key, val) => {
+                        if (key === 'filterProjectId') setFilterProjectId(val || undefined);
+                        if (key === 'filterTicketId') setFilterTicketId(val || undefined);
+                        if (key === 'selectedUser') setSelectedUser(val || undefined);
+                        if (key === 'dateRange') setDateRange(val);
+                      }}
+                      onReset={clearHubFilters}
+                      projectOptions={projectFilterOptions}
+                      ticketOptions={ticketFilterOptions}
+                      memberOptions={memberFilterOptions}
+                      projectsLoading={projectsLoading}
+                      ticketsLoading={filterTicketsLoading}
+                      membersLoading={membersLoading}
+                    />
+                  }
+                  trigger="click"
+                  open={isFilterPanelOpen}
+                  onOpenChange={setIsFilterPanelOpen}
+                  placement="bottomRight"
+                  overlayClassName="tf-popover-overlay"
+                  styles={{ body: { padding: 0 } }}
+                >
+                  <Button
+                    icon={<FilterOutlined />}
+                    className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                    style={{ height: 32, fontWeight: 600, fontSize: 12 }}
+                  >
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </Button>
+                </Popover>
+                <Button
+                  icon={<ExpandAltOutlined />}
+                  style={{ height: 32 }}
+                  aria-label="Expand filters"
+                  onClick={() => setIsFilterRowOpen((v) => !v)}
+                />
+              </Space.Compact>
 
-            <div className="dh-main-controls">
               <Dropdown
-                menu={{
-                  items: [
-                    { 
-                        key: 'my_computer', 
-                        label: (
-                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
-                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.12)' }}>
-                                    <MonitorUp className="w-4 h-4" />
-                                </span>
-                                <span className="flex flex-col min-w-0 leading-tight">
-                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Upload from My Computer</span>
-                                    <span className="text-[11px] text-slate-400 mt-[1px]">Upload a local file</span>
-                                </span>
-                            </div>
-                        ),
-                        onClick: () => { setPendingUploadProvider('my_computer'); setSelectHubModalVisible(true); } 
-                    },
-                    { 
-                        key: 'google_drive', 
-                        label: (
-                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
-                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#10b981', background: 'rgba(16,185,129,0.12)' }}>
-                                    <HardDrive className="w-4 h-4" />
-                                </span>
-                                <span className="flex flex-col min-w-0 leading-tight">
-                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Google Drive</span>
-                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Workspace</span>
-                                </span>
-                            </div>
-                        ),
-                        onClick: () => { setPendingUploadProvider('google_drive'); setSelectHubModalVisible(true); } 
-                    },
-                    { 
-                        key: 'zoho_drive', 
-                        label: (
-                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
-                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>
-                                    <Cloud className="w-4 h-4" />
-                                </span>
-                                <span className="flex flex-col min-w-0 leading-tight">
-                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Zoho Drive</span>
-                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from WorkDrive</span>
-                                </span>
-                            </div>
-                        ),
-                        onClick: () => { setPendingUploadProvider('zoho_drive'); setSelectHubModalVisible(true); } 
-                    },
-                    { 
-                        key: 'microsoft_onedrive', 
-                        label: (
-                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
-                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#0078d4', background: 'rgba(0,120,212,0.12)' }}>
-                                    <Cloud className="w-4 h-4" />
-                                </span>
-                                <span className="flex flex-col min-w-0 leading-tight">
-                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from OneDrive</span>
-                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Microsoft</span>
-                                </span>
-                            </div>
-                        ),
-                        onClick: () => { setPendingUploadProvider('microsoft_onedrive'); setSelectHubModalVisible(true); } 
-                    },
-                    { 
-                        key: 'notion', 
-                        label: (
-                            <div className="flex items-center gap-[11px] px-[9px] py-[7px]">
-                                <span className="w-[30px] h-[30px] rounded-none shrink-0 inline-flex items-center justify-center text-[14px]" style={{ color: '#000000', background: 'rgba(0,0,0,0.12)' }}>
-                                    <Book className="w-4 h-4" />
-                                </span>
-                                <span className="flex flex-col min-w-0 leading-tight">
-                                    <span className="text-[13px] font-semibold text-slate-900 tracking-[-0.01em]">Import from Notion</span>
-                                    <span className="text-[11px] text-slate-400 mt-[1px]">Import from Notion workspace</span>
-                                </span>
-                            </div>
-                        ),
-                        onClick: () => { setPendingUploadProvider('notion'); setSelectHubModalVisible(true); } 
-                    },
-                  ]
-                }}
                 trigger={['click']}
                 placement="bottomRight"
-                overlayClassName="dh-action-pop"
+                overlayClassName="dh-upload-pop"
+                popupRender={() => (
+                  <div className="dh-up">
+                    <div className="dh-up__head">
+                      <span className="dh-up__head-ic"><CloudUploadOutlined /></span>
+                      <span className="dh-up__head-text">
+                        <span className="dh-up__head-title">Add documents</span>
+                        <span className="dh-up__head-sub">Bring files into a hub</span>
+                      </span>
+                    </div>
+
+                    <div className="dh-up__body">
+                      {UPLOAD_SOURCES.map((src, i) => (
+                        <React.Fragment key={src.key}>
+                          {/* The local file picker is a different act from
+                              pulling files out of a connected workspace. */}
+                          <div className="dh-up__group">
+                            {i === 0 ? 'This device' : i === 1 ? 'Import from' : null}
+                          </div>
+                          <button
+                            type="button"
+                            className="dh-up__row"
+                            onClick={() => {
+                              setPendingUploadProvider(src.key);
+                              setSelectHubModalVisible(true);
+                            }}
+                          >
+                            <span className="dh-up__mark" style={{ background: src.tint }}>
+                              {src.mark}
+                            </span>
+                            <span className="dh-up__text">
+                              <span className="dh-up__title">{src.title}</span>
+                              <span className="dh-up__desc">{src.desc}</span>
+                            </span>
+                            <ChevronRight size={14} className="dh-up__chev" />
+                          </button>
+                        </React.Fragment>
+                      ))}
+                    </div>
+
+                    <div className="dh-up__foot">You&apos;ll choose the destination hub next.</div>
+                  </div>
+                )}
               >
                 <Button icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
                   Upload
@@ -2673,49 +2689,50 @@ const DocumentHubPage = () => {
                 <Popover
                   trigger={['click']}
                   placement="bottomRight"
-                  classNames={{ root: 'dh-table-settings-popover' }}
+                  overlayClassName="ts-popover-overlay"
+                  styles={{ body: { padding: 0 } }}
                   content={
-                    <div style={{ width: 240 }}>
-                      <div className="dh-popover-section-label">
-                        <ColumnHeightOutlined style={{ fontSize: 11 }} />
-                        <span>Density</span>
-                      </div>
-                      <Segmented
-                        block
-                        value={density}
-                        onChange={(v) => setDensity(v as Density)}
-                        options={[
-                          { label: 'Compact', value: 'compact' },
-                          { label: 'Cozy', value: 'comfortable' },
-                          { label: 'Roomy', value: 'spacious' },
-                        ]}
-                      />
-                      <div className="dh-popover-section-label" style={{ marginTop: 14 }}>
-                        <UnorderedListOutlined style={{ fontSize: 11 }} />
-                        <span>Columns</span>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        {TOGGLEABLE_COLUMNS.map((c) => (
-                          <label key={c.key} className="dh-col-toggle-row flex items-center justify-between gap-2">
-                            <span className="text-[12.5px]" style={{ color: 'var(--text-slate-700)' }}>{c.label}</span>
-                            <Switch
-                              size="small"
-                              checked={!hiddenCols[c.key]}
-                              onChange={(checked) => setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-slate-200)' }}>
+                    /* Same panel the Ticket List's table settings use. */
+                    <div className="ts-panel">
+                      <div className="ts-head">
+                        <div className="ts-head-title">
+                          <SettingOutlined style={{ fontSize: 12 }} />
+                          <span>Table Settings</span>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => { setColWidths(DEFAULT_COL_WIDTHS); setHiddenCols({}); setDensity('comfortable'); }}
-                          className="text-[11.5px] font-semibold"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                          className="ts-reset"
+                          onClick={() => {
+                            setColWidths(DEFAULT_COL_WIDTHS);
+                            setHiddenCols({});
+                          }}
                         >
-                          Reset to defaults
+                          <ReloadOutlined style={{ fontSize: 10 }} />
+                          Reset
                         </button>
-                        <span className="text-[10.5px]" style={{ color: 'var(--text-slate-400)' }}>Saved automatically</span>
+                      </div>
+
+                      <div className="ts-body">
+                        <div className="ts-section-label">
+                          <UnorderedListOutlined style={{ fontSize: 11 }} />
+                          <span>Visible Columns</span>
+                        </div>
+                        <div className="ts-cols-scroll">
+                          {TOGGLEABLE_COLUMNS.map((c) => (
+                            <label key={c.key} className="ts-row">
+                              <span className="ts-row-label">{c.label}</span>
+                              <Switch
+                                size="small"
+                                checked={!hiddenCols[c.key]}
+                                onChange={(checked) => setHiddenCols((prev) => ({ ...prev, [c.key]: !checked }))}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="ts-foot">
+                        <span className="ts-foot-hint">Saved automatically</span>
                       </div>
                     </div>
                   }
@@ -2735,17 +2752,121 @@ const DocumentHubPage = () => {
             </div>
           </div>
 
-          <div className="dh-main-scroll">
-            {/* Compact stats strip */}
-            <div className="dh-stats-wrap">
-              <DocumentHubDashboard
-                documentHubs={statsHubs}
-                isLoading={hubsLoading || hubsFetching}
-                onHubClick={openHub}
-                onShareHub={handleShareHub}
-              />
+          {/* ── Inline filter row — the pill strip the Ticket List uses ── */}
+          {isFilterRowOpen && (
+            <div className="tl-filter-row">
+              <div className="tl-filter-row-label">
+                <FilterOutlined style={{ fontSize: 11 }} />
+                <span>Filters</span>
+                <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
+              </div>
+              <div className="tl-filter-row-pills">
+                <TicketFilterPill
+                  icon={<ProjectOutlined style={{ fontSize: 11 }} />}
+                  label="Project"
+                  value={filterProjectId || ""}
+                  options={projectFilterOptions}
+                  onChange={(val) => setFilterProjectId(val || undefined)}
+                  itemNoun="projects"
+                  multiple={false}
+                  searchPlaceholder="Search by name or code"
+                />
+                <TicketFilterPill
+                  icon={<TagOutlined style={{ fontSize: 11 }} />}
+                  label="Ticket"
+                  value={filterTicketId || ""}
+                  options={ticketFilterOptions}
+                  onChange={(val) => setFilterTicketId(val || undefined)}
+                  itemNoun="tickets"
+                  width={280}
+                  multiple={false}
+                  searchPlaceholder="Search by number or title"
+                />
+                <TicketFilterPill
+                  icon={<TeamOutlined style={{ fontSize: 11 }} />}
+                  label="Created by"
+                  value={selectedUser || ""}
+                  options={memberFilterOptions}
+                  onChange={(val) => setSelectedUser(val || undefined)}
+                  itemNoun="people"
+                  multiple={false}
+                  showAvatar
+                  searchPlaceholder="Search by name"
+                />
+                <RangePicker
+                  className="premium-range-picker"
+                  size="small"
+                  style={{ height: 28 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+              </div>
+              <div className="tl-filter-row-actions">
+                {activeFilterCount > 0 && (
+                  <button type="button" className="tl-filter-row-reset" onClick={clearHubFilters}>
+                    <ReloadOutlined style={{ fontSize: 10 }} />
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="tl-filter-row-close"
+                  onClick={() => setIsFilterRowOpen(false)}
+                  aria-label="Close filters"
+                  title="Close filters"
+                >
+                  <CloseOutlined style={{ fontSize: 10 }} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Overview banner — the Ticket List's sprint head, reading the
+               hub library instead: what is here and how much of it holds
+               documents. An empty hub is a shell. ─────────────────────────── */}
+          <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+            <div className="tl-sprint-row1">
+              <div className="tl-sprint-title-block">
+                <span
+                  className="tl-sprint-dot"
+                  style={{ background: bannerAccent, boxShadow: `0 0 0 3px ${bannerAccent}33` }}
+                />
+                <span className="tl-sprint-title dh-banner-title">Document Hub — {activeViewLabel}</span>
+                <span className="tl-sprint-tags">
+                  <span className="tl-sprint-tag tl-sprint-tag-active">{statsHubs.length} HUBS</span>
+                  <span className="tl-sprint-tag tl-sprint-tag-docs">{totalDocCount} DOCS</span>
+                  {activeFilterCount > 0 && (
+                    <span className="tl-sprint-tag tl-sprint-tag-filtered">{activeFilterCount} FILTERED</span>
+                  )}
+                </span>
+              </div>
             </div>
 
+            <div className="tl-sprint-row2">
+              {lastUpdated && (
+                <span className="tl-sprint-meta">
+                  <span className="dh-pulse-dot" />
+                  <span>Updated {lastUpdated}</span>
+                </span>
+              )}
+              <span className="tl-sprint-meta">
+                <b>{hubsWithDocs}</b>/{statsHubs.length} hubs hold documents
+              </span>
+              {starredVisibleCount > 0 && (
+                <span className="tl-sprint-meta">
+                  <StarFilled style={{ fontSize: 10, color: '#f59e0b' }} />
+                  <b>{starredVisibleCount}</b> starred
+                </span>
+              )}
+              {sharedWithMeCount > 0 && (
+                <span className="tl-sprint-meta">
+                  <b>{sharedWithMeCount}</b> shared with you
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="dh-main-scroll">
             {/* View body */}
             <div className="dh-main-body">
               {hubsLoading && !documentHubs.length ? (
@@ -2764,33 +2885,55 @@ const DocumentHubPage = () => {
             const start = (curPage - 1) * tablePageSize + 1;
             const end = Math.min(curPage * tablePageSize, total);
             return (
-              <div className="dh-main-footer">
-                <div className="dh-footer-summary">
-                  Showing <span className="dh-footer-strong">{start}–{end}</span> of{' '}
-                  <span className="dh-footer-strong">{total}</span> hub{total === 1 ? '' : 's'}
+              <div className="dh-main-footer pp-footer">
+                <div className="pp-footer-info">
+                  Showing <strong>{start}–{end}</strong> of <strong>{total}</strong> hub{total === 1 ? '' : 's'}
                   {starredVisibleCount > 0 && (
-                    <>
-                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
-                      <span className="inline-flex items-center gap-1" style={{ color: '#b45309' }}>
-                        <StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
-                      </span>
-                    </>
+                    <span className="pp-footer-sel" style={{ color: '#b45309' }}>
+                      {' · '}<StarFilled style={{ fontSize: 10 }} /> {starredVisibleCount} starred
+                    </span>
                   )}
                   {sharedWithMeCount > 0 && (
-                    <>
-                      <span style={{ display: 'inline-block', width: 1, height: 14, backgroundColor: '#cbd5e1', margin: '0 10px', verticalAlign: 'middle' }} />
-                      <span style={{ color: 'var(--text-slate-600)' }}>{sharedWithMeCount} shared with you</span>
-                    </>
+                    <span className="pp-footer-sel"> · {sharedWithMeCount} shared with you</span>
                   )}
                 </div>
-                <Pagination
-                  current={curPage}
-                  pageSize={tablePageSize}
-                  total={total}
-                  showSizeChanger
-                  pageSizeOptions={[10, 20, 25, 50, 100]}
-                  onChange={(p, size) => { setTablePage(p); setTablePageSize(size); }}
-                />
+                <div className="pp-pager">
+                  <button
+                    type="button"
+                    className="pp-pager-btn"
+                    disabled={curPage <= 1}
+                    onClick={() => setTablePage(Math.max(1, curPage - 1))}
+                  >
+                    ‹
+                  </button>
+                  {Array.from({ length: Math.max(1, Math.ceil(total / tablePageSize)) }, (_, i) => i + 1)
+                    .slice(Math.max(0, curPage - 3), Math.max(0, curPage - 3) + 5)
+                    .map((pg) => (
+                      <button
+                        key={pg}
+                        type="button"
+                        className={`pp-pager-num ${pg === curPage ? 'is-active' : ''}`}
+                        onClick={() => setTablePage(pg)}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+                  <button
+                    type="button"
+                    className="pp-pager-btn"
+                    disabled={curPage >= Math.ceil(total / tablePageSize)}
+                    onClick={() => setTablePage(Math.min(Math.ceil(total / tablePageSize), curPage + 1))}
+                  >
+                    ›
+                  </button>
+                  <Select
+                    className="pp-pagesize"
+                    value={tablePageSize}
+                    onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
+                    options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                    popupMatchSelectWidth={120}
+                  />
+                </div>
               </div>
             );
           })()}
@@ -3431,6 +3574,343 @@ const DocumentHubPage = () => {
 
       <style jsx global>{`
         /* ===================== Side-layout shell ===================== */
+        /* ── Ticket-List chrome layered onto the Document Hub main pane ──── */
+        .dh-main-topbar.sc-header {
+          height: auto;
+          min-height: 0;
+          gap: 10px;
+          padding: 9.7px 16px;
+          flex-wrap: wrap;
+        }
+        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .dh-main-controls.sc-header-right { flex-shrink: 0; }
+
+        /* ── Overview banner ─────────────────────────────────────────────── */
+        .tl-section-head {
+          padding: 6px 12px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          position: relative;
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-section-head {
+          background: #0f1419;
+          border-bottom-color: #1f2937;
+        }
+        .tl-sprint-head-v2 { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 16px !important; }
+        .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+        .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dh-banner-title {
+          font-size: 14px; font-weight: 800; color: var(--text-slate-900);
+          letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        [data-theme='dark'] .dh-banner-title { color: #f1f5f9; }
+        .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tl-sprint-tag {
+          display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+          border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+        }
+        .tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16,185,129,0.32); }
+        .tl-sprint-tag-docs { background: transparent; color: #64748b; border-color: rgba(100,116,139,0.32); }
+        .tl-sprint-tag-filtered { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+        [data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+
+        .tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+        .tl-sprint-meta {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+
+        /* ── Inline filter row ───────────────────────────────────────────── */
+        .tl-filter-row {
+          display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+          background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+        .tl-filter-row-label {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+          text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        .tl-filter-row-count {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 18px; padding: 0 6px;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500); border-radius: 999px;
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+        .tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+        .tl-filter-row-reset {
+          display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+          background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+          font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06); border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; background: transparent;
+          border: 1px solid var(--border-slate-200); border-radius: 8px;
+          color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+        [data-theme='dark'] .tl-filter-row-reset,
+        [data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+
+        /* ── Table rows, matched to the Ticket List ──────────────────────── */
+        .pp-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+          font-size: 10px !important; font-weight: 800 !important; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--text-slate-400) !important;
+          white-space: nowrap !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-thead > tr > th {
+          background: #0f1419 !important; border-bottom-color: #1f2937 !important; color: #94a3b8 !important;
+        }
+        .pp-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          font-size: 11.5px !important; line-height: 1.35 !important;
+        }
+        [data-theme='dark'] .pp-table .ant-table-tbody > tr > td { border-bottom-color: #1f2937 !important; }
+        .pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+        .pp-table .ant-table-pagination { display: none !important; }
+
+        /* ── Create popup: the two ways to start a hub ──────────────────── */
+        .dh-create-pop .ant-dropdown-menu { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+        .dh-cr {
+          width: 296px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 16px 40px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.06);
+        }
+        [data-theme='dark'] .dh-cr { background: #0f1419; border-color: #2d3748; }
+
+        .dh-cr__head {
+          display: flex; align-items: center; gap: 10px;
+          padding: 11px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .dh-cr__head { background: #111720; border-bottom-color: #1f2937; }
+        .dh-cr__head-ic {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px; font-size: 13px;
+          color: #3B82F6; background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.18);
+        }
+        .dh-cr__head-text { display: flex; flex-direction: column; min-width: 0; }
+        .dh-cr__head-title { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .dh-cr__head-sub { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        [data-theme='dark'] .dh-cr__head-title { color: #f1f5f9; }
+
+        .dh-cr__body { padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+        .dh-cr__row {
+          display: flex; align-items: center; gap: 11px; width: 100%;
+          padding: 9px 8px; border: 1px solid transparent; border-radius: 8px;
+          background: none; cursor: pointer; font-family: inherit; text-align: left;
+          transition: background .12s ease, border-color .12s ease;
+        }
+        .dh-cr__row:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+        .dh-cr__row:hover .dh-cr__chev { opacity: 1; transform: translateX(1px); }
+        .dh-cr__row:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        [data-theme='dark'] .dh-cr__row:hover { background: #161B22; border-color: #2d3748; }
+
+        .dh-cr__mark {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 32px; height: 32px; border-radius: 9px;
+        }
+        .dh-cr__mark.is-manual {
+          color: #3B82F6; background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.18);
+        }
+        /* Zai keeps the purple it wears everywhere else in the product. */
+        .dh-cr__mark.is-zai {
+          color: #9333ea; background: #f3e8ff; border: 1px solid rgba(147,51,234,0.18);
+        }
+        [data-theme='dark'] .dh-cr__mark.is-zai { background: rgba(147,51,234,0.18); color: #d8b4fe; }
+
+        .dh-cr__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+        .dh-cr__titlerow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .dh-cr__title { font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        [data-theme='dark'] .dh-cr__title { color: #cbd5e1; }
+        .dh-cr__ai {
+          display: inline-flex; align-items: center; height: 15px; padding: 0 5px;
+          border-radius: 4px; background: #f3e8ff; color: #9333ea;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.06em; line-height: 1;
+        }
+        [data-theme='dark'] .dh-cr__ai { background: rgba(147,51,234,0.22); color: #d8b4fe; }
+        .dh-cr__desc { font-size: 11px; color: var(--text-slate-400); margin-top: 2px; }
+        .dh-cr__chev {
+          flex-shrink: 0; color: var(--text-slate-300);
+          opacity: 0; transition: opacity .12s ease, transform .12s ease;
+        }
+
+        .dh-cr__empty {
+          padding: 16px 10px; text-align: center;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+        }
+        .dh-cr__foot {
+          padding: 8px 14px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .dh-cr__foot { background: #111720; border-top-color: #1f2937; }
+
+        /* ── Upload popup: one row per source, brand mark first ─────────── */
+        .dh-upload-pop .ant-dropdown-menu { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+        .dh-up {
+          width: 292px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 16px 40px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.06);
+        }
+        [data-theme='dark'] .dh-up { background: #0f1419; border-color: #2d3748; }
+
+        .dh-up__head {
+          display: flex; align-items: center; gap: 10px;
+          padding: 11px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .dh-up__head { background: #111720; border-bottom-color: #1f2937; }
+        .dh-up__head-ic {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 28px; height: 28px; border-radius: 8px; font-size: 14px;
+          color: #3B82F6; background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.18);
+        }
+        .dh-up__head-text { display: flex; flex-direction: column; min-width: 0; }
+        .dh-up__head-title { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .dh-up__head-sub { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        [data-theme='dark'] .dh-up__head-title { color: #f1f5f9; }
+
+        .dh-up__body { padding: 6px; }
+        .dh-up__group {
+          font-size: 9.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
+          color: var(--text-slate-400); padding: 8px 8px 4px;
+        }
+        /* Only the two rows that open a section print a caption. */
+        .dh-up__group:empty { display: none; }
+
+        .dh-up__row {
+          display: flex; align-items: center; gap: 11px; width: 100%;
+          padding: 7px 8px; border: 1px solid transparent; border-radius: 8px;
+          background: none; cursor: pointer; font-family: inherit; text-align: left;
+          transition: background .12s ease, border-color .12s ease;
+        }
+        .dh-up__row:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+        .dh-up__row:hover .dh-up__chev { opacity: 1; transform: translateX(1px); }
+        .dh-up__row:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        [data-theme='dark'] .dh-up__row:hover { background: #161B22; border-color: #2d3748; }
+
+        .dh-up__mark {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 30px; height: 30px; border-radius: 8px; color: #3B82F6;
+        }
+        .dh-up__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+        .dh-up__title { font-size: 12.5px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+        .dh-up__desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+        [data-theme='dark'] .dh-up__title { color: #cbd5e1; }
+        .dh-up__chev {
+          flex-shrink: 0; color: var(--text-slate-300);
+          opacity: 0; transition: opacity .12s ease, transform .12s ease;
+        }
+
+        .dh-up__foot {
+          padding: 8px 14px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .dh-up__foot { background: #111720; border-top-color: #1f2937; }
+
+        /* ── Table pane: edge to edge, no card frame — as the Ticket List ── */
+        .dh-main-body { padding: 0 !important; }
+        .dh-table-shell.pp-table-wrap {
+          border: 1px solid var(--border-slate-200);
+          border-left: none;
+          border-right: none;
+          border-radius: 0;
+          overflow-x: auto;
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        [data-theme='dark'] .dh-table-shell.pp-table-wrap { border-color: #1f2937; }
+        .dh-table-shell.pp-table-wrap::-webkit-scrollbar,
+        .dh-table-shell .ant-table-body::-webkit-scrollbar,
+        .dh-table-shell .ant-table-content::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        /* The wrapper draws the frame now, so the container must not double it. */
+        .dh-table-shell .premium-table .ant-table-container,
+        .dh-table-shell .premium-table .ant-table-content,
+        .dh-table-shell .premium-table .ant-table {
+          border: none !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+        }
+        .dh-table-shell .premium-table .ant-table-thead > tr > th {
+          padding: 5px 10px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.04em !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 2 !important;
+        }
+        .dh-table-shell .premium-table .ant-table-tbody > tr > td {
+          font-size: 11.5px !important;
+          line-height: 1.35 !important;
+        }
+        .dh-table-shell .premium-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+        .dh-table-shell .premium-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+        [data-theme='dark'] .dh-table-shell .premium-table .ant-table-tbody > tr.pp-row:hover > td { background: #1e293b !important; }
+
+        /* ── Footer + pager ──────────────────────────────────────────────── */
+        .dh-main-footer.pp-footer {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 10px; padding: 8px 16px;
+          background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+          box-sizing: border-box; flex-shrink: 0;
+          box-shadow: 0 -4px 14px rgba(15,23,42,0.04); margin: 0;
+        }
+        [data-theme='dark'] .dh-main-footer.pp-footer { background: #0f1419; border-top-color: #1f2937; }
+        .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+        .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+        [data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
+        .pp-footer-sel { color: #3B82F6; font-weight: 600; }
+        .pp-pager { display: flex; align-items: center; gap: 3px; }
+        .pp-pager-btn, .pp-pager-num {
+          min-width: 28px; height: 28px; border-radius: 7px;
+          border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+          color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+          display: inline-flex; align-items: center; justify-content: center;
+        }
+        [data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+          background: #1e293b; border-color: #334155; color: #cbd5e1;
+        }
+        .pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+        .pp-pagesize { margin-left: 5px; }
+        .pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+        @media (max-width: 900px) {
+          .tl-filter-row-label { display: none; }
+          .tl-sprint-row2 { padding-left: 0; }
+        }
         .dh-shell {
           margin: 0;
           display: flex;
@@ -3440,59 +3920,67 @@ const DocumentHubPage = () => {
         }
 
         /* ----------------------- Sidebar ----------------------- */
+        /* The rail speaks the same language as the main pane: one white
+           surface, slate-50 bands top and bottom, 8px rows. */
         .dh-sidebar {
           position: sticky;
           top: 0;
           align-self: flex-start;
           height: calc(100vh - 54px);
-          width: 240px;
+          width: 250px;
           flex-shrink: 0;
           display: flex;
           flex-direction: column;
-          background: var(--bg-secondary);
+          background: var(--bg-pure-white);
           border-right: 1px solid var(--border-slate-200);
         }
-        .dh-sidebar-top {
-          padding: 14px 12px 12px 12px;
-        }
+        [data-theme='dark'] .dh-sidebar { background: #0f1419; border-right-color: #1f2937; }
+
+        .dh-sidebar-top { padding: 0; }
+        /* Brand band sits on the header's baseline, so the two align. */
         .dh-sidebar-brand {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding-bottom: 14px;
-          margin-bottom: 10px;
-          border-bottom: 1px solid var(--border-slate-100);
+          padding: 9.7px 14px;
+          margin: 0;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
         }
+        [data-theme='dark'] .dh-sidebar-brand { background: #111720; border-bottom-color: #1f2937; }
         .dh-sidebar-title {
           margin: 0;
-          font-size: 15px;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          line-height: 1.1;
+          font-size: 12.5px;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
           color: var(--text-slate-900);
         }
+        [data-theme='dark'] .dh-sidebar-title { color: #f1f5f9; }
         .dh-sidebar-subtitle {
-          font-size: 10.5px;
+          font-size: 10px;
           color: var(--text-slate-400);
           font-weight: 700;
-          margin-top: 4px;
+          margin-top: 1px;
           text-transform: uppercase;
-          letter-spacing: 0.07em;
+          letter-spacing: 0.08em;
         }
+        .dh-side-cta { padding: 12px 12px 0 12px; }
         .dh-side-create {
-          height: 36px !important;
-          border-radius: 6px !important;
-          font-weight: 600 !important;
-          background: linear-gradient(135deg, #3B82F6 0%, #3B82F6 100%) !important;
+          height: 32px !important;
+          width: 100% !important;
+          border-radius: 8px !important;
+          font-weight: 700 !important;
+          font-size: 12px !important;
+          background: #3B82F6 !important;
           border: none !important;
-          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
         }
-        /* removed dh-side-create dark override */
+        .dh-side-create:hover { background: #2563eb !important; }
         .dh-sidebar-scroll {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
-          padding: 10px 10px 6px 12px;
+          padding: 14px 12px 10px 12px;
           scrollbar-width: none;        /* Firefox */
           -ms-overflow-style: none;     /* IE/Edge legacy */
         }
@@ -3506,50 +3994,64 @@ const DocumentHubPage = () => {
           border-radius: 6px !important;
           border: 1px dashed var(--border-slate-200) !important;
         }
-        .dh-side-group { margin-bottom: 13px; }
+        .dh-side-group { margin-bottom: 14px; }
         .dh-side-label {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 0 8px;
-          margin-bottom: 8px;
-          font-size: 10.5px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
+          padding: 0 8px 4px;
+          margin-bottom: 2px;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 0.09em;
           text-transform: uppercase;
           color: var(--text-slate-400);
         }
-        /* Saved-view rows */
+        /* Saved-view rows — the upload popup's row, with an active state */
         .dh-side-view {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 9px;
           width: 100%;
-          padding: 7px 10px;
-          border: none;
+          padding: 7px 8px;
+          border: 1px solid transparent;
           background: transparent;
           border-radius: 8px;
           cursor: pointer;
-          font-size: 13px;
-          font-weight: 500;
+          font-family: inherit;
+          font-size: 12.5px;
+          font-weight: 600;
           color: var(--text-slate-600);
-          transition: background 0.15s, color 0.15s;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
-        .dh-side-view:hover { background: var(--bg-slate-100); color: var(--text-slate-900); }
+        .dh-side-view:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); color: var(--text-slate-900); }
+        .dh-side-view:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        [data-theme='dark'] .dh-side-view:hover { background: #161B22; border-color: #2d3748; }
         .dh-side-view.active {
-          color: var(--text-slate-900);
-          font-weight: 600;
+          background: var(--bg-blue-50) !important;
+          border-color: rgba(59,130,246,0.22);
+          color: #3B82F6;
+          font-weight: 700;
         }
-        .dh-side-view-icon { display: inline-flex; font-size: 14px; width: 18px; justify-content: center; }
-        .dh-side-view-label { flex: 1; text-align: left; }
+        .dh-side-view.active .dh-side-view-icon { color: #3B82F6 !important; }
+        .dh-side-view-icon { display: inline-flex; align-items: center; font-size: 13px; width: 16px; justify-content: center; flex-shrink: 0; }
+        .dh-side-view-label { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Same count pill the filter row and the owner switch use. */
         .dh-side-view-count {
-          font-size: 12px;
-          font-weight: 600;
-          padding: 1px 8px;
-          border-radius: 6px;
-          background: transparent;
-          color: var(--text-slate-400);
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 18px; padding: 0 6px;
+          border-radius: 999px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500);
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
         }
+        .dh-side-view.active .dh-side-view-count {
+          background: rgba(59,130,246,.14) !important;
+          border-color: transparent;
+          color: #2563eb !important;
+        }
+        [data-theme='dark'] .dh-side-view-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
         .dh-side-clear {
           display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
           background: none; border: none; cursor: pointer; padding: 3px;
@@ -3585,22 +4087,24 @@ const DocumentHubPage = () => {
           align-items: center;
           gap: 9px;
           width: 100%;
-          padding: 5px 8px;
-          border: none;
+          padding: 6px 8px;
+          border: 1px solid transparent;
           background: transparent;
-          border-radius: 9px;
+          border-radius: 8px;
           cursor: pointer;
           text-align: left;
-          transition: background 0.15s;
+          transition: background 0.12s ease, border-color 0.12s ease;
         }
-        .dh-recent-item:hover { background: var(--bg-slate-100); }
+        .dh-recent-item:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+        .dh-recent-item:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        [data-theme='dark'] .dh-recent-item:hover { background: #161B22; border-color: #2d3748; }
         .dh-recent-icon {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 26px;
-          height: 26px;
-          border-radius: 7px;
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
           background: rgba(59, 130, 246, 0.10);
           color: #3B82F6;
           flex-shrink: 0;
@@ -3610,29 +4114,38 @@ const DocumentHubPage = () => {
           font-size: 12.5px;
           font-weight: 600;
           line-height: 1.25;
-          color: var(--text-slate-800, #1e293b);
+          letter-spacing: -0.01em;
+          color: var(--text-slate-900);
         }
+        [data-theme='dark'] .dh-recent-name { color: #cbd5e1; }
         .dh-recent-meta {
-          font-size: 10px;
-          line-height: 1.25;
+          font-size: 11px;
+          line-height: 1.3;
+          margin-top: 1px;
           color: var(--text-slate-400);
         }
+        /* Foot band, mirroring the pager strip on the other side. */
         .dh-side-trash {
           display: flex;
           align-items: center;
           gap: 9px;
-          margin: 0 0px 0px 0px;
-          padding: 26px 22px;
-          height: 38px;
+          flex-shrink: 0;
+          width: 100%;
+          margin: 0;
+          padding: 0 14px;
+          height: 41px;
+          border: none;
           border-top: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white);
-          color: var(--text-slate-600);
-          font-size: 13px;
-          font-weight: 600;
+          background: var(--bg-slate-50);
+          color: var(--text-slate-500);
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
           cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
+          transition: color 0.12s ease, background 0.12s ease;
         }
-        .dh-side-trash:hover { color: #ef4444; border-color: #fecaca; }
+        .dh-side-trash:hover { color: #dc2626; background: rgba(239,68,68,.06); }
+        [data-theme='dark'] .dh-side-trash { background: #111720; border-top-color: #1f2937; color: #94a3b8; }
 
         /* ----------------------- Main pane ----------------------- */
         .dh-main {
@@ -3710,7 +4223,6 @@ const DocumentHubPage = () => {
           color: var(--text-slate-500) !important;
         }
         
-        .dh-main-search { width: 320px; max-width: 42%; flex-shrink: 0; }
         .premium-search-input {
           border-radius: 6px;
         }
@@ -3726,15 +4238,6 @@ const DocumentHubPage = () => {
           background: var(--bg-slate-100);
           border: 1px solid var(--border-slate-200);
         }
-        .dh-main-stats {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          color: var(--text-slate-500);
-          white-space: nowrap;
-          overflow: hidden;
-        }
         .dh-main-controls {
           margin-left: auto;
           display: flex;
@@ -3748,31 +4251,12 @@ const DocumentHubPage = () => {
           color: var(--text-slate-400); font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
         }
         .dh-segmented button.is-active { background: var(--bg-blue-50); color: #3B82F6; }
-        .pp-search-wrap {
-          position: relative; flex: 1; display: flex; align-items: center;
-          height: 32px; border-radius: 8px; background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200); padding: 0 10px;
-        }
-        .pp-search-wrap:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(59,130,246,0.10); }
-        .pp-search-icon { color: var(--text-slate-400); font-size: 14px; }
-        .pp-search {
-          flex: 1; border: none; outline: none; background: transparent; margin-left: 9px;
-          font-size: 13px; color: var(--text-slate-900); min-width: 0;
-        }
-        .pp-search::placeholder { color: var(--text-slate-400); }
-        .pp-kbd {
-          font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
-          border-radius: 5px; padding: 1px 6px;
-        }
         .pp-ghost-btn {
           width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border-slate-200);
           background: var(--bg-slate-50); color: var(--text-slate-700); cursor: pointer; font-size: 14px;
           display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
         .pp-ghost-btn:hover { color: #3B82F6; border-color: #bfdbfe; }
-        .dh-stats-wrap { padding: 12px 20px 0 20px; }
-        .dh-main-body { padding: 0px 20px 14px 20px; }
 
         /* ----------------------- Row-cards view ----------------------- */
         .dh-rowcards-wrap { width: 100%; overflow-x: auto; }
@@ -3796,12 +4280,9 @@ const DocumentHubPage = () => {
         /* ---------- Responsive ---------- */
         @media (max-width: 1280px) {
           .dh-sidebar { width: 244px; }
-          .dh-main-search { width: 280px; }
         }
         @media (max-width: 1100px) {
           .dh-sidebar { width: 228px; }
-          .dh-main-search { width: 230px; max-width: 40%; }
-          .dh-main-stats { display: none; }
         }
         @media (max-width: 860px) {
           .dh-shell {
@@ -3850,7 +4331,6 @@ const DocumentHubPage = () => {
             color: var(--text-slate-700);
             order: 0;
           }
-          .dh-main-search { width: 100%; max-width: none; order: 5; flex: 1 1 100%; }
           .dh-main-controls { order: 2; margin-left: auto; }
         }
         @media (max-width: 900px) {
@@ -3859,8 +4339,6 @@ const DocumentHubPage = () => {
           .dh-main-footer .ant-pagination { flex-wrap: nowrap !important; }
         }
         @media (max-width: 640px) {
-          .dh-main-body { padding: 8px 12px 14px 12px; }
-          .dh-stats-wrap { padding: 10px 12px 0 12px; }
           .dh-main-footer { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
           .dh-footer-summary { text-align: center; white-space: normal; overflow: visible; }
           .dh-main-footer .ant-pagination { display: flex; justify-content: center; flex-wrap: wrap !important; gap: 6px; }
@@ -3870,31 +4348,39 @@ const DocumentHubPage = () => {
         [data-theme="dark"] .dh-shell,
         [data-theme="dark"] .dh-main { background: #0B0F1A !important; }
         [data-theme="dark"] .dh-sidebar {
-          background: #0B0F1A !important;
-          border-right-color: #374151 !important;
+          background: #0f1419 !important;
+          border-right-color: #1f2937 !important;
         }
         [data-theme="dark"] .dh-sidebar-brand {
-          border-bottom-color: #374151 !important;
+          background: #111720 !important;
+          border-bottom-color: #1f2937 !important;
         }
         [data-theme="dark"] .dh-side-trash {
-          background: #0B0F1A !important;
-          border-top-color: #374151 !important;
+          background: #111720 !important;
+          border-top-color: #1f2937 !important;
           color: #94a3b8 !important;
         }
         [data-theme="dark"] .dh-side-trash:hover {
-          color: #ef4444 !important;
-          border-color: #ef4444 !important;
+          color: #fca5a5 !important;
+          background: rgba(239,68,68,.10) !important;
         }
         [data-theme="dark"] .dh-side-view {
           color: #94a3b8 !important;
         }
         [data-theme="dark"] .dh-side-view:hover {
-          background: rgba(255, 255, 255, 0.05) !important;
-          color: #ffffff !important;
+          background: #161B22 !important;
+          border-color: #2d3748 !important;
+          color: #e2e8f0 !important;
         }
         [data-theme="dark"] .dh-side-view.active {
-          background: rgba(255, 255, 255, 0.05) !important;
-          color: #ffffff !important;
+          background: rgba(59,130,246,.14) !important;
+          border-color: rgba(59,130,246,0.28) !important;
+          color: #93C5FD !important;
+        }
+        [data-theme="dark"] .dh-side-view.active .dh-side-view-icon { color: #93C5FD !important; }
+        [data-theme="dark"] .dh-side-view.active .dh-side-view-count {
+          background: rgba(59,130,246,.22) !important;
+          color: #93C5FD !important;
         }
         [data-theme="dark"] .dh-side-hub-name {
           color: #94a3b8 !important;
@@ -3903,12 +4389,12 @@ const DocumentHubPage = () => {
           background: rgba(255, 255, 255, 0.05) !important;
         }
         [data-theme="dark"] .dh-main-topbar {
-          background: #0B0F1A !important;
-          border-bottom-color: #374151 !important;
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
         }
         [data-theme="dark"] .dh-main-footer {
-          background: #0B0F1A !important;
-          border-top-color: #374151 !important;
+          background: #0f1419 !important;
+          border-top-color: #1f2937 !important;
           box-shadow: none !important;
         }
         [data-theme="dark"] .dh-footer-strong {
@@ -3917,10 +4403,10 @@ const DocumentHubPage = () => {
         [data-theme="dark"] .dh-footer-summary {
           color: #94a3b8 !important;
         }
-        [data-theme="dark"] .dh-recent-item:hover { background: rgba(255, 255, 255, 0.05); }
+        [data-theme="dark"] .dh-recent-item:hover { background: #161B22; border-color: #2d3748; }
         [data-theme="dark"] .dh-recent-icon { background: rgba(96, 165, 250, 0.18); color: #93C5FD; }
-        [data-theme="dark"] .dh-recent-name { color: rgba(255, 255, 255, 0.92); }
-        [data-theme="dark"] .dh-recent-meta { color: rgba(255, 255, 255, 0.5); }
+        [data-theme="dark"] .dh-recent-name { color: #cbd5e1; }
+        [data-theme="dark"] .dh-recent-meta { color: #64748b; }
         /* removed dh-mobile-menu-btn dark override */
 
         .premium-table .ant-table-thead > tr > th {
@@ -3991,9 +4477,11 @@ const DocumentHubPage = () => {
 
         /* Hero icon box (Team-View pattern) */
         .dh-hero-icon-box {
-          width: 36px; height: 36px; border-radius: 10px;
+          width: 28px; height: 28px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
-          border: none;
+          color: #3B82F6;
+          background: rgba(59,130,246,0.10);
+          border: 1px solid rgba(59,130,246,0.18);
           flex-shrink: 0;
         }
         /* removed dark override */
@@ -4448,10 +4936,7 @@ const DocumentHubPage = () => {
           background: #3b82f6;
         }
 
-        /* Density (#C) — tunes per-row vertical padding */
-        .dh-table-shell[data-density='compact'] .ant-table-tbody > tr > td { padding: 4px 10px !important; }
-        .dh-table-shell[data-density='comfortable'] .ant-table-tbody > tr > td { padding: 6px 10px !important; }
-        .dh-table-shell[data-density='spacious'] .ant-table-tbody > tr > td { padding: 10px 14px !important; }
+        .dh-table-shell .ant-table-tbody > tr > td { padding: 6px 10px !important; }
 
         /* Pinned row actions — always visible in the fixed Actions column (#D) */
         .dh-row-actions {
@@ -4641,28 +5126,136 @@ const DocumentHubPage = () => {
         }
 
         /* Table settings popover (#C) */
-        .dh-table-settings-popover .ant-popover-inner {
-          padding: 14px !important;
-          border-radius: 14px !important;
-          border: 1px solid var(--border-slate-200) !important;
-          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+        /* ── Table settings — the Ticket List's panel, verbatim ─────────── */
+        .ts-popover-overlay .ant-popover-inner {
+          padding: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          border-radius: 12px !important;
         }
-        .dh-popover-section-label {
-          display: flex; align-items: center; gap: 6px;
+        .ts-popover-overlay .ant-popover-arrow { display: none !important; }
+
+        .ts-panel {
+          width: 250px;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+        }
+        [data-theme='dark'] .ts-panel {
+          background: #0f1419;
+          border-color: #2d3748;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.3);
+        }
+
+        .ts-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 10px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .ts-head { background: #111720; border-bottom-color: #1f2937; }
+        .ts-head-title {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        [data-theme='dark'] .ts-head-title { color: #94a3b8; }
+
+        .ts-reset {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          height: 24px;
+          padding: 0 9px;
+          background: transparent;
+          border: 1px dashed var(--border-slate-200);
+          border-radius: 999px;
+          font-family: inherit;
           font-size: 10.5px;
-          font-weight: 700;
+          font-weight: 800;
+          color: var(--text-slate-500);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .ts-reset:hover {
+          color: #3b82f6;
+          border-color: rgba(59,130,246,0.4);
+          background: rgba(59,130,246,0.06);
+          border-style: solid;
+        }
+        [data-theme='dark'] .ts-reset { border-color: #2d3748; color: #94a3b8; }
+
+        .ts-body { padding: 10px 14px 12px; display: flex; flex-direction: column; }
+        .ts-section-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10px;
+          font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.08em;
           color: var(--text-slate-400);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
-        .dh-col-toggle-row {
-          padding: 4px 6px;
+
+        .ts-cols-scroll {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          max-height: 220px;
+          overflow-y: auto;
+          padding-right: 2px;
+        }
+        .ts-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 5px 6px;
           border-radius: 6px;
-          transition: background 0.12s;
+          cursor: pointer;
+          transition: background 0.1s ease;
         }
-        .dh-col-toggle-row:hover { background: var(--bg-slate-50); }
-        [data-theme='dark'] .dh-col-toggle-row:hover { background: rgba(255,255,255,0.03); }
+        .ts-row:hover { background: var(--bg-slate-50); }
+        [data-theme='dark'] .ts-row:hover { background: rgba(255, 255, 255, 0.05); }
+        .ts-row-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-700);
+          letter-spacing: -0.005em;
+          min-width: 0;
+        }
+        [data-theme='dark'] .ts-row-label { color: #cbd5e1; }
+
+        .ts-foot {
+          padding: 8px 14px;
+          border-top: 1px solid var(--border-slate-200);
+          background: var(--bg-slate-50);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        [data-theme='dark'] .ts-foot { border-top-color: #1f2937; background: #111720; }
+        .ts-foot-hint { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+        [data-theme='dark'] .ts-foot-hint { color: #64748b; }
 
         /* Single-row toolbar: thin scrollbar when overflowing horizontally. */
         .dh-toolbar { scrollbar-width: thin; }
@@ -4793,27 +5386,6 @@ const DocumentHubPage = () => {
           background: var(--bg-slate-50) !important;
         }
 
-        .dh-action-pop .ant-dropdown-menu {
-          padding: 6px; border-radius: 0 !important; min-width: 236px;
-          overflow: hidden !important;
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-100);
-          box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
-        }
-        .dh-action-pop .ant-dropdown-menu-item {
-          padding: 0 !important; border-radius: 0 !important; margin: 1px 0;
-          transition: background .12s ease;
-        }
-        .dh-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
-        [data-theme='dark'] .dh-action-pop .ant-dropdown-menu {
-          background: #0B0F1A !important;
-          border-radius: 0 !important;
-          overflow: hidden !important;
-          border: 1px solid #1E293B !important;
-        }
-        [data-theme='dark'] .dh-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
-        [data-theme='dark'] .dh-action-pop .text-slate-900 { color: #cbd5e1 !important; }
-        [data-theme='dark'] .dh-action-pop .text-slate-400 { color: #64748b !important; }
       `}</style>
     </MainLayout>
   );

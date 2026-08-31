@@ -9,8 +9,6 @@ import {
   Typography,
   Button,
   Space,
-  Row,
-  Col,
   Pagination,
   Form,
   Input,
@@ -28,6 +26,8 @@ import {
   App,
   theme as antdTheme,
   Spin,
+  Popover,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
@@ -40,7 +40,6 @@ import {
   ReloadOutlined,
   CheckCircleOutlined,
   ProjectOutlined,
-  PieChartOutlined,
   HistoryOutlined,
   InfoCircleOutlined,
   SearchOutlined,
@@ -62,10 +61,14 @@ import {
   RightOutlined,
   UnorderedListOutlined,
   AppstoreOutlined,
-  CloseCircleOutlined,
   TableOutlined,
-  MenuOutlined,
+  FilterOutlined,
+  ExpandAltOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
+import SprintPlanFilters, { SprintPlanFiltersState } from "@/components/projects/SprintPlanFilters";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import ReleasePlanService, {
@@ -90,51 +93,6 @@ const BulbDot = () => (
     <path d="M9 21h6m-3-3v3M7 12a5 5 0 1 1 10 0c0 2-1 3-2 4v2H9v-2c-1-1-2-2-2-4Z" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
-
-const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {
-  const min = Math.min(...data);
-  const max = Math.max(...data, min + 1);
-  const range = max - min;
-  const width = 72;
-  const height = 28;
-  const bottomPadding = 4;
-
-  const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width;
-    let y = height - bottomPadding;
-    if (max > min) {
-      y = height - bottomPadding - ((d - min) / range) * (height - bottomPadding - 2);
-    }
-    return { x, y };
-  });
-
-  let pathD = `M ${points[0].x},${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
-    pathD += ` L ${points[i].x},${points[i].y}`;
-  }
-
-  const fillD = `${pathD} L ${width},${height} L 0,${height} Z`;
-
-  const isFlat = data.every(d => d === data[0]);
-  const flatY = 2;
-  const flatPathD = `M 0,${flatY} L ${width},${flatY}`;
-  const flatFillD = `${flatPathD} L ${width},${height} L 0,${height} Z`;
-
-  const gradId = `spark-grad-${color.replace('#', '')}`;
-
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0.05} />
-        </linearGradient>
-      </defs>
-      <path d={isFlat ? flatFillD : fillD} fill={`url(#${gradId})`} />
-      <path d={isFlat ? flatPathD : pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-};
 
 export default function SprintPlanComponent() {
   console.log("Forcing HMR reload for SprintPlanComponent 3");
@@ -175,7 +133,8 @@ export default function SprintPlanComponent() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [, setSearchLoading] = useState(false);
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const ticketOptions = useMemo(() => {
     const optionsMap = new Map<string, { label: string; value: string; item: any }>();
@@ -652,26 +611,14 @@ export default function SprintPlanComponent() {
   }, [allPlans]);
 
   // Per-project plan counts (respects search + status filters, ignores projectId so user can switch)
-  const projectCounts = useMemo(() => {
-    const base = allPlans.filter(p => {
-      if (tableFilters.status && p.status !== tableFilters.status) return false;
-      if (!matchesRangeFilters(p, tableFilters)) return false;
-      if (tableFilters.search) {
-        const q = tableFilters.search.toLowerCase();
-        const name = (p.name || '').toLowerCase();
-        const desc = (p.description || '').toLowerCase();
-        const goal = (p.goal || '').toLowerCase();
-        if (!name.includes(q) && !desc.includes(q) && !goal.includes(q)) return false;
-      }
-      return true;
-    });
-    const map = new Map<string, number>();
-    base.forEach(p => {
-      const pid = typeof p.project === 'object' ? p.project?.id : p.project;
-      if (pid) map.set(pid, (map.get(pid) || 0) + 1);
-    });
-    return { map, total: base.length };
-  }, [allPlans, tableFilters, matchesRangeFilters]);
+  /* The four states the rail used to list, now the header's switch. */
+  const STATUS_SEGMENTS = [
+    { k: 'all' as const, label: 'All', color: '#64748b', icon: <AppstoreOutlined /> },
+    { k: 'active' as const, label: 'Active', color: '#3b82f6', icon: <PlayCircleOutlined /> },
+    { k: 'planning' as const, label: 'Planning', color: '#64748b', icon: <ClockCircleOutlined /> },
+    { k: 'completed' as const, label: 'Completed', color: '#10b981', icon: <CheckCircleOutlined /> },
+  ];
+  const STATUS_OPTIONS = STATUS_SEGMENTS.filter(seg => seg.k !== 'all').map(seg => ({ value: seg.k, label: seg.label }));
 
   const PROJECT_PALETTE = ['#3b82f6'];
 
@@ -720,8 +667,6 @@ export default function SprintPlanComponent() {
   }, []);
 
   // Sidebar projects show more/less
-  const PROJECTS_COLLAPSED_LIMIT = 5;
-  const [showAllProjects, setShowAllProjects] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -938,130 +883,15 @@ export default function SprintPlanComponent() {
     return { weeks, weekRibbons, maxLanesByWeek };
   }, [sortedSprintPlans, calendarMonth, getProjectColor]);
 
-  const rangeFiltersActive =
-    !!tableFilters.fromMonth ||
-    !!tableFilters.toMonth ||
-    tableFilters.minTickets !== "" ||
-    tableFilters.maxTickets !== "";
-
   // Timeframe + ticket-count filters. Styled after the Tickets page toolbar:
   // pills on the left, range controls on the right.
-  const inlineFilterBar = (
-    <section className="sp-filterbar">
-      <div className="sp-filterbar-pills">
-        <span className="sp-filterbar-label">Tickets</span>
-        {TICKET_RANGE_PRESETS.map(preset => {
-          const active =
-            ticketRangeInput.min === preset.min && ticketRangeInput.max === preset.max;
-          return (
-            <button
-              key={preset.label}
-              type="button"
-              className={`sp-pill ${active ? 'is-active' : ''}`}
-              onClick={() => (active ? applyTicketRange("", "") : applyTicketRange(preset.min, preset.max))}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
-
-        <div className="sp-filterbar-range">
-          <input
-            className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
-            type="number"
-            min={0}
-            placeholder="Min"
-            aria-label="Minimum tickets"
-            value={ticketRangeInput.min}
-            onChange={(e) => setTicketRangeInput(prev => ({ ...prev, min: e.target.value }))}
-          />
-          <span className="sp-range-sep">to</span>
-          <input
-            className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
-            type="number"
-            min={0}
-            placeholder="Max"
-            aria-label="Maximum tickets"
-            value={ticketRangeInput.max}
-            onChange={(e) => setTicketRangeInput(prev => ({ ...prev, max: e.target.value }))}
-          />
-          {ticketRangeInvalid && (
-            <Tooltip title="Minimum is higher than maximum">
-              <WarningOutlined className="sp-filterbar-warn" />
-            </Tooltip>
-          )}
-        </div>
-
-        <span className="sp-filterbar-sep" />
-
-        <button
-          type="button"
-          className={`sp-pill ${sortBy === 'ticketsDesc' ? 'is-active' : ''}`}
-          onClick={() => setSortBy(sortBy === 'ticketsDesc' ? 'recent' : 'ticketsDesc')}
-          title="Sprints carrying the most tickets first"
-        >
-          <ArrowUpOutlined style={{ fontSize: 11 }} /> Highest tickets
-        </button>
-        <button
-          type="button"
-          className={`sp-pill ${sortBy === 'ticketsAsc' ? 'is-active' : ''}`}
-          onClick={() => setSortBy(sortBy === 'ticketsAsc' ? 'recent' : 'ticketsAsc')}
-          title="Sprints carrying the fewest tickets first"
-        >
-          <ArrowDownOutlined style={{ fontSize: 11 }} /> Lowest tickets
-        </button>
-      </div>
-
-      <div className="sp-filterbar-right">
-        <div className="sp-filterbar-field">
-          <span className="sp-filterbar-label">Months</span>
-          <DatePicker
-            picker="month"
-            allowClear
-            format="MMM YYYY"
-            placeholder="From"
-            className="sp-month-picker"
-            value={tableFilters.fromMonth ? monthToDayjs(tableFilters.fromMonth) : null}
-            disabledDate={(d) =>
-              !!tableFilters.toMonth && d.isAfter(monthToDayjs(tableFilters.toMonth), "month")
-            }
-            onChange={(d) =>
-              setTableFilters(prev => ({ ...prev, fromMonth: d ? d.format("YYYY-MM") : "" }))
-            }
-          />
-          <ArrowRightOutlined className="sp-filterbar-arrow" />
-          <DatePicker
-            picker="month"
-            allowClear
-            format="MMM YYYY"
-            placeholder="To"
-            className="sp-month-picker"
-            value={tableFilters.toMonth ? monthToDayjs(tableFilters.toMonth) : null}
-            disabledDate={(d) =>
-              !!tableFilters.fromMonth && d.isBefore(monthToDayjs(tableFilters.fromMonth), "month")
-            }
-            onChange={(d) =>
-              setTableFilters(prev => ({ ...prev, toMonth: d ? d.format("YYYY-MM") : "" }))
-            }
-          />
-        </div>
-
-        {(rangeFiltersActive || sortBy === 'ticketsDesc' || sortBy === 'ticketsAsc') && (
-          <button
-            type="button"
-            className="sp-filterbar-reset"
-            onClick={() => {
-              setTicketRangeInput({ min: "", max: "" });
-              setTableFilters(prev => ({ ...prev, fromMonth: "", toMonth: "", minTickets: "", maxTickets: "" }));
-              if (sortBy === 'ticketsDesc' || sortBy === 'ticketsAsc') setSortBy('recent');
-            }}
-          >
-            <CloseCircleOutlined style={{ fontSize: 12 }} /> Reset
-          </button>
-        )}
-      </div>
-    </section>
-  );
+  /* ── Banner figures ───────────────────────────────────────────────────
+     The Ticket List's sprint head reads one cycle's completion; here the same
+     three rows read the whole plan library. */
+  const activeProjectLabel = tableFilters.projectId
+    ? (projects.find((p: any) => p.value === tableFilters.projectId)?.label || 'Project')
+    : 'All projects';
+  const bannerAccent = metrics.active > 0 ? '#3b82f6' : metrics.completed > 0 ? '#10b981' : '#64748b';
 
   const activeFilterCount =
     (tableFilters.search ? 1 : 0) +
@@ -1076,194 +906,115 @@ export default function SprintPlanComponent() {
       {/* {contextHolder} */}
       <div className="sp-shell-wrap">
         <div className="sp-shell">
-          {/* ── Sidebar ──────────────────────────────────────────── */}
-          {isMobileOpen && (
-            <div className="sp-backdrop" onClick={() => setIsMobileOpen(false)} />
-          )}
-          <aside className={`sp-sidebar ${isMobileOpen ? 'is-open' : ''}`}>
-            <div className="sp-sidebar-top">
-              <div className="sp-sidebar-brand">
-                <div className="sp-hero-icon-box">
-                  <CalendarOutlined style={{ fontSize: 24, color: 'var(--text-slate-900)' }} />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="sp-sidebar-title">Sprint Plans</h1>
-                  <p className="sp-sidebar-subtitle">Milestone tracking</p>
-                </div>
-              </div>
-              {canCreateTicketPlan && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setShowCreateModal(true)}
-                  className="sp-side-create"
-                  block
-                >
-                  Plan New Sprint
-                </Button>
-              )}
-            </div>
-
-            <div className="sp-sidebar-scroll">
-              {/* Projects */}
-              <div className="sp-sidebar-section">
-                <div className="dh-side-label">PROJECTS</div>
-                <div className="sp-sidebar-list sp-sidebar-list-scroll">
-                  <button
-                    className={`sp-sidebar-item ${!tableFilters.projectId ? 'active' : ''}`}
-                    onClick={() => setTableFilters(prev => ({ ...prev, projectId: "" }))}
-                  >
-                    <span className="sp-sidebar-item-avatar sp-sidebar-item-avatar-all">
-                      <ProjectOutlined style={{ fontSize: 10 }} />
-                    </span>
-                    <span className="sp-sidebar-item-label">All projects</span>
-                    <span className="sp-sidebar-item-count">{projectCounts.total}</span>
-                  </button>
-                  {(showAllProjects ? projects : projects.slice(0, PROJECTS_COLLAPSED_LIMIT)).map((proj: any, i: number) => {
-                    const count = projectCounts.map.get(proj.value) || 0;
-                    const active = tableFilters.projectId === proj.value;
-                    const color = PROJECT_PALETTE[i % PROJECT_PALETTE.length];
-                    // Initials: first letter of the first two words, or the
-                    // first two letters when the name is a single word.
-                    const words = (proj.label || '').trim().split(/\s+/).filter(Boolean);
-                    const initials = (words.length > 1
-                      ? words[0][0] + words[1][0]
-                      : (words[0] || '?').slice(0, 2)
-                    ).toUpperCase();
-                    return (
-                      <button
-                        key={proj.value}
-                        className={`sp-sidebar-item ${active ? 'active' : ''}`}
-                        onClick={() => setTableFilters(prev => ({ ...prev, projectId: prev.projectId === proj.value ? "" : proj.value }))}
-                        title={proj.label}
-                      >
-                        <span className="sp-sidebar-item-avatar" style={{ color: color, fontSize: 10, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                          {initials}
-                        </span>
-                        <span className="sp-sidebar-item-label">{proj.label}</span>
-                        <span className="sp-sidebar-item-count">{count}</span>
-                      </button>
-                    );
-                  })}
-                  {projects.length > PROJECTS_COLLAPSED_LIMIT && (
-                    <button
-                      className="sp-sidebar-toggle"
-                      onClick={() => setShowAllProjects(v => !v)}
-                    >
-                      {showAllProjects
-                        ? 'Show less'
-                        : `Show ${projects.length - PROJECTS_COLLAPSED_LIMIT} more`}
-                      <DownOutlined style={{ fontSize: 9, transform: showAllProjects ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                    </button>
-                  )}
-                  {projects.length === 0 && (
-                    <div className="sp-sidebar-empty">No projects yet</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Status */}
-              {/* <div className="sp-sidebar-divider" /> */}
-              <div className="sp-sidebar-section">
-                <div className="dh-side-label">STATUS</div>
-                <div className="sp-sidebar-list">
-                  {([
-                    { k: 'all', label: 'All', n: statusCounts.all, color: '#64748b', pulse: false, icon: <AppstoreOutlined /> },
-                    { k: 'active', label: 'Active', n: statusCounts.active, color: '#3b82f6', pulse: true, icon: <PlayCircleOutlined /> },
-                    { k: 'planning', label: 'Planning', n: statusCounts.planning, color: '#f59e0b', pulse: false, icon: <ClockCircleOutlined /> },
-                    { k: 'completed', label: 'Completed', n: statusCounts.completed, color: '#10b981', pulse: false, icon: <CheckCircleOutlined /> },
-                  ] as const).map(seg => {
-                    const active = (tableFilters.status || 'all') === seg.k;
-                    return (
-                      <button
-                        key={seg.k}
-                        className={`sp-sidebar-item sp-sidebar-status-item ${active ? 'active' : ''}`}
-                        onClick={() => setTableFilters(prev => ({ ...prev, status: seg.k === 'all' ? '' : seg.k }))}
-                        style={active ? { ['--sp-accent' as any]: seg.color } : undefined}
-                      >
-                        <span
-                          className="sp-sidebar-status-chip"
-                          style={{}}
-                        >
-                          {seg.k === 'all' ? (
-                            <span
-                              className={`sp-sidebar-status-dot ${seg.pulse ? 'pulse' : ''}`}
-                              style={{ background: seg.color, ['--sp-dot' as any]: seg.color }}
-                            />
-                          ) : (
-                            <span style={{ color: seg.color, fontSize: 11, display: 'flex' }}>{seg.icon}</span>
-                          )}
-                        </span>
-                        <span className="sp-sidebar-item-label">{seg.label}</span>
-                        <span
-                          className="sp-sidebar-item-count"
-                          style={active ? { background: `${seg.color}1a`, borderColor: `${seg.color}40`, color: seg.color } : undefined}
-                        >
-                          {seg.n}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {activeFilterCount > 0 && (
-                <>
-                  <div className="sp-sidebar-divider" />
-                  <button
-                    className="sp-sidebar-clear"
-                    onClick={() => {
-                      setTicketRangeInput({ min: "", max: "" });
-                      setTableFilters(EMPTY_FILTERS);
-                      loadData(EMPTY_FILTERS);
-                    }}
-                  >
-                    <CloseCircleOutlined style={{ fontSize: 12 }} /> Clear filters
-                  </button>
-                </>
-              )}
-            </div>
-          </aside>
           {/* ── Main Content ─────────────────────────────────────── */}
           <main className="sp-main">
-            {/* Top bar: search · live stats · view controls */}
-            <div className="sp-main-topbar">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 240, maxWidth: 320 }}>
-                <button className="sp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
-                  <MenuOutlined style={{ fontSize: 16 }} />
-                </button>
-                <div className="pp-search-wrap" style={{ flex: 1 }}>
-                  <SearchOutlined className="pp-search-icon" />
-                  <input
-                    className="pp-search"
-                    placeholder="Search by name, goal, or description..."
-                    value={tableFilters.search}
-                    onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+            {/* ── Header row — search, filters, view controls ─────── */}
+            <div className="saas-header-container sc-header">
+              <QaProjectSwitcher
+                projects={projects}
+                value={tableFilters.projectId || null}
+                onChange={(id) => setTableFilters(prev => ({ ...prev, projectId: id || "" }))}
+                placeholder="All projects"
+              />
+
+              <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+              <div className="sc-header-controls">
+                <Input
+                  placeholder="Quick search by name, goal, or description..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                  className="saas-input"
+                  style={{ maxWidth: 280, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
+                  value={tableFilters.search}
+                  onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+                  allowClear
+                />
+
+                <Space.Compact className="ticket-filter-group">
+                  <Popover
+                    content={
+                      <SprintPlanFilters
+                        filters={{
+                          projectId: tableFilters.projectId,
+                          status: tableFilters.status,
+                          fromMonth: tableFilters.fromMonth,
+                          toMonth: tableFilters.toMonth,
+                          minTickets: ticketRangeInput.min,
+                          maxTickets: ticketRangeInput.max,
+                        }}
+                        onFilterChange={(key: keyof SprintPlanFiltersState, val: any) => {
+                          if (key === 'minTickets') { setTicketRangeInput(prev => ({ ...prev, min: val })); return; }
+                          if (key === 'maxTickets') { setTicketRangeInput(prev => ({ ...prev, max: val })); return; }
+                          setTableFilters(prev => ({ ...prev, [key]: val || "" }));
+                        }}
+                        onReset={() => {
+                          setTicketRangeInput({ min: "", max: "" });
+                          setTableFilters(EMPTY_FILTERS);
+                          loadData(EMPTY_FILTERS);
+                        }}
+                        projectOptions={projects.map((p: any) => ({ value: p.value, label: p.label }))}
+                        statusOptions={STATUS_OPTIONS}
+                        monthToDayjs={monthToDayjs}
+                      />
+                    }
+                    trigger="click"
+                    open={isFilterPanelOpen}
+                    onOpenChange={setIsFilterPanelOpen}
+                    placement="bottomLeft"
+                    overlayClassName="tf-popover-overlay"
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                      style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                    >
+                      Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    </Button>
+                  </Popover>
+                  <Button
+                    icon={<ExpandAltOutlined />}
+                    style={{ height: 30 }}
+                    aria-label="Expand filters"
+                    onClick={() => setIsFilterRowOpen(v => !v)}
                   />
-                  {/* {!tableFilters.search && <span className="pp-kbd">⌘K</span>} */}
-                </div>
+                </Space.Compact>
               </div>
 
-              <div className="sp-main-stats" style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: 'var(--text-slate-500)', whiteSpace: 'nowrap' }}>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="sp-pulse-dot" />
-                  <strong style={{ color: 'var(--text-slate-700)' }}>{metrics.active}</strong> active cycles
-                </span>
-                <span style={{ color: 'var(--text-slate-300)' }}>·</span>
-                <span><strong style={{ color: 'var(--text-slate-700)' }}>{metrics.planning}</strong> in planning</span>
-              </div>
+              {/* Right side — the status switch that used to live in the rail,
+                  then the view controls. */}
+              <Space size={10} className="sc-header-right">
+                <Segmented
+                  className="saas-segmented-premium sc-owner-seg"
+                  value={tableFilters.status || 'all'}
+                  onChange={(v: any) => setTableFilters(prev => ({ ...prev, status: v === 'all' ? '' : String(v) }))}
+                  options={STATUS_SEGMENTS.map(seg => ({
+                    value: seg.k,
+                    label: (
+                      <span className="sc-owner-opt">
+                        <span className="sc-owner-opt__ic" style={{ color: seg.color }}>{seg.icon}</span>
+                        <span className="sc-owner-opt__label">{seg.label}</span>
+                        <span className="sc-owner-opt__count">{statusCounts[seg.k]}</span>
+                      </span>
+                    ),
+                  }))}
+                />
 
-              <div className="pp-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                <div className="pp-segmented">
-                  <button type="button" className={viewMode === 'table' ? 'is-active' : ''} onClick={() => setViewMode('table')} aria-label="Table view"><TableOutlined /></button>
-                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-label="Card view"><UnorderedListOutlined /></button>
-                  <button type="button" className={viewMode === 'calendar' ? 'is-active' : ''} onClick={() => setViewMode('calendar')} aria-label="Calendar view"><AppstoreOutlined /></button>
-                </div>
+                <Segmented
+                  className="saas-segmented-premium"
+                  value={viewMode}
+                  onChange={(v: any) => setViewMode(v as any)}
+                  options={[
+                    { value: 'table', label: (<Tooltip title="Table View" mouseEnterDelay={0.5}><span style={{ display: 'inline-flex', alignItems: 'center', height: '100%' }}><TableOutlined style={{ fontSize: 13 }} /></span></Tooltip>) },
+                    { value: 'list', label: (<Tooltip title="Card View" mouseEnterDelay={0.5}><span style={{ display: 'inline-flex', alignItems: 'center', height: '100%' }}><UnorderedListOutlined style={{ fontSize: 13 }} /></span></Tooltip>) },
+                    { value: 'calendar', label: (<Tooltip title="Calendar View" mouseEnterDelay={0.5}><span style={{ display: 'inline-flex', alignItems: 'center', height: '100%' }}><AppstoreOutlined style={{ fontSize: 13 }} /></span></Tooltip>) },
+                  ]}
+                />
 
-                <Tooltip title="Refresh">
-                  <button
-                    type="button"
-                    className="pp-ghost-btn"
+
+                <Tooltip title="Refresh view">
+                  <Button
+                    icon={<ReloadOutlined spin={isRefreshing} />}
                     onClick={async () => {
                       setIsRefreshing(true);
                       await loadData();
@@ -1271,154 +1022,195 @@ export default function SprintPlanComponent() {
                       message.success("Success, Sprint view refreshed");
                     }}
                     disabled={loading && !isRefreshing}
-                  >
-                    <ReloadOutlined spin={isRefreshing} />
-                  </button>
+                    style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
                 </Tooltip>
 
-                <Select
-                  value={sortBy}
-                  onChange={(v) => setSortBy(v as any)}
-                  suffixIcon={<DownOutlined style={{ color: 'var(--text-slate-400)', fontSize: 10 }} />}
-                  popupMatchSelectWidth={false}
-                  styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
-                  style={{ height: 32, width: 170 }}
-                  className="sp-premium-select"
-                >
-                  <Option value="recent">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Recently updated</Text>
-                    </div>
-                  </Option>
-                  <Option value="endDate">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>End date · soonest</Text>
-                    </div>
-                  </Option>
-                  <Option value="progress">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <LineChartOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Progress · highest</Text>
-                    </div>
-                  </Option>
-                  <Option value="ticketsDesc">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ArrowUpOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · highest</Text>
-                    </div>
-                  </Option>
-                  <Option value="ticketsAsc">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ArrowDownOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · lowest</Text>
-                    </div>
-                  </Option>
-                  <Option value="name">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Name · A → Z</Text>
-                    </div>
-                  </Option>
-                </Select>
+                {canCreateTicketPlan && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setShowCreateModal(true)}
+                    style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                  >
+                    Plan New Sprint
+                  </Button>
+                )}
+              </Space>
+            </div>
+
+            {/* ── Inline filter row — the pill strip the Ticket List uses ── */}
+            {isFilterRowOpen && (
+              <div className="tl-filter-row">
+                <div className="tl-filter-row-label">
+                  <FilterOutlined style={{ fontSize: 11 }} />
+                  <span>Filters</span>
+                  <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
+                </div>
+                <div className="tl-filter-row-pills">
+                  <TicketFilterPill
+                    icon={<ProjectOutlined style={{ fontSize: 11 }} />}
+                    label="Project"
+                    value={tableFilters.projectId || ""}
+                    options={projects.map((p: any) => ({ value: p.value, label: p.label }))}
+                    onChange={(val) => setTableFilters(prev => ({ ...prev, projectId: val || "" }))}
+                    itemNoun="projects"
+                    width={260}
+                    multiple={false}
+                    searchPlaceholder="Search projects..."
+                  />
+                  {TICKET_RANGE_PRESETS.map(preset => {
+                    const active = ticketRangeInput.min === preset.min && ticketRangeInput.max === preset.max;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        className={`sp-pill ${active ? 'is-active' : ''}`}
+                        onClick={() => (active ? applyTicketRange("", "") : applyTicketRange(preset.min, preset.max))}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                  <div className="sp-filterbar-range">
+                    <input
+                      className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
+                      type="number"
+                      min={0}
+                      placeholder="Min"
+                      aria-label="Minimum tickets"
+                      value={ticketRangeInput.min}
+                      onChange={(e) => setTicketRangeInput(prev => ({ ...prev, min: e.target.value }))}
+                    />
+                    <span className="sp-range-sep">to</span>
+                    <input
+                      className={`sp-range-input ${ticketRangeInvalid ? 'is-invalid' : ''}`}
+                      type="number"
+                      min={0}
+                      placeholder="Max"
+                      aria-label="Maximum tickets"
+                      value={ticketRangeInput.max}
+                      onChange={(e) => setTicketRangeInput(prev => ({ ...prev, max: e.target.value }))}
+                    />
+                    {ticketRangeInvalid && (
+                      <Tooltip title="Minimum is higher than maximum">
+                        <WarningOutlined className="sp-filterbar-warn" />
+                      </Tooltip>
+                    )}
+                  </div>
+                  <div className="sp-filterbar-range">
+                    <DatePicker
+                      picker="month"
+                      size="small"
+                      allowClear
+                      format="MMM YY"
+                      placeholder="From"
+                      className="sp-month-picker"
+                      value={tableFilters.fromMonth ? monthToDayjs(tableFilters.fromMonth) : null}
+                      disabledDate={(d) => !!tableFilters.toMonth && d.isAfter(monthToDayjs(tableFilters.toMonth), "month")}
+                      onChange={(d) => setTableFilters(prev => ({ ...prev, fromMonth: d ? d.format("YYYY-MM") : "" }))}
+                      style={{ width: 92 }}
+                    />
+                    <ArrowRightOutlined className="sp-range-sep" />
+                    <DatePicker
+                      picker="month"
+                      size="small"
+                      allowClear
+                      format="MMM YY"
+                      placeholder="To"
+                      className="sp-month-picker"
+                      value={tableFilters.toMonth ? monthToDayjs(tableFilters.toMonth) : null}
+                      disabledDate={(d) => !!tableFilters.fromMonth && d.isBefore(monthToDayjs(tableFilters.fromMonth), "month")}
+                      onChange={(d) => setTableFilters(prev => ({ ...prev, toMonth: d ? d.format("YYYY-MM") : "" }))}
+                      style={{ width: 92 }}
+                    />
+                  </div>
+                </div>
+                <div className="tl-filter-row-actions">
+                  {activeFilterCount > 0 && (
+                    <button
+                      type="button"
+                      className="tl-filter-row-reset"
+                      onClick={() => {
+                        setTicketRangeInput({ min: "", max: "" });
+                        setTableFilters(EMPTY_FILTERS);
+                        loadData(EMPTY_FILTERS);
+                      }}
+                    >
+                      <ReloadOutlined style={{ fontSize: 10 }} />
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tl-filter-row-close"
+                    onClick={() => setIsFilterRowOpen(false)}
+                    aria-label="Close filters"
+                    title="Close filters"
+                  >
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Overview banner — the Ticket List's sprint head, reading
+                 the whole plan library rather than one cycle. ───────────── */}
+            <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+              <div className="tl-sprint-row1">
+                <div className="tl-sprint-title-block">
+                  <span
+                    className="tl-sprint-dot"
+                    style={{ background: bannerAccent, boxShadow: `0 0 0 3px ${bannerAccent}33` }}
+                  />
+                  <span className="tl-sprint-title sp-banner-title">Sprint Plans — {activeProjectLabel}</span>
+                  <span className="tl-sprint-tags">
+                    <span className="tl-sprint-tag tl-sprint-tag-active">{totalTablePlans} SPRINTS</span>
+                    {metrics.active > 0 && (
+                      <span className="tl-sprint-tag tl-sprint-tag-running">{metrics.active} ACTIVE</span>
+                    )}
+                  </span>
+                </div>
+                {/* Sort sits with the title it reorders, not in the header. */}
+                <div className="tl-sprint-actions">
+                  <Select
+                    value={sortBy}
+                    onChange={(v) => setSortBy(v as any)}
+                    suffixIcon={<DownOutlined style={{ color: 'var(--text-slate-400)', fontSize: 10 }} />}
+                    popupMatchSelectWidth={false}
+                    styles={{ popup: { root: { minWidth: 200, borderRadius: 10 } } }}
+                    style={{ height: 32, width: 168 }}
+                    className="sp-premium-select"
+                  >
+                    <Option value="recent"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><HistoryOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Recently updated</Text></div></Option>
+                    <Option value="endDate"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CalendarOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>End date · soonest</Text></div></Option>
+                    <Option value="progress"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><LineChartOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Progress · highest</Text></div></Option>
+                    <Option value="ticketsDesc"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ArrowUpOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · highest</Text></div></Option>
+                    <Option value="ticketsAsc"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ArrowDownOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Tickets · lowest</Text></div></Option>
+                    <Option value="name"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ProjectOutlined style={{ fontSize: 12, color: 'var(--text-slate-400)' }} /><Text style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-slate-700)' }}>Name · A → Z</Text></div></Option>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="tl-sprint-row2">
+                <span className="tl-sprint-meta">
+                  <span className="sp-pulse-dot" />
+                  <b>{metrics.active}</b> active cycles
+                </span>
+                <span className="tl-sprint-meta"><b>{metrics.planning}</b> in planning</span>
+                <span className="tl-sprint-meta"><b>{metrics.completed}</b> shipped</span>
+                <span className="tl-sprint-meta"><b>{metrics.avgProgress}%</b> average progress</span>
+              </div>
+
+              <div className="tl-sprint-row3">
+                <div className="tl-sprint-progress-bar">
+                  <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, metrics.avgProgress)}%` }} />
+                </div>
+                <span className="tl-sprint-progress-pct">{metrics.avgProgress}%</span>
               </div>
             </div>
 
-            {/* Premium KPI Hero Row */}
-            <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-              <Col xs={24} sm={12} lg={6}>
-                <div className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
-                        <RocketOutlined />
-                      </span>
-                      <span className="pp-stat-label">Active Cycles</span>
-                    </div>
-                    <span className="sp-stat-pulse" />
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{metrics.active}</span>
-                      <span className="pp-stat-period">in flight</span>
-                    </div>
-                    <div className="pp-stat-spark">
-                      <Sparkline data={[0.0, 0.2, 0.4, 0.55, 0.75, 0.85, 1.0].map(r => r * metrics.active)} color="#3b82f6" />
-                    </div>
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: 'rgba(100,116,139,0.10)', color: '#64748b' }}>
-                        <PieChartOutlined />
-                      </span>
-                      <span className="pp-stat-label">In Planning</span>
-                    </div>
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{metrics.planning}</span>
-                      <span className="pp-stat-period">queued</span>
-                    </div>
-                    <div className="pp-stat-spark">
-                      <Sparkline data={[0.0, 0.3, 0.25, 0.5, 0.65, 0.8, 1.0].map(r => r * metrics.planning)} color="#64748b" />
-                    </div>
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
-                        <CheckCircleOutlined />
-                      </span>
-                      <span className="pp-stat-label">Shipped</span>
-                    </div>
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{metrics.completed}</span>
-                      <span className="pp-stat-period">delivered</span>
-                    </div>
-                    <div className="pp-stat-spark">
-                      <Sparkline data={[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0].map(r => r * metrics.completed)} color="#10b981" />
-                    </div>
-                  </div>
-                </div>
-              </Col>
-
-              <Col xs={24} sm={12} lg={6}>
-                <div className="pp-stat-card">
-                  <div className="pp-stat-top">
-                    <div className="pp-stat-left">
-                      <span className="pp-stat-icon" style={{ background: 'rgba(59,130,246,0.10)', color: '#3b82f6' }}>
-                        <LineChartOutlined />
-                      </span>
-                      <span className="pp-stat-label">Avg. Progress</span>
-                    </div>
-                  </div>
-                  <div className="pp-stat-bottom">
-                    <div className="pp-stat-value-wrap">
-                      <span className="pp-stat-value">{metrics.avgProgress}<span style={{ fontSize: 18, color: 'var(--text-slate-400)', marginLeft: 2 }}>%</span></span>
-                      <span className="pp-stat-period">across cycles</span>
-                    </div>
-                    <div className="pp-stat-spark">
-                      <Sparkline data={[0.0, 0.2, 0.3, 0.45, 0.6, 0.8, 1.0].map(r => r * metrics.avgProgress)} color="#3b82f6" />
-                    </div>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-
             {/* Main Content — List or Calendar */}
-            {viewMode === 'calendar' && inlineFilterBar}
             {viewMode === 'calendar' && (
               <div className="sp-cal-card">
                 <div className="sp-cal-header">
@@ -1726,26 +1518,6 @@ export default function SprintPlanComponent() {
             )}
             {viewMode === 'list' && (
               <div className="sp-table-card">
-                <div className="sp-table-toolbar">
-                  <div className="sp-table-toolbar-title">
-                    <span className="sp-table-toolbar-icon">
-                      <CalendarOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
-                    </span>
-                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
-                    <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
-                  </div>
-                  <div className="sp-table-toolbar-meta">
-                    <span className="sp-table-toolbar-meta-item">
-                      <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
-                      {metrics.active} active
-                    </span>
-                    <span className="sp-table-toolbar-meta-divider" />
-                    <span className="sp-table-toolbar-meta-item">
-                      Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
-                    </span>
-                  </div>
-                  {inlineFilterBar}
-                </div>
                 {/* Premium card list */}
                 <div className="sp-plist">
                   {loading ? (
@@ -2153,26 +1925,6 @@ export default function SprintPlanComponent() {
             {/* ─── Table view (expandable child rows = tickets) ─── */}
             {viewMode === 'table' && (
               <div className="sp-table-card">
-                <div className="sp-table-toolbar">
-                  <div className="sp-table-toolbar-title">
-                    <span className="sp-table-toolbar-icon">
-                      <TableOutlined style={{ fontSize: 13, color: '#3b82f6' }} />
-                    </span>
-                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-900)' }}>Sprint Cycles</Text>
-                    <span className="sp-table-toolbar-chip">{sortedSprintPlans.length} {sortedSprintPlans.length === 1 ? 'result' : 'results'}</span>
-                  </div>
-                  <div className="sp-table-toolbar-meta">
-                    <span className="sp-table-toolbar-meta-item">
-                      <span className="sp-segmented-dot" style={{ background: '#10b981', width: 6, height: 6 }} />
-                      {metrics.active} active
-                    </span>
-                    <span className="sp-table-toolbar-meta-divider" />
-                    <span className="sp-table-toolbar-meta-item">
-                      Avg <b style={{ color: 'var(--text-slate-900)', marginLeft: 4 }}>{metrics.avgProgress}%</b>
-                    </span>
-                  </div>
-                  {inlineFilterBar}
-                </div>
 
                 {loading ? (
                   <div className="sp-card-loading"><Spin /></div>
@@ -3733,82 +3485,20 @@ export default function SprintPlanComponent() {
           background: transparent !important;
           border-color: transparent !important;
         }
-        .sp-table-toolbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 12px;
-          padding: 4px 4px 10px;
-          border-bottom: none;
-          background: transparent;
-        }
-        [data-theme='dark'] .sp-table-toolbar {
-          background: transparent !important;
-          border-bottom-color: transparent !important;
-        }
-        .sp-table-toolbar-title {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .sp-table-toolbar-icon {
-          width: 26px;
-          height: 26px;
-          border-radius: 7px;
-          background: rgba(59,130,246,0.1);
-          border: 1px solid rgba(59,130,246,0.18);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .sp-table-toolbar-chip {
-          font-size: 10.5px;
-          font-weight: 700;
-          color: var(--text-slate-600);
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-200);
-          padding: 2px 8px;
-          border-radius: 999px;
-          letter-spacing: 0.01em;
-        }
-        [data-theme='dark'] .sp-table-toolbar-chip {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #cbd5e1 !important;
-        }
-        .sp-table-toolbar-meta {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-left: auto;
-        }
-        .sp-table-toolbar-meta-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11.5px;
-          font-weight: 600;
-          color: var(--text-slate-500);
-        }
-        .sp-table-toolbar-meta-divider {
-          width: 1px;
-          height: 12px;
-          background: var(--border-slate-200);
-        }
-        [data-theme='dark'] .sp-table-toolbar-meta-divider { background: #2d3748 !important; }
 
         /* ─── Table view (expandable child rows) ─── */
         .sp-tbl-wrap {
           background: var(--bg-pure-white);
           border: 1px solid var(--border-slate-200);
+          border-left: none;
+          border-right: none;
           border-radius: 0;
-          overflow: hidden;
-          margin-bottom: 16px;
+          overflow-x: auto;
+          margin-bottom: 0;
         }
         [data-theme='dark'] .sp-tbl-wrap {
-          background: #0B0F1A !important;
-          border-color: #243042 !important;
+          background: #0f1419 !important;
+          border-color: #1f2937 !important;
         }
         .sp-tbl-head,
         .sp-tbl-row {
@@ -3819,30 +3509,37 @@ export default function SprintPlanComponent() {
           padding: 0 16px;
         }
         .sp-tbl-head {
-          height: 34px;
+          height: 30px;
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
+          position: sticky;
+          top: 0;
+          z-index: 2;
         }
         [data-theme='dark'] .sp-tbl-head {
-          background: #161B22 !important;
-          border-bottom-color: #374151 !important;
+          background: #0f1419 !important;
+          border-bottom-color: #1f2937 !important;
         }
         .sp-tbl-th {
-          font-size: 10.5px;
+          font-size: 10px;
           font-weight: 800;
           letter-spacing: 0.04em;
           text-transform: uppercase;
-          color: var(--text-slate-500);
+          color: var(--text-slate-400);
+          white-space: nowrap;
         }
+        [data-theme='dark'] .sp-tbl-th { color: #94a3b8; }
         .sp-tbl-col-tickets,
         .sp-tbl-col-actions { text-align: right; justify-self: end; }
 
         .sp-tbl-group { border-bottom: 1px solid var(--border-slate-100); }
         .sp-tbl-group:last-child { border-bottom: none; }
-        [data-theme='dark'] .sp-tbl-group { border-bottom-color: #1c2733 !important; }
+        [data-theme='dark'] .sp-tbl-group { border-bottom-color: #1f2937 !important; }
         .sp-tbl-row {
-          min-height: 46px;
+          min-height: 42px;
+          font-size: 11.5px;
           position: relative;
+          cursor: pointer;
           transition: background 0.15s ease;
         }
         .sp-tbl-row::before {
@@ -3859,7 +3556,7 @@ export default function SprintPlanComponent() {
         .sp-tbl-row.is-open::before,
         .sp-tbl-row:hover::before { opacity: 1; }
         [data-theme='dark'] .sp-tbl-row:hover,
-        [data-theme='dark'] .sp-tbl-row.is-open { background: #161B22 !important; }
+        [data-theme='dark'] .sp-tbl-row.is-open { background: #1e293b !important; }
         .sp-tbl-td { display: flex; align-items: center; min-width: 0; }
 
         .sp-tbl-col-name { gap: 10px; }
@@ -5333,280 +5030,165 @@ export default function SprintPlanComponent() {
         }
         .sp-shell {
           display: grid;
-          grid-template-columns: 240px minmax(0, 1fr);
+          grid-template-columns: minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
         }
         .sp-main {
           min-width: 0;
-          padding: 14px 20px 28px;
-          background: #f8fafc;
+          padding: 0;
+          background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
-          grid-column: 2;
+          grid-column: 1;
         }
+
+        /* ── Header row, matched to the Ticket List ─────────────────────── */
+        .sc-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          margin: 0;
+          padding: 9.7px 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
+        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .sc-header-right { flex-shrink: 0; }
+
+
+        .sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
+        .sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
+        .sc-owner-opt__ic { display: inline-flex; align-items: center; font-size: 11px; }
+        .sc-owner-opt__label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .sc-owner-opt__count {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 17px; padding: 0 5px;
+          border-radius: 999px; background: var(--bg-slate-100); color: var(--text-slate-500);
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        .ant-segmented-item-selected .sc-owner-opt__count { background: var(--bg-blue-50); color: #3B82F6; }
+        [data-theme='dark'] .sc-owner-opt__count { background: #1e293b; color: #94a3b8; }
+        @media (max-width: 1400px) { .sc-owner-opt__label { display: none; } }
+
+        /* ── Overview banner ────────────────────────────────────────────── */
+        .tl-section-head {
+          padding: 10px 16px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-section-head { background: #0f1419; border-bottom-color: #1f2937; }
+        .tl-sprint-head-v2 { display: flex; flex-direction: column; gap: 6px; }
+        .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+        .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .sp-banner-title {
+          font-size: 14px; font-weight: 800; color: var(--text-slate-900);
+          letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        [data-theme='dark'] .sp-banner-title { color: #f1f5f9; }
+        .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tl-sprint-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .tl-sprint-tag {
+          display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+          border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+        }
+        .tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16,185,129,0.32); }
+        .tl-sprint-tag-running { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+        [data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+
+        .tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+        .tl-sprint-meta {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+        }
+        .tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+        .tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto; position: relative; height: 6px;
+          background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
+        }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute; inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px; transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+        /* ── Inline filter row ──────────────────────────────────────────── */
+        .tl-filter-row {
+          display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+          background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+        .tl-filter-row-label {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+          text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+        }
+        .tl-filter-row-count {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 18px; padding: 0 6px;
+          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+          color: var(--text-slate-500); border-radius: 999px;
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        .tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+        .tl-filter-row-reset {
+          display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+          background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+          font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+        .tl-filter-row-reset:hover {
+          color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+          background: rgba(59,130,246,0.06); border-style: solid;
+        }
+        .tl-filter-row-close {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; background: transparent;
+          border: 1px solid var(--border-slate-200); border-radius: 8px;
+          color: var(--text-slate-500); cursor: pointer;
+          transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+        }
+        .tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+        [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+        [data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+        [data-theme='dark'] .tl-filter-row-reset,
+        [data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+        @media (max-width: 900px) {
+          .tl-filter-row-label { display: none; }
+          .tl-sprint-row2, .tl-sprint-row3 { padding-left: 0; }
+        }
+
+        /* The table runs edge to edge like the Ticket List; the card and
+           calendar views keep a gutter, since they are cards. */
+        .sp-table-card { margin: 0; }
+        .sp-cal-card { margin: 14px 16px 0 16px; }
+        .sp-plist { padding: 12px 16px 0 16px; }
         [data-theme='dark'] .sp-main {
           background: transparent !important;
         }
 
-        /* ── Sidebar (full-height left rail) ──────────────────── */
-        .sp-sidebar {
-          width: 240px;
-          background: var(--bg-pure-white);
-          border-right: 1px solid var(--border-slate-200) !important;
-          position: fixed;
-          top: 54px;
-          bottom: 0;
-          height: calc(100vh - 54px);
-          display: flex;
-          flex-direction: column;
-          flex-shrink: 0;
-          align-self: flex-start;
-          z-index: 10;
-        }
-        .sp-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 999; }
-        .sp-mobile-toggle { display: none; align-items: center; justify-content: center; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-slate-600); margin-right: 12px; }
-        @media (max-width: 1024px) {
-          .sp-shell { display: flex; flex-direction: column; }
-          .sp-sidebar {
-            position: fixed !important; left: -280px !important; top: 0 !important; bottom: 0 !important; height: 100vh !important; width: 280px !important;
-            transition: left 0.3s ease; z-index: 1000 !important; box-shadow: 4px 0 24px rgba(15, 23, 42, 0.1);
-          }
-          .sp-sidebar.is-open { left: 0 !important; }
-          .sp-backdrop { display: block; }
-          .sp-mobile-toggle { display: flex; }
-        }
-        .sp-sidebar-top {
-          padding: 14px 14px 12px 18px;
-        }
-        .sp-sidebar-brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding-bottom: 14px;
-          margin-bottom: 10px;
-          border-bottom: 1px solid var(--border-slate-100);
-        }
-        .sp-sidebar-title {
-          margin: 0;
-          font-size: 15px;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          line-height: 1.1;
-          color: var(--text-slate-900);
-        }
-        .sp-sidebar-subtitle {
-          font-size: 10.5px;
-          color: var(--text-slate-400);
-          font-weight: 700;
-          margin-top: 4px;
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
-        }
-        .sp-hero-icon-box {
-          width: 36px; height: 36px; border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-          border: none;
-          flex-shrink: 0;
-        }
-        /* removed dark override */
-        .sp-side-create {
-          height: 36px !important;
-          border-radius: 6px !important;
-          font-weight: 600 !important;
-          background: linear-gradient(135deg, #3980f2 0%, #3980f2 100%) !important;
-          border: none !important;
-          // box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
-        }
-        .sp-sidebar-scroll {
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding: 10px 10px 6px 16px;
-        }
-        [data-theme='dark'] .sp-sidebar {
-          background: #0B0F1A !important;
-          border-right-color: #1f2937 !important;
-        }
-        .sp-sidebar-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
-        .sp-sidebar-section {
-          padding: 4px 2px;
-          margin-bottom: 13px;
-        }
-        .dh-side-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 0 8px;
-          margin-bottom: 8px;
-          font-size: 10.5px;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text-slate-400);
-        }
-        .sp-sidebar-list {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-        .sp-sidebar-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-          padding: 7px 10px;
-          border: none;
-          background: transparent;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 13px;
-          font-family: inherit;
-          font-weight: 500;
-          color: var(--text-slate-600);
-          text-align: left;
-          transition: background 0.15s, color 0.15s;
-        }
-        .sp-sidebar-item:hover {
-          background: var(--bg-slate-100);
-          color: var(--text-slate-900);
-        }
-        [data-theme='dark'] .sp-sidebar-item {
-          color: #cbd5e1 !important;
-        }
-        [data-theme='dark'] .sp-sidebar-item:hover {
-          background: #1c232e !important;
-        }
-        .sp-sidebar-item.active {
-          background: rgba(59, 130, 246, 0.08);
-          color: var(--text-slate-900);
-          font-weight: 700;
-        }
-        .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
-          color: #3b82f6 !important;
-        }
-        [data-theme='dark'] .sp-sidebar-item.active {
-          background: rgba(59, 130, 246, 0.18) !important;
-          color: #f1f5f9 !important;
-        }
-        [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-avatar-all {
-          color: #60a5fa !important;
-        }
-        .sp-sidebar-status-chip {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .sp-sidebar-status-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-        .sp-sidebar-status-dot.pulse {
-          animation: sp-pulse-dot 2s infinite;
-        }
-        .sp-sidebar-item-avatar {
-          width: 22px;
-          height: 22px;
-          border-radius: 6px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 800;
-          flex-shrink: 0;
-          letter-spacing: -0.01em;
-        }
-        .sp-sidebar-item-avatar-all {
-          color: var(--text-slate-600);
-        }
-        [data-theme='dark'] .sp-sidebar-item-avatar-all {
-          color: #94a3b8 !important;
-        }
-        .sp-sidebar-item-label {
-          flex: 1;
-          font-size: 12.5px;
-          font-weight: 600;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          letter-spacing: -0.005em;
-        }
-        .sp-sidebar-item-count {
-          font-size: 10.5px;
-          font-weight: 700;
-          color: var(--text-slate-500);
-          font-variant-numeric: tabular-nums;
-          background: var(--bg-slate-50);
-          border-radius: 6px;
-          padding: 0 6px;
-          line-height: 1.6;
-          flex-shrink: 0;
-        }
-        [data-theme='dark'] .sp-sidebar-item-count {
-          background: #1c232e !important;
-          border-color: #2d3748 !important;
-          color: #94a3b8 !important;
-        }
-        .sp-sidebar-item.active .sp-sidebar-item-count {
-          background: rgba(59,130,246,0.14) !important;
-          border-color: rgba(59,130,246,0.25) !important;
-          color: #3b82f6 !important;
-          padding: 1px 7px !important;
-        }
-        [data-theme='dark'] .sp-sidebar-item.active .sp-sidebar-item-count {
-          background: rgba(59,130,246,0.2) !important;
-          border-color: rgba(59,130,246,0.35) !important;
-          color: #60a5fa !important;
-        }
-        .sp-sidebar-divider {
-          height: 1px;
-          background: var(--border-slate-200);
-          margin: 8px 6px;
-        }
-        [data-theme='dark'] .sp-sidebar-divider {
-          background: #1f2937 !important;
-        }
-        .sp-sidebar-empty {
-          padding: 10px 8px;
-          font-size: 11px;
-          color: var(--text-slate-400);
-          font-style: italic;
-        }
-        .sp-sidebar-toggle {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          margin: 4px 8px 0;
-          padding: 5px 8px;
-          background: transparent;
-          border: none;
-          font-size: 11px;
-          font-weight: 700;
-          color: #3b82f6;
-          cursor: pointer;
-          font-family: inherit;
-          border-radius: 6px;
-          align-self: flex-start;
-          transition: background 0.15s ease, color 0.15s ease;
-          letter-spacing: -0.005em;
-        }
-        .sp-sidebar-toggle:hover {
-          background: rgba(59,130,246,0.08);
-          color: #1d4ed8;
-        }
-        [data-theme='dark'] .sp-sidebar-toggle {
-          color: #60a5fa;
-        }
-        [data-theme='dark'] .sp-sidebar-toggle:hover {
-          background: rgba(59,130,246,0.15);
-        }
         /* ── Filter bar (matches the Tickets page toolbar) ────── */
         .sp-filterbar {
           display: flex;
@@ -6214,18 +5796,18 @@ export default function SprintPlanComponent() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 10px 24px;
-          margin: auto -20px -28px -20px;
+          padding: 8px 16px;
+          margin: auto 0 0 0;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
           background: var(--bg-pure-white);
           border-top: 1px solid var(--border-slate-200);
           z-index: 10;
-          box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.04);
         }
         [data-theme='dark'] .sp-card-pagination {
-          background: #0B0F1A !important;
+          background: #0f1419 !important;
           border-top-color: #1f2937 !important;
         }
 

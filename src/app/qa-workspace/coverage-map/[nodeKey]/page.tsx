@@ -895,10 +895,12 @@ function CaseDrawer({ row, runs, suites, onClose }: {
                       /* The ticket opens in the drawer so the user doesn't lose their place. */
                       <a
                         className="sm__tkt"
-                        href={`/tickets/${c.ticket.id}`}
+                        href={`/tickets/${c.ticket!.id}`}
                         onClick={(e) => {
                           e.preventDefault();
-                          openTicketDrawer(c.ticket.id);
+                          if (c.ticket) {
+                            openTicketDrawer(c.ticket.id);
+                          }
                         }}
                         title="Open ticket in drawer"
                       >
@@ -948,10 +950,12 @@ function CaseDrawer({ row, runs, suites, onClose }: {
                       {c.ticket && (
                         <a
                           className="cm-pill cm-pill--green sm__ev-tkt"
-                          href={`/tickets/${c.ticket.id}`}
+                          href={`/tickets/${c.ticket!.id}`}
                           onClick={(e) => {
                             e.preventDefault();
-                            openTicketDrawer(c.ticket.id);
+                            if (c.ticket) {
+                              openTicketDrawer(c.ticket.id);
+                            }
                           }}
                           title={`${c.ticket.title || "Ticket"} — open in drawer`}
                         >

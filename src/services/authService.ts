@@ -303,4 +303,16 @@ export class AuthService {
       throw new Error('Failed to reset password');
     }
   }
+
+  /**
+   * Mark onboarding as completed for the current tenant.
+   * Fires-and-forgets safely — failure is non-fatal from the user's perspective.
+   */
+  static async completeOnboarding(): Promise<void> {
+    try {
+      await apiClient.post('/api/tenants/onboarding/complete');
+    } catch (error: any) {
+      console.error('Failed to mark onboarding complete:', error?.response?.data?.error || error?.message);
+    }
+  }
 }

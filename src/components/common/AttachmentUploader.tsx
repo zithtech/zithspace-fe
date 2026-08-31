@@ -9,6 +9,8 @@ interface AttachmentUploaderProps {
   accept?: string;
   disabled?: boolean;
   style?: React.CSSProperties;
+  /** Overrides the idle button label — useful in tight card headers. */
+  label?: string;
 }
 
 export default function AttachmentUploader({
@@ -17,6 +19,7 @@ export default function AttachmentUploader({
   accept = "*",
   disabled = false,
   style,
+  label = "Click to attach or drag files",
 }: AttachmentUploaderProps) {
   const [activeUploads, setActiveUploads] = useState(0);
 
@@ -88,7 +91,7 @@ export default function AttachmentUploader({
         size="small"
         className="uploader-button"
       >
-        {isUploading ? `Uploading (${activeUploads})...` : "Click to attach or drag files"}
+        {isUploading ? `Uploading (${activeUploads})...` : label}
       </Button>
 
       <style jsx global>{`

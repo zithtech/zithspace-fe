@@ -6,11 +6,11 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Breadcrumb, Row, Col, Typography, Form, Tooltip } from "antd";
-import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Dropdown, message, Drawer, Input, Select, Row, Col, Typography, Form, Tooltip, Popover, Space, Divider } from "antd";
+import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined, CopyOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, Menu, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -19,6 +19,8 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import ModuleCaseFilters from "./ModuleCaseFilters";
 import {
   YapiezService,
   PAYLOAD_TYPES,
@@ -33,26 +35,6 @@ import {
 } from "@/services/yapiezService";
 
 const { TextArea } = Input;
-
-/* Product-standard stat tile */
-const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
-  <div className="pp-stat-card">
-    <div className="pp-stat-top">
-      <div className="pp-stat-left">
-        <span className="pp-stat-icon" style={{ background: bgColor, color }}>
-          <Icon size={14} style={{ fontSize: 14 }} />
-        </span>
-        <span className="pp-stat-label">{label}</span>
-      </div>
-    </div>
-    <div className="pp-stat-bottom">
-      <div className="pp-stat-value-wrap">
-        <span className="pp-stat-value">{value}</span>
-      </div>
-      {sub && <span className="pp-stat-period">{sub}</span>}
-    </div>
-  </div>
-);
 
 /** Maps a lifecycle status onto the restricted pill palette. */
 const statusTone = (s?: string) =>
@@ -91,27 +73,6 @@ const fmtDate = (d?: string) => {
 /**
  * One line of the scenario summary in the rail. `loading` swaps the value for a
  * shimmer so the card keeps its shape while the scenario is being fetched.
- */
-const Fact = ({ icon: Icon, label, accent, loading, title, children }: {
-  icon: any; label: string; accent?: boolean; loading?: boolean; title?: string; children?: React.ReactNode;
-}) => (
-  <div className={`cd-fact${accent ? ' cd-fact--accent' : ''}`}>
-    <span className="cd-fact__ic"><Icon size={13} /></span>
-    <div className="cd-fact__body">
-      <span className="cd-fact__label">{label}</span>
-      {loading
-        ? <span className="cd-skel" />
-        : <span className="cd-fact__val" title={title}>{children}</span>}
-    </div>
-  </div>
-);
-
-/**
- * One saved request payload, in the drawer and in the read-only case view.
- *
- * Collapsed to its name and type by default — a tester scanning a case wants to
- * know WHICH bodies exist before they want to read one. Copy is the primary
- * action, because the point of storing a payload is pasting it somewhere else.
  */
 const PayloadRow = ({ payload, onDelete }: { payload: CasePayload; onDelete?: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -178,12 +139,6 @@ const PayloadRow = ({ payload, onDelete }: { payload: CasePayload; onDelete?: ()
   );
 };
 
-function initialsOf(name: string) {
-  if (!name) return 'TC';
-  const parts = name.split(' ').filter(Boolean);
-  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
 
 export default function ParentTestCaseDetailsPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestCaseDetails" });
@@ -191,7 +146,8 @@ export default function ParentTestCaseDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const parentId = params?.parentId as string;
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
 
   const [parentData, setParentData] = useState<any>(null);
   const [childCases, setChildCases] = useState<any[]>([]);
@@ -674,26 +630,66 @@ export default function ParentTestCaseDetailsPage() {
   };
 
 
+  /* Columns mirror the Ticket List: a copyable ID, the title, then the
+     one-glance attributes, with row actions pinned to the right. */
   const childColumns = [
     {
-      title: "Test Case",
+      title: "ID",
+      dataIndex: "test_case_id",
+      key: "test_case_id",
+      width: 118,
+      render: (t: string, record: any) => {
+        const label = t || String(record.id || '').slice(0, 8).toUpperCase();
+        return (
+          <span
+            className="pp-case-id"
+            onClick={(e) => { e.stopPropagation(); openCaseView(record); }}
+            title={label}
+          >
+            {label}
+            <CopyOutlined
+              style={{ fontSize: 10, opacity: 0.6 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(label);
+                message.success("Case ID copied!");
+              }}
+            />
+          </span>
+        );
+      },
+    },
+    {
+      title: "Title",
       dataIndex: "name",
       key: "name",
-      width: 380,
+      width: 340,
+      ellipsis: true,
       // Single line by design — the expected result lives in the view drawer
-      render: (t: string, record: any) => (
-        <div className="sc-name">
-          <span className="sc-name__badge">{(record.test_case_id || '').slice(-3) || initialsOf(t || '')}</span>
-          <span className="sc-name__title" title={t}>{t || 'Untitled case'}</span>
+      render: (t: string) => (
+        <div className="pp-name-cell" title={t || 'Untitled case'}>
+          <span className="pp-name-icon"><FileTextOutlined /></span>
+          <span className="pp-name-title">{t || 'Untitled case'}</span>
         </div>
       )
     },
     {
-      title: "Type",
-      dataIndex: "test_type",
-      key: "test_type",
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
       width: 130,
-      render: (t: string) => <span className="cd-plain">{t || 'Functional'}</span>
+      render: (t: string) => {
+        const v = t || 'Active';
+        const color = (v === 'Active' || v === 'Ready') ? '#10b981'
+          : v === 'Deprecated' ? '#ef4444'
+          : v === 'Draft' ? '#64748b' : '#3b82f6';
+        return (
+          <span className="pp-vis-pill" style={{ color, background: `${color}1A`, borderColor: `${color}40` }}>
+            <span className="pp-vis-dot" style={{ background: color }} />
+            {v}
+          </span>
+        );
+      }
     },
     {
       title: "Priority",
@@ -703,27 +699,24 @@ export default function ParentTestCaseDetailsPage() {
       render: (t: string) => <PriorityMeter priority={t || 'Medium'} />
     },
     {
+      title: "Type",
+      dataIndex: "test_type",
+      key: "test_type",
+      width: 130,
+      render: (t: string) => <span className="pp-vis-pill pp-vis-pill--ash">{t || 'Functional'}</span>
+    },
+    {
       title: "Severity",
       dataIndex: "severity",
       key: "severity",
       width: 110,
-      render: (t: string) => <span className="cd-plain">{t || 'Major'}</span>
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (t: string) => {
-        const v = t || 'Active';
-        return <span className={`sc-pill sc-pill--${statusTone(v)}`}><span className="sc-pill__dot" />{v}</span>;
-      }
+      render: (t: string) => <span className="pp-plain">{t || 'Major'}</span>
     },
     {
       title: "Suites",
       dataIndex: "suite_count",
       key: "suite_count",
-      width: 110,
+      width: 100,
       render: (_: any, record: any) => {
         const count = record.test_suites?.length || record.suite_count || 0;
         if (!count) return <span className="sc-muted">—</span>;
@@ -749,6 +742,7 @@ export default function ParentTestCaseDetailsPage() {
       key: "actions",
       width: 100,
       align: "right" as const,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
           <Tooltip title="Edit">
@@ -800,6 +794,37 @@ export default function ParentTestCaseDetailsPage() {
   };
 
 
+
+  /* ── Banner figures ───────────────────────────────────────────────────
+     The Ticket List's sprint head reads a sprint's completion; here the same
+     three rows read how much of this scenario is active. */
+  const activePct = childCases.length > 0 ? Math.round((activeCount / childCases.length) * 100) : 0;
+  const bannerAccent =
+    parentData?.status === 'Deprecated' ? '#ef4444'
+      : activePct >= 60 ? '#10b981'
+        : activePct > 0 ? '#3b82f6' : '#64748b';
+
+  /** The shared NoData illustration, carrying this table's own words. */
+  const renderEmpty = () => (
+    <NoData
+      description={
+        <div className="sc-empty">
+          <FileTextOutlined className="sc-empty__icon" />
+          <p className="sc-empty__title">
+            {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
+          </p>
+          <p className="sc-empty__desc">
+            {activeFilterCount > 0
+              ? 'Try widening your search or clearing the filters.'
+              : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
+          </p>
+          {activeFilterCount > 0
+            ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
+            : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
+        </div>
+      }
+    />
+  );
 
   const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -1474,284 +1499,325 @@ export default function ParentTestCaseDetailsPage() {
         }
         `}} />
 
-      <div className="dh-shell">
-        <div
-          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? 'is-open' : ''}`}
-          onClick={() => setMobileSidebarOpen(false)}
-          aria-hidden
-        />
-        <aside className={`dh-sidebar ${mobileSidebarOpen ? 'is-mobile-open' : ''}`}>
-          <div className="dh-sidebar-top">
-            <div className="pp-side-head">
-              <div className="pp-side-logo">
-                <BugOutlined />
-              </div>
-              <div>
-                <h1 className="pp-side-title">Cases</h1>
-                <p className="pp-side-subtitle">QA Space</p>
-              </div>
-            </div>
+      <style dangerouslySetInnerHTML={{ __html: CASE_DETAIL_SHELL_STYLES }} />
 
-            {canCreateCase && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleOpenCreateDrawer}
-                block
-                className="pp-side-cta"
-              >
-                Create Module Case
-              </Button>
-            )}
-          </div>
+      <div className="tl-shell-wrap">
+        <div className="tl-shell">
+          <div className="tl-main">
 
-          <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Workspace</span>
-            <button className="pp-nav-item" onClick={() => router.push('/qa-workspace/test-cases')}>
-              <Folder size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Cases</span>
-            </button>
-            <button className="pp-nav-item is-active">
-              <FileTextOutlined className="pp-nav-icon" />
-              <span className="pp-nav-label">Module Cases</span>
-              {childCases.length > 0 && <span className="pp-nav-count">{childCases.length}</span>}
-            </button>
-
-            {/* Scenario summary */}
-            <span className="pp-nav-caption cd-side-caption">Scenario</span>
-            <div className="cd-side">
-              <Fact icon={Folder} label="Module" accent loading={!parentData} title={parentData?.module_name}>
-                {parentData?.module_name
-                  ? <span className="cd-fact__text">{parentData.module_name}</span>
-                  : <span className="cd-fact__text is-muted">Unassigned</span>}
-              </Fact>
-
-              <Fact icon={Target} label="Feature" loading={!parentData} title={parentData?.feature}>
-                {parentData?.feature
-                  ? <span className="cd-fact__text">{parentData.feature}</span>
-                  : <span className="cd-fact__text is-muted">Not set</span>}
-              </Fact>
-
-              <Fact icon={Zap} label="Automation" loading={!parentData}>
-                <span className={`sc-pill sc-pill--${parentData?.automation === 'Automated' ? 'green' : 'ash'}`}>
-                  <span className="sc-pill__dot" />{parentData?.automation || 'Manual'}
-                </span>
-              </Fact>
-
-              <Fact icon={Layers} label="Suites" loading={!parentData}>
-                <span className="cd-fact__text">
-                  {Number(parentData?.suite_count || 0)}
-                  <span className="cd-fact__unit">{Number(parentData?.suite_count) === 1 ? ' suite' : ' suites'}</span>
-                </span>
-              </Fact>
-
-              <Fact icon={User} label="Owner" loading={!parentData} title={parentData?.owner_name || parentData?.qa_owner}>
-                {parentData?.owner_name || (parentData?.qa_owner && parentData.qa_owner !== '—') ? (
-                  <span className="sc-person">
-                    <span className="sc-person__av">{initialsOf(parentData.owner_name || parentData.qa_owner)}</span>
-                    <span className="sc-person__name">{parentData.owner_name || parentData.qa_owner}</span>
-                  </span>
-                ) : <span className="cd-fact__text is-muted">Unassigned</span>}
-              </Fact>
-
-              <Fact icon={UserPlus} label="Created By" loading={!parentData} title={parentData?.creator_name}>
-                {parentData?.creator_name ? (
-                  <span className="sc-person">
-                    <span className="sc-person__av sc-person__av--ash">{initialsOf(parentData.creator_name)}</span>
-                    <span className="sc-person__name">{parentData.creator_name}</span>
-                  </span>
-                ) : <span className="cd-fact__text is-muted">Unknown</span>}
-              </Fact>
-
-              <Fact icon={CalendarDays} label="Created" loading={!parentData} title={parentData?.created_at}>
-                <span className="cd-fact__text">{fmtDate(parentData?.created_at) || '—'}</span>
-              </Fact>
-            </div>
-          </div>
-        </aside>
-
-        <main className="dh-main">
-          {/* Back · breadcrumb · scenario name · status — one line */}
-          <div className="dh-main-topbar sc-topbar">
-            <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
-              <Button
-                className="dh-mobile-menu-btn"
-                type="text"
-                icon={<Menu size={18} />}
-                onClick={() => setMobileSidebarOpen(true)}
-              />
-              <Button
-                type="text"
-                size="small"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push("/qa-workspace/test-cases")}
-                className="cd-back"
-              />
-              <span className="sc-topbar__div" />
-              <span className="cd-crumb">Cases</span>
-              {parentData?.module_name && (
-                <>
-                  <span className="cd-sep">›</span>
-                  <span className="cd-crumb cd-crumb--strong">{parentData.module_name}</span>
-                </>
-              )}
-              <span className="cd-sep">›</span>
-              <h1 className="sc-topbar__h1 cd-title">{parentData?.title || "Loading scenario…"}</h1>
-              {parentData?.status && (
-                <span className={`sc-pill sc-pill--${statusTone(parentData.status)}`}>
-                  <span className="sc-pill__dot" />{parentData.status}
-                </span>
-              )}
-            </div>
-
-            <div className="dh-main-controls">
-              <Button
-                type="default"
-                icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
-                onClick={fetchData}
-                disabled={loading}
-                title="Refresh"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
-              />
-              {canCreateCase && (
-                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>
-                  New Module Case
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="dh-main-scroll">
-            {/* Stats — product-standard tiles, Active / Automated filter on click */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {[
-                { key: undefined, label: "Module Cases", value: childCases.length, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: FileTextOutlined, sub: 'under this scenario' },
-                { key: 'active', label: "Active", value: activeCount, color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: CheckCircleOutlined, sub: `${childCases.length ? Math.round((activeCount / childCases.length) * 100) : 0}% of all cases` },
-                { key: 'automated', label: "Automated", value: automatedCount, color: "#3B82F6", bg: "rgba(59,130,246,0.1)", icon: BugOutlined, sub: `${childCases.length - automatedCount} still manual` },
-                { key: 'highPriority', label: "High / Critical", value: highPriorityCount, color: "#64748b", bg: "rgba(100,116,139,0.1)", icon: Zap, sub: 'need the most attention' }
-              ].map((stat, i) => {
-                return (
-                  <div key={`${stat.label}-${i}`}>
-                    <StatTile label={stat.label} value={stat.value} icon={stat.icon} color={stat.color} bgColor={stat.bg} sub={stat.sub} />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Filter row */}
-            <div className="sc-filters">
-              <Input
-                className="sc-filters__search"
-                placeholder="Search cases, steps, results…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                allowClear
-              />
-              <SearchableDropdown
-                options={typeFilterOptions}
-                value={typeFilter}
-                onChange={(v) => setTypeFilter(v)}
-                placeholder="All test types"
-                itemNoun="types"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={priorityOptions}
-                value={priorityFilter}
-                onChange={(v) => setPriorityFilter(v)}
-                placeholder="Any priority"
-                hideAvatar
-                itemNoun="levels"
-                className="sc-filters__field"
-              />
-              <SearchableDropdown
-                options={statusFilterOptions}
-                value={statusFilter}
-                onChange={(v) => setStatusFilter(v)}
-                placeholder="All statuses"
-                itemNoun="statuses"
-                className="sc-filters__field"
-              />
-              <Tooltip title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}>
-                <button
-                  type="button"
-                  className="sc-sort-btn"
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
-                </button>
-              </Tooltip>
-              {activeFilterCount > 0 && (
-                <button type="button" className="sc-clear" onClick={clearFilters}>
-                  Clear ({activeFilterCount})
-                </button>
-              )}
-            </div>
-
-            {/* Module Test Cases */}
-            <ZukvoLoadingOverlay loading={loading} message="Loading module cases…" minHeight={loading ? 300 : undefined}>
-            <div className="sc-tablewrap">
-              <Table
-                className="ts-table sc-table"
-                dataSource={pagedCases}
-                columns={childColumns}
-                rowKey="id"
-                pagination={false}
-                onRow={(record) => ({
-                  onClick: () => { openCaseView(record); },
-                })}
-                locale={{
-                  /* Holding the height beats claiming "no cases" mid-fetch. */
-                  emptyText: <NoData description={loading ? (
-                                            <div style={{ minHeight: 220 }} />
-                                          ) : (
-                                            <div className="sc-empty">
-                                              <FileTextOutlined className="sc-empty__icon" />
-                                              <p className="sc-empty__title">
-                                                {activeFilterCount > 0 ? 'No cases match these filters' : 'No module test cases yet'}
-                                              </p>
-                                              <p className="sc-empty__desc">
-                                                {activeFilterCount > 0
-                                                  ? 'Try widening your search or clearing the filters.'
-                                                  : 'Add the testing instructions, steps and expected behaviour for this scenario.'}
-                                              </p>
-                                              {activeFilterCount > 0
-                                                ? <Button size="small" onClick={clearFilters}>Clear filters</Button>
-                                                : canCreateCase && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer}>Create module case</Button>}
-                                            </div>
-                                          )} />
-                }}
-              />
-            </div>
-            </ZukvoLoadingOverlay>
-          </div>
-
-          {/* Pager sits outside the scroll area so it stays pinned to the bottom */}
-          {filteredCases.length > 0 && (
-            <div className="pp-footer">
-              <div className="pp-footer-info">
-                Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
-              </div>
-              <div className="pp-pager">
-                <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1)
-                  .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
-                  .map((p) => (
-                    <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
-                  ))}
-                <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
-                <Select
-                  className="pp-pagesize"
-                  value={pageSize}
-                  onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
-                  popupMatchSelectWidth={120}
+            {/* ── Header row — back, breadcrumb, search, filters, controls ── */}
+            <div className="saas-header-container sc-header">
+              <Tooltip title="Back to Cases">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.push("/qa-workspace/test-cases")}
+                  className="cd-back"
+                  aria-label="Back to Cases"
                 />
+              </Tooltip>
+
+              <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+              {/* The scenario's place in the tree sits where the list pages put
+                  their project switcher. */}
+              <div className="cd-crumbs">
+                <button type="button" className="cd-crumb" onClick={() => router.push("/qa-workspace/test-cases")}>Cases</button>
+                {parentData?.module_name && (
+                  <>
+                    <span className="cd-sep">›</span>
+                    <span className="cd-crumb cd-crumb--strong">{parentData.module_name}</span>
+                  </>
+                )}
+                <span className="cd-sep">›</span>
+                <span className="cd-title" title={parentData?.title}>{parentData?.title || "Loading scenario…"}</span>
+              </div>
+
+              <div className="sc-header-controls">
+                <Input
+                  placeholder="Quick search cases, steps, results..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+                  className="saas-input"
+                  style={{ maxWidth: 240, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  allowClear
+                />
+
+                <Space.Compact className="ticket-filter-group">
+                  <Popover
+                    content={
+                      <ModuleCaseFilters
+                        filters={{ typeFilter, priorityFilter, statusFilter }}
+                        onFilterChange={(key, val) => {
+                          if (key === 'typeFilter') setTypeFilter(val || undefined);
+                          if (key === 'priorityFilter') setPriorityFilter(val || undefined);
+                          if (key === 'statusFilter') setStatusFilter(val || undefined);
+                        }}
+                        onReset={clearFilters}
+                        typeOptions={typeFilterOptions}
+                        priorityOptions={priorityOptions}
+                        statusOptions={statusFilterOptions}
+                      />
+                    }
+                    trigger="click"
+                    open={isFilterPanelOpen}
+                    onOpenChange={setIsFilterPanelOpen}
+                    placement="bottomLeft"
+                    overlayClassName="tf-popover-overlay"
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    <Button
+                      icon={<FilterOutlined />}
+                      className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                      style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                    >
+                      Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                    </Button>
+                  </Popover>
+                  <Button
+                    icon={<ExpandAltOutlined />}
+                    style={{ height: 30 }}
+                    aria-label="Expand filters"
+                    onClick={() => setIsFilterRowOpen(prev => !prev)}
+                  />
+                </Space.Compact>
+              </div>
+
+              <Space size={10} className="sc-header-right">
+                <Tooltip title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}>
+                  <Button
+                    icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    aria-label="Toggle sort order"
+                  />
+                </Tooltip>
+
+                <Tooltip title="Refresh view">
+                  <Button
+                    icon={<ReloadOutlined spin={loading} />}
+                    onClick={fetchData}
+                    disabled={loading}
+                    style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </Tooltip>
+
+                {canCreateCase && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleOpenCreateDrawer}
+                    style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                  >
+                    Create Module Case
+                  </Button>
+                )}
+              </Space>
+            </div>
+
+            {/* ── Inline filter row — the pill strip the Ticket List uses ── */}
+            {isFilterRowOpen && (
+              <div className="tl-filter-row">
+                <div className="tl-filter-row-label">
+                  <FilterOutlined style={{ fontSize: 11 }} />
+                  <span>Filters</span>
+                  <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
+                </div>
+                <div className="tl-filter-row-pills">
+                  <TicketFilterPill
+                    icon={<AppstoreOutlined style={{ fontSize: 11 }} />}
+                    label="Type"
+                    value={typeFilter || ""}
+                    options={typeFilterOptions}
+                    onChange={(val) => setTypeFilter(val || undefined)}
+                    itemNoun="types"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+                    label="Priority"
+                    value={priorityFilter || ""}
+                    options={priorityOptions}
+                    onChange={(val) => setPriorityFilter(val || undefined)}
+                    itemNoun="levels"
+                    multiple={false}
+                  />
+                  <TicketFilterPill
+                    icon={<CheckCircleOutlined style={{ fontSize: 11 }} />}
+                    label="Status"
+                    value={statusFilter || ""}
+                    options={statusFilterOptions}
+                    onChange={(val) => setStatusFilter(val || undefined)}
+                    itemNoun="statuses"
+                    multiple={false}
+                  />
+                </div>
+                <div className="tl-filter-row-actions">
+                  {activeFilterCount > 0 && (
+                    <button type="button" className="tl-filter-row-reset" onClick={clearFilters}>
+                      <ReloadOutlined style={{ fontSize: 10 }} />
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tl-filter-row-close"
+                    onClick={() => setIsFilterRowOpen(false)}
+                    aria-label="Close filters"
+                    title="Close filters"
+                  >
+                    <CloseOutlined style={{ fontSize: 10 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="tl-section">
+              {/* ── Scenario banner — the Ticket List's sprint head, carrying
+                   the facts the left rail used to hold. ─────────────────── */}
+              <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+                <div className="tl-sprint-row1">
+                  <div className="tl-sprint-title-block">
+                    <span
+                      className="tl-sprint-dot"
+                      style={{ background: bannerAccent, boxShadow: `0 0 0 3px ${bannerAccent}33` }}
+                    />
+                    <Typography.Text
+                      className="tl-sprint-title"
+                      ellipsis={{ tooltip: parentData?.title || 'Loading scenario…' }}
+                    >
+                      {parentData?.title || 'Loading scenario…'}
+                    </Typography.Text>
+                    <span className="tl-sprint-tags">
+                      {parentData?.status && (
+                        <span className={`tl-sprint-tag tl-sprint-tag--${statusTone(parentData.status)}`}>
+                          {parentData.status}
+                        </span>
+                      )}
+                      <span className={`tl-sprint-tag tl-sprint-tag--${parentData?.automation === 'Automated' ? 'blue' : 'ash'}`}>
+                        {parentData?.automation || 'Manual'}
+                      </span>
+                      <span className="tl-sprint-tag tl-sprint-tag--ash">{childCases.length} CASES</span>
+                    </span>
+                  </div>
+                  <div className="tl-sprint-actions">
+                    <Button
+                      type="default"
+                      size="small"
+                      icon={<Layers size={13} />}
+                      onClick={() => router.push('/qa-workspace/test-suites')}
+                      className="saas-button-item tl-sprint-burndown-btn"
+                    >
+                      Test Suites{Number(parentData?.suite_count) ? ` (${parentData.suite_count})` : ''}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Row 2: the scenario facts the sidebar used to list */}
+                <div className="tl-sprint-row2">
+                  <span className="tl-sprint-meta" title={parentData?.module_name}>
+                    <Folder size={11} />
+                    <span>Module</span>
+                    <b>{parentData?.module_name || 'Unassigned'}</b>
+                  </span>
+                  <span className="tl-sprint-meta" title={parentData?.feature}>
+                    <Target size={11} />
+                    <span>Feature</span>
+                    <b>{parentData?.feature || 'Not set'}</b>
+                  </span>
+                  <span className="tl-sprint-meta" title={parentData?.owner_name || parentData?.qa_owner}>
+                    <User size={11} />
+                    <span>Owner</span>
+                    <b>{parentData?.owner_name || (parentData?.qa_owner && parentData.qa_owner !== '—' ? parentData.qa_owner : 'Unassigned')}</b>
+                  </span>
+                  <span className="tl-sprint-meta" title={parentData?.creator_name}>
+                    <UserPlus size={11} />
+                    <span>Created by</span>
+                    <b>{parentData?.creator_name || 'Unknown'}</b>
+                  </span>
+                  <span className="tl-sprint-meta">
+                    <CalendarDays size={11} />
+                    <span>{fmtDate(parentData?.created_at) || '—'}</span>
+                  </span>
+                  <span className="tl-sprint-meta">
+                    <Zap size={11} />
+                    <b>{highPriorityCount}</b> high / critical
+                  </span>
+                  <span className="tl-sprint-meta">
+                    <Activity size={11} />
+                    <b>{automatedCount}</b> automated
+                  </span>
+                </div>
+
+                {/* Row 3: how much of the scenario is active, plus the split */}
+                <div className="tl-sprint-row3">
+                  <div className="tl-sprint-progress-bar">
+                    <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, activePct)}%` }} />
+                  </div>
+                  <span className="tl-sprint-progress-pct">{activePct}%</span>
+                </div>
+              </div>
+
+              <div className="tl-section-body">
+                {/* Only the results blur, so the filters above stay usable
+                    while a search refetches. */}
+                <ZukvoLoadingOverlay loading={loading} message="Loading module cases…">
+                  <div className="pp-table-wrap">
+                    <Table
+                      className="saas-table tl-table pp-table"
+                      dataSource={pagedCases}
+                      columns={childColumns}
+                      rowKey="id"
+                      size="small"
+                      pagination={false}
+                      scroll={{ x: 'max-content' }}
+                      onRow={(record) => ({
+                        className: 'pp-row',
+                        onClick: (e) => {
+                          const t = e.target as HTMLElement;
+                          if (t.closest('button, a, .ant-dropdown-trigger, .sc-rowactions, .pp-case-id, .tc-suites')) return;
+                          openCaseView(record);
+                        },
+                      })}
+                      locale={{
+                        /* Holding the height beats claiming "no cases" mid-fetch. */
+                        emptyText: loading ? <div style={{ minHeight: 220 }} /> : renderEmpty()
+                      }}
+                    />
+                  </div>
+                </ZukvoLoadingOverlay>
+
+                {/* Pager sits outside the scroll area so it stays pinned to the
+                    bottom of the pane whether or not the list overflows. */}
+                {filteredCases.length > 0 && (
+                  <div className="pp-footer">
+                    <div className="pp-footer-info">
+                      Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{totalItems}</strong>
+                    </div>
+                    <div className="pp-pager">
+                      <button type="button" className="pp-pager-btn" disabled={safePage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                      {Array.from({ length: pageCount }, (_, i) => i + 1)
+                        .slice(Math.max(0, safePage - 3), Math.max(0, safePage - 3) + 5)
+                        .map((p) => (
+                          <button key={p} type="button" className={`pp-pager-num ${p === safePage ? 'is-active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+                        ))}
+                      <button type="button" className="pp-pager-btn" disabled={safePage >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>›</button>
+                      <Select
+                        className="pp-pagesize"
+                        value={pageSize}
+                        onChange={(v) => { setPageSize(v); setPage(1); }}
+                        options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                        popupMatchSelectWidth={120}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </main>
+          </div>
+        </div>
       </div>
 
       {/* Module Test Case Drawer */}
@@ -2563,3 +2629,574 @@ export default function ParentTestCaseDetailsPage() {
     </MainLayout>
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Styles — the Ticket List's shell, header, banner, table and pager. The
+   drawer, case-view and payload rules stay in the block above.
+   ──────────────────────────────────────────────────────────────────────── */
+const CASE_DETAIL_SHELL_STYLES = `
+/* ── Shell: one column, no rail ───────────────────────────────────────── */
+.tl-shell-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+.tl-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+.tl-main {
+  min-width: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Header row ───────────────────────────────────────────────────────── */
+.sc-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  margin: 0;
+  padding: 9.7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--bg-pure-white);
+  border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+}
+.sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.sc-header-right { flex-shrink: 0; }
+
+.sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
+.sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
+.sc-owner-opt__label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sc-owner-opt__count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 17px; padding: 0 5px;
+  border-radius: 999px; background: var(--bg-slate-100); color: var(--text-slate-500);
+  font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.ant-segmented-item-selected .sc-owner-opt__count { background: var(--bg-blue-50); color: #3B82F6; }
+[data-theme='dark'] .sc-owner-opt__count { background: #1e293b; color: #94a3b8; }
+
+/* ── Section + scope banner (Ticket List sprint head) ─────────────────── */
+.tl-section {
+  background: var(--bg-pure-white);
+  border-top: 1px solid var(--border-slate-200);
+  border-bottom: 1px solid var(--border-slate-200);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-theme='dark'] .tl-section {
+  background: transparent;
+  border-top-color: #1f2937;
+  border-bottom-color: #1f2937;
+}
+.tl-section-head {
+  padding: 6px 12px;
+  background: var(--bg-slate-50);
+  border-bottom: 1px solid var(--border-slate-200);
+  position: relative;
+  flex-shrink: 0;
+}
+[data-theme='dark'] .tl-section-head {
+  background: #0f1419;
+  border-bottom-color: #1f2937;
+}
+.tl-section-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* The loading overlay is a plain wrapper — it has to grow like the table would. */
+.tl-section-body > .zlo,
+.tl-section-body > .zlo > .zlo__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tl-sprint-head-v2 { display: flex !important; flex-direction: column; gap: 6px; padding: 10px 12px !important; }
+.tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tl-sprint-title {
+  font-size: 14px !important; font-weight: 800 !important; color: var(--text-slate-900) !important;
+  letter-spacing: -0.01em; max-width: 460px;
+}
+[data-theme='dark'] .tl-sprint-title { color: #f1f5f9 !important; }
+.tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tl-sprint-tag {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+  border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+}
+.tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16, 185, 129, 0.32); }
+.tl-sprint-tag-delayed { background: transparent; color: #ef4444; border-color: rgba(239, 68, 68, 0.32); }
+[data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+[data-theme='dark'] .tl-sprint-tag-delayed { color: #fca5a5; }
+
+.tl-sprint-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.tl-sprint-burndown-btn.ant-btn { height: 28px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+.tl-sprint-complete-btn.ant-btn.ant-btn-primary {
+  height: 28px; font-size: 12px; font-weight: 700;
+  background: #10b981; border-color: #10b981; border-radius: 6px;
+}
+.tl-sprint-complete-btn.ant-btn.ant-btn-primary:hover {
+  background: #059669 !important; border-color: #059669 !important;
+}
+
+.tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+.tl-sprint-meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+}
+.tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+[data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+[data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+.tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+.tl-sprint-progress-bar {
+  flex: 1 1 auto; position: relative; height: 6px;
+  background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
+}
+[data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+.tl-sprint-progress-fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 999px; transition: width 0.4s ease;
+}
+.tl-sprint-progress-pct {
+  flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+  font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+}
+[data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+/* ── Inline filter row ────────────────────────────────────────────────── */
+.tl-filter-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+}
+[data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+.tl-filter-row-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+  text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+}
+[data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+.tl-filter-row-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 6px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  color: var(--text-slate-500); border-radius: 999px;
+  font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+[data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+.tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+.tl-filter-row-reset {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+  background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+  font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.tl-filter-row-reset:hover {
+  color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+  background: rgba(59,130,246,0.06); border-style: solid;
+}
+.tl-filter-row-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; background: transparent;
+  border: 1px solid var(--border-slate-200); border-radius: 8px;
+  color: var(--text-slate-500); cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+[data-theme='dark'] .tl-filter-row-reset,
+[data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+
+/* ── Table shell + rows ───────────────────────────────────────────────── */
+.pp-table-wrap {
+  background: var(--bg-pure-white);
+  border: 1px solid var(--border-slate-200);
+  border-left: none; border-right: none; border-radius: 0;
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; margin: 0;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.pp-table-wrap::-webkit-scrollbar,
+.pp-table-wrap .ant-table-body::-webkit-scrollbar,
+.pp-table-wrap .ant-table-content::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.pp-table-wrap .ant-table-body,
+.pp-table-wrap .ant-table-content { -ms-overflow-style: none; scrollbar-width: none; }
+[data-theme='dark'] .pp-table-wrap { background: #0f1419; border-color: #1f2937; }
+
+.pp-table .ant-table { background: transparent; font-size: 12px; }
+.pp-table .ant-table-thead > tr > th {
+  background: var(--bg-slate-50) !important; border-bottom: 1px solid var(--border-slate-200) !important;
+  font-size: 10px !important; font-weight: 800 !important; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-slate-400) !important; padding: 5px 10px !important;
+  white-space: nowrap !important; position: sticky !important; top: 0 !important; z-index: 2 !important;
+}
+[data-theme='dark'] .pp-table .ant-table-thead > tr > th {
+  background: #0f1419 !important; border-bottom-color: #1f2937 !important; color: #94a3b8 !important;
+}
+.pp-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-slate-100) !important;
+  padding: 6px 10px !important; font-size: 11.5px !important; line-height: 1.35 !important;
+}
+[data-theme='dark'] .pp-table .ant-table-tbody > tr > td { border-bottom-color: #1f2937 !important; }
+.pp-table .ant-table-tbody > tr:last-child > td { border-bottom: none !important; }
+.pp-table .ant-table-tbody > tr.pp-row { cursor: pointer; }
+.pp-table .ant-table-tbody > tr.pp-row:hover > td { background: var(--bg-slate-50) !important; }
+[data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td { background: #1e293b !important; }
+.pp-table .ant-table-pagination { display: none !important; }
+.pp-table .ant-table-cell-fix-right { background: var(--bg-pure-white) !important; }
+[data-theme='dark'] .pp-table .ant-table-cell-fix-right { background: #0f1419 !important; }
+.pp-table .ant-table-tbody > tr.pp-row:hover > td.ant-table-cell-fix-right { background: var(--bg-slate-50) !important; }
+[data-theme='dark'] .pp-table .ant-table-tbody > tr.pp-row:hover > td.ant-table-cell-fix-right { background: #1e293b !important; }
+.pp-table .ant-table-row-expand-icon-cell { padding-inline: 6px !important; width: 34px; }
+
+/* ── Cells ────────────────────────────────────────────────────────────── */
+.pp-scope-id {
+  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
+  border: 1px solid var(--border-blue-200); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: opacity .15s ease;
+}
+.pp-scope-id:hover { opacity: 0.8; }
+
+.pp-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; overflow: hidden; }
+.pp-name-icon {
+  width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #3B82F6; background: var(--bg-blue-50);
+}
+[data-theme='dark'] .pp-name-icon { background: rgba(59,130,246,0.15); }
+.pp-name-icon .anticon { font-size: 12px !important; }
+.pp-name-title {
+  flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text-slate-900);
+  letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme='dark'] .pp-name-title { color: #f1f5f9; }
+
+.pp-vis-pill {
+  display: inline-flex; align-items: center; gap: 5px; height: 23px; padding: 0 8px;
+  border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.pp-vis-pill--ash { color: #64748b; background: rgba(100,116,139,0.10); border-color: rgba(100,116,139,0.25); }
+.pp-vis-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.pp-creator { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.pp-creator-name {
+  font-size: 11.5px; color: var(--text-slate-700); white-space: nowrap; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme='dark'] .pp-creator-name { color: #cbd5e1; }
+
+.pp-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 20px; padding: 0 6px; border-radius: 5px;
+  background: var(--bg-blue-50); color: #3B82F6;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.pp-count.is-zero { background: var(--bg-slate-100); color: var(--text-slate-400); }
+[data-theme='dark'] .pp-count { background: rgba(59,130,246,0.15); }
+[data-theme='dark'] .pp-count.is-zero { background: #1e293b; color: #64748b; }
+
+.sc-muted { color: var(--text-slate-400); }
+
+.sc-prio { display: inline-flex; align-items: center; gap: 8px; }
+.sc-prio__bars { display: inline-flex; align-items: flex-end; gap: 2px; }
+.sc-prio__bar { width: 4px; height: 12px; border-radius: 2px; background: var(--border-slate-200); }
+.sc-prio__bar.is-on { background: #60a5fa; }
+.sc-prio__bar.is-on.is-max { background: #2563eb; }
+.sc-prio__label { font-size: 11.5px; font-weight: 500; color: var(--text-slate-600); }
+[data-theme='dark'] .sc-prio__bar { background: #1f2937; }
+[data-theme='dark'] .sc-prio__label { color: #94a3b8; }
+
+.sc-person__av {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(59,130,246,.12); color: #2563eb; font-size: 9px; font-weight: 800;
+}
+.sc-person__av.is-muted { background: rgba(100,116,139,.12); color: #64748b; }
+
+.sc-timeline { display: flex; flex-direction: column; line-height: 1.3; }
+.sc-timeline__range { font-size: 11.5px; color: var(--text-slate-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sc-timeline__hint { font-size: 10px; color: var(--text-slate-400); }
+.sc-timeline__hint.is-late { color: #dc2626; font-weight: 600; }
+[data-theme='dark'] .sc-timeline__range { color: #cbd5e1; }
+
+.sc-rowactions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.sc-rowactions button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-slate-400); cursor: pointer;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.sc-rowactions button:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+.sc-rowactions button.is-danger:hover { color: #dc2626; background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+
+/* ── Expander + linked-items child row ────────────────────────────────── */
+.sc-expand {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1px solid var(--border-slate-200); background: transparent;
+  color: var(--text-slate-400); cursor: pointer; font-size: 10px;
+  transition: transform .18s ease, color .15s ease, border-color .15s ease;
+}
+.sc-expand:hover { color: #2563eb; border-color: #bfdbfe; }
+.sc-expand.is-open { transform: rotate(90deg); color: #2563eb; border-color: #bfdbfe; }
+.sc-linked {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px; padding: 12px 14px; background: var(--bg-slate-50);
+}
+[data-theme='dark'] .sc-linked { background: #111720; }
+.sc-linked__col { min-width: 0; }
+.sc-linked__head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--text-slate-400); }
+.sc-linked__label { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.sc-linked__count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--bg-slate-100); color: var(--text-slate-500); font-size: 9.5px; font-weight: 800;
+}
+.sc-linked__items { display: flex; flex-wrap: wrap; gap: 5px; }
+.sc-linked__chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  height: 22px; padding: 0 8px; border-radius: 6px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  font-size: 11.5px; color: var(--text-slate-700);
+}
+.sc-linked__chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-linked__chip-ext { flex-shrink: 0; opacity: 0; transition: opacity .15s ease; }
+.sc-linked__chip.is-link { cursor: pointer; text-decoration: none; }
+.sc-linked__chip.is-link:hover { color: #2563eb; border-color: #bfdbfe; background: var(--bg-blue-50); }
+.sc-linked__chip.is-link:hover .sc-linked__chip-ext { opacity: 1; }
+.sc-linked__chip.is-link:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+.sc-linked__none { font-size: 11.5px; color: var(--text-slate-300); }
+.sc-linked__empty { padding: 10px 14px; font-size: 12.5px; color: var(--text-slate-400); background: var(--bg-slate-50); }
+[data-theme='dark'] .sc-linked__empty { background: #111720; }
+
+/* ── Footer + pager ───────────────────────────────────────────────────── */
+.pp-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; padding: 8px 12px;
+  background: var(--bg-pure-white); border-top: 1px solid var(--border-slate-200);
+  box-sizing: border-box; flex-shrink: 0;
+  box-shadow: 0 -4px 14px rgba(15,23,42,0.04); margin: 0;
+}
+[data-theme='dark'] .pp-footer { background: #0f1419; border-top-color: #1f2937; }
+.pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
+.pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }
+[data-theme='dark'] .pp-footer-info strong { color: #f1f5f9; }
+.pp-pager { display: flex; align-items: center; gap: 3px; }
+.pp-pager-btn, .pp-pager-num {
+  min-width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+  color: var(--text-slate-600); cursor: pointer; font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-theme='dark'] .pp-pager-btn, [data-theme='dark'] .pp-pager-num {
+  background: #1e293b; border-color: #334155; color: #cbd5e1;
+}
+.pp-pager-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pp-pager-num.is-active { background: #3B82F6; border-color: #3B82F6; color: #fff; }
+.pp-pagesize { margin-left: 5px; }
+.pp-pagesize .ant-select-selector { border-radius: 7px !important; height: 28px !important; }
+
+/* ── Grid view ────────────────────────────────────────────────────────── */
+.sc-gridwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
+.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
+
+.pc-card {
+  border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
+  cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+.pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
+.pc-avatar {
+  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 13px;
+}
+.pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
+.pc-title {
+  font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
+.pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
+.pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-actions {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
+  background: transparent; color: var(--text-slate-400); cursor: pointer; flex-shrink: 0;
+}
+.pc-actions:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
+.pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
+.pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
+.pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
+.pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
+.pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
+.pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
+.pc-status-tag {
+  display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px;
+  border-radius: 5px; font-size: 10.5px; font-weight: 700;
+}
+
+/* ── Row action menu (grid card kebab) ────────────────────────────────── */
+.pp-action-pop .ant-dropdown-menu {
+  padding: 6px; border-radius: 0 !important; min-width: 236px; overflow: hidden !important;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-100);
+  box-shadow: 0 16px 40px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.03);
+}
+.pp-action-pop .ant-dropdown-menu-item { padding: 7px 9px !important; border-radius: 0 !important; margin: 1px 0; transition: background .12s ease; }
+.pp-action-pop .ant-dropdown-menu-item:hover { background: var(--bg-slate-50) !important; }
+.pp-action-pop .ant-dropdown-menu-item-divider { margin: 5px 8px !important; background: var(--border-slate-100); }
+.pp-action-pop .ant-dropdown-menu-title-content { line-height: 1.2; }
+.pp-menu-item { display: flex; align-items: center; gap: 11px; }
+.pp-menu-ic { width: 30px; height: 30px; border-radius: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.pp-menu-text { display: flex; flex-direction: column; min-width: 0; }
+.pp-menu-title { font-size: 13px; font-weight: 600; color: var(--text-slate-900); letter-spacing: -0.01em; }
+.pp-menu-desc { font-size: 11px; color: var(--text-slate-400); margin-top: 1px; }
+.pp-action-pop .ant-dropdown-menu-item-danger:hover { background: rgba(239,68,68,0.08) !important; }
+.pp-action-pop .ant-dropdown-menu-item-danger .pp-menu-title { color: #ef4444; }
+.pp-action-pop .ant-dropdown-menu-item-disabled { opacity: 0.45; }
+.pp-action-pop .ant-dropdown-menu-item-disabled:hover { background: transparent !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu { background: #0B0F1A !important; border: 1px solid #1E293B !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item:hover { background: #161B22 !important; }
+[data-theme='dark'] .pp-action-pop .ant-dropdown-menu-item-divider { background: #1E293B !important; }
+[data-theme='dark'] .pp-menu-title { color: #cbd5e1 !important; }
+[data-theme='dark'] .pp-menu-desc { color: #64748b !important; }
+
+/* ── Empty + project picker ───────────────────────────────────────────── */
+.sc-pickerwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+.sc-empty { padding: 44px 24px; text-align: center; }
+.sc-empty__icon { font-size: 26px; color: var(--border-slate-200); }
+.sc-empty__title { margin: 12px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-slate-700); }
+.sc-empty__desc { margin: 0 auto 14px; max-width: 340px; font-size: 12.5px; color: var(--text-slate-400); }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .sc-owner-opt__label { display: none; }
+}
+@media (max-width: 900px) {
+  .sc-header { padding: 8px 12px; }
+  .sc-header-controls { order: 3; flex-basis: 100%; }
+  .sc-header-right { margin-left: auto; }
+  .tl-sprint-row2 { gap: 12px; }
+}
+@media (max-width: 640px) {
+  .tl-shell-wrap { height: auto; min-height: calc(100vh - 64px); overflow: visible; }
+  .tl-main { height: auto; overflow: visible; }
+  .tl-section { overflow: visible; }
+  .tl-section-body { overflow: visible; }
+  .pp-table-wrap { overflow-x: auto !important; }
+  .sc-linked { grid-template-columns: 1fr; }
+  .pp-footer { flex-wrap: wrap; height: auto; min-height: 44px; padding: 8px 14px; gap: 6px; }
+  .pp-footer-info { font-size: 11px; }
+  .tl-filter-row-label { display: none; }
+}
+/* ── Cases-specific cells ─────────────────────────────────────────────── */
+.pp-case-id {
+  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
+  border: 1px solid var(--border-blue-200); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: opacity .15s ease;
+}
+.pp-case-id:hover { opacity: 0.8; }
+
+.pp-plain { font-size: 11.5px; color: var(--text-slate-700); }
+[data-theme='dark'] .pp-plain { color: #cbd5e1; }
+
+.tc-suites {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  font-size: 11.5px; font-weight: 600;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22);
+  transition: background .15s ease;
+}
+.tc-suites:hover { background: rgba(59,130,246,.18); }
+
+/* The module a case is filed under, when the list is narrowed to one. */
+.tl-sprint-tag-module { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+
+.sc-empty__icon { display: inline-block; }
+/* ── Detail-page header: breadcrumb in the project-switcher slot ──────── */
+.cd-back {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex !important; align-items: center; justify-content: center;
+  color: var(--text-slate-500);
+}
+.cd-back:hover { background: var(--bg-slate-100); color: #2563eb; }
+.cd-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 46%; }
+.cd-crumb {
+  font-size: 12px; font-weight: 600; color: var(--text-slate-500);
+  background: none; border: none; padding: 0; cursor: pointer; white-space: nowrap;
+  font-family: inherit;
+}
+button.cd-crumb:hover { color: #2563eb; text-decoration: underline; }
+.cd-crumb--strong { color: var(--text-slate-700); cursor: default; }
+.cd-sep { color: var(--text-slate-300); font-size: 11px; flex-shrink: 0; }
+.cd-title {
+  font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .cd-title { color: #f1f5f9; }
+[data-theme='dark'] .cd-crumb--strong { color: #cbd5e1; }
+
+/* Banner tag tones — the restricted palette, no new hues. */
+.tl-sprint-tag--green { background: transparent; color: #10b981; border-color: rgba(16,185,129,0.32); }
+.tl-sprint-tag--blue  { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+.tl-sprint-tag--ash   { background: transparent; color: #64748b; border-color: rgba(100,116,139,0.32); }
+.tl-sprint-tag--red   { background: transparent; color: #ef4444; border-color: rgba(239,68,68,0.32); }
+[data-theme='dark'] .tl-sprint-tag--green { color: #34d399; }
+[data-theme='dark'] .tl-sprint-tag--red { color: #fca5a5; }
+
+/* Row 2 reads "Label value" pairs here rather than bare counts. */
+.tl-sprint-row2 .tl-sprint-meta > span { color: var(--text-slate-400); font-weight: 600; }
+.tl-sprint-row2 .tl-sprint-meta b { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pp-case-id {
+  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
+  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
+  border: 1px solid var(--border-blue-200); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: opacity .15s ease;
+}
+.pp-case-id:hover { opacity: 0.8; }
+.pp-plain { font-size: 11.5px; color: var(--text-slate-700); }
+[data-theme='dark'] .pp-plain { color: #cbd5e1; }
+
+@media (max-width: 900px) {
+  .cd-crumbs { max-width: 100%; }
+  .cd-crumb, .cd-sep { display: none; }
+  .cd-title { display: block; }
+}
+`;
+

@@ -12,12 +12,10 @@
 
 import React, { useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, Tooltip } from "antd";
-import { BugOutlined, SearchOutlined } from "@ant-design/icons";
-import {
-  Menu, RotateCw, Boxes, Folder, FolderOpen, ChevronDown, Target,
-  Layers, PlayCircle, ClipboardList, AlertTriangle, ArrowUpRight, Sparkles,
-} from "lucide-react";
+import { QaProjectSwitcher } from "@/components/qa/QaProjectGate";
+import { Button, Input, Tooltip, Space, Segmented, Divider } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
+import { RotateCw, Boxes, Target, Layers, PlayCircle, ClipboardList, AlertTriangle, ArrowUpRight, Sparkles } from "lucide-react";
 import dayjs from "dayjs";
 
 import { usePermission } from "@/hooks/usePermission";
@@ -25,13 +23,11 @@ import { useRouter } from "next/navigation";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  Kpi, Metric, ResultBar, fmtAgo, fmtDate, initialsOf, norm,
+import { Metric, ResultBar, fmtAgo, fmtDate, initialsOf, norm,
   useCoverageData, useUserProjects, type ModuleNode,
 } from "./shared";
 
 /** How many projects the rail lists before "Show more". */
-const PROJECTS_PREVIEW = 3;
 const SORTS = [
   { value: "activity", label: "Recent activity" },
   { value: "coverage", label: "Least covered" },
@@ -87,8 +83,6 @@ export default function CoverageMapPage() {
   const router = useRouter();
   const { canReadScope, canReadCase, canReadSuite, canReadRun } = usePermission();
 
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showAllProjects, setShowAllProjects] = useState(false);
   const [projectId, setProjectId] = useState<string | undefined>();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -179,8 +173,6 @@ export default function CoverageMapPage() {
     };
   }, [mappedNodes, scopes, cases, suites, runs]);
 
-  const visibleProjects = showAllProjects ? projects : projects.slice(0, PROJECTS_PREVIEW);
-  const hiddenProjectCount = Math.max(0, projects.length - PROJECTS_PREVIEW);
   const canRead = canReadScope || canReadCase || canReadSuite || canReadRun;
 
   if (!canRead) return null;
@@ -190,206 +182,173 @@ export default function CoverageMapPage() {
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
       <div className="dh-shell">
-        <div
-          className={`dh-sidebar-backdrop ${mobileSidebarOpen ? "is-open" : ""}`}
-          onClick={() => setMobileSidebarOpen(false)}
-          aria-hidden
-        />
-
-        <aside className={`dh-sidebar ${mobileSidebarOpen ? "is-mobile-open" : ""}`}>
-          <div className="dh-sidebar-top">
-            <div className="pp-side-head">
-              <div className="pp-side-logo"><BugOutlined /></div>
-              <div className="pp-side-head-text">
-                <h1 className="pp-side-title">Coverage</h1>
-                <p className="pp-side-subtitle">QA Space</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="dh-sidebar-scroll">
-            <span className="pp-nav-caption">Projects</span>
-            <button
-              className={`pp-nav-item ${!projectId ? "is-active" : ""}`}
-              onClick={() => { setProjectId(undefined); setMobileSidebarOpen(false); }}
-            >
-              <Boxes size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">All Projects</span>
-              {projects.length > 0 ? <span className="pp-nav-count">{projects.length}</span> : null}
-            </button>
-            {visibleProjects.map(p => (
-              <button
-                key={p.value}
-                className={`pp-nav-item ${projectId === p.value ? "is-active" : ""}`}
-                onClick={() => { setProjectId(p.value); setMobileSidebarOpen(false); }}
-                title={p.label}
-              >
-                {projectId === p.value
-                  ? <FolderOpen size={15} className="pp-nav-icon" />
-                  : <Folder size={15} className="pp-nav-icon" />}
-                <span className="pp-nav-label">{p.label}</span>
-              </button>
-            ))}
-            {!loadingProjects && projects.length === 0 && (
-              <span className="pp-nav-empty">No projects assigned</span>
-            )}
-            {hiddenProjectCount > 0 && (
-              <button
-                type="button"
-                className={`pp-nav-more ${showAllProjects ? "is-open" : ""}`}
-                onClick={() => setShowAllProjects(v => !v)}
-              >
-                <ChevronDown size={13} className="pp-nav-more-icon" />
-                {showAllProjects ? "Show less" : `Show ${hiddenProjectCount} more`}
-              </button>
-            )}
-
-            <span className="pp-nav-caption">View</span>
-            <button
-              className={`pp-nav-item ${!gapsOnly ? "is-active" : ""}`}
-              onClick={() => setGapsOnly(false)}
-            >
-              <Layers size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Everything</span>
-            </button>
-            <button
-              className={`pp-nav-item ${gapsOnly ? "is-active" : ""}`}
-              onClick={() => setGapsOnly(true)}
-            >
-              <AlertTriangle size={15} className="pp-nav-icon" />
-              <span className="pp-nav-label">Gaps only</span>
-            </button>
-          </div>
-        </aside>
-
         <main className="dh-main">
-          <header className="cm-hero">
-            <div className="cm-hero__main">
-              <Button
-                className="dh-mobile-menu-btn"
-                type="text"
-                icon={<Menu size={18} />}
-                onClick={() => setMobileSidebarOpen(true)}
-              />
-              <span className="cm-hero__badge">
-                {project ? initialsOf(project.label) : <Boxes size={17} />}
-              </span>
-              <div className="cm-hero__id">
-                <span className="cm-hero__eyebrow">
-                  <Sparkles size={11} />
-                  Coverage Map
-                </span>
-                <h1 className="cm-hero__title">{project?.label || "All projects"}</h1>
-              </div>
-            </div>
+          {/* ── Header row — project, search, view controls ─────────── */}
+          <div className="saas-header-container sc-header">
+            <QaProjectSwitcher
+              projects={projects as any}
+              value={projectId ?? null}
+              onChange={(id: string | null) => setProjectId(id ?? undefined)}
+              loading={loadingProjects}
+              placeholder="All projects"
+            />
 
-            <div className="cm-hero__side">
-              {/* Health at project level — each chip filters the map to its band. */}
-              <div className="cm-bands">
-                {HEALTH_LEGEND.map(l => {
-                  const n = bandCounts[l.band];
-                  const isOn = bandFilter === l.band;
-                  return (
-                    <Tooltip key={l.band} title={`${HEALTH_LABEL[l.band]} · latest run ${l.label}`}>
-                      <button
-                        type="button"
-                        className={`cm-band is-${l.band}${isOn ? " is-on" : ""}${n === 0 ? " is-zero" : ""}`}
-                        onClick={() => setBandFilter(isOn ? null : l.band)}
-                        disabled={n === 0}
-                      >
-                        <i />
-                        <b>{n}</b>
-                        <span className="cm-band__label">{HEALTH_LABEL[l.band]}</span>
-                      </button>
-                    </Tooltip>
-                  );
-                })}
-              </div>
+            <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
 
-              <div className="cm-hero__actions">
-                <Button
-                  type="default"
-                  icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
-                  onClick={refetch}
-                  disabled={loading}
-                  title="Refresh"
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0 }}
-                />
-              </div>
-            </div>
-          </header>
-
-          <div className="dh-main-scroll">
-            {/* Headline numbers for the selected project */}
-            <div className="cm-kpis">
-              <Kpi
-                icon={Boxes}
-                label="Modules in play"
-                value={totals.modules}
-                sub={`${totals.covered} with executed runs`}
-              />
-              <Kpi
-                icon={Target}
-                label="Scopes"
-                value={totals.scopes}
-                sub="planned against these modules"
-              />
-              <Kpi
-                icon={ClipboardList}
-                label="Cases"
-                value={totals.cases}
-                sub={`${totals.childCases} module cases beneath them`}
-              />
-              <Kpi
-                icon={Layers}
-                label="Suites"
-                value={totals.suites}
-                sub="assembled for execution"
-              />
-              <Kpi
-                icon={PlayCircle}
-                label="Runs"
-                value={totals.runs}
-                tone={totals.passRate !== null && totals.passRate >= 80 ? "green" : "blue"}
-                sub={totals.passRate === null ? "nothing executed yet" : `${totals.passRate}% pass · ${totals.failed} failed`}
-              />
-            </div>
-
-            {/* Controls */}
-            <div className="cm-controls">
+            <div className="sc-header-controls">
               <Input
-                className="cm-search"
-                placeholder="Search modules…"
-                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
+                placeholder="Quick search modules..."
+                prefix={<SearchOutlined style={{ color: "var(--text-slate-400)", fontSize: 12 }} />}
+                className="saas-input"
+                style={{ maxWidth: 260, borderRadius: 8, height: 30, background: "transparent", fontSize: 12 }}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 allowClear
               />
-              <div className="cm-seg">
-                {SORTS.map(s => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    className={sortKey === s.value ? "is-active" : ""}
-                    onClick={() => setSortKey(s.value)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-              {gapsOnly && (
-                <span className="cm-flag">
-                  <AlertTriangle size={12} />
-                  Showing modules missing cases or runs
-                </span>
-              )}
-
-              {bandFilter && (
-                <button type="button" className="cm-flag is-clear" onClick={() => setBandFilter(null)}>
-                  Showing {HEALTH_LABEL[bandFilter].toLowerCase()} modules only — clear
-                </button>
-              )}
             </div>
+
+            {/* Right side — the View switch that used to live in the rail,
+                then the ordering and refresh. */}
+            <Space size={10} className="sc-header-right">
+              <Segmented
+                className="saas-segmented-premium sc-owner-seg"
+                value={gapsOnly ? "gaps" : "all"}
+                onChange={(v: any) => setGapsOnly(v === "gaps")}
+                options={[
+                  {
+                    value: "all",
+                    label: (
+                      <span className="sc-owner-opt">
+                        <Layers size={13} />
+                        <span className="sc-owner-opt__label">Everything</span>
+                      </span>
+                    ),
+                  },
+                  {
+                    value: "gaps",
+                    label: (
+                      <span className="sc-owner-opt">
+                        <AlertTriangle size={13} />
+                        <span className="sc-owner-opt__label">Gaps only</span>
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+
+              <Segmented
+                className="saas-segmented-premium"
+                value={sortKey}
+                onChange={(v: any) => setSortKey(v)}
+                options={SORTS.map(s => ({ value: s.value, label: s.label }))}
+              />
+
+              <Tooltip title="Refresh map">
+                <Button
+                  icon={<RotateCw size={14} className={loading ? "animate-spin" : ""} />}
+                  onClick={refetch}
+                  disabled={loading}
+                  style={{ width: 36, height: 36, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+                />
+              </Tooltip>
+            </Space>
+          </div>
+
+          {/* ── Overview banner — the hero and the KPI row, together. The
+               health chips stay clickable and pin to the right edge. ─── */}
+          <div className="cm-banner">
+            <div className="cm-banner__main">
+              <div className="cm-banner__row1">
+                <span className="cm-banner__badge">
+                  {project ? initialsOf(project.label) : <Boxes size={15} />}
+                </span>
+                <span className="cm-banner__id">
+                  <span className="cm-banner__title">{project?.label || "All projects"} — Coverage Map</span>
+                  <span className="cm-banner__sub">
+                    Every module with a scope, case, suite or run behind it.
+                  </span>
+                </span>
+                <span className="cm-banner__tags">
+                  <span className="cm-banner__tag">{totals.modules} MODULES</span>
+                  {totals.passRate !== null && (
+                    <span
+                      className="cm-banner__tag"
+                      style={{
+                        color: totals.passRate >= 80 ? "#10b981" : totals.passRate >= 50 ? "#3b82f6" : "#ef4444",
+                        borderColor: totals.passRate >= 80 ? "rgba(16,185,129,.5)" : totals.passRate >= 50 ? "rgba(59,130,246,.5)" : "rgba(239,68,68,.5)",
+                      }}
+                    >
+                      {totals.passRate}% PASS
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <div className="cm-banner__row2">
+                <span className="cm-banner__meta">
+                  <Boxes size={11} />
+                  <b>{totals.covered}</b>/{totals.modules} modules with runs
+                </span>
+                <span className="cm-banner__meta">
+                  <Target size={11} />
+                  <b>{totals.scopes}</b> scopes
+                </span>
+                <span className="cm-banner__meta">
+                  <ClipboardList size={11} />
+                  <b>{totals.cases}</b> cases
+                  <span className="cm-banner__soft">({totals.childCases} module cases)</span>
+                </span>
+                <span className="cm-banner__meta">
+                  <Layers size={11} />
+                  <b>{totals.suites}</b> suites
+                </span>
+                <span className="cm-banner__meta">
+                  <PlayCircle size={11} />
+                  <b>{totals.runs}</b> runs
+                  {totals.failed > 0 && <span className="cm-banner__soft">({totals.failed} failed)</span>}
+                </span>
+              </div>
+            </div>
+
+            <div className="cm-banner__bands">
+              {HEALTH_LEGEND.map(l => {
+                const n = bandCounts[l.band];
+                const isOn = bandFilter === l.band;
+                return (
+                  <Tooltip key={l.band} title={`${HEALTH_LABEL[l.band]} · latest run ${l.label}`}>
+                    <button
+                      type="button"
+                      className={`cm-band is-${l.band}${isOn ? " is-on" : ""}${n === 0 ? " is-zero" : ""}`}
+                      onClick={() => setBandFilter(isOn ? null : l.band)}
+                      disabled={n === 0}
+                    >
+                      <i />
+                      <b>{n}</b>
+                      <span className="cm-band__label">{HEALTH_LABEL[l.band]}</span>
+                    </button>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="dh-main-scroll">
+            {/* Active-filter flags */}
+            {(gapsOnly || bandFilter) && (
+              <div className="cm-controls">
+                {gapsOnly && (
+                  <span className="cm-flag">
+                    <AlertTriangle size={12} />
+                    Showing modules missing cases or runs
+                  </span>
+                )}
+                {bandFilter && (
+                  <button type="button" className="cm-flag is-clear" onClick={() => setBandFilter(null)}>
+                    Showing {HEALTH_LABEL[bandFilter].toLowerCase()} modules only — clear
+                  </button>
+                )}
+              </div>
+            )}
 
             <ZukvoLoadingOverlay loading={loading} message="Building the coverage map…" minHeight={loading ? 360 : undefined}>
               <div className="cm-tree">
@@ -482,112 +441,93 @@ export default function CoverageMapPage() {
  * Palette stays blue / green / ash; red is reserved for failures.
  * ──────────────────────────────────────────────────────────────────────────── */
 const STYLES = `
-.dh-shell { display: flex; height: calc(100vh - 64px); background: transparent; overflow: hidden; position: relative; }
-.dh-sidebar {
-  width: 194px; background: transparent; border-right: 1px solid var(--border-slate-200);
-  display: flex; flex-direction: column; z-index: 10; flex-shrink: 0;
-}
-.dh-sidebar-backdrop { display: none; }
-.dh-sidebar-top { padding: 12px 10px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border-slate-100); }
-.pp-side-head { display: flex; align-items: center; gap: 9px; padding: 0 2px; }
-.pp-side-logo {
-  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-  background: var(--bg-blue-50); color: #3B82F6;
-  display: flex; align-items: center; justify-content: center; font-size: 15px;
-  border: 1px solid rgba(59,130,246,.16);
-}
-.pp-side-head-text { min-width: 0; }
-.pp-side-title { font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); line-height: 1.15; margin: 0; }
-.pp-side-subtitle { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; margin: 1px 0 0; letter-spacing: .02em; }
+.dh-shell { display: flex; height: calc(100vh - 64px); background: var(--bg-pure-white); overflow: hidden; position: relative; }
 
-.dh-sidebar-scroll { flex: 1; overflow-y: auto; padding: 12px 8px 16px; }
-.pp-nav-caption {
-  display: block; padding: 0 8px; margin: 0 0 6px;
-  font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--text-slate-400);
+/* ── Header row, matched to the Ticket List ────────────────────────────── */
+.sc-header {
+  position: sticky; top: 0; z-index: 100;
+  margin: 0; padding: 9.7px 16px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-pure-white);
+  border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
 }
-.pp-nav-caption + .pp-nav-item { margin-top: 0; }
-.pp-nav-item ~ .pp-nav-caption, .pp-nav-more + .pp-nav-caption { margin-top: 16px; }
-.pp-nav-item {
-  position: relative;
-  display: flex; align-items: center; gap: 9px; width: 100%; height: 33px; padding: 0 9px;
-  border-radius: 7px; border: none; background: transparent; color: var(--text-slate-600);
-  font-size: 12.5px; font-weight: 500; cursor: pointer; text-align: left;
-  transition: background .15s ease, color .15s ease; margin-bottom: 2px;
-}
-.pp-nav-icon { flex-shrink: 0; color: var(--text-slate-400); transition: color .15s ease; }
-.pp-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pp-nav-count {
-  flex-shrink: 0; min-width: 20px; padding: 1px 6px; border-radius: 999px;
-  font-size: 10.5px; font-weight: 700; text-align: center;
-  background: var(--bg-slate-50); color: var(--text-slate-500);
-  border: 1px solid var(--border-slate-100);
-}
-.pp-nav-item:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-.pp-nav-item:hover .pp-nav-icon { color: var(--text-slate-600); }
-.pp-nav-item.is-active { background: var(--bg-blue-50); color: #3B82F6; font-weight: 650; }
-.pp-nav-item.is-active .pp-nav-icon { color: #3B82F6; }
-.pp-nav-item.is-active .pp-nav-count { background: rgba(59,130,246,.14); color: #2563eb; border-color: transparent; }
-.pp-nav-item.is-active::before {
-  content: ''; position: absolute; left: -8px; top: 7px; bottom: 7px;
-  width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
-}
-.pp-nav-more {
-  display: flex; align-items: center; gap: 6px; width: 100%; height: 28px; padding: 0 9px;
-  margin-top: 2px; border: none; background: transparent; border-radius: 7px;
-  color: var(--text-slate-500); font-size: 11.5px; font-weight: 600; cursor: pointer; text-align: left;
-  transition: background .15s ease, color .15s ease;
-}
-.pp-nav-more:hover { background: var(--bg-slate-50); color: #3B82F6; }
-.pp-nav-more-icon { transition: transform .18s ease; }
-.pp-nav-more.is-open .pp-nav-more-icon { transform: rotate(180deg); }
-.pp-nav-empty { display: block; padding: 4px 9px 2px; font-size: 11.5px; color: var(--text-slate-400); }
+[data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
+.sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.sc-header-right { flex-shrink: 0; }
+.sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
+.sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
+.sc-owner-opt__label { font-size: 12px; font-weight: 600; white-space: nowrap; }
+@media (max-width: 1100px) { .sc-owner-opt__label { display: none; } }
 
+/* ── Overview banner — the hero and the KPI strip, together ───────────── */
+.cm-banner {
+  display: flex; align-items: stretch; gap: 16px;
+  background: var(--bg-slate-50);
+  border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+}
+[data-theme='dark'] .cm-banner { background: #0f1419; border-bottom-color: #1f2937; }
+.cm-banner__main {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 7px;
+  padding: 11px 16px;
+}
+.cm-banner__row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.cm-banner__badge {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 800; letter-spacing: -.02em;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+}
+.cm-banner__id { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.cm-banner__title {
+  font-size: 14px; font-weight: 800; letter-spacing: -.01em; color: var(--text-slate-900);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme='dark'] .cm-banner__title { color: #f1f5f9; }
+.cm-banner__sub {
+  font-size: 11.5px; color: var(--text-slate-500); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cm-banner__tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cm-banner__tag {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  line-height: 1; border-radius: 4px; background: transparent;
+  border: 1px solid rgba(100,116,139,.32); color: var(--text-slate-500);
+}
+.cm-banner__row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 44px; }
+.cm-banner__meta {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -.005em;
+}
+.cm-banner__meta b { color: var(--text-slate-900); font-weight: 800; }
+.cm-banner__soft { color: var(--text-slate-400); font-weight: 500; }
+[data-theme='dark'] .cm-banner__meta { color: #94a3b8; }
+[data-theme='dark'] .cm-banner__meta b { color: #f1f5f9; }
+/* The health chips keep filtering; they just live at the banner's right edge. */
+.cm-banner__bands {
+  display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+  padding: 11px 16px;
+  border-left: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .cm-banner__bands { border-left-color: #1f2937; }
+@media (max-width: 1100px) {
+  .cm-banner { flex-direction: column; gap: 0; }
+  .cm-banner__row2 { padding-left: 0; }
+  .cm-banner__bands {
+    border-left: none;
+    border-top: 1px solid var(--border-slate-200);
+    flex-wrap: wrap;
+  }
+}
 .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
-.dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 28px; background: transparent; }
-.dh-mobile-menu-btn { display: none !important; }
-
-/* ── KPI strip ─────────────────────────────────────────────────────────── */
-.cm-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
-.cm-kpi {
-  position: relative; overflow: hidden;
-  padding: 12px 14px; border-radius: 12px;
-  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
-  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-}
-.cm-kpi::after {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-  background: #3B82F6; opacity: .5;
-}
-.cm-kpi--green::after { background: #10b981; }
-.cm-kpi--ash::after { background: #94a3b8; }
-.cm-kpi:hover { border-color: #cbd5e1; box-shadow: 0 6px 20px rgba(15,23,42,.05); transform: translateY(-1px); }
-.cm-kpi__top { display: flex; align-items: center; gap: 7px; }
-.cm-kpi__ic {
-  width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(59,130,246,.1); color: #2563eb; border: 1px solid rgba(59,130,246,.18);
-}
-.cm-kpi--green .cm-kpi__ic { background: rgba(16,185,129,.1); color: #047857; border-color: rgba(16,185,129,.2); }
-.cm-kpi--ash .cm-kpi__ic { background: var(--bg-slate-50); color: var(--text-slate-500); border-color: var(--border-slate-100); }
-.cm-kpi__label { font-size: 11px; font-weight: 650; color: var(--text-slate-500); letter-spacing: .01em; }
-.cm-kpi__value { margin-top: 8px; font-size: 24px; font-weight: 800; letter-spacing: -.03em; color: var(--text-slate-900); line-height: 1; }
-.cm-kpi__sub { margin-top: 5px; font-size: 11px; color: var(--text-slate-400); line-height: 1.35; }
+.dh-main-scroll { flex: 1; overflow-y: auto; padding: 14px 16px 20px; background: transparent; }
 
 /* ── Controls ──────────────────────────────────────────────────────────── */
 .cm-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-.cm-search { width: 260px; }
-.cm-controls .ant-input-affix-wrapper { height: 32px !important; border-radius: 8px; }
-.cm-seg {
-  display: inline-flex; padding: 2px; gap: 2px;
-  border: 1px solid var(--border-slate-200); border-radius: 9px; background: var(--bg-slate-50);
-}
-.cm-seg button {
-  height: 26px; padding: 0 11px; border: none; border-radius: 7px; background: transparent; cursor: pointer;
-  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
-  transition: background .15s ease, color .15s ease;
-}
-.cm-seg button:hover { color: var(--text-slate-800); }
-.cm-seg button.is-active { background: var(--bg-pure-white); color: #2563eb; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+.cm-controls:empty { display: none; }
 .cm-flag {
   display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
   border-radius: 999px; font-size: 11.5px; font-weight: 600;
@@ -684,40 +624,7 @@ const STYLES = `
   color: var(--text-slate-500); background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
 }
 
-/* ── Hero header: the project first, the map second ────────────────────── */
-.cm-hero {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-  min-height: 56px; padding: 8px 20px; border-bottom: 1px solid var(--border-slate-200);
-  background: linear-gradient(180deg, rgba(59,130,246,.045), transparent);
-}
-.cm-hero__main { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.cm-hero__badge {
-  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12.5px; font-weight: 800; letter-spacing: -.02em;
-  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
-  box-shadow: 0 2px 8px rgba(59,130,246,.08);
-}
-.cm-hero__id { min-width: 0; }
-.cm-hero__eyebrow {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
-  color: #3B82F6;
-}
-.cm-hero__title {
-  margin: 1px 0 0; font-size: 16px; font-weight: 800; letter-spacing: -.03em; line-height: 1.2;
-  color: var(--text-slate-900);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.cm-hero__side { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
-.cm-hero__actions { display: flex; align-items: center; gap: 8px; }
-.cm-hero__actions .ant-btn { height: 32px !important; border-radius: 8px; }
-
 /* ── Health bands: legend and filter in one control ────────────────────── */
-.cm-bands {
-  display: inline-flex; align-items: center; gap: 2px; padding: 3px;
-  border-radius: 11px; background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-}
 .cm-band {
   display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
   border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer;
@@ -752,11 +659,6 @@ const STYLES = `
   .cm-band__label { display: none; }
   .cm-band { padding: 0 9px; }
 }
-@media (max-width: 760px) {
-  .cm-hero { padding: 8px 14px; }
-  .cm-hero__side { width: 100%; justify-content: space-between; }
-  .cm-hero__title { font-size: 15px; }
-}
 
 .cm-node__metrics { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
 .cm-metric {
@@ -779,9 +681,6 @@ const STYLES = `
 .cm-empty__desc { margin: 0; font-size: 12px; color: var(--text-slate-400); max-width: 380px; line-height: 1.5; }
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
-@media (max-width: 1280px) {
-  .cm-kpis { grid-template-columns: repeat(3, 1fr); }
-}
 @media (max-width: 1100px) {
   .cm-node__bar { display: none; }
 }
@@ -791,27 +690,10 @@ const STYLES = `
 @media (max-width: 820px) {
   .dh-shell { flex-direction: column; height: auto; min-height: calc(100vh - 64px); overflow: visible; }
   .dh-main { height: auto; overflow: visible; width: 100%; }
-  .dh-mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; margin-right: 8px; color: var(--text-slate-600); }
-  .dh-sidebar-backdrop {
-    display: block; position: fixed; inset: 0;
-    background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index: 1099;
-    opacity: 0; pointer-events: none; transition: opacity .3s;
-  }
-  .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
-  .dh-sidebar {
-    position: fixed; top: 0; left: -320px; bottom: 0; z-index: 1100;
-    height: 100%; width: 280px; box-sizing: border-box;
-    background: var(--bg-pure-white); border-right: 1px solid var(--border-slate-200);
-    transition: left .3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 24px rgba(0,0,0,.08);
-  }
-  .dh-sidebar.is-mobile-open { left: 0; }
-  .cm-kpis { grid-template-columns: repeat(2, 1fr); }
-  .dh-main-scroll { padding: 12px 14px 24px; }
-  .cm-search { width: 100%; }
+  .dh-main-scroll { padding: 12px 12px 24px; }
   .cm-node__metrics { width: 100%; justify-content: flex-start; }
 }
 @media (max-width: 520px) {
-  .cm-kpis { grid-template-columns: 1fr; }
   .cm-node__head { flex-wrap: wrap; }
 }
 `;

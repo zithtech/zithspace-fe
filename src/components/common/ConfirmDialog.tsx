@@ -50,6 +50,11 @@ export interface ConfirmDialogProps {
   /** Card width in px. Default 300. */
   width?: number;
   disabled?: boolean;
+  /**
+   * Blocks the confirm button while the card is open — for confirmations that
+   * ask for an input first (picking a target, say) rather than a plain yes/no.
+   */
+  confirmDisabled?: boolean;
   /** Controlled open state. If provided, the popover is controlled externally. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -69,6 +74,7 @@ export default function ConfirmDialog({
   placement = 'bottomRight',
   width = 300,
   disabled,
+  confirmDisabled,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   onConfirm,
@@ -149,6 +155,7 @@ export default function ConfirmDialog({
           type="primary"
           danger={tone === 'danger'}
           loading={busy}
+          disabled={confirmDisabled}
           onClick={handleConfirm}
           style={{
             borderRadius: 6,

@@ -3,13 +3,14 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { BlockNoteEditor } from "@blocknote/core";
-import { useCreateBlockNote } from "@blocknote/react";
+import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
+import { YoutubeOutlined } from '@ant-design/icons'
 import ZaiSelectionMenu from "@/components/documenthub/ZaiSelectionMenu";
 
 export type ViewMode = "edit" | "preview" | "combined";
 
 interface DocumentEditorProps {
-  editor: BlockNoteEditor | null;
+  editor: BlockNoteEditor<any, any, any> | null;
   viewMode: ViewMode;
   onChange?: () => void;
   /** Override the inline Zai rewrite call — see ZaiSelectionMenu.onRewrite. */
@@ -62,7 +63,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     if (editor && previewEditor && viewMode === "combined") {
       const syncContent = () => {
         const blocks = editor.document;
-        previewEditor.replaceBlocks(previewEditor.document, blocks);
+        previewEditor.replaceBlocks(previewEditor.document as any, blocks as any);
       };
 
       // Initial sync
@@ -76,7 +77,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const handleEditorChange = () => {
     if (viewMode === "combined" && previewEditor) {
-      previewEditor.replaceBlocks(previewEditor.document, editor.document);
+      previewEditor.replaceBlocks(previewEditor.document as any, editor.document as any);
     }
     if (onChange) {
       onChange();
@@ -84,7 +85,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }
 
   const renderEditor = (
-    instance: BlockNoteEditor,
+    instance: BlockNoteEditor<any, any, any>,
     editable: boolean,
     onInternalChange?: () => void,
     ref?: React.Ref<HTMLDivElement>,
@@ -102,7 +103,30 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         editable={editable}
         theme={currentTheme}
         onChange={onInternalChange || (editable ? onChange : undefined)}
-      />
+      >
+        <SuggestionMenuController
+          triggerCharacter={"/"}
+          getItems={async (query) => {
+            const defaultItems = getDefaultReactSlashMenuItems(instance);
+            const customItem = {
+              title: "Embed",
+              onItemClick: () => {
+                const currentBlock = instance.getTextCursorPosition().block;
+                instance.updateBlock(currentBlock, { type: "iframe" as any });
+              },
+              aliases: ["iframe", "youtube", "video embed"],
+              group: "Media",
+              icon: <YoutubeOutlined />,
+              subtext: "Embed a YouTube video, Vimeo, or Web Player",
+            };
+            const allItems = [...defaultItems, customItem] as any[];
+            return allItems.filter(item => 
+              item.title.toLowerCase().includes(query.toLowerCase()) || 
+              (item.aliases && item.aliases.some((alias: string) => alias.toLowerCase().includes(query.toLowerCase())))
+            );
+          }}
+        />
+      </BlockNoteView>
     </div>
   );
 

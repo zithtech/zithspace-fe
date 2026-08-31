@@ -143,12 +143,8 @@ export const CombinedSummaryCard: React.FC<CombinedSummaryCardProps> = ({
   return (
     <Card
       bordered={false}
-      style={{
-        background: "var(--bg-pure-white)",
-        border: "1px solid var(--border-color)",
-        borderRadius: 6,
-        height: "100%",
-      }}
+      className="po-panel"
+      style={{ height: "100%" }}
       styles={{ body: { padding: 20 } }}
     >
       <div style={{ display: "flex", alignItems: "stretch", gap: 32 }}>

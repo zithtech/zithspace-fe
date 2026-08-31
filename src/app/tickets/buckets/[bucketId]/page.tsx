@@ -1,6 +1,9 @@
 'use client';
 
 import NoData from "@/components/common/NoData";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import TicketFilterPill from "@/components/projects/TicketFilterPill";
+import BucketTicketFilters from "./BucketTicketFilters";
 import React, { useState, use, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
@@ -9,7 +12,6 @@ import {
   Typography,
   Button,
   Input,
-  Popconfirm,
   App,
   Avatar,
   Tooltip,
@@ -19,6 +21,7 @@ import {
   Popover,
   Badge,
   Divider,
+  Space,
 } from 'antd';
 import {
   FolderOpenOutlined,
@@ -28,21 +31,15 @@ import {
   ArrowLeftOutlined,
   RocketOutlined,
   FileTextOutlined,
-  ProjectOutlined,
-  GlobalOutlined,
-  LockOutlined,
-  TeamOutlined,
-  CrownOutlined,
-  ClockCircleOutlined,
   CheckCircleFilled,
-  PlayCircleFilled,
-  PauseCircleFilled,
   FlagOutlined,
   EyeOutlined,
   UserOutlined,
   ThunderboltOutlined,
-  InfoCircleOutlined,
   CalendarOutlined,
+  FilterOutlined,
+  ExpandAltOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -131,7 +128,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [sprintPopoverOpen, setSprintPopoverOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
 
   const { data: bucket, isLoading: bucketLoading, refetch: refetchBucket } = useBucket(bucketId);
@@ -352,33 +350,26 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       messageApi.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
       setSelectedRowKeys([]);
       setSelectedSprintId(undefined);
-      setSprintPopoverOpen(false);
       refetchTickets();
     } catch (error: any) {
       messageApi.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
     }
   };
 
-  const handleMoveToTrash = () => {
+  /* The card is the shared ConfirmDialog; this only does the work. */
+  const handleMoveToTrash = async () => {
     if (selectedRowKeys.length === 0) return;
-    modal.confirm({
-      title: 'Move to trash',
-      content: `Move ${selectedRowKeys.length} selected ticket(s) to trash?`,
-      okText: 'Move to Trash',
-      okType: 'danger',
-      onOk: async () => {
-        try {
-          await moveToTrash(selectedRowKeys);
-          queryClient.invalidateQueries({ queryKey: bucketKeys.all });
-          queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-          setSelectedRowKeys([]);
-          refetchTickets();
-          messageApi.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
-        } catch (error: any) {
-          messageApi.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
-        }
-      },
-    });
+    try {
+      await moveToTrash(selectedRowKeys);
+      queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+      const moved = selectedRowKeys.length;
+      setSelectedRowKeys([]);
+      refetchTickets();
+      messageApi.success(`${moved} ticket(s) moved to trash`);
+    } catch (error: any) {
+      messageApi.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
+    }
   };
 
   const resetFilters = () => {
@@ -394,87 +385,51 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
     (priorityFilter ? 1 : 0) +
     (assigneeFilter ? 1 : 0);
 
-  const sprintPopoverContent = (
-    <div className="bd2-sprint-pop">
-      <div className="bd2-sprint-pop-head">
-        <div
-          className="bd2-sprint-pop-icon"
-          style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}
-        >
-          <RocketOutlined />
-        </div>
-        <div>
-          <div className="bd2-sprint-pop-title">Move to Sprint</div>
-          <div className="bd2-sprint-pop-sub">
-            Reassign {selectedRowKeys.length} ticket(s) to an active or planning sprint.
-          </div>
-        </div>
-      </div>
-      <Divider style={{ margin: '10px 0' }} />
-      <div className="bd2-sprint-pop-field">
-        <span className="bd2-sprint-pop-label">
-          <ThunderboltOutlined style={{ fontSize: 9 }} /> Target sprint
-        </span>
-        <SearchableDropdown
-          placeholder={sprintsLoading ? 'Loading sprints…' : 'Select a sprint'}
-          options={
-            sprints?.map((s) => ({
-              value: s.id,
-              label: s.version,
-              description: s.status === 'active' ? 'Active' : 'Planning',
-              badge: <Badge status={s.status === 'active' ? 'processing' : 'default'} />,
-            })) || []
-          }
-          value={selectedSprintId}
-          onChange={(v) => setSelectedSprintId(v)}
-          disabled={!sprints?.length || sprintsLoading}
-          style={{ width: '100%', height: 36, borderRadius: 8 }}
-          width={260}
-        />
-      </div>
-      <div className="bd2-sprint-pop-preview">
-        <span>
-          <FileTextOutlined style={{ color: accent }} /> <b>{selectedRowKeys.length}</b> ticket(s)
-        </span>
-        <Tooltip title="Selected tickets will be reassigned to the chosen sprint.">
-          <InfoCircleOutlined style={{ color: '#94a3b8' }} />
-        </Tooltip>
-      </div>
-      <Button
-        type="primary"
-        block
-        size="small"
-        disabled={!selectedSprintId}
-        loading={isMovingToSprint}
-        onClick={handleMoveToSprint}
-        style={{
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
-          border: 'none',
-        }}
-      >
-        Move to Sprint
-      </Button>
+  /* The sprint picker rides inside the shared ConfirmDialog rather than a
+     hand-rolled popover, so it confirms like every other action. */
+  const sprintPickerBody = (
+    <div className="bd2-sprint-pick">
+      <span className="bd2-sprint-pick-label">
+        <ThunderboltOutlined style={{ fontSize: 9 }} /> Target sprint
+      </span>
+      <SearchableDropdown
+        placeholder={sprintsLoading ? 'Loading sprints…' : 'Select a sprint'}
+        options={
+          sprints?.map((sp) => ({
+            value: sp.id,
+            label: sp.version,
+            description: sp.status === 'active' ? 'Active' : 'Planning',
+            badge: <Badge status={sp.status === 'active' ? 'processing' : 'default'} />,
+          })) || []
+        }
+        value={selectedSprintId}
+        onChange={(v) => setSelectedSprintId(v)}
+        disabled={!sprints?.length || sprintsLoading}
+        style={{ width: '100%', height: 34, borderRadius: 8 }}
+        width={252}
+      />
+      <span className="bd2-sprint-pick-note">
+        <FileTextOutlined style={{ color: accent }} />
+        <b>{selectedRowKeys.length}</b> ticket(s) will move out of this bucket.
+      </span>
     </div>
   );
 
   // ────────────────────────── Loading ──────────────────────────
   if (authLoading || (bucketLoading && !bucket)) {
     return (
-      <MainLayout>
+      <MainLayout noPadding>
         <div className="bd2-page">
-          <div className="bd2-header bd2-header-skeleton">
-            <Skeleton.Input active size="small" style={{ width: 320, height: 28 }} />
+          <div className="bd2-header sc-header bd2-header-skeleton">
+            <Skeleton.Input active size="small" style={{ width: 320, height: 26 }} />
+          </div>
+          <div className="tl-section-head tl-sprint-head-v2">
+            <Skeleton active paragraph={{ rows: 2 }} title={false} />
           </div>
           <div className="bd2-content">
-            <div className="bd2-kpi-strip">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bd2-kpi">
-                  <Skeleton active paragraph={{ rows: 1 }} title={false} />
-                </div>
-              ))}
+            <div className="bd2-list">
+              <Skeleton active paragraph={{ rows: 8 }} />
             </div>
-            <Skeleton active paragraph={{ rows: 8 }} />
           </div>
         </div>
       </MainLayout>
@@ -482,79 +437,89 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   }
 
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div className="bd2-page" style={{ ['--accent' as any]: accent }}>
-        {/* ─────────── Sticky Header ─────────── */}
-        <header className="bd2-header">
-          <span className="bd2-header-stripe" style={{ background: accent }} />
-          <div className="bd2-header-left">
-            <Tooltip title="Back to Buckets Hub">
-              <Button
-                type="text"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push('/tickets/buckets')}
-                className="bd2-back-btn"
-              />
-            </Tooltip>
-            <div
-              className="bd2-header-icon"
-              style={{
-                background: `linear-gradient(135deg, ${accent}22 0%, ${accent}3a 100%)`,
-                color: accent,
-                borderColor: `${accent}66`,
-              }}
-            >
-              <FolderOpenOutlined />
-            </div>
-            <div className="bd2-header-text">
-              <div className="bd2-header-title-row">
-                <Title level={4} className="bd2-header-title">{bucket?.name}</Title>
-                {bucket?.userRole === 'owner' && (
-                  <Tooltip title="You own this bucket">
-                    <CrownOutlined style={{ fontSize: 13, color: '#f59e0b' }} />
-                  </Tooltip>
-                )}
-              </div>
-              <div className="bd2-header-meta">
-                {bucket?.project ? (
-                  <span className="bd2-meta-pill">
-                    <ProjectOutlined style={{ fontSize: 9 }} />
-                    {bucket.project.name}
-                  </span>
-                ) : (
-                  <span className="bd2-meta-pill muted">Cross-Project</span>
-                )}
-                {bucket?.isShared ? (
-                  <span className="bd2-meta-pill" style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.22)', color: '#047857' }}>
-                    <GlobalOutlined style={{ fontSize: 9 }} /> Public
-                  </span>
-                ) : (
-                  <span className="bd2-meta-pill" style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.22)', color: '#b45309' }}>
-                    <LockOutlined style={{ fontSize: 9 }} /> Private
-                  </span>
-                )}
-                {bucket?.description && (
-                  <span className="bd2-meta-pill muted" title={bucket.description}>
-                    <FileTextOutlined style={{ fontSize: 9 }} />
-                    {bucket.description.length > 56 ? `${bucket.description.slice(0, 56)}…` : bucket.description}
-                  </span>
-                )}
-              </div>
-            </div>
+        {/* ── Header row — back, breadcrumb, search, filters ─────────── */}
+        <header className="bd2-header saas-header-container sc-header">
+          <Tooltip title="Back to Buckets Hub">
+            <Button
+              type="text"
+              size="small"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push('/tickets/buckets')}
+              className="bd2-back-btn"
+              aria-label="Back to Buckets Hub"
+            />
+          </Tooltip>
+
+          <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+          {/* The bucket's place in the tree, where the list pages put their
+              project switcher. */}
+          <div className="bd2-crumbs">
+            <button type="button" className="bd2-crumb" onClick={() => router.push('/tickets/buckets')}>Buckets</button>
+            {bucket?.project?.name && (
+              <>
+                <span className="bd2-sep">›</span>
+                <span className="bd2-crumb bd2-crumb--strong">{bucket.project.name}</span>
+              </>
+            )}
+            <span className="bd2-sep">›</span>
+            <span className="bd2-crumb-title" title={bucket?.name}>{bucket?.name}</span>
           </div>
 
-          <div className="bd2-header-right">
-            <div className="bd2-progress-tile">
-              <div className="bd2-progress-bar">
-                <div
-                  className="bd2-progress-fill"
-                  style={{ width: `${analytics.completion}%`, background: accent }}
-                />
-              </div>
-              <span className="bd2-progress-text" style={{ color: accent }}>
-                {analytics.completion}<span style={{ fontSize: 10 }}>%</span>
-              </span>
-            </div>
+          <div className="sc-header-controls">
+            <Input
+              placeholder="Quick search by # or title..."
+              prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
+              className="saas-input"
+              style={{ maxWidth: 260, borderRadius: 8, height: 30, background: 'transparent', fontSize: 12 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+            />
+
+            <Space.Compact className="ticket-filter-group">
+              <Popover
+                content={
+                  <BucketTicketFilters
+                    filters={{ status: statusFilter || undefined, priority: priorityFilter || undefined, assignee: assigneeFilter || undefined }}
+                    onFilterChange={(key: any, val: any) => {
+                      if (key === 'status') setStatusFilter(val || null);
+                      if (key === 'priority') setPriorityFilter(val || null);
+                      if (key === 'assignee') setAssigneeFilter(val || null);
+                    }}
+                    onReset={resetFilters}
+                    statusOptions={statusOptions as any}
+                    priorityOptions={priorityOptions as any}
+                    assigneeOptions={assigneeOptions as any}
+                  />
+                }
+                trigger="click"
+                open={isFilterPanelOpen}
+                onOpenChange={setIsFilterPanelOpen}
+                placement="bottomLeft"
+                overlayClassName="tf-popover-overlay"
+                styles={{ body: { padding: 0 } }}
+              >
+                <Button
+                  icon={<FilterOutlined />}
+                  className={activeFilterCount > 0 ? 'saas-tag-blue' : ''}
+                  style={{ height: 30, fontWeight: 600, fontSize: 12 }}
+                >
+                  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                </Button>
+              </Popover>
+              <Button
+                icon={<ExpandAltOutlined />}
+                style={{ height: 30 }}
+                aria-label="Expand filters"
+                onClick={() => setIsFilterRowOpen((v) => !v)}
+              />
+            </Space.Compact>
+          </div>
+
+          <Space size={10} className="sc-header-right">
             <Tooltip title="Refresh">
               <Button
                 icon={<ReloadOutlined spin={isRefreshing} />}
@@ -569,7 +534,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   messageApi.success('Bucket refreshed');
                 }}
                 loading={ticketsLoading && !isRefreshing}
-                className="bd2-action-btn"
+                style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               />
             </Tooltip>
             {canReadActivityLog && bucket && (
@@ -577,12 +542,112 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 <Button
                   icon={<HistoryIcon size={14} strokeWidth={1.75} />}
                   onClick={() => setHistoryOpen(true)}
-                  className="bd2-action-btn"
+                  style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 />
               </Tooltip>
             )}
-          </div>
+          </Space>
         </header>
+
+        {/* ── Inline filter row — the pill strip the Ticket List uses ── */}
+        {isFilterRowOpen && (
+          <div className="tl-filter-row">
+            <div className="tl-filter-row-label">
+              <FilterOutlined style={{ fontSize: 11 }} />
+              <span>Filters</span>
+              <span className="tl-filter-row-count">{activeFilterCount > 0 ? activeFilterCount : '0'}</span>
+            </div>
+            <div className="tl-filter-row-pills">
+              <TicketFilterPill
+                icon={<CheckCircleFilled style={{ fontSize: 11 }} />}
+                label="Status"
+                value={statusFilter || ""}
+                options={statusOptions as any}
+                onChange={(val: any) => setStatusFilter(val || null)}
+                itemNoun="statuses"
+                multiple={false}
+              />
+              <TicketFilterPill
+                icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+                label="Priority"
+                value={priorityFilter || ""}
+                options={priorityOptions as any}
+                onChange={(val: any) => setPriorityFilter(val || null)}
+                itemNoun="priorities"
+                multiple={false}
+              />
+              <TicketFilterPill
+                icon={<UserOutlined style={{ fontSize: 11 }} />}
+                label="Assignee"
+                value={assigneeFilter || ""}
+                options={assigneeOptions as any}
+                onChange={(val: any) => setAssigneeFilter(val || null)}
+                itemNoun="assignees"
+                width={260}
+                multiple={false}
+                showAvatar
+              />
+            </div>
+            <div className="tl-filter-row-actions">
+              {activeFilterCount > 0 && (
+                <button type="button" className="tl-filter-row-reset" onClick={resetFilters}>
+                  <ReloadOutlined style={{ fontSize: 10 }} />
+                  Reset
+                </button>
+              )}
+              <button
+                type="button"
+                className="tl-filter-row-close"
+                onClick={() => setIsFilterRowOpen(false)}
+                aria-label="Close filters"
+                title="Close filters"
+              >
+                <CloseOutlined style={{ fontSize: 10 }} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Overview banner — the Ticket List's sprint head, reading this
+             bucket: what it holds and how much of it is done. ──────────── */}
+        <div className="tl-section-head tl-sprint-head-v2 tl-section-head--static">
+          <div className="tl-sprint-row1">
+            <div className="tl-sprint-title-block">
+              <span className="tl-sprint-dot" style={{ background: accent, boxShadow: `0 0 0 3px ${accent}33` }} />
+              <span className="tl-sprint-title bd2-banner-title">{bucket?.name}</span>
+              <span className="tl-sprint-tags">
+                <span className="tl-sprint-tag tl-sprint-tag-neutral">{analytics.total} TICKETS</span>
+                {bucket?.isShared
+                  ? <span className="tl-sprint-tag tl-sprint-tag-active">PUBLIC</span>
+                  : <span className="tl-sprint-tag tl-sprint-tag-neutral">PRIVATE</span>}
+                {bucket?.userRole === 'owner' && (
+                  <span className="tl-sprint-tag tl-sprint-tag-running">OWNER</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="tl-sprint-row2">
+            <span className="tl-sprint-meta"><b>{analytics.completed}</b> completed</span>
+            <span className="tl-sprint-meta"><b>{analytics.inProgress}</b> in progress</span>
+            <span className="tl-sprint-meta"><b>{analytics.todo}</b> to do</span>
+            <span className="tl-sprint-meta"><b>{analytics.blocked}</b> blocked</span>
+            <span className="tl-sprint-meta"><b>{analytics.assigneeCount}</b> assignees</span>
+            {bucket?.description && (
+              <span className="tl-sprint-meta" title={bucket.description}>
+                <FileTextOutlined style={{ fontSize: 10 }} />
+                {bucket.description.length > 48 ? `${bucket.description.slice(0, 48)}…` : bucket.description}
+              </span>
+            )}
+          </div>
+
+          <div className="tl-sprint-row3">
+            <div className="tl-sprint-progress-bar">
+              <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, analytics.completion)}%` }} />
+            </div>
+            <span className="tl-sprint-progress-pct">{analytics.completion}%</span>
+          </div>
+        </div>
 
         {bucket && (
           <TransactionHistoryDrawer
@@ -596,26 +661,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
         {/* ─────────── Content ─────────── */}
         <div className="bd2-content">
-          {/* KPI strip */}
-          <div className="bd2-kpi-strip">
-            {[
-              { key: 'total', label: 'Tickets', value: analytics.total, color: accent, icon: <FileTextOutlined /> },
-              { key: 'completed', label: 'Completed', value: analytics.completed, color: '#10b981', icon: <CheckCircleFilled /> },
-              { key: 'in_progress', label: 'In Progress', value: analytics.inProgress, color: '#3b82f6', icon: <PlayCircleFilled /> },
-              { key: 'todo', label: 'To Do', value: analytics.todo, color: '#f59e0b', icon: <ClockCircleOutlined /> },
-              { key: 'blocked', label: 'Blocked', value: analytics.blocked, color: '#ef4444', icon: <PauseCircleFilled /> },
-              { key: 'assignees', label: 'Assignees', value: analytics.assigneeCount, color: '#64748b', icon: <TeamOutlined /> },
-            ].map((k) => (
-              <div key={k.key} className="bd2-kpi" style={{ ['--c1' as any]: k.color, ['--c-bg' as any]: `${k.color}14`, ['--c-border' as any]: `${k.color}33` }}>
-                <div className="bd2-kpi-icon">{k.icon}</div>
-                <div className="bd2-kpi-meta">
-                  <Text className="bd2-kpi-value">{k.value}</Text>
-                  <Text className="bd2-kpi-label">{k.label}</Text>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {/* Sticky Toolbar */}
           <div className="bd2-toolbar">
             {selectedRowKeys.length > 0 ? (
@@ -632,34 +677,33 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   <button className="bd2-bulk-clear" onClick={clearSelection}>Clear</button>
                 </div>
                 <div className="bd2-bulk-actions">
-                  <Popover
-                    content={sprintPopoverContent}
-                    title={null}
-                    trigger="click"
-                    open={sprintPopoverOpen}
-                    onOpenChange={setSprintPopoverOpen}
-                    placement="bottomRight"
-                    overlayInnerStyle={{ borderRadius: 12, padding: 12, width: 320 }}
+                  <ConfirmDialog
+                    tone="primary"
+                    icon={<RocketOutlined />}
+                    title="Move to Sprint"
+                    description={sprintPickerBody}
+                    confirmText="Move to Sprint"
+                    confirmDisabled={!selectedSprintId}
+                    width={300}
+                    onConfirm={handleMoveToSprint}
+                    onCancel={() => setSelectedSprintId(undefined)}
                   >
                     <Button
                       size="small"
                       type="primary"
                       icon={<RocketOutlined />}
                       loading={isMovingToSprint}
-                      style={{
-                        fontWeight: 700,
-                        background: `linear-gradient(135deg, ${accent} 0%, ${accent}cc 100%)`,
-                        border: 'none',
-                      }}
+                      style={{ fontWeight: 700 }}
                     >
                       Move to Sprint
                     </Button>
-                  </Popover>
-                  <Popconfirm
+                  </ConfirmDialog>
+                  <ConfirmDialog
+                    tone="danger"
                     title="Move to trash?"
-                    description={`Move ${selectedRowKeys.length} ticket(s) to trash?`}
+                    description={`${selectedRowKeys.length} ticket(s) will be moved to trash. You can restore them from there.`}
+                    confirmText="Move to Trash"
                     onConfirm={handleMoveToTrash}
-                    okButtonProps={{ danger: true }}
                   >
                     <Button
                       size="small"
@@ -670,7 +714,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                     >
                       Move to Trash
                     </Button>
-                  </Popconfirm>
+                  </ConfirmDialog>
                 </div>
               </div>
             ) : (
@@ -690,52 +734,12 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                     {(ticketsData?.pagination?.total || 0) === 1 ? 'ticket' : 'tickets'}
                   </span>
                 </div>
-                <div className="bd2-filter-group">
-                  <SearchableDropdown
-                    placeholder="Status"
-                    options={statusOptions}
-                    value={statusFilter || undefined}
-                    onChange={(v) => setStatusFilter(v || null)}
-                    itemNoun="statuses"
-                    style={{ height: 32, minWidth: 140, borderRadius: 8 }}
-                    width={240}
-                  />
-                  <SearchableDropdown
-                    placeholder="Priority"
-                    options={priorityOptions}
-                    value={priorityFilter || undefined}
-                    onChange={(v) => setPriorityFilter(v || null)}
-                    itemNoun="priorities"
-                    style={{ height: 32, minWidth: 140, borderRadius: 8 }}
-                    width={220}
-                  />
-                  <SearchableDropdown
-                    placeholder="Assignee"
-                    options={assigneeOptions}
-                    value={assigneeFilter || undefined}
-                    onChange={(v) => setAssigneeFilter(v || null)}
-                    itemNoun="assignees"
-                    style={{ height: 32, minWidth: 160, borderRadius: 8 }}
-                    width={260}
-                  />
-                  {activeFilterCount > 0 && (
-                    <button className="bd2-reset-btn" onClick={resetFilters}>
-                      <ReloadOutlined style={{ fontSize: 10 }} />
-                      Reset · {activeFilterCount}
-                    </button>
-                  )}
-                </div>
-                <div className={`bd2-search ${searchText ? 'active' : ''}`}>
-                  <SearchOutlined style={{ color: searchText ? accent : '#94a3b8', fontSize: 13 }} />
-                  <Input
-                    placeholder="Search by # or title"
-                    variant="borderless"
-                    style={{ fontSize: 12.5, padding: '4px 0', background: 'transparent' }}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    allowClear
-                  />
-                </div>
+                {activeFilterCount > 0 && (
+                  <button className="bd2-reset-btn" onClick={resetFilters}>
+                    <ReloadOutlined style={{ fontSize: 10 }} />
+                    Reset · {activeFilterCount}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -894,7 +898,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         <style jsx global>{`
           /* ── Page shell ──────────────────────────────────── */
           .bd2-page {
-            margin: 0 -24px;
+            margin: 0;
             background: var(--bg-pure-white);
             min-height: calc(100vh - 64px);
             display: flex;
@@ -918,247 +922,180 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             background: #0d1117 !important;
             border-bottom-color: #1f2937 !important;
           }
-          .bd2-header-stripe {
-            position: absolute;
-            left: 0;
-            top: 10px;
-            bottom: 10px;
-            width: 3px;
-            border-radius: 0 999px 999px 0;
-            opacity: 0.85;
-          }
-          .bd2-header-skeleton {
-            justify-content: flex-start;
-          }
-          .bd2-header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-            flex: 1;
-          }
-          .bd2-back-btn {
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 8px !important;
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-slate-600) !important;
-            border: 1px solid var(--border-slate-200) !important;
-          }
-          .bd2-back-btn:hover {
-            color: var(--accent, #3b82f6) !important;
-            border-color: var(--accent, #3b82f6) !important;
-          }
-          [data-theme='dark'] .bd2-back-btn {
-            border-color: #2d3748 !important;
-            color: #cbd5e1 !important;
-          }
-          .bd2-header-icon {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            border: 1px solid;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-          }
-          .bd2-header-text {
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-          }
-          .bd2-header-title-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          .bd2-header-title.ant-typography {
-            margin: 0 !important;
-            font-size: 16px !important;
-            font-weight: 800 !important;
-            letter-spacing: -0.025em;
-            color: var(--text-slate-900);
-            line-height: 1.2;
-          }
-          [data-theme='dark'] .bd2-header-title.ant-typography {
-            color: #f1f5f9 !important;
-          }
-          .bd2-header-meta {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            min-width: 0;
-          }
-          .bd2-meta-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 8px;
-            border-radius: 999px;
-            border: 1px solid var(--border-slate-200);
-            background: var(--bg-slate-50);
-            font-size: 10.5px;
-            font-weight: 700;
-            color: var(--text-slate-700);
-            max-width: 360px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-          .bd2-meta-pill.muted {
-            color: var(--text-slate-500);
-          }
-          [data-theme='dark'] .bd2-meta-pill {
-            background: #1c232e !important;
-            border-color: #2d3748 !important;
-            color: #cbd5e1 !important;
-          }
-
-          .bd2-header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-          }
-          .bd2-progress-tile {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 12px;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 9px;
-          }
-          [data-theme='dark'] .bd2-progress-tile {
-            background: #1c232e !important;
-            border-color: #2d3748 !important;
-          }
-          .bd2-progress-bar {
-            position: relative;
-            width: 100px;
-            height: 6px;
-            border-radius: 999px;
-            background: var(--border-slate-100);
-            overflow: hidden;
-          }
-          [data-theme='dark'] .bd2-progress-bar {
-            background: #2d3748 !important;
-          }
-          .bd2-progress-fill {
-            position: absolute;
-            inset: 0;
-            border-radius: 999px;
-            transition: width 0.3s ease;
-          }
-          .bd2-progress-text {
-            font-size: 13px;
-            font-weight: 800;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -0.02em;
-          }
-          .bd2-action-btn {
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 8px !important;
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-pure-white) !important;
-            border: 1px solid var(--border-slate-200) !important;
-            color: var(--text-slate-600) !important;
-          }
-          .bd2-action-btn:hover {
-            color: var(--accent, #3b82f6) !important;
-            border-color: var(--accent, #3b82f6) !important;
-          }
-          [data-theme='dark'] .bd2-action-btn {
-            background: #0d1117 !important;
-            border-color: #2d3748 !important;
-            color: #cbd5e1 !important;
-          }
 
           /* ── Content body ────────────────────────────────── */
           .bd2-content {
             flex: 1;
-            padding: 16px 28px 32px;
+            padding: 0;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 0;
           }
 
-          /* ── KPI strip ───────────────────────────────────── */
-          .bd2-kpi-strip {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 10px;
-          }
-          @media (max-width: 1280px) {
-            .bd2-kpi-strip { grid-template-columns: repeat(3, 1fr); }
-          }
-          @media (max-width: 720px) {
-            .bd2-kpi-strip { grid-template-columns: repeat(2, 1fr); }
-          }
-          .bd2-kpi {
-            position: relative;
+          /* ── Header row, matched to the Ticket List ─────────────── */
+          .bd2-header.sc-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: auto;
+            min-height: 0;
+            margin: 0;
+            padding: 9.7px 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 14px;
+            gap: 10px;
+            flex-wrap: wrap;
             background: var(--bg-pure-white);
-            border: 1px solid var(--border-slate-200);
-            border-radius: 12px;
-            transition: border-color 0.18s ease;
-            overflow: hidden;
-          }
-          .bd2-kpi:hover {
-            border-color: var(--c1);
-          }
-          [data-theme='dark'] .bd2-kpi {
-            background: #161b22 !important;
-            border-color: #1f2937 !important;
-          }
-          .bd2-kpi-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--c-bg);
-            border: 1px solid var(--c-border);
-            color: var(--c1);
-            font-size: 14px;
+            border-bottom: 1px solid var(--border-slate-200);
             flex-shrink: 0;
           }
-          .bd2-kpi-meta {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
+          [data-theme='dark'] .bd2-header.sc-header { background: #0f1419; border-bottom-color: #1f2937; }
+          .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+          .sc-header-right { flex-shrink: 0; }
+          .bd2-back-btn {
+            width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+            display: inline-flex !important; align-items: center; justify-content: center;
+            color: var(--text-slate-500);
           }
-          .bd2-kpi-value {
-            font-size: 20px !important;
-            font-weight: 800 !important;
-            color: var(--text-slate-900) !important;
-            letter-spacing: -0.025em;
-            font-variant-numeric: tabular-nums;
-            line-height: 1;
+          .bd2-back-btn:hover { background: var(--bg-slate-100); color: #2563eb; }
+
+          .bd2-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 40%; }
+          .bd2-crumb {
+            font-size: 12px; font-weight: 600; color: var(--text-slate-500);
+            background: none; border: none; padding: 0; cursor: pointer; white-space: nowrap;
+            font-family: inherit;
           }
-          [data-theme='dark'] .bd2-kpi-value {
-            color: #f1f5f9 !important;
+          button.bd2-crumb:hover { color: #2563eb; text-decoration: underline; }
+          .bd2-crumb--strong { color: var(--text-slate-700); cursor: default; }
+          .bd2-sep { color: var(--text-slate-300); font-size: 11px; flex-shrink: 0; }
+          .bd2-crumb-title {
+            font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em;
+            min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           }
-          .bd2-kpi-label {
-            font-size: 9.5px !important;
-            font-weight: 800 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-slate-500) !important;
-            margin-top: 4px;
+          [data-theme='dark'] .bd2-crumb-title { color: #f1f5f9; }
+          [data-theme='dark'] .bd2-crumb--strong { color: #cbd5e1; }
+
+          /* ── Overview banner ────────────────────────────────────── */
+          .tl-section-head {
+            padding: 10px 16px;
+            background: var(--bg-slate-50);
+            border-bottom: 1px solid var(--border-slate-200);
+            flex-shrink: 0;
+          }
+          [data-theme='dark'] .tl-section-head { background: #0f1419; border-bottom-color: #1f2937; }
+          .tl-sprint-head-v2 { display: flex; flex-direction: column; gap: 6px; }
+          .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+          .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+          .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+          .bd2-banner-title {
+            font-size: 14px; font-weight: 800; color: var(--text-slate-900);
+            letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          }
+          [data-theme='dark'] .bd2-banner-title { color: #f1f5f9; }
+          .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+          .tl-sprint-tag {
+            display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+            font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
+            border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+          }
+          .tl-sprint-tag-active { background: transparent; color: #10b981; border-color: rgba(16,185,129,0.32); }
+          .tl-sprint-tag-neutral { background: transparent; color: #64748b; border-color: rgba(100,116,139,0.32); }
+          .tl-sprint-tag-running { background: transparent; color: #3b82f6; border-color: rgba(59,130,246,0.32); }
+          [data-theme='dark'] .tl-sprint-tag-active { color: #34d399; }
+
+          .tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 15px; }
+          .tl-sprint-meta {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
+          }
+          .tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+          [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+          [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
+
+          .tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 15px; }
+          .tl-sprint-progress-bar {
+            flex: 1 1 auto; position: relative; height: 6px;
+            background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
+          }
+          [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+          .tl-sprint-progress-fill {
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            border-radius: 999px; transition: width 0.4s ease;
+          }
+          .tl-sprint-progress-pct {
+            flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+            font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+          }
+          [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
+
+          /* ── Inline filter row ──────────────────────────────────── */
+          .tl-filter-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+            background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
+            flex-shrink: 0;
+          }
+          [data-theme='dark'] .tl-filter-row { background: #0f1419; border-bottom-color: #1f2937; }
+          .tl-filter-row-label {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10.5px; font-weight: 800; color: var(--text-slate-500);
+            text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+          }
+          .tl-filter-row-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; padding: 0 6px;
+            background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+            color: var(--text-slate-500); border-radius: 999px;
+            font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+          }
+          .tl-filter-row-pills { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+          .tl-filter-row-actions { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; }
+          .tl-filter-row-reset {
+            display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px;
+            background: transparent; border: 1px dashed var(--border-slate-200); border-radius: 8px;
+            font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+          }
+          .tl-filter-row-reset:hover {
+            color: #1d4ed8; border-color: rgba(59,130,246,0.45);
+            background: rgba(59,130,246,0.06); border-style: solid;
+          }
+          .tl-filter-row-close {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; background: transparent;
+            border: 1px solid var(--border-slate-200); border-radius: 8px;
+            color: var(--text-slate-500); cursor: pointer;
+            transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+          }
+          .tl-filter-row-close:hover { color: var(--text-slate-900); background: var(--bg-pure-white); border-color: var(--text-slate-400); }
+          [data-theme='dark'] .tl-filter-row-label { color: #94a3b8; }
+          [data-theme='dark'] .tl-filter-row-count { background: #111720; border-color: #2d3748; color: #cbd5e1; }
+          [data-theme='dark'] .tl-filter-row-reset,
+          [data-theme='dark'] .tl-filter-row-close { border-color: #2d3748; color: #94a3b8; }
+
+          /* The selection bar and the list keep their own gutter. */
+          .bd2-toolbar { padding: 10px 16px 0; }
+          .bd2-list { padding: 10px 16px 16px; }
+
+          /* The sprint picker, inside the shared confirm card. */
+          .bd2-sprint-pick { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+          .bd2-sprint-pick-label {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-slate-400);
+          }
+          .bd2-sprint-pick-note {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; color: var(--text-slate-400);
+          }
+          .bd2-sprint-pick-note b { color: var(--text-slate-700); font-weight: 700; }
+
+          @media (max-width: 900px) {
+            .tl-filter-row-label { display: none; }
+            .tl-sprint-row2, .tl-sprint-row3 { padding-left: 0; }
+            .bd2-crumbs { max-width: 100%; }
+            .bd2-crumb, .bd2-sep { display: none; }
+            .bd2-crumb-title { display: block; }
           }
 
           /* ── Sticky toolbar ──────────────────────────────── */
@@ -1167,10 +1104,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             top: 60px;
             z-index: 20;
             background: var(--bg-pure-white);
-            padding: 10px 0;
-            margin: 0 -28px;
-            padding-left: 28px;
-            padding-right: 28px;
+            padding: 10px 16px 0;
+            margin: 0;
             border-bottom: 1px solid var(--border-slate-100);
           }
           [data-theme='dark'] .bd2-toolbar {
@@ -1300,68 +1235,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             flex-wrap: wrap;
           }
 
-          /* ── Sprint popover ──────────────────────────────── */
-          .bd2-sprint-pop { width: 296px; }
-          .bd2-sprint-pop-head {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-          }
-          .bd2-sprint-pop-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 14px;
-            flex-shrink: 0;
-          }
-          .bd2-sprint-pop-title {
-            font-size: 13px;
-            font-weight: 800;
-            color: var(--text-slate-900);
-          }
-          [data-theme='dark'] .bd2-sprint-pop-title { color: #f1f5f9 !important; }
-          .bd2-sprint-pop-sub {
-            font-size: 11px;
-            color: var(--text-slate-500);
-            line-height: 1.4;
-            margin-top: 1px;
-          }
-          .bd2-sprint-pop-field {
-            margin-bottom: 10px;
-          }
-          .bd2-sprint-pop-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 9.5px;
-            font-weight: 800;
-            color: var(--text-slate-500);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 5px;
-          }
-          .bd2-sprint-pop-preview {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 7px 10px;
-            background: var(--bg-slate-50);
-            border: 1px solid var(--border-slate-100);
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-size: 11.5px;
-            color: var(--text-slate-700);
-          }
-          [data-theme='dark'] .bd2-sprint-pop-preview {
-            background: #1c232e !important;
-            border-color: #2d3748 !important;
-            color: #cbd5e1 !important;
-          }
 
           /* ── Ticket list rows ────────────────────────────── */
           .bd2-list {
@@ -1571,8 +1444,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin: auto -28px -32px;
-            padding: 0 28px;
+            margin: auto 0 0 0;
+            padding: 0 16px;
             background: var(--bg-pure-white);
             border-top: 1px solid var(--border-slate-100);
             flex-shrink: 0;

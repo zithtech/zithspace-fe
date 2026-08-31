@@ -7,7 +7,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import {  Empty, Alert, Tooltip, Button } from "antd";
+import { Alert, Tooltip, Button, Space, Divider } from "antd";
 import { ProjectService } from "@/services/projectService";
 import { CombinedSummaryCard } from "@/components/projects/overview/CombinedSummaryCard";
 import { ProjectInfoCard } from "@/components/projects/overview/ProjectInfoCard";
@@ -28,12 +28,12 @@ import {
   TeamOutlined,
   EditOutlined,
   CalendarOutlined,
-  RiseOutlined,
   ClockCircleOutlined,
   CheckSquareOutlined,
   HistoryOutlined,
+  ReloadOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
-import { Menu } from "lucide-react";
 import dayjs from "dayjs";
 
 type ViewKey = "overview" | "sprint" | "timeline" | "team";
@@ -49,7 +49,7 @@ const ProjectOverviewPage = () => {
   const router = useRouter();
   const { projectId } = useParams() as { projectId: string };
 
-  const { data: overviewData, isLoading, error, refetch } = useQuery({
+  const { data: overviewData, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["projectOverview", projectId],
     queryFn: () => ProjectService.getProjectOverview(projectId),
     enabled: !!projectId,
@@ -59,7 +59,6 @@ const ProjectOverviewPage = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activeView, setActiveView] = useState<ViewKey>("overview");
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { canReadActivityLog } = usePermission();
 
   // Timeline tickets are loaded on demand — only once the Timeline tab is opened.
@@ -118,224 +117,174 @@ const ProjectOverviewPage = () => {
     { key: "team", label: "Team Progress", icon: <TeamOutlined />, count: team.length },
   ];
 
-  // Mini multi-segment bar (done / active / remaining)
-  const Bar = ({ done, active, rest }: { done: number; active: number; rest: number }) => {
-    const total = Math.max(done + active + rest, 1);
-    return (
-      <div className="po-bar">
-        <span style={{ flexGrow: done, background: "#10b981" }} />
-        <span style={{ flexGrow: active, background: "#f59e0b" }} />
-        <span style={{ flexGrow: rest, background: "var(--border-slate-200)" }} />
-        <span style={{ flexGrow: total === 1 && done + active + rest === 0 ? 1 : 0, background: "var(--border-slate-200)" }} />
-      </div>
-    );
-  };
-
-  const statCards = [
-    {
-      key: "progress",
-      label: "Overall Progress",
-      icon: <RiseOutlined />,
-      color: "#3b82f6",
-      tint: "rgba(59,130,246,0.10)",
-      value: `${projectProgress}%`,
-      foot: (
-        <div className="po-bar">
-          <span style={{ flexGrow: projectProgress, background: "#3b82f6" }} />
-          <span style={{ flexGrow: 100 - projectProgress, background: "var(--border-slate-200)" }} />
-        </div>
-      ),
-    },
-    {
-      key: "tickets",
-      label: "Tickets",
-      icon: <CheckSquareOutlined />,
-      color: "#8b5cf6",
-      tint: "rgba(139,92,246,0.10)",
-      value: `${ticketSummary.total}`,
-      sub: `${ticketSummary.completed} done`,
-      foot: <Bar done={ticketSummary.completed} active={ticketSummary.inProgress} rest={ticketSummary.notStarted} />,
-    },
-    {
-      key: "sprints",
-      label: "Sprints",
-      icon: <ThunderboltOutlined />,
-      color: "#0ea5e9",
-      tint: "rgba(14,165,233,0.10)",
-      value: `${sprintSummary.total}`,
-      sub: `${sprintSummary.completed} completed`,
-      foot: <Bar done={sprintSummary.completed} active={sprintSummary.inProgress} rest={sprintSummary.notStarted} />,
-    },
-    {
-      key: "hours",
-      label: "Hours Logged",
-      icon: <ClockCircleOutlined />,
-      color: "#10b981",
-      tint: "rgba(16,185,129,0.10)",
-      value: `${timeStats.totalHours}h`,
-      sub: `${timeStats.daysWorked}d · ${avgPerDay}h / day`,
-      foot: null,
-    },
-  ];
-
   return (
-    <MainLayout>
+    <MainLayout noPadding>
       <div className="po-shell">
-        {/* ============================ SIDEBAR ============================ */}
-        {isMobileSidebarOpen && (
-          <div className="po-sidebar-backdrop" onClick={() => setIsMobileSidebarOpen(false)} />
-        )}
-        <aside className={`po-sidebar ${isMobileSidebarOpen ? "is-open" : ""}`}>
-          <div className="po-side-head">
-            <Tooltip title="Back to projects">
-              <button className="po-back" onClick={() => router.push("/projects/manage")}>
-                <ArrowLeftOutlined />
-              </button>
-            </Tooltip>
-            <div className="po-side-logo">{initials || <ProjectOutlined />}</div>
-            <div className="po-side-head-text">
-              <div className="po-side-title" title={project.name}>{project.name}</div>
-              <div className="po-side-subtitle">{project.code ? `#${project.code}` : "Project"} · {(project.status || "").replace("-", " ")}</div>
-            </div>
+        {/* ── Header row — back, breadcrumb, actions ─────────────────── */}
+        <div className="saas-header-container sc-header">
+          <Tooltip title="Back to projects">
+            <Button
+              type="text"
+              size="small"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/projects/manage")}
+              className="po-back"
+              aria-label="Back to projects"
+            />
+          </Tooltip>
+
+          <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
+
+          <div className="po-crumbs">
+            <button type="button" className="po-crumb" onClick={() => router.push("/projects/manage")}>Projects</button>
+            <span className="po-sep">›</span>
+            <span className="po-crumb-title" title={project.name}>{project.name}</span>
+            {project.code ? <span className="po-crumb-code">#{project.code}</span> : null}
           </div>
 
-          <Button type="primary" icon={<EditOutlined />} className="po-create-btn" onClick={() => setDrawerVisible(true)} block>
-            Edit Project
-          </Button>
+          <div className="sc-header-controls" />
 
-          <div className="po-side-scroll">
-            <div className="po-side-section-label">Views</div>
-            <div className="po-side-list">
-              {VIEWS.map((v) => {
-                const active = activeView === v.key;
-                return (
-                  <button key={v.key} className={`po-view-item ${active ? "is-active" : ""}`} onClick={() => setActiveView(v.key)}>
-                    <span className="po-view-icon" style={{ color: active ? "#3B82F6" : "var(--text-slate-400)" }}>{v.icon}</span>
-                    <span className="po-view-label">{v.label}</span>
-                    {v.count != null && <span className="po-view-count">{v.count}</span>}
-                  </button>
-                );
-              })}
-            </div>
+          <Space size={10} className="sc-header-right">
+            <Tooltip title="Refresh overview">
+              <Button
+                icon={<ReloadOutlined spin={isFetching} />}
+                onClick={() => refetch()}
+                style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+            </Tooltip>
+            {canReadActivityLog && (
+              <Tooltip title="Activity history">
+                <Button
+                  icon={<HistoryOutlined />}
+                  onClick={() => setHistoryOpen(true)}
+                  style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                />
+              </Tooltip>
+            )}
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+            >
+              Edit Project
+            </Button>
+          </Space>
+        </div>
 
-            <div className="po-side-section-label">Details</div>
-            <div className="po-side-details">
-              <div className="po-detail-row">
-                <span className="po-detail-key">Status</span>
-                <span className="po-detail-pill" style={{ color: statusTint.color, background: statusTint.bg }}>
+        {/* ── Overview banner — identity, the numbers the stat cards
+             carried, and delivery progress. ─────────────────────────── */}
+        <div className="tl-section-head tl-sprint-head-v2 po-banner">
+          <div className="tl-sprint-row1">
+            <div className="tl-sprint-title-block">
+              <span className="po-banner-mark" style={{ background: statusTint.bg, color: statusTint.color }}>
+                {initials || <ProjectOutlined />}
+              </span>
+              <span className="po-banner-id">
+                <span className="po-banner-title" title={project.name}>{project.name}</span>
+                <span className="po-banner-sub">
+                  {project.description || "No description provided."}
+                </span>
+              </span>
+              <span className="tl-sprint-tags">
+                <span
+                  className="tl-sprint-tag"
+                  style={{ color: statusTint.color, borderColor: `${statusTint.color}52` }}
+                >
                   {(project.status || "—").replace("-", " ")}
                 </span>
-              </div>
-              <div className="po-detail-row">
-                <span className="po-detail-key">Timeline</span>
-                <span className="po-detail-val">
-                  {dayjs(project.startDate).format("MMM D")} — {project.endDate ? dayjs(project.endDate).format("MMM D, YYYY") : "Ongoing"}
-                </span>
-              </div>
-              <div className="po-detail-row">
-                <span className="po-detail-key">Members</span>
-                <span className="po-detail-val">{project.teamCount}</span>
-              </div>
-              <div style={{ padding: "4px 8px 2px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <span className="po-detail-key">Progress</span>
-                  <span className="po-detail-val">{projectProgress}%</span>
-                </div>
-                <div className="po-bar">
-                  <span style={{ flexGrow: projectProgress, background: "#3b82f6" }} />
-                  <span style={{ flexGrow: 100 - projectProgress, background: "var(--border-slate-200)" }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="po-side-section-label">Project Lead</div>
-            <div className="po-side-lead">
-              <div className="po-lead-avatar">{(project.projectHead || "U").substring(0, 1).toUpperCase()}</div>
-              <div className="po-lead-body">
-                <span className="po-lead-name">{project.projectHead || "Unassigned"}</span>
-                <span className="po-lead-role">Project Manager</span>
-              </div>
+                <span className="tl-sprint-tag tl-sprint-tag-neutral">{project.teamCount} MEMBERS</span>
+              </span>
             </div>
           </div>
 
-          {canReadActivityLog && (
-            <button className="po-trash" onClick={() => setHistoryOpen(true)}>
-              <HistoryOutlined /> Activity History
+          <div className="tl-sprint-row2">
+            <span className="tl-sprint-meta">
+              <CalendarOutlined style={{ fontSize: 11 }} />
+              <span>{dayjs(project.startDate).format("MMM D")}</span>
+              <span className="po-arrow">→</span>
+              <span>{project.endDate ? dayjs(project.endDate).format("MMM D, YYYY") : "Ongoing"}</span>
+            </span>
+            <span className="tl-sprint-meta">
+              <CheckSquareOutlined style={{ fontSize: 11 }} />
+              <b>{ticketSummary.completed}</b>/{ticketSummary.total} tickets done
+            </span>
+            <span className="tl-sprint-meta">
+              <ThunderboltOutlined style={{ fontSize: 11 }} />
+              <b>{sprintSummary.completed}</b>/{sprintSummary.total} sprints completed
+            </span>
+            <span className="tl-sprint-meta">
+              <ClockCircleOutlined style={{ fontSize: 11 }} />
+              <b>{timeStats.totalHours}h</b> logged · {avgPerDay}h / day
+            </span>
+            <span className="tl-sprint-meta">
+              <CrownOutlined style={{ fontSize: 11 }} />
+              <span>Lead</span>
+              <b>{project.projectHead || "Unassigned"}</b>
+            </span>
+          </div>
+
+          <div className="tl-sprint-row3">
+            <div className="tl-sprint-progress-bar">
+              <div className="tl-sprint-progress-fill" style={{ width: `${Math.min(100, projectProgress)}%` }} />
+            </div>
+            <span className="tl-sprint-progress-pct">{projectProgress}%</span>
+          </div>
+        </div>
+
+        {/* ── View tabs — the rail's Views list ──────────────────────── */}
+        <div className="po-tabs" role="tablist">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              role="tab"
+              aria-selected={activeView === v.key}
+              className={`po-tab${activeView === v.key ? " is-active" : ""}`}
+              onClick={() => setActiveView(v.key)}
+            >
+              <span className="po-tab__ic">{v.icon}</span>
+              <span className="po-tab__label">{v.label}</span>
+              {v.count != null && <span className="po-tab__count">{v.count}</span>}
             </button>
+          ))}
+        </div>
+
+        {/* ── Content per view ──────────────────────────────────────── */}
+        <div className="po-content">
+          {activeView === "overview" && (
+            <div className="po-overview">
+              <div className="po-grid-15-9">
+                <CombinedSummaryCard sprintSummary={sprintSummary} ticketSummary={ticketSummary} />
+                <ProjectInfoCard
+                  projectHead={project.projectHead}
+                  avatarUrl={project.projectHeadAvatar}
+                  teamCount={project.teamCount}
+                  description={project.description}
+                />
+              </div>
+              <div className="po-grid-2 po-grid-grow">
+                <RecentActivitiesPanel activities={activities} height="100%" />
+                <InsightsPanel insights={insights} height="100%" />
+              </div>
+            </div>
           )}
-        </aside>
 
-        {/* ============================ MAIN ============================ */}
-        <main className="po-main">
-          <div className="po-mobile-header">
-            <button className="po-mobile-toggle" onClick={() => setIsMobileSidebarOpen(true)}>
-              <Menu size={20} />
-            </button>
-            <div className="po-mobile-title">{project.name}</div>
-          </div>
-          {/* Stat cards */}
-          <div className="po-stats">
-            {statCards.map((s) => (
-              <div key={s.key} className="po-stat-card">
-                <div className="po-stat-top">
-                  <span className="po-stat-icon" style={{ background: s.tint, color: s.color }}>{s.icon}</span>
-                  <span className="po-stat-label">{s.label}</span>
-                </div>
-                <div className="po-stat-bottom">
-                  <span className="po-stat-value">{s.value}</span>
-                  {s.sub && <span className="po-stat-sub">{s.sub}</span>}
-                </div>
-                {s.foot}
+          {activeView === "sprint" && (
+            <SprintTable sprints={sprints} selectedSprintId={selectedSprintId} onSelectSprint={setSelectedSprintId} />
+          )}
+
+          {activeView === "timeline" &&
+            (timelineLoading ? (
+              <div className="po-panel po-panel--center">
+                <ZukvoLoader size="md" message="Loading timeline..." />
               </div>
+            ) : (
+              <TimelineTree tickets={timelineTickets ?? []} />
             ))}
-          </div>
 
-          {/* Content per view */}
-          <div className="po-content">
-            {activeView === "overview" && (
-              <div className="po-overview">
-                <div className="po-grid-15-9">
-                  <CombinedSummaryCard sprintSummary={sprintSummary} ticketSummary={ticketSummary} />
-                  <ProjectInfoCard
-                    projectHead={project.projectHead}
-                    avatarUrl={project.projectHeadAvatar}
-                    teamCount={project.teamCount}
-                    description={project.description}
-                  />
-                </div>
-                <div className="po-grid-2 po-grid-grow">
-                  <RecentActivitiesPanel activities={activities} height="100%" />
-                  <InsightsPanel insights={insights} height="100%" />
-                </div>
-              </div>
-            )}
-
-            {activeView === "sprint" && (
-              <SprintTable sprints={sprints} selectedSprintId={selectedSprintId} onSelectSprint={setSelectedSprintId} />
-            )}
-
-            {activeView === "timeline" &&
-              (timelineLoading ? (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: 320,
-                    background: "var(--bg-pure-white)",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: 10,
-                  }}
-                >
-                  <ZukvoLoader size="md" message="Loading timeline..." />
-                </div>
-              ) : (
-                <TimelineTree tickets={timelineTickets ?? []} />
-              ))}
-
-            {activeView === "team" && <TeamProgressCards members={team} />}
-          </div>
-        </main>
+          {activeView === "team" && <TeamProgressCards members={team} />}
+        </div>
       </div>
 
       <ProjectFormDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} projectId={projectId} onSuccess={() => refetch()} />
@@ -348,181 +297,240 @@ const ProjectOverviewPage = () => {
       />
 
       <style jsx global>{`
+        /* ── Shell ──────────────────────────────────────────────────── */
         .po-shell {
           display: flex;
-          margin: 0 -16px;
+          flex-direction: column;
+          margin: 0;
           min-height: calc(100vh - 54px);
           background: var(--bg-pure-white);
         }
+        [data-theme='dark'] .po-shell { background: #0f1419; }
 
-        .po-mobile-header { display: none; }
-        .po-sidebar-backdrop { display: none; }
-
-        /* ---------------- Sidebar ---------------- */
-        .po-sidebar {
-          width: 248px;
-          flex-shrink: 0;
-          border-right: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white);
-          display: flex;
-          flex-direction: column;
-          padding: 14px 14px 0;
+        /* ── Header row, matched to the Ticket List ─────────────────── */
+        .sc-header {
           position: sticky;
           top: 0;
-          height: calc(100vh - 54px);
+          z-index: 100;
+          margin: 0;
+          padding: 9.7px 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
         }
-        .po-side-head {
-          display: flex; align-items: center; gap: 10px; padding: 2px 2px 14px; margin-bottom: 6px;
-          border-bottom: 1px solid var(--border-slate-100);
-        }
+        [data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
+        .sc-header-controls { flex: 1; min-width: 0; }
+        .sc-header-right { flex-shrink: 0; }
+
         .po-back {
-          flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border-slate-200);
-          background: var(--bg-pure-white); color: var(--text-slate-500); cursor: pointer; font-size: 12px;
-          display: inline-flex; align-items: center; justify-content: center; transition: background .12s ease;
+          width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+          display: inline-flex !important; align-items: center; justify-content: center;
+          color: var(--text-slate-500);
         }
-        .po-back:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
-        .po-side-logo {
-          flex-shrink: 0; width: 34px; height: 34px; border-radius: 9px; background: #3B82F6; color: #fff;
-          display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+        .po-back:hover { background: var(--bg-slate-100); color: #2563eb; }
+        .po-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .po-crumb {
+          font-size: 12px; font-weight: 600; color: var(--text-slate-500);
+          background: none; border: none; padding: 0; cursor: pointer; white-space: nowrap;
+          font-family: inherit;
         }
-        .po-side-head-text { display: flex; flex-direction: column; min-width: 0; }
-        .po-side-title { font-size: 15px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .po-side-subtitle { font-size: 10px; color: var(--text-slate-400); font-weight: 700; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        button.po-crumb:hover { color: #2563eb; text-decoration: underline; }
+        .po-sep { color: var(--text-slate-300); font-size: 11px; flex-shrink: 0; }
+        .po-crumb-title {
+          font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em;
+          min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        [data-theme='dark'] .po-crumb-title { color: #f1f5f9; }
+        .po-crumb-code {
+          font-size: 10px; font-weight: 800; letter-spacing: 0.04em;
+          color: var(--text-slate-400); background: var(--bg-slate-100);
+          border-radius: 4px; padding: 2px 5px; flex-shrink: 0;
+        }
+        [data-theme='dark'] .po-crumb-code { background: #1e293b; }
 
-        .po-create-btn {
-          height: 34px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 12.5px !important;
-          background: #3B82F6 !important; border: none !important; box-shadow: none !important; margin-bottom: 4px;
+        /* ── Banner ─────────────────────────────────────────────────── */
+        .tl-section-head {
+          padding: 12px 16px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
         }
-        .po-create-btn:hover { background: #2563EB !important; }
+        [data-theme='dark'] .tl-section-head { background: #0f1419; border-bottom-color: #1f2937; }
+        .tl-sprint-head-v2 { display: flex; flex-direction: column; gap: 8px; }
+        .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .tl-sprint-title-block { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1 1 auto; }
 
-        .po-side-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 -5px; padding: 0 5px; }
-        .po-side-scroll::-webkit-scrollbar { width: 5px; }
-        .po-side-scroll::-webkit-scrollbar-thumb { background: var(--border-slate-200); border-radius: 3px; }
-        .po-side-section-label {
-          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
-          color: var(--text-slate-400); padding: 0 8px; margin: 16px 0 6px;
+        .po-banner-mark {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 40px; height: 40px; border-radius: 10px;
+          font-size: 14px; font-weight: 800; letter-spacing: -0.01em;
         }
-        .po-side-scroll > .po-side-section-label:first-child { margin-top: 6px; }
-        .po-side-list { display: flex; flex-direction: column; gap: 1px; }
-        .po-view-item {
-          display: flex; align-items: center; gap: 10px; width: 100%;
-          padding: 8px 10px; border-radius: 8px; border: none; background: transparent;
-          cursor: pointer; transition: background .12s ease; text-align: left;
+        .po-banner-id { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+        .po-banner-title {
+          font-size: 15px; font-weight: 800; color: var(--text-slate-900);
+          letter-spacing: -0.02em; line-height: 1.2;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .po-view-item:hover { background: var(--bg-slate-50); }
-        .po-view-item.is-active { background: var(--bg-blue-50); }
-        .po-view-item.is-active .po-view-label { color: var(--text-slate-900); font-weight: 600; }
-        .po-view-icon { font-size: 14px; width: 16px; display: inline-flex; justify-content: center; }
-        .po-view-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-slate-700); }
-        .po-view-count { font-size: 11.5px; font-weight: 600; color: var(--text-slate-400); min-width: 18px; text-align: right; }
-        .po-view-item.is-active .po-view-count {
-          color: #3B82F6; font-weight: 700; background: rgba(59,130,246,0.12); border-radius: 6px; padding: 1px 7px; min-width: 0;
+        [data-theme='dark'] .po-banner-title { color: #f1f5f9; }
+        .po-banner-sub {
+          font-size: 11.5px; color: var(--text-slate-500); margin-top: 2px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-
-        .po-side-details { display: flex; flex-direction: column; gap: 2px; }
-        .po-detail-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; gap: 8px; }
-        .po-detail-key { font-size: 11.5px; color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-        .po-detail-val { font-size: 11.5px; color: var(--text-slate-700); font-weight: 600; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .po-detail-pill { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
-
-        .po-side-lead { display: flex; align-items: center; gap: 10px; padding: 6px 8px; }
-        .po-lead-avatar {
-          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #fff;
-          display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;
+        .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .tl-sprint-tag {
+          display: inline-flex; align-items: center; height: 19px; padding: 0 7px;
+          font-size: 9px; font-weight: 800; letter-spacing: 0.05em; border-radius: 5px;
+          border: 1px solid transparent; text-transform: uppercase; line-height: 1;
+          background: transparent;
         }
-        .po-lead-body { display: flex; flex-direction: column; min-width: 0; }
-        .po-lead-name { font-size: 12.5px; font-weight: 700; color: var(--text-slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .po-lead-role { font-size: 10px; color: var(--text-slate-400); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        .tl-sprint-tag-neutral { color: #64748b; border-color: rgba(100,116,139,0.32); }
 
-        .po-trash {
-          display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left;
-          margin: 0 -14px; padding: 12px 22px; border-top: 1px solid var(--border-slate-200);
-          background: transparent; color: var(--text-slate-600); font-size: 13px; font-weight: 500; cursor: pointer;
+        .tl-sprint-row2 { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-left: 51px; }
+        .tl-sprint-meta {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); letter-spacing: -0.005em;
         }
-        .po-trash .anticon { font-size: 15px; }
-        .po-trash:hover { color: #3B82F6; }
+        .tl-sprint-meta b { color: var(--text-slate-900); font-weight: 800; }
+        .po-arrow { color: var(--text-slate-400); }
+        [data-theme='dark'] .tl-sprint-meta { color: #94a3b8 !important; }
+        [data-theme='dark'] .tl-sprint-meta b { color: #f1f5f9 !important; }
 
-        /* ---------------- Main ---------------- */
-        .po-main { flex: 1; min-width: 0; padding: 16px 18px 0; display: flex; flex-direction: column; }
-
-        /* Stat cards */
-        .po-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
-        .po-stat-card {
-          background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
-          border-radius: 0px !important; padding: 11px 13px; display: flex; flex-direction: column; gap: 7px;
-          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        .tl-sprint-row3 { display: flex; align-items: center; gap: 12px; padding-left: 51px; }
+        .tl-sprint-progress-bar {
+          flex: 1 1 auto; position: relative; height: 6px;
+          background: var(--bg-slate-100); border-radius: 999px; overflow: hidden; min-width: 60px;
         }
-        .po-stat-top { display: flex; align-items: center; gap: 8px; }
-        .po-stat-icon { width: 24px; height: 24px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
-        .po-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-600); }
-        .po-stat-bottom { display: flex; align-items: baseline; gap: 7px; }
-        .po-stat-value { font-size: 21px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .po-stat-sub { font-size: 11px; color: var(--text-slate-400); font-weight: 500; }
-        .po-bar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: var(--border-slate-200); }
-        .po-bar > span { display: block; transition: flex-grow .4s ease; }
+        [data-theme='dark'] .tl-sprint-progress-bar { background: #1f2937 !important; }
+        .tl-sprint-progress-fill {
+          position: absolute; inset: 0;
+          background: linear-gradient(90deg, #3b82f6, #2563eb);
+          border-radius: 999px; transition: width 0.4s ease;
+        }
+        .tl-sprint-progress-pct {
+          flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--text-slate-900);
+          font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;
+        }
+        [data-theme='dark'] .tl-sprint-progress-pct { color: #f1f5f9 !important; }
 
-        /* Content grids */
-        .po-content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        /* ── View tabs ──────────────────────────────────────────────── */
+        .po-tabs {
+          display: flex; align-items: center; gap: 2px;
+          padding: 0 16px;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .po-tabs::-webkit-scrollbar { display: none; }
+        [data-theme='dark'] .po-tabs { background: #0f1419; border-bottom-color: #1f2937; }
+        .po-tab {
+          position: relative;
+          display: inline-flex; align-items: center; gap: 7px;
+          height: 40px; padding: 0 12px;
+          background: none; border: none; cursor: pointer; font-family: inherit;
+          font-size: 12.5px; font-weight: 600; color: var(--text-slate-500);
+          white-space: nowrap;
+          transition: color .12s ease;
+        }
+        .po-tab::after {
+          content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px;
+          background: #3B82F6; border-radius: 2px 2px 0 0;
+          opacity: 0; transform: scaleX(.6); transition: opacity .14s ease, transform .14s ease;
+        }
+        .po-tab:hover { color: var(--text-slate-900); }
+        .po-tab.is-active { color: #3B82F6; font-weight: 700; }
+        .po-tab.is-active::after { opacity: 1; transform: scaleX(1); }
+        .po-tab:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(59,130,246,.24); border-radius: 6px; }
+        .po-tab__ic { display: inline-flex; font-size: 13px; }
+        .po-tab__count {
+          display: inline-flex; align-items: center; justify-content: center;
+          min-width: 18px; height: 17px; padding: 0 5px; border-radius: 999px;
+          background: var(--bg-slate-100); color: var(--text-slate-500);
+          font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+        .po-tab.is-active .po-tab__count { background: var(--bg-blue-50); color: #3B82F6; }
+        [data-theme='dark'] .po-tab__count { background: #1e293b; color: #94a3b8; }
+
+        /* ── Content ────────────────────────────────────────────────── */
+        .po-content { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px 18px; }
         .po-overview { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
         .po-grid-15-9 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 12px; align-items: stretch; }
         .po-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .po-grid-grow { flex: 1; min-height: 360px; }
+        .po-bar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: var(--border-slate-200); }
+        .po-bar > span { display: block; transition: flex-grow .4s ease; }
 
-        @media (max-width: 1200px) { .po-stats { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 1100px) { .po-grid-15-9, .po-grid-2 { grid-template-columns: 1fr; } }
-        @media (max-width: 820px) {
-          .po-sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            height: 100vh;
-            z-index: 1000;
-            transform: translateX(-100%);
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: none;
-          }
-          .po-sidebar.is-open {
-            transform: translateX(0);
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-          }
-          .po-sidebar-backdrop {
-            display: block;
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.4);
-            z-index: 999;
-            backdrop-filter: blur(2px);
-          }
-          .po-mobile-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--border-slate-100);
-          }
-          .po-mobile-toggle {
-            background: transparent;
-            border: none;
-            color: var(--text-slate-700);
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-          }
-          .po-mobile-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-slate-900);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          }
-          .po-topbar-meta { display: none; }
+        /* ── One panel system, shared by every card on this page ────── */
+        .po-panel {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+          transition: border-color .15s ease, box-shadow .15s ease;
         }
-        @media (max-width: 600px) { .po-stats { grid-template-columns: 1fr; } }
+        .po-panel:hover { box-shadow: 0 4px 14px rgba(15,23,42,0.06); }
+        [data-theme='dark'] .po-panel {
+          background: #111720;
+          border-color: #1f2937;
+          box-shadow: none;
+        }
+        .po-panel--center { align-items: center; justify-content: center; min-height: 320px; }
 
+        .po-panel__head {
+          display: flex; align-items: center; gap: 10px;
+          padding: 11px 14px;
+          background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .po-panel__head { background: #0f1419; border-bottom-color: #1f2937; }
+        .po-panel__head-ic {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 26px; height: 26px; border-radius: 8px; font-size: 12px;
+        }
+        .po-panel__title {
+          font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+          color: var(--text-slate-500);
+        }
+        [data-theme='dark'] .po-panel__title { color: #94a3b8; }
+        .po-panel__body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; }
+        .po-panel__body--flush { padding: 0; }
+
+        /* antd cards inside the content adopt the same surface */
         .po-content .ant-card {
-          border-radius: 0px !important;
+          border-radius: 10px !important;
+          border: 1px solid var(--border-slate-200) !important;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.04) !important;
+        }
+        [data-theme='dark'] .po-content .ant-card {
+          background: #111720 !important;
+          border-color: #1f2937 !important;
+          box-shadow: none !important;
+        }
+
+        /* ── Responsive ─────────────────────────────────────────────── */
+        @media (max-width: 1100px) {
+          .po-grid-15-9 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 900px) {
+          .po-grid-2 { grid-template-columns: 1fr; }
+          .po-grid-grow { min-height: 0; }
+          .tl-sprint-row2, .tl-sprint-row3 { padding-left: 0; }
+          .po-banner-sub { display: none; }
+        }
+        @media (max-width: 640px) {
+          .po-content { padding: 12px 12px 16px; }
+          .po-tabs { padding: 0 12px; }
+          .po-tab__label { display: none; }
         }
       `}</style>
     </MainLayout>

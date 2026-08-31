@@ -93,17 +93,17 @@ const { Title, Text, Paragraph } = Typography;
  * The detailed postal address, in the order it reads on an envelope. Shared by
  * the registered-company form and the branch drawer so the two never drift.
  */
-const COMPANY_ADDRESS_FIELDS: { name: string; label: string; placeholder: string }[] = [
+const COMPANY_ADDRESS_FIELDS: { name: string; label: string; placeholder: string; rules?: any[]; normalize?: (v: string) => string }[] = [
   { name: 'doorNumber', label: 'Door / Flat Number', placeholder: 'e.g. 101 or Suite 4' },
   { name: 'floor', label: 'Floor', placeholder: 'e.g. 3rd Floor' },
   { name: 'building', label: 'Building', placeholder: 'e.g. Prestige Tower' },
   { name: 'area', label: 'Area', placeholder: 'e.g. Indiranagar' },
   { name: 'street', label: 'Street', placeholder: 'e.g. 100 Feet Road' },
-  { name: 'city', label: 'City', placeholder: 'e.g. Bengaluru' },
-  { name: 'district', label: 'District', placeholder: 'e.g. Bengaluru Urban' },
-  { name: 'state', label: 'State', placeholder: 'e.g. Karnataka' },
-  { name: 'pincode', label: 'Pincode', placeholder: 'e.g. 560038' },
-  { name: 'country', label: 'Country', placeholder: 'e.g. India' },
+  { name: 'city', label: 'City', placeholder: 'e.g. Bengaluru', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
+  { name: 'district', label: 'District', placeholder: 'e.g. Bengaluru Urban', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
+  { name: 'state', label: 'State', placeholder: 'e.g. Karnataka', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
+  { name: 'pincode', label: 'Pincode', placeholder: 'e.g. 560038', rules: [{ pattern: /^[0-9]+$/, message: 'Only numbers allowed' }], normalize: (v) => (v || '').replace(/\D/g, '') },
+  { name: 'country', label: 'Country', placeholder: 'e.g. India', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
 ];
 
 /** One read-only label/value pair in the saved company-details view. */
@@ -1619,19 +1619,103 @@ export default function SettingsPage() {
                     </Row>
                   </>
                 ) : (
-                  <Form
-                    form={companyForm}
-                    layout="vertical"
-                    onFinish={handleCompanyDetailsSubmit}
-                    disabled={!canUpdateSettings}
-                    requiredMark="optional"
-                  >
-                    <Row gutter={[16, 0]}>
-                      <Col xs={24} md={12} lg={8}>
+                <Form
+                  form={companyForm}
+                  layout="vertical"
+                  onFinish={handleCompanyDetailsSubmit}
+                  disabled={!canUpdateSettings}
+                  requiredMark="optional"
+                >
+                  <Row gutter={[16, 0]}>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="registeredName"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Registered Company Name</Text>}
+                        rules={[{ required: true, whitespace: true, message: 'Registered name is required' }]}
+                      >
+                        <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="gstNumber"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>GST Number</Text>}
+                        normalize={(v) => (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}
+                        rules={[{
+                          pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                          message: 'Enter a valid 15-character GSTIN',
+                        }]}
+                      >
+                        <Input placeholder="e.g. 29ABCDE1234F1Z5" maxLength={15} prefix={<NumberOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="primaryEmail"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
+                        normalize={(v) => (v || '').trim()}
+                        rules={[
+                          { required: true, message: 'Primary email is required' },
+                          { type: 'email', message: 'Enter a valid email address' },
+                        ]}
+                      >
+                        <Input placeholder="e.g. accounts@company.com" prefix={<MailOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="primaryPhone"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
+                        rules={[
+                          { required: true, whitespace: true, message: 'Primary phone is required' },
+                          { pattern: /^[0-9]+$/, message: 'Only numbers allowed' }
+                        ]}
+                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '')}
+                      >
+                        <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12} lg={8}>
+                      <Form.Item
+                        name="website"
+                        label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Website URL</Text>}
+                        // The server prefixes a missing scheme, so accept a bare
+                        // domain here and only reject obviously broken input.
+                        rules={[{
+                          pattern: /^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i,
+                          message: 'Enter a valid website URL',
+                        }]}
+                      >
+                        <Input placeholder="e.g. www.company.com" prefix={<LinkOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    margin: '4px 0 16px',
+                    paddingBottom: 10,
+                    borderBottom: `1px dashed ${token.colorBorderSecondary}`,
+                  }}>
+                    <EnvironmentOutlined style={{ color: '#2563EB', fontSize: 15 }} />
+                    <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                      Registered Address
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      The full postal address of your head office
+                    </Text>
+                  </div>
+
+                  <Row gutter={[16, 0]}>
+                    {COMPANY_ADDRESS_FIELDS.map((field) => (
+                      <Col xs={24} md={12} lg={8} key={field.name}>
                         <Form.Item
-                          name="registeredName"
-                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Registered Company Name</Text>}
-                          rules={[{ required: true, whitespace: true, message: 'Registered name is required' }]}
+                          name={field.name}
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{field.label}</Text>}
+                          rules={field.rules}
+                          normalize={field.normalize}
                         >
                           <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
                         </Form.Item>
@@ -2550,6 +2634,7 @@ export default function SettingsPage() {
                   <Form.Item
                     name="branchEmail"
                     label="Branch Email"
+                    normalize={(v) => (v || '').trim()}
                     rules={[
                       { required: true, message: 'Required' },
                       { type: 'email', message: 'Enter a valid email address' },
@@ -2564,9 +2649,10 @@ export default function SettingsPage() {
                   name="branchPhone"
                   label="Branch Phone"
                   style={{ marginBottom: 14 }}
-                  getValueFromEvent={(e) => e.target.value.replace(/[^0-9+\-()\s]/g, '')}
+                  rules={[{ pattern: /^[0-9]+$/, message: 'Only numbers allowed' }]}
+                  getValueFromEvent={(e) => e.target.value.replace(/\D/g, '')}
                 >
-                  <Input placeholder="e.g. +91 44 1234 5678" />
+                  <Input placeholder="e.g. 914412345678" />
                 </Form.Item>
               </SectionCard>
 
@@ -2581,6 +2667,8 @@ export default function SettingsPage() {
                     key={field.name}
                     name={field.name}
                     label={field.label}
+                    rules={field.rules}
+                    normalize={field.normalize}
                     style={{ marginBottom: 14 }}
                   >
                     <Input placeholder={field.placeholder} />

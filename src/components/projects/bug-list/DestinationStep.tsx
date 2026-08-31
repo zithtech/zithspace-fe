@@ -29,6 +29,7 @@ import {
   TrelloMark,
   TicketFlowHeader,
   TicketFlowCard,
+  TestiezLogo,
 } from "./ticket-flow";
 
 type SoonDest = { key: string; name: string; tagline: string; logo: React.ReactNode };
@@ -103,7 +104,7 @@ export default function DestinationStep({
   return (
     <>
       <TicketFlowHeader
-        mark={<ZukvoLogo size={22} />}
+        mark={isTestiez ? <TestiezLogo size={22} /> : <ZukvoLogo size={22} />}
         eyebrow="Step 1 · Destination"
         title="Where should these tickets land?"
         chips={[
@@ -164,7 +165,7 @@ export default function DestinationStep({
             <div className="tf-grid" style={{ ["--tf-cols" as string]: connectedCount }}>
               {zukvoVisible && (
                 <TicketFlowCard
-                  mark={<ZukvoLogo size={22} />}
+                  mark={isTestiez ? <TestiezLogo size={22} /> : <ZukvoLogo size={22} />}
                   plate
                   tone="blue"
                   badge={{ label: "Native", tone: "ok", dot: true }}
@@ -229,8 +230,8 @@ export default function DestinationStep({
                 </div>
                 <div className="tf-quick-actions">
                   <button className="tf-quick-btn" onClick={() => onPickAi("zukvo")}>
-                    <ZukvoLogo size={13} />
-                    Draft in Zukvo
+                    {isTestiez ? <TestiezLogo size={13} /> : <ZukvoLogo size={13} />}
+                    Draft in {isTestiez ? "Testiez" : "Zukvo"}
                   </button>
                   <button className="tf-quick-btn" onClick={() => { if(linearConnected) onPickAi("linear"); }} disabled={!linearConnected} title={linearConnected ? undefined : "Connect Linear first"}>
                     <LinearMark size={13} />

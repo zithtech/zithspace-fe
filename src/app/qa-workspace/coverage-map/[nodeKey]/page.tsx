@@ -33,6 +33,7 @@ import {
   fmtAgo, fmtDate, fmtDateTime, initialsOf,
   useCoverageData, useUserProjects, type ModuleNode,
 } from "../shared";
+import { useTicketDrawer } from "@/context/TicketDrawerContext";
 
 /** Failing runs whose failures are fetched without being asked. */
 const EAGER_FAILURE_RUNS = 8;
@@ -599,8 +600,8 @@ function RunCalendar({ suites, runs }: {
                 disabled={!c.runs.length}
                 title={c.runs.length
                   ? `${labelOf(c.d)} — ${c.runs.length} run${c.runs.length === 1 ? "" : "s"}, `
-                    + `${c.passed} passed${share ? ` (${share.pass}%)` : ""}, `
-                    + `${c.failed} failed${share ? ` (${share.fail}%)` : ""}`
+                  + `${c.passed} passed${share ? ` (${share.pass}%)` : ""}, `
+                  + `${c.failed} failed${share ? ` (${share.fail}%)` : ""}`
                   : labelOf(c.d)}
               >
                 <span className="cal__date">{c.d.date()}</span>
@@ -626,58 +627,58 @@ function RunCalendar({ suites, runs }: {
         </div>
 
         <div className="cal__rail">
-        <aside className="cal__side">
-          {!selected || !selected.runs.length ? (
-            <div className="cal__side-empty">
-              <CalendarDays size={18} />
-              <div>Pick a day with runs to list what executed on it.</div>
-            </div>
-          ) : (
-            <>
-              <div className="cal__side-head">
-                <div className="cal__side-title">{selected.d.format("dddd, D MMM YYYY")}</div>
-                <div className="cal__side-sub">
-                  {selected.runs.length} run{selected.runs.length === 1 ? "" : "s"} ·{" "}
-                  {selected.passed} passed{selectedShare && ` (${selectedShare.pass}%)`},{" "}
-                  {selected.failed} failed{selectedShare && ` (${selectedShare.fail}%)`}
-                </div>
+          <aside className="cal__side">
+            {!selected || !selected.runs.length ? (
+              <div className="cal__side-empty">
+                <CalendarDays size={18} />
+                <div>Pick a day with runs to list what executed on it.</div>
               </div>
-              <ul className="cal__runs">
-                {chronological(selected.runs).map((r: any) => {
-                  const c = countsOf(r);
-                  const rate = rateOf(r);
-                  const sh = shareOf(c.passed, c.failed);
-                  const suite = suites.find(su => String(su.id) === String(r.suite_id));
-                  return (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        className="cal__run"
-                        onClick={() => router.push(`/qa-workspace/test-runs/${r.id}`)}
-                        title="Open this run"
-                      >
-                        <span className="cal__run-top">
-                          <span className="cal__run-name">{r.run_name || "Untitled run"}</span>
-                          {rate !== null && (
-                            <span className={`cal__run-rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>
-                          )}
-                        </span>
-                        <span className="cal__run-meta">
-                          {[suite?.suite_name, fmtDateTime(runDate(r))].filter(Boolean).join(" · ")}
-                        </span>
-                        <span className="cal__run-counts">
-                          <em className="is-pass">{c.passed} passed{sh && ` · ${sh.pass}%`}</em>
-                          <em className="is-fail">{c.failed} failed{sh && ` · ${sh.fail}%`}</em>
-                          {c.blocked > 0 && <em>{c.blocked} blocked</em>}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </aside>
+            ) : (
+              <>
+                <div className="cal__side-head">
+                  <div className="cal__side-title">{selected.d.format("dddd, D MMM YYYY")}</div>
+                  <div className="cal__side-sub">
+                    {selected.runs.length} run{selected.runs.length === 1 ? "" : "s"} ·{" "}
+                    {selected.passed} passed{selectedShare && ` (${selectedShare.pass}%)`},{" "}
+                    {selected.failed} failed{selectedShare && ` (${selectedShare.fail}%)`}
+                  </div>
+                </div>
+                <ul className="cal__runs">
+                  {chronological(selected.runs).map((r: any) => {
+                    const c = countsOf(r);
+                    const rate = rateOf(r);
+                    const sh = shareOf(c.passed, c.failed);
+                    const suite = suites.find(su => String(su.id) === String(r.suite_id));
+                    return (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          className="cal__run"
+                          onClick={() => router.push(`/qa-workspace/test-runs/${r.id}`)}
+                          title="Open this run"
+                        >
+                          <span className="cal__run-top">
+                            <span className="cal__run-name">{r.run_name || "Untitled run"}</span>
+                            {rate !== null && (
+                              <span className={`cal__run-rate${rate < 80 ? " is-low" : ""}`}>{rate}%</span>
+                            )}
+                          </span>
+                          <span className="cal__run-meta">
+                            {[suite?.suite_name, fmtDateTime(runDate(r))].filter(Boolean).join(" · ")}
+                          </span>
+                          <span className="cal__run-counts">
+                            <em className="is-pass">{c.passed} passed{sh && ` · ${sh.pass}%`}</em>
+                            <em className="is-fail">{c.failed} failed{sh && ` · ${sh.fail}%`}</em>
+                            {c.blocked > 0 && <em>{c.blocked} blocked</em>}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </aside>
         </div>
       </div>
     </section>
@@ -742,10 +743,10 @@ const ticketTone = (s?: string | null) => {
 type Shape = "flaky" | "regressed" | "failing" | "fixed";
 
 const SHAPES: Record<Shape, { label: string; hint: string; rank: number }> = {
-  flaky:     { label: "Flaky",     hint: "Passes and fails alternate — suspect the test, not only the build", rank: 0 },
+  flaky: { label: "Flaky", hint: "Passes and fails alternate — suspect the test, not only the build", rank: 0 },
   regressed: { label: "Regressed", hint: "Passed before, fails on the latest run", rank: 1 },
-  failing:   { label: "Failing",   hint: "Failing, with no passing run to compare against", rank: 2 },
-  fixed:     { label: "Fixed",     hint: "Failed earlier, passing on the latest run", rank: 3 },
+  failing: { label: "Failing", hint: "Failing, with no passing run to compare against", rank: 2 },
+  fixed: { label: "Fixed", hint: "Failed earlier, passing on the latest run", rank: 3 },
 };
 
 /** Failed cases rendered per page; scrolling to the end reveals the next batch. */
@@ -788,6 +789,8 @@ function CaseDrawer({ row, runs, suites, onClose }: {
   suites: any[];
   onClose: () => void;
 }) {
+  const { open: openTicketDrawer } = useTicketDrawer();
+
   /** Newest first — the last thing that happened to this case is the thing to read. */
   const events = useMemo(() => {
     if (!row) return [];
@@ -889,14 +892,15 @@ function CaseDrawer({ row, runs, suites, onClose }: {
                     </div>
 
                     {c.ticket ? (
-                      /* The ticket opens in its own tab so the drawer, and the run
-                         history being read in it, is still there on the way back. */
+                      /* The ticket opens in the drawer so the user doesn't lose their place. */
                       <a
                         className="sm__tkt"
                         href={`/tickets/${c.ticket.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Open the full ticket in a new tab"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openTicketDrawer(c.ticket.id);
+                        }}
+                        title="Open ticket in drawer"
                       >
                         <span className="sm__tkt-head">
                           <Ticket size={12} className="sm__tkt-ic" />
@@ -945,9 +949,11 @@ function CaseDrawer({ row, runs, suites, onClose }: {
                         <a
                           className="cm-pill cm-pill--green sm__ev-tkt"
                           href={`/tickets/${c.ticket.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`${c.ticket.title || "Ticket"} — open in a new tab`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openTicketDrawer(c.ticket.id);
+                          }}
+                          title={`${c.ticket.title || "Ticket"} — open in drawer`}
                         >
                           {c.ticket.number || "Ticket"}
                           <ExternalLink size={10} />

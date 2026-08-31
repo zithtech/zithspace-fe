@@ -1767,7 +1767,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       ? ticket.assignee
                                       : ticket.assignee?.id
                                   }
-                                  options={projectMembers}
+                                  options={projectMembers.filter(m => m.value !== (typeof ticket.reportTo === "string" ? ticket.reportTo : ticket.reportTo?.id))}
                                   onSave={(val) =>
                                     handleUpdate("assignee", val)
                                   }
@@ -1786,7 +1786,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       ? ticket.reportTo
                                       : ticket.reportTo?.id
                                   }
-                                  options={projectMembers}
+                                  options={projectMembers.filter(m => m.value !== (typeof ticket.assignee === "string" ? ticket.assignee : ticket.assignee?.id))}
                                   onSave={(val) =>
                                     handleUpdate("reportTo", val)
                                   }

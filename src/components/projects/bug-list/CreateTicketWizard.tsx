@@ -21,6 +21,7 @@ import { LinearService } from "@/services/linearService";
 import { JiraService } from "@/services/jiraService";
 import {
   ZukvoLogo,
+  TestiezLogo,
   LinearMark,
   JiraMark,
   TicketFlowBar,
@@ -127,7 +128,7 @@ export default function CreateTicketWizard({
 
       <div className="tf">
         <TicketFlowBar
-          mark={isLinear ? <LinearMark size={18} /> : isJira ? <JiraMark size={18} /> : <ZukvoLogo size={18} />}
+          mark={isLinear ? <LinearMark size={18} /> : isJira ? <JiraMark size={18} /> : (isTestiez ? <TestiezLogo size={18} /> : <ZukvoLogo size={18} />)}
           label={step === 0 ? "Create tickets" : isLinear ? "Linear" : isJira ? "Jira" : (isTestiez ? "Testiez Tickets" : "Zukvo Tickets")}
           steps={TICKET_FLOW_STEPS}
           current={step}

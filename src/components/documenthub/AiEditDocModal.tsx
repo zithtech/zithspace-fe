@@ -26,7 +26,7 @@ type ApplyMode = "replace" | "update" | "append";
 interface AiEditDocModalProps {
   open: boolean;
   onClose: () => void;
-  editor: BlockNoteEditor | null;
+  editor: BlockNoteEditor<any, any, any> | null;
   /** Called after content is applied so the host can mark the doc dirty. */
   onApplied?: () => void;
 }

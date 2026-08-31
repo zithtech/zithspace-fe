@@ -1720,6 +1720,7 @@ export default function SettingsPage() {
                           <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
                         </Form.Item>
                       </Col>
+                    ))}
                       <Col xs={24} md={12} lg={8}>
                         <Form.Item
                           name="gstNumber"

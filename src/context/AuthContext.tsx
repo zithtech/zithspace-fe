@@ -84,6 +84,8 @@ interface User {
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
   subscriptionFeatures?: string[];
+  /** Whether this tenant has completed the initial project-setup onboarding step */
+  onboardingCompleted?: boolean;
 }
 
 interface AuthContextType {
@@ -181,6 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
         subscriptionFeatures: (response.user as any).subscriptionFeatures ?? [],
+        onboardingCompleted: (response.user as any).onboardingCompleted ?? true,
       };
 
       setUser(userData);
@@ -228,6 +231,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
+        onboardingCompleted: (response.user as any).onboardingCompleted ?? true,
       };
 
       setUser(userData);
@@ -273,6 +277,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         createdAt: (response.user as any).createdAt,
         permissions: (response.user as any).permissions ?? [],
+        onboardingCompleted: (response.user as any).onboardingCompleted ?? true,
       };
 
       setUser(userData);
@@ -386,6 +391,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         createdAt: userProfile.createdAt,
         permissions: (userProfile as any).permissions ?? [],
         subscriptionFeatures: (userProfile as any).subscriptionFeatures ?? [],
+        onboardingCompleted: (userProfile as any).onboardingCompleted ?? true,
       };
 
       setUser(userData);

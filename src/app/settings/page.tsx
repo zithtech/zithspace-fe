@@ -1717,33 +1717,112 @@ export default function SettingsPage() {
                           rules={field.rules}
                           normalize={field.normalize}
                         >
-                          <Input placeholder={field.placeholder} />
+                          <Input placeholder="e.g. Zithspace Technologies Pvt Ltd" />
                         </Form.Item>
                       </Col>
                     ))}
-                  </Row>
-
-                  {canUpdateSettings && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                      {companyDetails && (
-                        <Button
-                          onClick={cancelEditingCompany}
-                          style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 110 }}
+                      <Col xs={24} md={12} lg={8}>
+                        <Form.Item
+                          name="gstNumber"
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>GST Number</Text>}
+                          normalize={(v) => (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '')}
+                          rules={[{
+                            pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                            message: 'Enter a valid 15-character GSTIN',
+                          }]}
                         >
-                          Cancel
-                        </Button>
-                      )}
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={companySaving}
-                        style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 160 }}
-                      >
-                        {companyDetails ? 'Save Changes' : 'Save Company Details'}
-                      </Button>
+                          <Input placeholder="e.g. 29ABCDE1234F1Z5" maxLength={15} prefix={<NumberOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <Form.Item
+                          name="primaryEmail"
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
+                          rules={[
+                            { required: true, message: 'Primary email is required' },
+                            { type: 'email', message: 'Enter a valid email address' },
+                          ]}
+                        >
+                          <Input placeholder="e.g. accounts@company.com" prefix={<MailOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <Form.Item
+                          name="primaryPhone"
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
+                          rules={[{ required: true, whitespace: true, message: 'Primary phone is required' }]}
+                          getValueFromEvent={(e) => e.target.value.replace(/[^0-9+\-()\s]/g, '')}
+                        >
+                          <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12} lg={8}>
+                        <Form.Item
+                          name="website"
+                          label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Website URL</Text>}
+                          // The server prefixes a missing scheme, so accept a bare
+                          // domain here and only reject obviously broken input.
+                          rules={[{
+                            pattern: /^(https?:\/\/)?[\w-]+(\.[\w-]+)+([/?#][^\s]*)?$/i,
+                            message: 'Enter a valid website URL',
+                          }]}
+                        >
+                          <Input placeholder="e.g. www.company.com" prefix={<LinkOutlined style={{ color: 'var(--text-slate-400)' }} />} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      margin: '4px 0 16px',
+                      paddingBottom: 10,
+                      borderBottom: `1px dashed ${token.colorBorderSecondary}`,
+                    }}>
+                      <EnvironmentOutlined style={{ color: '#2563EB', fontSize: 15 }} />
+                      <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+                        Registered Address
+                      </Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                        The full postal address of your head office
+                      </Text>
                     </div>
-                  )}
-                </Form>
+
+                    <Row gutter={[16, 0]}>
+                      {COMPANY_ADDRESS_FIELDS.map((field) => (
+                        <Col xs={24} md={12} lg={8} key={field.name}>
+                          <Form.Item
+                            name={field.name}
+                            label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{field.label}</Text>}
+                          >
+                            <Input placeholder={field.placeholder} />
+                          </Form.Item>
+                        </Col>
+                      ))}
+                    </Row>
+
+                    {canUpdateSettings && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                        {companyDetails && (
+                          <Button
+                            onClick={cancelEditingCompany}
+                            style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 110 }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={companySaving}
+                          style={{ borderRadius: 10, height: 42, fontWeight: 600, minWidth: 160 }}
+                        >
+                          {companyDetails ? 'Save Changes' : 'Save Company Details'}
+                        </Button>
+                      </div>
+                    )}
+                  </Form>
                 )}
               </div>
             </Card>
@@ -1916,7 +1995,7 @@ export default function SettingsPage() {
           gap: 20
         }}>
 
-          {/* Default Invoice Mail Card */}
+          {/* Default Mail Card */}
           <Card
             variant="borderless"
             className="transparent-card"
@@ -1946,7 +2025,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <Text strong style={{ fontSize: 17, color: "var(--text-primary)", display: 'block', letterSpacing: '-0.01em' }}>
-                    Default Invoice Mail
+                    Default Mail
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Choose which connected mailbox will deliver invoices to your clients
@@ -2006,7 +2085,7 @@ export default function SettingsPage() {
                   <Col xs={24} md={14}>
                     <div style={{ marginBottom: 20 }}>
                       <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 13, marginBottom: 8 }}>
-                        Active Invoice Sender
+                        Active Sender
                       </Text>
                       <Select
                         placeholder="Select an email account"

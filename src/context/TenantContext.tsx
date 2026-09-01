@@ -93,6 +93,29 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           isSetupComplete: info.isSetupComplete ?? true,
         };
 
+        // The backend also resolves RETIRED slugs, so a workspace renamed during
+        // setup keeps answering on its old host — that is where its signup
+        // welcome email points. When the canonical slug differs from the one in
+        // the URL we are on a retired host, so move to the real one, carrying
+        // the path and query across so an invite or reset link still lands where
+        // it meant to.
+        if (
+          info.subdomain &&
+          info.subdomain !== subdomain &&
+          typeof window !== 'undefined'
+        ) {
+          const host = window.location.host;
+          const labels = host.split('.');
+          // Only rewrite when the stale slug really is the leftmost label —
+          // otherwise we would be guessing at the host shape and could loop.
+          if (labels[0] === subdomain) {
+            labels[0] = info.subdomain;
+            const target = `${window.location.protocol}//${labels.join('.')}${window.location.pathname}${window.location.search}${window.location.hash}`;
+            window.location.replace(target);
+            return true;
+          }
+        }
+
         setTenantInfo(tenant);
 
         // Store tenant info in localStorage for persistence

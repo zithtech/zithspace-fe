@@ -89,8 +89,18 @@ export default function OnboardingProjectModal() {
   return (
       <Modal
         open
-        closable={false}
-        maskClosable={false}
+        // Dismissable on purpose. This is the first thing a new customer sees,
+        // over a dashboard they have not looked at yet, and it is a suggestion
+        // rather than a requirement — the workspace works without a project.
+        // Sealing it shut also meant that when project creation failed (as it
+        // did while the entitlement check was reading a cold cache) there was
+        // no way past the error at all.
+        //
+        // Closing does what "Skip for now" does, including recording it, so the
+        // prompt does not reappear on the next render and start nagging.
+        closable
+        maskClosable
+        onCancel={handleSkip}
         footer={null}
         centered
         width={480}

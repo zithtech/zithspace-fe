@@ -107,6 +107,29 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Send a dead session back to the login form, once.
+ *
+ * A page that has lost its session usually discovers it several times at the
+ * same moment — a dashboard fires many requests in parallel — and each rejection
+ * used to be rendered by whichever widget made it, so the customer was left
+ * looking at a working-looking page stacked with "Session expired. Please login
+ * again." cards and no way to act on any of them.
+ *
+ * The instruction was also the wrong shape: telling someone to log in is not the
+ * same as taking them somewhere they can. This carries where they were, so they
+ * come back to it.
+ */
+let redirectingToLogin = false;
+function redirectToLogin(): void {
+  if (typeof window === 'undefined' || redirectingToLogin) return;
+  // Already there — a redirect would only reload the form and drop the reason.
+  if (window.location.pathname.startsWith('/login')) return;
+  redirectingToLogin = true;
+  const back = window.location.pathname + window.location.search;
+  window.location.href = `/login?redirect=${encodeURIComponent(back)}`;
+}
+
 // Token management utilities - Only for access tokens (refresh tokens handled by cookies)
 const TokenManager = {
   getAccessToken(): string | null {
@@ -297,8 +320,19 @@ const createApiClient = (): AxiosInstance => {
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
 
-          // Clear access token - let AuthContext handle the redirect
           TokenManager.clearAccessToken();
+
+          // Only bounce when a real session died: the request carried a token,
+          // the server rejected it, and the refresh could not replace it.
+          //
+          // A request that went out with NO Authorization header is a different
+          // animal — it lost a race with token hydration at app start, which
+          // happens on a normal successful login. Treating that as an expired
+          // session would sign people out for a timing accident, so it is left
+          // to fail on its own and be retried.
+          if (originalRequest.headers?.Authorization) {
+            redirectToLogin();
+          }
 
           return Promise.reject(new ApiError('Session expired. Please login again.', 401, 'TOKEN_EXPIRED'));
         }

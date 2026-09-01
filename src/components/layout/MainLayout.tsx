@@ -5,6 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Layout, App as AntApp, theme } from "antd";
 import ZukvoLoader from "../common/ZukvoLoader";
+// import ErrorBoundary from "./ErrorBoundary";
+import OnboardingProjectModal from "../common/OnboardingProjectModal";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 import { ModuleType } from "./navigationConfig";
@@ -142,7 +144,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = standalonePages.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature
           ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
           : true;
         const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
@@ -150,7 +152,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
           : foundStandalone.requiredPermission
             ? hasPermission(foundStandalone.requiredPermission)
             : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
-        
+
         if (!hasSubAccess || !hasPermAccess) {
           router.push(manifest.homeRoute);
           return;
@@ -302,7 +304,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
       // Check standalone pages
       const foundStandalone = standalonePages.find(p => pathname.startsWith(p.path));
       if (foundStandalone) {
-        const hasSubAccess = foundStandalone.requiredSubscriptionFeature 
+        const hasSubAccess = foundStandalone.requiredSubscriptionFeature
           ? hasAnySubscriptionFeature(...foundStandalone.requiredSubscriptionFeature)
           : true;
         const hasPermAccess = !foundStandalone.requiredPermission && !foundStandalone.requiredAnyPermission
@@ -310,7 +312,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
           : foundStandalone.requiredPermission
             ? hasPermission(foundStandalone.requiredPermission)
             : foundStandalone.requiredAnyPermission ? hasAnyPermission(...foundStandalone.requiredAnyPermission) : true;
-        
+
         if (!hasSubAccess || !hasPermAccess) {
           isAuthorized = false;
         }
@@ -372,6 +374,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
         </Content>
         <TimerSocketListener />
       </Layout>
+      {user?.onboardingCompleted === false && <OnboardingProjectModal />}
     </Layout>
   );
 }

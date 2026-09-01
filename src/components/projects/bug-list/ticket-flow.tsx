@@ -23,6 +23,10 @@ export function ZukvoLogo({ size = 22 }: { size?: number }) {
   return <Image src={ZukvoMark} alt="" width={size} height={size} unoptimized />;
 }
 
+export function TestiezLogo({ size = 22 }: { size?: number }) {
+  return <img src="/testiez-favicon.png" alt="Testiex Logo" width={size} height={size} style={{ objectFit: 'contain' }} />;
+}
+
 export function LinearMark({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="#5E6AD2" aria-hidden>

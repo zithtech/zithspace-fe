@@ -192,6 +192,8 @@ const ExternalDriveBrowserModal: React.FC<ExternalDriveBrowserModalProps> = ({
           fileName: file.name,
           mimeType: file.mimeType,
           ...(parentId ? { parentId } : {})
+        }, {
+          timeout: 120000 // 2 minutes timeout for large file imports
         });
         completed++;
       } catch (err: any) {

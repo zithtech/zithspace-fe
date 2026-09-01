@@ -515,8 +515,24 @@ function LoginFormWithParams() {
     };
   }, [searchParams, router]);
 
-  // Get the redirect URL from query parameters
-  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+  // Standard redirect parameter resolution
+  const determineRedirectPath = (
+    urlStr: string,
+    user: any,
+    fallback: string,
+  ) => {
+    try {
+      const url = new URL(urlStr, window.location.origin);
+      return url.searchParams.get("redirect") || fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Redirect after login
+  const redirectUrl = (() => {
+    return searchParams.get('redirect') || '/dashboard';
+  })();
 
   useEffect(() => {
     if (user) {

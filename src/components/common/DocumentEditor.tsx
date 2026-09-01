@@ -103,29 +103,37 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         editable={editable}
         theme={currentTheme}
         onChange={onInternalChange || (editable ? onChange : undefined)}
+        // Disable the built-in slash menu when editable so our custom
+        // SuggestionMenuController (with the "Embed" iframe item) is the
+        // only one registered for "/". Having two controllers for the same
+        // trigger character causes a conflict that breaks the video block's
+        // FilePanel (the "Embed" / "Upload" dialog).
+        slashMenu={editable ? false : undefined}
       >
-        <SuggestionMenuController
-          triggerCharacter={"/"}
-          getItems={async (query) => {
-            const defaultItems = getDefaultReactSlashMenuItems(instance);
-            const customItem = {
-              title: "Embed",
-              onItemClick: () => {
-                const currentBlock = instance.getTextCursorPosition().block;
-                instance.updateBlock(currentBlock, { type: "iframe" as any });
-              },
-              aliases: ["iframe", "youtube", "video embed"],
-              group: "Media",
-              icon: <YoutubeOutlined />,
-              subtext: "Embed a YouTube video, Vimeo, or Web Player",
-            };
-            const allItems = [...defaultItems, customItem] as any[];
-            return allItems.filter(item => 
-              item.title.toLowerCase().includes(query.toLowerCase()) || 
-              (item.aliases && item.aliases.some((alias: string) => alias.toLowerCase().includes(query.toLowerCase())))
-            );
-          }}
-        />
+        {editable && (
+          <SuggestionMenuController
+            triggerCharacter={"/"}
+            getItems={async (query) => {
+              const defaultItems = getDefaultReactSlashMenuItems(instance);
+              const customItem = {
+                title: "Embed",
+                onItemClick: () => {
+                  const currentBlock = instance.getTextCursorPosition().block;
+                  instance.updateBlock(currentBlock, { type: "iframe" as any });
+                },
+                aliases: ["iframe", "youtube", "video embed"],
+                group: "Media",
+                icon: <YoutubeOutlined />,
+                subtext: "Embed a YouTube video, Vimeo, or Web Player",
+              };
+              const allItems = [...defaultItems, customItem] as any[];
+              return allItems.filter(item =>
+                item.title.toLowerCase().includes(query.toLowerCase()) ||
+                (item.aliases && item.aliases.some((alias: string) => alias.toLowerCase().includes(query.toLowerCase())))
+              );
+            }}
+          />
+        )}
       </BlockNoteView>
     </div>
   );

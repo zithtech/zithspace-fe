@@ -40,6 +40,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCreateBlockNote } from "@blocknote/react";
 import { defaultBlockSpecs, BlockNoteSchema } from "@blocknote/core";
 import { IframeBlock, parseEmbedUrl } from "@/components/documenthub/blocks/IframeBlock";
+import { VideoBlock } from "@/components/documenthub/blocks/VideoBlock";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined, ThunderboltOutlined, YoutubeOutlined } from '@ant-design/icons'
@@ -655,7 +656,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     // Create the custom schema
     const customSchema = useMemo(() => {
         return BlockNoteSchema.create({
-            blockSpecs: { ...defaultBlockSpecs, iframe: IframeBlock() }
+            blockSpecs: {
+                ...defaultBlockSpecs,
+                // Override the default video block so embed URLs (YouTube,
+                // Vimeo, etc.) render in an <iframe> instead of a broken
+                // native <video> element.
+                video: VideoBlock(),
+                iframe: IframeBlock(),
+            }
         });
     }, []);
 

@@ -27,7 +27,7 @@ export default function SetupWorkspaceModal() {
       const basePart = window.location.host.includes('.')
         ? window.location.host.split('.').slice(1).join('.')
         : window.location.host;
-      window.location.href = `${window.location.protocol}//${data.subdomain}.${basePart}/dashboard`;
+      window.location.href = `${window.location.protocol}//${data.subdomain}.${basePart}/welcome`;
     } catch (err: any) {
       setError(err?.message || 'Something went wrong. Please try again.');
       setLoading(false);

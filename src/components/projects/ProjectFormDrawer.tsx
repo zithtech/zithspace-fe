@@ -33,6 +33,8 @@ import {
   CreateProjectData,
   UpdateProjectData,
 } from "@/services/projectService";
+import { AuthService } from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 import { MembersService } from "@/services/membersService";
 import { useTheme } from "@/context/ThemeContext";
 import { drawerFormStyles as formStyles, SectionCard, commonDrawerProps } from "@/components/common/DrawerSection";
@@ -65,6 +67,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
 }) => {
   const { theme } = useTheme();
   const { notification, message } = App.useApp();
+  const { user, updateUser } = useAuth();
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -181,6 +184,12 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
         message.success(`Project "${values.name}" has been successfully created.`);
+        
+        if (!user?.onboardingCompleted) {
+          AuthService.completeOnboarding()
+            .then(() => updateUser({ onboardingCompleted: true }))
+            .catch(() => {});
+        }
       }
 
       // Invalidate project queries to sync cached lists

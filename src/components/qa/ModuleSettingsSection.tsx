@@ -94,7 +94,7 @@ export function useProjectOptions(enabled: boolean) {
     if (!enabled) return;
     let cancelled = false;
     setLoading(true);
-    ProjectService.getUserProjects()
+    ProjectService.getUserProjects(true)
       .then((res: any) => {
         if (cancelled) return;
         const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);

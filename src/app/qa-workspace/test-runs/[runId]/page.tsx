@@ -1,8 +1,11 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { useState, useEffect, useMemo } from "react";
+
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, message, Tooltip, Drawer, Form, Row, Col, Modal, Checkbox, Pagination, Select } from "antd";
+import { Button, Input, Tooltip, Drawer, Form, Row, Col, Modal, Checkbox, Pagination, Select } from "antd";
 import {
   PlayCircleOutlined, ArrowLeftOutlined, SearchOutlined, CheckCircleOutlined,
   CloseCircleOutlined, StopOutlined, MinusCircleOutlined, FileTextOutlined, DownOutlined,

@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import NoData from "@/components/common/NoData";
 /**
@@ -17,7 +19,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, Checkbox, Input, Modal, Popover, Table, Tooltip, Upload } from "antd";
+import { App, Button, Checkbox, Input, Modal, Popover, Table, Tooltip, Upload  } from "antd";
 import { ArrowLeftOutlined, PaperClipOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Pencil,
@@ -131,7 +133,6 @@ export default function QaSubmissionDetailPage() {
 
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { message } = App.useApp();
   const {
     canReadSubmission,
     canUpdateSubmission,

@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import NoData from "@/components/common/NoData";
 /**
@@ -16,7 +18,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip } from "antd";
+import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip  } from "antd";
 import { SearchOutlined, FileDoneOutlined } from "@ant-design/icons";
 import {
   Eye,
@@ -130,7 +132,6 @@ function ApprovalsContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { message } = App.useApp();
   const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
 
   const [rows, setRows] = useState<SubmissionListItem[]>([]);

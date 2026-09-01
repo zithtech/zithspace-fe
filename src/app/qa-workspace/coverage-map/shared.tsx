@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 /**
  * Shared machinery for the Coverage Map and its module pages.
@@ -9,7 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Tooltip, message } from "antd";
+import { Tooltip } from "antd";
 import dayjs from "dayjs";
 
 import { api as axios, apiClient } from "@/lib/axios";

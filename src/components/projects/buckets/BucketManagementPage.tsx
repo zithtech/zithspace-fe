@@ -784,7 +784,7 @@ export default function BucketManagementPage() {
 
               {/* Right side — the visibility switch that used to live in the
                   rail, then the view controls. */}
-              <Space size={10} className="sc-header-right">
+              <Space size={10} className="sc-header-right" wrap>
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
                   value={visibilityFilter}
@@ -1435,8 +1435,8 @@ export default function BucketManagementPage() {
           flex-shrink: 0;
         }
         [data-theme='dark'] .bh2-toolbar.sc-header { background: #0f1419; border-bottom-color: #1f2937; }
-        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .sc-header-right { flex-shrink: 0; }
+        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
+        .sc-header-right { flex-shrink: 0; display: flex; flex-wrap: wrap; }
 
         .sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
         .sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
@@ -1451,6 +1451,11 @@ export default function BucketManagementPage() {
         .ant-segmented-item-selected .sc-owner-opt__count { background: var(--bg-blue-50); color: #3B82F6; }
         [data-theme='dark'] .sc-owner-opt__count { background: #1e293b; color: #94a3b8; }
         @media (max-width: 1240px) { .sc-owner-opt__label { display: none; } }
+        @media (max-width: 900px) {
+          .sc-header-controls { flex: 1 1 100%; width: 100%; }
+          .sc-header-right { flex: 1 1 100%; width: 100%; justify-content: flex-start; margin-top: 8px; }
+          .ticket-filter-group { width: 100%; flex-wrap: wrap; }
+        }
 
         /* ── Overview banner ────────────────────────────────────────────── */
         .tl-section-head {
@@ -2766,3 +2771,4 @@ export default function BucketManagementPage() {
     </div>
   );
 }
+

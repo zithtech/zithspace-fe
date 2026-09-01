@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import NoData from "@/components/common/NoData";
 /**
@@ -14,7 +16,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, DatePicker, Table, Tooltip as AntTooltip } from "antd";
+import { App, Button, DatePicker, Table, Tooltip as AntTooltip  } from "antd";
 import {
   BarChart3,
   TrendingUp,
@@ -96,7 +98,6 @@ const fmtBucket = (iso: string, granularity: string) =>
 function AnalyticsContent() {
   useActivitySource({ section: "WORK", module: "QA", page: "Analytics" });
 
-  const { message } = App.useApp();
   const { canReadQaAnalytics } = usePermission();
   const dark = useDark();
 

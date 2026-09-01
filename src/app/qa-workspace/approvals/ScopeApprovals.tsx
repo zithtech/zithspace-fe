@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 /**
  * Test Scope approvals — the scopes routed to the signed-in approver.
@@ -9,7 +11,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Dropdown, Input, Select, Table, Tooltip, message } from "antd";
+import { Button, Dropdown, Input, Select, Table, Tooltip } from "antd";
 import {
   AppstoreOutlined,
   CheckCircleOutlined,

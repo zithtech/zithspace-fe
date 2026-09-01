@@ -33,16 +33,21 @@ export default function SetupWorkspaceModal() {
       // Naming the workspace changes the subdomain, so this is a hop to a
       // DIFFERENT ORIGIN. The access token in localStorage and the zithmi_auth
       // marker cookie are both scoped to the origin we are leaving, so landing
-      // on /dashboard directly means the edge middleware sees no session and
-      // bounces to /login — a second sign-in seconds after the first.
+      // anywhere directly means the edge middleware sees no session and bounces
+      // to /login — a second sign-in seconds after the first.
       //
-      // Arrive via /login?token= instead: that handler already stores the token,
-      // sets the marker cookie for the new host, strips the token from the URL
-      // and forwards to the dashboard. It is the same handoff the OAuth signup
-      // uses, so there is one mechanism to keep working rather than two.
+      // Arrive via /login?token= instead: that handler stores the token, sets
+      // the marker cookie for the new host, strips the token from the URL and
+      // then honours ?redirect=. It is the same handoff the OAuth signup uses,
+      // so there is one mechanism to keep working rather than two.
+      //
+      // The destination is /welcome, the onboarding page that replaced
+      // OnboardingProjectModal. Without a token there is no session to carry,
+      // so go straight there and let the login guard do its job.
+      const destination = '/welcome';
       window.location.href = data.accessToken
-        ? `${target}/login?token=${encodeURIComponent(data.accessToken)}`
-        : `${target}/dashboard`;
+        ? `${target}/login?token=${encodeURIComponent(data.accessToken)}&redirect=${encodeURIComponent(destination)}`
+        : `${target}${destination}`;
     } catch (err: any) {
       setError(err?.message || 'Something went wrong. Please try again.');
       setLoading(false);

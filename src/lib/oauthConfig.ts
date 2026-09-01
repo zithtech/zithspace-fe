@@ -29,6 +29,12 @@
 
 import type { ProductKey } from "./product";
 
+export interface SsoAvailability {
+  google: boolean;
+  microsoft: boolean;
+  any: boolean;
+}
+
 export interface OAuthConfig {
   googleClientId: string;
   msClientId: string;
@@ -48,9 +54,15 @@ const MS_CLIENT_ID =
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "";
 
 /**
- * Testiez falls back to the Zukvo values so a deployment that has not set the
- * Testiez vars behaves exactly as it does today — no worse, and no surprise
- * blank host.
+ * The app URL still falls back, because getting it wrong only means a redirect
+ * to the other brand's host — bad, but recoverable, and a blank host would
+ * break login outright for a deployment mid-migration.
+ *
+ * The CLIENT IDS deliberately do NOT fall back. Testiez is its own product with
+ * its own OAuth apps; borrowing Zukvo's would work mechanically but the consent
+ * dialog is branded from the app registration, so a Testiez customer would be
+ * asked to grant access to "Zukvo". Unset means unconfigured, and the login page
+ * hides the buttons rather than showing a control that names the other brand.
  */
 const TESTIEZ_APP_URL = process.env.NEXT_PUBLIC_TESTIEZ_APP_URL || APP_URL;
 
@@ -61,15 +73,24 @@ const CONFIGS: Record<ProductKey, OAuthConfig> = {
     appUrl: APP_URL,
   },
   testiez: {
-    googleClientId:
-      process.env.NEXT_PUBLIC_TESTIEZ_GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID,
-    msClientId: process.env.NEXT_PUBLIC_TESTIEZ_MS_CLIENT_ID || MS_CLIENT_ID,
+    googleClientId: process.env.NEXT_PUBLIC_TESTIEZ_GOOGLE_CLIENT_ID || "",
+    msClientId: process.env.NEXT_PUBLIC_TESTIEZ_MS_CLIENT_ID || "",
     appUrl: TESTIEZ_APP_URL,
   },
 };
 
 export function oauthConfigFor(product: ProductKey): OAuthConfig {
   return CONFIGS[product] ?? CONFIGS.zukvo;
+}
+
+/** Whether this surface can offer each provider at all. */
+export function ssoAvailability(product: ProductKey) {
+  const cfg = oauthConfigFor(product);
+  return {
+    google: cfg.googleClientId.length > 0,
+    microsoft: cfg.msClientId.length > 0,
+    any: cfg.googleClientId.length > 0 || cfg.msClientId.length > 0,
+  };
 }
 
 export const GOOGLE_SCOPE =

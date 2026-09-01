@@ -26,7 +26,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
 import { useProduct } from '@/context/ProductContext';
-import { oauthConfigFor, GOOGLE_SCOPE, MS_SCOPE } from '@/lib/oauthConfig';
+import { oauthConfigFor, ssoAvailability, GOOGLE_SCOPE, MS_SCOPE } from '@/lib/oauthConfig';
 
 
 const { Title, Text } = Typography;
@@ -93,6 +93,9 @@ function LoginFormWithParams() {
   // paint — no effect, no flash of the other brand's OAuth target.
   const { product } = useProduct();
   const oauth = useMemo(() => oauthConfigFor(product), [product]);
+  // Testiez has no fallback to Zukvo's OAuth apps, so a surface without its own
+  // credentials offers no SSO at all rather than a button naming the other brand.
+  const sso = useMemo(() => ssoAvailability(product), [product]);
   const { resolveTenant } = useTenant();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -680,6 +683,8 @@ function LoginFormWithParams() {
         </Form.Item>
       </Form>
 
+      {sso.any && (
+      <>
       <div
         style={{
           display: 'flex',
@@ -696,6 +701,7 @@ function LoginFormWithParams() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+        {sso.google && (
         <Button
           size="large"
           icon={
@@ -733,6 +739,8 @@ function LoginFormWithParams() {
             boxShadow: 'none',
           }}
         />
+        )}
+        {sso.microsoft && (
         <Button
           size="large"
           icon={
@@ -758,7 +766,10 @@ function LoginFormWithParams() {
             boxShadow: 'none',
           }}
         />
+        )}
       </div>
+      </>
+      )}
     </>
   );
 }

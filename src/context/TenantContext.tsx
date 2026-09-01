@@ -2,8 +2,61 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { ApiError, apiClient } from "@/lib/axios";
-import { manifestForHostname } from "@/lib/product";
+import { BRAND_LABELS, manifestForHostname } from "@/lib/product";
 import "@/lib/devSetup"; // Load development helpers
+
+/**
+ * Labels that are never a tenant slug.
+ *
+ * Infrastructure names, plus the BRAND names — `testiez.localhost` and
+ * `acme.localhost` are structurally identical, so only this list stops the
+ * Testiez brand root being resolved as a workspace called "testiez".
+ */
+const RESERVED_LABELS = new Set<string>([
+  "www",
+  "api",
+  "admin",
+  "app",
+  "mail",
+  ...BRAND_LABELS,
+]);
+
+/**
+ * The tenant slug a hostname names, or null when it names no tenant.
+ *
+ * Null means "this is a brand root or a bare localhost" — a legitimate place to
+ * be, not a failure. Callers must not treat it as an unknown workspace.
+ *
+ * Exported because the not-found guard has to ask the same question this
+ * provider does: a second copy of this parsing would eventually disagree, and
+ * the symptom would be a "workspace not found" screen on a perfectly good host.
+ */
+export function tenantSlugFromHostname(hostname: string | null | undefined): string | null {
+  if (!hostname) return null;
+
+  const host = hostname.toLowerCase().split(":")[0].replace(/\.$/, "");
+
+  if (host === "localhost" || host === "127.0.0.1") return null;
+
+  // *.localhost (e.g. abraham-immanuel.localhost:3005, and
+  // kabs.testiez.localhost:3005 for the Testiez surface). Take the FIRST label:
+  // the tenant slug is always leftmost, and anything between it and `.localhost`
+  // is the brand, not part of the slug. Splitting on '.localhost' would resolve
+  // 'kabs.testiez' and 404.
+  if (host.endsWith(".localhost")) {
+    const label = host.split(".")[0];
+    return label && !RESERVED_LABELS.has(label) ? label : null;
+  }
+
+  // Production: {tenant}.{brand}.com — three labels or more.
+  const parts = host.split(".");
+  if (parts.length >= 3) {
+    const label = parts[0];
+    return RESERVED_LABELS.has(label) ? null : label;
+  }
+
+  return null;
+}
 
 // Tenant interfaces
 interface TenantInfo {
@@ -20,6 +73,15 @@ interface TenantContextType {
   tenantId: string | null;
   isLoading: boolean;
   error: string | null;
+  /**
+   * The backend answered, and there is no such workspace.
+   *
+   * Deliberately narrower than `error`: a timeout, a CORS failure or a 500 also
+   * set an error, and telling someone their workspace does not exist because
+   * the API is down sends them off to re-create an account they already have.
+   * Only a definitive 404 sets this.
+   */
+  tenantNotFound: boolean;
   resolveTenant: (subdomain: string) => Promise<boolean>;
   clearTenant: () => void;
   refreshTenant: () => Promise<void>;
@@ -31,6 +93,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tenantNotFound, setTenantNotFound] = useState(false);
 
   /**
    * Detect tenant from current URL
@@ -39,35 +102,14 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (typeof window === 'undefined') return null;
 
     const hostname = window.location.hostname;
-    
+
     // For plain localhost — fall back to localStorage (backward compat)
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       const savedTenant = localStorage.getItem('devTenantSubdomain');
       return savedTenant || null;
     }
 
-    // *.localhost subdomains (e.g. abraham-immanuel.localhost:3005, and
-    // kabs.testiez.localhost:3005 for the Testiez surface). Take the FIRST
-    // label: the tenant slug is always leftmost, and anything between it and
-    // `.localhost` is the brand, not part of the slug. Splitting on
-    // '.localhost' would resolve 'kabs.testiez' and 404.
-    if (hostname.endsWith('.localhost')) {
-      const subdomain = hostname.split('.')[0];
-      if (subdomain && !['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
-        return subdomain;
-      }
-    }
-
-    // Production subdomain detection: subdomain.domain.com
-    const parts = hostname.split('.');
-    if (parts.length >= 3) {
-      const subdomain = parts[0];
-      if (!['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
-        return subdomain;
-      }
-    }
-
-    return null;
+    return tenantSlugFromHostname(hostname);
   };
 
   /**
@@ -77,6 +119,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       setIsLoading(true);
       setError(null);
+      setTenantNotFound(false);
 
       // Call backend tenant resolution endpoint
       const response = await apiClient.get(`/api/tenants/resolve?subdomain=${subdomain}`);
@@ -128,21 +171,25 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
         return true;
       } else {
+        // A 200 carrying success:false is still the backend saying "no such
+        // workspace" — it answered, it just answered no.
         setError('Tenant not found');
+        setTenantNotFound(true);
         return false;
       }
     } catch (err) {
       console.error('Tenant resolution failed:', err);
       let errorMessage = 'Failed to resolve tenant';
-      
+
       if (err instanceof ApiError) {
         if (err.status === 404) {
           errorMessage = 'Tenant not found';
+          setTenantNotFound(true);
         } else {
           errorMessage = err.message;
         }
       }
-      
+
       setError(errorMessage);
       return false;
     } finally {
@@ -156,6 +203,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const clearTenant = (): void => {
     setTenantInfo(null);
     setError(null);
+    setTenantNotFound(false);
     localStorage.removeItem('currentTenant');
     localStorage.removeItem('devTenantSubdomain');
   };
@@ -202,10 +250,13 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
         // On *.localhost subdomains (e.g. abraham-immanuel.localhost:3005), always
         // resolve from the URL — localStorage may hold a stale tenant from a different session.
+        //
+        // Goes through the shared parser rather than splitting again: this used
+        // to take the leftmost label unconditionally, so `testiez.localhost:3005`
+        // went looking for a workspace named "testiez".
         const initHostname = window.location.hostname;
         if (initHostname.endsWith('.localhost') && initHostname !== 'localhost') {
-          // First label only — see detectTenantFromUrl above.
-          const subdomain = initHostname.split('.')[0];
+          const subdomain = tenantSlugFromHostname(initHostname);
           if (subdomain) {
             await resolveTenant(subdomain);
             return;
@@ -268,6 +319,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     tenantId: tenantInfo?.tenantId || null,
     isLoading,
     error,
+    tenantNotFound,
     resolveTenant,
     clearTenant,
     refreshTenant,
@@ -288,42 +340,16 @@ export const useTenant = (): TenantContextType => {
 };
 
 /**
- * Higher-order component to require tenant context
+ * The `withTenant` HOC that used to live here has been removed.
+ *
+ * It rendered a "Tenant Not Found" screen on `error || !tenantInfo` and was
+ * wrapped around nothing at all, so the app never showed it — an unknown
+ * workspace fell through to the login form instead. Its job is now done by
+ * components/common/WorkspaceNotFoundGuard.tsx, mounted once in the root
+ * layout, which additionally distinguishes a host that NAMES a workspace from a
+ * brand root that legitimately carries none. That distinction is why the old
+ * condition could not simply be switched on: on a brand root it was true, and
+ * everyone would have been locked out of the front door.
  */
-export const withTenant = <P extends object>(Component: React.ComponentType<P>) => {
-  return function WithTenantComponent(props: P) {
-    const { tenantInfo, isLoading, error } = useTenant();
-
-    if (isLoading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading tenant information...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (error || !tenantInfo) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-600 text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Tenant Not Found</h1>
-            <p className="text-gray-600 mb-4">
-              {error || "Unable to identify your organization. Please check the URL."}
-            </p>
-            <p className="text-sm text-gray-500">
-              Please access via your organization's subdomain: yourorg.domain.com
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return <Component {...props} />;
-  };
-};
 
 export default TenantContext;

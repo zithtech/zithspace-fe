@@ -15,6 +15,7 @@ import ThemeConfigProvider from "@/providers/ThemeConfigProvider";
 import { LayoutProvider } from "@/context/LayoutContext";
 import { TicketDrawerProvider } from "@/context/TicketDrawerContext";
 import AppSetupGuard from "@/components/common/AppSetupGuard";
+import WorkspaceNotFoundGuard from "@/components/common/WorkspaceNotFoundGuard";
 
 import iconLight from "./icon-light.png";
 import iconDark from "./icon-dark.png";
@@ -93,17 +94,23 @@ export default async function RootLayout({
               <ThemeConfigProvider>
                 <App>
                   <TenantProvider>
-                    <AuthProvider>
-                      <QueryProvider>
-                        <SocketProvider>
-                          <LayoutProvider>
-                            <TicketDrawerProvider>
-                              <AppSetupGuard>{children}</AppSetupGuard>
-                            </TicketDrawerProvider>
-                          </LayoutProvider>
-                        </SocketProvider>
-                      </QueryProvider>
-                    </AuthProvider>
+                    {/* Outside AuthProvider on purpose: if the workspace in the
+                        host does not exist there is nothing to authenticate
+                        against, and the answer should not wait on a login
+                        round trip that cannot succeed. */}
+                    <WorkspaceNotFoundGuard>
+                      <AuthProvider>
+                        <QueryProvider>
+                          <SocketProvider>
+                            <LayoutProvider>
+                              <TicketDrawerProvider>
+                                <AppSetupGuard>{children}</AppSetupGuard>
+                              </TicketDrawerProvider>
+                            </LayoutProvider>
+                          </SocketProvider>
+                        </QueryProvider>
+                      </AuthProvider>
+                    </WorkspaceNotFoundGuard>
                   </TenantProvider>
                 </App>
               </ThemeConfigProvider>

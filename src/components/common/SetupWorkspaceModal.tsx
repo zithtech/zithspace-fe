@@ -18,16 +18,31 @@ export default function SetupWorkspaceModal() {
       setLoading(true);
       setError('');
 
-      const data = await api.put<{ name: string; subdomain: string }>(
+      const data = await api.put<{ name: string; subdomain: string; accessToken?: string }>(
         '/api/tenants/complete-setup',
         { workspaceName: values.workspaceName }
       );
 
       await resolveTenant(data.subdomain);
+
       const basePart = window.location.host.includes('.')
         ? window.location.host.split('.').slice(1).join('.')
         : window.location.host;
-      window.location.href = `${window.location.protocol}//${data.subdomain}.${basePart}/dashboard`;
+      const target = `${window.location.protocol}//${data.subdomain}.${basePart}`;
+
+      // Naming the workspace changes the subdomain, so this is a hop to a
+      // DIFFERENT ORIGIN. The access token in localStorage and the zithmi_auth
+      // marker cookie are both scoped to the origin we are leaving, so landing
+      // on /dashboard directly means the edge middleware sees no session and
+      // bounces to /login — a second sign-in seconds after the first.
+      //
+      // Arrive via /login?token= instead: that handler already stores the token,
+      // sets the marker cookie for the new host, strips the token from the URL
+      // and forwards to the dashboard. It is the same handoff the OAuth signup
+      // uses, so there is one mechanism to keep working rather than two.
+      window.location.href = data.accessToken
+        ? `${target}/login?token=${encodeURIComponent(data.accessToken)}`
+        : `${target}/dashboard`;
     } catch (err: any) {
       setError(err?.message || 'Something went wrong. Please try again.');
       setLoading(false);

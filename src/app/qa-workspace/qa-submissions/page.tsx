@@ -711,7 +711,7 @@ function QaSubmissionsContent() {
                 </button>
               </div>
               {canCreateSubmission && (
-                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
+                <Button data-tour="qa-submission" type="primary" size="small" icon={<PlusOutlined />} onClick={() => router.push("/qa-workspace/qa-submissions/create")}>
                   Create QA Submission
                 </Button>
               )}

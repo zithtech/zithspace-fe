@@ -195,6 +195,7 @@ export default function HivebugSidebar({
             </div>
             {!isCollapsed && onCreateBug && canCreateBug && selectedProjectId && (
               <button
+                data-tour="new-bug-btn"
                 className="hb-btn hb-btn-primary hb-sidebar-new-bug-btn"
                 onClick={onCreateBug}
               >

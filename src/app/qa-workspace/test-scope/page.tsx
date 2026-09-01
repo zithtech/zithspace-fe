@@ -1032,6 +1032,7 @@ function TestScopeContent() {
                     icon={<PlusOutlined />}
                     onClick={() => router.push('/qa-workspace/test-scope/create')}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-scope"
                   >
                     Create Scope
                   </Button>

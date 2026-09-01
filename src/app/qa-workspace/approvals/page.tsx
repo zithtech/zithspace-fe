@@ -453,6 +453,7 @@ function ApprovalsContent() {
                 )}
                 {canApproveSubmission && (
                   <Button
+                    data-tour="qa-signoff"
                     size="small"
                     type="primary"
                     icon={<ThumbsUp size={13} />}

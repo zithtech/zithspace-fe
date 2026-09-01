@@ -16,6 +16,7 @@ import { Check, CheckCircle2, FileText, Pencil, Plus, Settings, Trash2, Trending
 
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { api as axios } from "@/lib/axios";
 
 export type ScopeCategory = "scope_type" | "priority" | "status";
@@ -298,12 +299,16 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
   const [form] = Form.useForm();
   /** Once the user edits the key by hand we stop deriving it from the label. */
   const [keyTouched, setKeyTouched] = useState(false);
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const draftLabel = Form.useWatch("label", form);
   const draftColor = Form.useWatch("color", form);
   const meta = SCOPE_SETTING_CATEGORIES.find(c => c.key === category);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setSuccessData(null);
+      return;
+    }
     if (editing) {
       setKeyTouched(true);
       form.setFieldsValue({ value: editing.value, label: editing.label, color: editing.color || "default" });
@@ -320,12 +325,13 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
       if (editing) {
         await axios.put(`/api/v2/qa/test-scopes/settings/${editing.id}`, values);
         message.success("Updated successfully");
+        onSaved();
+        onClose();
       } else {
         await axios.post("/api/v2/qa/test-scopes/settings", { ...values, category });
-        message.success("Created successfully");
+        onSaved();
+        setSuccessData({ name: values.label });
       }
-      onSaved();
-      onClose();
     } catch (err: any) {
       if (err?.errorFields) return;
       message.error("Failed to save");
@@ -349,87 +355,103 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
       }}
     >
       <div className="so-modal">
-        <div className="so-head">
-          <span className="so-head__icon">
-            {(() => { const Icon = meta?.icon || Settings; return <Icon size={17} />; })()}
-          </span>
-          <div className="so-head__text">
-            <div className="so-head__title">
-              {editing ? "Edit" : "New"} {SCOPE_CATEGORY_LABELS[category]} option
+        {successData ? (
+          <PostCreationSuccessScreen
+            itemType={`${SCOPE_CATEGORY_LABELS[category]} option`}
+            itemName={successData.name}
+            onCreateAnother={() => {
+              setSuccessData(null);
+              form.resetFields();
+              form.setFieldsValue({ color: "default" });
+              setKeyTouched(false);
+            }}
+            onContinue={onClose}
+          />
+        ) : (
+          <>
+            <div className="so-head">
+              <span className="so-head__icon">
+                {(() => { const Icon = meta?.icon || Settings; return <Icon size={17} />; })()}
+              </span>
+              <div className="so-head__text">
+                <div className="so-head__title">
+                  {editing ? "Edit" : "New"} {SCOPE_CATEGORY_LABELS[category]} option
+                </div>
+                <div className="so-head__sub">{meta?.help}</div>
+              </div>
+              <button className="so-head__close" onClick={onClose} aria-label="Close">
+                <CloseOutlined />
+              </button>
             </div>
-            <div className="so-head__sub">{meta?.help}</div>
-          </div>
-          <button className="so-head__close" onClick={onClose} aria-label="Close">
-            <CloseOutlined />
-          </button>
-        </div>
 
-        {/* Live preview of the badge being configured */}
-        <div className="so-preview">
-          <span className="so-preview__label">Preview</span>
-          <Tag
-            color={draftColor && draftColor !== "default" ? draftColor : undefined}
-            className="so-preview__tag"
-          >
-            {draftLabel?.trim() || `New ${SCOPE_CATEGORY_LABELS[category].toLowerCase()}`}
-          </Tag>
-        </div>
-
-        <Form form={form} layout="vertical" className="so-form" requiredMark={false}>
-          <Form.Item
-            name="label"
-            label={<span className="so-label">Display label <span className="so-req">*</span></span>}
-            rules={[{ required: true, message: "Please enter a label" }]}
-          >
-            <Input
-              placeholder="e.g. Feature Release"
-              autoFocus
-              onChange={(e) => {
-                // Keep the key in sync until the user edits it themselves
-                if (!keyTouched && !editing) {
-                  form.setFieldsValue({ value: slugify(e.target.value) });
-                }
-              }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="value"
-            label={<span className="so-label">Value key <span className="so-req">*</span></span>}
-            rules={[{ required: true, message: "Please enter a value key" }]}
-            extra={<span className="so-extra">Stored on each scope. Auto-filled from the label — edit it if you need a different key.</span>}
-          >
-            <Input placeholder="e.g. feature_release" onChange={() => setKeyTouched(true)} />
-          </Form.Item>
-
-          {/* The field stays registered here; the swatches drive it directly,
-              so antd never injects value/onChange onto a plain element. */}
-          <Form.Item name="color" hidden><Input /></Form.Item>
-          <div className="so-colorblock">
-            <span className="so-label">Badge colour</span>
-            <div className="so-swatches">
-              {COLOR_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  title={opt.label}
-                  aria-label={opt.label}
-                  onClick={() => form.setFieldsValue({ color: opt.value })}
-                  className={`so-swatch so-swatch--${opt.value}${draftColor === opt.value ? " is-active" : ""}`}
-                >
-                  {draftColor === opt.value ? <Check size={12} strokeWidth={3.5} /> : null}
-                </button>
-              ))}
+            {/* Live preview of the badge being configured */}
+            <div className="so-preview">
+              <span className="so-preview__label">Preview</span>
+              <Tag
+                color={draftColor && draftColor !== "default" ? draftColor : undefined}
+                className="so-preview__tag"
+              >
+                {draftLabel?.trim() || `New ${SCOPE_CATEGORY_LABELS[category].toLowerCase()}`}
+              </Tag>
             </div>
-          </div>
-        </Form>
 
-        <div className="so-foot">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSave}>
-            {editing ? "Save changes" : "Create option"}
-          </Button>
-        </div>
+            <Form form={form} layout="vertical" className="so-form" requiredMark={false}>
+              <Form.Item
+                name="label"
+                label={<span className="so-label">Display label <span className="so-req">*</span></span>}
+                rules={[{ required: true, message: "Please enter a label" }]}
+              >
+                <Input
+                  placeholder="e.g. Feature Release"
+                  autoFocus
+                  onChange={(e) => {
+                    // Keep the key in sync until the user edits it themselves
+                    if (!keyTouched && !editing) {
+                      form.setFieldsValue({ value: slugify(e.target.value) });
+                    }
+                  }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="value"
+                label={<span className="so-label">Value key <span className="so-req">*</span></span>}
+                rules={[{ required: true, message: "Please enter a value key" }]}
+                extra={<span className="so-extra">Stored on each scope. Auto-filled from the label — edit it if you need a different key.</span>}
+              >
+                <Input placeholder="e.g. feature_release" onChange={() => setKeyTouched(true)} />
+              </Form.Item>
+
+              {/* The field stays registered here; the swatches drive it directly,
+                  so antd never injects value/onChange onto a plain element. */}
+              <Form.Item name="color" hidden><Input /></Form.Item>
+              <div className="so-colorblock">
+                <span className="so-label">Badge colour</span>
+                <div className="so-swatches">
+                  {COLOR_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      title={opt.label}
+                      aria-label={opt.label}
+                      onClick={() => form.setFieldsValue({ color: opt.value })}
+                      className={`so-swatch so-swatch--${opt.value}${draftColor === opt.value ? " is-active" : ""}`}
+                    >
+                      {draftColor === opt.value ? <Check size={12} strokeWidth={3.5} /> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Form>
+
+            <div className="so-foot">
+              <Button onClick={onClose}>Cancel</Button>
+              <Button type="primary" onClick={handleSave}>
+                {editing ? "Save changes" : "Create option"}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

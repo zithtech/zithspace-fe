@@ -20,6 +20,7 @@ import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2, Search }
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import SearchableDropdown from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { ProjectService } from "@/services/projectService";
 import { api as axios } from "@/lib/axios";
 
@@ -458,10 +459,14 @@ interface ModuleModalProps {
 export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved }: ModuleModalProps) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const { options: projectOptions, loading: loadingProjects } = useProjectOptions(open);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setSuccessData(null);
+      return;
+    }
     if (editing) {
       form.setFieldsValue({
         module_name: editing.module_name,
@@ -498,14 +503,13 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
       if (editing) {
         saved = await axios.put(`/api/v2/qa/modules/${editing.id}`, payload);
         message.success("Updated successfully");
+        onSaved(saved?.module_name ? (saved as QaModule) : ({ ...payload } as QaModule));
+        onClose();
       } else {
         saved = await axios.post("/api/v2/qa/modules", payload);
-        message.success("Created successfully");
+        onSaved(saved?.module_name ? (saved as QaModule) : ({ ...payload } as QaModule));
+        setSuccessData({ name: values.module_name?.trim() });
       }
-      // The row the API echoes back is authoritative; the payload stands in
-      // for an endpoint that answers with nothing but a status.
-      onSaved(saved?.module_name ? (saved as QaModule) : ({ ...payload } as QaModule));
-      onClose();
     } catch (err: any) {
       if (err?.errorFields) return;
       message.error(apiError(err, "Failed to save"));
@@ -531,63 +535,78 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
       }}
     >
       <div className="so-modal">
-        <div className="so-head">
-          <span className="so-head__icon"><Boxes size={17} /></span>
-          <div className="so-head__text">
-            <div className="so-head__title">{editing ? "Edit" : "New"} module</div>
-            <div className="so-head__sub">{MODULES_HELP}</div>
-          </div>
-          <button className="so-head__close" onClick={onClose} aria-label="Close"><CloseOutlined /></button>
-        </div>
+        {successData ? (
+          <PostCreationSuccessScreen
+            itemType="Module"
+            itemName={successData.name}
+            onCreateAnother={() => {
+              setSuccessData(null);
+              form.resetFields();
+              if (defaultProjectId) form.setFieldsValue({ project_id: defaultProjectId });
+            }}
+            onContinue={onClose}
+          />
+        ) : (
+          <>
+            <div className="so-head">
+              <span className="so-head__icon"><Boxes size={17} /></span>
+              <div className="so-head__text">
+                <div className="so-head__title">{editing ? "Edit" : "New"} module</div>
+                <div className="so-head__sub">{MODULES_HELP}</div>
+              </div>
+              <button className="so-head__close" onClick={onClose} aria-label="Close"><CloseOutlined /></button>
+            </div>
 
-        <Form form={form} layout="vertical" className="so-form" requiredMark={false}>
-          <Form.Item
-            name="project_id"
-            label={<span className="so-label">Project <span className="so-req">*</span></span>}
-            rules={[{ required: true, message: "Please choose the project this module belongs to" }]}
-            extra={
-              <span className="so-extra">
-                {loadingProjects
-                  ? "Loading your projects…"
-                  : projectOptions.length
-                    ? "Modules are filed per project — this one will only be offered on that project's QA work."
-                    : "No active projects found — you need to belong to a project to add a module."}
-              </span>
-            }
-          >
-            <SearchableDropdown
-              options={projectOptions}
-              placeholder="Select project"
-              searchPlaceholder="Search your projects…"
-              itemNoun="projects"
-              loading={loadingProjects}
-              style={{ width: "100%" }}
-            />
-          </Form.Item>
+            <Form form={form} layout="vertical" className="so-form" requiredMark={false}>
+              <Form.Item
+                name="project_id"
+                label={<span className="so-label">Project <span className="so-req">*</span></span>}
+                rules={[{ required: true, message: "Please choose the project this module belongs to" }]}
+                extra={
+                  <span className="so-extra">
+                    {loadingProjects
+                      ? "Loading your projects…"
+                      : projectOptions.length
+                        ? "Modules are filed per project — this one will only be offered on that project's QA work."
+                        : "No active projects found — you need to belong to a project to add a module."}
+                  </span>
+                }
+              >
+                <SearchableDropdown
+                  options={projectOptions}
+                  placeholder="Select project"
+                  searchPlaceholder="Search your projects…"
+                  itemNoun="projects"
+                  loading={loadingProjects}
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
 
-          <Form.Item
-            name="module_name"
-            label={<span className="so-label">Module name <span className="so-req">*</span></span>}
-            rules={[{ required: true, message: "Please enter a module name" }]}
-          >
-            <Input placeholder="e.g. Billing" autoFocus maxLength={255} />
-          </Form.Item>
+              <Form.Item
+                name="module_name"
+                label={<span className="so-label">Module name <span className="so-req">*</span></span>}
+                rules={[{ required: true, message: "Please enter a module name" }]}
+              >
+                <Input placeholder="e.g. Billing" autoFocus maxLength={255} />
+              </Form.Item>
 
-          <Form.Item
-            name="description"
-            label={<span className="so-label">Description</span>}
-            extra={<span className="so-extra">Optional — what this module covers, for whoever files cases under it.</span>}
-          >
-            <TextArea placeholder="e.g. Invoices, payment methods and dunning" rows={3} maxLength={500} />
-          </Form.Item>
-        </Form>
+              <Form.Item
+                name="description"
+                label={<span className="so-label">Description</span>}
+                extra={<span className="so-extra">Optional — what this module covers, for whoever files cases under it.</span>}
+              >
+                <TextArea placeholder="e.g. Invoices, payment methods and dunning" rows={3} maxLength={500} />
+              </Form.Item>
+            </Form>
 
-        <div className="so-foot">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSave} loading={saving}>
-            {editing ? "Save changes" : "Create module"}
-          </Button>
-        </div>
+            <div className="so-foot">
+              <Button onClick={onClose}>Cancel</Button>
+              <Button type="primary" onClick={handleSave} loading={saving}>
+                {editing ? "Save changes" : "Create module"}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

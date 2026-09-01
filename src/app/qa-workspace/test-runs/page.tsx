@@ -699,6 +699,7 @@ function TestRunsContent() {
                     icon={<PlusOutlined />}
                     onClick={openCreateModal}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-runs"
                   >
                     Create Test Run
                   </Button>

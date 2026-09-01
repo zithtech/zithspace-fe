@@ -27,6 +27,7 @@ import {
   X,
   Timer,
   Flame,
+  PlayCircle,
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ComponentType<any>> = {
@@ -64,7 +65,8 @@ import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopove
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
-import { HistoryOutlined } from '@ant-design/icons';
+import { useTour } from "@/context/TourContext";
+import { HistoryOutlined, PlayCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -87,6 +89,7 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { startTour } = useTour();
   const isRouteActive = (path: string) =>
     pathname === path || pathname?.startsWith(path + '/');
   const { hasPermission, hasAnyPermission, hasAnySubscriptionFeature } = useAuth();
@@ -693,6 +696,49 @@ export default function TopNav({
       <Space size={isSmallMobile ? 4 : 8} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
+            <Tooltip
+              title={
+                <div className="navbar-tooltip">
+                  <span className="navbar-tooltip-title">Tour</span>
+                  <span className="navbar-tooltip-sub">Replay QA Tour</span>
+                </div>
+              }
+              placement="bottom"
+              classNames={{ root: "navbar-icon-tooltip" }}
+              mouseEnterDelay={0.1}
+              zIndex={1100}
+            >
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "replay-qa-tour",
+                      label: "Replay QA Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-qa-workflow', true)
+                    },
+                    {
+                      key: "replay-sprints-tour",
+                      label: "Replay Sprints Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-sprints', true)
+                    },
+                    {
+                      key: "docs",
+                      label: <a href="#" target="_blank" rel="noopener noreferrer">Documentation</a>,
+                      icon: <FileTextOutlined />
+                    }
+                  ]
+                }}
+                trigger={['click']}
+              >
+                <Button
+                  type="text"
+                  className="nav-action-btn"
+                  icon={<PlayCircle size={17} strokeWidth={1.75} />}
+                />
+              </Dropdown>
+            </Tooltip>
             <ThemeToggle />
             {canReadTimeTracking && canCreateTimeTracking && hasAnySubscriptionFeature("work_time_tracking") && <TimeTrackerPopover />}
 

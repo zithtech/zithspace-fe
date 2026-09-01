@@ -1357,6 +1357,7 @@ export default function BugListPage() {
                     }
                   />
                   <button
+                    data-tour="bug-list-ticket"
                     className="hb-btn hb-btn-primary"
                     onClick={() => setCreationTargetOpen(true)}
                   >

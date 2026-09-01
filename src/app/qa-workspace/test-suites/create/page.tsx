@@ -16,6 +16,7 @@ import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import { useDebounce } from "@/hooks/useDebounce";
 
 /**
@@ -247,6 +248,7 @@ function CreateTestSuiteContent() {
   const [aiBusy, setAiBusy] = useState<"generate" | "grammar" | null>(null);
   const [zaiOpen, setZaiOpen] = useState(false);
   const [zaiView, setZaiView] = useState<"prompt" | "preview">("prompt");
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
   const [zaiPrompt, setZaiPrompt] = useState("");
   const [zaiDraft, setZaiDraft] = useState("");
 
@@ -602,13 +604,11 @@ function CreateTestSuiteContent() {
       console.log("PAYLOAD BEING SENT TO BACKEND:", payload);
       if (editingId) {
         await axios.put(`/api/v2/qa/suites/${editingId}`, payload);
-        message.success("Test Suite updated successfully");
       } else {
         await axios.post("/api/v2/qa/suites", payload);
-        message.success("Test Suite created successfully");
       }
       setIsDirty(false);
-      router.push("/qa-workspace/test-suites");
+      setSuccessData({ name: formData.suite_name.trim() });
     } catch (error: any) {
       message.error(error?.response?.data?.error || "Failed to save suite");
     } finally {
@@ -993,6 +993,19 @@ function CreateTestSuiteContent() {
         .ts-create .lk-empty__desc { margin: 4px 0 0; font-size: 12px; color: var(--ts-text-3); }
       `}} />
 
+      {successData ? (
+        <div style={{ height: "calc(100vh - 56px)", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
+          <PostCreationSuccessScreen
+            itemType="Test Suite"
+            itemName={successData.name}
+            onCreateAnother={() => {
+              setSuccessData(null);
+              window.location.reload();
+            }}
+            onContinue={() => router.push("/qa-workspace/test-suites")}
+          />
+        </div>
+      ) : (
       <div className="ts-create" ref={rootRef}>
         {/* ── Sticky header ─────────────────────────────────────────── */}
         <div ref={stickyRef} className="ts-topbar sticky top-0 z-30">
@@ -1396,6 +1409,7 @@ function CreateTestSuiteContent() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Create with Zai — prompt, preview, then apply to the description */}
       <Modal

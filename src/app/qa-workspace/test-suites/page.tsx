@@ -631,6 +631,7 @@ export default function TestSuitesPage() {
                     icon={<PlusOutlined />}
                     onClick={() => openCreateModal()}
                     style={{ height: 36, borderRadius: 8, fontWeight: 700 }}
+                    data-tour="test-suites"
                   >
                     Create Suite
                   </Button>

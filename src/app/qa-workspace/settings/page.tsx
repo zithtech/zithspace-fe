@@ -58,9 +58,11 @@ export default function QaSettingsPage() {
       `}} />
       {/* The manager reads ?section= to open straight onto a pane, and
           useSearchParams needs a boundary to render under. */}
-      <Suspense fallback={null}>
-        <BugListConfigManager />
-      </Suspense>
+      <div style={{ height: '100%', width: '100%' }}>
+        <Suspense fallback={null}>
+          <BugListConfigManager />
+        </Suspense>
+      </div>
     </MainLayout>
   );
 }

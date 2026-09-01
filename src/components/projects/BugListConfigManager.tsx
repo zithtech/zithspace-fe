@@ -4,6 +4,7 @@ import NoData from "@/components/common/NoData";
 import { SectionCard, drawerFormStyles } from "@/components/common/DrawerSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -39,6 +40,7 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import { Boxes, Menu, Pencil, Plus, RotateCw, Settings, Trash2, Search } from "lucide-react";
+import { useTour } from "@/context/TourContext";
 import {
   MODULE_SETTINGS_STYLES,
   ModuleModal,
@@ -135,6 +137,7 @@ const SECTIONS: {
 export default function BugListConfigManager() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const { run, stepIndex, setStepIndex } = useTour();
 
   const severities = useBugSeverityOptions();
   const types = useBugTypeOptions();
@@ -265,49 +268,95 @@ export default function BugListConfigManager() {
             </div>
           </div>
           <div className="dh-sidebar-scroll">
-            {canManageBugs && <span className="pp-nav-caption">Bug Definitions</span>}
-            {canManageBugs && SECTIONS.map((s) => (
-              <button
-                key={s.key}
-                className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
-                onClick={() => { setActiveKey(s.key as SectionKey); setMobileSidebarOpen(false); }}
-              >
-                {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
-                <span className="pp-nav-label">{s.title}</span>
-                <span className="pp-nav-count">{counts[s.key]}</span>
-              </button>
-            ))}
-
-            {canManageQa && <span className="pp-nav-caption">Test Cases</span>}
-            {canManageQa && (
-              <button
-                className={`pp-nav-item ${modulesNavActive ? 'is-active' : ''}`}
-                onClick={() => { setActiveKey(MODULES_KEY); setMobileSidebarOpen(false); }}
-              >
-                <Boxes size={15} className="pp-nav-icon" />
-                <span className="pp-nav-label">Modules</span>
-                <span className="pp-nav-count">{qaModules.items.length}</span>
-              </button>
-            )}
-
-            {canManageQa && <span className="pp-nav-caption">Test Scope</span>}
-            {canManageQa && SCOPE_SETTING_CATEGORIES.map((c) => {
-              const navKey = `scope:${c.key}` as ScopeNavKey;
-              const Icon = c.icon;
-              return (
+            <div data-tour="settings-bugs" style={{ display: 'flex', flexDirection: 'column' }}>
+              {canManageBugs && <span className="pp-nav-caption">Bug Definitions</span>}
+              {canManageBugs && SECTIONS.map((s) => (
                 <button
-                  key={navKey}
-                  className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
-                  onClick={() => { setActiveKey(navKey); setMobileSidebarOpen(false); }}
+                  key={s.key}
+                  className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveKey(s.key as SectionKey);
+                    setMobileSidebarOpen(false);
+                    if (run) setStepIndex(stepIndex + 1);
+                  }}
                 >
-                  <Icon size={15} className="pp-nav-icon" />
-                  <span className="pp-nav-label">{c.label}</span>
-                  <span className="pp-nav-count">
-                    {scopeSettings.items.filter((i: any) => i.category === c.key).length}
-                  </span>
+                  {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
+                  <span className="pp-nav-label">{s.title}</span>
+                  <span className="pp-nav-count">{counts[s.key]}</span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+
+            <div data-tour="settings-cases" style={{ display: 'flex', flexDirection: 'column' }}>
+              {canManageQa && <span className="pp-nav-caption">Test Cases</span>}
+              {canManageQa && (
+                <button
+                  className={`pp-nav-item ${modulesNavActive ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveKey(MODULES_KEY);
+                    setMobileSidebarOpen(false);
+                    if (run) setStepIndex(stepIndex + 1);
+                  }}
+                >
+                  <Boxes size={15} className="pp-nav-icon" />
+                  <span className="pp-nav-label">Modules</span>
+                  <span className="pp-nav-count">{qaModules.items.length}</span>
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {canManageQa && <span className="pp-nav-caption">Test Scope</span>}
+              
+              {/* Render Type first */}
+              {canManageQa && SCOPE_SETTING_CATEGORIES.filter(c => c.key === 'scope_type').map((c) => {
+                const navKey = `scope:${c.key}` as ScopeNavKey;
+                const Icon = c.icon;
+                return (
+                  <button
+                    key={navKey}
+                    data-tour="settings-scope-type"
+                    className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setActiveKey(navKey);
+                      setMobileSidebarOpen(false);
+                      if (run) setStepIndex(stepIndex + 1);
+                    }}
+                  >
+                    <Icon size={15} className="pp-nav-icon" />
+                    <span className="pp-nav-label">{c.label}</span>
+                    <span className="pp-nav-count">
+                      {scopeSettings.items.filter((i: any) => i.category === c.key).length}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Render Priority & Status together wrapped for the tour */}
+              <div data-tour="settings-scope-priority-status" style={{ display: 'flex', flexDirection: 'column' }}>
+                {canManageQa && SCOPE_SETTING_CATEGORIES.filter(c => c.key !== 'scope_type').map((c) => {
+                  const navKey = `scope:${c.key}` as ScopeNavKey;
+                  const Icon = c.icon;
+                  return (
+                    <button
+                      key={navKey}
+                      className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setActiveKey(navKey);
+                        setMobileSidebarOpen(false);
+                        if (run) setStepIndex(stepIndex + 1);
+                      }}
+                    >
+                      <Icon size={15} className="pp-nav-icon" />
+                      <span className="pp-nav-label">{c.label}</span>
+                      <span className="pp-nav-count">
+                        {scopeSettings.items.filter((i: any) => i.category === c.key).length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -336,6 +385,7 @@ export default function BugListConfigManager() {
               {(scopeNavActive || modulesNavActive ? canManageQa : canManageBugs) && (
                 modulesNavActive ? (
                   <Button
+                    data-tour="settings-create-btn"
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -345,6 +395,7 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : scopeNavActive ? (
                   <Button
+                    data-tour="settings-create-btn"
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -354,6 +405,7 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : (
                   <Button
+                    data-tour="settings-create-btn"
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -715,9 +767,11 @@ function OptionEditor({
   const [form] = Form.useForm();
   const [colorPreview, setColorPreview] = useState<string | undefined>();
   const [labelPreview, setLabelPreview] = useState<string>("");
+  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
 
   React.useEffect(() => {
     if (!editing) {
+      setSuccessData(null);
       form.resetFields();
       setColorPreview(undefined);
       setLabelPreview("");
@@ -754,6 +808,11 @@ function OptionEditor({
         color: showColor ? values.color || null : undefined,
         isDefault: !!values.isDefault,
       });
+      if (!isEdit) {
+        setSuccessData({ name: values.label.trim() });
+      } else {
+        onClose();
+      }
     } catch {
       message.error("Please fill the required fields");
     }
@@ -812,9 +871,10 @@ function OptionEditor({
         mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.1)' }
       }}
       extra={
-        <Space size={8}>
-          <Button onClick={onClose} disabled={submitting} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
-          <Button
+        !successData && (
+          <Space size={8}>
+            <Button onClick={onClose} disabled={submitting} style={{ borderRadius: 8, fontWeight: 600, fontSize: 12, height: 32 }}>Cancel</Button>
+            <Button
             type="primary"
             loading={submitting}
             onClick={handleOk}
@@ -832,10 +892,24 @@ function OptionEditor({
             {isEdit ? "Save changes" : "Create option"}
           </Button>
         </Space>
+        )
       }
     >
       {editing && (
         <div style={{ position: 'relative', height: '100%' }}>
+          {successData ? (
+            <PostCreationSuccessScreen
+              itemType={titleText.replace("New ", "")}
+              itemName={successData.name}
+              onCreateAnother={() => {
+                setSuccessData(null);
+                form.resetFields();
+                setColorPreview(undefined);
+                setLabelPreview("");
+              }}
+              onContinue={onClose}
+            />
+          ) : (
           <ConfigProvider
             theme={{
               token: {
@@ -936,9 +1010,10 @@ function OptionEditor({
                 >
                   <Switch checkedChildren="ON" unCheckedChildren="OFF" />
                 </Form.Item>
-              </SectionCard>
-            </Form>
-          </ConfigProvider>
+                </SectionCard>
+              </Form>
+            </ConfigProvider>
+          )}
         </div>
       )}
     </Drawer>

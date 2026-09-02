@@ -1274,7 +1274,7 @@ function ModuleDetail() {
   const router = useRouter();
   const params = useParams();
   const search = useSearchParams();
-  const { canReadScope, canReadCase, canReadSuite, canReadRun } = usePermission();
+  const { canReadScope, canReadCase, canReadSuite, canReadRun, canReadCoverageMap } = usePermission();
 
   const nodeKey = decodeURIComponent(String(params?.nodeKey ?? ""));
   const projectId = search.get("project") || undefined;
@@ -1284,7 +1284,7 @@ function ModuleDetail() {
   const { loading, nodes, refetch, project } = useCoverageData(
     projects,
     projectId,
-    { canReadScope, canReadCase, canReadSuite, canReadRun },
+    { canReadScope, canReadCase, canReadSuite, canReadRun, canReadCoverageMap },
     !loadingProjects,
   );
 

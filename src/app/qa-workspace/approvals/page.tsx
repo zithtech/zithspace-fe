@@ -353,7 +353,6 @@ function ApprovalsContent() {
       dataIndex: "submission_name",
       key: "submission_name",
       width: 280,
-      fixed: "left" as const,
       sorter: true,
       sortOrder: sortOrderFor("submission_name"),
       render: (name: string, r: SubmissionListItem) => (
@@ -518,8 +517,8 @@ function ApprovalsContent() {
           .sc-filters__search { width: 100% !important; min-width: 0; }
 
           /* Table: horizontal scroll */
-          .pp-table-wrap { overflow-x: auto !important; }
-          .pp-table .ant-table { min-width: 680px; }
+          .sc-tablewrap { overflow-x: auto !important; width: 100%; }
+          .sc-table .ant-table { min-width: 680px; }
 
           /* Topbar: compress buttons */
           .sc-topbar { padding: 8px 14px !important; }

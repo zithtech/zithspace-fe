@@ -4685,10 +4685,6 @@ export const hivebugStyles = `
   .hb-table { width: 100%; min-width: 900px; }
   .hb-table thead th { padding: 5px 8px; font-size: 10px; }
   .hb-table tbody td { padding: 6px 10px; font-size: 11.5px; }
-  .hb-root .pp-footer--sticky {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
     height: auto;
   }
   /* Modals — fill screen */
@@ -5530,7 +5526,7 @@ export const hivebugStyles = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   padding: 10px 20px;
   border-top: 1px solid var(--hb-border);
@@ -5550,6 +5546,7 @@ export const hivebugStyles = `
 .hb-root .pp-footer-info {
   font-size: 12.5px;
   color: var(--hb-text-soft);
+  white-space: nowrap;
 }
 .hb-root .pp-footer-info strong {
   color: var(--hb-text);

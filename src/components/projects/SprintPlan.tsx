@@ -5049,6 +5049,8 @@ export default function SprintPlanComponent() {
           position: sticky;
           top: 0;
           z-index: 100;
+          height: auto;
+          min-height: 52px;
           margin: 0;
           padding: 9.7px 16px;
           display: flex;
@@ -5058,6 +5060,9 @@ export default function SprintPlanComponent() {
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           flex-shrink: 0;
+        }
+        .sc-header .saas-input {
+          max-width: 100% !important;
         }
         [data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
         .sc-header-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: 1 1 0%; min-width: 0; }

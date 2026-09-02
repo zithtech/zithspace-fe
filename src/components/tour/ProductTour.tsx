@@ -8,6 +8,7 @@ import { useTour } from '@/context/TourContext';
 import { useTheme } from '@/context/ThemeContext';
 import { usePathname, useRouter } from 'next/navigation';
 
+import { apiClient } from '@/lib/axios';
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 
 function CustomTooltip({
@@ -250,14 +251,11 @@ const isTourRouteMatch = (stepRoute?: string, currentPath?: string) => {
   if (stepRoute.startsWith('/qa-workspace') && currentPath.startsWith('/projects/') && currentPath.includes('/qa-workspace')) {
     return true;
   }
-  if (stepRoute === '/documenthub' && currentPath.startsWith('/documenthub')) {
-    return true;
-  }
   return false;
 };
 
 export const ProductTour: React.FC = () => {
-  const { run, steps, stepIndex, setStepIndex, completeTour, skipTour } = useTour();
+  const { run, steps, stepIndex, setStepIndex, completeTour, skipTour, currentTourKey } = useTour();
   const router = useRouter();
   const pathname = usePathname();
   const { theme } = useTheme();
@@ -274,12 +272,38 @@ export const ProductTour: React.FC = () => {
     let intervalId: NodeJS.Timeout | undefined = undefined;
     let timeoutId: NodeJS.Timeout | undefined = undefined;
 
-    const waitForTarget = () => {
+    const waitForTarget = async () => {
       const match = isTourRouteMatch(currentStepDef.route, pathname);
       if (currentStepDef.route && !match) {
         setIsReady(false);
         router.push(currentStepDef.route);
         return;
+      }
+
+      // Auto-open workspace for Document Hub tour steps 2, 3, 4 when user is on /documenthub
+      if (
+        currentTourKey === 'testiez-document-hub' &&
+        stepIndex >= 2 &&
+        stepIndex <= 4 &&
+        pathname === '/documenthub'
+      ) {
+        setIsReady(false);
+        try {
+          const res = await apiClient.get('/api/documenthub');
+          const hubs = res.data?.data || [];
+          if (hubs.length > 0) {
+            router.push(`/documenthub/${hubs[0].id}`);
+            return;
+          } else {
+            const newHub = await apiClient.post('/api/documenthub', { name: 'Getting Started Hub', visibility: 'public' });
+            if (newHub.data?.data?.id) {
+              router.push(`/documenthub/${newHub.data.data.id}`);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to auto-open document hub for tour:', e);
+        }
       }
 
       if (currentStepDef.target === 'body') {
@@ -317,7 +341,7 @@ export const ProductTour: React.FC = () => {
       if (intervalId) clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [run, steps, stepIndex, pathname, router]);
+  }, [run, steps, stepIndex, pathname, router, currentTourKey]);
 
   const handleJoyrideCallback = (data: EventData) => {
     const { status, type, index, action } = data;
@@ -345,6 +369,9 @@ export const ProductTour: React.FC = () => {
       const targetStep = steps[index];
       // If we are about to navigate, ignore the not-found error
       if (targetStep?.route && !isTourRouteMatch(targetStep.route, pathname)) {
+        return;
+      }
+      if (currentTourKey === 'testiez-document-hub' && index >= 2 && index <= 4 && pathname === '/documenthub') {
         return;
       }
       // Otherwise, the element is genuinely missing on the correct page, so skip it

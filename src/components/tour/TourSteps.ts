@@ -329,30 +329,34 @@ export const documentHubTourSteps: RouteStep[] = [
   },
   {
     target: '[data-tour="dochub-workspace-new-btn"]',
-    route: '/documenthub',
     title: 'Create Folders & Documents',
     content: 'Inside any hub, use "+ New" to organize content into nested folders and rich BlockNote documents with embeds, callouts, and diagrams.',
     placement: 'bottom',
   },
   {
     target: '[data-tour="dochub-preview-btn"]',
-    route: '/documenthub',
     title: 'Preview & Split View',
     content: 'Easily switch between Edit, Preview, and Split views to review how your formatted markdown, media embeds, and tables look in real time.',
     placement: 'bottom',
   },
   {
     target: '[data-tour="dochub-history-btn"]',
-    route: '/documenthub',
     title: 'Version History',
     content: 'Access complete document revision history. Inspect previous versions, compare changes, and restore any earlier snapshot with 1 click.',
     placement: 'bottom',
   },
   {
-    target: '[data-tour="dochub-link-project-ticket"]',
+    target: '[data-tour="dochub-link-project"]',
     route: '/documenthub',
-    title: 'Link Projects & Tickets',
-    content: 'Attach your Document Hub directly to specific Projects and Tickets so developers have immediate context right where they work.',
+    title: 'Link Project',
+    content: 'Attach your Document Hub to a specific project to group all relevant engineering specifications, wikis, and architecture docs.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="dochub-link-ticket"]',
+    route: '/documenthub',
+    title: 'Link Ticket',
+    content: 'Associate your Document Hub directly with a ticket so developers and QA have immediate technical context right where they work.',
     placement: 'bottom',
   },
   {
@@ -385,6 +389,7 @@ export const documentHubTourSteps: RouteStep[] = [
   },
   {
     target: 'body',
+    route: '/documenthub',
     title: 'You are all set with Document Hub!',
     content: 'You are ready to create, organize, and collaborate on documentation with your team!',
     placement: 'center',

@@ -302,6 +302,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
         }}
       >
         <div
+          data-tour="dochub-link-ticket"
           className="dh-inline-cell flex items-center gap-1 py-1 px-2 rounded-md transition-colors group"
           style={{ width: 'fit-content', maxWidth: '100%' }}
         >
@@ -331,7 +332,7 @@ const InlineTicketSelector = ({ record, updateHub, user }: any) => {
 
   if (!record.ticketId && !isEditing) {
     return (
-      <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+      <div data-tour="dochub-link-ticket" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
         <Button
           type="text"
           size="small"
@@ -393,6 +394,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
   if (record.projectId && !isEditing) {
     return (
       <div
+        data-tour="dochub-link-project"
         onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
         className="dh-inline-cell flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer transition-colors group"
         style={{ width: 'fit-content', maxWidth: '100%' }}
@@ -407,7 +409,7 @@ const InlineProjectSelector = ({ record, projects, projectsLoading, updateHub, u
 
   if (!record.projectId && !isEditing) {
     return (
-      <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+      <div data-tour="dochub-link-project" onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
         <Button
           type="text"
           size="small"
@@ -699,10 +701,10 @@ const HubCard: React.FC<{
             >
               {hub.name}
             </h4>
-            {hub.project?.name && (
+            {hub.project?.name ? (
               <Tooltip title={hub.project.name}>
                 <span
-                  data-tour="dochub-link-project-ticket"
+                  data-tour="dochub-link-project"
                   className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1"
                   style={{ background: accent.tint, color: accent.from, maxWidth: 140 }}
                 >
@@ -710,6 +712,15 @@ const HubCard: React.FC<{
                   <span className="truncate">{hub.project.name}</span>
                 </span>
               </Tooltip>
+            ) : (
+              <span
+                data-tour="dochub-link-project"
+                className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1 text-slate-400 dark:text-slate-500"
+                style={{ background: 'transparent', maxWidth: 140 }}
+              >
+                <ProjectOutlined style={{ fontSize: 9 }} />
+                <span>No project</span>
+              </span>
             )}
           </div>
         </div>
@@ -1398,6 +1409,7 @@ const DocumentHubPage = () => {
           <div className="flex items-center gap-2 w-full">
             <Tooltip title={starred ? 'Remove from starred' : 'Add to starred'}>
               <button
+                data-tour="dochub-star-btn"
                 type="button"
                 onClick={(e) => handleToggleStar(e, record)}
                 aria-label={starred ? 'Unstar' : 'Star'}
@@ -1630,6 +1642,7 @@ const DocumentHubPage = () => {
         <div className="dh-row-actions" onClick={(e) => e.stopPropagation()}>
           <Tooltip title="Share">
             <button
+              data-tour="dochub-share-btn"
               type="button"
               onClick={(e) => handleShareHub(e, record)}
               className="dh-row-action-btn"
@@ -2012,6 +2025,7 @@ const DocumentHubPage = () => {
 
     const pill = (
       <span
+        data-tour="dochub-visibility-btn"
         className={`dh-vis-pill ${isOwner ? 'is-clickable' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >

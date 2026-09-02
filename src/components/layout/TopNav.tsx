@@ -587,7 +587,7 @@ export default function TopNav({
         top: 0,
         right: 0,
         left: 0,
-        zIndex: 1000,
+        zIndex: 890,
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -719,9 +719,15 @@ export default function TopNav({
                     },
                     {
                       key: "replay-sprints-tour",
-                      label: "Replay Sprints Tour",
+                      label: "Replay Tickets Tour",
                       icon: <PlayCircleOutlined />,
                       onClick: () => startTour('testiez-sprints', true)
+                    },
+                    {
+                      key: "replay-dochub-tour",
+                      label: "Replay Document Hub Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-document-hub', true)
                     },
                     {
                       key: "docs",

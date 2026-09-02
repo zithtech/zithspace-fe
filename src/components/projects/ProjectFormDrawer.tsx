@@ -39,6 +39,7 @@ import { MembersService } from "@/services/membersService";
 import { useTheme } from "@/context/ThemeContext";
 import { drawerFormStyles as formStyles, SectionCard, commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import PostCreationSuccessScreen from "@/components/common/PostCreationSuccessScreen";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -72,6 +73,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [createdSuccessData, setCreatedSuccessData] = useState<{ name: string } | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [fullProject, setFullProject] = useState<Project | null>(null);
 
@@ -175,12 +177,15 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
 
       if (fullProject || project) {
         const id = fullProject?.id || project?.id;
-        if (!id) throw new Error("Project ID missing");
-        await ProjectService.updateProject(
-          id,
-          projectData as UpdateProjectData
-        );
-        message.success(`Project "${values.name}" has been successfully updated.`);
+        if (id) {
+          await ProjectService.updateProject(
+            id,
+            projectData as UpdateProjectData
+          );
+          message.success(`Project "${values.name}" has been successfully updated.`);
+          onSuccess();
+          handleClose();
+        }
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
         message.success(`Project "${values.name}" has been successfully created.`);
@@ -190,14 +195,13 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
             .then(() => updateUser({ onboardingCompleted: true }))
             .catch(() => {});
         }
+        setCreatedSuccessData({ name: values.name });
+        onSuccess();
       }
 
       // Invalidate project queries to sync cached lists
       queryClient.invalidateQueries({ queryKey: ["global", "projects"] });
       queryClient.invalidateQueries({ queryKey: ["global", "allProjects"] });
-
-      onSuccess();
-      onClose();
     } catch (error: any) {
       notification.error({
         message: "Operation Failed",
@@ -209,11 +213,17 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
     }
   };
 
+  const handleClose = () => {
+    setCreatedSuccessData(null);
+    form.resetFields();
+    onClose();
+  };
+
   return (
     <Drawer
       {...commonDrawerProps}
       open={visible}
-      onClose={onClose}
+      onClose={handleClose}
       maskClosable={true}
     >
       <style>{formStyles}</style>
@@ -224,6 +234,20 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
           flexDirection: "column",
         }}
       >
+        {createdSuccessData ? (
+          <PostCreationSuccessScreen
+            itemName={createdSuccessData.name}
+            itemType="Project"
+            onCreateAnother={() => {
+              form.resetFields();
+              setCreatedSuccessData(null);
+            }}
+            onContinue={() => {
+              handleClose();
+            }}
+          />
+        ) : (
+          <>
         {/* Drawer Header */}
         <div
           className="customer-drawer-header"
@@ -525,6 +549,8 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
             </Button>
           </Space>
         </div>
+        </>
+        )}
       </div>
     </Drawer>
   );

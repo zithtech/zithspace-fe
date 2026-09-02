@@ -234,7 +234,7 @@ function ProjectSelectContent() {
 
   return (
     <MainLayout>
-      <div className="zs-projects-shell">
+      <div className="zs-projects-shell" data-tour="tickets-project-view">
         {/* Hero header */}
         <header className="zs-hero">
           <div className="zs-hero-text">

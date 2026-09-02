@@ -230,6 +230,8 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
       <style dangerouslySetInnerHTML={{ __html: `
         .ict-shell {
           position: relative;
+          z-index: 1000;
+          pointer-events: auto !important;
           display: flex;
           align-items: center;
           gap: 10px;

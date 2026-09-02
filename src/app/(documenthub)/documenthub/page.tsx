@@ -664,6 +664,7 @@ const HubCard: React.FC<{
     >
       {/* Corner ribbon — Public/Private */}
       <span
+        data-tour="dochub-visibility-btn"
         className={`dh-ribbon ${isPublic ? 'dh-ribbon-public' : 'dh-ribbon-private'}`}
         aria-label={isPublic ? 'Public' : 'Private'}
       >
@@ -701,6 +702,7 @@ const HubCard: React.FC<{
             {hub.project?.name && (
               <Tooltip title={hub.project.name}>
                 <span
+                  data-tour="dochub-link-project-ticket"
                   className="inline-flex items-center gap-1 px-1.5 py-[1px] rounded text-[10px] font-medium truncate mt-1"
                   style={{ background: accent.tint, color: accent.from, maxWidth: 140 }}
                 >
@@ -732,6 +734,7 @@ const HubCard: React.FC<{
           <div className="flex items-center gap-0.5">
             <Tooltip title={starred ? 'Unstar' : 'Star'}>
               <button
+                data-tour="dochub-star-btn"
                 type="button"
                 onClick={(e) => onToggleStar(e, hub)}
                 aria-label={starred ? 'Unstar' : 'Star'}
@@ -743,6 +746,7 @@ const HubCard: React.FC<{
             </Tooltip>
             <Tooltip title="Share">
               <button
+                data-tour="dochub-share-btn"
                 type="button"
                 onClick={(e) => onShare(e, hub)}
                 className="dh-card-action-btn"
@@ -2385,7 +2389,7 @@ const DocumentHubPage = () => {
             </div>
 
             {canCreateDocument && (
-              <div className="dh-side-cta">
+              <div className="dh-side-cta" data-tour="dochub-create-hub-btn">
               <Dropdown
                 trigger={['hover', 'click']}
                 placement="bottomLeft"
@@ -2677,7 +2681,7 @@ const DocumentHubPage = () => {
                   </div>
                 )}
               >
-                <Button icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
+                <Button data-tour="dochub-upload-import" icon={<CloudUploadOutlined />} style={{ color: 'var(--text-slate-500)', height: 32, borderRadius: 8, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }}>
                   Upload
                 </Button>
               </Dropdown>

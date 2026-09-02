@@ -123,6 +123,7 @@ import TicketSidebar from "./TicketSidebar";
 import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPill";
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
+import { useTour } from "@/context/TourContext";
 
 const { Title, Text } = Typography;
 
@@ -209,6 +210,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const router = useRouter();
   const queryClient = useQueryClient();
   const { message, modal, notification } = App.useApp();
+  const { run, stepIndex, setStepIndex, currentTourKey } = useTour();
   // const [modal, contextHolder] = Modal.useModal();
 
   // Local state for filters only
@@ -1441,6 +1443,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     setRecentTicket(ticket);
     requestAnimationFrame(() => fireConfettiAtCard());
     message.success(`1 ticket(s) created successfully`);
+    if (run && currentTourKey === "testiez-sprints" && stepIndex === 17) {
+      setStepIndex(18);
+    }
   };
   const activeRowSelection = {
     selectedRowKeys: activeSelectedRowKeys,
@@ -2222,6 +2227,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             )}
             {canUpdateTicketPlan && (
               <Button
+                data-tour="tickets-complete-sprint"
                 type="primary"
                 size="small"
                 icon={<CheckCircleOutlined />}
@@ -3895,7 +3901,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 overlayClassName="project-switch-pop"
                 trigger={['click']}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
+                <div data-tour="tickets-project-view" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }} className="project-switch-trigger transition-colors">
                   <div style={{
                     padding: '0 6px',
                     height: 26,
@@ -3971,15 +3977,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <Space size={12}>
                 {recentTicket && (
                   <div
-                    ref={recentTicketCardRef}
-                    className="ticket-highlight-glow"
+                    data-tour="tickets-recent-created-btn"
                     style={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '6px 12px',
-                      background: 'var(--bg-blue-50)',
-                      border: '1px solid var(--border-blue-200)',
+                      gap: 6,
+                      background: 'var(--premium-blue-soft)',
+                      border: '1px solid rgba(37, 99, 235, 0.2)',
+                      padding: '4px 10px',
                       borderRadius: '8px',
                       boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
                       position: 'relative',
@@ -3989,7 +3994,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     <div className="highlight-point" />
                     <Text
                       strong
-                      onClick={() => setSelectedTicketId(recentTicket.id)}
+                      onClick={() => {
+                        setSelectedTicketId(recentTicket.id);
+                        if (run && currentTourKey === "testiez-sprints" && stepIndex === 18) {
+                          setStepIndex(19);
+                        }
+                      }}
                       style={{
                         cursor: 'pointer',
                         fontSize: '12px',
@@ -4229,6 +4239,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     placement="bottomRight"
                   >
                     <Button
+                      data-tour="tickets-create"
                       type="primary"
                       icon={<PlusOutlined />}
                       style={{
@@ -4920,6 +4931,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                               placement="bottom"
                             >
                               <Button
+                                data-tour="tickets-trash-archive"
                                 danger
                                 size="small"
                                 icon={<DeleteOutlined style={{ fontSize: 11 }} />}
@@ -5419,6 +5431,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                             )}
                           >
                             <Button
+                              data-tour="tickets-move-to-sprint"
                               size="small"
                               icon={<PlayCircleOutlined style={{ fontSize: 11 }} />}
                               style={{

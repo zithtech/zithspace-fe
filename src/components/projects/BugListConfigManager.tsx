@@ -137,7 +137,21 @@ const SECTIONS: {
 export default function BugListConfigManager() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const { run, stepIndex, setStepIndex } = useTour();
+  const { run, stepIndex, setStepIndex, currentTourKey } = useTour();
+
+  // Auto-switch tabs when QA Tour is running so the highlighted tab and create button are always in DOM
+  useEffect(() => {
+    if (!run || currentTourKey !== "testiez-qa-workflow") return;
+    if (stepIndex === 1 || stepIndex === 2) {
+      setActiveKey("scope:scope_type");
+    } else if (stepIndex === 3 || stepIndex === 4) {
+      setActiveKey("scope:priority");
+    } else if (stepIndex === 5 || stepIndex === 6) {
+      setActiveKey(MODULES_KEY);
+    } else if (stepIndex === 7 || stepIndex === 8) {
+      setActiveKey("severity");
+    }
+  }, [run, currentTourKey, stepIndex]);
 
   const severities = useBugSeverityOptions();
   const types = useBugTypeOptions();
@@ -277,7 +291,9 @@ export default function BugListConfigManager() {
                   onClick={() => {
                     setActiveKey(s.key as SectionKey);
                     setMobileSidebarOpen(false);
-                    if (run) setStepIndex(stepIndex + 1);
+                    if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 7) {
+                      setStepIndex(8);
+                    }
                   }}
                 >
                   {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
@@ -295,7 +311,9 @@ export default function BugListConfigManager() {
                   onClick={() => {
                     setActiveKey(MODULES_KEY);
                     setMobileSidebarOpen(false);
-                    if (run) setStepIndex(stepIndex + 1);
+                    if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 5) {
+                      setStepIndex(6);
+                    }
                   }}
                 >
                   <Boxes size={15} className="pp-nav-icon" />
@@ -320,7 +338,9 @@ export default function BugListConfigManager() {
                     onClick={() => {
                       setActiveKey(navKey);
                       setMobileSidebarOpen(false);
-                      if (run) setStepIndex(stepIndex + 1);
+                      if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 1) {
+                        setStepIndex(2);
+                      }
                     }}
                   >
                     <Icon size={15} className="pp-nav-icon" />
@@ -344,7 +364,9 @@ export default function BugListConfigManager() {
                       onClick={() => {
                         setActiveKey(navKey);
                         setMobileSidebarOpen(false);
-                        if (run) setStepIndex(stepIndex + 1);
+                        if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 3) {
+                          setStepIndex(4);
+                        }
                       }}
                     >
                       <Icon size={15} className="pp-nav-icon" />
@@ -385,7 +407,7 @@ export default function BugListConfigManager() {
               {(scopeNavActive || modulesNavActive ? canManageQa : canManageBugs) && (
                 modulesNavActive ? (
                   <Button
-                    data-tour="settings-create-btn"
+                    data-tour="settings-create-module-btn"
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -395,7 +417,7 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : scopeNavActive ? (
                   <Button
-                    data-tour="settings-create-btn"
+                    data-tour={scopeCategory === 'scope_type' ? "settings-create-scope-type-btn" : "settings-create-scope-priority-btn"}
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -405,7 +427,7 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : (
                   <Button
-                    data-tour="settings-create-btn"
+                    data-tour="settings-create-bug-btn"
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -841,6 +863,7 @@ function OptionEditor({
       width={680}
       destroyOnHidden
       maskClosable={!submitting}
+      rootClassName="tour-settings-new-bug-drawer"
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{

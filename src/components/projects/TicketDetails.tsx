@@ -267,14 +267,16 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             isUpdatingLink={updateLinkMutation.isPending}
             isDeletingLink={deleteLinkMutation.isPending}
           />
-          <AttachmentsSection
-            chrome="card"
-            attachments={attachments}
-            isLoading={attachmentsLoading}
-            isEditing={editing}
-            onUpload={handleUploadAttachment}
-            onDelete={handleDeleteAttachment}
-          />
+          <div data-tour="tickets-details-tabs">
+            <AttachmentsSection
+              chrome="card"
+              attachments={attachments}
+              isLoading={attachmentsLoading}
+              isEditing={editing}
+              onUpload={handleUploadAttachment}
+              onDelete={handleDeleteAttachment}
+            />
+          </div>
         </aside>
       </div>
 

@@ -939,6 +939,7 @@ const ProjectsManageContent: React.FC = () => {
 
                   {canCreateProject && (
                     <Button
+                      data-tour="tickets-project-setup"
                       type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAdd}

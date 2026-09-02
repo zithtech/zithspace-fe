@@ -91,7 +91,7 @@ export function BucketCreationForm({
   };
 
   return (
-    <div className="sprint-creation-form bucket-creation-form">
+    <div className="sprint-creation-form bucket-creation-form" data-tour="tickets-buckets-create">
       {/* Hero header */}
       <div className="scf-hero">
         <div className="scf-hero__icon">

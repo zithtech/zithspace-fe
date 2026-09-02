@@ -1921,6 +1921,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                                 trigger={['click']}
                                             >
                                                 <button
+                                                    data-tour="dochub-workspace-new-btn"
                                                     className="flex-1 flex items-center justify-center gap-2 px-4 py-[9px] text-[13px] font-medium rounded-lg transition-all duration-150"
                                                     style={{
                                                         background: 'linear-gradient(135deg, var(--text-blue-700) 0%, rgba(99, 102, 241, 0.95) 100%)',
@@ -2192,6 +2193,20 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     <div className="h-5 w-px mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                                 </>
                             )}
+                            {selectedDoc && (
+                                <Segmented
+                                    data-tour="dochub-preview-btn"
+                                    value={viewMode}
+                                    onChange={(val: any) => setViewMode(val)}
+                                    options={[
+                                        { label: 'Edit', value: 'edit', icon: <EditOutlined style={{ fontSize: 12 }} /> },
+                                        { label: 'Preview', value: 'preview', icon: <EyeOutlined style={{ fontSize: 12 }} /> },
+                                        { label: 'Split', value: 'combined', icon: <SplitCellsOutlined style={{ fontSize: 12 }} /> },
+                                    ]}
+                                    size="small"
+                                    style={{ borderRadius: 8, background: 'var(--bg-slate-100, #f1f5f9)' }}
+                                />
+                            )}
                             <Tooltip title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
                                 <Button
                                     type="text"
@@ -2208,6 +2223,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             </Tooltip>
 
                             <button
+                                data-tour="dochub-history-btn"
                                 className="flex items-center gap-1.5 px-2.5 py-[7px] text-[13px] font-medium rounded-lg transition-colors"
                                 style={{
                                     color: isHistoryOpen ? 'var(--text-blue-700)' : 'var(--text-slate-600)',

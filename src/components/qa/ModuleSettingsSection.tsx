@@ -534,7 +534,7 @@ export function ModuleModal({ open, editing, defaultProjectId, onClose, onSaved 
         mask: { backdropFilter: "blur(3px)", background: "rgba(15,23,42,0.45)" },
       }}
     >
-      <div className="so-modal">
+      <div className="so-modal" data-tour="settings-new-module-modal">
         {successData ? (
           <PostCreationSuccessScreen
             itemType="Module"

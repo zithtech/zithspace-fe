@@ -354,7 +354,7 @@ export function ScopeOptionModal({ open, category, editing, onClose, onSaved }: 
         mask: { backdropFilter: "blur(3px)", background: "rgba(15,23,42,0.45)" },
       }}
     >
-      <div className="so-modal">
+      <div className="so-modal" data-tour="settings-new-scope-modal">
         {successData ? (
           <PostCreationSuccessScreen
             itemType={`${SCOPE_CATEGORY_LABELS[category]} option`}

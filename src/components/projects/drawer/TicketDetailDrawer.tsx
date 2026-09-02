@@ -695,6 +695,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   placement="bottomRight"
                 >
                   <Button
+                    data-tour="tickets-drawer-add-sprint"
                     type="default"
                     size="middle"
                     icon={<PlusCircleOutlined style={{ color: "#52c41a" }} />}
@@ -855,6 +856,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 }}
               >
                 <Button
+                  data-tour="tickets-drawer-create-doc"
                   size="middle"
                   icon={<FileTextOutlined />}
                   style={{
@@ -876,6 +878,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
               <Tooltip title="Copy Public Link">
                 <Button
+                  data-tour="tickets-drawer-share"
                   type="text"
                   icon={<ShareAltOutlined style={{ fontSize: 16, color: '#8c8c8c' }} />}
                   onClick={() => {

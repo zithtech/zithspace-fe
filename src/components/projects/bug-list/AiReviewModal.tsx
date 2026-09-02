@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useBugList";
 import { useUserProjects } from "@/hooks/useGlobalData";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { stripHtml } from "@/utils/stringUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
@@ -510,7 +511,7 @@ function ReviewStep({
                 {bug.bugNumber || bug.id.slice(-6).toUpperCase()}
               </span>
               <span className="hb-aim-card-title">
-                {r?.suggestedTitle || bug.title || bug.description}
+                {r?.suggestedTitle || bug.title || stripHtml(bug.description)}
               </span>
               {bug.severity && (
                 <span className={`hb-aim-pill hb-aim-pill-${bug.severity}`}>

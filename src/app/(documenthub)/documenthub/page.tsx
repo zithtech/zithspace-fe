@@ -849,6 +849,7 @@ const DocumentHubPage = () => {
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [editingNameValue, setEditingNameValue] = useState('');
   const [bulkProjectModalOpen, setBulkProjectModalOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [bulkProjectId, setBulkProjectId] = useState<string | undefined>(undefined);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [sortedInfo, setSortedInfo] = useState<{ key: string | null; dir: 'ascend' | 'descend' | null }>(
@@ -2386,11 +2387,13 @@ const DocumentHubPage = () => {
 
             {canCreateDocument && (
               <div className="dh-side-cta">
-              <Dropdown
-                trigger={['hover', 'click']}
+              <Popover
+                open={createMenuOpen}
+                onOpenChange={setCreateMenuOpen}
+                trigger={['click']}
                 placement="bottomLeft"
                 overlayClassName="dh-create-pop"
-                popupRender={() => (
+                content={(
                   <div className="dh-cr">
                     <div className="dh-cr__head">
                       <span className="dh-cr__head-ic"><PlusOutlined /></span>
@@ -2402,7 +2405,7 @@ const DocumentHubPage = () => {
 
                     <div className="dh-cr__body">
                       {hasGrid && (
-                        <button type="button" className="dh-cr__row" onClick={() => setModalVisible(true)}>
+                        <button type="button" className="dh-cr__row" onClick={() => { setCreateMenuOpen(false); setModalVisible(true); }}>
                           <span className="dh-cr__mark is-manual">
                             <FileTextOutlined style={{ fontSize: 15 }} />
                           </span>
@@ -2415,7 +2418,7 @@ const DocumentHubPage = () => {
                       )}
 
                       {hasPrime && (
-                        <button type="button" className="dh-cr__row" onClick={() => setAiModalVisible(true)}>
+                        <button type="button" className="dh-cr__row" onClick={() => { setCreateMenuOpen(false); setAiModalVisible(true); }}>
                           <span className="dh-cr__mark is-zai">
                             <Sparkles size={15} strokeWidth={2} />
                           </span>
@@ -2454,7 +2457,7 @@ const DocumentHubPage = () => {
                 <Button type="primary" icon={<PlusOutlined />} className="dh-side-create">
                   Create Document
                 </Button>
-              </Dropdown>
+              </Popover>
               </div>
             )}
           </div>
@@ -3690,7 +3693,7 @@ const DocumentHubPage = () => {
         .pp-table .ant-table-pagination { display: none !important; }
 
         /* ── Create popup: the two ways to start a hub ──────────────────── */
-        .dh-create-pop .ant-dropdown-menu { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
+        .dh-create-pop .ant-dropdown-menu, .dh-create-pop .ant-popover-inner { padding: 0 !important; background: transparent !important; box-shadow: none !important; }
         .dh-cr {
           width: 296px;
           background: var(--bg-pure-white);

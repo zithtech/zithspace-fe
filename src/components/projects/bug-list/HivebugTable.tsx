@@ -27,6 +27,7 @@ import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDraw
 import { useMarkBugRecurring } from "@/hooks/useBugList";
 import { useMembersSelect } from "@/hooks/useMembersSelect";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { stripHtml } from "@/utils/stringUtils";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -370,8 +371,8 @@ function BugRow({
                 </span>
               </Tooltip>
             </div>
-            <span className="hb-bug-title" title={bug.title || bug.description}>
-              {bug.title || bug.description}
+            <span className="hb-bug-title" title={bug.title || stripHtml(bug.description)}>
+              {bug.title || stripHtml(bug.description)}
             </span>
           </div>
         </div>

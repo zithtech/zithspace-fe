@@ -106,6 +106,15 @@ export default function ReportsHub() {
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
+  const [serverStats, setServerStats] = useState<any>({
+    avgHealth: 0,
+    avgCompletion: 0,
+    ticketsShipped: 0,
+    generatedPct: 0,
+    generatedCount: 0,
+    totalCompletedSprints: 0,
+  });
+  const [totalTableReports, setTotalTableReports] = useState(0);
 
   const [searchText, setSearchText] = useState("");
   const [view, setView] = useState<"list" | "grid">("list");
@@ -153,16 +162,37 @@ export default function ReportsHub() {
     };
   }, []);
 
+  const getExtraParams = () => {
+    const params: any = {
+      page: tablePage,
+      limit: tablePageSize,
+      search: searchText || undefined,
+      status: statusFilter || undefined,
+      health: healthFilter || undefined,
+      completion: completionFilter || undefined,
+    };
+    if (dateRange?.[0]) params.dateStart = dateRange[0].toISOString();
+    if (dateRange?.[1]) params.dateEnd = dateRange[1].toISOString();
+    return params;
+  };
+
   const fetchReports = async (pid: string) => {
     if (!pid) {
       setReports([]);
+      setTotalTableReports(0);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const rows = await SprintReportsService.list(pid);
-      setReports(Array.isArray(rows) ? rows : (rows?.data || []));
+      const result = await SprintReportsService.list(pid, getExtraParams());
+      setReports(result?.data || (Array.isArray(result) ? result : []));
+      if (result?.stats) setServerStats(result.stats);
+      if (result?.pagination?.total !== undefined) {
+        setTotalTableReports(result.pagination.total);
+      } else {
+        setTotalTableReports(Array.isArray(result) ? result.length : (result?.data?.length || 0));
+      }
     } catch (err: any) {
       setError(err?.message ?? "Failed to load sprint reports");
     } finally {
@@ -174,14 +204,23 @@ export default function ReportsHub() {
     let cancelled = false;
     if (!projectId) {
       setReports([]);
+      setTotalTableReports(0);
       return;
     }
     setLoading(true);
     setError(null);
     
-    SprintReportsService.list(projectId)
-      .then((allRows) => {
-        if (!cancelled) setReports(Array.isArray(allRows) ? allRows : (allRows?.data || []));
+    SprintReportsService.list(projectId, getExtraParams())
+      .then((result) => {
+        if (!cancelled) {
+          setReports(result?.data || (Array.isArray(result) ? result : []));
+          if (result?.stats) setServerStats(result.stats);
+          if (result?.pagination?.total !== undefined) {
+            setTotalTableReports(result.pagination.total);
+          } else {
+            setTotalTableReports(Array.isArray(result) ? result.length : (result?.data?.length || 0));
+          }
+        }
       })
       .catch((err: any) => {
         if (!cancelled) setError(err?.message ?? "Failed to load sprint reports");
@@ -193,18 +232,13 @@ export default function ReportsHub() {
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, tablePage, tablePageSize, searchText, statusFilter, healthFilter, completionFilter, dateRange]);
 
   useEffect(() => {
     setTablePage(1);
   }, [projectId, searchText, statusFilter, healthFilter, completionFilter, dateRange]);
 
-  /* ── Filters ──────────────────────────────────────────────────────────
-     Everything here runs over the full list: the API loads every completed
-     sprint for the project and slices in JS, so the unpaginated call already
-     holds the lot. Filtering client-side keeps the counts honest — a
-     server-side slice would have filtered one page while the totals kept
-     counting all of them. */
+  /* ── Filters ────────────────────────────────────────────────────────── */
   const HEALTH_BANDS = [
     { value: 'healthy', label: 'Healthy · 80+', test: (n: number) => n >= 80 },
     { value: 'at-risk', label: 'At risk · 60–79', test: (n: number) => n >= 60 && n < 80 },
@@ -233,37 +267,6 @@ export default function ReportsHub() {
     setDateRange(null);
   };
 
-  const filteredReports = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
-    const health = HEALTH_BANDS.find((b) => b.value === healthFilter);
-    const completion = COMPLETION_BANDS.find((b) => b.value === completionFilter);
-    return reports.filter((r) => {
-      if (statusFilter === 'generated' && !r.hasReport) return false;
-      if (statusFilter === 'pending' && r.hasReport) return false;
-      /* A sprint with no report has no health or completion to band. */
-      if (health && !(r.hasReport && health.test(r.healthScore ?? 0))) return false;
-      if (completion && !(r.hasReport && completion.test(r.completionPct ?? 0))) return false;
-      if (dateRange?.[0] || dateRange?.[1]) {
-        if (!r.completedAt) return false;
-        const d = dayjs(r.completedAt);
-        if (dateRange[0] && d.isBefore(dateRange[0], 'day')) return false;
-        if (dateRange[1] && d.isAfter(dateRange[1], 'day')) return false;
-      }
-      if (!q) return true;
-      return (
-        (r.sprintName || '').toLowerCase().includes(q) ||
-        (r.sprintGoal || '').toLowerCase().includes(q)
-      );
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reports, searchText, statusFilter, healthFilter, completionFilter, dateRange]);
-
-  const tableReports = useMemo(
-    () => filteredReports.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize),
-    [filteredReports, tablePage, tablePageSize],
-  );
-  const totalTableReports = filteredReports.length;
-
   const selectedProject = projects.find((p) => p.value === projectId);
 
   /* The rail's project list becomes the header's switcher. */
@@ -273,26 +276,14 @@ export default function ReportsHub() {
     code: (p.code || p.label || '?').slice(0, 3).toUpperCase(),
   }));
 
-  const generatedCount = reports.filter((r) => r.hasReport).length;
+  const generatedCount = serverStats.generatedCount;
+  const totalCompletedSprints = serverStats.totalCompletedSprints;
 
   // ── Stats ──
-  /* ── Banner figures ───────────────────────────────────────────────────
-     The stat cards folded into the banner; the bar tracks how many completed
-     sprints actually have a report behind them. */
-  const bannerStats = useMemo(() => {
-    const gen = reports.filter((r) => r.hasReport);
-    const avg = (pick: (r: SprintReportListItem) => number | null | undefined) =>
-      gen.length === 0 ? 0 : Math.round(gen.reduce((s, r) => s + (pick(r) ?? 0), 0) / gen.length);
-    return {
-      avgHealth: avg((r) => r.healthScore),
-      avgCompletion: avg((r) => r.completionPct),
-      ticketsShipped: gen.reduce((s, r) => s + (r.completedTickets ?? 0), 0),
-      generatedPct: reports.length === 0 ? 0 : Math.round((gen.length / reports.length) * 100),
-    };
-  }, [reports]);
+  const bannerStats = serverStats;
 
   const bannerAccent =
-    reports.length === 0 ? '#64748b'
+    totalCompletedSprints === 0 ? '#64748b'
       : bannerStats.generatedPct === 100 ? '#10b981' : '#3b82f6';
 
   const handleGenerate = async (sprintId: string) => {
@@ -747,7 +738,7 @@ export default function ReportsHub() {
               </span>
               <span className="tl-sprint-tags">
                 <span className="tl-sprint-tag tl-sprint-tag-active">{generatedCount} GENERATED</span>
-                <span className="tl-sprint-tag tl-sprint-tag-neutral">{reports.length} COMPLETED SPRINTS</span>
+                <span className="tl-sprint-tag tl-sprint-tag-neutral">{serverStats.totalCompletedSprints} COMPLETED SPRINTS</span>
                 {activeFilterCount > 0 && (
                   <span className="tl-sprint-tag tl-sprint-tag-running">{activeFilterCount} FILTERED</span>
                 )}
@@ -783,7 +774,7 @@ export default function ReportsHub() {
             <div className="pp-table-wrap">
               <Table
                 columns={columns}
-                dataSource={tableReports}
+                dataSource={reports}
                 loading={loading}
                 rowKey="sprintId"
                 size="small"
@@ -805,10 +796,10 @@ export default function ReportsHub() {
             <div className="pp-grid">
               {loading ? (
                 <div className="pp-grid-loading">Loading…</div>
-              ) : tableReports.length === 0 ? (
+              ) : reports.length === 0 ? (
                 <div style={{ gridColumn: "1 / -1" }}><NoData description={emptyState} /></div>
               ) : (
-                tableReports.map((r) => {
+                reports.map((r) => {
                   const accent = accentFor(r.sprintId);
                   const pct =
                     r.completionPct != null ? Math.round(r.completionPct) : 0;

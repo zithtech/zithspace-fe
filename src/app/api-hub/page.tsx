@@ -19,7 +19,7 @@ import {
   Switch,
   Tooltip,
   Typography,
-  message,
+  App,
 } from "antd";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -234,6 +234,7 @@ const emptyApi = (): Partial<YapiezApi> => ({
 });
 
 function ApiCatalogContent() {
+  const { message } = App.useApp();
   useActivitySource({ section: "WORK", module: "API Hub", page: "ApiCatalog" });
 
   const router = useRouter();

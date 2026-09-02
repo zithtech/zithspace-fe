@@ -22,12 +22,15 @@ function CustomTooltip({
   size,
 }: TooltipRenderProps) {
   const { theme } = useTheme();
+  const { skipTour } = useTour();
   const isDark = theme === 'dark';
 
   return (
     <div
       {...tooltipProps}
       style={{
+        ...(tooltipProps as any)?.style,
+        pointerEvents: 'auto',
         backgroundColor: isDark ? '#111827' : '#ffffff',
         border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
         borderRadius: '20px',
@@ -39,7 +42,6 @@ function CustomTooltip({
         width: '420px',
         maxWidth: '100%',
         fontFamily: 'Inter, sans-serif',
-        position: 'relative',
         animation: 'tourFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
@@ -55,20 +57,31 @@ function CustomTooltip({
         }
         .tour-primary-btn {
           background: #4F46E5 !important;
-          outline: none !important;
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2) !important;
+          transform: translateY(0) !important;
+          cursor: pointer !important;
+          pointer-events: auto !important;
         }
         .tour-primary-btn:hover {
           background: #4338ca !important;
-          transform: translateY(-1px);
+          transform: translateY(-1px) !important;
           box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3), 0 2px 4px -1px rgba(79, 70, 229, 0.2) !important;
         }
-        .tour-primary-btn:active {
-          transform: translateY(0) !important;
-          box-shadow: none !important;
+        .tour-back-btn {
+          background: transparent !important;
+          color: ${isDark ? '#94a3b8' : '#64748b'} !important;
+          cursor: pointer !important;
+          pointer-events: auto !important;
         }
         .tour-back-btn:hover {
           background: ${isDark ? '#374151' : '#f3f4f6'} !important;
           color: ${isDark ? '#f9fafb' : '#111827'} !important;
+        }
+        .tour-close-btn {
+          background: transparent !important;
+          color: ${isDark ? '#9ca3af' : '#6b7280'} !important;
+          cursor: pointer !important;
+          pointer-events: auto !important;
         }
         .tour-close-btn:hover {
           background: ${isDark ? '#374151' : '#f3f4f6'} !important;
@@ -77,6 +90,11 @@ function CustomTooltip({
 
       <button
         {...closeProps}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          skipTour();
+        }}
         className="tour-close-btn"
         style={{
           position: 'absolute',
@@ -84,9 +102,6 @@ function CustomTooltip({
           right: '16px',
           border: 'none',
           outline: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          color: isDark ? '#9ca3af' : '#6b7280',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -170,11 +185,8 @@ function CustomTooltip({
           style={{
             border: 'none',
             outline: 'none',
-            background: 'transparent',
-            color: isDark ? '#94a3b8' : '#64748b',
             padding: '10px 14px',
             borderRadius: '10px',
-            cursor: index > 0 ? 'pointer' : 'default',
             opacity: index > 0 ? 1 : 0,
             pointerEvents: index > 0 ? 'auto' : 'none',
             fontSize: '14px',
@@ -221,14 +233,12 @@ function CustomTooltip({
               color: '#ffffff',
               padding: '10px 20px',
               borderRadius: '10px',
-              cursor: 'pointer',
               fontSize: '14px',
               fontWeight: 600,
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
               boxSizing: 'border-box',
               flexShrink: 0
             }}
@@ -261,7 +271,19 @@ export const ProductTour: React.FC = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   
-  const [isReady, setIsReady] = useState(false);
+  const [readyStepIndex, setReadyStepIndex] = useState(-1);
+
+  // Toggle a body class so CSS can lower the TopNav z-index below the Joyride overlay
+  useEffect(() => {
+    if (run) {
+      document.body.classList.add('tour-active');
+    } else {
+      document.body.classList.remove('tour-active');
+    }
+    return () => {
+      document.body.classList.remove('tour-active');
+    };
+  }, [run]);
 
   useEffect(() => {
     if (!run || !steps.length) return;
@@ -275,7 +297,7 @@ export const ProductTour: React.FC = () => {
     const waitForTarget = async () => {
       const match = isTourRouteMatch(currentStepDef.route, pathname);
       if (currentStepDef.route && !match) {
-        setIsReady(false);
+        setReadyStepIndex(-1);
         router.push(currentStepDef.route);
         return;
       }
@@ -287,7 +309,7 @@ export const ProductTour: React.FC = () => {
         stepIndex <= 4 &&
         pathname === '/documenthub'
       ) {
-        setIsReady(false);
+        setReadyStepIndex(-1);
         try {
           const res = await apiClient.get('/api/documenthub');
           const hubs = res.data?.data || [];
@@ -307,25 +329,25 @@ export const ProductTour: React.FC = () => {
       }
 
       if (currentStepDef.target === 'body') {
-        setIsReady(true);
+        setReadyStepIndex(stepIndex);
         return;
       }
 
       // Check for DOM element
       const el = document.querySelector(currentStepDef.target as string);
       if (el) {
-        setIsReady(true);
+        setReadyStepIndex(stepIndex);
         return;
       }
 
       // Element not yet in DOM, poll for it
-      setIsReady(false);
+      setReadyStepIndex(-1);
       let attempts = 0;
       intervalId = setInterval(() => {
         attempts++;
         const found = document.querySelector(currentStepDef.target as string);
         if (found) {
-          setIsReady(true);
+          setReadyStepIndex(stepIndex);
           clearInterval(intervalId);
         } else if (attempts > 30) {
           // If genuinely missing after 3s, skip to prevent stalling
@@ -347,6 +369,11 @@ export const ProductTour: React.FC = () => {
     const { status, type, index, action } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
+    // Ignore clicks outside the tooltip and Escape key — do NOT dismiss the tour
+    if (action === ACTIONS.CLOSE || (action as string) === 'overlay_close' || (action as string) === 'key_escape') {
+      return;
+    }
+
     if (finishedStatuses.includes(status)) {
       if (status === STATUS.SKIPPED) {
         skipTour();
@@ -354,17 +381,24 @@ export const ProductTour: React.FC = () => {
         completeTour();
       }
     } else if (type === EVENTS.STEP_AFTER) {
-      // Advance or go back
-      let increment = action === 'prev' ? -1 : 1;
-      const currentStep = steps[index] as any;
-      
-      // If we clicked Next on a step that is configured to skip the next step
-      if (action === 'next' && currentStep?.skipNextOnNext) {
-        increment = 2;
+      if (action === 'skip') {
+        skipTour();
+        return;
       }
-      
-      const newIndex = index + increment;
-      setStepIndex(newIndex);
+
+      // Only advance or go back if the user explicitly clicked Next or Back
+      if (action === 'prev' || action === 'next') {
+        let increment = action === 'prev' ? -1 : 1;
+        const currentStep = steps[index] as any;
+        
+        // If we clicked Next on a step that is configured to skip the next step
+        if (action === 'next' && currentStep?.skipNextOnNext) {
+          increment = 2;
+        }
+        
+        const newIndex = index + increment;
+        setStepIndex(newIndex);
+      }
     } else if (type === EVENTS.TARGET_NOT_FOUND) {
       const targetStep = steps[index];
       // If we are about to navigate, ignore the not-found error
@@ -384,15 +418,27 @@ export const ProductTour: React.FC = () => {
     <Joyride
       onEvent={handleJoyrideCallback}
       continuous
-      run={run && isReady} // Only run when the target is confirmed in DOM
+      run={run && readyStepIndex === stepIndex} // Only run when the target is confirmed in DOM for the current step
       scrollToFirstStep
       stepIndex={stepIndex}
-      steps={steps.map(s => ({ ...s, skipBeacon: true, disableOverlayClose: true, spotlightClicks: true })) as any}
+      steps={steps.map(s => ({
+        ...s,
+        skipBeacon: true,
+        disableOverlayClose: true,
+        disableCloseOnEsc: true,
+        // react-joyride v3: disable close on overlay click and Escape key
+        overlayClickAction: '',
+        dismissKeyAction: '',
+        spotlightClicks: s.target !== 'body',
+        styles: s.target === 'body' ? {
+          spotlight: { display: 'none' }
+        } : s.styles
+      })) as any}
       tooltipComponent={CustomTooltip}
       styles={{
         options: {
           arrowColor: isDark ? '#1e293b' : '#fff',
-          zIndex: 900,
+          zIndex: 10000,
           overlayColor: isDark ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.5)',
           spotlightPadding: 4,
           width: 400,
@@ -402,9 +448,6 @@ export const ProductTour: React.FC = () => {
         },
         tooltipContainer: {
           textAlign: 'left',
-        },
-        overlay: {
-          zIndex: 900,
         },
         spotlight: {
           borderRadius: '8px',

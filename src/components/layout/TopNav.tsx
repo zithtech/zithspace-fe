@@ -66,7 +66,7 @@ import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import ThemeToggle from "./ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import { useTour } from "@/context/TourContext";
-import { HistoryOutlined, PlayCircleOutlined, FileTextOutlined } from '@ant-design/icons';
+import { HistoryOutlined, PlayCircleOutlined } from '@ant-design/icons';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -729,11 +729,6 @@ export default function TopNav({
                       icon: <PlayCircleOutlined />,
                       onClick: () => startTour('testiez-document-hub', true)
                     },
-                    {
-                      key: "docs",
-                      label: <a href="#" target="_blank" rel="noopener noreferrer">Documentation</a>,
-                      icon: <FileTextOutlined />
-                    }
                   ]
                 }}
                 trigger={['click']}

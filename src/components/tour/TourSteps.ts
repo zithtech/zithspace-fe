@@ -5,6 +5,7 @@ export interface RouteStep extends Step {
   skipNextOnNext?: boolean;
   hideNextButton?: boolean;
   clickOnNext?: boolean;
+  disableActive?: boolean;
 }
 
 export const qaWorkflowSteps: RouteStep[] = [
@@ -319,6 +320,7 @@ export const documentHubTourSteps: RouteStep[] = [
     title: 'Welcome to Document Hub',
     content: 'Document Hub is your central knowledge base for engineering specs, architecture wikis, runbooks, and project documentation.',
     placement: 'center',
+    disableActive: true,
   },
   {
     target: '[data-tour="dochub-create-hub-btn"]',

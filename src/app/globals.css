@@ -28,7 +28,17 @@
   }
 }
 
-
+/* ============================================================
+   Product Tour — ensure Joyride overlay covers fixed nav bars
+   When the tour is running, ProductTour.tsx adds 'tour-active'
+   to <body>. This drops the fixed top-nav and side-nav below
+   the Joyride overlay (zIndex: 10000) so the dark backdrop
+   correctly covers them and only the highlighted target shows.
+*/
+body.tour-active .main-top-nav,
+body.tour-active .ant-layout-sider {
+  z-index: 1 !important;
+}
 
 
 @layer base {

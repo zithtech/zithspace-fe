@@ -35,7 +35,7 @@ import SearchableDropdown from "@/components/common/SearchableDropdown";
 
 const { RangePicker } = DatePicker;
 import { Briefcase, Search, Plus, Sparkles, Trash2, Ban, SlidersHorizontal, RotateCcw, RotateCw, FolderTree, Bug as BugIcon, Ticket as TicketIcon, Activity, Archive, ChevronLeft, Folder, Layers, CircleDot, AlertTriangle, Tag, Calendar, CalendarDays, ChevronDown, CornerUpRight, List, Menu, PanelLeftClose, PanelLeftOpen, ArrowRight } from "lucide-react";
-import { useUserProjects } from "@/hooks/useGlobalData";
+import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import HivebugSidebar, { BugScope } from "./HivebugSidebar";
 import HivebugTable from "./HivebugTable";
 
@@ -105,7 +105,7 @@ import {
   useProjectSheets,
   useBulkMoveBugs,
 } from "@/hooks/useBugList";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+
 import { useProjectQaModules } from "@/hooks/useQaOptions";
 import type {
   BugFolder,
@@ -298,8 +298,8 @@ export default function BugListPage() {
   }, [selectedFolderId, folders]);
 
   // Add missing variables to fix TypeScript errors
-  const { users } = useMembersSelect();
-  const members = users.map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl, description: u.position || u.role }));
+  const { data: projectMembers } = useProjectMembers(selectedProjectId || undefined);
+  const members = (projectMembers || []).map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl, description: u.position }));
   const allFolders = useMemo(() => {
     const res = [...(folders || [])];
     archivedFolders?.forEach(f => { if (!res.find(x => x.id === f.id)) res.push(f); });
@@ -1631,6 +1631,7 @@ export default function BugListPage() {
                     isArchiveView={scope === "archived"}
                     isNestedInSheet={isNestedInSheet}
                     isNestedInFolder={isNestedInFolder}
+                    projectId={selectedProjectId || undefined}
                   />
                 </>
               )}
@@ -1702,6 +1703,7 @@ export default function BugListPage() {
         moduleOptions={projectModuleOptions}
         legacyModules={legacyModules}
         projectName={projects?.find(p => p.value === selectedProjectId)?.label}
+        projectId={selectedProjectId || undefined}
         onModulesRefresh={() => refetchProjectModules()}
         onSubmit={handleSubmitBug}
         submitting={createBug.isPending || updateBug.isPending}

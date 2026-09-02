@@ -34,7 +34,7 @@ import TiptapEditor from "@/components/common/TiptapEditor";
 import { useAuth } from '@/context/AuthContext';
 
 const { Text } = Typography;
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useProjectMembers } from "@/hooks/useGlobalData";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { NO_MODULES_STYLES, NoModulesEmpty } from "@/components/qa/ModuleSettingsSection";
 import { useTheme } from "@/context/ThemeContext";
@@ -583,6 +583,7 @@ interface Props {
   onModulesRefresh?: () => void;
   /** Module names on older bugs that predate the shared list, so they still read back. */
   legacyModules?: string[];
+  projectId?: string;
   onSubmit: (
     payload: CreateBugInput | (UpdateBugInput & { id: string }),
   ) => Promise<void>;
@@ -619,6 +620,7 @@ export default function CreateBugDrawer({
   moduleOptions = [],
   legacyModules = [],
   projectName,
+  projectId,
   onModulesRefresh,
   onSubmit,
   submitting,
@@ -626,7 +628,8 @@ export default function CreateBugDrawer({
   const { theme } = useTheme();
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
-  const { users: members } = useMembersSelect();
+  const { data: projectMembers } = useProjectMembers(projectId);
+  const members = (projectMembers || []).map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl, position: u.position, email: u.workEmail, role: u.position }));
   const [notificationApi, notificationContextHolder] = notification.useNotification();
   const { message } = App.useApp();
   // Form state

@@ -831,6 +831,7 @@ const DocumentHubPage = () => {
 
   const [selectHubModalVisible, setSelectHubModalVisible] = useState(false);
   const [pendingUploadProvider, setPendingUploadProvider] = useState<DriveProvider | null>(null);
+  const [uploadDropdownOpen, setUploadDropdownOpen] = useState(false);
 
   // View / saved-view state — persisted to localStorage so it survives reloads.
   const [viewMode, setViewMode] = useState<ViewMode>('table');
@@ -2637,6 +2638,8 @@ const DocumentHubPage = () => {
                 trigger={['click']}
                 placement="bottomRight"
                 overlayClassName="dh-upload-pop"
+                open={uploadDropdownOpen}
+                onOpenChange={setUploadDropdownOpen}
                 popupRender={() => (
                   <div className="dh-up">
                     <div className="dh-up__head">
@@ -2659,6 +2662,7 @@ const DocumentHubPage = () => {
                             type="button"
                             className="dh-up__row"
                             onClick={() => {
+                              setUploadDropdownOpen(false);
                               setPendingUploadProvider(src.key);
                               setSelectHubModalVisible(true);
                             }}

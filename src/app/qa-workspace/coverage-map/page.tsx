@@ -81,7 +81,7 @@ export default function CoverageMapPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "CoverageMap" });
 
   const router = useRouter();
-  const { canReadScope, canReadCase, canReadSuite, canReadRun } = usePermission();
+  const { canReadScope, canReadCase, canReadSuite, canReadRun, canReadCoverageMap } = usePermission();
 
   const [projectId, setProjectId] = useState<string | undefined>();
 
@@ -101,7 +101,7 @@ export default function CoverageMapPage() {
   const { loading, source, nodes, refetch, project } = useCoverageData(
     projects,
     projectId,
-    { canReadScope, canReadCase, canReadSuite, canReadRun },
+    { canReadScope, canReadCase, canReadSuite, canReadRun, canReadCoverageMap },
     !loadingProjects,
   );
   const { scopes, cases, suites, runs } = source;

@@ -90,9 +90,16 @@ export const DEFAULT_PRODUCT: ProductKey = "zukvo";
  *
  * Local development:
  *   {tenant}.testiez.localhost:3005  → testiez
+ *   testiez.localhost:3005           → testiez, no tenant (the brand root)
  *   {tenant}.localhost:3005          → zukvo
+ *   zukvo.localhost:3005             → zukvo, no tenant (the brand root)
+ *   localhost:3005                   → zukvo
  * which composes with the existing `{tenant}.localhost` tenant detection in
  * TenantContext rather than replacing it.
+ *
+ * The Zukvo arms below are redundant with the fallback and say so on purpose:
+ * BRAND_LABELS is derived from the same names, and a brand that appears only as
+ * an unwritten default is one nobody thinks to add to that list.
  */
 export function productFromHostname(hostname: string | null | undefined): ProductKey {
   if (!hostname) return DEFAULT_PRODUCT;
@@ -102,7 +109,36 @@ export function productFromHostname(hostname: string | null | undefined): Produc
   if (host === "testiez.com" || host.endsWith(".testiez.com")) return "testiez";
   if (host === "testiez.localhost" || host.endsWith(".testiez.localhost")) return "testiez";
 
+  if (host === "zukvo.com" || host.endsWith(".zukvo.com")) return "zukvo";
+  if (host === "zukvo.localhost" || host.endsWith(".zukvo.localhost")) return "zukvo";
+
   return DEFAULT_PRODUCT;
+}
+
+/**
+ * Host labels that name a BRAND rather than a tenant.
+ *
+ * `testiez.localhost` and `acme.localhost` are the same shape — two labels, the
+ * second being `localhost` — so nothing but this list can tell the Testiez
+ * brand root apart from a workspace called "testiez". Without it the leftmost
+ * label is taken as a slug and the app goes looking for a tenant named after
+ * the product. See tenantSlugFromHostname in context/TenantContext.tsx.
+ */
+export const BRAND_LABELS: readonly string[] = Object.keys(PRODUCTS);
+
+/**
+ * The brand's MARKETING site — a different origin from the app.
+ *
+ * Needed wherever the app has to hand someone back to a page that can help
+ * them when the app itself cannot: the workspace picker at /signin, and signup.
+ * Per-brand for the same reason the app URL is: sending a Testiez customer to
+ * zukvo.com names a product they have never heard of.
+ */
+export function marketingUrlFor(product: ProductKey): string {
+  if (product === "testiez") {
+    return process.env.NEXT_PUBLIC_TESTIEZ_MARKETING_URL || "https://testiez.com";
+  }
+  return process.env.NEXT_PUBLIC_MARKETING_URL || "https://zukvo.com";
 }
 
 export function manifestFor(product: ProductKey): ProductManifest {

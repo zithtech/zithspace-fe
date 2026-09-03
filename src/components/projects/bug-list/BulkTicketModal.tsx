@@ -24,11 +24,13 @@ import SearchableDropdown from "@/components/common/SearchableDropdown";
 import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
+import { useProduct } from "@/context/ProductContext";
 import type { BugListItem } from "@/services/bugListService";
 import TicketService, { Ticket } from "@/services/ticketService";
 import { stripHtml } from "@/utils/stringUtils";
 import {
   ZukvoLogo,
+  TestiezLogo,
   LinearMark,
   TicketFlowHeader,
   TicketFlowCard,
@@ -59,6 +61,7 @@ const SEVERITY_RANK: Record<string, number> = {
 };
 
 export default function BulkTicketModal({ open, bugs, onClose, onPickAi, prefilledProjectId, embedded, forcedMode, onBack }: Props) {
+  const { isTestiez } = useProduct();
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
   const hasGrid = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_grid');
@@ -447,6 +450,7 @@ export function ModePicker({
   /** Which destination this batch is headed to — drives the logo and copy. */
   brand?: "zukvo" | "linear" | "jira";
 }) {
+  const { isTestiez } = useProduct();
   const isLinear = brand === "linear";
 
   const showManual = hasGrid !== false;
@@ -459,13 +463,13 @@ export function ModePicker({
   return (
     <>
       <TicketFlowHeader
-        mark={isLinear ? <LinearMark size={22} /> : <ZukvoLogo size={22} />}
+        mark={isLinear ? <LinearMark size={22} /> : (isTestiez ? <TestiezLogo size={22} /> : <ZukvoLogo size={22} />)}
         title={
           count === 0
             ? "Every bug has been bundled"
             : `How should ${count === 1 ? "this bug" : `these ${count} bugs`} become tickets?`
         }
-        eyebrow={`Step 2 · ${isLinear ? "Linear" : "Zukvo"} method`}
+        eyebrow={`Step 2 · ${isLinear ? "Linear" : (isTestiez ? "Testiez" : "Zukvo")} method`}
         chips={[
           {
             icon: <ListChecks size={12} />,

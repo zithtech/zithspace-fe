@@ -1,8 +1,11 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 import NoData from "@/components/common/NoData";
+
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Progress, message, Input, Drawer, Select, Typography, Tooltip, Popover, Space, Segmented, Divider } from "antd";
+import { Button, Table, Tag, Progress, Input, Drawer, Select, Typography, Tooltip, Popover, Space, Segmented, Divider } from "antd";
 import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ApartmentOutlined, ThunderboltOutlined, CopyOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -414,24 +417,26 @@ function TestRunsContent() {
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <div className="sc-rowactions" onClick={e => e.stopPropagation()}>
-          <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => openExecuteDrawer(record)} className="rn-exec">
-            {canUpdateRun ? 'Execute' : 'View'}
-          </Button>
-          {canDeleteRun && (
-            <ConfirmDialog
-              tone="danger"
-              title="Delete Test Run?"
-              description="Are you sure you want to delete this test run and all its execution records?"
-              confirmText="Delete"
-              onConfirm={() => handleDeleteRun(record.id)}
-            >
-              <Tooltip title="Delete">
-                <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
-                  <Trash2 size={15} />
-                </button>
-              </Tooltip>
-            </ConfirmDialog>
-          )}
+          <Space size="middle">
+            <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => openExecuteDrawer(record)} className="rn-exec">
+              {canUpdateRun ? 'Execute' : 'View'}
+            </Button>
+            {canDeleteRun && (
+              <ConfirmDialog
+                tone="danger"
+                title="Delete Test Run?"
+                description="Are you sure you want to delete this test run and all its execution records?"
+                confirmText="Delete"
+                onConfirm={() => handleDeleteRun(record.id)}
+              >
+                <Tooltip title="Delete">
+                  <button className="is-danger" onClick={(e) => e.stopPropagation()} aria-label="Delete">
+                    <Trash2 size={15} />
+                  </button>
+                </Tooltip>
+              </ConfirmDialog>
+            )}
+          </Space>
         </div>
       )
     }
@@ -1567,7 +1572,7 @@ const RUNS_PAGE_STYLES = `
   font-variant-numeric: tabular-nums;
 }
 
-.sc-rowactions .rn-exec { height: 26px; border-radius: 7px; font-size: 11.5px; font-weight: 600; }
+.sc-rowactions .rn-exec { height: 26px; width: auto; padding: 0 10px; border-radius: 7px; font-size: 11.5px; font-weight: 600; }
 
 /* ── Create Test Run drawer ───────────────────────────────────────────── */
 .rd { display: flex; flex-direction: column; height: 100%; background: var(--bg-pure-white); }

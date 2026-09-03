@@ -8,6 +8,7 @@ import { ProductProvider } from "@/context/ProductContext";
 import { DEFAULT_PRODUCT, PRODUCT_HEADER, ProductKey } from "@/lib/product";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
+import AntdGlobalProvider from "@/providers/AntdGlobalProvider";
 import "./globals.css";
 
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -77,7 +78,8 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker, .ant-input-number-input, .ant-input-number-affix-wrapper {
             background-color: transparent !important;
             background: transparent !important;
@@ -93,6 +95,7 @@ export default async function RootLayout({
             <ThemeProvider>
               <ThemeConfigProvider>
                 <App>
+                  <AntdGlobalProvider />
                   <TenantProvider>
                     {/* Outside AuthProvider on purpose: if the workspace in the
                         host does not exist there is nothing to authenticate

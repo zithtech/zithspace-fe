@@ -1,6 +1,9 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Upload, DatePicker, Modal, Dropdown, Drawer, App, Tooltip, Popover, Popconfirm } from "antd";
 import {
@@ -604,8 +607,8 @@ ScopeDocEditor.displayName = 'ScopeDocEditor';
 /* ── Page ──────────────────────────────────────────────────────────────────── */
 
 export default function EditScopePage() {
-  const { message } = App.useApp();
-  useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
+  const { modal } = App.useApp();
+useActivitySource({ section: "WORK", module: "QA", page: "EditTestScope" });
 
   const router = useRouter();
   const params = useParams();

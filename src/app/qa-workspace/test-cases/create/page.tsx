@@ -1,8 +1,11 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { useState, useEffect } from "react";
+
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Input, Row, Col, message } from "antd";
+import { Button, Input, Row, Col } from "antd";
 import { ArrowLeftOutlined, CloseOutlined, PlusOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";

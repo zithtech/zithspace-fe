@@ -1,14 +1,15 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 import React, { Suspense, useState, useEffect } from "react";
+
 import NoData from "@/components/common/NoData";
 import MainLayout from "@/components/layout/MainLayout";
-import {
-  Button,
+import { Button,
   Tooltip,
   Result,
   Table,
   Typography,
-  message,
   Input,
   Select,
   Dropdown,

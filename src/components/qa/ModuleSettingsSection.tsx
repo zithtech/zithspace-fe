@@ -13,7 +13,8 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Form, Input, Modal, Table, Tooltip, message } from "antd";
+import { Button, Form, Input, Modal, Table, Tooltip } from "antd";
+import { message } from "@/providers/AntdGlobalProvider";
 import { CloseOutlined } from "@ant-design/icons";
 import { ArrowUpRight, Boxes, FolderKanban, Lock, Pencil, Plus, Trash2, Search } from "lucide-react";
 
@@ -94,7 +95,7 @@ export function useProjectOptions(enabled: boolean) {
     if (!enabled) return;
     let cancelled = false;
     setLoading(true);
-    ProjectService.getUserProjects()
+    ProjectService.getUserProjects(true)
       .then((res: any) => {
         if (cancelled) return;
         const list: any[] = Array.isArray(res) ? res : (res?.data ?? []);

@@ -1,11 +1,14 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 import NoData from "@/components/common/NoData";
+
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, message, Input, Select, Tooltip, Typography, Popover, Space, Segmented, Divider } from "antd";
+import { Button, Table, Tag, Input, Select, Tooltip, Typography, Popover, Space, Segmented, Divider } from "antd";
 import { PlusOutlined, SnippetsOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, CloseOutlined, ApartmentOutlined, LinkOutlined, CopyOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";

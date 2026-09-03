@@ -784,7 +784,7 @@ export default function BucketManagementPage() {
 
               {/* Right side — the visibility switch that used to live in the
                   rail, then the view controls. */}
-              <Space size={10} className="sc-header-right">
+              <Space size={10} className="sc-header-right" wrap>
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
                   value={visibilityFilter}
@@ -1378,25 +1378,34 @@ export default function BucketManagementPage() {
           min-height: calc(100vh - 54px);
           display: flex;
           flex-direction: column;
+          min-width: 0;
+          max-width: 100%;
+          overflow-x: hidden;
         }
         [data-theme="dark"] .bh2-page {
           background: var(--bg-pure-white) !important;
         }
 
-        .bh2-shell-wrap {
+        .bh2-page .bh2-shell-wrap {
           flex: 1;
           display: flex;
           flex-direction: column;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
         }
 
-        .bh2-shell {
+        .bh2-page .bh2-shell {
           display: grid;
           grid-template-columns: minmax(0, 1fr);
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
         }
-        .bh2-main {
+        .bh2-page .bh2-main {
           min-width: 0;
           padding: 0;
           background: var(--bg-pure-white);
@@ -1405,11 +1414,16 @@ export default function BucketManagementPage() {
           grid-column: 1;
           height: calc(100vh - 54px);
           overflow: hidden;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
         }
         .bh2-main-body {
           flex: 1;
           min-height: 0;
+          min-width: 0;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 0;
           scrollbar-width: none;
           -ms-overflow-style: none;
@@ -1418,25 +1432,29 @@ export default function BucketManagementPage() {
         .bh2-list { padding: 12px 16px 16px; }
 
         /* ── Header row, matched to the Ticket List ─────────────────────── */
-        .bh2-toolbar.sc-header {
+        .bh2-page .bh2-toolbar.sc-header {
           position: sticky;
           top: 0;
           z-index: 100;
           height: auto;
           min-height: 0;
+          min-width: 0 !important;
           margin: 0;
           padding: 9.7px 16px;
           display: flex;
           align-items: center;
           gap: 10px;
-          flex-wrap: wrap;
+          flex-wrap: wrap !important;
           background: var(--bg-pure-white);
           border-bottom: 1px solid var(--border-slate-200);
           flex-shrink: 0;
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
         }
         [data-theme='dark'] .bh2-toolbar.sc-header { background: #0f1419; border-bottom-color: #1f2937; }
-        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .sc-header-right { flex-shrink: 0; }
+        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
+        .sc-header-right { flex-shrink: 0; display: flex; flex-wrap: wrap; }
 
         .sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
         .sc-owner-opt { display: inline-flex; align-items: center; gap: 6px; height: 100%; }
@@ -1451,25 +1469,59 @@ export default function BucketManagementPage() {
         .ant-segmented-item-selected .sc-owner-opt__count { background: var(--bg-blue-50); color: #3B82F6; }
         [data-theme='dark'] .sc-owner-opt__count { background: #1e293b; color: #94a3b8; }
         @media (max-width: 1240px) { .sc-owner-opt__label { display: none; } }
+        @media (max-width: 900px) {
+          .sc-header-controls { flex: 1 1 100%; width: 100%; }
+          .sc-header-right { flex: 1 1 100%; width: 100%; justify-content: flex-start; margin-top: 8px; }
+          .ticket-filter-group { width: 100%; flex-wrap: wrap; }
+          
+          /* Buckets Page responsive overrides */
+          .bh2-page .bh2-main-controls {
+            flex: 1 1 100%;
+            width: 100%;
+            margin-left: 0;
+            margin-top: 8px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+          .bh2-page .bh2-search-box {
+            flex: 1 1 auto;
+            width: 100%;
+            max-width: 100%;
+          }
+          .bh2-page .tl-sprint-row1 {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .bh2-page .tl-sprint-title-block {
+            width: 100%;
+          }
+        }
 
         /* ── Overview banner ────────────────────────────────────────────── */
-        .tl-section-head {
+        .bh2-page .tl-section-head {
           padding: 10px 16px;
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
           flex-shrink: 0;
+          min-width: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          overflow: hidden !important;
         }
-        [data-theme='dark'] .tl-section-head { background: #0f1419; border-bottom-color: #1f2937; }
-        .tl-sprint-head-v2 { display: flex; flex-direction: column; gap: 6px; }
-        .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
-        .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .bh2-banner-title {
+        [data-theme='dark'] .bh2-page .tl-section-head { background: #0f1419; border-bottom-color: #1f2937; }
+        .bh2-page .tl-sprint-head-v2 { display: flex; flex-direction: column; gap: 6px; min-width: 0 !important; width: 100% !important; max-width: 100% !important; }
+        .bh2-page .tl-sprint-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap !important; min-width: 0 !important; width: 100% !important; max-width: 100% !important; }
+        .bh2-page .tl-sprint-title-block { display: flex; align-items: center; gap: 8px; min-width: 0 !important; flex: 1 1 auto; flex-wrap: wrap !important; width: 100% !important; max-width: 100% !important; }
+        .bh2-page .tl-sprint-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .bh2-page .bh2-banner-title {
+          display: block;
           font-size: 14px; font-weight: 800; color: var(--text-slate-900);
           letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          min-width: 0;
         }
-        [data-theme='dark'] .bh2-banner-title { color: #f1f5f9; }
-        .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        [data-theme='dark'] .bh2-page .bh2-banner-title { color: #f1f5f9; }
+        .bh2-page .tl-sprint-tags { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .tl-sprint-tag {
           display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
           font-size: 9px; font-weight: 800; letter-spacing: 0.04em; border-radius: 4px;
@@ -1544,6 +1596,8 @@ export default function BucketManagementPage() {
           border-right: none;
           border-radius: 0;
           overflow-x: auto;
+          width: 100%;
+          max-width: 100%;
         }
         [data-theme='dark'] .bh2-table-shell { border-color: #1f2937; }
         .bh2-table-shell .premium-table .ant-table-container,
@@ -2766,3 +2820,4 @@ export default function BucketManagementPage() {
     </div>
   );
 }
+

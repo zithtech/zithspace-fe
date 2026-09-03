@@ -1275,7 +1275,10 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           border-top: 1px solid var(--border-slate-200) !important;
         }
         @media (max-width: 880px) {
-          .perf-summary__split { flex-direction: column; }
+          .perf-summary__split { 
+            flex-direction: column; 
+            align-items: stretch;
+          }
           .perf-summary__col + .perf-summary__col { border-left: none; border-top: 1px solid var(--border-slate-200); }
         }
         .perf-type-icon {
@@ -1321,6 +1324,14 @@ export const PerformanceTracker: React.FC<PerformanceTrackerProps> = ({ refreshK
           border-bottom: 1px solid var(--border-slate-200) !important;
           padding: 7px 14px !important;
           white-space: nowrap !important;
+        }
+        .mtt-team-table,
+        .mtt-team-table .ant-table-wrapper,
+        .mtt-team-table .ant-table,
+        .mtt-team-table .ant-table-container,
+        .mtt-team-table .ant-table-content,
+        .mtt-team-table table {
+          width: 100% !important;
         }
         .ant-table-tbody > tr > td {
           padding: 7px 14px !important;

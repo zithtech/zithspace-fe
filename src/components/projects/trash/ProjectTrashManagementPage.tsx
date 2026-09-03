@@ -1302,7 +1302,6 @@ export default function ProjectTrashManagementPage() {
             display: flex;
             flex-direction: column;
             grid-template-columns: none;
-            min-height: auto;
           }
           .pm2-shell-wrap.is-sidebar-open .pm2-sidebar {
             transform: translateX(0);

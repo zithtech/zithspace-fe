@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import NoData from "@/components/common/NoData";
 /**
@@ -16,7 +18,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip } from "antd";
+import { App, Button, DatePicker, Input, Modal, Select, Table, Tooltip  } from "antd";
 import { SearchOutlined, FileDoneOutlined } from "@ant-design/icons";
 import {
   Eye,
@@ -130,7 +132,6 @@ function ApprovalsContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { message } = App.useApp();
   const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
 
   const [rows, setRows] = useState<SubmissionListItem[]>([]);
@@ -352,7 +353,6 @@ function ApprovalsContent() {
       dataIndex: "submission_name",
       key: "submission_name",
       width: 280,
-      fixed: "left" as const,
       sorter: true,
       sortOrder: sortOrderFor("submission_name"),
       render: (name: string, r: SubmissionListItem) => (
@@ -517,8 +517,8 @@ function ApprovalsContent() {
           .sc-filters__search { width: 100% !important; min-width: 0; }
 
           /* Table: horizontal scroll */
-          .pp-table-wrap { overflow-x: auto !important; }
-          .pp-table .ant-table { min-width: 680px; }
+          .sc-tablewrap { overflow-x: auto !important; width: 100%; }
+          .sc-table .ant-table { min-width: 680px; }
 
           /* Topbar: compress buttons */
           .sc-topbar { padding: 8px 14px !important; }

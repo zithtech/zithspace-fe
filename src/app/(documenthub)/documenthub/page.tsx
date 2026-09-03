@@ -4302,7 +4302,7 @@ const DocumentHubPage = () => {
           .dh-sidebar {
             position: fixed;
             top: 54px; left: 0; bottom: 0;
-            height: auto;
+            height: calc(100vh - 54px);
             width: 286px;
             max-width: 86vw;
             margin: 0;

@@ -175,6 +175,7 @@ export default function CreateTicketWizard({
             onClose={onClose}
             bugs={bugs}
             integration={destination}
+            projectId={prefilledProjectId}
           />
         )}
 

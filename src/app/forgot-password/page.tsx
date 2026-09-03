@@ -9,20 +9,24 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AuthService } from '@/services/authService';
 import AuthShell, { authSubmitStyle } from '@/components/auth/AuthShell';
+import { useProduct } from '@/context/ProductContext';
+import { oauthConfigFor } from '@/lib/oauthConfig';
 
 const { Title, Text } = Typography;
 
-function resolveHostInfo() {
+// Brand-aware for the same reason the login page is: NEXT_PUBLIC_APP_URL names
+// only one brand, and this deploy serves two. Only the subdomain is used here,
+// but resolving rootHost against the wrong brand is the same latent bug.
+function resolveHostInfo(appUrl: string) {
   const hostname = window.location.hostname;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
   let subdomain = "";
   let rootHost = window.location.host;
 
-  const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
   let hasValidEnvRoot = false;
-  if (envAppUrl) {
+  if (appUrl) {
     try {
-      rootHost = new URL(envAppUrl).host;
+      rootHost = new URL(appUrl).host;
       hasValidEnvRoot = true;
     } catch (e) {}
   }
@@ -48,6 +52,7 @@ function resolveHostInfo() {
 
 function ForgotPasswordForm() {
   const searchParams = useSearchParams();
+  const { product } = useProduct();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -57,7 +62,7 @@ function ForgotPasswordForm() {
       setLoading(true);
       setError('');
 
-      const { subdomain } = resolveHostInfo();
+      const { subdomain } = resolveHostInfo(oauthConfigFor(product).appUrl);
       const targetSubdomain = searchParams.get('subdomain') || subdomain || undefined;
 
       await AuthService.forgotPassword(values.email, targetSubdomain);

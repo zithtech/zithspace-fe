@@ -26,6 +26,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import type { BugListItem } from "@/services/bugListService";
 import TicketService, { Ticket } from "@/services/ticketService";
+import { stripHtml } from "@/utils/stringUtils";
 import {
   ZukvoLogo,
   LinearMark,
@@ -958,7 +959,7 @@ function BugRow({
         {bug.bugNumber || bug.id.slice(-6).toUpperCase()}
       </span>
       <span className="hb-btm-bugtitle">
-        {bug.title || bug.description}
+        {bug.title || stripHtml(bug.description)}
       </span>
       {bug.severity && (
         <span className={`hb-btm-sev hb-btm-sev-${bug.severity}`}>

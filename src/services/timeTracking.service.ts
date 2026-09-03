@@ -1,4 +1,4 @@
-import { api, ApiError } from '@/lib/axios';
+import { api, apiUtils, ApiError, PaginatedResponse } from '@/lib/axios';
 
 export interface TimeTrackingEntry {
   id: string;
@@ -105,6 +105,25 @@ export class TimeTrackingService {
       const query = params.toString() ? `?${params.toString()}` : '';
       const res = await api.get<TimeTrackingEntry[]>(`/api/time-tracking${query}`);
       return res;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch time entries');
+    }
+  }
+
+  static async getEntriesPaginated(filters?: {
+    ticketId?: string;
+    projectId?: string;
+    userId?: string;
+    allUsers?: boolean;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<TimeTrackingEntry>> {
+    try {
+      const params: any = { ...filters };
+      return await apiUtils.getPaginated<TimeTrackingEntry>('/api/time-tracking', params);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch time entries');

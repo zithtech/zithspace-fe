@@ -124,6 +124,7 @@ import TicketFilterPill, { initialsFor, avatarColorFor } from "./TicketFilterPil
 import { TablePreferenceService } from "@/services/tablePreferenceService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { useTour } from "@/context/TourContext";
+import { ticketsTourSteps } from "@/components/tour/TourSteps";
 
 const { Title, Text } = Typography;
 
@@ -374,6 +375,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [allTicketIds, setAllTicketIds] = useState<string[]>([]);
   const [sidebarActiveSection, setSidebarActiveSection] = useState<"sprint" | "backlog" | "filtered" | null>("sprint");
+
+  // Automatically close ticket detail drawer when moving past drawer tour steps
+  useEffect(() => {
+    if (!run || currentTourKey !== "testiez-sprints") return;
+    const currentStep = ticketsTourSteps[stepIndex];
+    if (currentStep) {
+      const isDrawerStep = currentStep.target?.toString().includes("tickets-drawer");
+      if (!isDrawerStep && selectedTicketId) {
+        setSelectedTicketId(null);
+      }
+    }
+  }, [run, currentTourKey, stepIndex, selectedTicketId]);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -2216,6 +2229,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <div className="tl-sprint-actions">
             {activeSprint?.id && (
               <Button
+                data-tour="tickets-burndown"
                 type="default"
                 size="small"
                 icon={<LineChartOutlined />}

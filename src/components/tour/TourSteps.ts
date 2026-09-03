@@ -101,10 +101,24 @@ export const qaWorkflowSteps: RouteStep[] = [
     placement: 'bottom',
   },
   {
+    target: '[data-tour="qa-run-fail-buglist"]',
+    route: '/qa-workspace/test-runs',
+    title: 'Add to Buglist',
+    content: 'If any test case fails during a run, you can immediately file it to your bug sheet from here.',
+    placement: 'bottom',
+  },
+  {
     target: '[data-tour="new-bug-btn"]',
     route: '/qa-workspace/bug-list',
     title: 'Bug Tracking & Tickets',
     content: 'Review bugs generated from failed runs. You can easily turn these bugs into engineering tickets using Manual entry, AI generation, or Mapping to existing tickets.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="bug-list-ticket"]',
+    route: '/qa-workspace/bug-list',
+    title: 'Create Tickets',
+    content: 'Use this button to quickly generate a ticket for the selected bug, or create tickets directly from the bug row.',
     placement: 'bottom',
   },
   {
@@ -282,6 +296,27 @@ export const ticketsTourSteps: RouteStep[] = [
     route: '/tickets/select',
     title: 'Share Ticket',
     content: 'Copy and share the ticket link with teammates or external collaborators.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="tickets-drawer-details"]',
+    route: '/tickets/select',
+    title: 'Fill Ticket Details',
+    content: 'Fill out your ticket specifications here — add detailed descriptions with Zai AI, set story points, assign developers, configure priorities, and create subtasks.',
+    placement: 'center',
+  },
+  {
+    target: '[data-tour="tickets-drawer-close"]',
+    route: '/tickets/select',
+    title: 'Close Details Drawer',
+    content: 'Click the close button or click Next to save changes and return to your tickets board.',
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="tickets-burndown"]',
+    route: '/tickets/select',
+    title: 'Sprint Burndown',
+    content: 'Click here to view full reports of the sprint, track progress, and analyze velocity.',
     placement: 'bottom',
   },
   {

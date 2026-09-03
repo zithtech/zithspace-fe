@@ -1551,6 +1551,7 @@ export default function TestRunExecutionPage() {
                 }
               >
                 <Button
+                  data-tour="qa-run-fail-buglist"
                   icon={<BugOutlined />}
                   onClick={openBugModal}
                   disabled={counts.fail === 0}

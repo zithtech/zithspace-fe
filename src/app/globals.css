@@ -36,8 +36,43 @@
    correctly covers them and only the highlighted target shows.
 */
 body.tour-active .main-top-nav,
-body.tour-active .ant-layout-sider {
-  z-index: 1 !important;
+body.tour-active .ant-layout-sider,
+body.tour-active .saas-header-container {
+  z-index: 0 !important;
+}
+
+body.tour-active .ant-drawer {
+  z-index: auto !important;
+}
+body.tour-active .ant-drawer-mask {
+  display: none !important;
+  pointer-events: none !important;
+}
+body.tour-active .ant-drawer-content-wrapper,
+body.tour-active .ant-drawer-content,
+body.tour-active .ant-drawer-wrapper-body,
+body.tour-active .ant-drawer-header,
+body.tour-active .ant-drawer-body {
+  transform: none !important;
+  z-index: auto !important;
+}
+body.tour-active .ant-drawer-header {
+  position: static !important;
+}
+
+body.tour-active .ant-popover {
+  z-index: 10005 !important;
+}
+
+body.tour-active [data-tour="tickets-drawer-add-sprint"],
+body.tour-active [data-tour="tickets-drawer-remove-sprint"],
+body.tour-active [data-tour="tickets-drawer-create-doc"],
+body.tour-active [data-tour="tickets-drawer-share"],
+body.tour-active [data-tour="tickets-drawer-close"] {
+  position: relative !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 

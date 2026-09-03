@@ -484,6 +484,7 @@ function BugRow({
           </button>
         ) : (
           <button
+            data-tour="bug-list-ticket"
             className="hb-create-ticket"
             onClick={(e) => {
               e.stopPropagation();

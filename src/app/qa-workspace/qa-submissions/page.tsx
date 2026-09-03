@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 import NoData from "@/components/common/NoData";
 /**
  * QA Submissions — dashboard and list (§4, §5).
@@ -13,7 +15,7 @@ import NoData from "@/components/common/NoData";
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Input, Select, Tooltip, DatePicker, App, Popover, Space } from "antd";
+import { Button, Table, Input, Select, Tooltip, DatePicker, App, Popover, Space  } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -105,7 +107,6 @@ function QaSubmissionsContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { message } = App.useApp();
   const {
     canReadSubmission,
     canCreateSubmission,

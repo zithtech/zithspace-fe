@@ -1,9 +1,12 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import MainLayout from "@/components/layout/MainLayout";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Input, Checkbox, Tooltip, Modal, Dropdown, message } from "antd";
+import { Button, Input, Checkbox, Tooltip, Modal, Dropdown  } from "antd";
 import {
   ArrowLeftOutlined, SearchOutlined, CloseOutlined, LoadingOutlined, FileTextOutlined,
 } from "@ant-design/icons";

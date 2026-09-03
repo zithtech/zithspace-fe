@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,7 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import { InboxOutlined, DownOutlined, FilePdfOutlined } from "@ant-design/icons";
-import { Drawer, Button, Dropdown, MenuProps, message, Tag as AntTag } from "antd";
+import { Drawer, Button, Dropdown, MenuProps, Tag as AntTag  } from "antd";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { saveAs } from "file-saver";
 import TiptapViewer from "@/components/common/TiptapViewer";

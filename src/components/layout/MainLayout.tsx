@@ -370,6 +370,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
             marginLeft: hideSideNav ? 0 : collapsed ? 52 : 200,
+            width: hideSideNav ? "100%" : `calc(100% - ${collapsed ? 52 : 200}px)`,
             transition: "all 0.2s",
             height: "calc(100vh - 60px)",
             overflowY: "auto",

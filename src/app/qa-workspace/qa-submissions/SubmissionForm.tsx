@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
@@ -15,7 +17,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { App, Button, Checkbox, Input, Tooltip } from "antd";
+import { App, Button, Checkbox, Input, Tooltip  } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { PlayCircle, RefreshCcw, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -58,7 +60,6 @@ export default function SubmissionForm({ submission }: Props) {
   useActivitySource({ section: "WORK", module: "QA", page: "QaSubmissionForm" });
 
   const router = useRouter();
-  const { message } = App.useApp();
   const { user } = useAuth();
   const { canCreateSubmission, canUpdateSubmission, canManageQa } = usePermission();
   const isEdit = !!submission;

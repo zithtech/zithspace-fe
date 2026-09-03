@@ -1,4 +1,6 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 /**
  * Shared machinery for the Coverage Map and its module pages.
@@ -9,7 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Tooltip, message } from "antd";
+import { Tooltip } from "antd";
 import dayjs from "dayjs";
 
 import { api as axios, apiClient } from "@/lib/axios";
@@ -206,6 +208,7 @@ interface CoveragePerms {
   canReadCase: boolean;
   canReadSuite: boolean;
   canReadRun: boolean;
+  canReadCoverageMap?: boolean;
 }
 
 const listOf = (res: any) => {
@@ -231,6 +234,10 @@ export function useCoverageData(
   const project = projects.find(p => p.value === projectId);
 
   const refetch = useCallback(async () => {
+    if (perms.canReadCoverageMap === false) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const allIds = projects.map(p => p.value).join(",");
     const allLabels = projects.map(p => p.label).join(",");
@@ -277,7 +284,7 @@ export function useCoverageData(
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, projectId, perms.canReadScope, perms.canReadCase, perms.canReadSuite, perms.canReadRun]);
+  }, [projects, projectId, perms.canReadScope, perms.canReadCase, perms.canReadSuite, perms.canReadRun, perms.canReadCoverageMap]);
 
   useEffect(() => {
     if (!ready) return;

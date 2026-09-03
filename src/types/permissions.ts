@@ -96,6 +96,8 @@ export const Permissions = {
   QA_APPROVAL_READ:       'qa.approval.read',
   QA_APPROVAL_APPROVE:    'qa.approval.approve',
   QA_APPROVAL_SEND_BACK:  'qa.approval.send_back',
+  // Coverage Map — one project's QA footprint module by module.
+  QA_COVERAGE_MAP_READ:   'qa.coverage_map.read',
   // Cross-scope reporting exposes the whole QA estate, so it is granted
   // separately from being able to read the runs you work on.
   QA_ANALYTICS_READ:      'qa.analytics.read',

@@ -14,7 +14,10 @@ import {
   Layers,
   Folder,
   ArrowLeft,
+  ListFilter,
+  CheckCircle2,
 } from "lucide-react";
+import { stripHtml } from "@/utils/stringUtils";
 import {
   useTrashedSheets,
   useRestoreSheet,
@@ -610,7 +613,7 @@ function TrashedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelete
           </div>
           <div className="arc-card-name" style={{ flex: 1 }}>{bug.title || "No Title"}</div>
         </div>
-        <div className="arc-card-desc">{bug.description}</div>
+        <div className="arc-card-desc">{stripHtml(bug.description)}</div>
       </div>
       <div className="arc-card-foot">
         <div className="arc-foot-row">

@@ -5,7 +5,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { useActivitySource } from '@/hooks/useActivitySource';
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Form, Switch, Button, Row, Col, Typography, message, notification, theme, Divider, Menu, App } from "antd";
+import { Form, Switch, Button, Row, Col, Typography, message, notification, theme, Divider, Menu, App, Drawer } from "antd";
 import { dashboardService } from "@/services/dashboardService";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
@@ -27,7 +27,8 @@ import {
   Lightbulb,
   History,
   BarChart,
-  RotateCw
+  RotateCw,
+  Menu as MenuIcon
 } from "lucide-react";
 
 const { Title, Text } = Typography;
@@ -233,6 +234,7 @@ export default function DashboardSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeMenu, setActiveMenu] = useState("me");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const DEFAULT_SETTINGS = {
     heroSection: true, quickActions: true, dailyAttendanceCard: true,
@@ -290,70 +292,108 @@ export default function DashboardSettingsPage() {
     }
   };
 
-  return (
-    <MainLayout noPadding>
-      <div style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden', background: token.colorBgContainer }}>
+  const SidebarContent = () => (
+    <>
+      <div style={{ padding: '24px 20px' }}>
+        <Title level={4} style={{ margin: 0, fontWeight: 700, color: token.colorText }}>Settings</Title>
+        <Text style={{ fontSize: 11, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          DASHBOARD & UI
+        </Text>
+      </div>
+
+      <div style={{ padding: '0 12px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: token.colorTextTertiary, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 12 }}>
+          VIEWS
+        </div>
         
-        {/* Left Sidebar */}
-        <div style={{ width: 260, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgContainer, overflowY: 'auto' }}>
-          
-          {/* Sidebar Header */}
-          <div style={{ padding: '24px 20px' }}>
-            <Title level={4} style={{ margin: 0, fontWeight: 700, color: token.colorText }}>Settings</Title>
-            <Text style={{ fontSize: 11, fontWeight: 700, color: token.colorTextSecondary, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-              DASHBOARD & UI
-            </Text>
-          </div>
-
-          <div style={{ padding: '0 12px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: token.colorTextTertiary, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 12 }}>
-              VIEWS
-            </div>
-            
-            <div 
-              onClick={() => setActiveMenu('me')}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
-                borderRadius: 6, cursor: 'pointer', marginBottom: 4,
-                backgroundColor: activeMenu === 'me' ? token.colorPrimaryBg : 'transparent',
-                color: activeMenu === 'me' ? token.colorPrimary : token.colorTextSecondary,
-                fontWeight: activeMenu === 'me' ? 600 : 500,
-                transition: 'all 0.2s'
-              }}
-            >
-              <Folder size={18} />
-              <span>Me Dashboard</span>
-            </div>
-
-            <div 
-              onClick={() => setActiveMenu('organization')}
-              style={{ 
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
-                borderRadius: 6, cursor: 'pointer',
-                backgroundColor: activeMenu === 'organization' ? token.colorPrimaryBg : 'transparent',
-                color: activeMenu === 'organization' ? token.colorPrimary : token.colorTextSecondary,
-                fontWeight: activeMenu === 'organization' ? 600 : 500,
-                transition: 'all 0.2s'
-              }}
-            >
-              <Building size={18} />
-              <span>Organization</span>
-            </div>
-          </div>
+        <div 
+          onClick={() => { setActiveMenu('me'); setIsSidebarOpen(false); }}
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
+            borderRadius: 6, cursor: 'pointer', marginBottom: 4,
+            backgroundColor: activeMenu === 'me' ? token.colorPrimaryBg : 'transparent',
+            color: activeMenu === 'me' ? token.colorPrimary : token.colorTextSecondary,
+            fontWeight: activeMenu === 'me' ? 600 : 500,
+            transition: 'all 0.2s'
+          }}
+        >
+          <Folder size={18} />
+          <span>Me Dashboard</span>
         </div>
 
+        <div 
+          onClick={() => { setActiveMenu('organization'); setIsSidebarOpen(false); }}
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', 
+            borderRadius: 6, cursor: 'pointer',
+            backgroundColor: activeMenu === 'organization' ? token.colorPrimaryBg : 'transparent',
+            color: activeMenu === 'organization' ? token.colorPrimary : token.colorTextSecondary,
+            fontWeight: activeMenu === 'organization' ? 600 : 500,
+            transition: 'all 0.2s'
+          }}
+        >
+          <Building size={18} />
+          <span>Organization</span>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <MainLayout noPadding>
+      <div className="dashboard-settings-container" style={{ display: 'flex', height: 'calc(100vh - 60px)', overflow: 'hidden', background: token.colorBgContainer }}>
+        
+        {/* Desktop Sidebar */}
+        <div className="dashboard-sidebar-desktop" style={{ width: 260, borderRight: `1px solid ${token.colorBorderSecondary}`, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgContainer, overflowY: 'auto', flexShrink: 0 }}>
+          <SidebarContent />
+        </div>
+
+        {/* Mobile Sidebar Drawer */}
+        <Drawer
+          placement="left"
+          open={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          width={260}
+          bodyStyle={{ padding: 0, backgroundColor: token.colorBgContainer }}
+          closable={false}
+          className="dashboard-sidebar-mobile-drawer"
+        >
+          <SidebarContent />
+        </Drawer>
+
         {/* Right Content Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgLayout, position: 'relative', overflowY: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: token.colorBgLayout, position: 'relative', overflowY: 'auto', minWidth: 0 }}>
           
           {/* Top Header inside Content */}
-          <div style={{ padding: '16px 32px', backgroundColor: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
-            <div>
-              <Title level={5} style={{ margin: 0, fontWeight: 600, color: token.colorText }}>
-                {activeMenu === 'me' ? 'Me Dashboard' : 'Organization Dashboard'}
-              </Title>
-              <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>
-                Control which cards and metrics are visible for this segment.
-              </Text>
+          <div className="dashboard-settings-header" style={{ padding: '16px 32px', backgroundColor: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorderSecondary}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button
+                type="button"
+                className="dashboard-sidebar-toggle-btn"
+                onClick={() => setIsSidebarOpen(true)}
+                style={{
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  background: 'transparent',
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  color: token.colorTextSecondary
+                }}
+              >
+                <MenuIcon size={18} />
+              </button>
+              <div>
+                <Title level={5} style={{ margin: 0, fontWeight: 600, color: token.colorText }}>
+                  {activeMenu === 'me' ? 'Me Dashboard' : 'Organization Dashboard'}
+                </Title>
+                <Text style={{ fontSize: 13, color: token.colorTextSecondary }}>
+                  Control which cards and metrics are visible for this segment.
+                </Text>
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button
@@ -449,6 +489,20 @@ export default function DashboardSettingsPage() {
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @media (max-width: 991px) {
+          .dashboard-sidebar-desktop {
+            display: none !important;
+          }
+          .dashboard-sidebar-toggle-btn {
+            display: flex !important;
+          }
+          .dashboard-settings-header {
+            padding: 16px 24px !important;
+          }
+        }
+      `}</style>
     </MainLayout>
   );
 }

@@ -21,8 +21,8 @@ import {
   useAiSuggestGroups,
   useBulkConvertBugsToTickets,
 } from "@/hooks/useBugList";
-import { useUserProjects } from "@/hooks/useGlobalData";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useUserProjects, useProjectMembers } from "@/hooks/useGlobalData";
+import { stripHtml } from "@/utils/stringUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
@@ -45,6 +45,7 @@ interface Props {
   embedded?: boolean;
   bugs: BugListItem[];
   integration?: "zukvo" | "linear" | "jira";
+  projectId?: string;
 }
 
 interface EditableGroup {
@@ -61,7 +62,7 @@ interface EditableGroup {
   labelIds?: string[];
 }
 
-export default function AiReviewModal({ open, onClose, onBack, embedded, bugs, integration = "zukvo" }: Props) {
+export default function AiReviewModal({ open, onClose, onBack, embedded, bugs, integration = "zukvo", projectId }: Props) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_qa_space_bug_list_prime');
@@ -84,7 +85,8 @@ export default function AiReviewModal({ open, onClose, onBack, embedded, bugs, i
   const convert = useBulkConvertBugsToTickets();
 
   const { data: projects } = useUserProjects();
-  const { users: members } = useMembersSelect();
+  const { data: projectMembers } = useProjectMembers(projectId);
+  const members = (projectMembers || []).map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl, position: u.position, email: u.workEmail, role: u.position }));
 
   const bugsById = useMemo(() => {
     const m = new Map<string, BugListItem>();
@@ -510,7 +512,7 @@ function ReviewStep({
                 {bug.bugNumber || bug.id.slice(-6).toUpperCase()}
               </span>
               <span className="hb-aim-card-title">
-                {r?.suggestedTitle || bug.title || bug.description}
+                {r?.suggestedTitle || bug.title || stripHtml(bug.description)}
               </span>
               {bug.severity && (
                 <span className={`hb-aim-pill hb-aim-pill-${bug.severity}`}>

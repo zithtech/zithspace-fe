@@ -8,6 +8,7 @@ import { ProductProvider } from "@/context/ProductContext";
 import { DEFAULT_PRODUCT, PRODUCT_HEADER, ProductKey } from "@/lib/product";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
+import AntdGlobalProvider from "@/providers/AntdGlobalProvider";
 import "./globals.css";
 
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -15,6 +16,7 @@ import ThemeConfigProvider from "@/providers/ThemeConfigProvider";
 import { LayoutProvider } from "@/context/LayoutContext";
 import { TicketDrawerProvider } from "@/context/TicketDrawerContext";
 import AppSetupGuard from "@/components/common/AppSetupGuard";
+import WorkspaceNotFoundGuard from "@/components/common/WorkspaceNotFoundGuard";
 
 import iconLight from "./icon-light.png";
 import iconDark from "./icon-dark.png";
@@ -79,7 +81,8 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .ant-input, .ant-input-affix-wrapper, .ant-select-selector, .ant-picker, .ant-input-number-input, .ant-input-number-affix-wrapper {
             background-color: transparent !important;
             background: transparent !important;
@@ -95,21 +98,27 @@ export default async function RootLayout({
             <ThemeProvider>
               <ThemeConfigProvider>
                 <App>
+                  <AntdGlobalProvider />
                   <TenantProvider>
-                    <AuthProvider>
-                      <QueryProvider>
-                        <SocketProvider>
-                          <LayoutProvider>
-                            <TicketDrawerProvider>
+                    {/* Outside AuthProvider on purpose: if the workspace in the
+                        host does not exist there is nothing to authenticate
+                        against, and the answer should not wait on a login
+                        round trip that cannot succeed. */}
+                    <WorkspaceNotFoundGuard>
+                      <AuthProvider>
+                        <QueryProvider>
+                          <SocketProvider>
+                            <LayoutProvider>
+                              <TicketDrawerProvider>
                               <TourProvider>
                                 <AppSetupGuard>{children}</AppSetupGuard>
-                                <ProductTour />
-                              </TourProvider>
-                            </TicketDrawerProvider>
-                          </LayoutProvider>
-                        </SocketProvider>
-                      </QueryProvider>
-                    </AuthProvider>
+                                </TourProvider>
+                              </TicketDrawerProvider>
+                            </LayoutProvider>
+                          </SocketProvider>
+                        </QueryProvider>
+                      </AuthProvider>
+                    </WorkspaceNotFoundGuard>
                   </TenantProvider>
                 </App>
               </ThemeConfigProvider>

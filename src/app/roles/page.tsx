@@ -82,6 +82,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   project: "Projects",
   ticket: "Tickets",
   qa: "QA Space",
+  yapiez: "API Hub",
   attendance: "Attendance",
   leave: "Leaves",
   shift: "Shifts",
@@ -217,6 +218,7 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'qa.approval.read': 'PM Approval',
   'qa.approval.approve': 'PM Approval',
   'qa.approval.send_back': 'PM Approval',
+  'qa.coverage_map.read': 'Coverage Map',
   'qa.analytics.read': 'Analytics',
   'qa.manage': 'QA Settings',
 };
@@ -232,8 +234,39 @@ const QA_PAGE_ORDER = [
   'QA Submissions',
   'QA Sign-off',
   'PM Approval',
+  'Coverage Map',
   'Analytics',
   'QA Settings',
+];
+
+/**
+ * API Hub (Yapiez) — map each permission to its section so the Roles UI lists
+ * API Definitions, API Flows, Flow Runs, Environments, and Settings by name.
+ */
+const API_HUB_PAGE_BY_PERM: Record<string, string> = {
+  'yapiez.api.create': 'API Definitions',
+  'yapiez.api.read': 'API Definitions',
+  'yapiez.api.update': 'API Definitions',
+  'yapiez.api.delete': 'API Definitions',
+  'yapiez.api.try': 'API Definitions',
+  'yapiez.flow.create': 'API Flows',
+  'yapiez.flow.read': 'API Flows',
+  'yapiez.flow.update': 'API Flows',
+  'yapiez.flow.delete': 'API Flows',
+  'yapiez.flow.execute': 'API Flows',
+  'yapiez.run.read': 'Flow Runs',
+  'yapiez.run.delete': 'Flow Runs',
+  'yapiez.environment.read': 'Environments',
+  'yapiez.environment.manage': 'Environments',
+  'yapiez.manage': 'API Hub Settings',
+};
+
+const API_HUB_PAGE_ORDER = [
+  'API Definitions',
+  'API Flows',
+  'Flow Runs',
+  'Environments',
+  'API Hub Settings',
 ];
 
 const DOC_SUITE_PAGE_ORDER = [
@@ -325,7 +358,7 @@ const getAccessGroups = (isTestiez: boolean): AccessGroup[] => [
     key: 'work',
     label: 'Work',
     icon: <RocketOutlined />,
-    resources: ['project', 'ticket', 'qa', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
+    resources: ['project', 'ticket', 'qa', 'yapiez', 'timesheet', 'daily_update', 'document', 'squad', 'lead', 'bidiq', 'proposal', 'pipeline'],
     accent: '#8b5cf6',
   },
   {
@@ -408,6 +441,7 @@ const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
   proposal: ["work_proposals"],
   pipeline: ["pipeline"],
   qa: ["work_qa_space", "work_qa_workspace"],
+  yapiez: ["work_qa_space", "work_qa_workspace"],
 
   // HRMS
   attendance: ["hrms_attendance"],
@@ -467,7 +501,7 @@ const PERMISSION_MODULES = [
   },
   {
     title: "Work",
-    resources: ["project", "ticket", "qa", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
+    resources: ["project", "ticket", "qa", "yapiez", "timesheet", "daily_update", "document", "squad", "lead", "pipeline"]
   },
   {
     title: "HRMS",
@@ -1974,6 +2008,12 @@ export default function RolesPage() {
                             if (!subGroups[subKey]) subGroups[subKey] = [];
                             subGroups[subKey].push(p);
                           });
+                        } else if (resource === 'yapiez') {
+                          perms.forEach((p) => {
+                            const subKey = API_HUB_PAGE_BY_PERM[p.name] || 'Other';
+                            if (!subGroups[subKey]) subGroups[subKey] = [];
+                            subGroups[subKey].push(p);
+                          });
                         } else if (resource === 'letter') {
                           perms.forEach((p) => {
                             let subKey = 'Other';
@@ -2078,9 +2118,11 @@ export default function RolesPage() {
                                         ? ([...MY_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
                                         : resource === 'qa'
                                           ? ([...QA_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                          : resource === 'letter'
-                                            ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
-                                            : Object.entries(subGroups)
+                                          : resource === 'yapiez'
+                                            ? ([...API_HUB_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                            : resource === 'letter'
+                                              ? ([...DOC_SUITE_PAGE_ORDER, 'Other'].filter((t) => subGroups[t]).map((t) => [t, subGroups[t]] as [string, RBACPermission[]]))
+                                              : Object.entries(subGroups)
                                   ).map(([subTitle, subPerms]) => (
                                     <div key={subTitle} className="rp-acc-subgroup">
                                       <div className="rp-acc-subgroup__title">{subTitle}</div>
@@ -2108,9 +2150,11 @@ export default function RolesPage() {
                                                         const verb = action.split('.').pop() || action;
                                                         return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }
-                                                      if (name.startsWith('qa.') || name.startsWith('bug.')) {
-                                                        // QA Space page is the sub-group title; show only the verb.
+                                                      if (name.startsWith('qa.') || name.startsWith('bug.') || name.startsWith('yapiez.')) {
+                                                        // QA Space / API Hub page is the sub-group title; show only the verb.
                                                         const verb = action.split('.').pop() || action;
+                                                        if (verb === 'try') return 'Try API';
+                                                        if (verb === 'execute') return 'Execute';
                                                         return verb.charAt(0).toUpperCase() + verb.slice(1);
                                                       }
                                                       if (name.startsWith('letter_template.') || name.startsWith('letter.')) {

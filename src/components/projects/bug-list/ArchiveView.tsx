@@ -16,7 +16,10 @@ import {
   Layers,
   Folder,
   ArrowLeft,
+  History,
+  Archive as ArchiveIcon,
 } from "lucide-react";
+import { stripHtml } from "@/utils/stringUtils";
 import {
   useArchivedSheets,
   useUpdateBugSheetStatus,
@@ -619,7 +622,7 @@ function ArchivedBugCard({ bug, isSelected, onSelect, onView, onRestore, onDelet
           </div>
           <div className="arc-card-name" style={{ flex: 1 }}>{bug.title || "No Title"}</div>
         </div>
-        <div className="arc-card-desc">{bug.description}</div>
+        <div className="arc-card-desc">{stripHtml(bug.description)}</div>
       </div>
       <div className="arc-card-foot">
         <div className="arc-foot-row">

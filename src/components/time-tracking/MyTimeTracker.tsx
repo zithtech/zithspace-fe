@@ -45,19 +45,24 @@ export function MyTimeTracker({
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const fetchEntries = async () => {
     try {
       setLoading(true);
-      const filters: any = {};
+      const filters: any = {
+        page: tablePage,
+        limit: tablePageSize
+      };
       if (dateRange?.[0]) {
         filters.startDate = dateRange[0].startOf('day').toISOString();
       }
       if (dateRange?.[1]) {
         filters.endDate = dateRange[1].endOf('day').toISOString();
       }
-      const data = await TimeTrackingService.getEntries(filters);
-      setEntries(data || []);
+      const response = await TimeTrackingService.getEntriesPaginated(filters);
+      setEntries(response.data || []);
+      setTotalRecords(response.pagination?.total || response.data?.length || 0);
     } catch (error: any) {
       message.error(error.message || "Error fetching time entries");
     } finally {
@@ -67,7 +72,7 @@ export function MyTimeTracker({
 
   useEffect(() => {
     fetchEntries();
-  }, [refreshTrigger, dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString(), refreshKey]);
+  }, [refreshTrigger, dateRange?.[0]?.toISOString(), dateRange?.[1]?.toISOString(), refreshKey, tablePage, tablePageSize]);
 
   // Total time calculation (Completed Only)
   useEffect(() => {
@@ -356,14 +361,14 @@ export function MyTimeTracker({
   const runningCount = entries.filter(e => e.status === "RUNNING").length;
   const pausedCount = entries.filter(e => e.status === "PAUSED").length;
 
-  const total = entries.length;
+  const total = totalRecords;
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
   // Ensure we don't end up on an empty page if items are deleted
   useEffect(() => {
     if (tablePage > pageCount) setTablePage(pageCount);
   }, [total, tablePageSize, pageCount, tablePage]);
 
-  const paginatedEntries = entries.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const paginatedEntries = entries; // Now we get paginated entries from the server
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(total, tablePage * tablePageSize);
 
@@ -389,7 +394,7 @@ export function MyTimeTracker({
             <div>
               <div className="mtt-tracker-card__title">Time Entries</div>
               <div className="mtt-tracker-card__subtitle">
-                {entries.length} {entries.length === 1 ? "entry" : "entries"}
+                {totalRecords} {totalRecords === 1 ? "entry" : "entries"}
                 {runningCount > 0 && (
                   <>
                     {" · "}

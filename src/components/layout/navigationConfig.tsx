@@ -265,6 +265,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.QA_CASE_READ,
       Permissions.QA_SUITE_READ,
       Permissions.QA_RUN_READ,
+      Permissions.QA_COVERAGE_MAP_READ,
       Permissions.QA_SUBMISSION_READ,
       Permissions.TICKET_SETTING_READ,
       Permissions.TICKET_TRASH_READ,
@@ -371,6 +372,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.QA_SUBMISSION_READ,
           Permissions.QA_APPROVAL_READ,
           Permissions.QA_APPROVAL_APPROVE,
+          Permissions.QA_COVERAGE_MAP_READ,
           Permissions.QA_ANALYTICS_READ,
         ],
         children: [
@@ -432,12 +434,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Coverage Map",
             icon: I(Network),
             path: "/qa-workspace/coverage-map",
-            requiredAnyPermission: [
-              Permissions.QA_SCOPE_READ,
-              Permissions.QA_CASE_READ,
-              Permissions.QA_SUITE_READ,
-              Permissions.QA_RUN_READ,
-            ],
+            requiredPermission: Permissions.QA_COVERAGE_MAP_READ,
           },
           {
             key: "/qa-workspace/analytics",

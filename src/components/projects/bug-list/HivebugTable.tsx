@@ -25,8 +25,9 @@ import { usePermission } from "@/hooks/usePermission";
 import TicketHistoryDrawer from "./TicketHistoryDrawer";
 import TransactionHistoryDrawer from "@/components/common/TransactionHistoryDrawer";
 import { useMarkBugRecurring } from "@/hooks/useBugList";
-import { useMembersSelect } from "@/hooks/useMembersSelect";
+import { useProjectMembers } from "@/hooks/useGlobalData";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { stripHtml } from "@/utils/stringUtils";
 
 const SEVERITY_DOT: Record<BugSeverity, string> = {
   blocker: "#f87171",
@@ -131,6 +132,7 @@ interface HivebugTableProps {
   isArchiveView?: boolean;
   isNestedInSheet?: boolean;
   isNestedInFolder?: boolean;
+  projectId?: string;
 }
 
 export default function HivebugTable({
@@ -152,6 +154,7 @@ export default function HivebugTable({
   isArchiveView,
   isNestedInSheet,
   isNestedInFolder,
+  projectId,
 }: HivebugTableProps) {
   const { 
     canUpdateBug, 
@@ -159,7 +162,8 @@ export default function HivebugTable({
     canCreateTicket, 
     canManageBugs 
   } = usePermission();
-  const { users } = useMembersSelect();
+  const { data: projectMembers } = useProjectMembers(projectId);
+  const users = (projectMembers || []).map(u => ({ value: u.value, label: u.label, avatarUrl: u.avatarUrl }));
   const membersMap = React.useMemo(() => {
     const map = new Map<string, string>();
     users.forEach(u => {
@@ -370,8 +374,8 @@ function BugRow({
                 </span>
               </Tooltip>
             </div>
-            <span className="hb-bug-title" title={bug.title || bug.description}>
-              {bug.title || bug.description}
+            <span className="hb-bug-title" title={bug.title || stripHtml(bug.description)}>
+              {bug.title || stripHtml(bug.description)}
             </span>
           </div>
         </div>

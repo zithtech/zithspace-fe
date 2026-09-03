@@ -23,6 +23,7 @@ import {
   User as UserIcon,
   ArrowUpRight,
 } from "lucide-react";
+import { stripHtml } from "@/utils/stringUtils";
 import type { BugListItem } from "@/services/bugListService";
 import { useTicketDrawer } from "@/context/TicketDrawerContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -214,7 +215,7 @@ export default function TicketHistoryDrawer({ bug, open, onClose }: TicketHistor
 
             <div className="thd-bugcard-main">
               <div className="thd-bugcard-title">
-                {bug.title || bug.description?.slice(0, 120) || "Untitled bug"}
+                {bug.title || stripHtml(bug.description)?.slice(0, 120) || "Untitled bug"}
               </div>
               <div className="thd-bugcard-meta">
                 <span className="thd-tag is-strong">{bug.bugNumber ?? bug.id.slice(0, 6)}</span>

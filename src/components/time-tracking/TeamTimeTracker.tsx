@@ -310,6 +310,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(20);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const fetchTeamEntries = async () => {
     try {
@@ -317,14 +318,17 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       const startDate = filters.dateRange?.[0]?.startOf('day').toISOString();
       const endDate = filters.dateRange?.[1]?.endOf('day').toISOString();
 
-      const data = await TimeTrackingService.getEntries({
+      const response = await TimeTrackingService.getEntriesPaginated({
         allUsers: true,
         userId: filters.userId,
         projectId: filters.projectId,
         startDate,
         endDate,
+        page: tablePage,
+        limit: tablePageSize
       });
-      setEntries(data || []);
+      setEntries(response.data || []);
+      setTotalRecords(response.pagination?.total || response.data?.length || 0);
     } catch (error) {
       console.error("Error fetching team entries:", error);
     } finally {
@@ -334,7 +338,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
   useEffect(() => {
     fetchTeamEntries();
-  }, [filters.userId, filters.projectId, filters.dateRange, refreshKey]);
+  }, [filters.userId, filters.projectId, filters.dateRange, refreshKey, tablePage, tablePageSize]);
 
   // Update current time for live calculations
   useEffect(() => {
@@ -871,14 +875,14 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
   };
 
   const hasActiveFilters = !!(filters.userId || filters.projectId);
-  const totalDailyEntries = filteredEntries.length;
+  const totalDailyEntries = totalRecords;
   const teamAvgSeconds = stats.activeUsers > 0 ? Math.round(stats.totalSeconds / stats.activeUsers) : 0;
 
-  const total = groupedData.length;
+  const total = totalRecords;
   const pageStart = total === 0 ? 0 : (tablePage - 1) * tablePageSize + 1;
   const pageEnd = Math.min(tablePage * tablePageSize, total);
   const pageCount = Math.max(1, Math.ceil(total / tablePageSize));
-  const pagedData = groupedData.slice((tablePage - 1) * tablePageSize, tablePage * tablePageSize);
+  const pagedData = groupedData; // Now we get paginated entries from the server
   const avgSeconds = filters.userId ? stats.averageSeconds : teamAvgSeconds;
   const avgLabel = filters.userId ? "Individual Avg" : "Avg per Member";
   const avgFmt = (() => {

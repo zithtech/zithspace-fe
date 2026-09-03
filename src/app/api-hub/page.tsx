@@ -19,7 +19,7 @@ import {
   Switch,
   Tooltip,
   Typography,
-  message,
+  App,
 } from "antd";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -234,6 +234,7 @@ const emptyApi = (): Partial<YapiezApi> => ({
 });
 
 function ApiCatalogContent() {
+  const { message } = App.useApp();
   useActivitySource({ section: "WORK", module: "API Hub", page: "ApiCatalog" });
 
   const router = useRouter();
@@ -739,8 +740,7 @@ function ApiCatalogContent() {
       });
       reloadCatalog();
       message.success(
-        `Module deleted — ${freed.collections} collection${freed.collections === 1 ? "" : "s"} and ${
-          freed.apis
+        `Module deleted — ${freed.collections} collection${freed.collections === 1 ? "" : "s"} and ${freed.apis
         } endpoint${freed.apis === 1 ? "" : "s"} are now unfiled`
       );
     } catch (error: any) {
@@ -892,9 +892,9 @@ function ApiCatalogContent() {
       // than being dropped — but never a literal password left in a header.
       ...(parsed.basicAuth
         ? {
-            authType: "basic" as AuthType,
-            authConfig: { username: parsed.basicAuth.username, password: parsed.basicAuth.password },
-          }
+          authType: "basic" as AuthType,
+          authConfig: { username: parsed.basicAuth.username, password: parsed.basicAuth.password },
+        }
         : {}),
     }));
 
@@ -980,7 +980,7 @@ function ApiCatalogContent() {
             source: newest.flowName ? `${newest.flowName} #${newest.runNumber}` : "previous run",
           });
         })
-        .catch(() => {});
+        .catch(() => { });
     } catch (error: any) {
       message.error(error?.response?.data?.error || "Could not open this API");
     }
@@ -1459,8 +1459,7 @@ function ApiCatalogContent() {
     try {
       const removed = await YapiezService.emptyTrash({ projectId });
       message.success(
-        `Trash emptied — ${removed.apis} endpoint${removed.apis === 1 ? "" : "s"} and ${
-          removed.collections
+        `Trash emptied — ${removed.apis} endpoint${removed.apis === 1 ? "" : "s"} and ${removed.collections
         } collection${removed.collections === 1 ? "" : "s"} gone for good`
       );
       loadTrash();
@@ -1485,9 +1484,8 @@ function ApiCatalogContent() {
         .map((module) => ({
           value: module.name,
           label: module.name,
-          description: `${module.collectionCount} collection${
-            module.collectionCount === 1 ? "" : "s"
-          } · ${module.apiCount} API${module.apiCount === 1 ? "" : "s"}`,
+          description: `${module.collectionCount} collection${module.collectionCount === 1 ? "" : "s"
+            } · ${module.apiCount} API${module.apiCount === 1 ? "" : "s"}`,
         })),
     [tree]
   );
@@ -1999,862 +1997,860 @@ function ApiCatalogContent() {
               </div>
 
               <div className="ph-body" style={{ padding: "16px 20px 40px", display: "flex", flexDirection: "column", gap: 18 }}>
-            {/* ── Where it is filed ──
+                {/* ── Where it is filed ──
                    The name, the method and the URL are the request bar's, up
                    in the header where they stay visible while you work. This
                    block is only the filing. ── */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <Field
-                label="Project"
-                icon={FolderKanban}
-                info="Scopes the definition the way it scopes test scopes and bug folders. Leave it blank to share the endpoint with every project."
-              >
-                <SearchableDropdown
-                  value={editing.projectId ?? null}
-                  onChange={onProjectChange}
-                  options={projects}
-                  placeholder="Shared across all projects"
-                  itemNoun="projects"
-                  width={420}
-                />
-              </Field>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <Field
+                    label="Project"
+                    icon={FolderKanban}
+                    info="Scopes the definition the way it scopes test scopes and bug folders. Leave it blank to share the endpoint with every project."
+                  >
+                    <SearchableDropdown
+                      value={editing.projectId ?? null}
+                      onChange={onProjectChange}
+                      options={projects}
+                      placeholder="Shared across all projects"
+                      itemNoun="projects"
+                      width={420}
+                    />
+                  </Field>
 
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Field
-                  label="Source"
-                  style={{ flex: "1 1 220px" }}
-                  icon={Layers3}
-                  info="The deployment tier this definition describes — Local, Staging, Prod."
-                >
-                  <SearchableDropdown
-                    value={editing.sourceId ?? null}
-                    onChange={onSourceChange}
-                    options={sourceOptions}
-                    placeholder="No source"
-                    itemNoun="sources"
-                    width={320}
-                  />
-                </Field>
-                <Field
-                  label="Module"
-                  style={{ flex: "1 1 220px" }}
-                  icon={Boxes}
-                  info="The area of the product. Curated in QA Space → Settings → Modules, so the catalog and the bug list file work under the same names."
-                >
-                  <SearchableDropdown
-                    value={editing.moduleName ?? null}
-                    onChange={onModuleChange}
-                    options={moduleOptions}
-                    placeholder={drawerModuleOptions.length ? "Unfiled" : "No modules in this project yet"}
-                    itemNoun="modules"
-                    width={320}
-                  />
-                </Field>
-                <Field
-                  label="Collection"
-                  style={{ flex: "1 1 220px" }}
-                  icon={FolderPlus}
-                  info="A group of related endpoints inside the module — Users, Invoices, Webhooks."
-                >
-                  <SearchableDropdown
-                    value={editing.collectionId ?? null}
-                    onChange={onCollectionChange}
-                    options={collectionOptions}
-                    placeholder="Ungrouped"
-                    itemNoun="collections"
-                    width={320}
-                  />
-                </Field>
-              </div>
-              <Field
-                label="Description"
-                icon={FileText}
-                action={
-                  <Tooltip title="Fix spelling and grammar. Endpoint paths, {{variables}} and header names are left untouched.">
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<SpellCheck size={13} />}
-                      loading={fixingGrammar}
-                      disabled={!editing.description?.trim()}
-                      onClick={fixDescriptionGrammar}
-                      style={{ fontSize: 11.5, color: "#1d4ed8" }}
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Field
+                      label="Source"
+                      style={{ flex: "1 1 220px" }}
+                      icon={Layers3}
+                      info="The deployment tier this definition describes — Local, Staging, Prod."
                     >
-                      Grammar correction
-                    </Button>
-                  </Tooltip>
-                }
-              >
-                {/* A description is the one field here that is prose rather
+                      <SearchableDropdown
+                        value={editing.sourceId ?? null}
+                        onChange={onSourceChange}
+                        options={sourceOptions}
+                        placeholder="No source"
+                        itemNoun="sources"
+                        width={320}
+                      />
+                    </Field>
+                    <Field
+                      label="Module"
+                      style={{ flex: "1 1 220px" }}
+                      icon={Boxes}
+                      info="The area of the product. Curated in QA Space → Settings → Modules, so the catalog and the bug list file work under the same names."
+                    >
+                      <SearchableDropdown
+                        value={editing.moduleName ?? null}
+                        onChange={onModuleChange}
+                        options={moduleOptions}
+                        placeholder={drawerModuleOptions.length ? "Unfiled" : "No modules in this project yet"}
+                        itemNoun="modules"
+                        width={320}
+                      />
+                    </Field>
+                    <Field
+                      label="Collection"
+                      style={{ flex: "1 1 220px" }}
+                      icon={FolderPlus}
+                      info="A group of related endpoints inside the module — Users, Invoices, Webhooks."
+                    >
+                      <SearchableDropdown
+                        value={editing.collectionId ?? null}
+                        onChange={onCollectionChange}
+                        options={collectionOptions}
+                        placeholder="Ungrouped"
+                        itemNoun="collections"
+                        width={320}
+                      />
+                    </Field>
+                  </div>
+                  <Field
+                    label="Description"
+                    icon={FileText}
+                    action={
+                      <Tooltip title="Fix spelling and grammar. Endpoint paths, {{variables}} and header names are left untouched.">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<SpellCheck size={13} />}
+                          loading={fixingGrammar}
+                          disabled={!editing.description?.trim()}
+                          onClick={fixDescriptionGrammar}
+                          style={{ fontSize: 11.5, color: "#1d4ed8" }}
+                        >
+                          Grammar correction
+                        </Button>
+                      </Tooltip>
+                    }
+                  >
+                    {/* A description is the one field here that is prose rather
                     than a value — the place someone explains a quirk, lists a
                     precondition, links the ticket. A plain textarea made all
                     of that one grey paragraph. */}
-                <TiptapEditor
-                  content={editing.description ?? ""}
-                  onChange={(html) => setEditing((previous) => ({ ...previous, description: html }))}
-                  placeholder="What this endpoint does, and anything QA needs to know before calling it."
-                  minHeight={130}
-                  maxHeight={420}
-                />
-              </Field>
-
-              {/* A flag, not a field — it earns an inline row, not a column. */}
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 9, cursor: "pointer" }}>
-                <Switch
-                  size="small"
-                  checked={!!editing.isDeprecated}
-                  onChange={(checked) => setEditing({ ...editing, isDeprecated: checked })}
-                />
-                <span>
-                  <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>Deprecated</Text>
-                  <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginLeft: 7 }}>
-                    Hidden from the default catalog view
-                  </Text>
-                </span>
-              </label>
-            </div>
-
-            <SectionDivider />
-
-            {/* ── Tabs ── */}
-            <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border-color)" }}>
-              {(
-                [
-                  ["request", "Request"],
-                  ["response", "Expected response"],
-                  ["auth", "Authentication"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveTab(key)}
-                  style={{
-                    padding: "7px 14px",
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: `2px solid ${activeTab === key ? "#2563eb" : "transparent"}`,
-                    color: activeTab === key ? "#1d4ed8" : "var(--text-secondary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === "request" && (
-              <>
-                <RequestMetrics
-                  payloadBytes={
-                    editing.bodyType !== "none" && editing.requestBody
-                      ? byteLengthOf(editing.requestBody)
-                      : 0
-                  }
-                  lastCapture={lastCapture}
-                  onOpenCapture={() => setActiveTab("response")}
-                />
-
-                <Field
-                  label="Headers"
-                  icon={ListIcon}
-                  hint={headersOpen ? "Toggle a row off to document it without sending it" : undefined}
-                  action={
-                    <Button
-                      size="small"
-                      type="text"
-                      onClick={() => setHeadersOpen((previous) => !previous)}
-                      style={{ fontSize: 11.5, color: "var(--text-secondary)" }}
-                      icon={headersOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    >
-                      {headersOpen
-                        ? "Hide"
-                        : `Show${(editing.headers ?? []).length ? ` (${(editing.headers ?? []).length})` : ""}`}
-                    </Button>
-                  }
-                >
-                  {headersOpen ? (
-                    <KeyValueEditor
-                      value={editing.headers ?? []}
-                      onChange={(headers) => setEditing({ ...editing, headers })}
-                      keyPlaceholder="Content-Type"
-                      valuePlaceholder="application/json"
-                      addLabel="Add header"
-                      bulkPasteLabel="Paste headers"
-                      bulkPasteHint="One header per line, as `Name: value`. Paste a block straight from your docs or browser."
+                    <TiptapEditor
+                      content={editing.description ?? ""}
+                      onChange={(html) => setEditing((previous) => ({ ...previous, description: html }))}
+                      placeholder="What this endpoint does, and anything QA needs to know before calling it."
+                      minHeight={130}
+                      maxHeight={420}
                     />
-                  ) : (
-                    /* Collapsed: still say what is in there, so hiding the table
-                       never hides the fact that headers are being sent. */
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                      {(editing.headers ?? []).length === 0 ? (
-                        <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", fontStyle: "italic" }}>
-                          No headers
-                        </Text>
-                      ) : (
-                        (editing.headers ?? []).map((header, index) => (
-                          <span
-                            key={`${header.key}-${index}`}
-                            style={{
-                              padding: "1px 8px",
-                              borderRadius: 5,
-                              fontSize: 11,
-                              fontFamily: "ui-monospace, monospace",
-                              color: header.enabled === false ? "var(--text-secondary)" : "#1d4ed8",
-                              background: header.enabled === false ? "var(--bg-slate-50)" : "var(--bg-blue-50)",
-                              border: `1px solid ${
-                                header.enabled === false ? "var(--border-color)" : "var(--border-blue-200)"
-                              }`,
-                              textDecoration: header.enabled === false ? "line-through" : "none",
-                            }}
-                          >
-                            {header.key || "(unnamed)"}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </Field>
+                  </Field>
 
-                <DottedDivider />
+                  {/* A flag, not a field — it earns an inline row, not a column. */}
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 9, cursor: "pointer" }}>
+                    <Switch
+                      size="small"
+                      checked={!!editing.isDeprecated}
+                      onChange={(checked) => setEditing({ ...editing, isDeprecated: checked })}
+                    />
+                    <span>
+                      <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>Deprecated</Text>
+                      <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginLeft: 7 }}>
+                        Hidden from the default catalog view
+                      </Text>
+                    </span>
+                  </label>
+                </div>
 
-                <Field label="Query parameters" icon={Search}>
-                  <KeyValueEditor
-                    value={editing.queryParams ?? []}
-                    onChange={(queryParams) => setEditing({ ...editing, queryParams })}
-                    keyPlaceholder="page"
-                    valuePlaceholder="1"
-                    addLabel="Add query param"
-                    bulkPasteLabel="Paste params"
-                    bulkPasteHint="One per line, as `name=value` or `name: value`."
-                  />
-                </Field>
+                <SectionDivider />
 
-                <DottedDivider />
-
-                <Field
-                  label="Path parameters"
-                  icon={Route}
-                  hint="Names match the placeholders in the URL — :userId, {userId} and {{userId}} all work"
-                >
-                  {/* The URL is the source of truth for which placeholders exist,
-                      so an undeclared one is offered rather than left to be noticed. */}
-                  {undeclaredPathParams.length > 0 && (
-                    <div
+                {/* ── Tabs ── */}
+                <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border-color)" }}>
+                  {(
+                    [
+                      ["request", "Request"],
+                      ["response", "Expected response"],
+                      ["auth", "Authentication"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setActiveTab(key)}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        flexWrap: "wrap",
-                        padding: "8px 10px",
-                        marginBottom: 8,
-                        borderRadius: 8,
-                        background: "var(--bg-blue-50)",
-                        border: "1px solid var(--border-blue-200)",
+                        padding: "7px 14px",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: `2px solid ${activeTab === key ? "#2563eb" : "transparent"}`,
+                        color: activeTab === key ? "#1d4ed8" : "var(--text-secondary)",
+                        cursor: "pointer",
                       }}
                     >
-                      <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
-                        The URL uses{" "}
-                        <strong>{undeclaredPathParams.join(", ")}</strong> but{" "}
-                        {undeclaredPathParams.length === 1 ? "it has" : "they have"} no row here.
-                      </Text>
-                      <Button
-                        size="small"
-                        type="primary"
-                        onClick={() =>
-                          setEditing({
-                            ...editing,
-                            pathParams: [
-                              ...(editing.pathParams ?? []),
-                              // Default each to the run variable of the same name —
-                              // the overwhelmingly common case in a flow.
-                              ...undeclaredPathParams.map((key) => ({
-                                key,
-                                value: `{{${key}}}`,
-                                enabled: true,
-                              })),
-                            ],
-                          })
-                        }
-                      >
-                        Add {undeclaredPathParams.length === 1 ? "it" : "them"}
-                      </Button>
-                    </div>
-                  )}
-                  <KeyValueEditor
-                    value={editing.pathParams ?? []}
-                    onChange={(pathParams) => setEditing({ ...editing, pathParams })}
-                    keyPlaceholder="userId"
-                    valuePlaceholder="{{userId}}"
-                    addLabel="Add path param"
-                  />
-                </Field>
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
-                <DottedDivider />
+                {activeTab === "request" && (
+                  <>
+                    <RequestMetrics
+                      payloadBytes={
+                        editing.bodyType !== "none" && editing.requestBody
+                          ? byteLengthOf(editing.requestBody)
+                          : 0
+                      }
+                      lastCapture={lastCapture}
+                      onOpenCapture={() => setActiveTab("response")}
+                    />
 
-                {/* ── Body ──
+                    <Field
+                      label="Headers"
+                      icon={ListIcon}
+                      hint={headersOpen ? "Toggle a row off to document it without sending it" : undefined}
+                      action={
+                        <Button
+                          size="small"
+                          type="text"
+                          onClick={() => setHeadersOpen((previous) => !previous)}
+                          style={{ fontSize: 11.5, color: "var(--text-secondary)" }}
+                          icon={headersOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        >
+                          {headersOpen
+                            ? "Hide"
+                            : `Show${(editing.headers ?? []).length ? ` (${(editing.headers ?? []).length})` : ""}`}
+                        </Button>
+                      }
+                    >
+                      {headersOpen ? (
+                        <KeyValueEditor
+                          value={editing.headers ?? []}
+                          onChange={(headers) => setEditing({ ...editing, headers })}
+                          keyPlaceholder="Content-Type"
+                          valuePlaceholder="application/json"
+                          addLabel="Add header"
+                          bulkPasteLabel="Paste headers"
+                          bulkPasteHint="One header per line, as `Name: value`. Paste a block straight from your docs or browser."
+                        />
+                      ) : (
+                        /* Collapsed: still say what is in there, so hiding the table
+                           never hides the fact that headers are being sent. */
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {(editing.headers ?? []).length === 0 ? (
+                            <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", fontStyle: "italic" }}>
+                              No headers
+                            </Text>
+                          ) : (
+                            (editing.headers ?? []).map((header, index) => (
+                              <span
+                                key={`${header.key}-${index}`}
+                                style={{
+                                  padding: "1px 8px",
+                                  borderRadius: 5,
+                                  fontSize: 11,
+                                  fontFamily: "ui-monospace, monospace",
+                                  color: header.enabled === false ? "var(--text-secondary)" : "#1d4ed8",
+                                  background: header.enabled === false ? "var(--bg-slate-50)" : "var(--bg-blue-50)",
+                                  border: `1px solid ${header.enabled === false ? "var(--border-color)" : "var(--border-blue-200)"
+                                    }`,
+                                  textDecoration: header.enabled === false ? "line-through" : "none",
+                                }}
+                              >
+                                {header.key || "(unnamed)"}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </Field>
+
+                    <DottedDivider />
+
+                    <Field label="Query parameters" icon={Search}>
+                      <KeyValueEditor
+                        value={editing.queryParams ?? []}
+                        onChange={(queryParams) => setEditing({ ...editing, queryParams })}
+                        keyPlaceholder="page"
+                        valuePlaceholder="1"
+                        addLabel="Add query param"
+                        bulkPasteLabel="Paste params"
+                        bulkPasteHint="One per line, as `name=value` or `name: value`."
+                      />
+                    </Field>
+
+                    <DottedDivider />
+
+                    <Field
+                      label="Path parameters"
+                      icon={Route}
+                      hint="Names match the placeholders in the URL — :userId, {userId} and {{userId}} all work"
+                    >
+                      {/* The URL is the source of truth for which placeholders exist,
+                      so an undeclared one is offered rather than left to be noticed. */}
+                      {undeclaredPathParams.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            padding: "8px 10px",
+                            marginBottom: 8,
+                            borderRadius: 8,
+                            background: "var(--bg-blue-50)",
+                            border: "1px solid var(--border-blue-200)",
+                          }}
+                        >
+                          <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
+                            The URL uses{" "}
+                            <strong>{undeclaredPathParams.join(", ")}</strong> but{" "}
+                            {undeclaredPathParams.length === 1 ? "it has" : "they have"} no row here.
+                          </Text>
+                          <Button
+                            size="small"
+                            type="primary"
+                            onClick={() =>
+                              setEditing({
+                                ...editing,
+                                pathParams: [
+                                  ...(editing.pathParams ?? []),
+                                  // Default each to the run variable of the same name —
+                                  // the overwhelmingly common case in a flow.
+                                  ...undeclaredPathParams.map((key) => ({
+                                    key,
+                                    value: `{{${key}}}`,
+                                    enabled: true,
+                                  })),
+                                ],
+                              })
+                            }
+                          >
+                            Add {undeclaredPathParams.length === 1 ? "it" : "them"}
+                          </Button>
+                        </div>
+                      )}
+                      <KeyValueEditor
+                        value={editing.pathParams ?? []}
+                        onChange={(pathParams) => setEditing({ ...editing, pathParams })}
+                        keyPlaceholder="userId"
+                        valuePlaceholder="{{userId}}"
+                        addLabel="Add path param"
+                      />
+                    </Field>
+
+                    <DottedDivider />
+
+                    {/* ── Body ──
                        Header strip and payload are one panel, not a settings
                        row followed by an unrelated field. The type you pick
                        decides what the box below is, so putting a border
                        between them made you look in two places to answer one
                        question. ── */}
-                <div className="ph-body-panel">
-                  <div className="ph-body-head">
-                    <span className="ph-body-title">
-                      <span className="ph-body-icon">
-                        <FileJson2 size={12} />
-                      </span>
-                      Body
-                    </span>
-
-                    <Segmented
-                      size="small"
-                      value={editing.bodyType}
-                      onChange={(bodyType) => setEditing({ ...editing, bodyType: bodyType as BodyType })}
-                      className="ph-body-seg"
-                      options={BODY_TYPES.map((type) => ({
-                        value: type,
-                        label: (
-                          <span className="ph-body-seg-item">
-                            {BODY_TYPE_META[type].label}
-                            {/* A body that will not parse is the one thing you
-                                need to know without opening the tab. */}
-                            {type === "json" &&
-                              editing.bodyType === "json" &&
-                              !!editing.requestBody?.trim() &&
-                              !payloadJson.valid && <span className="ph-body-seg-dot" />}
+                    <div className="ph-body-panel">
+                      <div className="ph-body-head">
+                        <span className="ph-body-title">
+                          <span className="ph-body-icon">
+                            <FileJson2 size={12} />
                           </span>
-                        ),
-                      }))}
-                    />
+                          Body
+                        </span>
 
-                    <span style={{ flex: 1, minWidth: 4 }} />
+                        <Segmented
+                          size="small"
+                          value={editing.bodyType}
+                          onChange={(bodyType) => setEditing({ ...editing, bodyType: bodyType as BodyType })}
+                          className="ph-body-seg"
+                          options={BODY_TYPES.map((type) => ({
+                            value: type,
+                            label: (
+                              <span className="ph-body-seg-item">
+                                {BODY_TYPE_META[type].label}
+                                {/* A body that will not parse is the one thing you
+                                need to know without opening the tab. */}
+                                {type === "json" &&
+                                  editing.bodyType === "json" &&
+                                  !!editing.requestBody?.trim() &&
+                                  !payloadJson.valid && <span className="ph-body-seg-dot" />}
+                              </span>
+                            ),
+                          }))}
+                        />
 
-                    <span className="ph-body-title">
-                      <span className="ph-body-icon is-muted">
-                        <Timer size={12} />
-                      </span>
-                      Timeout
-                    </span>
-                    <Input
-                      size="small"
-                      type="number"
-                      placeholder="30000"
-                      value={editing.timeoutMs ?? ""}
-                      onChange={(e) =>
-                        setEditing({ ...editing, timeoutMs: e.target.value ? Number(e.target.value) : null })
-                      }
-                      suffix={<span style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>ms</span>}
-                      style={{ width: 116 }}
-                    />
-                    <Tooltip title="Blank uses the server default (30s), capped at 120s.">
-                      <span style={{ display: "inline-flex", color: "#94a3b8", cursor: "help" }}>
-                        <Info size={13} />
-                      </span>
-                    </Tooltip>
-                  </div>
+                        <span style={{ flex: 1, minWidth: 4 }} />
 
-                  {editing.bodyType === "none" ? (
-                    <div className="ph-body-empty">
-                      <Minus size={15} style={{ color: "#94a3b8" }} />
-                      <Text style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
-                        This request sends no body
-                      </Text>
-                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                        Pick JSON, Form or Text above to add one.
-                      </Text>
-                    </div>
-                  ) : (
-                    <>
-                      <TextArea
-                        variant="borderless"
-                        autoSize={{ minRows: 9, maxRows: 24 }}
-                        value={editing.requestBody ?? ""}
-                        onChange={(e) => setEditing({ ...editing, requestBody: e.target.value })}
-                        placeholder={BODY_TYPE_META[(editing.bodyType ?? "json") as BodyType].placeholder}
-                        className="ph-body-input"
-                      />
-
-                      <div className="ph-body-foot">
-                        {editing.bodyType === "json" ? (
-                          <JsonBar
-                            state={payloadJson}
-                            hasContent={!!editing.requestBody?.trim()}
-                            onFormat={() => {
-                              const { text, error } = formatJson(editing.requestBody ?? "");
-                              if (error) message.warning(`Cannot format: ${error}`);
-                              else setEditing({ ...editing, requestBody: text });
-                            }}
-                          />
-                        ) : (
-                          <Text style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                            {BODY_TYPE_META[(editing.bodyType ?? "text") as BodyType].hint}
-                          </Text>
-                        )}
+                        <span className="ph-body-title">
+                          <span className="ph-body-icon is-muted">
+                            <Timer size={12} />
+                          </span>
+                          Timeout
+                        </span>
+                        <Input
+                          size="small"
+                          type="number"
+                          placeholder="30000"
+                          value={editing.timeoutMs ?? ""}
+                          onChange={(e) =>
+                            setEditing({ ...editing, timeoutMs: e.target.value ? Number(e.target.value) : null })
+                          }
+                          suffix={<span style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>ms</span>}
+                          style={{ width: 116 }}
+                        />
+                        <Tooltip title="Blank uses the server default (30s), capped at 120s.">
+                          <span style={{ display: "inline-flex", color: "#94a3b8", cursor: "help" }}>
+                            <Info size={13} />
+                          </span>
+                        </Tooltip>
                       </div>
-                    </>
-                  )}
-                </div>
 
-                {editing.bodyType !== "none" && (
-                  <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: -10 }}>
-                    {"{{variables}}"} are substituted at run time — {"{{userId}}"}, {"{{accessToken}}"},
-                    anything a previous step saved.
-                  </Text>
-                )}
+                      {editing.bodyType === "none" ? (
+                        <div className="ph-body-empty">
+                          <Minus size={15} style={{ color: "#94a3b8" }} />
+                          <Text style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-primary)" }}>
+                            This request sends no body
+                          </Text>
+                          <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
+                            Pick JSON, Form or Text above to add one.
+                          </Text>
+                        </div>
+                      ) : (
+                        <>
+                          <TextArea
+                            variant="borderless"
+                            autoSize={{ minRows: 9, maxRows: 24 }}
+                            value={editing.requestBody ?? ""}
+                            onChange={(e) => setEditing({ ...editing, requestBody: e.target.value })}
+                            placeholder={BODY_TYPE_META[(editing.bodyType ?? "json") as BodyType].placeholder}
+                            className="ph-body-input"
+                          />
 
-                {variablesInUse.length > 0 && (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      background: "var(--bg-blue-50)",
-                      border: "1px solid var(--border-blue-200)",
-                    }}
-                  >
-                    <Text style={{ fontSize: 11.5, fontWeight: 700, color: "#1e3a8a", display: "block" }}>
-                      Variables this API expects
-                    </Text>
-                    <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
-                      {variablesInUse.map((v) => `{{${v}}}`).join("  ")} — {"{{baseUrl}}"} comes from the
-                      environment a run uses, and {"{{accessToken}}"} from the login API picked for the send.
-                      Anything else has to be supplied by whatever calls this endpoint.
-                    </Text>
-                  </div>
-                )}
-              </>
-            )}
+                          <div className="ph-body-foot">
+                            {editing.bodyType === "json" ? (
+                              <JsonBar
+                                state={payloadJson}
+                                hasContent={!!editing.requestBody?.trim()}
+                                onFormat={() => {
+                                  const { text, error } = formatJson(editing.requestBody ?? "");
+                                  if (error) message.warning(`Cannot format: ${error}`);
+                                  else setEditing({ ...editing, requestBody: text });
+                                }}
+                              />
+                            ) : (
+                              <Text style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                                {BODY_TYPE_META[(editing.bodyType ?? "text") as BodyType].hint}
+                              </Text>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
 
-            {activeTab === "response" && (
-              <>
-                {/* Hidden for now — the "Capture a real response" panel is kept in place,
-                    flip SHOW_CAPTURE_PANEL back to true to bring it back. */}
-                {SHOW_CAPTURE_PANEL && (
-                  <>
-                  {/* Capture the expected result from reality rather than memory. */}
-                  <div
-                    style={{
-                      padding: 14,
-                      borderRadius: 10,
-                      background: "var(--bg-slate-50)",
-                      border: "1px solid var(--border-color)",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    <div>
-                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <Text style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>
-                          Capture a real response
-                        </Text>
-                        <CaptureHelpButton onClick={() => setCaptureHelpOpen(true)} />
-                      </span>
-                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                        Send this request once and fill the expected status, sample response, assertions and schema
-                        from what actually comes back.
+                    {editing.bodyType !== "none" && (
+                      <Text style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: -10 }}>
+                        {"{{variables}}"} are substituted at run time — {"{{userId}}"}, {"{{accessToken}}"},
+                        anything a previous step saved.
                       </Text>
-                    </div>
+                    )}
 
-                    {/* Four routes to the same result. The three above the rule
-                        cost nothing; only the last one touches the API. */}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <RouteButton
-                        icon={History}
-                        label="From a previous run"
-                        hint={editing.id ? "A real response, already recorded" : "Available once this API is saved"}
-                        disabled={!editing.id}
-                        onClick={openHistory}
-                      />
-                      <RouteButton
-                        icon={ClipboardPaste}
-                        label="Paste a response"
-                        hint="You already have it in front of you"
-                        onClick={() => setPasteOpen(true)}
-                      />
-                      <RouteButton
-                        icon={Sparkles}
-                        label="Generate from payload"
-                        hint="Derived offline — a shape to correct"
-                        onClick={generateOffline}
-                      />
-                    </div>
-
-                    <div style={{ height: 1, background: "var(--border-color)" }} />
-
-                    {/* The live route, gated for anything that changes data. */}
-                    {isWriteMethod(editing.method) && (
+                    {variablesInUse.length > 0 && (
                       <div
                         style={{
-                          display: "flex",
-                          gap: 10,
                           padding: "10px 12px",
                           borderRadius: 8,
-                          background: allowWriteSend ? "rgba(220,38,38,0.09)" : "var(--bg-pure-white)",
-                          border: `1px solid ${
-                            allowWriteSend ? "rgba(220,38,38,0.32)" : "var(--border-color)"
-                          }`,
+                          background: "var(--bg-blue-50)",
+                          border: "1px solid var(--border-blue-200)",
                         }}
                       >
-                        <span style={{ color: allowWriteSend ? "#b91c1c" : "#b45309", flexShrink: 0, marginTop: 1 }}>
-                          <ShieldAlert size={15} />
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 11.5, color: "var(--text-primary)", display: "block", lineHeight: 1.6 }}>
-                            Sending <strong>{editing.method}</strong> changes real data at the base URL below,
-                            and does it again on every click — two sends of a create make two records. Nothing here
-                            can undo that.
-                          </Text>
-                          <label style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 7, cursor: "pointer" }}>
-                            <Switch size="small" checked={allowWriteSend} onChange={setAllowWriteSend} />
-                            <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-primary)" }}>
-                              Allow write requests
-                            </Text>
-                          </label>
-                        </div>
+                        <Text style={{ fontSize: 11.5, fontWeight: 700, color: "#1e3a8a", display: "block" }}>
+                          Variables this API expects
+                        </Text>
+                        <Text style={{ fontSize: 11.5, color: "#1e40af" }}>
+                          {variablesInUse.map((v) => `{{${v}}}`).join("  ")} — {"{{baseUrl}}"} comes from the
+                          environment a run uses, and {"{{accessToken}}"} from the login API picked for the send.
+                          Anything else has to be supplied by whatever calls this endpoint.
+                        </Text>
                       </div>
                     )}
-
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <Input
-                        prefix={<LinkIcon size={13} style={{ color: "#94a3b8" }} />}
-                        placeholder="https://staging.example.com"
-                        value={sendBaseUrl}
-                        onChange={(e) => setSendBaseUrl(e.target.value)}
-                        style={{ width: 260, fontSize: 12.5 }}
-                      />
-                      <SearchableDropdown
-                        value={sendAuthApiId ?? null}
-                        onChange={(value: string) => setSendAuthApiId(value || undefined)}
-                        options={allApis
-                          .filter((api) => api.id !== editing.id)
-                          .map((api) => ({
-                            value: api.id,
-                            label: api.name,
-                            description: `${api.method} ${api.url}`,
-                          }))}
-                        placeholder="No authentication"
-                        itemNoun="APIs"
-                        width={280}
-                      />
-                      <Tooltip
-                        title={
-                          isWriteMethod(editing.method) && !allowWriteSend
-                            ? `${editing.method} is blocked — it would change real data. Use one of the routes above, or allow write requests.`
-                            : "Send this request and capture the real status and response"
-                        }
-                      >
-                        <span>
-                          <Button
-                            type="primary"
-                            danger={isWriteMethod(editing.method) && allowWriteSend}
-                            icon={<Send size={13} />}
-                            loading={sending}
-                            disabled={isWriteMethod(editing.method) && !allowWriteSend}
-                            onClick={sendDraft}
-                          >
-                            Send {editing.method}
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </div>
-
-                    {!sendBaseUrl.trim() && !/^https?:\/\//i.test(editing.url ?? "") && (
-                      <Text style={{ fontSize: 11.5, color: "#b45309" }}>
-                        This URL is relative and there is no base URL to resolve it against. Type one above — it is
-                        remembered for this project — or give the endpoint an absolute URL.
-                      </Text>
-                    )}
-
-                    {sendAuthApiId && (
-                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
-                        That login runs first and its token is attached to this request, so an endpoint behind a
-                        session can be sent without pasting a token by hand.
-                      </Text>
-                    )}
-
-                    {tryResult && <TryResultPanel result={tryResult} onCapture={captureAsExpected} />}
-                  </div>
                   </>
                 )}
 
-                <Field label="Expected status" hint="Used as the default assertion when none is authored">
-                  <Input
-                    type="number"
-                    placeholder="201"
-                    value={editing.expectedStatus ?? ""}
-                    onChange={(e) =>
-                      setEditing({ ...editing, expectedStatus: e.target.value ? Number(e.target.value) : null })
-                    }
-                    style={{ maxWidth: 160 }}
-                  />
-                </Field>
+                {activeTab === "response" && (
+                  <>
+                    {/* Hidden for now — the "Capture a real response" panel is kept in place,
+                    flip SHOW_CAPTURE_PANEL back to true to bring it back. */}
+                    {SHOW_CAPTURE_PANEL && (
+                      <>
+                        {/* Capture the expected result from reality rather than memory. */}
+                        <div
+                          style={{
+                            padding: 14,
+                            borderRadius: 10,
+                            background: "var(--bg-slate-50)",
+                            border: "1px solid var(--border-color)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 10,
+                          }}
+                        >
+                          <div>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <Text style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-primary)" }}>
+                                Capture a real response
+                              </Text>
+                              <CaptureHelpButton onClick={() => setCaptureHelpOpen(true)} />
+                            </span>
+                            <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
+                              Send this request once and fill the expected status, sample response, assertions and schema
+                              from what actually comes back.
+                            </Text>
+                          </div>
 
-                <Field label="Sample response" hint="What a successful call returns — QA reads this when writing assertions">
-                  <TextArea
-                    rows={8}
-                    value={editing.expectedResponse ?? ""}
-                    onChange={(e) => setEditing({ ...editing, expectedResponse: e.target.value })}
-                    placeholder={'{\n  "id": 101,\n  "name": "John",\n  "email": "john@test.com"\n}'}
-                    style={{
-                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                      fontSize: 12.5,
-                      borderColor: sampleJson.valid ? undefined : "#fca5a5",
-                    }}
-                  />
-                  <JsonBar
-                    state={sampleJson}
-                    hasContent={!!editing.expectedResponse?.trim()}
-                    onFormat={() => {
-                      const { text, error } = formatJson(editing.expectedResponse ?? "");
-                      if (error) message.warning(`Cannot format: ${error}`);
-                      else setEditing({ ...editing, expectedResponse: text });
-                    }}
-                    extra={
-                      <Button size="small" icon={<Wand2 size={13} />} onClick={generateFromSample}>
-                        Generate assertions & schema
-                      </Button>
-                    }
-                  />
-                </Field>
+                          {/* Four routes to the same result. The three above the rule
+                        cost nothing; only the last one touches the API. */}
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <RouteButton
+                              icon={History}
+                              label="From a previous run"
+                              hint={editing.id ? "A real response, already recorded" : "Available once this API is saved"}
+                              disabled={!editing.id}
+                              onClick={openHistory}
+                            />
+                            <RouteButton
+                              icon={ClipboardPaste}
+                              label="Paste a response"
+                              hint="You already have it in front of you"
+                              onClick={() => setPasteOpen(true)}
+                            />
+                            <RouteButton
+                              icon={Sparkles}
+                              label="Generate from payload"
+                              hint="Derived offline — a shape to correct"
+                              onClick={generateOffline}
+                            />
+                          </div>
 
-                {/* The inferred shape, shown so the author can see what was read
+                          <div style={{ height: 1, background: "var(--border-color)" }} />
+
+                          {/* The live route, gated for anything that changes data. */}
+                          {isWriteMethod(editing.method) && (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 10,
+                                padding: "10px 12px",
+                                borderRadius: 8,
+                                background: allowWriteSend ? "rgba(220,38,38,0.09)" : "var(--bg-pure-white)",
+                                border: `1px solid ${allowWriteSend ? "rgba(220,38,38,0.32)" : "var(--border-color)"
+                                  }`,
+                              }}
+                            >
+                              <span style={{ color: allowWriteSend ? "#b91c1c" : "#b45309", flexShrink: 0, marginTop: 1 }}>
+                                <ShieldAlert size={15} />
+                              </span>
+                              <div style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 11.5, color: "var(--text-primary)", display: "block", lineHeight: 1.6 }}>
+                                  Sending <strong>{editing.method}</strong> changes real data at the base URL below,
+                                  and does it again on every click — two sends of a create make two records. Nothing here
+                                  can undo that.
+                                </Text>
+                                <label style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 7, cursor: "pointer" }}>
+                                  <Switch size="small" checked={allowWriteSend} onChange={setAllowWriteSend} />
+                                  <Text style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-primary)" }}>
+                                    Allow write requests
+                                  </Text>
+                                </label>
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <Input
+                              prefix={<LinkIcon size={13} style={{ color: "#94a3b8" }} />}
+                              placeholder="https://staging.example.com"
+                              value={sendBaseUrl}
+                              onChange={(e) => setSendBaseUrl(e.target.value)}
+                              style={{ width: 260, fontSize: 12.5 }}
+                            />
+                            <SearchableDropdown
+                              value={sendAuthApiId ?? null}
+                              onChange={(value: string) => setSendAuthApiId(value || undefined)}
+                              options={allApis
+                                .filter((api) => api.id !== editing.id)
+                                .map((api) => ({
+                                  value: api.id,
+                                  label: api.name,
+                                  description: `${api.method} ${api.url}`,
+                                }))}
+                              placeholder="No authentication"
+                              itemNoun="APIs"
+                              width={280}
+                            />
+                            <Tooltip
+                              title={
+                                isWriteMethod(editing.method) && !allowWriteSend
+                                  ? `${editing.method} is blocked — it would change real data. Use one of the routes above, or allow write requests.`
+                                  : "Send this request and capture the real status and response"
+                              }
+                            >
+                              <span>
+                                <Button
+                                  type="primary"
+                                  danger={isWriteMethod(editing.method) && allowWriteSend}
+                                  icon={<Send size={13} />}
+                                  loading={sending}
+                                  disabled={isWriteMethod(editing.method) && !allowWriteSend}
+                                  onClick={sendDraft}
+                                >
+                                  Send {editing.method}
+                                </Button>
+                              </span>
+                            </Tooltip>
+                          </div>
+
+                          {!sendBaseUrl.trim() && !/^https?:\/\//i.test(editing.url ?? "") && (
+                            <Text style={{ fontSize: 11.5, color: "#b45309" }}>
+                              This URL is relative and there is no base URL to resolve it against. Type one above — it is
+                              remembered for this project — or give the endpoint an absolute URL.
+                            </Text>
+                          )}
+
+                          {sendAuthApiId && (
+                            <Text style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>
+                              That login runs first and its token is attached to this request, so an endpoint behind a
+                              session can be sent without pasting a token by hand.
+                            </Text>
+                          )}
+
+                          {tryResult && <TryResultPanel result={tryResult} onCapture={captureAsExpected} />}
+                        </div>
+                      </>
+                    )}
+
+                    <Field label="Expected status" hint="Used as the default assertion when none is authored">
+                      <Input
+                        type="number"
+                        placeholder="201"
+                        value={editing.expectedStatus ?? ""}
+                        onChange={(e) =>
+                          setEditing({ ...editing, expectedStatus: e.target.value ? Number(e.target.value) : null })
+                        }
+                        style={{ maxWidth: 160 }}
+                      />
+                    </Field>
+
+                    <Field label="Sample response" hint="What a successful call returns — QA reads this when writing assertions">
+                      <TextArea
+                        rows={8}
+                        value={editing.expectedResponse ?? ""}
+                        onChange={(e) => setEditing({ ...editing, expectedResponse: e.target.value })}
+                        placeholder={'{\n  "id": 101,\n  "name": "John",\n  "email": "john@test.com"\n}'}
+                        style={{
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                          fontSize: 12.5,
+                          borderColor: sampleJson.valid ? undefined : "#fca5a5",
+                        }}
+                      />
+                      <JsonBar
+                        state={sampleJson}
+                        hasContent={!!editing.expectedResponse?.trim()}
+                        onFormat={() => {
+                          const { text, error } = formatJson(editing.expectedResponse ?? "");
+                          if (error) message.warning(`Cannot format: ${error}`);
+                          else setEditing({ ...editing, expectedResponse: text });
+                        }}
+                        extra={
+                          <Button size="small" icon={<Wand2 size={13} />} onClick={generateFromSample}>
+                            Generate assertions & schema
+                          </Button>
+                        }
+                      />
+                    </Field>
+
+                    {/* The inferred shape, shown so the author can see what was read
                     out of the sample rather than trusting it blindly. */}
-                {Object.keys(editing.responseSchema ?? {}).length > 0 && (
-                  <Field label="Response structure" hint="Inferred from the sample — regenerate after changing it">
-                    <pre
-                      style={{
-                        margin: 0,
-                        padding: 12,
-                        maxHeight: 220,
-                        overflow: "auto",
-                        borderRadius: 8,
-                        fontSize: 11.5,
-                        lineHeight: 1.55,
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        background: "var(--bg-slate-50)",
-                        border: "1px solid var(--border-color)",
-                        color: "var(--text-primary)",
-                      }}
+                    {Object.keys(editing.responseSchema ?? {}).length > 0 && (
+                      <Field label="Response structure" hint="Inferred from the sample — regenerate after changing it">
+                        <pre
+                          style={{
+                            margin: 0,
+                            padding: 12,
+                            maxHeight: 220,
+                            overflow: "auto",
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            lineHeight: 1.55,
+                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                            background: "var(--bg-slate-50)",
+                            border: "1px solid var(--border-color)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {JSON.stringify(editing.responseSchema, null, 2)}
+                        </pre>
+                      </Field>
+                    )}
+
+                    <Field
+                      label="Default assertions"
+                      hint="What a correct response looks like — the contract QA checks this endpoint against"
                     >
-                      {JSON.stringify(editing.responseSchema, null, 2)}
-                    </pre>
-                  </Field>
+                      <AssertionEditor
+                        value={editing.defaultAssertions ?? []}
+                        onChange={(defaultAssertions: Assertion[]) => setEditing({ ...editing, defaultAssertions })}
+                      />
+                    </Field>
+
+                    <Field label="Notes">
+                      <TextArea
+                        rows={3}
+                        value={editing.notes ?? ""}
+                        onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                        placeholder="Rate limits, side effects, anything a tester should know."
+                      />
+                    </Field>
+                  </>
                 )}
 
-                <Field
-                  label="Default assertions"
-                  hint="What a correct response looks like — the contract QA checks this endpoint against"
-                >
-                  <AssertionEditor
-                    value={editing.defaultAssertions ?? []}
-                    onChange={(defaultAssertions: Assertion[]) => setEditing({ ...editing, defaultAssertions })}
-                  />
-                </Field>
-
-                <Field label="Notes">
-                  <TextArea
-                    rows={3}
-                    value={editing.notes ?? ""}
-                    onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
-                    placeholder="Rate limits, side effects, anything a tester should know."
-                  />
-                </Field>
-              </>
-            )}
-
-            {activeTab === "auth" && (
-              <>
-                {/* How this endpoint is authenticated, chosen from cards rather
+                {activeTab === "auth" && (
+                  <>
+                    {/* How this endpoint is authenticated, chosen from cards rather
                     than a dropdown: it is five mutually exclusive modes with
                     real consequences, and the difference between them is the
                     part that needs explaining. */}
-                <Field label="Authentication" icon={KeyRound}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
-                    {AUTH_TYPES.map((type) => {
-                      const selected = (editing.authType ?? "inherit") === type;
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setEditing({ ...editing, authType: type })}
-                          style={{
-                            textAlign: "left",
-                            padding: "10px 12px",
-                            borderRadius: 8,
-                            cursor: "pointer",
-                            background: selected ? "var(--bg-blue-50)" : "var(--bg-pure-white)",
-                            border: `1px solid ${selected ? "var(--border-blue-200)" : "var(--border-color)"}`,
-                            boxShadow: selected ? "inset 0 0 0 1px var(--border-blue-200)" : "none",
-                          }}
-                        >
-                          <span style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
-                            <span
+                    <Field label="Authentication" icon={KeyRound}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 8 }}>
+                        {AUTH_TYPES.map((type) => {
+                          const selected = (editing.authType ?? "inherit") === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => setEditing({ ...editing, authType: type })}
                               style={{
-                                width: 15,
-                                height: 15,
-                                borderRadius: 999,
-                                border: `1.5px solid ${selected ? "#2563eb" : "var(--border-color)"}`,
-                                background: selected ? "#2563eb" : "transparent",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
+                                textAlign: "left",
+                                padding: "10px 12px",
+                                borderRadius: 8,
+                                cursor: "pointer",
+                                background: selected ? "var(--bg-blue-50)" : "var(--bg-pure-white)",
+                                border: `1px solid ${selected ? "var(--border-blue-200)" : "var(--border-color)"}`,
+                                boxShadow: selected ? "inset 0 0 0 1px var(--border-blue-200)" : "none",
                               }}
                             >
-                              {selected && (
-                                <span style={{ width: 5, height: 5, borderRadius: 999, background: "#ffffff" }} />
-                              )}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 12.5,
-                                fontWeight: 700,
-                                color: selected ? "#1e3a8a" : "var(--text-primary)",
-                              }}
-                            >
-                              {AUTH_TYPE_LABELS[type]}
-                            </span>
-                          </span>
-                          <span
-                            style={{
-                              display: "block",
-                              fontSize: 11,
-                              lineHeight: 1.55,
-                              color: selected ? "#1e40af" : "var(--text-secondary)",
-                              paddingLeft: 22,
-                            }}
-                          >
-                            {AUTH_TYPE_HELP[type]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
+                              <span style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                                <span
+                                  style={{
+                                    width: 15,
+                                    height: 15,
+                                    borderRadius: 999,
+                                    border: `1.5px solid ${selected ? "#2563eb" : "var(--border-color)"}`,
+                                    background: selected ? "#2563eb" : "transparent",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {selected && (
+                                    <span style={{ width: 5, height: 5, borderRadius: 999, background: "#ffffff" }} />
+                                  )}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 12.5,
+                                    fontWeight: 700,
+                                    color: selected ? "#1e3a8a" : "var(--text-primary)",
+                                  }}
+                                >
+                                  {AUTH_TYPE_LABELS[type]}
+                                </span>
+                              </span>
+                              <span
+                                style={{
+                                  display: "block",
+                                  fontSize: 11,
+                                  lineHeight: 1.55,
+                                  color: selected ? "#1e40af" : "var(--text-secondary)",
+                                  paddingLeft: 22,
+                                }}
+                              >
+                                {AUTH_TYPE_HELP[type]}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </Field>
 
-                {/* What the chosen mode will actually put on the wire. The
+                    {/* What the chosen mode will actually put on the wire. The
                     whole point of this tab is the header that ends up on the
                     request, so show it rather than leaving it to be inferred. */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 11,
-                    padding: "11px 13px",
-                    borderRadius: 9,
-                    background: "var(--bg-slate-50)",
-                    border: "1px solid var(--border-color)",
-                  }}
-                >
-                  <span style={{ color: "#475569", flexShrink: 0, marginTop: 1 }}>
-                    <ShieldCheck size={15} />
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: "var(--text-secondary)", display: "block" }}>
-                      WHAT GETS SENT
-                    </Text>
-                    <Text
+                    <div
                       style={{
-                        fontSize: 12,
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        color: "var(--text-primary)",
-                        wordBreak: "break-all",
-                        display: "block",
-                        marginTop: 3,
+                        display: "flex",
+                        gap: 11,
+                        padding: "11px 13px",
+                        borderRadius: 9,
+                        background: "var(--bg-slate-50)",
+                        border: "1px solid var(--border-color)",
                       }}
                     >
-                      {authPreview}
-                    </Text>
-                  </div>
-                </div>
+                      <span style={{ color: "#475569", flexShrink: 0, marginTop: 1 }}>
+                        <ShieldCheck size={15} />
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, color: "var(--text-secondary)", display: "block" }}>
+                          WHAT GETS SENT
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                            color: "var(--text-primary)",
+                            wordBreak: "break-all",
+                            display: "block",
+                            marginTop: 3,
+                          }}
+                        >
+                          {authPreview}
+                        </Text>
+                      </div>
+                    </div>
 
-                <DottedDivider />
+                    <DottedDivider />
 
-                {editing.authType === "inherit" && (
-                  <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                    Nothing to configure here. The credential comes from whatever calls this endpoint — on the
-                    send bar that is the login API you pick, so the definition never has to carry a token of its
-                    own and none is stored with it.
-                  </Text>
+                    {editing.authType === "inherit" && (
+                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", lineHeight: 1.65 }}>
+                        Nothing to configure here. The credential comes from whatever calls this endpoint — on the
+                        send bar that is the login API you pick, so the definition never has to carry a token of its
+                        own and none is stored with it.
+                      </Text>
+                    )}
+
+                    {editing.authType === "none" && (
+                      <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", lineHeight: 1.65 }}>
+                        No credential is attached. This is the right choice for a public endpoint and for the login
+                        call itself — a login that inherited its own token would be circular.
+                      </Text>
+                    )}
+
+                    {editing.authType === "bearer" && (
+                      <Field label="Token" icon={KeyRound} hint="Usually a {{variable}} rather than a literal — a token pasted here is stored with the definition">
+                        <Input
+                          placeholder="{{serviceToken}}"
+                          value={(editing.authConfig as any)?.token ?? ""}
+                          onChange={(e) =>
+                            setEditing({ ...editing, authConfig: { ...editing.authConfig, token: e.target.value } })
+                          }
+                          style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 }}
+                        />
+                      </Field>
+                    )}
+
+                    {editing.authType === "basic" && (
+                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Field label="Username" style={{ flex: "1 1 200px" }}>
+                          <Input
+                            placeholder="{{username}}"
+                            value={(editing.authConfig as any)?.username ?? ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, authConfig: { ...editing.authConfig, username: e.target.value } })
+                            }
+                            style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
+                          />
+                        </Field>
+                        <Field
+                          label="Password"
+                          style={{ flex: "1 1 200px" }}
+                          hint="Point this at a secret environment variable rather than typing the password in"
+                        >
+                          <Input
+                            placeholder="{{password}}"
+                            value={(editing.authConfig as any)?.password ?? ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, authConfig: { ...editing.authConfig, password: e.target.value } })
+                            }
+                            style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
+                          />
+                        </Field>
+                      </div>
+                    )}
+
+                    {editing.authType === "api_key" && (
+                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Field label="Header name" style={{ flex: "0 0 220px" }}>
+                          <Input
+                            placeholder="X-API-Key"
+                            value={(editing.authConfig as any)?.headerName ?? ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, authConfig: { ...editing.authConfig, headerName: e.target.value } })
+                            }
+                            style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
+                          />
+                        </Field>
+                        <Field label="Value" style={{ flex: "1 1 200px" }} hint="A {{variable}} keeps the key out of the definition">
+                          <Input
+                            placeholder="{{apiKey}}"
+                            value={(editing.authConfig as any)?.value ?? ""}
+                            onChange={(e) =>
+                              setEditing({ ...editing, authConfig: { ...editing.authConfig, value: e.target.value } })
+                            }
+                            style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
+                          />
+                        </Field>
+                      </div>
+                    )}
+                  </>
                 )}
-
-                {editing.authType === "none" && (
-                  <Text style={{ fontSize: 11.5, color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                    No credential is attached. This is the right choice for a public endpoint and for the login
-                    call itself — a login that inherited its own token would be circular.
-                  </Text>
-                )}
-
-                {editing.authType === "bearer" && (
-                  <Field label="Token" icon={KeyRound} hint="Usually a {{variable}} rather than a literal — a token pasted here is stored with the definition">
-                    <Input
-                      placeholder="{{serviceToken}}"
-                      value={(editing.authConfig as any)?.token ?? ""}
-                      onChange={(e) =>
-                        setEditing({ ...editing, authConfig: { ...editing.authConfig, token: e.target.value } })
-                      }
-                      style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5 }}
-                    />
-                  </Field>
-                )}
-
-                {editing.authType === "basic" && (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Field label="Username" style={{ flex: "1 1 200px" }}>
-                      <Input
-                        placeholder="{{username}}"
-                        value={(editing.authConfig as any)?.username ?? ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, authConfig: { ...editing.authConfig, username: e.target.value } })
-                        }
-                        style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
-                      />
-                    </Field>
-                    <Field
-                      label="Password"
-                      style={{ flex: "1 1 200px" }}
-                      hint="Point this at a secret environment variable rather than typing the password in"
-                    >
-                      <Input
-                        placeholder="{{password}}"
-                        value={(editing.authConfig as any)?.password ?? ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, authConfig: { ...editing.authConfig, password: e.target.value } })
-                        }
-                        style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
-                      />
-                    </Field>
-                  </div>
-                )}
-
-                {editing.authType === "api_key" && (
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Field label="Header name" style={{ flex: "0 0 220px" }}>
-                      <Input
-                        placeholder="X-API-Key"
-                        value={(editing.authConfig as any)?.headerName ?? ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, authConfig: { ...editing.authConfig, headerName: e.target.value } })
-                        }
-                        style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
-                      />
-                    </Field>
-                    <Field label="Value" style={{ flex: "1 1 200px" }} hint="A {{variable}} keeps the key out of the definition">
-                      <Input
-                        placeholder="{{apiKey}}"
-                        value={(editing.authConfig as any)?.value ?? ""}
-                        onChange={(e) =>
-                          setEditing({ ...editing, authConfig: { ...editing.authConfig, value: e.target.value } })
-                        }
-                        style={{ fontFamily: "ui-monospace, monospace", fontSize: 12.5 }}
-                      />
-                    </Field>
-                  </div>
-                )}
-              </>
-            )}
               </div>
             </>
           )}
@@ -3086,14 +3082,15 @@ function ApiCatalogContent() {
         .ph-tip .ant-tooltip-inner {
           padding: 8px 11px;
           border-radius: 9px;
-          background: #0f172a;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.24);
+          background: var(--bg-pure-white);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+          border: 1px solid var(--border-color);
           min-width: 0;
           min-height: 0;
         }
         .ph-tip .ant-tooltip-arrow::before,
         .ph-tip .ant-tooltip-arrow::after {
-          background: #0f172a;
+          background: var(--bg-pure-white);
         }
         .ph-tip-body {
           display: flex;
@@ -3105,12 +3102,12 @@ function ApiCatalogContent() {
           font-size: 11.5px;
           font-weight: 650;
           letter-spacing: 0.1px;
-          color: #f8fafc;
+          color: var(--text-primary);
         }
         .ph-tip-detail {
           font-size: 10.5px;
           line-height: 1.5;
-          color: #94a3b8;
+          color: var(--text-secondary);
         }
         .ph-tree {
           flex: 1;
@@ -3553,65 +3550,109 @@ function ApiCatalogContent() {
       {/* Edit a collection from its card. */}
       <Modal
         open={!!collectionEdit}
-        title="Edit collection"
-        okText="Save changes"
-        confirmLoading={savingCollection}
-        onOk={saveCollection}
+        title={null}
+        footer={null}
+        closable={false}
         onCancel={() => setCollectionEdit(null)}
-        width={520}
+        width={480}
         destroyOnHidden
+        centered
+        styles={{
+          content: { padding: 0, borderRadius: 16, overflow: "hidden" },
+          body: { padding: 0 },
+        }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Field label="Name" required icon={FolderPlus}>
-            <Input
-              autoFocus
-              placeholder="Users"
-              value={collectionDraft.name ?? ""}
-              onChange={(e) => setCollectionDraft({ ...collectionDraft, name: e.target.value })}
-            />
-          </Field>
+        <div className="so-modal">
+          <div className="so-head">
+            <span className="so-head__icon"><Pencil size={17} /></span>
+            <div className="so-head__text">
+              <div className="so-head__title">Edit collection</div>
+              <div className="so-head__sub">Update the name, description, module, and source tier of this collection.</div>
+            </div>
+            <button className="so-head__close" onClick={() => setCollectionEdit(null)} aria-label="Close">
+              <X size={14} />
+            </button>
+          </div>
 
-          <Field label="Description" icon={FileText}>
-            <TextArea
-              rows={2}
-              placeholder="What these endpoints have in common."
-              value={collectionDraft.description ?? ""}
-              onChange={(e) => setCollectionDraft({ ...collectionDraft, description: e.target.value })}
-            />
-          </Field>
+          <div className="so-form">
+            <div style={{ marginBottom: 16 }}>
+              <label className="so-label" htmlFor="edit-collection-name" style={{ display: "block", marginBottom: 6 }}>
+                Name <span className="so-req">*</span>
+              </label>
+              <Input
+                id="edit-collection-name"
+                autoFocus
+                maxLength={120}
+                placeholder="Users"
+                value={collectionDraft.name ?? ""}
+                onChange={(e) => setCollectionDraft({ ...collectionDraft, name: e.target.value })}
+                onPressEnter={saveCollection}
+              />
+            </div>
 
-          <Field
-            label="Module"
-            icon={Boxes}
-            hint="Moving a collection moves every endpoint inside it to the same module."
-          >
-            <SearchableDropdown
-              value={collectionDraft.moduleName ?? null}
-              onChange={(value: string) =>
-                setCollectionDraft({ ...collectionDraft, moduleName: value || null })
-              }
-              options={moduleChoices}
-              placeholder="Unfiled"
-              itemNoun="modules"
-              width={440}
-            />
-          </Field>
+            <div style={{ marginBottom: 16 }}>
+              <label className="so-label" htmlFor="edit-collection-desc" style={{ display: "block", marginBottom: 6 }}>
+                Description
+              </label>
+              <TextArea
+                id="edit-collection-desc"
+                rows={2}
+                placeholder="What these endpoints have in common."
+                value={collectionDraft.description ?? ""}
+                onChange={(e) => setCollectionDraft({ ...collectionDraft, description: e.target.value })}
+              />
+            </div>
 
-          <Field label="Source" icon={Layers3}>
-            <SearchableDropdown
-              value={collectionDraft.sourceId ?? null}
-              onChange={(value: string) =>
-                setCollectionDraft({
-                  ...collectionDraft,
-                  sourceId: value === "__create_new__" ? collectionDraft.sourceId : value || null,
-                })
-              }
-              options={sourceOptions.filter((option) => option.value !== "__create_new__")}
-              placeholder="No source"
-              itemNoun="sources"
-              width={440}
-            />
-          </Field>
+            <div style={{ marginBottom: 16 }}>
+              <label className="so-label" style={{ display: "block", marginBottom: 6 }}>
+                Module
+              </label>
+              <SearchableDropdown
+                value={collectionDraft.moduleName ?? null}
+                onChange={(value: string) =>
+                  setCollectionDraft({ ...collectionDraft, moduleName: value || null })
+                }
+                options={moduleChoices}
+                placeholder="Unfiled"
+                itemNoun="modules"
+                width="100%"
+              />
+              <span className="so-extra" style={{ display: "block", marginTop: 6 }}>
+                Moving a collection moves every endpoint inside it to the same module.
+              </span>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label className="so-label" style={{ display: "block", marginBottom: 6 }}>
+                Source
+              </label>
+              <SearchableDropdown
+                value={collectionDraft.sourceId ?? null}
+                onChange={(value: string) =>
+                  setCollectionDraft({
+                    ...collectionDraft,
+                    sourceId: value === "__create_new__" ? collectionDraft.sourceId : value || null,
+                  })
+                }
+                options={sourceOptions.filter((option) => option.value !== "__create_new__")}
+                placeholder="No source"
+                itemNoun="sources"
+                width="100%"
+              />
+            </div>
+          </div>
+
+          <div className="so-foot">
+            <Button onClick={() => setCollectionEdit(null)}>Cancel</Button>
+            <Button
+              type="primary"
+              onClick={saveCollection}
+              loading={savingCollection}
+              disabled={!(collectionDraft.name ?? "").trim()}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       </Modal>
 
@@ -4425,9 +4466,8 @@ function ModuleBranch({
                       onEdit={canUpdate ? () => onEditCollection(collection) : undefined}
                       onDelete={canDelete ? () => onDeleteCollection(collection) : undefined}
                       deleteTitle={`Delete "${collection.name}"?`}
-                      deleteDescription={`The collection goes; its ${apis.length} endpoint${
-                        apis.length === 1 ? "" : "s"
-                      } stay and become ungrouped under the same module.`}
+                      deleteDescription={`The collection goes; its ${apis.length} endpoint${apis.length === 1 ? "" : "s"
+                        } stay and become ungrouped under the same module.`}
                     />
                   </span>
                 </div>
@@ -4604,9 +4644,8 @@ function TrashPane({
           {canPurge && entries.length > 0 && (
             <ConfirmDialog
               title="Empty the trash?"
-              description={`All ${entries.length} item${
-                entries.length === 1 ? "" : "s"
-              } will be deleted for good. This cannot be undone.`}
+              description={`All ${entries.length} item${entries.length === 1 ? "" : "s"
+                } will be deleted for good. This cannot be undone.`}
               tone="danger"
               confirmText="Delete everything"
               onConfirm={onEmpty}
@@ -4837,116 +4876,116 @@ function ProjectSwitcher({
 
   return (
     <Dropdown
-        trigger={["click"]}
-        menu={{
-          items: [
-            {
-              key: "header",
-              disabled: true,
+      trigger={["click"]}
+      menu={{
+        items: [
+          {
+            key: "header",
+            disabled: true,
+            label: (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: 0.6,
+                    textTransform: "uppercase",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Projects
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: "var(--text-secondary)",
+                    background: "var(--bg-slate-50)",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {projects.length} Total
+                </span>
+              </div>
+            ),
+          },
+          { type: "divider" as const },
+          ...projects.map((project) => {
+            const active = project.value === projectId;
+            const hue = stringToHash(project.code || "PRJ") % 360;
+            return {
+              key: project.value,
               label: (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 0" }}>
                   <span
                     style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: 0.6,
-                      textTransform: "uppercase",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Projects
-                  </span>
-                  <span
-                    style={{
+                      width: 26,
+                      height: 26,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 7,
                       fontSize: 10,
-                      color: "var(--text-secondary)",
-                      background: "var(--bg-slate-50)",
-                      padding: "1px 6px",
-                      borderRadius: 4,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      background: active ? "#3b82f6" : `hsla(${hue}, 70%, 50%, 0.10)`,
+                      color: active ? "#ffffff" : `hsl(${hue}, 70%, 50%)`,
                     }}
                   >
-                    {projects.length} Total
+                    {(project.code || "PRJ").substring(0, 3).toUpperCase()}
+                  </span>
+                  <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: active ? 700 : 600,
+                        color: active ? "#1d4ed8" : "var(--text-primary)",
+                      }}
+                    >
+                      {project.label}
+                    </span>
+                    <span style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>
+                      #{project.code || "N/A"}
+                    </span>
                   </span>
                 </div>
               ),
-            },
-            { type: "divider" as const },
-            ...projects.map((project) => {
-              const active = project.value === projectId;
-              const hue = stringToHash(project.code || "PRJ") % 360;
-              return {
-                key: project.value,
-                label: (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 0" }}>
-                    <span
-                      style={{
-                        width: 26,
-                        height: 26,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: 7,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        flexShrink: 0,
-                        background: active ? "#3b82f6" : `hsla(${hue}, 70%, 50%, 0.10)`,
-                        color: active ? "#ffffff" : `hsl(${hue}, 70%, 50%)`,
-                      }}
-                    >
-                      {(project.code || "PRJ").substring(0, 3).toUpperCase()}
-                    </span>
-                    <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                      <span
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: active ? 700 : 600,
-                          color: active ? "#1d4ed8" : "var(--text-primary)",
-                        }}
-                      >
-                        {project.label}
-                      </span>
-                      <span style={{ fontSize: 10.5, color: "var(--text-secondary)" }}>
-                        #{project.code || "N/A"}
-                      </span>
-                    </span>
-                  </div>
-                ),
-                onClick: () => onChoose(project.value),
-              };
-            }),
-            { type: "divider" as const },
-            {
-              key: "__all__",
-              label: (
-                <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#1d4ed8" }}>
-                  <LayoutGrid size={13} />
-                  Show all projects
-                </span>
-              ),
-              onClick: () => onChoose(null),
-            },
-          ],
-        }}
-      >
-        <div className="ph-proj" role="button" tabIndex={0} aria-label="Switch project">
-          <span
-            className="ph-proj-code"
-            style={{
-              background: current ? `hsla(${hue}, 68%, 48%, 0.12)` : "var(--bg-slate-50)",
-              color: current ? `hsl(${hue}, 68%, 42%)` : "#94a3b8",
-            }}
-          >
-            {(current?.code || "—").substring(0, 3).toUpperCase()}
+              onClick: () => onChoose(project.value),
+            };
+          }),
+          { type: "divider" as const },
+          {
+            key: "__all__",
+            label: (
+              <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#1d4ed8" }}>
+                <LayoutGrid size={13} />
+                Show all projects
+              </span>
+            ),
+            onClick: () => onChoose(null),
+          },
+        ],
+      }}
+    >
+      <div className="ph-proj" role="button" tabIndex={0} aria-label="Switch project">
+        <span
+          className="ph-proj-code"
+          style={{
+            background: current ? `hsla(${hue}, 68%, 48%, 0.12)` : "var(--bg-slate-50)",
+            color: current ? `hsl(${hue}, 68%, 42%)` : "#94a3b8",
+          }}
+        >
+          {(current?.code || "—").substring(0, 3).toUpperCase()}
+        </span>
+        <span className="ph-proj-text">
+          <span className="ph-proj-name">{current?.label ?? "Select a project"}</span>
+          <span className="ph-proj-meta">
+            <Briefcase size={9.5} style={{ flexShrink: 0 }} />
+            {current?.code ? `#${current.code}` : "Switch project"}
           </span>
-          <span className="ph-proj-text">
-            <span className="ph-proj-name">{current?.label ?? "Select a project"}</span>
-            <span className="ph-proj-meta">
-              <Briefcase size={9.5} style={{ flexShrink: 0 }} />
-              {current?.code ? `#${current.code}` : "Switch project"}
-            </span>
-          </span>
-          <ChevronDown size={14} className="ph-proj-caret" />
-        </div>
+        </span>
+        <ChevronDown size={14} className="ph-proj-caret" />
+      </div>
     </Dropdown>
   );
 }

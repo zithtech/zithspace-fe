@@ -67,7 +67,7 @@ export const SprintReportsService = {
       );
       
       if (response?.data?.pagination) {
-        return { data: response.data.data, pagination: response.data.pagination };
+        return { data: response.data.data, pagination: response.data.pagination, stats: response.data.stats };
       }
       return response?.data?.data || [];
     } catch (error) {

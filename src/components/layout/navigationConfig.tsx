@@ -375,6 +375,24 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
         children: [
           {
+            // First in the list on purpose: Playbooks answers "what should I
+            // test?", which comes before scoping and writing cases.
+            key: "/qa-workspace/playbooks",
+            label: "Playbooks",
+            icon: I(BookOpen),
+            path: "/qa-workspace/playbooks",
+            requiredPermission: Permissions.QA_CASE_READ,
+          },
+          {
+            // The other half of Playbooks: what this workspace asked Testiez to
+            // write, and where each ask has got to.
+            key: "/qa-workspace/playbooks/requested",
+            label: "Requested Playbooks",
+            icon: I(Sparkles),
+            path: "/qa-workspace/playbooks/requested",
+            requiredPermission: Permissions.QA_CASE_READ,
+          },
+          {
             key: "/qa-workspace/test-scope",
             label: "Scope",
             icon: I(Target),

@@ -983,7 +983,7 @@ export default function SprintPlanComponent() {
 
               {/* Right side — the status switch that used to live in the rail,
                   then the view controls. */}
-              <Space size={10} className="sc-header-right">
+              <Space size={10} className="sc-header-right" wrap>
                 <Segmented
                   className="saas-segmented-premium sc-owner-seg"
                   value={tableFilters.status || 'all'}
@@ -3513,7 +3513,7 @@ export default function SprintPlanComponent() {
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
           position: sticky;
-          top: 0;
+          top: 52px;
           z-index: 2;
         }
         [data-theme='dark'] .sp-tbl-head {
@@ -5049,6 +5049,8 @@ export default function SprintPlanComponent() {
           position: sticky;
           top: 0;
           z-index: 100;
+          height: auto;
+          min-height: 52px;
           margin: 0;
           padding: 9.7px 16px;
           display: flex;
@@ -5059,9 +5061,12 @@ export default function SprintPlanComponent() {
           border-bottom: 1px solid var(--border-slate-200);
           flex-shrink: 0;
         }
+        .sc-header .saas-input {
+          max-width: 100% !important;
+        }
         [data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
-        .sc-header-controls { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .sc-header-right { flex-shrink: 0; }
+        .sc-header-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: 1 1 0%; min-width: 0; }
+        .sc-header-right { flex-shrink: 0; max-width: 100%; }
 
 
         .sc-owner-seg .ant-segmented-item-label { padding: 0 4px; }
@@ -5565,6 +5570,13 @@ export default function SprintPlanComponent() {
         @media (max-width: 900px) {
           .sp-main-stats {
             display: none !important;
+          }
+          .sc-header {
+            position: relative;
+            z-index: 10;
+          }
+          .sp-cal-header, .sp-tbl-head {
+            top: 0;
           }
         }
         @media (max-width: 640px) {

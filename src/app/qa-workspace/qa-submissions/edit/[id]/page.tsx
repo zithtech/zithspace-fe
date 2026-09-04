@@ -1,7 +1,9 @@
 "use client";
+import { message } from "@/providers/AntdGlobalProvider";
+
 
 import React, { useEffect, useState } from "react";
-import { App } from "antd";
+import { App  } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
@@ -12,7 +14,6 @@ import SubmissionForm from "../../SubmissionForm";
 export default function EditQaSubmissionPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { message } = App.useApp();
   const { canUpdateSubmission } = usePermission();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);

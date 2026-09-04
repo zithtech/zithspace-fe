@@ -1629,11 +1629,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
-  padding: 0 14px;
+  padding: 10px 14px;
   border-top: 1px solid var(--border-slate-200);
-  height: 52px !important;
+  min-height: 52px !important;
+  height: auto !important;
   box-sizing: border-box;
 }
 
@@ -1642,16 +1643,18 @@
   bottom: 0;
   z-index: 30;
   margin: 8px -18px 0;
-  padding: 0 18px;
+  padding: 10px 18px;
   background: var(--bg-pure-white);
   box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
-  height: 52px !important;
+  min-height: 52px !important;
+  height: auto !important;
   box-sizing: border-box;
 }
 
 .pp-footer-info {
   font-size: 12px;
   color: var(--text-slate-500);
+  white-space: nowrap;
 }
 
 .pp-footer-info strong {

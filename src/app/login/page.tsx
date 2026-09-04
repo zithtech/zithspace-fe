@@ -2,7 +2,7 @@
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTenant } from '@/context/TenantContext';
@@ -26,6 +26,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 // import Logo from '@/assets/logo/CMPLOGO.jpeg';
 import { useProduct } from '@/context/ProductContext';
+import { oauthConfigFor, ssoAvailability, GOOGLE_SCOPE, MS_SCOPE } from '@/lib/oauthConfig';
 
 
 const { Title, Text } = Typography;
@@ -36,20 +37,24 @@ interface LoginFormData {
   remember?: boolean;
 }
 
-// Helper to safely determine subdomain and root host for OAuth flows
-function resolveHostInfo() {
+// Helper to safely determine subdomain and root host for OAuth flows.
+//
+// `appUrl` is the CURRENT BRAND's app origin, not a global constant. Zukvo and
+// Testiez share this deploy, so reading NEXT_PUBLIC_APP_URL here would send a
+// Testiez tenant to the Zukvo domain to authenticate and land them back on the
+// wrong brand's subdomain. Callers pass oauthConfigFor(product).appUrl.
+function resolveHostInfo(appUrl: string) {
   const hostname = window.location.hostname;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
   let subdomain = "";
   let rootHost = window.location.host;
 
-  // Prefer environment variable if configured, but ONLY if we are NOT on localhost.
+  // Prefer the configured brand origin, but ONLY if we are NOT on localhost.
   // Otherwise local dev will get redirected to prod.
-  const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
   let hasValidEnvRoot = false;
-  if (envAppUrl && !isLocalhost) {
+  if (appUrl && !isLocalhost) {
     try {
-      rootHost = new URL(envAppUrl).host;
+      rootHost = new URL(appUrl).host;
       hasValidEnvRoot = true;
     } catch (e) {}
   }
@@ -83,6 +88,14 @@ function resolveHostInfo() {
 // Separate component that uses useSearchParams
 function LoginFormWithParams() {
   const { login, googleLogin, microsoftLogin, user, checkAuth } = useAuth();
+  // Which brand this login screen is. Stamped on the request headers by the edge
+  // middleware and handed down by ProductProvider, so it is correct on the first
+  // paint — no effect, no flash of the other brand's OAuth target.
+  const { product } = useProduct();
+  const oauth = useMemo(() => oauthConfigFor(product), [product]);
+  // Testiez has no fallback to Zukvo's OAuth apps, so a surface without its own
+  // credentials offers no SSO at all rather than a button naming the other brand.
+  const sso = useMemo(() => ssoAvailability(product), [product]);
   const { resolveTenant } = useTenant();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,7 +153,7 @@ function LoginFormWithParams() {
             } catch(e) {}
           }
           
-          const { subdomain: hostnameSubdomain, rootHost } = resolveHostInfo();
+          const { subdomain: hostnameSubdomain, rootHost } = resolveHostInfo(oauth.appUrl);
           // Strip 'app.' prefix when building tenant subdomain URLs:
           // app.zukvo.com → zukvo.com, so redirect becomes company1.zukvo.com not company1.app.zukvo.com
           const tenantBaseHost = rootHost.startsWith('app.')
@@ -203,7 +216,7 @@ function LoginFormWithParams() {
       return;
     }
 
-    const { subdomain, rootHost } = resolveHostInfo();
+    const { subdomain, rootHost } = resolveHostInfo(oauth.appUrl);
 
     if (subdomain) {
       // Redirect to root domain to perform login securely under stable OAuth origins
@@ -217,8 +230,8 @@ function LoginFormWithParams() {
 
     try {
       const client = (window as any).google.accounts.oauth2.initTokenClient({
-        client_id: "945644412981-eu93b14d7jr5d0gd5s04758lu6mupad8.apps.googleusercontent.com",
-        scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+        client_id: oauth.googleClientId,
+        scope: GOOGLE_SCOPE,
         callback: async (tokenResponse: any) => {
           if (tokenResponse.error) {
             setError("Google login was cancelled or failed.");
@@ -229,7 +242,7 @@ function LoginFormWithParams() {
             try {
               const subdomainParam = searchParams.get('subdomain');
               // Use hostname subdomain as fallback (covers case where popup runs on lakshmi.zukvo.com)
-              const { subdomain: hostnameSubdomain, rootHost: currentRootHost } = resolveHostInfo();
+              const { subdomain: hostnameSubdomain, rootHost: currentRootHost } = resolveHostInfo(oauth.appUrl);
               const effectiveSubdomain = subdomainParam || hostnameSubdomain || '';
               const tenantBaseHost = currentRootHost.startsWith('app.') ? currentRootHost.slice(4) : currentRootHost;
 
@@ -272,7 +285,7 @@ function LoginFormWithParams() {
   };
 
   const handleMicrosoftLogin = () => {
-    const { subdomain, rootHost } = resolveHostInfo();
+    const { subdomain, rootHost } = resolveHostInfo(oauth.appUrl);
 
     if (subdomain) {
       // Redirect to root domain to perform login securely under stable OAuth origins
@@ -284,14 +297,15 @@ function LoginFormWithParams() {
     setLoading(true);
     setError("");
 
-    const clientId = "2de414d6-6eff-4c4a-9480-f124cc8d4796";
-    // Always use the registered Azure redirect URI (app.zukvo.com/login).
-    // Using window.location.origin would produce sl.zukvo.com which is NOT registered.
+    const clientId = oauth.msClientId;
+    // Always use the registered Azure redirect URI for THIS brand — the tenant's
+    // own host (sl.zukvo.com, acme.testiez.com) is not registered and would be
+    // rejected. oauth.appUrl is the brand's app origin, so a Testiez login stays
+    // on the Testiez domain instead of bouncing through Zukvo's.
     const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const envAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-    const registeredRedirectBase = (isLocalhost ? window.location.origin : envAppUrl) || window.location.origin;
+    const registeredRedirectBase = (isLocalhost ? window.location.origin : oauth.appUrl) || window.location.origin;
     const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
-    const scope = encodeURIComponent("openid profile email User.Read");
+    const scope = encodeURIComponent(MS_SCOPE);
     
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
 
@@ -319,7 +333,7 @@ function LoginFormWithParams() {
         cleanup();
         
         try {
-          const { subdomain, rootHost } = resolveHostInfo();
+          const { subdomain, rootHost } = resolveHostInfo(oauth.appUrl);
 
           if (subdomain) {
             const protocol = window.location.protocol;
@@ -392,12 +406,12 @@ function LoginFormWithParams() {
     const auto = searchParams.get('google_login_auto');
     if (auto === 'true') {
       const subdomain = searchParams.get('subdomain');
-      const { rootHost } = resolveHostInfo();
+      const { rootHost } = resolveHostInfo(oauth.appUrl);
       const protocol = window.location.protocol;
       const redirectUri = `${protocol}//${rootHost}/login`;
       
-      const clientId = "945644412981-eu93b14d7jr5d0gd5s04758lu6mupad8.apps.googleusercontent.com";
-      const scope = encodeURIComponent("https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email");
+      const clientId = oauth.googleClientId;
+      const scope = encodeURIComponent(GOOGLE_SCOPE);
       const state = encodeURIComponent(JSON.stringify({ subdomain: subdomain || '' }));
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
@@ -426,7 +440,7 @@ function LoginFormWithParams() {
       setLoading(true);
       setError("");
 
-      const { rootHost } = resolveHostInfo();
+      const { rootHost } = resolveHostInfo(oauth.appUrl);
       const tenantBaseHost = rootHost.startsWith('app.') ? rootHost.slice(4) : rootHost;
 
       const targetSubdomain = subdomainParam || '';
@@ -454,10 +468,10 @@ function LoginFormWithParams() {
     setLoading(true);
     setError("");
 
-    const clientId = "2de414d6-6eff-4c4a-9480-f124cc8d4796";
-    const registeredRedirectBase = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const clientId = oauth.msClientId;
+    const registeredRedirectBase = oauth.appUrl || window.location.origin;
     const redirectUri = `${registeredRedirectBase.replace(/\/$/, '')}/login`;
-    const scope = encodeURIComponent("openid profile email User.Read");
+    const scope = encodeURIComponent(MS_SCOPE);
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_mode=fragment`;
 
     const width = 600, height = 600;
@@ -476,7 +490,7 @@ function LoginFormWithParams() {
       if (event.data?.type === "microsoft-token" && event.data?.token) {
         const token = event.data.token;
         cleanup();
-        const { rootHost } = resolveHostInfo();
+        const { rootHost } = resolveHostInfo(oauth.appUrl);
         const tenantBaseHost = rootHost.startsWith('app.') ? rootHost.slice(4) : rootHost;
         const targetSubdomain = subdomainParam || '';
         try {
@@ -669,6 +683,8 @@ function LoginFormWithParams() {
         </Form.Item>
       </Form>
 
+      {sso.any && (
+      <>
       <div
         style={{
           display: 'flex',
@@ -685,6 +701,7 @@ function LoginFormWithParams() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+        {sso.google && (
         <Button
           size="large"
           icon={
@@ -722,6 +739,8 @@ function LoginFormWithParams() {
             boxShadow: 'none',
           }}
         />
+        )}
+        {sso.microsoft && (
         <Button
           size="large"
           icon={
@@ -747,7 +766,10 @@ function LoginFormWithParams() {
             boxShadow: 'none',
           }}
         />
+        )}
       </div>
+      </>
+      )}
     </>
   );
 }

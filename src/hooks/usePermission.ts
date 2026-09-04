@@ -507,6 +507,7 @@ export const usePermission = () => {
       Permissions.QA_APPROVAL_APPROVE,
       Permissions.QA_MANAGE,
     ),
+    canReadCoverageMap: hasAnyPermission(Permissions.QA_COVERAGE_MAP_READ, Permissions.QA_MANAGE),
     canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
     canManageQa:    hasPermission(Permissions.QA_MANAGE),
 

@@ -1289,10 +1289,8 @@ const ProjectsManageContent: React.FC = () => {
           flex: 1;
         }
         .pm2-shell {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 0;
-          align-items: stretch;
+          display: flex;
+          flex-direction: column;
           min-height: calc(100vh - 54px);
         }
         .pm2-main {
@@ -1301,6 +1299,7 @@ const ProjectsManageContent: React.FC = () => {
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
+          flex: 1;
         }
         /* The table runs edge to edge; the card grid keeps a gutter. */
         .pm2-main-content { padding: 0; }
@@ -1810,6 +1809,9 @@ const ProjectsManageContent: React.FC = () => {
 
         .pm2-main-content {
           padding-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
         }
 
         /* ── Sticky pagination footer ──────────────────────────── */
@@ -1818,8 +1820,8 @@ const ProjectsManageContent: React.FC = () => {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 10px 24px;
-          margin: auto -24px -32px -24px;
+          padding: 8px 16px;
+          margin: auto 0 -24px 0;
           flex-wrap: wrap;
           position: sticky;
           bottom: 0;
@@ -2175,7 +2177,6 @@ const ProjectsManageContent: React.FC = () => {
             display: flex;
             flex-direction: column;
             grid-template-columns: none;
-            min-height: auto;
           }
         }
       `}</style>

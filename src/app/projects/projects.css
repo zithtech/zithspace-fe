@@ -17,6 +17,7 @@
         .pm2-shell {
           display: grid;
           grid-template-columns: 240px minmax(0, 1fr);
+          grid-template-rows: 1fr;
           gap: 0;
           align-items: stretch;
           min-height: calc(100vh - 54px);
@@ -28,6 +29,7 @@
           background: var(--bg-pure-white);
           display: flex;
           flex-direction: column;
+          height: 100%;
         }
 
         [data-theme="dark"] .pm2-main {
@@ -937,6 +939,9 @@
 
         .pm2-main-content {
           padding-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
         }
 
         /* ── Sticky pagination footer ──────────────────────────── */

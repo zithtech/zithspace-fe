@@ -6,7 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 import { Layout, App as AntApp, theme } from "antd";
 import ZukvoLoader from "../common/ZukvoLoader";
 // import ErrorBoundary from "./ErrorBoundary";
-import OnboardingProjectModal from "../common/OnboardingProjectModal";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 import { ModuleType } from "./navigationConfig";
@@ -78,6 +77,14 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
     // lookup below, which only ever sees routes this surface still has.
     if (isDeniedPath(pathname)) {
       router.replace(manifest.homeRoute);
+      return;
+    }
+
+    // Onboarding routes: welcome itself + the two destinations the welcome page
+    // sends users to before onboarding_completed is set in the DB.
+    const ONBOARDING_ALLOWED = ['/welcome', '/projects/manage', '/integrations'];
+    if (user.onboardingCompleted === false && !ONBOARDING_ALLOWED.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+      router.replace('/welcome');
       return;
     }
 
@@ -363,6 +370,7 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
             marginLeft: hideSideNav ? 0 : collapsed ? 52 : 200,
+            width: hideSideNav ? "100%" : `calc(100% - ${collapsed ? 52 : 200}px)`,
             transition: "all 0.2s",
             height: "calc(100vh - 60px)",
             overflowY: "auto",
@@ -374,7 +382,6 @@ export default function MainLayout({ children, noPadding, hideSideNav }: MainLay
         </Content>
         <TimerSocketListener />
       </Layout>
-      {user?.onboardingCompleted === false && <OnboardingProjectModal />}
     </Layout>
   );
 }

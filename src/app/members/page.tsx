@@ -490,6 +490,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           )}
 
           <SectionCard
+            data-tour="member-drawer-profile-details"
             icon={<UserOutlined />}
             title="Profile Details"
             subtitle="Enter the basic information for this member"
@@ -580,6 +581,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           </SectionCard>
 
           <SectionCard
+            data-tour="member-drawer-access"
             icon={<SafetyCertificateOutlined />}
             title="Access"
             subtitle="Configure role and reporting structure"
@@ -667,6 +669,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
           </SectionCard>
 
           <SectionCard
+            data-tour="member-drawer-schedule"
             icon={<CalendarOutlined />}
             title="Schedule"
             subtitle="Set up work schedule and availability"
@@ -730,6 +733,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
 
           {mode === "add" && (
             <SectionCard
+              data-tour="member-drawer-welcome-notification"
               icon={<MailOutlined />}
               title="Welcome Notification"
               subtitle="Send a welcome email to the new member"
@@ -790,6 +794,7 @@ const MemberDrawerContent: React.FC<MemberDrawerContentProps> = ({
         </Button>
         <Button
           type="primary"
+          data-tour="member-drawer-submit-btn"
           loading={formLoading}
           onClick={() => form.submit()}
           className="mm-footer-btn"
@@ -1957,6 +1962,7 @@ export default function MembersPage() {
         const label = isActive ? "Active" : "Inactive";
         return (
           <span
+            data-tour="members-table-status"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -2068,6 +2074,7 @@ export default function MembersPage() {
               overlayClassName="mm-action-pop"
             >
               <Button
+                data-tour="members-table-actions"
                 type="text"
                 icon={<MoreOutlined style={{ fontSize: 16 }} />}
                 size="small"
@@ -2193,6 +2200,7 @@ export default function MembersPage() {
 
           {(canCreateUser || canManageUsers) && (
             <Button
+              data-tour="members-create-btn"
               type="primary"
               icon={<PlusOutlined />}
               className="pp-create-btn"
@@ -2224,7 +2232,7 @@ export default function MembersPage() {
             </div>
 
             <div className="pp-side-section-label">Filters</div>
-            <div className="pp-side-filters">
+            <div className="pp-side-filters" data-tour="members-sidebar-filters">
               <SearchableDropdown
                 className="pp-side-sd"
                 placeholder="Role"
@@ -2298,7 +2306,7 @@ export default function MembersPage() {
               <button className="pp-mobile-toggle" onClick={() => setIsMobileOpen(true)} style={{ marginRight: 0 }}>
                 <MenuOutlined style={{ fontSize: 16 }} />
               </button>
-              <div className="pp-search-wrap" style={{ flex: 1, maxWidth: 'none', minWidth: 0 }}>
+              <div className="pp-search-wrap" data-tour="members-search-bar" style={{ flex: 1, maxWidth: 'none', minWidth: 0 }}>
                 <SearchOutlined className="pp-search-icon" />
                 <input
                   className="pp-search"
@@ -2356,7 +2364,7 @@ export default function MembersPage() {
           <div className="pp-body">
             <ZukvoLoadingOverlay loading={loading} message="">
               {view === 'list' ? (
-                <div className="pp-table-wrap">
+                <div className="pp-table-wrap" data-tour="members-table">
                   <Table
                     className="pp-table"
                     columns={columns}

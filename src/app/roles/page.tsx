@@ -1120,6 +1120,7 @@ export default function RolesPage() {
           {canAssignRole && (
             <Tooltip title="Manage members">
               <Button
+                data-tour="roles-table-members"
                 type="text"
                 icon={<TeamOutlined />}
                 size="small"
@@ -1141,6 +1142,7 @@ export default function RolesPage() {
           {canUpdateRole && (
             <Tooltip title="Edit permissions">
               <Button
+                data-tour="roles-table-perms"
                 type="text"
                 icon={<SettingOutlined />}
                 size="small"
@@ -1195,6 +1197,7 @@ export default function RolesPage() {
 
           {canCreateRole && (
             <Button
+              data-tour="roles-create-btn"
               type="primary"
               icon={<PlusOutlined />}
               className="rp-side-create"
@@ -1207,7 +1210,7 @@ export default function RolesPage() {
 
           <div className="rp-side-scroll">
             <div className="rp-side-section-label">Views</div>
-            <div className="rp-side-list">
+            <div className="rp-side-list" data-tour="roles-sidebar-views">
               {roleViews.map((v) => {
                 const active = roleTypeFilter === v.key;
                 return (
@@ -1249,6 +1252,7 @@ export default function RolesPage() {
                 <MenuOutlined style={{ fontSize: 16 }} />
               </button>
               <Input
+                data-tour="roles-search-input"
                 className="rp-search"
                 prefix={
                   <SearchOutlined style={{ color: 'var(--text-slate-400)', marginRight: 6 }} />

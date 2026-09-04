@@ -382,6 +382,7 @@ export default function PositionsPage() {
                 )}
                 {canCreateOrgPosition && (
                   <Button
+                    data-tour="org-positions-create-btn"
                     type="primary"
                     icon={<Plus size={15} />}
                     onClick={handleAdd}

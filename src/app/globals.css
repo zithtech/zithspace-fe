@@ -37,27 +37,20 @@
 */
 body.tour-active .main-top-nav,
 body.tour-active .ant-layout-sider,
-body.tour-active .saas-header-container {
+body.tour-active .saas-header-container,
+body.tour-active .intg-toolbar {
   z-index: 0 !important;
 }
 
-body.tour-active .ant-drawer {
-  z-index: auto !important;
-}
-body.tour-active .ant-drawer-mask {
+body.tour-active .ant-drawer:not(.ant-drawer-open) {
   display: none !important;
+  visibility: hidden !important;
   pointer-events: none !important;
 }
-body.tour-active .ant-drawer-content-wrapper,
-body.tour-active .ant-drawer-content,
-body.tour-active .ant-drawer-wrapper-body,
-body.tour-active .ant-drawer-header,
-body.tour-active .ant-drawer-body {
-  transform: none !important;
-  z-index: auto !important;
-}
-body.tour-active .ant-drawer-header {
-  position: static !important;
+
+body.tour-active .ant-drawer.ant-drawer-open .ant-drawer-mask {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 body.tour-active .ant-popover {
@@ -68,11 +61,24 @@ body.tour-active [data-tour="tickets-drawer-add-sprint"],
 body.tour-active [data-tour="tickets-drawer-remove-sprint"],
 body.tour-active [data-tour="tickets-drawer-create-doc"],
 body.tour-active [data-tour="tickets-drawer-share"],
-body.tour-active [data-tour="tickets-drawer-close"] {
+body.tour-active [data-tour="tickets-drawer-close"],
+body.tour-active [data-tour="topnav-time-tracker"] {
   position: relative !important;
   z-index: 10002 !important;
   pointer-events: auto !important;
   cursor: pointer !important;
+}
+
+body.tour-active .settings-main-wrapper input,
+body.tour-active .settings-main-wrapper textarea,
+body.tour-active .settings-main-wrapper select,
+body.tour-active .settings-main-wrapper .ant-select,
+body.tour-active .settings-main-wrapper .ant-picker,
+body.tour-active .settings-main-wrapper .ant-input,
+body.tour-active .settings-main-wrapper .ant-input-number,
+body.tour-active .settings-main-wrapper button,
+body.tour-active .settings-main-wrapper .ant-btn {
+  pointer-events: auto !important;
 }
 
 

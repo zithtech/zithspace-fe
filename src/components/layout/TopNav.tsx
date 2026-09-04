@@ -718,6 +718,18 @@ export default function TopNav({
                       onClick: () => startTour('testiez-qa-workflow', true)
                     },
                     {
+                      key: "replay-project-manual-tour",
+                      label: "Replay Project Creation Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-project-manual', true)
+                    },
+                    {
+                      key: "replay-project-import-tour",
+                      label: "Replay Migration & Integrations Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-project-import', true)
+                    },
+                    {
                       key: "replay-sprints-tour",
                       label: "Replay Tickets Tour",
                       icon: <PlayCircleOutlined />,
@@ -728,6 +740,30 @@ export default function TopNav({
                       label: "Replay Document Hub Tour",
                       icon: <PlayCircleOutlined />,
                       onClick: () => startTour('testiez-document-hub', true)
+                    },
+                    {
+                      key: "replay-admin-settings-tour",
+                      label: "Replay Admin & Settings Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-admin-settings', true)
+                    },
+                    {
+                      key: "replay-roles-tour",
+                      label: "Replay Roles & RBAC Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-roles', true)
+                    },
+                    {
+                      key: "replay-org-structure-tour",
+                      label: "Replay Org Structure Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-org-structure', true)
+                    },
+                    {
+                      key: "replay-members-tour",
+                      label: "Replay Members Tour",
+                      icon: <PlayCircleOutlined />,
+                      onClick: () => startTour('testiez-members', true)
                     },
                   ]
                 }}

@@ -40,6 +40,7 @@ import type { SortOrder } from "antd/es/table/interface";
 
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
+import { useTour } from "@/context/TourContext";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -133,6 +134,7 @@ function ApprovalsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { canReadPmApproval, canApproveSubmission, canSendBackSubmission, canApproveScope } = usePermission();
+  const { run, currentTourKey, stepIndex, setStepIndex, steps } = useTour();
 
   const [rows, setRows] = useState<SubmissionListItem[]>([]);
   const [stats, setStats] = useState<SubmissionStats | null>(null);
@@ -151,6 +153,13 @@ function ApprovalsContent() {
   const [view, setView] = useState<"submissions" | "scopes">(
     searchParams.get("view") === "scopes" ? "scopes" : "submissions",
   );
+
+  useEffect(() => {
+    const v = searchParams.get("view");
+    if (v === "scopes" || v === "submissions") {
+      setView(v);
+    }
+  }, [searchParams]);
   /**
    * Permissions arrive with auth rather than on the first render, so the choice
    * is derived rather than seeded: an approver who only signs off scopes has no
@@ -577,8 +586,23 @@ function ApprovalsContent() {
               <>
                 <span className="pp-nav-caption">Test Scope</span>
                 <button
+                  data-tour="approvals-tab-scopes"
                   className={`pp-nav-item ${effectiveView === "scopes" ? "is-active" : ""}`}
-                  onClick={() => { setView("scopes"); setMobileSidebarOpen(false); }}
+                  onClick={() => {
+                    setView("scopes");
+                    setMobileSidebarOpen(false);
+                    if (run && (currentTourKey === "testiez-qa-workflow" || currentTourKey === "qa-workflow")) {
+                      const currentStep = steps?.[stepIndex];
+                      if (
+                        currentStep?.title === "Scope Approval" ||
+                        (typeof currentStep?.target === "string" && currentStep.target.includes("approvals-tab-scopes"))
+                      ) {
+                        setTimeout(() => {
+                          setStepIndex(stepIndex + 1);
+                        }, 120);
+                      }
+                    }
+                  }}
                 >
                   <Target size={15} className="pp-nav-icon" />
                   <span className="pp-nav-label">Scope Approvals</span>

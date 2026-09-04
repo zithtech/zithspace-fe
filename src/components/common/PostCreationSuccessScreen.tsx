@@ -1,12 +1,10 @@
 "use client";
 
-import React from "react";
-import { Button, Card, Typography, Space } from "antd";
-import { CheckCircleOutlined, PlusOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import React, { useState } from "react";
+import { Button } from "antd";
+import { Check, Plus, ArrowRight, Bot } from "lucide-react";
 import { useTour } from "@/context/TourContext";
-import Image from "next/image";
-
-const { Title, Text } = Typography;
+import { useTheme } from "@/context/ThemeContext";
 
 interface PostCreationSuccessScreenProps {
   itemName: string;
@@ -22,6 +20,9 @@ export default function PostCreationSuccessScreen({
   onContinue,
 }: PostCreationSuccessScreenProps) {
   const { run, stepIndex, setStepIndex } = useTour();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const [imgError, setImgError] = useState(false);
 
   const handleContinue = () => {
     if (run) {
@@ -36,113 +37,176 @@ export default function PostCreationSuccessScreen({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "40px 24px",
-        minHeight: "400px",
-        background: "linear-gradient(135deg, rgba(238, 242, 255, 0.4) 0%, rgba(224, 231, 255, 0.4) 100%)",
-        borderRadius: "12px",
+        padding: "16px 12px",
+        width: "100%",
+        animation: "successCardPop 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      <Card
-        bordered={false}
+      <style>{`
+        @keyframes successCardPop {
+          from { opacity: 0; transform: scale(0.96) translateY(6px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+      <div
         style={{
           width: "100%",
-          maxWidth: 480,
+          maxWidth: "340px",
           textAlign: "center",
-          borderRadius: "20px",
-          boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.05)",
-          background: "var(--bg-pure-white, #ffffff)",
-          border: "1px solid var(--border-color, #e2e8f0)",
+          borderRadius: "14px",
+          padding: "18px 20px",
+          background: isDark ? "#111827" : "#ffffff",
+          border: isDark ? "1px solid #1f293d" : "1px solid #e2e8f0",
+          boxShadow: isDark
+            ? "0 10px 25px -8px rgba(0, 0, 0, 0.6)"
+            : "0 8px 20px -4px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.02)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "10px",
         }}
-        styles={{ body: { padding: "40px 32px" } }}
       >
-        <div style={{ position: "relative", marginBottom: 24, display: "inline-block" }}>
-          {/* Robot Image */}
+        {/* Compact Avatar with Checkmark */}
+        <div style={{ position: "relative", display: "inline-flex" }}>
           <div
             style={{
-              width: 110,
-              height: 110,
-              margin: "0 auto",
-              position: "relative",
+              width: 48,
+              height: 48,
               borderRadius: "50%",
               overflow: "hidden",
-              border: "4px solid #fff",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-              backgroundColor: "#f8fafc",
-            }}
-          >
-            <Image
-              src="/images/robot-guide.jpg"
-              alt="Success Robot"
-              fill
-              style={{ objectFit: "cover" }}
-            />
-          </div>
-
-          <div
-            style={{
-              position: "absolute",
-              bottom: 4,
-              right: -4,
-              background: "#10B981",
-              borderRadius: "50%",
-              padding: 4,
+              border: isDark ? "2px solid #374151" : "2px solid #e0e7ff",
+              boxShadow: "0 4px 12px rgba(79, 70, 229, 0.15)",
+              backgroundColor: isDark ? "#1f2937" : "#f1f5f9",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.4)",
-              border: "3px solid #fff",
             }}
           >
-            <CheckCircleOutlined style={{ color: "#fff", fontSize: 22 }} />
+            {!imgError ? (
+              <img
+                src="/images/robot-guide.jpg"
+                alt="Buddy"
+                onError={() => setImgError(true)}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <Bot size={24} color="#4F46E5" />
+            )}
+          </div>
+          <div
+            style={{
+              position: "absolute",
+              bottom: -2,
+              right: -2,
+              width: 16,
+              height: 16,
+              background: "#10b981",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: isDark ? "2px solid #111827" : "2px solid #ffffff",
+              boxShadow: "0 2px 6px rgba(16, 185, 129, 0.35)",
+            }}
+          >
+            <Check size={10} color="#ffffff" strokeWidth={3.5} />
           </div>
         </div>
 
-        <Title level={3} style={{ margin: "0 0 12px 0", fontWeight: 700 }}>
-          {itemType} Created!
-        </Title>
-        <Text style={{ fontSize: 16, display: "block", marginBottom: 36, color: "var(--text-secondary, #64748b)" }}>
-          <strong>{itemName}</strong> was successfully created and is ready.
-        </Text>
-
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          <Button
-            type="primary"
-            size="large"
-            block
-            icon={<ArrowRightOutlined />}
-            onClick={handleContinue}
+        {/* Title and item name */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <h3
             style={{
-              height: 48,
-              borderRadius: 12,
-              fontWeight: 600,
-              fontSize: 16,
-              background: "linear-gradient(135deg, #3B82F6 0%, #4F46E5 100%)",
-              border: "none",
-              boxShadow: "0 4px 14px rgba(79, 70, 229, 0.3)",
+              margin: 0,
+              fontSize: "14px",
+              fontWeight: 700,
+              color: isDark ? "#f3f4f6" : "#0f172a",
+              letterSpacing: "-0.2px",
             }}
           >
-            {run ? "Continue Tour" : "Continue"}
-          </Button>
+            {itemType} Created
+          </h3>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+              maxWidth: "260px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "12px",
+                color: isDark ? "#94a3b8" : "#64748b",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <strong style={{ color: isDark ? "#e2e8f0" : "#334155" }}>{itemName}</strong> is ready.
+            </span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            width: "100%",
+            marginTop: "2px",
+          }}
+        >
           <Button
             type="default"
-            size="large"
-            block
-            icon={<PlusOutlined />}
+            size="middle"
+            icon={<Plus size={13} />}
             onClick={onCreateAnother}
             style={{
-              height: 48,
-              borderRadius: 12,
+              flex: 1,
+              height: 34,
+              borderRadius: 7,
               fontWeight: 600,
-              fontSize: 15,
-              color: "#3B82F6",
-              borderColor: "#BFDBFE",
-              background: "#EFF6FF",
+              fontSize: "12.5px",
+              color: isDark ? "#cbd5e1" : "#475569",
+              borderColor: isDark ? "#334155" : "#cbd5e1",
+              background: isDark ? "#1e293b" : "#ffffff",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
             }}
           >
             Create Another
           </Button>
-        </Space>
-      </Card>
+          <Button
+            type="primary"
+            size="middle"
+            icon={<ArrowRight size={13} />}
+            onClick={handleContinue}
+            style={{
+              flex: 1.15,
+              height: 34,
+              borderRadius: 7,
+              fontWeight: 600,
+              fontSize: "12.5px",
+              background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
+              border: "none",
+              boxShadow: "0 2px 8px rgba(79, 70, 229, 0.25)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+            }}
+          >
+            {run ? "Continue Tour" : "Continue"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

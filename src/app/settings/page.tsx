@@ -941,7 +941,7 @@ export default function SettingsPage() {
     {
       key: 'system',
       label: (
-        <Space size={8} style={{ padding: "4px 8px" }}>
+        <Space size={8} data-tour="settings-tab-system" style={{ padding: "4px 8px" }}>
           <SettingOutlined style={{ fontSize: 16 }} />
           <span style={{ fontWeight: 600 }}>System Information</span>
         </Space>
@@ -1134,6 +1134,7 @@ export default function SettingsPage() {
                     onValuesChange={() => setIsSystemFormDirty(true)}
                   >
                     <Form.Item
+                      data-tour="settings-company-name"
                       name="name"
                       label={
                         <Space size={6}>
@@ -1151,6 +1152,7 @@ export default function SettingsPage() {
                     </Form.Item>
 
                     <Form.Item
+                      data-tour="settings-company-logo"
                       label={
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                           <Space size={8}>
@@ -1231,6 +1233,7 @@ export default function SettingsPage() {
 
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Button
+                        data-tour="settings-save-branding-btn"
                         type="primary"
                         htmlType="submit"
                         loading={formLoading}
@@ -1354,6 +1357,7 @@ export default function SettingsPage() {
                                 <Space size={4}>
                                   <Tooltip title="Crop / Edit">
                                     <Button
+                                      data-tour="settings-logo-crop-btn"
                                       size="small"
                                       type="text"
                                       icon={<EditOutlined style={{ color: 'var(--premium-blue)' }} />}
@@ -1451,7 +1455,7 @@ export default function SettingsPage() {
     {
       key: 'company',
       label: (
-        <Space size={8} style={{ padding: "4px 8px" }}>
+        <Space size={8} data-tour="settings-tab-company" style={{ padding: "4px 8px" }}>
           <BankOutlined style={{ fontSize: 16 }} />
           <span style={{ fontWeight: 600 }}>Company Details</span>
         </Space>
@@ -1487,6 +1491,7 @@ export default function SettingsPage() {
 
             {/* ── Registered company ─────────────────────────────────────── */}
             <Card
+              data-tour="settings-company-details-card"
               variant="borderless"
               className="transparent-card"
               style={{ ...styles.sectionCard, width: "100%", borderRadius: 0, background: 'transparent', marginBottom: 24 }}
@@ -1853,6 +1858,7 @@ export default function SettingsPage() {
               </Space>
               {canUpdateSettings && (
                 <Button
+                  data-tour="settings-add-branch-btn"
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={showAddBranchDrawer}
@@ -1977,7 +1983,7 @@ export default function SettingsPage() {
     {
       key: 'mail',
       label: (
-        <Space size={8} style={{ padding: "4px 8px" }}>
+        <Space size={8} data-tour="settings-tab-mail" style={{ padding: "4px 8px" }}>
           <MailOutlined style={{ fontSize: 16 }} />
           <span style={{ fontWeight: 600 }}>Mail Configuration</span>
         </Space>
@@ -2036,13 +2042,15 @@ export default function SettingsPage() {
 
             <div style={{ padding: 20 }}>
               {connectedEmails.length === 0 ? (
-                <div style={{
-                  padding: '60px 40px',
-                  textAlign: 'center',
-                  background: token.colorFillAlter,
-                  borderRadius: 16,
-                  border: `1px dashed ${token.colorBorder}`
-                }}>
+                <div
+                  data-tour="settings-mail-connect-empty"
+                  style={{
+                    padding: '60px 40px',
+                    textAlign: 'center',
+                    background: token.colorFillAlter,
+                    borderRadius: 16,
+                    border: `1px dashed ${token.colorBorder}`
+                  }}>
                   <div style={{
                     width: 64,
                     height: 64,
@@ -2083,7 +2091,7 @@ export default function SettingsPage() {
                 <Row gutter={[24, 24]}>
                   {/* Selector + accounts list */}
                   <Col xs={24} md={14}>
-                    <div style={{ marginBottom: 20 }}>
+                    <div data-tour="settings-mail-active-sender" style={{ marginBottom: 20 }}>
                       <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: 13, marginBottom: 8 }}>
                         Active Sender
                       </Text>
@@ -2414,7 +2422,7 @@ export default function SettingsPage() {
     {
       key: 'ai',
       label: (
-        <Space size={8} style={{ padding: "4px 8px" }}>
+        <Space size={8} data-tour="settings-tab-ai" style={{ padding: "4px 8px" }}>
           <RobotOutlined style={{ fontSize: 16 }} />
           <span style={{ fontWeight: 600 }}>AI Provider</span>
         </Space>

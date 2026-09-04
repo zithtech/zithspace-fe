@@ -208,9 +208,13 @@ function TestRunsContent() {
       if (!formData.suite_id) return message.error("Test Suite is required");
 
       setSaving(true);
-      await axios.post("/api/v2/qa/runs", formData);
+      const res: any = await axios.post("/api/v2/qa/runs", formData);
       message.success("Test Run created successfully");
+      const createdId = res?.data?.data?.id || res?.data?.id || res?.data?.run?.id;
       setModalOpen(false);
+      if (createdId) {
+        router.push(`/qa-workspace/test-runs/${createdId}`);
+      }
       fetchData();
     } catch (error) {
       message.error("Failed to create test run");

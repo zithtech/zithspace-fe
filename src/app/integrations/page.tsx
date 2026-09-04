@@ -594,7 +594,7 @@ function IntegrationContent() {
           ) : (
             <>
               {mailProviders.length > 0 && (
-                <>
+                <div>
                   <div className="intg-section">
                     <span className="intg-section-icon">
                       <Mail size={12} />
@@ -604,34 +604,44 @@ function IntegrationContent() {
                     <span className="intg-section-hint">One provider at a time</span>
                   </div>
 
-                  <div className="intg-grid">
+                  <div
+                    data-tour="integration-mail-calendar"
+                    style={{
+                      display: "inline-flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      width: "fit-content",
+                      maxWidth: "100%",
+                    }}
+                  >
                     {mailProviders.map((provider) => {
                       const status = statuses[provider.key];
                       const isConnected = !!status?.connected;
                       return (
-                        <IntegrationCard
-                          key={provider.key}
-                          mark={provider.mark}
-                          name={provider.name}
-                          category={provider.category}
-                          description={provider.description}
-                          state={isConnected ? "connected" : anyProviderConnected ? "switchable" : "available"}
-                          detail={lastSyncLabel(status?.lastSync)}
-                          accountName={userName}
-                          busy={!!loading[provider.key]}
-                          onConnect={() => handleConnect(provider.key)}
-                          onDisconnect={() => handleDisconnect(provider.key)}
-                          disabled={!canManage}
-                          disabledReason="Needs Mail or Calendar permission"
-                        />
+                        <div key={provider.key} style={{ width: 320, maxWidth: "100%" }}>
+                          <IntegrationCard
+                            mark={provider.mark}
+                            name={provider.name}
+                            category={provider.category}
+                            description={provider.description}
+                            state={isConnected ? "connected" : anyProviderConnected ? "switchable" : "available"}
+                            detail={lastSyncLabel(status?.lastSync)}
+                            accountName={userName}
+                            busy={!!loading[provider.key]}
+                            onConnect={() => handleConnect(provider.key)}
+                            onDisconnect={() => handleDisconnect(provider.key)}
+                            disabled={!canManage}
+                            disabledReason="Needs Mail or Calendar permission"
+                          />
+                        </div>
                       );
                     })}
                   </div>
-                </>
+                </div>
               )}
 
               {(showLinear || showJira) && (
-                <>
+                <div>
                   <div className="intg-section">
                     <span className="intg-section-icon">
                       <TicketIcon size={12} />
@@ -641,39 +651,54 @@ function IntegrationContent() {
                     <span className="intg-section-hint">Connect and migrate your issues into Zukvo</span>
                   </div>
 
-                  <div className="intg-grid">
+                  <div
+                    data-tour="integration-issue-trackers"
+                    style={{
+                      display: "inline-flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      width: "fit-content",
+                      maxWidth: "100%",
+                    }}
+                  >
                     {showJira && (
-                      <IntegrationCard
-                        mark={<JiraMark size={20} />}
-                        name="Jira"
-                        category="Issue tracking · Migration"
-                        description="Import your existing Jira projects, tickets,into Zukvo and Push bugs into Jira as issues.."
-                        state={jiraConnected ? "connected" : "available"}
-                        detail="Projects, tickets & bugs"
-                        accountName={jiraConnected ? userName : null}
-                        busy={jiraLoading}
-                        onConnect={handleJiraConnect}
-                        onDisconnect={handleJiraDisconnect}
-                        onMigrate={jiraConnected ? () => setShowJiraWizard(true) : undefined}
-                      />
+                      <div style={{ width: 320, maxWidth: "100%" }}>
+                        <IntegrationCard
+                          dataTour="integration-jira-card"
+                          mark={<JiraMark size={20} />}
+                          name="Jira"
+                          category="Issue tracking · Migration"
+                          description="Import your existing Jira projects, tickets,into Zukvo and Push bugs into Jira as issues.."
+                          state={jiraConnected ? "connected" : "available"}
+                          detail="Projects, tickets & bugs"
+                          accountName={jiraConnected ? userName : null}
+                          busy={jiraLoading}
+                          onConnect={handleJiraConnect}
+                          onDisconnect={handleJiraDisconnect}
+                          onMigrate={jiraConnected ? () => setShowJiraWizard(true) : undefined}
+                        />
+                      </div>
                     )}
                     {showLinear && (
-                      <IntegrationCard
-                        mark={<LinearMark size={20} />}
-                        name="Linear"
-                        category="Issue tracking · Migration"
-                        description="Import your existing Linear projects, issues, and cycles into Zukvo and Push bugs into Linear as issues."
-                        state={linearConnected ? "connected" : "available"}
-                        detail="Projects, issues & cycles"
-                        accountName={linearConnected ? userName : null}
-                        busy={linearLoading}
-                        onConnect={handleLinearConnect}
-                        onDisconnect={handleLinearDisconnect}
-                        onMigrate={linearConnected ? () => setShowLinearWizard(true) : undefined}
-                      />
+                      <div style={{ width: 320, maxWidth: "100%" }}>
+                        <IntegrationCard
+                          dataTour="integration-linear-card"
+                          mark={<LinearMark size={20} />}
+                          name="Linear"
+                          category="Issue tracking · Migration"
+                          description="Import your existing Linear projects, issues, and cycles into Zukvo and Push bugs into Linear as issues."
+                          state={linearConnected ? "connected" : "available"}
+                          detail="Projects, issues & cycles"
+                          accountName={linearConnected ? userName : null}
+                          busy={linearLoading}
+                          onConnect={handleLinearConnect}
+                          onDisconnect={handleLinearDisconnect}
+                          onMigrate={linearConnected ? () => setShowLinearWizard(true) : undefined}
+                        />
+                      </div>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
               {showNotion && (

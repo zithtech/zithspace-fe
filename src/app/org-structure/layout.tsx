@@ -115,13 +115,14 @@ export default function OrgStructureLayout({ children }: { children: React.React
 
             <div className="osx-side-scroll">
               <div className="osx-side-section-label">Modules</div>
-              <div className="osx-side-list">
+              <div className="osx-side-list" data-tour="org-nav-modules">
                 {visibleItems.map((item) => {
                   const active = pathname?.startsWith(item.path) ?? false;
                   return (
                     <button
                       key={item.key}
                       type="button"
+                      data-tour={`org-nav-${item.key}`}
                       className={`osx-nav-item ${active ? "is-active" : ""}`}
                       onClick={() => router.push(item.path)}
                     >

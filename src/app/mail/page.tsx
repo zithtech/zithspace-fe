@@ -1356,6 +1356,7 @@ function MailPageContent() {
 
           {canCreateMail && (
             <button
+              data-tour="mail-compose-btn"
               className="mail-compose-btn"
               onClick={() => {
                 setComposeVisible(true);
@@ -1512,6 +1513,7 @@ function MailPageContent() {
                   ) : null}
                   <Tooltip title="Sync mail">
                     <button
+                      data-tour="mail-sync-btn"
                       className="mail-icon-btn"
                       onClick={() => syncMail()}
                       disabled={isSyncing}
@@ -2626,6 +2628,7 @@ function EmptyState() {
               </Typography.Text>
             <div style={{ marginTop: 28, display: 'flex', gap: 12, justifyContent: 'center' }}>
                 <Button
+                    data-tour="mail-connect-empty-btn"
                     type="primary"
                     size="large"
                     onClick={() => router.push('/integrations')}

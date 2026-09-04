@@ -110,8 +110,11 @@ export default async function RootLayout({
                           <SocketProvider>
                             <LayoutProvider>
                               <TicketDrawerProvider>
-                              <TourProvider>
-                                <AppSetupGuard>{children}</AppSetupGuard>
+                                <TourProvider>
+                                  <AppSetupGuard>
+                                    {children}
+                                    <ProductTour />
+                                  </AppSetupGuard>
                                 </TourProvider>
                               </TicketDrawerProvider>
                             </LayoutProvider>

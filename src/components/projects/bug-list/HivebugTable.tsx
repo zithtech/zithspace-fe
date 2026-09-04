@@ -184,7 +184,7 @@ export default function HivebugTable({
 
   return (
     <div className="hb-table-wrapper">
-      <table className="hb-table">
+      <table className="hb-table" data-tour="bug-list-table">
         <thead>
           <tr>
             <th className="hb-th-check">
@@ -617,7 +617,7 @@ function BugRow({
               },
             }}
           >
-            <button className="hb-icon-btn">
+            <button className="hb-icon-btn" data-tour="bug-row-actions">
               <MoreHorizontal size={14} />
             </button>
           </Dropdown>

@@ -389,6 +389,7 @@ export default function DepartmentsPage() {
                 )}
                 {canCreateOrgDepartment && (
                   <Button
+                    data-tour="org-departments-create-btn"
                     type="primary"
                     icon={<Plus size={15} />}
                     onClick={handleAdd}

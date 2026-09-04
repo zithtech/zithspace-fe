@@ -293,7 +293,7 @@ export default function HivebugSidebar({
                 <span>COLLECTIONS</span>
               </span>
               {canCreateBug && (
-                <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder">
+                <button className="hb-icon-btn" onClick={onCreateFolder} aria-label="New folder" data-tour="bug-create-folder-btn">
                   <Plus size={13} />
                 </button>
               )}
@@ -582,6 +582,7 @@ function FolderNode({
               className="hb-icon-btn hb-row-action"
               onClick={(e) => e.stopPropagation()}
               aria-label="Folder actions"
+              data-tour="bug-create-sheet-btn"
             >
               <MoreHorizontal size={13} />
             </button>
@@ -597,7 +598,7 @@ function FolderNode({
             </div>
           ) : !sheets || sheets.length === 0 ? (
             canCreateBug ? (
-              <button className="hb-row hb-row-sub hb-row-muted" onClick={onAddSheet}>
+              <button className="hb-row hb-row-sub hb-row-muted" onClick={onAddSheet} data-tour="bug-create-sheet-btn">
                 <Plus size={12} />
                 <span className="hb-row-label">Add sheet</span>
               </button>
@@ -662,6 +663,7 @@ function SheetNode({
       style={style}
       {...attributes}
       {...listeners}
+      data-tour="bug-sheet-node"
       className={`hb-row hb-row-sub ${selectedSheetId === sheet.id ? "active" : ""
         } ${isCompleted ? "hb-row-completed" : ""} ${isArchived ? "hb-row-archived" : ""} ${isDragging ? "dragging" : ""}`}
       onClick={() => !isArchived && onSelectSheet(sheet.id)}

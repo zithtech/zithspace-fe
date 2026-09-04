@@ -2,8 +2,20 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiClient } from '@/lib/axios';
-import { qaWorkflowSteps, ticketsTourSteps, documentHubTourSteps, RouteStep } from '../components/tour/TourSteps';
+import {
+  qaWorkflowSteps,
+  ticketsTourSteps,
+  documentHubTourSteps,
+  manualProjectTourSteps,
+  importMigrationTourSteps,
+  adminSettingsTourSteps,
+  rolesTourSteps,
+  orgStructureTourSteps,
+  membersTourSteps,
+  RouteStep
+} from '../components/tour/TourSteps';
 
 interface TourProgress {
   tourKey: string;
@@ -11,12 +23,23 @@ interface TourProgress {
   currentStep: number;
 }
 
+export interface ReturnTourContext {
+  tourKey: string;
+  stepIndex: number;
+}
+
 interface TourContextType {
   run: boolean;
   steps: RouteStep[];
   stepIndex: number;
   currentTourKey: string | null;
-  startTour: (tourType?: string, forceRestart?: boolean) => void;
+  returnTour: ReturnTourContext | null;
+  startTour: (
+    tourType?: string,
+    forceRestart?: boolean,
+    initialStepIndex?: number,
+    returnContext?: ReturnTourContext | null
+  ) => void;
   stopTour: () => void;
   skipTour: () => void;
   completeTour: () => void;
@@ -29,10 +52,23 @@ const TourContext = createContext<TourContextType | undefined>(undefined);
 
 export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<RouteStep[]>([]);
   const [stepIndex, setStepIndexState] = useState(0);
   const [currentTourKey, setCurrentTourKey] = useState<string | null>(null);
+  const [returnTour, setReturnTour] = useState<ReturnTourContext | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('tour_return_context');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {}
+      }
+    }
+    return null;
+  });
 
   // Refs that always hold the latest values — used by advanceTour to avoid stale closures
   const stepIndexRef = useRef(0);
@@ -57,25 +93,30 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiClient.patch(`/api/user/tours/${params.tourKey}`, params);
     },
     onMutate: async (newProgress) => {
-      // Optimistic update
       await queryClient.cancelQueries({ queryKey: ['userTours'] });
       const previousTours = queryClient.getQueryData<TourProgress[]>(['userTours']);
-      queryClient.setQueryData<TourProgress[]>(['userTours'], (old) => {
-        const prog = newProgress as TourProgress;
-        if (!old) return [prog];
-        const existing = old.find(t => t.tourKey === prog.tourKey);
-        if (existing) {
-          return old.map(t => t.tourKey === prog.tourKey ? { ...t, ...prog } : t);
-        }
-        return [...old, prog];
-      });
+      
+      if (previousTours) {
+        queryClient.setQueryData<TourProgress[]>(['userTours'], (old = []) => {
+          const index = old.findIndex(t => t.tourKey === newProgress.tourKey);
+          if (index >= 0) {
+            const updated = [...old];
+            updated[index] = { ...updated[index], ...newProgress };
+            return updated;
+          }
+          return [...old, newProgress as TourProgress];
+        });
+      }
       return { previousTours };
     },
     onError: (err, newProgress, context) => {
       if (context?.previousTours) {
         queryClient.setQueryData(['userTours'], context.previousTours);
       }
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['userTours'] });
+    },
   });
 
   const isTourCompleted = useCallback((tourKey: string) => {
@@ -84,32 +125,72 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return tour?.status === 'COMPLETED';
   }, [tourData]);
 
-  const startTour = useCallback((tourKey: string = 'testiez-qa-workflow', forceRestart: boolean = false) => {
-    setCurrentTourKey(tourKey);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('active_tour_key', tourKey);
-    }
-    if (tourKey === 'testiez-qa-workflow') {
-      setSteps(qaWorkflowSteps);
+  const startTour = useCallback((
+    tourType?: string,
+    forceRestart = false,
+    initialStepIndex?: number,
+    returnContext?: ReturnTourContext | null
+  ) => {
+    let tourKey = tourType || 'testiez-sprints';
+    let tourSteps: RouteStep[] = [];
+    
+    if (tourKey === 'testiez-qa-workflow' || tourKey === 'qa-workflow') {
+      tourSteps = qaWorkflowSteps;
     } else if (tourKey === 'testiez-sprints') {
-      setSteps(ticketsTourSteps);
+      tourSteps = ticketsTourSteps;
     } else if (tourKey === 'testiez-document-hub') {
-      setSteps(documentHubTourSteps);
+      tourSteps = documentHubTourSteps;
+    } else if (tourKey === 'testiez-project-manual') {
+      tourSteps = manualProjectTourSteps;
+    } else if (tourKey === 'testiez-project-import') {
+      tourSteps = importMigrationTourSteps;
+    } else if (tourKey === 'testiez-admin-settings') {
+      tourSteps = adminSettingsTourSteps;
+    } else if (tourKey === 'testiez-roles') {
+      tourSteps = rolesTourSteps;
+    } else if (tourKey === 'testiez-org-structure') {
+      tourSteps = orgStructureTourSteps;
+    } else if (tourKey === 'testiez-members') {
+      tourSteps = membersTourSteps;
     } else {
       return;
     }
+
+    if (returnContext !== undefined) {
+      setReturnTour(returnContext);
+      if (typeof window !== 'undefined') {
+        if (returnContext) {
+          localStorage.setItem('tour_return_context', JSON.stringify(returnContext));
+        } else {
+          localStorage.removeItem('tour_return_context');
+        }
+      }
+    }
+
+    setCurrentTourKey(tourKey);
+    setSteps(tourSteps);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('active_tour_key', tourKey);
+    }
     
-    // Resume from where they left off if in progress, unless forceRestart is true
+    // Resume from where they left off if in progress, unless forceRestart or initialStepIndex is provided
     const existing = tourData?.find(t => t.tourKey === tourKey);
-    const startIndex = (!forceRestart && existing && existing.status === 'IN_PROGRESS') ? (existing.currentStep || 0) : 0;
+    const startIndex = (initialStepIndex !== undefined)
+      ? initialStepIndex
+      : (!forceRestart && existing && existing.status === 'IN_PROGRESS')
+      ? (existing.currentStep || 0)
+      : 0;
     
     setStepIndexState(startIndex);
     setRun(true);
     
-    if (forceRestart || !existing || existing.status === 'NOT_STARTED') {
-      updateTourMutation.mutate({ tourKey, status: 'IN_PROGRESS', currentStep: startIndex });
+    const targetStep = tourSteps[startIndex] || tourSteps[0];
+    if (targetStep?.route && pathname !== targetStep.route) {
+      router.push(targetStep.route);
     }
-  }, [tourData, updateTourMutation]);
+
+    updateTourMutation.mutate({ tourKey, status: 'IN_PROGRESS', currentStep: startIndex });
+  }, [tourData, updateTourMutation, router, pathname]);
 
   const hasAutoStarted = React.useRef(false);
 
@@ -150,6 +231,25 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess, tourData, startTour]);
 
+  // Contextual first-time tour auto-start when user visits /projects/manage or /integrations
+  useEffect(() => {
+    if (!isSuccess || !tourData || run || currentTourKey) return;
+
+    if (pathname === '/projects/manage') {
+      const manualTour = tourData.find(t => t.tourKey === 'testiez-project-manual');
+      const hasLocalDone = typeof window !== 'undefined' && localStorage.getItem('tour_manual_project_done') === 'true';
+      if (!hasLocalDone && (!manualTour || manualTour.status === 'NOT_STARTED')) {
+        startTour('testiez-project-manual');
+      }
+    } else if (pathname === '/integrations') {
+      const importTour = tourData.find(t => t.tourKey === 'testiez-project-import');
+      const hasLocalDone = typeof window !== 'undefined' && localStorage.getItem('tour_import_migration_done') === 'true';
+      if (!hasLocalDone && (!importTour || importTour.status === 'NOT_STARTED')) {
+        startTour('testiez-project-import');
+      }
+    }
+  }, [pathname, isSuccess, tourData, run, currentTourKey, startTour]);
+
   const stopTour = useCallback(() => {
     setRun(false);
     if (typeof window !== 'undefined') {
@@ -160,27 +260,79 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const skipTour = useCallback(() => {
     setRun(false);
+    const skippedTourKey = currentTourKey;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('active_tour_key');
       localStorage.setItem('initial_tour_completed', 'true');
+      if (skippedTourKey === 'testiez-project-manual') localStorage.setItem('tour_manual_project_done', 'true');
+      if (skippedTourKey === 'testiez-project-import') localStorage.setItem('tour_import_migration_done', 'true');
     }
-    if (currentTourKey) {
-      updateTourMutation.mutate({ tourKey: currentTourKey, status: 'SKIPPED', currentStep: stepIndex });
+    if (skippedTourKey) {
+      updateTourMutation.mutate({ tourKey: skippedTourKey, status: 'SKIPPED', currentStep: stepIndex });
     }
+
+    // Check if there is a parent tour to return to (e.g. returning to member tour after skipping role tour)
+    let parentTour: ReturnTourContext | null = returnTour;
+    if (!parentTour && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('tour_return_context');
+      if (stored) {
+        try {
+          parentTour = JSON.parse(stored);
+        } catch {}
+      }
+    }
+
+    if (parentTour && parentTour.tourKey !== skippedTourKey) {
+      setReturnTour(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tour_return_context');
+      }
+      setTimeout(() => {
+        startTour(parentTour!.tourKey, false, parentTour!.stepIndex, null);
+      }, 150);
+      return;
+    }
+
     setCurrentTourKey(null);
-  }, [currentTourKey, stepIndex, updateTourMutation]);
+  }, [currentTourKey, stepIndex, updateTourMutation, returnTour, startTour]);
 
   const completeTour = useCallback(() => {
     setRun(false);
+    const completedTourKey = currentTourKey;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('active_tour_key');
       localStorage.setItem('initial_tour_completed', 'true');
+      if (completedTourKey === 'testiez-project-manual') localStorage.setItem('tour_manual_project_done', 'true');
+      if (completedTourKey === 'testiez-project-import') localStorage.setItem('tour_import_migration_done', 'true');
     }
-    if (currentTourKey) {
-      updateTourMutation.mutate({ tourKey: currentTourKey, status: 'COMPLETED', currentStep: stepIndex });
+    if (completedTourKey) {
+      updateTourMutation.mutate({ tourKey: completedTourKey, status: 'COMPLETED', currentStep: stepIndex });
     }
+
+    // Check if there is a parent tour to return to (e.g. returning to member tour after finishing role tour)
+    let parentTour: ReturnTourContext | null = returnTour;
+    if (!parentTour && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('tour_return_context');
+      if (stored) {
+        try {
+          parentTour = JSON.parse(stored);
+        } catch {}
+      }
+    }
+
+    if (parentTour && parentTour.tourKey !== completedTourKey) {
+      setReturnTour(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tour_return_context');
+      }
+      setTimeout(() => {
+        startTour(parentTour!.tourKey, false, parentTour!.stepIndex, null);
+      }, 150);
+      return;
+    }
+
     setCurrentTourKey(null);
-  }, [currentTourKey, stepIndex, updateTourMutation]);
+  }, [currentTourKey, stepIndex, updateTourMutation, returnTour, startTour]);
 
   const setStepIndex = useCallback((index: number) => {
     setStepIndexState(index);
@@ -205,6 +357,7 @@ export const TourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         steps,
         stepIndex,
         currentTourKey,
+        returnTour,
         startTour,
         stopTour,
         skipTour,

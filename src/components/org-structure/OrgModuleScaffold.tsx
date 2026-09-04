@@ -197,7 +197,7 @@ export function OrgModuleScaffold<T extends Record<string, any>>({
   return (
     <div className="omx-main">
       {/* ── Topbar ── */}
-      <div className="omx-topbar">
+      <div className="omx-topbar" data-tour="org-scaffold-topbar">
         <div className="omx-search-wrap">
           <Search size={14} className="omx-search-icon" />
           <input

@@ -353,6 +353,7 @@ export default function EmploymentTypesPage() {
                 )}
                 {canCreateOrgEmploymentType && (
                   <Button
+                    data-tour="org-employment-types-create-btn"
                     type="primary"
                     icon={<Plus size={15} />}
                     onClick={handleAdd}

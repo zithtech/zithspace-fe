@@ -493,7 +493,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
 
         <ZukvoLoadingOverlay loading={loading} message="Loading approvals…" minHeight={loading ? 320 : undefined}>
           {viewMode === "list" ? (
-            <div className="sc-tablewrap">
+            <div className="sc-tablewrap" data-tour="scope-approvals-table">
               <Table
                 className="ts-table sc-table"
                 dataSource={rows}
@@ -523,7 +523,7 @@ export default function ScopeApprovals({ onOpenSidebar }: { onOpenSidebar: () =>
               />
             </div>
           ) : (
-            <div className="pp-grid">
+            <div className="pp-grid" data-tour="scope-approvals-table">
               {loading ? null : rows.length === 0 ? (
                 <div className="sc-empty" style={{ gridColumn: "1 / -1" }}>
                   <SendOutlined className="sc-empty__icon" />

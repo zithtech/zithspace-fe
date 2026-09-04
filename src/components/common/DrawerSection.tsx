@@ -176,15 +176,18 @@ export function SectionCard({
   subtitle,
   step,
   children,
+  ...props
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle?: string;
   step?: string;
   children: React.ReactNode;
+  [key: string]: any;
 }) {
   return (
     <div
+      {...props}
       className="customer-drawer-card rounded-none overflow-hidden"
       style={{
         background: 'transparent',

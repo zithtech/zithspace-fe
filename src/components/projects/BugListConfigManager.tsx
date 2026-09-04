@@ -147,9 +147,15 @@ export default function BugListConfigManager() {
     } else if (stepIndex === 3 || stepIndex === 4) {
       setActiveKey("scope:priority");
     } else if (stepIndex === 5 || stepIndex === 6) {
-      setActiveKey(MODULES_KEY);
+      setActiveKey("scope:status");
     } else if (stepIndex === 7 || stepIndex === 8) {
+      setActiveKey(MODULES_KEY);
+    } else if (stepIndex === 9 || stepIndex === 10) {
       setActiveKey("severity");
+    } else if (stepIndex === 11 || stepIndex === 12) {
+      setActiveKey("type");
+    } else if (stepIndex === 13 || stepIndex === 14) {
+      setActiveKey("priority");
     }
   }, [run, currentTourKey, stepIndex]);
 
@@ -261,6 +267,20 @@ export default function BugListConfigManager() {
     ? "What everything is filed under"
     : scopeNavActive ? activeScopeMeta.blurb : activeSection.shortDescription;
 
+  const handleNavClick = (key: NavKey) => {
+    setActiveKey(key);
+    setMobileSidebarOpen(false);
+    if (run && (currentTourKey === "testiez-qa-workflow" || currentTourKey === "qa-workflow")) {
+      if (key === "scope:scope_type" && stepIndex === 1) setStepIndex(2);
+      else if (key === "scope:priority" && stepIndex === 3) setStepIndex(4);
+      else if (key === "scope:status" && stepIndex === 5) setStepIndex(6);
+      else if (key === MODULES_KEY && stepIndex === 7) setStepIndex(8);
+      else if (key === "severity" && stepIndex === 9) setStepIndex(10);
+      else if (key === "type" && stepIndex === 11) setStepIndex(12);
+      else if (key === "priority" && stepIndex === 13) setStepIndex(14);
+    }
+  };
+
   return (
     <>
       <BcmStyles />
@@ -282,19 +302,14 @@ export default function BugListConfigManager() {
             </div>
           </div>
           <div className="dh-sidebar-scroll">
-            <div data-tour="settings-bugs" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               {canManageBugs && <span className="pp-nav-caption">Bug Definitions</span>}
               {canManageBugs && SECTIONS.map((s) => (
                 <button
                   key={s.key}
+                  data-tour={`settings-bug-${s.key}`}
                   className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setActiveKey(s.key as SectionKey);
-                    setMobileSidebarOpen(false);
-                    if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 7) {
-                      setStepIndex(8);
-                    }
-                  }}
+                  onClick={() => handleNavClick(s.key as SectionKey)}
                 >
                   {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
                   <span className="pp-nav-label">{s.title}</span>
@@ -303,18 +318,13 @@ export default function BugListConfigManager() {
               ))}
             </div>
 
-            <div data-tour="settings-cases" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               {canManageQa && <span className="pp-nav-caption">Test Cases</span>}
               {canManageQa && (
                 <button
+                  data-tour="settings-cases-modules"
                   className={`pp-nav-item ${modulesNavActive ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setActiveKey(MODULES_KEY);
-                    setMobileSidebarOpen(false);
-                    if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 5) {
-                      setStepIndex(6);
-                    }
-                  }}
+                  onClick={() => handleNavClick(MODULES_KEY)}
                 >
                   <Boxes size={15} className="pp-nav-icon" />
                   <span className="pp-nav-label">Modules</span>
@@ -326,22 +336,15 @@ export default function BugListConfigManager() {
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {canManageQa && <span className="pp-nav-caption">Test Scope</span>}
               
-              {/* Render Type first */}
-              {canManageQa && SCOPE_SETTING_CATEGORIES.filter(c => c.key === 'scope_type').map((c) => {
+              {canManageQa && SCOPE_SETTING_CATEGORIES.map((c) => {
                 const navKey = `scope:${c.key}` as ScopeNavKey;
                 const Icon = c.icon;
                 return (
                   <button
                     key={navKey}
-                    data-tour="settings-scope-type"
+                    data-tour={`settings-scope-${c.key}`}
                     className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
-                    onClick={() => {
-                      setActiveKey(navKey);
-                      setMobileSidebarOpen(false);
-                      if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 1) {
-                        setStepIndex(2);
-                      }
-                    }}
+                    onClick={() => handleNavClick(navKey)}
                   >
                     <Icon size={15} className="pp-nav-icon" />
                     <span className="pp-nav-label">{c.label}</span>
@@ -351,33 +354,6 @@ export default function BugListConfigManager() {
                   </button>
                 );
               })}
-
-              {/* Render Priority & Status together wrapped for the tour */}
-              <div data-tour="settings-scope-priority-status" style={{ display: 'flex', flexDirection: 'column' }}>
-                {canManageQa && SCOPE_SETTING_CATEGORIES.filter(c => c.key !== 'scope_type').map((c) => {
-                  const navKey = `scope:${c.key}` as ScopeNavKey;
-                  const Icon = c.icon;
-                  return (
-                    <button
-                      key={navKey}
-                      className={`pp-nav-item ${effectiveKey === navKey ? 'is-active' : ''}`}
-                      onClick={() => {
-                        setActiveKey(navKey);
-                        setMobileSidebarOpen(false);
-                        if (run && currentTourKey === "testiez-qa-workflow" && stepIndex === 3) {
-                          setStepIndex(4);
-                        }
-                      }}
-                    >
-                      <Icon size={15} className="pp-nav-icon" />
-                      <span className="pp-nav-label">{c.label}</span>
-                      <span className="pp-nav-count">
-                        {scopeSettings.items.filter((i: any) => i.category === c.key).length}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           </div>
         </aside>
@@ -417,7 +393,13 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : scopeNavActive ? (
                   <Button
-                    data-tour={scopeCategory === 'scope_type' ? "settings-create-scope-type-btn" : "settings-create-scope-priority-btn"}
+                    data-tour={
+                      scopeCategory === 'scope_type'
+                        ? "settings-create-scope-type-btn"
+                        : scopeCategory === 'priority'
+                        ? "settings-create-scope-priority-btn"
+                        : "settings-create-scope-status-btn"
+                    }
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}
@@ -427,7 +409,13 @@ export default function BugListConfigManager() {
                   </Button>
                 ) : (
                   <Button
-                    data-tour="settings-create-bug-btn"
+                    data-tour={
+                      activeSection.key === 'severity'
+                        ? "settings-create-bug-severity-btn"
+                        : activeSection.key === 'type'
+                        ? "settings-create-bug-type-btn"
+                        : "settings-create-bug-priority-btn"
+                    }
                     type="primary"
                     size="small"
                     icon={<PlusOutlined />}

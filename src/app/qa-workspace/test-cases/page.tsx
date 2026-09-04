@@ -98,7 +98,7 @@ export default function TestCasesPage() {
   const [selectedCaseForSuites, setSelectedCaseForSuites] = useState<any>(null);
 
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [successData, setSuccessData] = useState<{ name: string } | null>(null);
+  const [successData, setSuccessData] = useState<{ name: string; id?: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -457,8 +457,9 @@ export default function TestCasesPage() {
         message.success("Test Case updated successfully!");
         setDrawerVisible(false);
       } else {
-        await axios.post(`/api/v2/qa/parents`, formData);
-        setSuccessData({ name: formData.title.trim() });
+        const res: any = await axios.post(`/api/v2/qa/parents`, formData);
+        const createdId = res?.data?.data?.id || res?.data?.id;
+        setSuccessData({ name: formData.title.trim(), id: createdId });
       }
       fetchData();
     } catch (err: any) {
@@ -1342,7 +1343,11 @@ export default function TestCasesPage() {
                 }}
                 onContinue={() => {
                   setDrawerVisible(false);
+                  const nextId = successData?.id;
                   setSuccessData(null);
+                  if (nextId) {
+                    router.push(`/qa-workspace/test-cases/${nextId}`);
+                  }
                 }}
               />
             </div>

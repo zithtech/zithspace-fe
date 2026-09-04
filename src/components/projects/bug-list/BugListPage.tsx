@@ -1269,7 +1269,7 @@ export default function BugListPage() {
 
 
         {viewMode === "list" && selectedSheetId && (scope === "all" || scope === "mine") && (
-          <div className="hb-quickadd">
+          <div className="hb-quickadd" data-tour="bug-quick-add">
             <Plus size={14} />
             <input
               value={quickTitle}

@@ -346,6 +346,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
             >
               {/* Section: Basic Information */}
               <SectionCard
+                data-tour="project-form-details"
                 icon={<InfoCircleOutlined />}
                 title="Basic Information"
                 subtitle="The essential details that identify this project"
@@ -400,6 +401,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
 
               {/* Section: Team & Responsibility */}
               <SectionCard
+                data-tour="project-form-team"
                 icon={<TeamOutlined />}
                 title="Team & Responsibility"
                 subtitle="Assign a lead and the people who will contribute"
@@ -469,6 +471,7 @@ export const ProjectFormDrawer: React.FC<ProjectFormDrawerProps> = ({
 
               {/* Section: Timeline & Resources */}
               <SectionCard
+                data-tour="project-form-timeline"
                 icon={<CalendarOutlined />}
                 title="Timeline & Resources"
                 subtitle="Set the schedule and link any external resources"

@@ -403,6 +403,7 @@ export default function GradesPage() {
                 )}
                 {canCreateOrgGrade && (
                   <Button
+                    data-tour="org-grades-create-btn"
                     type="primary"
                     icon={<Plus size={15} />}
                     onClick={handleAdd}

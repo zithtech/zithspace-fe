@@ -64,13 +64,14 @@ export interface IntegrationCardProps {
   /** Name of the account holding the connection. */
   accountName?: string | null;
   busy?: boolean;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
   /** Optional migration action shown when connected */
   onMigrate?: () => void;
   disabled?: boolean;
   disabledReason?: string;
- 
+  dataTour?: string;
+  [key: string]: any;
 }
 
 export function IntegrationCard({
@@ -87,12 +88,16 @@ export function IntegrationCard({
   onMigrate,
   disabled,
   disabledReason,
-
+  dataTour,
+  ...props
 }: IntegrationCardProps) {
   const connected = state === "connected";
 
   return (
-    <article className={`intg-card ${connected ? "is-connected" : ""}`}>
+    <article
+      data-tour={dataTour || (props as any)["data-tour"]}
+      className={`intg-card ${connected ? "is-connected" : ""}`}
+    >
       <span className="intg-card-sheen" aria-hidden />
 
       <header className="intg-card-top">
@@ -143,6 +148,7 @@ export function IntegrationCard({
             <span style={{ display: "inline-flex", gap: 5, flexShrink: 0 }}>
               {onMigrate && (
                 <button
+                  data-tour="integration-migration-btn"
                   className="intg-btn is-migrate"
                   onClick={onMigrate}
                   disabled={busy}

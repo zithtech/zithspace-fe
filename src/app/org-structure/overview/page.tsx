@@ -420,7 +420,7 @@ export default function OverviewPage() {
 
         <div className="org-ov-content">
           {/* Stats overview */}
-          <div className="org-ov-stat-grid">
+          <div className="org-ov-stat-grid" data-tour="org-overview-stats">
             <StatCard
               label="Grades"
               value={orgStats.grades}
@@ -456,7 +456,7 @@ export default function OverviewPage() {
           <Row gutter={20} className="org-ov-body">
             {/* Grade Selector */}
             <Col xs={24} lg={9} xl={8}>
-              <div className="org-ov-panel">
+              <div className="org-ov-panel" data-tour="org-overview-grades-list">
                 <div className="org-ov-panel__header">
                   <div className="org-ov-panel__icon is-blue">
                     <ShieldCheck size={14} />
@@ -527,7 +527,7 @@ export default function OverviewPage() {
             {/* Hierarchy Tree */}
             <Col xs={24} lg={15} xl={16}>
               {selectedGrade ? (
-                <div className="org-ov-panel">
+                <div className="org-ov-panel" data-tour="org-overview-tree">
                   <div className="org-ov-panel__header">
                     <div className="org-ov-panel__icon is-purple">
                       <ShieldCheck size={14} />

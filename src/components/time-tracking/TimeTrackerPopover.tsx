@@ -737,7 +737,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({
       overlayClassName="ttp-popover"
       arrow={false}
     >
-      <button type="button" className={triggerClass}>
+      <button type="button" data-tour="topnav-time-tracker" className={triggerClass}>
         {getTriggerIcon()}
         <span>{formatTime(elapsedTime)}</span>
       </button>

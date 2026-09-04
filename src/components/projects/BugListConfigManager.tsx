@@ -809,7 +809,7 @@ function OptionEditor({
     try {
       const values = await form.validateFields();
       await onSubmit(editing!.kind, {
-        ...(isEdit ? {} : { key: values.key?.trim() || undefined }),
+        key: values.key?.trim() || undefined,
         label: values.label.trim(),
         description: values.description?.trim() || null,
         color: showColor ? values.color || null : undefined,
@@ -921,7 +921,18 @@ function OptionEditor({
               labelAlign="left"
               colon={false}
               requiredMark="optional"
-              onValuesChange={(_, all) => setLabelPreview(all.label || "")}
+              onValuesChange={(changed, all) => {
+                setLabelPreview(all.label || "");
+                if (changed.label !== undefined) {
+                  const newKey = changed.label
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9]+/g, "_")
+                    .replace(/^_+|_+$/g, "")
+                    .slice(0, 48);
+                  form.setFieldsValue({ key: newKey });
+                }
+              }}
               className="lead-drawer-form customer-drawer-form"
             >
               <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Configuration Details" subtitle="Core metadata">
@@ -940,20 +951,13 @@ function OptionEditor({
                   />
                 </Form.Item>
 
-                {!isEdit && (
-                  <Form.Item
-                    name="key"
-                    label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}
-                    extra="Lowercase slug stored on bugs (auto-generated if blank). Cannot change later."
-                  >
-                    <Input placeholder="auto" />
-                  </Form.Item>
-                )}
-                {isEdit && (
-                  <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}>
-                    <Tag>{editing.option?.key}</Tag>
-                  </Form.Item>
-                )}
+                <Form.Item
+                  name="key"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}
+                  extra="Lowercase slug stored on bugs (auto-generated if blank)."
+                >
+                  <Input placeholder="auto" />
+                </Form.Item>
 
                 <Form.Item
                   name="description"

@@ -5,14 +5,15 @@ import NoData from "@/components/common/NoData";
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Progress, Input, Drawer, Select, Typography, Tooltip, Popover, Space, Segmented, Divider } from "antd";
-import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ApartmentOutlined, ThunderboltOutlined, CopyOutlined } from "@ant-design/icons";
+import { Button, Table, Input, Drawer, Select, Typography, Tooltip, Popover, Space, Segmented, Divider } from "antd";
+import { PlusOutlined, PlayCircleOutlined, CheckCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, SnippetsOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ApartmentOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { PlayCircle, Target, Activity, Trash2, Layers } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import EntityCard from "@/components/common/EntityCard";
 import { commonDrawerProps } from "@/components/common/DrawerSection";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader, { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
@@ -30,25 +31,8 @@ const PROGRESS_OPTIONS = [
   { value: 'completed', label: 'Completed' },
 ];
 
-function hashCode(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return hash;
-}
 
-const CARD_ACCENTS = [
-  ['#3b82f6', '#1d4ed8'],
-  ['#10b981', '#047857'],
-  ['#8b5cf6', '#6d28d9'],
-  ['#f59e0b', '#b45309']
-];
 
-function accentFor(str: string) {
-  const h = Math.abs(hashCode(str || 'default'));
-  return CARD_ACCENTS[h % CARD_ACCENTS.length];
-}
 
 function initialsOf(name: string) {
   if (!name) return 'TR';
@@ -297,32 +281,10 @@ function TestRunsContent() {
     return { total, executed, percent: total > 0 ? Math.round((executed / total) * 100) : 0 };
   };
 
-  /* Columns mirror the Ticket List: a copyable ID, the title, then the
-     one-glance attributes, with row actions pinned to the right. */
+  /* Columns mirror the Ticket List: the title, then the one-glance
+     attributes, with row actions pinned to the right. No id column — a
+     truncated uuid told a reader nothing, and the row already opens the run. */
   const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 118,
-      render: (id: string) => (
-        <span
-          className="pp-run-id"
-          onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-runs/${id}`); }}
-          title={id}
-        >
-          {String(id || '').slice(0, 8).toUpperCase()}
-          <CopyOutlined
-            style={{ fontSize: 10, opacity: 0.6 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(id);
-              message.success("Run ID copied!");
-            }}
-          />
-        </span>
-      ),
-    },
     {
       title: "Title",
       dataIndex: "run_name",
@@ -463,77 +425,70 @@ function TestRunsContent() {
     />
   );
 
+  /**
+   * The card view, on the shared project-list card (`EntityCard`).
+   *
+   * A run's one live number is how much of it has been executed, so the card
+   * keeps its progress band — that is what the body slot is for.
+   */
   const renderRunCard = (r: any) => {
-    const accent = accentFor(r.run_name || r.id);
     const suite = suites.find(s => s.id === r.suite_id);
     const suiteName = r.suite_name || suite?.suite_name || 'Unassigned';
-    
+    const moduleName = (() => {
+      const mod = modules.find(m => m.id === suite?.parent_test_case_id);
+      return mod?.name || mod?.title || 'Unassigned';
+    })();
+
     const total = parseInt(r.total_cases) || 0;
     const executed = total - (parseInt(r.not_executed_count) || 0);
     const percent = total > 0 ? Math.round((executed / total) * 100) : 0;
+    // The accent reads the run's progress, not a hash of its name.
+    const accent = percent === 100 ? '#10b981' : executed > 0 ? '#3b82f6' : '#64748b';
 
     return (
-      <div key={r.id} className="pc-card" onClick={() => openExecuteDrawer(r)}>
-        <div className="pc-top">
-          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-            {initialsOf(r.run_name)}
-          </div>
-          <div className="pc-identity-body">
-            <div className="pc-title">{r.run_name}</div>
-            <div className="pc-client-line">
-              <span className="pc-client-key">Suite:</span>
-              <span className="pc-client-val">{suiteName}</span>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
-            {canDeleteRun && (
-              <ConfirmDialog
-                tone="danger"
-                title="Delete Test Run?"
-                description="Are you sure you want to delete this test run and all its execution records?"
-                confirmText="Delete"
-                onConfirm={() => handleDeleteRun(r.id)}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Trash2 size={15} />}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                  title="Delete Test Run"
-                />
-              </ConfirmDialog>
-            )}
-          </div>
-        </div>
-
-        <div style={{ padding: '4px 16px 12px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-slate-500)', marginBottom: 4 }}>
-            <span>Execution Progress</span>
-            <strong style={{ color: 'var(--text-slate-800)' }}>{executed} / {total} Cases ({percent}%)</strong>
-          </div>
-          <Progress percent={percent} size="small" showInfo={false} />
-        </div>
-
-        <div className="pc-foot">
-          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Module:</span>
-              <Tag color="purple" style={{ margin: 0 }}>
-                {(() => {
-                  const s = suites.find(suite => suite.id === r.suite_id);
-                  const mod = modules.find(m => m.id === s?.parent_test_case_id);
-                  return mod?.name || mod?.title || 'Unassigned';
-                })()}
-              </Tag>
+      <EntityCard
+        key={r.id}
+        initials={initialsOf(r.run_name)}
+        accent={accent}
+        title={r.run_name || 'Untitled run'}
+        status={percent === 100 ? 'Completed' : executed > 0 ? 'In progress' : 'Not started'}
+        meta={[suiteName, moduleName, r.execution_type || 'Manual']}
+        meter={{ percent, label: `${executed} / ${total} cases · ${percent}%` }}
+        onClick={() => openExecuteDrawer(r)}
+        footLeft={
+          <>
+            <span className="zc-av">{initialsOf(r.created_by_name || r.executed_by_name || '—')}</span>
+            <span className="zc-foot-name" title={r.created_by_name || 'Unknown'}>
+              {r.created_by_name || 'Unknown'}
             </span>
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Started:</span>
-              <span className="pc-foot-val">{r.started_at ? dayjs(r.started_at).format("MMM DD, HH:mm") : '—'}</span>
-            </span>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        footRight={
+          <span className="zc-foot-date">
+            {r.started_at ? dayjs(r.started_at).format("MMM DD, HH:mm") : '—'}
+          </span>
+        }
+        actions={
+          canDeleteRun ? (
+            <ConfirmDialog
+              tone="danger"
+              title="Delete Test Run?"
+              description="Are you sure you want to delete this test run and all its execution records?"
+              confirmText="Delete"
+              onConfirm={() => handleDeleteRun(r.id)}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<Trash2 size={15} />}
+                onClick={(e) => e.stopPropagation()}
+                style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                title="Delete Test Run"
+              />
+            </ConfirmDialog>
+          ) : undefined
+        }
+      />
     );
   };
 
@@ -879,7 +834,7 @@ function TestRunsContent() {
                             className: 'pp-row',
                             onClick: (e) => {
                               const t = e.target as HTMLElement;
-                              if (t.closest('button, a, .ant-dropdown-trigger, .sc-rowactions, .pp-run-id')) return;
+                              if (t.closest('button, a, .ant-dropdown-trigger, .sc-rowactions')) return;
                               openExecuteDrawer(record);
                             },
                           })}
@@ -1453,44 +1408,9 @@ const RUNS_PAGE_STYLES = `
 
 /* ── Grid view ────────────────────────────────────────────────────────── */
 .sc-gridwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
-.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-@media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
-
-.pc-card {
-  border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
-  cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
-  transition: box-shadow .15s ease, border-color .15s ease;
-}
-.pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
-.pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
-.pc-avatar {
-  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 13px;
-}
-.pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
-.pc-title {
-  font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
-.pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-.pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc-actions {
-  width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
-  background: transparent; color: var(--text-slate-400); cursor: pointer; flex-shrink: 0;
-}
-.pc-actions:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
-.pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
-.pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
-.pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
-.pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
-.pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
-.pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
-.pc-status-tag {
-  display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px;
-  border-radius: 5px; font-size: 10.5px; font-weight: 700;
-}
+/* The projects grid: tiles that fill the row, not two slabs across it. */
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 640px) { .pp-grid { grid-template-columns: 1fr; } }
 
 /* ── Row action menu (grid card kebab) ────────────────────────────────── */
 .pp-action-pop .ant-dropdown-menu {
@@ -1546,16 +1466,6 @@ const RUNS_PAGE_STYLES = `
   .tl-filter-row-label { display: none; }
 }
 /* ── Cases-specific cells ─────────────────────────────────────────────── */
-.pp-run-id {
-  cursor: pointer; color: var(--premium-blue, #3B82F6); font-weight: 700; font-size: 11px;
-  font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em;
-  padding: 2px 6px; background: var(--bg-blue-50); border-radius: 4px;
-  border: 1px solid var(--border-blue-200); white-space: nowrap;
-  display: inline-flex; align-items: center; gap: 4px;
-  transition: opacity .15s ease;
-}
-.pp-run-id:hover { opacity: 0.8; }
-
 .pp-plain { font-size: 11.5px; color: var(--text-slate-700); }
 [data-theme='dark'] .pp-plain { color: #cbd5e1; }
 

@@ -8,7 +8,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Button, Table, Tag, Input, Select, Tooltip, Typography, Popover, Space, Segmented, Divider } from "antd";
+import { Button, Table, Input, Select, Tooltip, Typography, Popover, Space, Segmented, Divider } from "antd";
 import { PlusOutlined, SnippetsOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined, FolderOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, CloseOutlined, ApartmentOutlined, LinkOutlined, CopyOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { Layers, Trash2, Pencil, Folder, Link2 } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import EntityCard from "@/components/common/EntityCard";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -29,25 +30,8 @@ const COVERAGE_OPTIONS = [
   { value: 'empty', label: 'No cases yet' },
 ];
 
-function hashCode(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return hash;
-}
 
-const CARD_ACCENTS = [
-  ['#3b82f6', '#1d4ed8'],
-  ['#8b5cf6', '#6d28d9'],
-  ['#10b981', '#047857'],
-  ['#f59e0b', '#b45309']
-];
 
-function accentFor(str: string) {
-  const h = Math.abs(hashCode(str || 'default'));
-  return CARD_ACCENTS[h % CARD_ACCENTS.length];
-}
 
 function initialsOf(name: string) {
   if (!name) return 'TS';
@@ -400,34 +384,44 @@ export default function TestSuitesPage() {
     />
   );
 
+  /** The card view, on the shared project-list card (`EntityCard`). */
   const renderSuiteCard = (r: any) => {
-    const accent = accentFor(r.suite_name || r.id);
     const parent = parents.find(p => p.id === r.parent_test_case_id);
     const parentTitle = r.parent_title || parent?.title || "Unassigned Scenario";
+    const linked = Number(r.case_count) || 0;
 
     return (
-      <div key={r.id} className="pc-card" onClick={() => router.push("/qa-workspace/test-suites/" + r.id)}>
-        <div className="pc-top">
-          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-            {initialsOf(r.suite_name)}
-          </div>
-          <div className="pc-identity-body">
-            <div className="pc-title">{r.suite_name}</div>
-            <div className="pc-client-line">
-              <span className="pc-client-key">Scenario:</span>
-              <span className="pc-client-val">{parentTitle}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
+      <EntityCard
+        key={r.id}
+        initials={initialsOf(r.suite_name)}
+        accent={linked > 0 ? '#3b82f6' : '#64748b'}
+        title={r.suite_name || 'Untitled suite'}
+        status={linked > 0 ? 'Linked' : 'Empty'}
+        meta={[
+          parentTitle,
+          r.module_name || 'Unassigned',
+          r.description || (r.testing_type ? `${r.testing_type} testing` : null),
+        ]}
+        onClick={() => router.push("/qa-workspace/test-suites/" + r.id)}
+        footLeft={
+          <span>
+            <span className="zc-foot-date">{linked}</span>
+            <span className="zc-foot-note"> case{linked === 1 ? '' : 's'} linked</span>
+          </span>
+        }
+        footRight={
+          <span className="zc-foot-date">
+            {r.updated_at ? dayjs(r.updated_at).format("MMM DD") : '—'}
+          </span>
+        }
+        actions={
+          <>
             {canUpdateSuite && (
               <Button
                 type="text"
                 size="small"
                 icon={<Pencil size={15} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openCreateModal(r);
-                }}
+                onClick={(e) => { e.stopPropagation(); openCreateModal(r); }}
                 style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                 title="Edit Suite"
               />
@@ -450,30 +444,9 @@ export default function TestSuitesPage() {
                 />
               </ConfirmDialog>
             )}
-          </div>
-        </div>
-
-        <div className="pc-foot">
-          <div className="pc-foot-row">
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Module:</span>
-              <span className="pc-foot-val">{r.module_name || 'Unassigned'}</span>
-            </span>
-            <span className="pc-foot-div" />
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Cases:</span>
-              <span className="pc-foot-val">{r.case_count || 0} Linked</span>
-            </span>
-          </div>
-          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Updated:</span>
-              <span className="pc-foot-val">{r.updated_at ? dayjs(r.updated_at).format("MMM DD") : '—'}</span>
-            </span>
-            <Tag color="blue" style={{ margin: 0, fontWeight: 600 }}>Suite</Tag>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     );
   };
 
@@ -1266,44 +1239,9 @@ const SUITES_PAGE_STYLES = `
 
 /* ── Grid view ────────────────────────────────────────────────────────── */
 .sc-gridwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
-.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-@media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
-
-.pc-card {
-  border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
-  cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
-  transition: box-shadow .15s ease, border-color .15s ease;
-}
-.pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
-.pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
-.pc-avatar {
-  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 13px;
-}
-.pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
-.pc-title {
-  font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
-.pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-.pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc-actions {
-  width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
-  background: transparent; color: var(--text-slate-400); cursor: pointer; flex-shrink: 0;
-}
-.pc-actions:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
-.pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
-.pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
-.pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
-.pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
-.pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
-.pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
-.pc-status-tag {
-  display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px;
-  border-radius: 5px; font-size: 10.5px; font-weight: 700;
-}
+/* The projects grid: tiles that fill the row, not two slabs across it. */
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 640px) { .pp-grid { grid-template-columns: 1fr; } }
 
 /* ── Row action menu (grid card kebab) ────────────────────────────────── */
 .pp-action-pop .ant-dropdown-menu {

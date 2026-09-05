@@ -47,7 +47,7 @@ import BugListService, {
 } from "@/services/bugListService";
 import {
   useBugSeverityOptions,
-  useBugTypeOptions,
+  useBugListTypeOptions,
 } from "@/hooks/useBugList";
 
 const MAX_FILE_MB = 5;
@@ -639,7 +639,7 @@ export default function CreateBugDrawer({
   const [bugType, setBugType] = useState<string | undefined>();
   const [severity, setSeverity] = useState<string | undefined>();
   const { data: severityOptions } = useBugSeverityOptions();
-  const { data: typeOptions } = useBugTypeOptions();
+  const { data: typeOptions } = useBugListTypeOptions();
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [assigneeId, setAssigneeId] = useState<string | undefined>();

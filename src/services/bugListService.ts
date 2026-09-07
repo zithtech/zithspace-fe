@@ -646,6 +646,37 @@ class BugListService {
     await apiClient.delete(`/api/bug-list/config/types/${id}`);
   }
 
+  // ==================== Config: Bug List Type options ====================
+  static async listBugListTypeOptions(): Promise<BugConfigOption[]> {
+    const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(
+      `/api/bug-list/config/bug-types`,
+    );
+    return res.data.data;
+  }
+
+  static async createBugListTypeOption(input: BugConfigCreateInput): Promise<BugConfigOption> {
+    const res = await apiClient.post<{ success: boolean; data: BugConfigOption }>(
+      `/api/bug-list/config/bug-types`,
+      input,
+    );
+    return res.data.data;
+  }
+
+  static async updateBugListTypeOption(
+    id: string,
+    input: BugConfigUpdateInput,
+  ): Promise<BugConfigOption> {
+    const res = await apiClient.put<{ success: boolean; data: BugConfigOption }>(
+      `/api/bug-list/config/bug-types/${id}`,
+      input,
+    );
+    return res.data.data;
+  }
+
+  static async deleteBugListTypeOption(id: string): Promise<void> {
+    await apiClient.delete(`/api/bug-list/config/bug-types/${id}`);
+  }
+
   // ==================== Config: priority (shared with QA Space) ==============
   static async listPriorityOptions(): Promise<BugConfigOption[]> {
     const res = await apiClient.get<{ success: boolean; data: BugConfigOption[] }>(

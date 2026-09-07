@@ -9,7 +9,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Typography, Input, Select, Form, Drawer, Tooltip, Popover, Space, Segmented, Divider } from "antd";
-import { PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ApartmentOutlined, ThunderboltOutlined, CopyOutlined } from "@ant-design/icons";
+import { PlusOutlined, CheckCircleOutlined, SnippetsOutlined, AppstoreOutlined, UnorderedListOutlined, SearchOutlined, LinkOutlined, InfoCircleOutlined, UserOutlined, CloseOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ApartmentOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ import { Trash2, Pencil, Layers, Folder, User, Users } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import EntityCard from "@/components/common/EntityCard";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import { MembersService } from "@/services/membersService";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
@@ -29,25 +30,8 @@ import TestCaseFilters from "./TestCaseFilters";
 
 const norm = (v: any) => String(v ?? "").trim().toLowerCase();
 
-function hashCode(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return hash;
-}
 
-const CARD_ACCENTS = [
-  ['#3b82f6', '#1d4ed8'],
-  ['#10b981', '#047857'],
-  ['#8b5cf6', '#6d28d9'],
-  ['#f59e0b', '#b45309']
-];
 
-function accentFor(str: string) {
-  const h = Math.abs(hashCode(str || 'default'));
-  return CARD_ACCENTS[h % CARD_ACCENTS.length];
-}
 
 function initialsOf(name: string) {
   if (!name) return 'TC';
@@ -543,32 +527,11 @@ export default function TestCasesPage() {
   const pageEnd = Math.min(safePage * pageSize, totalItems);
   const pagedCases = parentCases;
 
-  /* Columns mirror the Ticket List: a copyable ID, the title, then the
-     one-glance attributes, with row actions pinned to the right. */
+  /* Columns mirror the Ticket List: the title, then the one-glance
+     attributes, with row actions pinned to the right. The id column is
+     deliberately absent — a truncated uuid told a reader nothing, and the
+     row itself already opens the scenario. */
   const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 118,
-      render: (id: string) => (
-        <span
-          className="pp-case-id"
-          onClick={(e) => { e.stopPropagation(); router.push(`/qa-workspace/test-cases/${id}`); }}
-          title={id}
-        >
-          {String(id || '').slice(0, 8).toUpperCase()}
-          <CopyOutlined
-            style={{ fontSize: 10, opacity: 0.6 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(id);
-              message.success("Case ID copied!");
-            }}
-          />
-        </span>
-      ),
-    },
     {
       title: "Title",
       dataIndex: "title",
@@ -759,34 +722,56 @@ export default function TestCasesPage() {
     />
   );
 
+  /**
+   * The card view, on the shared project-list card (`EntityCard`).
+   *
+   * The accent is the scenario's status rather than a per-name colour: a wall
+   * of green reads as "this module is ready" at a glance, which a decorative
+   * hash of the title never did.
+   */
   const renderCaseCard = (r: any) => {
-    const accent = accentFor(r.title || r.id);
-    const color = r.status === 'Ready' || r.status === 'Active' ? '#10b981' : r.status === 'Deprecated' ? '#ef4444' : '#3b82f6';
+    const status = r.status || 'Draft';
+    const accent =
+      (status === 'Ready' || status === 'Active') ? '#10b981'
+        : status === 'Deprecated' ? '#ef4444'
+          : status === 'Draft' ? '#64748b' : '#3b82f6';
 
     return (
-      <div key={r.id} className="pc-card" onClick={() => router.push(`/qa-workspace/test-cases/${r.id}`)}>
-        <div className="pc-top">
-          <div className="pc-avatar" style={{ background: `linear-gradient(135deg, ${accent[0]} 0%, ${accent[1]} 100%)` }}>
-            {initialsOf(r.title)}
-          </div>
-          <div className="pc-identity-body">
-            <div className="pc-title">{r.title}</div>
-            <div className="pc-client-line">
-              <span className="pc-client-key">Module:</span>
-              <span className="pc-client-val">{r.module_name || 'Unassigned'}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => e.stopPropagation()}>
+      <EntityCard
+        key={r.id}
+        initials={initialsOf(r.title)}
+        accent={accent}
+        title={r.title || 'Unnamed Test Case'}
+        status={status}
+        meta={[
+          r.module_name || 'Unassigned',
+          r.feature ? `Feature: ${r.feature}` : null,
+          r.automation || 'Manual',
+        ]}
+        onClick={() => router.push(`/qa-workspace/test-cases/${r.id}`)}
+        footLeft={
+          <>
+            <span className="zc-av">{initialsOf(r.owner_name || r.qa_owner || '—')}</span>
+            <span className="zc-foot-name" title={r.owner_name || r.qa_owner || 'Unassigned'}>
+              {r.owner_name || r.qa_owner || 'Unassigned'}
+            </span>
+          </>
+        }
+        footRight={
+          <span>
+            <span className="zc-foot-date">{r.child_count || 0}</span>
+            <span className="zc-foot-note"> case{Number(r.child_count) === 1 ? '' : 's'}</span>
+          </span>
+        }
+        actions={
+          <>
             {canUpdateCase && (
               <Button
                 type="text"
                 size="small"
                 icon={<Pencil size={15} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenEditModal(r, e);
-                }}
-                style={{ color: "var(--text-slate-500)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                onClick={(e) => { e.stopPropagation(); handleOpenEditModal(r, e); }}
+                style={{ color: 'var(--text-slate-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Edit Test Case"
               />
             )}
@@ -803,42 +788,14 @@ export default function TestCasesPage() {
                   size="small"
                   icon={<Trash2 size={15} />}
                   onClick={(e) => e.stopPropagation()}
-                  style={{ color: "#ef4444", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   title="Delete Test Case"
                 />
               </ConfirmDialog>
             )}
-          </div>
-        </div>
-
-        <div className="pc-foot">
-          <div className="pc-foot-row">
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Feature:</span>
-              <span className="pc-foot-val">{r.feature || '—'}</span>
-            </span>
-            <span className="pc-foot-div" />
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Automation:</span>
-              <span className="pc-foot-val">{r.automation || 'Manual'}</span>
-            </span>
-            <span className="pc-foot-div" />
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Test Cases:</span>
-              <span className="pc-foot-val">{r.child_count || 0}</span>
-            </span>
-          </div>
-          <div className="pc-foot-row" style={{ justifyContent: 'space-between' }}>
-            <span className="pc-foot-item">
-              <span className="pc-foot-key">Owner:</span>
-              <span className="pc-foot-val">{r.owner_name || r.qa_owner || '—'}</span>
-            </span>
-            <span className="pc-status-tag" style={{ color, background: `${color}1A` }}>
-              {r.status || 'Draft'}
-            </span>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     );
   };
 
@@ -2028,44 +1985,9 @@ const CASES_PAGE_STYLES = `
 
 /* ── Grid view ────────────────────────────────────────────────────────── */
 .sc-gridwrap { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; }
-.pp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-@media (max-width: 1024px) { .pp-grid { grid-template-columns: 1fr; } }
-
-.pc-card {
-  border: 1px solid var(--border-slate-200); border-radius: 0; background: var(--bg-pure-white);
-  cursor: pointer; overflow: hidden; display: flex; flex-direction: column;
-  transition: box-shadow .15s ease, border-color .15s ease;
-}
-.pc-card:hover { box-shadow: 0 3px 12px rgba(15,23,42,0.06); border-color: #cbd5e1; }
-.pc-top { display: flex; align-items: flex-start; gap: 10px; padding: 12px; flex: 1; }
-.pc-avatar {
-  width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 13px;
-}
-.pc-identity-body { display: flex; flex-direction: column; min-width: 0; gap: 4px; flex: 1; }
-.pc-title {
-  font-size: 14px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.pc-client-line { display: flex; align-items: center; gap: 5px; font-size: 11.5px; min-width: 0; }
-.pc-client-key { color: var(--text-slate-400); font-weight: 600; flex-shrink: 0; }
-.pc-client-val { color: var(--text-slate-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc-actions {
-  width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
-  background: transparent; color: var(--text-slate-400); cursor: pointer; flex-shrink: 0;
-}
-.pc-actions:hover { color: #2563eb; background: var(--bg-blue-50); border-color: #bfdbfe; }
-.pc-foot { display: flex; flex-direction: column; padding: 0; border-top: 1px solid var(--border-slate-200); background: var(--bg-slate-50); }
-.pc-foot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; }
-.pc-foot-row + .pc-foot-row { border-top: 1px solid var(--border-slate-200); }
-.pc-foot-item { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-slate-700); }
-.pc-foot-key { font-size: 10.5px; font-weight: 600; color: var(--text-slate-400); }
-.pc-foot-div { width: 1px; height: 11px; background: var(--border-slate-300, #cbd5e1); }
-.pc-status-tag {
-  display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px;
-  border-radius: 5px; font-size: 10.5px; font-weight: 700;
-}
+/* The projects grid: tiles that fill the row, not two slabs across it. */
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 640px) { .pp-grid { grid-template-columns: 1fr; } }
 
 /* ── Row action menu (grid card kebab) ────────────────────────────────── */
 .pp-action-pop .ant-dropdown-menu {

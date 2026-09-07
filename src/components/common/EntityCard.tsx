@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * EntityCard — the project-list card, extracted so other modules can use it.
+ * EntityCard — the Projects → Manage card, extracted so other modules can use it.
  *
- * The visual language is lifted verbatim from the Projects → Manage list
- * (`.pm2-list-card` and friends): square corners, avatar + title + meta line in
- * the header, a tinted status pill, and a shaded footer carrying a clamped
- * description above a row of key/value facts.
+ * The visual language is lifted from `.pm2-card`: an accent stripe along the
+ * top edge, a tinted initials badge with a status pill opposite it, a one-line
+ * title over a dot-separated meta line, an optional four-bar meter, and a
+ * footer split between a people cluster and a right-aligned date.
  *
  * Class names are namespaced `zc-` rather than reusing `pm2-`. Those rules live
  * in a `<style jsx global>` block inside the Projects page, so they exist only
@@ -16,31 +16,26 @@
  */
 
 import React from "react";
-import { Typography } from "antd";
-
-const { Paragraph } = Typography;
-
-export interface EntityCardFact {
-  /** Small grey label, e.g. "Manager:". */
-  label: string;
-  value: React.ReactNode;
-}
 
 export interface EntityCardProps {
-  /** Two-letter block shown in the avatar. */
+  /** Two-letter block in the tinted badge. */
   initials: string;
-  /** Drives the avatar and the status pill tint. */
+  /** Drives the stripe, the badge, the status pill and the meter. */
   accent?: string;
   title: React.ReactNode;
-  /** The `key: value` line under the title. */
-  metaLabel?: string;
-  metaValue?: React.ReactNode;
-  /** Small uppercase pill at the end of the meta line. */
+  /** The muted line under the title. Strings are joined with " · ". */
+  meta?: React.ReactNode | Array<string | null | undefined | false>;
+  /** Small pill opposite the badge. */
   status?: string | null;
-  description?: string | null;
-  /** Footer facts, rendered with hairline dividers between them. */
-  facts?: EntityCardFact[];
-  /** Right-aligned control in the header (a menu, usually). */
+  /**
+   * The four-bar gauge. Projects read "% elapsed" here; anything with a
+   * denominator reads the same way. Omit it and the row is dropped.
+   */
+  meter?: { percent: number; label: React.ReactNode };
+  /** Footer, split left and right. Omit both and the footer is dropped. */
+  footLeft?: React.ReactNode;
+  footRight?: React.ReactNode;
+  /** Right of the status pill — a menu or a couple of icon buttons. */
   actions?: React.ReactNode;
   onClick?: () => void;
   className?: string;
@@ -50,261 +45,237 @@ export default function EntityCard({
   initials,
   accent = "#3b82f6",
   title,
-  metaLabel,
-  metaValue,
+  meta,
   status,
-  description,
-  facts = [],
+  meter,
+  footLeft,
+  footRight,
   actions,
   onClick,
   className,
 }: EntityCardProps) {
   const clickable = typeof onClick === "function";
+  const metaText = Array.isArray(meta) ? meta.filter(Boolean).join(" · ") : meta;
 
   return (
-    <article className={`zc-card${className ? ` ${className}` : ""}`}>
-      <header className="zc-card-head">
-        <div
-          className="zc-card-row"
-          role={clickable ? "button" : undefined}
-          tabIndex={clickable ? 0 : undefined}
-          onClick={onClick}
-          onKeyDown={(event) => {
-            // A div given role="button" has to answer to the keyboard itself.
-            if (!clickable) return;
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              onClick?.();
-            }
-          }}
-          style={{ cursor: clickable ? "pointer" : "default" }}
-        >
-          <div
-            className="zc-card-avatar"
-            style={{ background: accent, borderColor: `${accent}66`, color: "#ffffff" }}
-          >
-            <span className="zc-card-avatar-letter">{initials}</span>
-          </div>
+    <article
+      className={`zc-card${className ? ` ${className}` : ""}`}
+      style={{ ["--card-accent" as any]: accent }}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        // An article given role="button" has to answer to the keyboard itself.
+        if (!clickable) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+    >
+      <span className="zc-card__stripe" />
 
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-            <span className="zc-card-title">{title}</span>
-            {(metaLabel || metaValue || status) && (
-              <span className="zc-card-meta">
-                {metaLabel && <span className="zc-card-meta-key">{metaLabel}</span>}
-                {metaValue && <span className="zc-card-meta-val">{metaValue}</span>}
-                {status && (
-                  <span
-                    className="zc-card-status"
-                    style={{ background: `${accent}12`, borderColor: `${accent}30`, color: accent }}
-                  >
-                    {status}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {actions && (
-          <div className="zc-card-more" onClick={(event) => event.stopPropagation()}>
-            {actions}
-          </div>
+      <div className="zc-card__top">
+        <span className="zc-card__badge">{initials}</span>
+        {status && (
+          <span className="zc-card__status">
+            <span className="zc-card__status-dot" />
+            {status}
+          </span>
         )}
-      </header>
-
-      <div className="zc-card-foot">
-        <div className="zc-card-foot-row">
-          <Paragraph
-            style={{ fontSize: 12.5, color: "var(--text-slate-500)", margin: 0, lineHeight: 1.5, minHeight: 36 }}
-            ellipsis={{ rows: 2 }}
-          >
-            {description || "No description provided."}
-          </Paragraph>
-        </div>
-
-        {facts.length > 0 && (
-          <div className="zc-card-foot-row">
-            {facts.map((fact, index) => (
-              <React.Fragment key={fact.label}>
-                {index > 0 && <span className="zc-card-foot-div" />}
-                <span className="zc-card-foot-item">
-                  <span className="zc-card-foot-key">{fact.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-slate-700)" }}>
-                    {fact.value}
-                  </span>
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
+        {actions && (
+          <span className="zc-card__more" onClick={(event) => event.stopPropagation()}>
+            {actions}
+          </span>
         )}
       </div>
+
+      <h3 className="zc-card__title" title={typeof title === "string" ? title : undefined}>
+        {title}
+      </h3>
+
+      <p className="zc-card__meta">{metaText}</p>
+
+      {meter && (
+        <div className="zc-card__gauge">
+          <span className="zc-card__bars">
+            {[1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className={`zc-card__bar${meter.percent >= i * 25 ? " is-on" : ""}`}
+              />
+            ))}
+          </span>
+          <span className="zc-card__gauge-label">{meter.label}</span>
+        </div>
+      )}
+
+      {(footLeft || footRight) && (
+        <div className="zc-card__foot">
+          <span className="zc-card__footside">{footLeft}</span>
+          <span className="zc-card__footside zc-card__footside--end">{footRight}</span>
+        </div>
+      )}
 
       <style jsx global>{`
         .zc-card {
           position: relative;
-          background: var(--bg-pure-white);
-          border: 1px solid var(--border-slate-200);
-          border-radius: 0px;
-          padding: 0;
           display: flex;
           flex-direction: column;
-          gap: 0;
+          padding: 14px 14px 0;
+          background: var(--bg-pure-white);
+          border: 1px solid var(--border-slate-200);
+          border-radius: 10px;
+          cursor: pointer;
           overflow: hidden;
-          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-        }
-        [data-theme="dark"] .zc-card {
-          background: #0b0f1a;
-          border-color: #374151;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
         .zc-card:hover {
-          box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
           border-color: #cbd5e1;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
         }
-        [data-theme="dark"] .zc-card:hover {
-          background: #0b0f1a;
-          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
-          border-color: #cbd5e1;
+        .zc-card:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+        [data-theme='dark'] .zc-card {
+          background: #0f1419;
+          border-color: #1f2937;
+        }
+        [data-theme='dark'] .zc-card:hover { border-color: #334155; }
+
+        /* The state reads twice: as a stripe along the top edge and as a pill. */
+        .zc-card__stripe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--card-accent, #3b82f6);
         }
 
-        .zc-card-head {
-          display: flex;
-          align-items: center;
-          padding: 8px 12px;
-        }
-        .zc-card-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-width: 0;
-          flex: 1;
-        }
-        .zc-card-row:focus-visible {
-          outline: 2px solid #3b82f6;
-          outline-offset: 2px;
-        }
-
-        .zc-card-avatar {
-          width: 34px;
-          height: 34px;
-          border-radius: 9px;
-          border: 1px solid;
+        .zc-card__top { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .zc-card__badge {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          font-weight: 800;
-          letter-spacing: -0.025em;
           flex-shrink: 0;
-          position: relative;
-          overflow: hidden;
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+          background: color-mix(in srgb, var(--card-accent, #3b82f6) 12%, transparent);
+          color: var(--card-accent, #3b82f6);
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: -0.01em;
         }
-        .zc-card-avatar::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 75% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
-            radial-gradient(circle at 0% 100%, rgba(0, 0, 0, 0.06), transparent 55%);
-          pointer-events: none;
-        }
-        .zc-card-avatar-letter {
-          position: relative;
-          z-index: 1;
-          line-height: 1;
-        }
-
-        .zc-card-title {
-          font-size: 13px;
+        .zc-card__status {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-left: auto;
+          height: 22px;
+          padding: 0 9px;
+          border-radius: 999px;
+          background: color-mix(in srgb, var(--card-accent, #3b82f6) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--card-accent, #3b82f6) 24%, transparent);
+          color: var(--card-accent, #3b82f6);
+          font-size: 11px;
           font-weight: 700;
+          text-transform: capitalize;
+          white-space: nowrap;
+        }
+        .zc-card__status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        /* Without a status pill the actions still belong at the right edge. */
+        .zc-card__status + .zc-card__more { margin-left: 0; }
+        .zc-card__more { flex-shrink: 0; display: inline-flex; align-items: center; margin-left: auto; }
+
+        .zc-card__title {
+          margin: 0 0 4px;
+          font-size: 14.5px;
+          font-weight: 700;
+          line-height: 1.3;
           color: var(--text-slate-900);
           letter-spacing: -0.01em;
-          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        [data-theme='dark'] .zc-card__title { color: #f1f5f9; }
+        .zc-card__meta {
+          margin: 0 0 12px;
+          font-size: 12px;
+          line-height: 1.45;
+          color: var(--text-slate-500);
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          margin-bottom: 2px;
+          min-height: 34px;
         }
-        .zc-card-meta {
+
+        .zc-card__gauge { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; }
+        .zc-card__bars { display: inline-flex; align-items: flex-end; gap: 2px; }
+        .zc-card__bar { width: 4px; height: 12px; border-radius: 2px; background: var(--border-slate-200); }
+        .zc-card__bar.is-on { background: var(--card-accent, #3b82f6); }
+        [data-theme='dark'] .zc-card__bar { background: #1f2937; }
+        .zc-card__gauge-label { font-size: 12px; font-weight: 500; color: var(--text-slate-600); }
+        [data-theme='dark'] .zc-card__gauge-label { color: #94a3b8; }
+
+        .zc-card__foot {
           display: flex;
           align-items: center;
-          gap: 5px;
-          font-size: 11.5px;
+          justify-content: space-between;
+          gap: 10px;
+          margin: auto -14px 0;
+          padding: 10px 14px;
+          border-top: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .zc-card__foot { border-top-color: #1f2937; }
+        .zc-card__footside {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
           min-width: 0;
+          font-size: 12px;
+          color: var(--text-slate-600);
         }
-        .zc-card-meta-key {
-          color: var(--text-slate-400);
-          font-weight: 600;
+        .zc-card__footside--end { justify-content: flex-end; text-align: right; white-space: nowrap; }
+
+        /* Helpers the pages compose their footer out of. */
+        .zc-av {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
           flex-shrink: 0;
+          background: var(--bg-slate-100);
+          color: var(--text-slate-600);
+          border: 2px solid var(--bg-pure-white);
+          font-size: 9.5px;
+          font-weight: 800;
         }
-        .zc-card-meta-val {
-          color: var(--text-slate-700);
+        [data-theme='dark'] .zc-av { border-color: #0f1419; background: #1e293b; color: #cbd5e1; }
+        .zc-foot-name {
+          font-size: 12px;
           font-weight: 600;
-          white-space: nowrap;
+          color: var(--text-slate-700);
           overflow: hidden;
           text-overflow: ellipsis;
-        }
-        .zc-card-status {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 2px 9px;
-          border-radius: 0px;
-          border: 1px solid;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.01em;
           white-space: nowrap;
         }
-
-        .zc-card-more {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-left: 8px;
-        }
-
-        .zc-card-foot {
-          display: flex;
-          flex-direction: column;
-          padding: 0;
-          border-top: 1px solid var(--border-slate-200);
-          background: var(--bg-slate-50);
-          margin-top: auto;
-        }
-        [data-theme="dark"] .zc-card-foot {
-          border-top-color: #374151;
-          background: rgba(255, 255, 255, 0.02);
-        }
-        .zc-card-foot-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-          padding: 8px 12px;
-        }
-        .zc-card-foot-row + .zc-card-foot-row {
-          border-top: 1px solid var(--border-slate-200);
-        }
-        [data-theme="dark"] .zc-card-foot-row + .zc-card-foot-row {
-          border-top-color: #374151;
-        }
-        .zc-card-foot-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 11.5px;
-          color: var(--text-slate-700);
-        }
-        .zc-card-foot-key {
-          font-size: 10.5px;
+        [data-theme='dark'] .zc-foot-name { color: #cbd5e1; }
+        .zc-foot-date {
+          font-size: 12px;
           font-weight: 600;
-          color: var(--text-slate-400);
+          color: var(--text-slate-700);
+          font-variant-numeric: tabular-nums;
         }
-        .zc-card-foot-div {
-          width: 1px;
-          height: 11px;
-          background: var(--border-slate-300, #cbd5e1);
-        }
+        [data-theme='dark'] .zc-foot-date { color: #cbd5e1; }
+        .zc-foot-note { font-size: 11px; color: var(--text-slate-400); }
       `}</style>
     </article>
   );

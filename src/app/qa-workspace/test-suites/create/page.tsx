@@ -11,7 +11,7 @@ import {
   ArrowLeftOutlined, SearchOutlined, CloseOutlined, LoadingOutlined, FileTextOutlined,
 } from "@ant-design/icons";
 import {
-  Check, ClipboardList, ListChecks, Save, Sparkles, SpellCheck, Wand2, Zap, Copy, ChevronDown, Filter,
+  Check, ClipboardList, ListChecks, Save, Sparkles, SpellCheck, Wand2, Zap, Copy, ChevronDown, Filter, Route,
 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -20,6 +20,7 @@ import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
 import { useDebounce } from "@/hooks/useDebounce";
+import { QaScenarioService, type TestScenario } from "@/services/qaScenarioService";
 
 /**
  * The standard testing types, kept identical to the Test Scope page so both
@@ -41,6 +42,9 @@ const SECTIONS = [
 ];
 
 /** Module cases stream in a page at a time, straight off the server. */
+/** The pseudo-option that stands for "cases no flow claims". */
+const UNGROUPED_KEY = "__ungrouped__";
+
 const CASE_PAGE_SIZE = 20;
 
 /** Starter instructions offered in the Zai drawer for the suite description. */
@@ -246,6 +250,25 @@ function CreateTestSuiteContent() {
   /** Offset currently being fetched, so one page is never requested twice. */
   const inFlightOffsetRef = useRef<number | null>(null);
 
+  /* The "not in any scenario" pick. Not a flow id — no flow can collide with it. */
+  /* ── Link by Test Scenario ───────────────────────────────────────────────
+     The cases on a module page are often already grouped into the flows a
+     tester walks ("Create User"). A suite is usually one or two of those
+     flows, so picking the flow beats ticking its eight cases by hand — and
+     picking it whole is what keeps the suite in step with the flow. */
+  const [scenarios, setScenarios] = useState<TestScenario[]>([]);
+  const [scenariosLoading, setScenariosLoading] = useState(false);
+  /** case ids that any flow on this page claims — what "ungrouped" is measured against. */
+  const [coveredCaseIds, setCoveredCaseIds] = useState<Set<string>>(new Set());
+  /**
+   * Flows picked in the dropdown. Several at once, because a suite is usually
+   * "Create User and Delete User", and UNGROUPED_KEY picks the cases no flow
+   * claims — the set most likely to be forgotten, so it leads the list.
+   */
+  const [scenarioPicks, setScenarioPicks] = useState<string[]>([]);
+  /** Every case on this page, for the ungrouped set the flows do not carry. */
+  const [parentCases, setParentCases] = useState<any[]>([]);
+
   /* ── Zai description assistant ──────────────────────────────────────────── */
   const [aiBusy, setAiBusy] = useState<"generate" | "grammar" | null>(null);
   const [zaiOpen, setZaiOpen] = useState(false);
@@ -450,6 +473,168 @@ function CreateTestSuiteContent() {
     if (!still) setTypeFilter(undefined);
   }, [typeFacets]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /**
+   * The flows defined on the chosen test case's page.
+   *
+   * Only a parent has flows — a module-wide scope spans several pages and has
+   * no single set of them, so the picker stays hidden there.
+   */
+  useEffect(() => {
+    const parentId = formData.parent_test_case_id;
+    if (!canReadSuite || !parentId) {
+      setScenarios([]);
+      setScenarioPicks([]);
+      return;
+    }
+    let active = true;
+    setScenariosLoading(true);
+    QaScenarioService.list(parentId)
+      .then(async (res) => {
+        if (!active) return;
+        setScenarios(res.scenarios || []);
+        setCoveredCaseIds(new Set((res.memberships || []).map((m) => m.test_case_id)));
+        // "Ungrouped" is a set no flow can describe, so it needs the page's own
+        // cases. Pulled once, and only when the page has flows to pick at all.
+        if ((res.scenarios || []).length > 0) {
+          try {
+            const all: any = await axios.get("/api/v2/qa", {
+              params: { parent_id: parentId, paginated: true, limit: 500, offset: 0 },
+            });
+            if (active) setParentCases(all?.items || all?.data?.items || []);
+          } catch {
+            if (active) setParentCases([]);
+          }
+        }
+      })
+      // Linking by hand still works; never block the section on this.
+      .catch(() => { if (active) { setScenarios([]); setCoveredCaseIds(new Set()); setParentCases([]); } })
+      .finally(() => { if (active) setScenariosLoading(false); });
+    return () => { active = false; };
+  }, [canReadSuite, formData.parent_test_case_id]);
+
+  /** Flows picked on a previous scope must not survive into the next one. */
+  useEffect(() => {
+    setScenarioPicks([]);
+  }, [formData.parent_test_case_id, formData.module_id]);
+
+  const ungroupedPicked = scenarioPicks.includes(UNGROUPED_KEY);
+  const pickedFlows = useMemo(
+    () => scenarios.filter((f) => scenarioPicks.includes(f.id)),
+    [scenarios, scenarioPicks],
+  );
+  /** Any pick at all — the list stops being the server-paged one. */
+  const scenarioMode = scenarioPicks.length > 0;
+
+  /** Cases on this page that no flow walks. */
+  const ungroupedCases = useMemo(
+    () => parentCases.filter((c: any) => !coveredCaseIds.has(c.id)),
+    [parentCases, coveredCaseIds],
+  );
+
+  /**
+   * What the list shows once anything is picked: one section per pick, with
+   * "not in any scenario" first.
+   *
+   * Ordered that way on purpose — the ungrouped set is the part of a module
+   * nobody has thought about as a sequence, and the part a suite most often
+   * forgets. A flow is bounded, so its steps need no paging; search and the
+   * type filter narrow the sections in place.
+   */
+  const scenarioSections = useMemo(() => {
+    if (scenarioPicks.length === 0) return [];
+    const q = caseSearchQuery.trim().toLowerCase();
+    const narrow = (rows: any[]) =>
+      rows.filter((row) => {
+        if (typeFilter && String(row.test_type || "").toLowerCase() !== typeFilter.toLowerCase()) return false;
+        if (!q) return true;
+        return String(row.name || "").toLowerCase().includes(q)
+          || String(row.test_case_id || "").toLowerCase().includes(q);
+      });
+
+    const sections: Array<{
+      key: string; name: string; description?: string | null;
+      total: number; rows: any[];
+    }> = [];
+
+    if (ungroupedPicked) {
+      const rows = ungroupedCases.map((c: any) => ({
+        id: c.id,
+        step: null,
+        test_case_id: c.test_case_id,
+        name: c.name,
+        test_type: c.test_type,
+        priority: c.priority,
+        status: c.status,
+      }));
+      sections.push({
+        key: UNGROUPED_KEY,
+        name: "Not in any scenario",
+        description: "Cases on this page that no flow walks.",
+        total: rows.length,
+        rows: narrow(rows),
+      });
+    }
+
+    pickedFlows.forEach((flow) => {
+      const rows = (flow.steps || []).map((st) => ({
+        id: st.test_case_id,
+        step: st.position + 1,
+        test_case_id: st.case_code,
+        name: st.name,
+        test_type: st.test_type,
+        priority: st.priority,
+        status: st.status,
+      }));
+      sections.push({
+        key: flow.id,
+        name: flow.name,
+        description: flow.description,
+        total: rows.length,
+        rows: narrow(rows),
+      });
+    });
+
+    return sections;
+  }, [scenarioPicks, ungroupedPicked, ungroupedCases, pickedFlows, caseSearchQuery, typeFilter]);
+
+  /** Every case the current picks cover, filters ignored — what "link all" means. */
+  const pickedCaseIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (ungroupedPicked) ungroupedCases.forEach((c: any) => ids.add(c.id));
+    pickedFlows.forEach((f) => (f.steps || []).forEach((st) => ids.add(st.test_case_id)));
+    return Array.from(ids);
+  }, [ungroupedPicked, ungroupedCases, pickedFlows]);
+
+  /** What the picked set is called in a toast: one name, or "3 scenarios". */
+  const scenarioPickLabel = (() => {
+    const names = [
+      ...(ungroupedPicked ? ["Not in any scenario"] : []),
+      ...pickedFlows.map((f) => f.name),
+    ];
+    if (names.length === 1) return names[0];
+    return `${names.length} selections`;
+  })();
+
+  /** Tick or untick a set of cases in one go — the reason the picker exists. */
+  const linkCaseIds = (ids: string[], on: boolean, label: string) => {
+    if (ids.length === 0) return;
+    setIsDirty(true);
+    setFormData((prev: any) => {
+      const current: string[] = prev.test_case_ids || [];
+      return {
+        ...prev,
+        test_case_ids: on
+          ? Array.from(new Set([...current, ...ids]))
+          : current.filter((id) => !ids.includes(id)),
+      };
+    });
+    message.success(
+      on
+        ? `${ids.length} case${ids.length === 1 ? "" : "s"} linked from “${label}”`
+        : `“${label}” unlinked`,
+    );
+  };
+
   /** Pulls the next 20 once the list is scrolled near its end. */
   const handleCaseListScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (!casesHasMore || casesLoading || casesLoadingMore) return;
@@ -471,6 +656,12 @@ function CreateTestSuiteContent() {
    */
   const selectAllMatching = async () => {
     if (selectingAll) return;
+    // The picked flows' ids are already in hand — no round trip to select what
+    // is sitting on screen.
+    if (scenarioMode) {
+      linkCaseIds(pickedCaseIds, true, scenarioPickLabel);
+      return;
+    }
     setSelectingAll(true);
     try {
       const res: any = await axios.get("/api/v2/qa", {
@@ -493,6 +684,10 @@ function CreateTestSuiteContent() {
 
   /** Unticks only what the current filter matches, leaving other picks alone. */
   const clearMatching = async () => {
+    if (scenarioMode) {
+      linkCaseIds(pickedCaseIds, false, scenarioPickLabel);
+      return;
+    }
     if (!typeFilter && !caseSearchQuery) {
       setIsDirty(true);
       setFormData((prev: any) => ({ ...prev, test_case_ids: [] }));
@@ -650,6 +845,13 @@ function CreateTestSuiteContent() {
 
   const selectedCount = formData.test_case_ids?.length || 0;
   const filtersActive = !!(caseSearchQuery || typeFilter);
+
+  /* How much of the picked set is already linked — the summary bar, the strip
+     and the bulk actions all read these. */
+  const scenarioLinkedCount = pickedCaseIds.filter((id) => formData.test_case_ids?.includes(id)).length;
+  const scenarioFullyLinked = pickedCaseIds.length > 0 && scenarioLinkedCount === pickedCaseIds.length;
+  /** What the list is showing: the picked sets, or the scope's server count. */
+  const visibleTotal = scenarioMode ? pickedCaseIds.length : casesTotal;
 
   if (!canReadSuite) return null;
   if (editingId ? !canUpdateSuite : !canCreateSuite) return null;
@@ -844,9 +1046,15 @@ function CreateTestSuiteContent() {
         .ts-create .ts-mini:disabled { opacity: .55; cursor: not-allowed; }
 
         /* ── Link Module Test Cases ─────────────────────────────────── */
+        /* Not a card inside a card: the selection read-out belongs to the
+           section header above it, so it bleeds to the card's edges, sits
+           flush under the head and is closed by a divider rather than a
+           border on four sides. */
         .ts-create .lk-summary {
-          padding: 10px 12px; margin-bottom: 10px; border-radius: 10px;
-          background: var(--ts-surface-soft); border: 1px solid var(--ts-border-soft);
+          position: relative;
+          margin: -20px -20px 14px; padding: 11px 20px 12px;
+          background: transparent; border: none;
+          border-bottom: 1px solid var(--ts-border-soft);
         }
         .ts-create .lk-summary__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
         .ts-create .lk-summary__count { font-size: 12px; color: var(--ts-text-3); }
@@ -859,7 +1067,13 @@ function CreateTestSuiteContent() {
         .ts-create .lk-link:hover:not(:disabled) { text-decoration: underline; }
         .ts-create .lk-link:disabled { color: var(--ts-text-3); cursor: not-allowed; }
         .ts-create .lk-dot { width: 3px; height: 3px; border-radius: 999px; background: var(--ts-border); }
-        .ts-create .lk-bar { height: 3px; margin-top: 9px; border-radius: 999px; background: var(--ts-border); overflow: hidden; }
+        /* Coverage paints along the divider itself — the line is already the
+           full width of the section, and a separate track would be a second
+           horizontal rule saying the same thing. */
+        .ts-create .lk-bar {
+          position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+          background: transparent; overflow: hidden;
+        }
         .ts-create .lk-bar > span { display: block; height: 100%; background: var(--ts-blue); transition: width .25s ease; }
 
         /* Filter row — search, then the testing type it is narrowed to */
@@ -926,6 +1140,97 @@ function CreateTestSuiteContent() {
         }
         [data-theme='dark'] .ts-create .lk-scope__pill { color: #93C5FD; }
 
+        /* The scenario picker sits beside the type filter, same slot shape */
+        /* Wider than the type filter: it holds several names at once. */
+        .ts-create .lk-type--flow { flex: 0 0 250px; max-width: 250px; }
+
+        /* The flow being linked, and the one action that takes it whole */
+        .ts-create .lk-flow {
+          display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+          padding: 9px 11px; border-radius: 10px;
+          background: var(--ts-blue-soft); border: 1px solid var(--ts-blue-border);
+        }
+        .ts-create .lk-flow.is-on { background: var(--ts-green-soft); border-color: transparent; }
+        .ts-create .lk-flow__ic {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 26px; height: 26px; border-radius: 8px;
+          background: var(--ts-surface); color: var(--ts-blue-strong);
+        }
+        .ts-create .lk-flow.is-on .lk-flow__ic { color: #047857; }
+        .ts-create .lk-flow__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+        .ts-create .lk-flow__name {
+          font-size: 12.5px; font-weight: 700; color: var(--ts-text);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ts-create .lk-flow__meta {
+          font-size: 11px; color: var(--ts-text-3);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ts-create .lk-flow__btn {
+          flex-shrink: 0; height: 28px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+          font-size: 11.5px; font-weight: 700; color: #fff;
+          background: var(--ts-blue); border: 1px solid var(--ts-blue);
+          transition: filter .15s ease;
+        }
+        .ts-create .lk-flow__btn:hover { filter: brightness(1.06); }
+        .ts-create .lk-flow__btn.is-on {
+          color: var(--ts-text-2); background: var(--ts-surface); border-color: var(--ts-border);
+        }
+
+        /* One section per pick, so a merged selection still says where each
+           case came from — "not in any scenario" leads, by design. */
+        .ts-create .lk-group {
+          display: flex; flex-direction: column; gap: 6px;
+          padding: 8px; border-radius: 10px;
+          border: 1px solid var(--ts-border-soft); background: var(--ts-surface-soft);
+        }
+        .ts-create .lk-group__head { display: flex; align-items: center; gap: 8px; padding: 0 2px 2px; }
+        .ts-create .lk-group__ic {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 20px; height: 20px; border-radius: 6px;
+          background: var(--ts-blue-soft); color: var(--ts-blue-strong);
+        }
+        .ts-create .lk-group__ic.is-ash { background: var(--ts-border-soft); color: var(--ts-text-3); }
+        .ts-create .lk-group__name {
+          flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: var(--ts-text);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .ts-create .lk-group__n {
+          flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--ts-text-3);
+          font-variant-numeric: tabular-nums;
+        }
+        .ts-create .lk-group__btn {
+          flex-shrink: 0; height: 22px; padding: 0 9px; border-radius: 6px; cursor: pointer;
+          font-size: 10.5px; font-weight: 700; color: var(--ts-blue-strong);
+          background: var(--ts-surface); border: 1px solid var(--ts-blue-border);
+          transition: background .15s ease;
+        }
+        .ts-create .lk-group__btn:hover:not(:disabled) { background: var(--ts-blue-soft); }
+        .ts-create .lk-group__btn:disabled { color: var(--ts-text-3); border-color: var(--ts-border); cursor: not-allowed; }
+        .ts-create .lk-group__blank { margin: 0; padding: 6px 4px; font-size: 11.5px; color: var(--ts-text-3); }
+
+        /* A step keeps its number in the flow, beside the case id */
+        @media (max-width: 720px) {
+          .ts-create .lk-item { align-items: flex-start; }
+          .ts-create .lk-item__body { flex-direction: column; align-items: stretch; gap: 5px; }
+          .ts-create .lk-item__meta { margin-left: 0; flex-wrap: wrap; }
+        }
+
+        .ts-create .lk-item__step {
+          flex-shrink: 0;
+          width: 20px; height: 20px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 800;
+          background: var(--ts-blue); color: #fff;
+        }
+        /* Ungrouped cases hold the slot but carry no step — they are a set,
+           not a sequence, and numbering them would invent an order. */
+        .ts-create .lk-item__step--none {
+          background: transparent; color: var(--ts-text-3);
+          border: 1px dashed var(--ts-border);
+        }
+
+
         .ts-create .lk-list {
           display: flex; flex-direction: column; gap: 6px;
           max-height: 420px; overflow-y: auto; padding-right: 3px;
@@ -939,16 +1244,21 @@ function CreateTestSuiteContent() {
         }
 
         .ts-create .lk-item {
-          display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
-          padding: 9px 11px; border-radius: 10px;
+          display: flex; align-items: center; gap: 10px; cursor: pointer;
+          padding: 8px 11px; border-radius: 10px;
           border: 1px solid var(--ts-border-soft); background: var(--ts-surface);
           transition: border-color .15s ease, background .15s ease;
         }
         .ts-create .lk-item:hover { border-color: var(--ts-blue-border); background: var(--ts-surface-soft); }
         .ts-create .lk-item.is-on { border-color: var(--ts-blue-border); background: var(--ts-blue-soft); }
-        .ts-create .lk-item .ant-checkbox-wrapper { margin-top: 1px; }
-        .ts-create .lk-item__body { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
-        .ts-create .lk-item__top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        /* One row per case: id and name take the space, the attributes are
+           pinned to the right edge. Two lines cost a picker of forty cases
+           forty extra rows of height, for chips nobody reads in sequence. */
+        .ts-create .lk-item__body {
+          display: flex; flex-direction: row; align-items: center;
+          gap: 12px; min-width: 0; flex: 1;
+        }
+        .ts-create .lk-item__top { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
         .ts-create .lk-item__id {
           flex-shrink: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .02em;
           font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -960,7 +1270,10 @@ function CreateTestSuiteContent() {
           font-size: 12.5px; font-weight: 600; color: var(--ts-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
         }
-        .ts-create .lk-item__meta { display: flex; flex-wrap: wrap; gap: 5px; }
+        .ts-create .lk-item__meta {
+          display: flex; flex-wrap: nowrap; gap: 5px; flex-shrink: 0; margin-left: auto;
+        }
+        .ts-create .lk-item__meta .lk-chip { white-space: nowrap; }
         .ts-create .lk-chip {
           font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
           background: var(--ts-surface-soft); border: 1px solid var(--ts-border);
@@ -1224,17 +1537,23 @@ function CreateTestSuiteContent() {
                     <div className="lk-summary">
                       <div className="lk-summary__row">
                         <span className="lk-summary__count">
-                          <strong>{selectedCount}</strong> selected · {casesTotal} case{casesTotal === 1 ? "" : "s"}
-                          {filtersActive ? " match the filter" : " in this scope"}
+                          <strong>{selectedCount}</strong> selected · {visibleTotal} case{visibleTotal === 1 ? "" : "s"}
+                          {scenarioMode
+                            ? (scenarioPicks.length > 1 ? " in these selections" : " in this selection")
+                            : filtersActive ? " match the filter" : " in this scope"}
                         </span>
                         <div className="lk-summary__actions">
                           <button
                             type="button"
                             className="lk-link"
                             onClick={selectAllMatching}
-                            disabled={casesTotal === 0 || selectingAll || (allLoadedSelected && !casesHasMore)}
+                            disabled={visibleTotal === 0 || selectingAll || (scenarioMode ? scenarioFullyLinked : allLoadedSelected && !casesHasMore)}
                           >
-                            {selectingAll ? "Selecting…" : `Select ${filtersActive ? "all matches" : "all"}`}
+                            {selectingAll
+                              ? "Selecting…"
+                              : `Select ${scenarioMode
+                                ? (scenarioPicks.length > 1 ? "these scenarios" : "this scenario")
+                                : filtersActive ? "all matches" : "all"}`}
                           </button>
                           <span className="lk-dot" />
                           <button
@@ -1248,7 +1567,7 @@ function CreateTestSuiteContent() {
                         </div>
                       </div>
                       <div className="lk-bar">
-                        <span style={{ width: `${casesTotal ? Math.min(100, (selectedCount / casesTotal) * 100) : 0}%` }} />
+                        <span style={{ width: `${visibleTotal ? Math.min(100, ((scenarioMode ? scenarioLinkedCount : selectedCount) / visibleTotal) * 100) : 0}%` }} />
                       </div>
                     </div>
 
@@ -1300,28 +1619,169 @@ function CreateTestSuiteContent() {
                         />
                       </div>
 
-                      {filtersActive && (
+                      {/* Flows defined on this test case's page. Picking one
+                          turns the list into that flow, in its own order. */}
+                      {(scenarios.length > 0 || scenariosLoading) && (
+                        <div className="lk-type lk-type--flow">
+                          <SearchableDropdown
+                            mode="multiple"
+                            options={[
+                              /* First on purpose: the cases no flow claims are
+                                 the ones a suite most often forgets. */
+                              {
+                                value: UNGROUPED_KEY,
+                                label: "Not in any scenario",
+                                description: `${ungroupedCases.length} case${ungroupedCases.length === 1 ? "" : "s"}`,
+                              },
+                              ...scenarios.map((f) => ({
+                                value: f.id,
+                                label: f.name,
+                                description: `${f.case_count} case${f.case_count === 1 ? "" : "s"}`,
+                              })),
+                            ]}
+                            value={scenarioPicks}
+                            onChange={(val: any) => setScenarioPicks(Array.isArray(val) ? val : val ? [val] : [])}
+                            placeholder={scenariosLoading ? "Loading scenarios…" : "All test scenarios"}
+                            searchPlaceholder="Search test scenarios…"
+                            itemNoun="scenarios"
+                            hideAvatar
+                            allowClear
+                            disabled={scenariosLoading}
+                            style={{ width: "100%" }}
+                          />
+                        </div>
+                      )}
+
+                      {(filtersActive || scenarioMode) && (
                         <button
                           type="button"
                           className="lk-reset"
-                          onClick={() => { setCaseSearchTerm(""); setTypeFilter(undefined); }}
+                          onClick={() => { setCaseSearchTerm(""); setTypeFilter(undefined); setScenarioPicks([]); }}
                         >
                           <CloseOutlined style={{ fontSize: 9 }} /> Reset
                         </button>
                       )}
                     </div>
 
-                    {filtersActive && (
-                      <div className="lk-scope">
-                        <Filter size={11} />
-                        <span>Showing</span>
-                        {typeFilter && <span className="lk-scope__pill">{typeFilter}</span>}
-                        {caseSearchQuery && <span className="lk-scope__pill">“{caseSearchQuery}”</span>}
-                        <span>· {casesTotal} case{casesTotal === 1 ? "" : "s"}</span>
+                    {/* The picked set: what it adds up to, and one action that
+                        takes or drops the whole of it. */}
+                    {scenarioMode && (
+                      <div className={`lk-flow${scenarioFullyLinked ? " is-on" : ""}`}>
+                        <span className="lk-flow__ic"><Route size={13} /></span>
+                        <div className="lk-flow__body">
+                          <span className="lk-flow__name" title={scenarioPickLabel}>{scenarioPickLabel}</span>
+                          <span className="lk-flow__meta">
+                            {scenarioLinkedCount} of {pickedCaseIds.length} case
+                            {pickedCaseIds.length === 1 ? "" : "s"} linked
+                            {scenarioPicks.length > 1 ? ` · across ${scenarioPicks.length} selections` : ""}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className={`lk-flow__btn${scenarioFullyLinked ? " is-on" : ""}`}
+                          onClick={() => linkCaseIds(pickedCaseIds, !scenarioFullyLinked, scenarioPickLabel)}
+                        >
+                          {scenarioFullyLinked ? "Unlink all" : `Link all ${pickedCaseIds.length}`}
+                        </button>
                       </div>
                     )}
 
-                    {casesLoading ? (
+                    {(filtersActive || scenarioMode) && (
+                      <div className="lk-scope">
+                        <Filter size={11} />
+                        <span>Showing</span>
+                        {ungroupedPicked && <span className="lk-scope__pill"><Route size={10} /> Not in any scenario</span>}
+                        {pickedFlows.map((f) => (
+                          <span key={f.id} className="lk-scope__pill"><Route size={10} /> {f.name}</span>
+                        ))}
+                        {typeFilter && <span className="lk-scope__pill">{typeFilter}</span>}
+                        {caseSearchQuery && <span className="lk-scope__pill">“{caseSearchQuery}”</span>}
+                        <span>· {visibleTotal} case{visibleTotal === 1 ? "" : "s"}</span>
+                      </div>
+                    )}
+
+                    {scenarioMode ? (
+                      /* Picked sets render whole and in order — a flow is
+                         bounded, so nothing here needs paging. */
+                      scenarioSections.every((sec) => sec.rows.length === 0) ? (
+                        <div className="lk-empty">
+                          <SearchOutlined className="lk-empty__icon" />
+                          <p className="lk-empty__title">No cases match this filter</p>
+                          <p className="lk-empty__desc">Clear the search or testing type to see the whole selection.</p>
+                        </div>
+                      ) : (
+                        <div className="lk-list">
+                          {scenarioSections.map((sec) => {
+                            const linked = sec.rows.filter((r: any) => formData.test_case_ids?.includes(r.id)).length;
+                            const allOn = sec.rows.length > 0 && linked === sec.rows.length;
+                            return (
+                              <section key={sec.key} className="lk-group">
+                                <header className="lk-group__head">
+                                  <span className={`lk-group__ic${sec.key === UNGROUPED_KEY ? " is-ash" : ""}`}>
+                                    <Route size={12} />
+                                  </span>
+                                  <span className="lk-group__name" title={sec.name}>{sec.name}</span>
+                                  <span className="lk-group__n">
+                                    {linked}/{sec.rows.length}
+                                    {sec.rows.length !== sec.total ? ` of ${sec.total}` : ""}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="lk-group__btn"
+                                    onClick={() => linkCaseIds(sec.rows.map((r: any) => r.id), !allOn, sec.name)}
+                                    disabled={sec.rows.length === 0}
+                                  >
+                                    {allOn ? "Unlink" : "Link all"}
+                                  </button>
+                                </header>
+
+                                {sec.rows.length === 0 ? (
+                                  <p className="lk-group__blank">Nothing here matches the filter.</p>
+                                ) : sec.rows.map((row: any) => {
+                                  const checked = formData.test_case_ids?.includes(row.id);
+                                  const isFilteredType =
+                                    !!typeFilter && (row.test_type || "").toLowerCase() === typeFilter.toLowerCase();
+                                  return (
+                                    <div
+                                      key={row.id}
+                                      className={`lk-item${checked ? " is-on" : ""}`}
+                                      onClick={() => {
+                                        const current: string[] = formData.test_case_ids || [];
+                                        patch({
+                                          test_case_ids: !checked
+                                            ? [...current, row.id]
+                                            : current.filter((id: string) => id !== row.id),
+                                        });
+                                      }}
+                                    >
+                                      <Checkbox checked={checked} />
+                                      {/* The step number is the point of reading a
+                                          flow; the ungrouped set has none. */}
+                                      {row.step
+                                        ? <span className="lk-item__step">{row.step}</span>
+                                        : <span className="lk-item__step lk-item__step--none">·</span>}
+                                      <span className="lk-item__body">
+                                        <span className="lk-item__top">
+                                          <code className="lk-item__id">{row.test_case_id || "TC"}</code>
+                                          <span className="lk-item__name" title={row.name}>{row.name}</span>
+                                        </span>
+                                        <span className="lk-item__meta">
+                                          {row.test_type && (
+                                            <span className={`lk-chip${isFilteredType ? " lk-chip--type" : ""}`}>{row.test_type}</span>
+                                          )}
+                                          {row.priority && <span className="lk-chip">{row.priority}</span>}
+                                          {row.status && <span className="lk-chip">{row.status}</span>}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </section>
+                            );
+                          })}
+                        </div>
+                      )
+                    ) : casesLoading ? (
                       <div className="lk-list lk-list--loading">
                         <ZukvoLoader size="md" message="Loading module cases…" />
                       </div>

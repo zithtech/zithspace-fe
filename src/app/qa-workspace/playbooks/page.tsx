@@ -16,7 +16,7 @@
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Button, Dropdown, Input, Tooltip, message } from "antd";
+import { Button, Dropdown, Input, Tooltip, message, Modal } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   BookOpen,
@@ -29,6 +29,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -41,6 +42,7 @@ import { api as axios } from "@/lib/axios";
 import { PlaybookCatalogCard } from "@/components/qa/PlaybookCards";
 import RequestPlaybookDrawer from "@/components/qa/RequestPlaybookDrawer";
 import ImportPlaybooksModal from "@/components/qa/ImportPlaybooksModal";
+import PlaybookTrashDrawer from "@/components/qa/PlaybookTrashDrawer";
 import { downloadTemplate, templatePrompt } from "@/components/qa/playbookTemplate";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
 import { PLAYBOOK_STYLES, type PlaybookSummary } from "@/components/qa/playbookShared";
@@ -58,18 +60,131 @@ const SORTS: { value: SortKey; label: string; description: string }[] = [
   { value: "size", label: "Most recommendations", description: "Biggest playbooks first" },
 ];
 
+function PlaybookCategoryNavItem({
+  group,
+  isActive,
+  canEdit,
+  onSelect,
+  onRename,
+  onDelete,
+}: {
+  group: { key: string; label: string; items: PlaybookSummary[] };
+  isActive: boolean;
+  canEdit: boolean;
+  onSelect: () => void;
+  onRename: (from: string, to: string) => void;
+  onDelete?: (category: string, count: number) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(group.label);
+
+  // Sync if label changes externally
+  React.useEffect(() => {
+    if (!isEditing) {
+      setEditTitle(group.label);
+    }
+  }, [group.label, isEditing]);
+
+  const handleRename = () => {
+    const trimmed = editTitle.trim();
+    if (trimmed && trimmed !== group.label) {
+      onRename(group.label, trimmed);
+    } else {
+      setEditTitle(group.label);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setEditTitle(group.label);
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div
+      className={`pb-nav__link is-sub ${isActive ? "is-on" : ""}`}
+      onClick={onSelect}
+      onDoubleClick={(e) => {
+        if (!canEdit) return;
+        e.stopPropagation();
+        setEditTitle(group.label);
+        setIsEditing(true);
+      }}
+      title={canEdit && !isEditing ? "Double click to rename" : undefined}
+    >
+      {isEditing ? (
+        <Input
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onBlur={handleRename}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          size="small"
+          className="pb-nav__input"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <>
+          <span className="pb-nav__label truncate flex-1 min-w-0">{group.label}</span>
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            <span className="pb-nav__count" style={{ marginLeft: 0 }}>{group.items.length}</span>
+            {canEdit && onDelete && (
+              <Tooltip title="Move category to trash">
+                <button
+                  type="button"
+                  className="pb-nav__trash-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(group.label, group.items.length);
+                  }}
+                  aria-label="Move category to trash"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function PlaybooksPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "Playbooks" });
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase, canCreateCase } = usePermission();
+  const {
+    canReadPlaybook,
+    canCreatePlaybook,
+    canUpdatePlaybook,
+    canDeletePlaybook,
+    canTemplatePlaybook,
+    canUploadPlaybook,
+    canRequestPlaybook,
+    canRequestedPlaybook,
+    canAccessPlaybookRequests,
+    canAccessPlaybookTemplate,
+    canAccessPlaybookUpload,
+    canAccessPlaybookRequest,
+    canAccessPlaybookRequested,
+    canAccessPlaybookAccess,
+    canAccessPlaybookCreate,
+  } = usePermission();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>(ALL_GROUP);
   const [sort, setSort] = useState<SortKey>("updated");
   const [requestOpen, setRequestOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   /* The vocabularies the prompt quotes. Fetched from the same endpoint the
      author form uses, so a category added to the API turns up in the prompt
@@ -81,7 +196,7 @@ export default function PlaybooksPage() {
   }>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 60 * 60 * 1000,
   });
 
@@ -119,7 +234,7 @@ export default function PlaybooksPage() {
       if (debouncedSearch) params.set("search", debouncedSearch);
       return axios.get(`/api/v2/qa/playbooks?${params.toString()}`);
     },
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -202,7 +317,60 @@ export default function PlaybooksPage() {
      super_admin the maintained library as well. Mirrors assertCanEdit on the
      server, so no card offers an action that would come back 403. */
   const canManage = (playbook: PlaybookSummary) =>
-    canCreateCase && (playbook.isOwn || canPublish);
+    (canUpdatePlaybook || canCreatePlaybook) && (playbook.isOwn || canPublish);
+
+  const canManageCategory = (group: { items: PlaybookSummary[] }) =>
+    (canUpdatePlaybook || canCreatePlaybook) && (group.items.some((p) => p.isOwn) || canPublish);
+
+  const renameCategory = useMutation({
+    mutationFn: ({ from, to }: { from: string; to: string }) =>
+      axios.put("/api/v2/qa/playbooks/categories/rename", { from, to }),
+    onSuccess: (_, variables) => {
+      message.success(`Category renamed to "${variables.to}"`);
+      if (category === variables.from) {
+        setCategory(variables.to);
+      }
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks", "meta"] });
+    },
+    onError: (err: any) => {
+      message.error(
+        err?.response?.data?.error || err?.message || "Could not rename the category"
+      );
+    },
+  });
+
+  const [modal, modalContextHolder] = Modal.useModal();
+
+  const removeCategory = useMutation({
+    mutationFn: (categoryName: string) =>
+      axios.delete(`/api/v2/qa/playbooks/categories/${encodeURIComponent(categoryName)}`),
+    onSuccess: (_, categoryName) => {
+      message.success(`Category "${categoryName}" moved to trash`);
+      if (category === categoryName) {
+        setCategory(ALL_GROUP);
+      }
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks", "meta"] });
+      queryClient.invalidateQueries({ queryKey: ["qa", "playbooks", "trash"] });
+    },
+    onError: (err: any) => {
+      message.error(
+        err?.response?.data?.error || err?.message || "Could not delete the category"
+      );
+    },
+  });
+
+  const handleDeleteCategory = (catName: string, count: number) => {
+    modal.confirm({
+      title: "Move category to trash?",
+      content: `Are you sure you want to move "${catName}" and its ${count} playbook(s) to trash?`,
+      okText: "Move to trash",
+      okType: "danger",
+      centered: true,
+      onOk: () => removeCategory.mutateAsync(catName),
+    });
+  };
 
   const remove = useMutation({
     mutationFn: (id: string) => axios.delete(`/api/v2/qa/playbooks/${id}`),
@@ -217,12 +385,12 @@ export default function PlaybooksPage() {
     },
   });
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          description="You need playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -230,6 +398,7 @@ export default function PlaybooksPage() {
 
   return (
     <MainLayout noPadding>
+      {modalContextHolder}
       <style dangerouslySetInnerHTML={{ __html: PLAYBOOK_STYLES }} />
 
       <div className="dh-shell">
@@ -291,37 +460,38 @@ export default function PlaybooksPage() {
             </div>
 
             <div className="pb-toolbar__actions">
-              {/* Writing a playbook in the app costs tokens per recommendation.
-                  The template lets a QA do the writing on an AI platform they
+              {/* The downloadable prompt / offline template. Lets the QA use an LLM they
                   already pay for, and bring the result back through Import. */}
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    {
-                      key: "prompt",
-                      icon: <Copy size={14} />,
-                      label: "Copy the AI prompt",
-                      onClick: copyPrompt,
-                    },
-                    {
-                      key: "file",
-                      icon: <Download size={14} />,
-                      label: "Download template (.json)",
-                      onClick: () => {
-                        downloadTemplate();
-                        message.success("Template downloaded");
+              {canTemplatePlaybook && canAccessPlaybookTemplate && (
+                <Dropdown
+                  trigger={["click"]}
+                  menu={{
+                    items: [
+                      {
+                        key: "prompt",
+                        icon: <Copy size={14} />,
+                        label: "Copy the AI prompt",
+                        onClick: copyPrompt,
                       },
-                    },
-                  ],
-                }}
-              >
-                <Button className="pb-btn" icon={<Download size={14} />}>
-                  Template
-                </Button>
-              </Dropdown>
+                      {
+                        key: "file",
+                        icon: <Download size={14} />,
+                        label: "Download template (.json)",
+                        onClick: () => {
+                          downloadTemplate();
+                          message.success("Template downloaded");
+                        },
+                      },
+                    ],
+                  }}
+                >
+                  <Button className="pb-btn" icon={<Download size={14} />}>
+                    Template
+                  </Button>
+                </Dropdown>
+              )}
 
-              {canCreateCase && (
+              {canUploadPlaybook && canAccessPlaybookUpload && (
                 <Tooltip title="Paste back what an AI platform wrote from the template">
                   <Button
                     className="pb-btn"
@@ -333,27 +503,41 @@ export default function PlaybooksPage() {
                 </Tooltip>
               )}
 
-              <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
+              {canRequestPlaybook && canAccessPlaybookRequest && (
+                <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
+                  <Button
+                    className="pb-btn"
+                    icon={<Sparkles size={14} />}
+                    onClick={() => setRequestOpen(true)}
+                  >
+                    Request playbook
+                  </Button>
+                </Tooltip>
+              )}
+
+              {canRequestedPlaybook && canAccessPlaybookRequested && (
                 <Button
                   className="pb-btn"
-                  icon={<Sparkles size={14} />}
-                  onClick={() => setRequestOpen(true)}
+                  icon={<Inbox size={14} />}
+                  onClick={() => router.push("/qa-workspace/playbooks/requested")}
                 >
-                  Request playbook
+                  Requested
+                </Button>
+              )}
+
+              <Tooltip title="View and restore deleted playbooks">
+                <Button
+                  className="pb-btn"
+                  icon={<Trash2 size={14} />}
+                  onClick={() => setTrashOpen(true)}
+                >
+                  Trash
                 </Button>
               </Tooltip>
 
-              <Button
-                className="pb-btn"
-                icon={<Inbox size={14} />}
-                onClick={() => router.push("/qa-workspace/playbooks/requested")}
-              >
-                Requested
-              </Button>
-
               {/* The premium ACCESS queue is a different job, and Testiez's
                   alone — it only appears for them. */}
-              {canPublish && (
+              {canPublish && canAccessPlaybookAccess && canAccessPlaybookRequests && (
                 <Tooltip title="Workspaces asking for access to premium playbooks">
                   <Button
                     className="pb-btn"
@@ -365,7 +549,7 @@ export default function PlaybooksPage() {
                 </Tooltip>
               )}
 
-              {canCreateCase && (
+              {canCreatePlaybook && canAccessPlaybookCreate && (
                 <Button
                   type="primary"
                   className="pb-btn"
@@ -397,43 +581,54 @@ export default function PlaybooksPage() {
             </div>
           ) : (
             <div className="pb-reader">
-              <nav className="pb-nav" aria-label="Playbook categories">
-                {groups
-                  .filter((g) => g.kind === "lead")
-                  .map((group) => (
-                    <button
-                      key={group.key}
-                      type="button"
-                      className={`pb-nav__link ${group.key === activeGroup.key ? "is-on" : ""}`}
-                      onClick={() => setCategory(group.key)}
-                    >
-                      <span className="pb-nav__label">{group.label}</span>
-                      <span className="pb-nav__count">{group.items.length}</span>
-                    </button>
-                  ))}
-
-                {/* Categories hang off the heading on the same tree line the
-                    reader uses for sub-sections, so the parent/child reading is
-                    the same on both pages. */}
-                <div className="pb-nav__sep">Categories</div>
-                <div className="pb-nav__children">
+              <aside className="pb-sidebar">
+                <nav className="pb-nav" aria-label="Playbook categories">
                   {groups
-                    .filter((g) => g.kind === "category")
+                    .filter((g) => g.kind === "lead")
                     .map((group) => (
                       <button
                         key={group.key}
                         type="button"
-                        className={`pb-nav__link is-sub ${
-                          group.key === activeGroup.key ? "is-on" : ""
-                        }`}
+                        className={`pb-nav__link ${group.key === activeGroup.key ? "is-on" : ""}`}
                         onClick={() => setCategory(group.key)}
                       >
                         <span className="pb-nav__label">{group.label}</span>
                         <span className="pb-nav__count">{group.items.length}</span>
                       </button>
                     ))}
-                </div>
-              </nav>
+
+                  {/* Categories hang off the heading on the same tree line the
+                      reader uses for sub-sections, so the parent/child reading is
+                      the same on both pages. */}
+                  <div className="pb-nav__sep">Categories</div>
+                  <div className="pb-nav__children">
+                    {groups
+                      .filter((g) => g.kind === "category")
+                      .map((group) => (
+                        <PlaybookCategoryNavItem
+                          key={group.key}
+                          group={group}
+                          isActive={group.key === activeGroup.key}
+                          canEdit={canManageCategory(group)}
+                          onSelect={() => setCategory(group.key)}
+                          onRename={(from, to) => renameCategory.mutate({ from, to })}
+                          onDelete={(name, count) => handleDeleteCategory(name, count)}
+                        />
+                      ))}
+                  </div>
+                </nav>
+
+                {canCreatePlaybook && (
+                  <button
+                    type="button"
+                    className="pb-side-trash"
+                    onClick={() => setTrashOpen(true)}
+                  >
+                    <Trash2 size={15} strokeWidth={2} />
+                    <span>Trash</span>
+                  </button>
+                )}
+              </aside>
 
               <div className="pb-body">
                 <div className="pb-group__head">
@@ -443,7 +638,7 @@ export default function PlaybooksPage() {
                   {/* The same action as the tile at the end of the grid, kept at
                       the top for a group long enough that the tile is a scroll
                       away. */}
-                  {canCreateCase ? (
+                  {canCreatePlaybook && canAccessPlaybookCreate ? (
                     <Button
                       className="pb-btn is-sm pb-group__action"
                       icon={<Plus size={13} />}
@@ -461,7 +656,7 @@ export default function PlaybooksPage() {
                         ? `New in ${activeGroup.label}`
                         : "New playbook"}
                     </Button>
-                  ) : (
+                  ) : canAccessPlaybookRequest ? (
                     <Button
                       className="pb-btn is-sm pb-group__action"
                       icon={<Sparkles size={13} />}
@@ -469,7 +664,7 @@ export default function PlaybooksPage() {
                     >
                       Request a playbook
                     </Button>
-                  )}
+                  ) : null}
                 </div>
 
                 {visible.length === 0 ? (
@@ -497,7 +692,7 @@ export default function PlaybooksPage() {
                                 router.push(
                                   `/qa-workspace/playbooks/${playbook.slug}/edit`
                                 )
-                            : undefined
+                              : undefined
                         }
                         /* mutateAsync, so the confirmation card keeps spinning
                            until the row is actually gone. */
@@ -510,7 +705,7 @@ export default function PlaybooksPage() {
                       />
                     ))}
 
-                    {canCreateCase ? (
+                    {canCreatePlaybook && canAccessPlaybookCreate ? (
                       <button
                         type="button"
                         className="pb-card pb-card--add"
@@ -567,6 +762,11 @@ export default function PlaybooksPage() {
         open={requestOpen}
         onClose={() => setRequestOpen(false)}
         category={activeGroup.kind === "category" ? activeGroup.label : undefined}
+      />
+
+      <PlaybookTrashDrawer
+        open={trashOpen}
+        onClose={() => setTrashOpen(false)}
       />
     </MainLayout>
   );

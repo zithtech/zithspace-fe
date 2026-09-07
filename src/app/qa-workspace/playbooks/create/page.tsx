@@ -16,7 +16,7 @@ import PlaybookEditor from "@/components/qa/PlaybookEditor";
 function CreatePlaybook() {
   useActivitySource({ section: "WORK", module: "QA", page: "CreatePlaybook" });
 
-  const { canCreateCase } = usePermission();
+  const { canCreatePlaybook, canAccessPlaybookCreate } = usePermission();
   /* Arriving from a category in the catalog: the new playbook is filed where
      the author was already standing, rather than making them retype it. */
   const category = useSearchParams().get("category") ?? "";
@@ -24,16 +24,27 @@ function CreatePlaybook() {
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canCreateCase,
+    enabled: canCreatePlaybook && canAccessPlaybookCreate,
     staleTime: 60 * 60 * 1000,
   });
 
-  if (!canCreateCase) {
+  if (!canCreatePlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access"
-          description="You need permission to create test cases before you can author a playbook."
+          description="You need permission to create playbooks before you can author a playbook."
+        />
+      </MainLayout>
+    );
+  }
+
+  if (!canAccessPlaybookCreate) {
+    return (
+      <MainLayout>
+        <NoData
+          title="Feature not included in your plan"
+          description="Authoring new playbooks is not enabled for your subscription plan. Please contact your administrator."
         />
       </MainLayout>
     );

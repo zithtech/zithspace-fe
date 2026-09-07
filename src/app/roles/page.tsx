@@ -220,6 +220,15 @@ const QA_PAGE_BY_PERM: Record<string, string> = {
   'qa.approval.send_back': 'PM Approval',
   'qa.coverage_map.read': 'Coverage Map',
   'qa.analytics.read': 'Analytics',
+  'qa.playbook.create': 'Playbooks',
+  'qa.playbook.read': 'Playbooks',
+  'qa.playbook.update': 'Playbooks',
+  'qa.playbook.delete': 'Playbooks',
+  'qa.playbook.template': 'Playbooks',
+  'qa.playbook.upload': 'Playbooks',
+  'qa.playbook.request': 'Playbooks',
+  'qa.playbook.requested': 'Playbooks',
+  'qa.playbook.access': 'Playbooks',
   'qa.manage': 'QA Settings',
 };
 
@@ -236,6 +245,7 @@ const QA_PAGE_ORDER = [
   'PM Approval',
   'Coverage Map',
   'Analytics',
+  'Playbooks',
   'QA Settings',
 ];
 
@@ -412,6 +422,22 @@ const AVATAR_PALETTE: [string, string][] = [
   ['#8b5cf6', '#d946ef'],
   ['#3b82f6', '#6366f1'],
 ];
+
+/** Maps individual RBAC permission names to their required subscription feature(s).
+ * If a permission is mapped here, it will ONLY be displayed and manageable if the tenant
+ * has the corresponding feature active in their subscription plan.
+ */
+const PERMISSION_TO_SUBSCRIPTION_FEATURE: Record<string, string | string[]> = {
+  'qa.playbook.template': 'work_qa_space_playbooks_template',
+  'qa.playbook.upload': 'work_qa_space_playbooks_upload',
+  'qa.playbook.request': 'work_qa_space_playbooks_request_playbook',
+  'qa.playbook.requested': 'work_qa_space_playbooks_requested',
+  'qa.playbook.access': 'work_qa_space_playbooks_access',
+  'qa.playbook.create': 'work_qa_space_playbooks_new_playbook',
+  'qa.playbook.read': ['work_qa_space_playbooks', 'work_qa_space_playbooks_template', 'work_qa_space_playbooks_upload', 'work_qa_space_playbooks_request_playbook', 'work_qa_space_playbooks_requested', 'work_qa_space_playbooks_access', 'work_qa_space_playbooks_new_playbook'],
+  'qa.playbook.update': ['work_qa_space_playbooks', 'work_qa_space_playbooks_new_playbook'],
+  'qa.playbook.delete': ['work_qa_space_playbooks', 'work_qa_space_playbooks_new_playbook'],
+};
 
 /** Maps RBAC resource keys to backend subscription feature */
 const RESOURCE_TO_SUBSCRIPTION_FEATURE: Record<string, string[]> = {
@@ -718,7 +744,7 @@ const RoleFormContent: React.FC<RoleFormContentProps> = ({ form, mode, existingS
 
 export default function RolesPage() {
   useActivitySource({ section: "ADMIN", module: "RoleAndPermissions", page: "RoleList" });
-  const { user, isLoading, hasAnySubscriptionFeature } = useAuth();
+  const { user, isLoading, hasAnySubscriptionFeature, hasSubscriptionFeature } = useAuth();
   const { isTestiez } = useProduct();
   const ACCESS_GROUPS = React.useMemo(() => getAccessGroups(isTestiez), [isTestiez]);
   const router = useRouter();
@@ -870,11 +896,25 @@ export default function RolesPage() {
         delete grouped.proposal;
       }
 
+      // Filter granular permissions by tenant plan / subscription features
+      const isPermSubscribed = (permName: string) => {
+        const required = PERMISSION_TO_SUBSCRIPTION_FEATURE[permName];
+        if (!required) return true;
+        if (Array.isArray(required)) {
+          return hasAnySubscriptionFeature(...required);
+        }
+        return hasSubscriptionFeature(required);
+      };
+
+      Object.keys(grouped).forEach((res) => {
+        grouped[res] = grouped[res].filter((p) => isPermSubscribed(p.name));
+      });
+
       setAllPermissions(grouped);
     } catch {
       /* non-critical */
     }
-  }, []);
+  }, [hasAnySubscriptionFeature, hasSubscriptionFeature]);
 
   useEffect(() => {
     if (user) {

@@ -478,12 +478,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const hasSubscriptionFeature = (feature: string): boolean => {
-    if (!user || !user.subscriptionFeatures) return true;
+    if (!user) return true;
+    if (!user.subscriptionFeatures || user.subscriptionFeatures.length === 0) return true;
     return user.subscriptionFeatures.includes(feature);
   };
 
   const hasAnySubscriptionFeature = (...features: string[]): boolean => {
-    if (!user || !user.subscriptionFeatures) return true;
+    if (!user) return true;
+    if (!user.subscriptionFeatures || user.subscriptionFeatures.length === 0) return true;
     // UPWARD ONLY — a granted descendant satisfies the requirement, but a
     // granted parent does not grant its children. Products hold CORE rows as
     // nav containers; treating them as grants defeated every item-level

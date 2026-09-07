@@ -656,36 +656,93 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
 
           <div className="pb-edit">
             <nav className="pb-edit__nav">
-              <div className="pb-tree__head">Outline</div>
-              <button
-                type="button"
-                className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
-                onClick={() => setSelection({ kind: "meta" })}
-              >
-                <BookOpen size={13} />
-                <span className="pb-tree__label">Playbook details</span>
-              </button>
+              <div className="pb-pane__head">
+                <div className="pb-pane__head-left">
+                  <ListChecks size={13} style={{ color: "#64748b" }} />
+                  <span className="pb-pane__head-title">Outline</span>
+                </div>
+                <div className="pb-pane__head-right">
+                  <span className="pb-pane__head-meta">
+                    {sections.length} {sections.length === 1 ? "section" : "sections"}
+                  </span>
+                </div>
+              </div>
 
-              {renderTree(sections)}
+              <div className="pb-edit__nav-scroll">
+                <button
+                  type="button"
+                  className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
+                  onClick={() => setSelection({ kind: "meta" })}
+                >
+                  <BookOpen size={13} />
+                  <span className="pb-tree__label">Playbook details</span>
+                </button>
 
-              {/* The one structural act on this rail, so it does not look like a
-                  third "+" row: a section is the level a reader navigates by, and
-                  the copy says so rather than assuming the author knows. */}
-              <button type="button" className="pb-tree__addmain" onClick={addSection}>
-                <span className="pb-tree__addmain__badge">
-                  <Plus size={15} />
-                </span>
-                <span className="pb-tree__addmain__text">
-                  <b>Add section</b>
-                  <em>
-                    A top-level group a reader jumps to — Basic Testing, Session &amp;
-                    Logout. Recommendations and sub-sections live inside one.
-                  </em>
-                </span>
-              </button>
+                {renderTree(sections)}
+
+                {/* The one structural act on this rail, so it does not look like a
+                    third "+" row: a section is the level a reader navigates by, and
+                    the copy says so rather than assuming the author knows. */}
+                <button type="button" className="pb-tree__addmain" onClick={addSection}>
+                  <span className="pb-tree__addmain__badge">
+                    <Plus size={15} />
+                  </span>
+                  <span className="pb-tree__addmain__text">
+                    <b>Add section</b>
+                    <em>
+                      A top-level group a reader jumps to — Basic Testing, Session &amp;
+                      Logout. Recommendations and sub-sections live inside one.
+                    </em>
+                  </span>
+                </button>
+              </div>
             </nav>
 
-            <div className="pb-edit__body">
+            <div className="pb-edit__main">
+              <div className="pb-pane__head">
+                <div className="pb-pane__head-left">
+                  {selection.kind === "meta" ? (
+                    <BookOpen size={13} style={{ color: "#64748b" }} />
+                  ) : selection.kind === "section" ? (
+                    <Layers size={13} style={{ color: "#64748b" }} />
+                  ) : (
+                    <Target size={13} style={{ color: "#64748b" }} />
+                  )}
+                  <span className="pb-pane__head-title">
+                    {selection.kind === "meta"
+                      ? "Playbook details"
+                      : selection.kind === "section"
+                      ? `Section: ${sectionAt(sections, selection.path)?.title || "Untitled section"}`
+                      : `Recommendation: ${
+                          sectionAt(sections, selection.path)?.items[selection.index]?.title ||
+                          "Untitled recommendation"
+                        }`}
+                  </span>
+                </div>
+                <div className="pb-pane__head-right">
+                  {selection.kind === "meta" && (
+                    <span className="pb-pane__head-meta">
+                      {[metaState.name, metaState.category, metaState.summary, metaState.overview].filter(
+                        (v) => v.trim()
+                      ).length}{" "}
+                      of 4 fields
+                    </span>
+                  )}
+                  {selection.kind === "item" && (
+                    <span className="pb-pane__head-meta">
+                      {[
+                        sectionAt(sections, selection.path)?.items[selection.index]?.title,
+                        sectionAt(sections, selection.path)?.items[selection.index]?.what_to_test,
+                        sectionAt(sections, selection.path)?.items[selection.index]?.expected,
+                        sectionAt(sections, selection.path)?.items[selection.index]?.why_it_matters,
+                      ].filter((v) => v?.trim()).length}{" "}
+                      of 4 fields
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pb-edit__body">
               {selection.kind === "meta" && (
                 <div className="pb-form">
                   <BodyHeader
@@ -1366,125 +1423,136 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
                     </div>
                   );
                 })()}
+              </div>
             </div>
 
             {showPreview && (
               <aside className="pb-preview">
-                <div className="pb-preview__head">
-                  <Eye size={13} />
-                  <span className="pb-preview__title">Live preview</span>
-                  <span className="pb-preview__what">
-                    {itemCount} recommendation{itemCount === 1 ? "" : "s"}
-                  </span>
+                <div className="pb-pane__head">
+                  <div className="pb-pane__head-left">
+                    <Eye size={13} style={{ color: "#64748b" }} />
+                    <span className="pb-pane__head-title">Live preview</span>
+                  </div>
+                  <div className="pb-pane__head-right">
+                    <span className="pb-pane__head-meta">
+                      {itemCount} {itemCount === 1 ? "recommendation" : "recommendations"}
+                    </span>
+                  </div>
                 </div>
 
-                {/* The whole playbook as a reader gets it. The node being edited
-                    is ringed and scrolled to, so the author keeps the context of
-                    what sits either side of it. */}
-                <div
-                  ref={(el) => { nodeRefs.current["meta"] = el; }}
-                  className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
-                >
-                  <PlaybookCatalogCard playbook={previewSummary} />
-                  {metaState.overview.trim() ? (
-                    <div style={{ marginTop: 12 }}>
-                      <PlaybookOverview text={metaState.overview} />
-                    </div>
-                  ) : (
-                    <div className="pb-preview__empty" style={{ marginTop: 12 }}>
-                      The overview appears above the sections when someone opens this
-                      playbook. Write one to see it here.
+                <div className="pb-preview__scroll">
+                  {/* The whole playbook as a reader gets it. The node being edited
+                      is ringed and scrolled to, so the author keeps the context of
+                      what sits either side of it. */}
+                  <div
+                    ref={(el) => { nodeRefs.current["meta"] = el; }}
+                    className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
+                  >
+                    <PlaybookCatalogCard playbook={previewSummary} />
+                    {metaState.overview.trim() ? (
+                      <div style={{ marginTop: 12 }}>
+                        <PlaybookOverview text={metaState.overview} />
+                      </div>
+                    ) : (
+                      <div className="pb-preview__empty" style={{ marginTop: 12 }}>
+                        The overview appears above the sections when someone opens this
+                        playbook. Write one to see it here.
+                      </div>
+                    )}
+                  </div>
+
+                  {sections.length === 0 && (
+                    <div className="pb-preview__empty">
+                      Nothing yet. Add a section to start building the playbook.
                     </div>
                   )}
-                </div>
 
-                {sections.length === 0 && (
-                  <div className="pb-preview__empty">
-                    Nothing yet. Add a section to start building the playbook.
-                  </div>
-                )}
-
-                {sections.map((section, si) => {
-                  const sKey = `s-${si}`;
-                  return (
-                    <section className="pb-section" key={sKey}>
-                      <div
-                        ref={(el) => { nodeRefs.current[sKey] = el; }}
-                        className={`pb-pnode ${selectionKey === sKey ? "is-editing" : ""}`}
-                      >
-                        <div className="pb-section__head">
-                          <h3 className="pb-section__title">
-                            {section.title || "Untitled section"}
-                          </h3>
+                  {sections.map((section, si) => {
+                    const sKey = `s-${si}`;
+                    return (
+                      <section className="pb-section" key={sKey}>
+                        <div
+                          ref={(el) => { nodeRefs.current[sKey] = el; }}
+                          className={`pb-pnode ${selectionKey === sKey ? "is-editing" : ""}`}
+                        >
+                          <div className="pb-section__head">
+                            <h3 className="pb-section__title">
+                              {section.title || "Untitled section"}
+                            </h3>
+                          </div>
+                          {section.description && (
+                            <p className="pb-section__desc">{section.description}</p>
+                          )}
                         </div>
-                        {section.description && (
-                          <p className="pb-section__desc">{section.description}</p>
+
+                        {section.items.length === 0 && section.sections.length === 0 && (
+                          <div className="pb-preview__empty">
+                            No recommendations in this section yet.
+                          </div>
                         )}
-                      </div>
 
-                      {section.items.length === 0 && section.sections.length === 0 && (
-                        <div className="pb-preview__empty">No recommendations in this section yet.</div>
-                      )}
-
-                      {section.items.map((item, ii) => {
-                        const iKey = `i-${si}::${ii}`;
-                        return (
-                          <div
-                            key={iKey}
-                            ref={(el) => { nodeRefs.current[iKey] = el; }}
-                            className={`pb-pnode ${selectionKey === iKey ? "is-editing" : ""}`}
-                          >
-                            <PlaybookItemCard
-                              item={draftToItem(item, iKey)}
-                              categoryLabels={categoryLabels}
-                            />
-                          </div>
-                        );
-                      })}
-
-                      {section.sections.map((sub, subi) => {
-                        const subKey = `s-${si}-${subi}`;
-                        return (
-                          <div className="pb-section__sub" key={subKey}>
+                        {section.items.map((item, ii) => {
+                          const iKey = `i-${si}::${ii}`;
+                          return (
                             <div
-                              ref={(el) => { nodeRefs.current[subKey] = el; }}
-                              className={`pb-pnode ${selectionKey === subKey ? "is-editing" : ""}`}
+                              key={iKey}
+                              ref={(el) => { nodeRefs.current[iKey] = el; }}
+                              className={`pb-pnode ${selectionKey === iKey ? "is-editing" : ""}`}
                             >
-                              <div className="pb-section__head">
-                                <h3 className="pb-section__title is-sub">
-                                  {sub.title || "Untitled sub-section"}
-                                </h3>
-                              </div>
-                              {sub.description && (
-                                <p className="pb-section__desc">{sub.description}</p>
-                              )}
+                              <PlaybookItemCard
+                                item={draftToItem(item, iKey)}
+                                categoryLabels={categoryLabels}
+                              />
                             </div>
+                          );
+                        })}
 
-                            {sub.items.length === 0 && (
-                              <div className="pb-preview__empty">Nothing here yet.</div>
-                            )}
-
-                            {sub.items.map((item, ii) => {
-                              const iKey = `i-${si}-${subi}::${ii}`;
-                              return (
-                                <div
-                                  key={iKey}
-                                  ref={(el) => { nodeRefs.current[iKey] = el; }}
-                                  className={`pb-pnode ${selectionKey === iKey ? "is-editing" : ""}`}
-                                >
-                                  <PlaybookItemCard
-                                    item={draftToItem(item, iKey)}
-                                    categoryLabels={categoryLabels}
-                                  />
+                        {section.sections.map((sub, subi) => {
+                          const subKey = `s-${si}-${subi}`;
+                          return (
+                            <div key={subKey} className="pb-preview__sub">
+                              <div
+                                ref={(el) => { nodeRefs.current[subKey] = el; }}
+                                className={`pb-pnode ${
+                                  selectionKey === subKey ? "is-editing" : ""
+                                }`}
+                              >
+                                <div className="pb-section__head">
+                                  <h4 className="pb-section__title is-sub">
+                                    {sub.title || "Untitled sub-section"}
+                                  </h4>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </section>
-                  );
-                })}
+                                {sub.description && (
+                                  <p className="pb-section__desc">{sub.description}</p>
+                                )}
+                              </div>
+
+                              {sub.items.length === 0 && (
+                                <div className="pb-preview__empty">Nothing here yet.</div>
+                              )}
+
+                              {sub.items.map((item, ii) => {
+                                const iKey = `i-${si}-${subi}::${ii}`;
+                                return (
+                                  <div
+                                    key={iKey}
+                                    ref={(el) => { nodeRefs.current[iKey] = el; }}
+                                    className={`pb-pnode ${selectionKey === iKey ? "is-editing" : ""}`}
+                                  >
+                                    <PlaybookItemCard
+                                      item={draftToItem(item, iKey)}
+                                      categoryLabels={categoryLabels}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </section>
+                    );
+                  })}
+                </div>
               </aside>
             )}
           </div>

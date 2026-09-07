@@ -69,7 +69,13 @@ export default function RequestedPlaybooksPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase } = usePermission();
+  const {
+    canReadPlaybook,
+    canRequestedPlaybook,
+    canRequestPlaybook,
+    canAccessPlaybookRequested,
+    canAccessPlaybookRequest,
+  } = usePermission();
 
   const [status, setStatus] = useState("all");
   const [askOpen, setAskOpen] = useState(false);
@@ -82,7 +88,7 @@ export default function RequestedPlaybooksPage() {
   const { data: catalog } = useQuery<{ canPublish: boolean }>({
     queryKey: ["qa", "playbooks", "catalog"],
     queryFn: () => axios.get("/api/v2/qa/playbooks?all=true"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook && canRequestedPlaybook && canAccessPlaybookRequested,
     staleTime: 5 * 60 * 1000,
   });
   const isAdmin = catalog?.canPublish ?? false;
@@ -97,7 +103,7 @@ export default function RequestedPlaybooksPage() {
           ? `/api/v2/qa/playbooks/admin/playbook-requests?status=${status}`
           : `/api/v2/qa/playbooks/requests${status === "all" ? "" : `?status=${status}`}`
       ),
-    enabled: canReadCase,
+    enabled: canReadPlaybook && canRequestedPlaybook && canAccessPlaybookRequested,
   });
 
   const requests = data ?? [];
@@ -137,12 +143,23 @@ export default function RequestedPlaybooksPage() {
     }
   };
 
-  if (!canReadCase) {
+  if (!canReadPlaybook || !canRequestedPlaybook) {
     return (
       <MainLayout>
         <NoData
-          title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          title="No access to Requested Playbooks"
+          description="You do not have permission to view requested playbooks."
+        />
+      </MainLayout>
+    );
+  }
+
+  if (!canAccessPlaybookRequested) {
+    return (
+      <MainLayout>
+        <NoData
+          title="Feature not included in your plan"
+          description="Viewing requested playbooks is not enabled for your subscription plan. Please contact your administrator."
         />
       </MainLayout>
     );
@@ -202,14 +219,16 @@ export default function RequestedPlaybooksPage() {
               >
                 Playbooks
               </Button>
-              <Button
-                type="primary"
-                className="pb-btn"
-                icon={<Send size={14} />}
-                onClick={() => setAskOpen(true)}
-              >
-                Request playbook
-              </Button>
+              {canAccessPlaybookRequest && (
+                <Button
+                  type="primary"
+                  className="pb-btn"
+                  icon={<Send size={14} />}
+                  onClick={() => setAskOpen(true)}
+                >
+                  Request playbook
+                </Button>
+              )}
             </div>
           </div>
 

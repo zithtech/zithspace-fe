@@ -101,6 +101,15 @@ export const Permissions = {
   // Cross-scope reporting exposes the whole QA estate, so it is granted
   // separately from being able to read the runs you work on.
   QA_ANALYTICS_READ:      'qa.analytics.read',
+  QA_PLAYBOOK_CREATE:     'qa.playbook.create',
+  QA_PLAYBOOK_READ:       'qa.playbook.read',
+  QA_PLAYBOOK_UPDATE:     'qa.playbook.update',
+  QA_PLAYBOOK_DELETE:     'qa.playbook.delete',
+  QA_PLAYBOOK_TEMPLATE:   'qa.playbook.template',
+  QA_PLAYBOOK_UPLOAD:     'qa.playbook.upload',
+  QA_PLAYBOOK_REQUEST:    'qa.playbook.request',
+  QA_PLAYBOOK_REQUESTED:  'qa.playbook.requested',
+  QA_PLAYBOOK_ACCESS:     'qa.playbook.access',
   QA_MANAGE:       'qa.manage',
 
   // Yapiez — API definition + flow execution; a sibling of QA Space, not a page

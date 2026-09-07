@@ -26,30 +26,31 @@ export default function EditPlaybookPage() {
 
   const params = useParams();
   const slug = String((params as any)?.slug ?? "");
-  const { canCreateCase } = usePermission();
+  const { canUpdatePlaybook, canCreatePlaybook } = usePermission();
+  const canEdit = canUpdatePlaybook || canCreatePlaybook;
 
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canCreateCase,
+    enabled: canEdit,
     staleTime: 60 * 60 * 1000,
   });
 
   const { data: playbook, isLoading } = useQuery<PlaybookDetail>({
     queryKey: ["qa", "playbooks", slug, "edit"],
     queryFn: () => axios.get(`/api/v2/qa/playbooks/${encodeURIComponent(slug)}`),
-    enabled: canCreateCase && !!slug,
+    enabled: canEdit && !!slug,
     // Always refetch on open: editing a stale copy would save back over whatever
     // changed in the meantime.
     staleTime: 0,
   });
 
-  if (!canCreateCase) {
+  if (!canEdit) {
     return (
       <MainLayout>
         <NoData
           title="No access"
-          description="You need permission to create test cases before you can edit a playbook."
+          description="You need permission to edit playbooks before you can edit this playbook."
         />
       </MainLayout>
     );

@@ -383,7 +383,19 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Playbooks",
             icon: I(BookOpen),
             path: "/qa-workspace/playbooks",
-            requiredPermission: Permissions.QA_CASE_READ,
+            requiredAnyPermission: [
+              Permissions.QA_PLAYBOOK_READ,
+              Permissions.QA_MANAGE,
+            ],
+            requiredSubscriptionFeature: [
+              "work_qa_space_playbooks",
+              "work_qa_space_playbooks_template",
+              "work_qa_space_playbooks_upload",
+              "work_qa_space_playbooks_request_playbook",
+              "work_qa_space_playbooks_requested",
+              "work_qa_space_playbooks_access",
+              "work_qa_space_playbooks_new_playbook",
+            ],
           },
           {
             // The other half of Playbooks: what this workspace asked Testiez to
@@ -392,7 +404,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Requested Playbooks",
             icon: I(Sparkles),
             path: "/qa-workspace/playbooks/requested",
-            requiredPermission: Permissions.QA_CASE_READ,
+            requiredAnyPermission: [
+              Permissions.QA_PLAYBOOK_REQUESTED,
+              Permissions.QA_PLAYBOOK_READ,
+              Permissions.QA_CASE_READ,
+              Permissions.QA_MANAGE,
+            ],
+            requiredSubscriptionFeature: ["work_qa_space_playbooks_requested"],
           },
           {
             key: "/qa-workspace/test-scope",

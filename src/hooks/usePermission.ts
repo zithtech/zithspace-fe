@@ -17,7 +17,13 @@ import { Permissions } from "@/types/permissions";
  *   <Can permission="user.create"><Button>Add</Button></Can>
  */
 export const usePermission = () => {
-  const { hasPermission, hasAnyPermission, hasAllPermissions } = useAuth();
+  const {
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    hasSubscriptionFeature,
+    hasAnySubscriptionFeature,
+  } = useAuth();
 
   return {
     // ─── Users / Members ────────────────────────────────────────────
@@ -510,6 +516,24 @@ export const usePermission = () => {
     canReadCoverageMap: hasAnyPermission(Permissions.QA_COVERAGE_MAP_READ, Permissions.QA_MANAGE),
     canReadQaAnalytics: hasAnyPermission(Permissions.QA_ANALYTICS_READ, Permissions.QA_MANAGE),
     canManageQa:    hasPermission(Permissions.QA_MANAGE),
+
+    // ─── QA Playbooks (RBAC & Subscription) ──────────────────────────
+    canCreatePlaybook: hasAnyPermission(Permissions.QA_PLAYBOOK_CREATE, Permissions.QA_CASE_CREATE, Permissions.QA_MANAGE),
+    canReadPlaybook:   hasAnyPermission(Permissions.QA_PLAYBOOK_READ, Permissions.QA_CASE_READ, Permissions.QA_MANAGE),
+    canUpdatePlaybook: hasAnyPermission(Permissions.QA_PLAYBOOK_UPDATE, Permissions.QA_PLAYBOOK_CREATE, Permissions.QA_CASE_CREATE, Permissions.QA_MANAGE),
+    canDeletePlaybook: hasAnyPermission(Permissions.QA_PLAYBOOK_DELETE, Permissions.QA_CASE_DELETE, Permissions.QA_MANAGE),
+    canTemplatePlaybook: hasAnyPermission(Permissions.QA_PLAYBOOK_TEMPLATE, Permissions.QA_PLAYBOOK_READ, Permissions.QA_CASE_READ, Permissions.QA_MANAGE),
+    canUploadPlaybook:   hasAnyPermission(Permissions.QA_PLAYBOOK_UPLOAD, Permissions.QA_PLAYBOOK_CREATE, Permissions.QA_CASE_CREATE, Permissions.QA_MANAGE),
+    canRequestPlaybook:  hasAnyPermission(Permissions.QA_PLAYBOOK_REQUEST, Permissions.QA_PLAYBOOK_READ, Permissions.QA_CASE_READ, Permissions.QA_MANAGE),
+    canRequestedPlaybook: hasAnyPermission(Permissions.QA_PLAYBOOK_REQUESTED, Permissions.QA_PLAYBOOK_READ, Permissions.QA_CASE_READ, Permissions.QA_MANAGE),
+    canAccessPlaybookRequests: hasAnyPermission(Permissions.QA_PLAYBOOK_ACCESS, Permissions.QA_MANAGE),
+
+    canAccessPlaybookTemplate:   hasSubscriptionFeature('work_qa_space_playbooks_template'),
+    canAccessPlaybookUpload:     hasSubscriptionFeature('work_qa_space_playbooks_upload'),
+    canAccessPlaybookRequest:    hasSubscriptionFeature('work_qa_space_playbooks_request_playbook'),
+    canAccessPlaybookRequested:  hasSubscriptionFeature('work_qa_space_playbooks_requested'),
+    canAccessPlaybookAccess:     hasSubscriptionFeature('work_qa_space_playbooks_access'),
+    canAccessPlaybookCreate:     hasSubscriptionFeature('work_qa_space_playbooks_new_playbook'),
 
     // ─── Yapiez (API definition + flow execution) ───────────────────
     // Every flag folds in YAPIEZ_MANAGE, so the module admin never needs the

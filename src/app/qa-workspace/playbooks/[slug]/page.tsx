@@ -113,7 +113,7 @@ export default function PlaybookReaderPage() {
   const router = useRouter();
   const params = useParams();
   const slug = String((params as any)?.slug ?? "");
-  const { canReadCase, canCreateCase } = usePermission();
+  const { canReadPlaybook, canCreatePlaybook, canUpdatePlaybook, canCreateCase } = usePermission();
 
   const [levels, setLevels] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -131,21 +131,21 @@ export default function PlaybookReaderPage() {
   }>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 60 * 60 * 1000,
   });
 
-  const { data: playbook, isLoading } = useQuery<PlaybookDetail>({
-    queryKey: ["qa", "playbooks", slug, levels, categories],
+  const { data: playbook, isLoading, isError } = useQuery<PlaybookDetail>({
+    queryKey: ["qa", "playbooks", slug, debouncedSearch, levels, categories],
     queryFn: () => {
-      const query: string[] = [];
-      if (levels.length) query.push(`levels=${levels.join(",")}`);
-      if (categories.length) query.push(`categories=${categories.join(",")}`);
-      return axios.get(
-        `/api/v2/qa/playbooks/${encodeURIComponent(slug)}${query.length ? `?${query.join("&")}` : ""}`
-      );
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (levels.length) params.set("levels", levels.join(","));
+      if (categories.length) params.set("categories", categories.join(","));
+      const qs = params.toString();
+      return axios.get(`/api/v2/qa/playbooks/${encodeURIComponent(slug)}${qs ? `?${qs}` : ""}`);
     },
-    enabled: canReadCase && !!slug,
+    enabled: canReadPlaybook && !!slug,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -344,12 +344,12 @@ export default function PlaybookReaderPage() {
   );
   const hiddenSelectedCount = selected.size - selectedVisible.length;
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          description="You need playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -451,7 +451,7 @@ export default function PlaybookReaderPage() {
                       and the maintained library for a super_admin — who would
                       otherwise have no way back into a library playbook they
                       just wrote. */}
-                  {canCreateCase && (playbook.isOwn || meta?.canPublish) && (
+                  {(canUpdatePlaybook || canCreatePlaybook) && (playbook.isOwn || meta?.canPublish) && (
                     <Button
                       className="pb-btn is-sm"
                       icon={<Pencil size={14} />}

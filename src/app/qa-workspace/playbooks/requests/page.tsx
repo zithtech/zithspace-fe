@@ -47,7 +47,7 @@ export default function PlaybookRequestsPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase } = usePermission();
+  const { canReadPlaybook, canAccessPlaybookRequests, canAccessPlaybookAccess } = usePermission();
 
   const [status, setStatus] = useState("pending");
   const [deciding, setDeciding] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export default function PlaybookRequestsPage() {
   const { data, isLoading, error } = useQuery<UnlockRequest[]>({
     queryKey: ["qa", "playbooks", "requests", "access", status],
     queryFn: () => axios.get(`/api/v2/qa/playbooks/admin/unlock-requests?status=${status}`),
-    enabled: canReadCase,
+    enabled: canReadPlaybook && canAccessPlaybookRequests && canAccessPlaybookAccess,
   });
 
   const decide = async (id: string, decision: "approved" | "declined") => {
@@ -75,6 +75,28 @@ export default function PlaybookRequestsPage() {
       setDeciding(null);
     }
   };
+
+  if (!canAccessPlaybookRequests) {
+    return (
+      <MainLayout>
+        <NoData
+          title="No access"
+          description="You do not have permission to manage playbook access requests."
+        />
+      </MainLayout>
+    );
+  }
+
+  if (!canAccessPlaybookAccess) {
+    return (
+      <MainLayout>
+        <NoData
+          title="Feature not included in your plan"
+          description="Access request administration is not enabled for your subscription plan. Please contact your administrator."
+        />
+      </MainLayout>
+    );
+  }
 
   // The API returns 403 for anyone who is not Testiez staff.
   if (error) {

@@ -73,6 +73,10 @@ import {
   useCreateBugPriority,
   useUpdateBugPriority,
   useDeleteBugPriority,
+  useBugListTypeOptions,
+  useCreateBugListType,
+  useUpdateBugListType,
+  useDeleteBugListType,
 } from "@/hooks/useBugList";
 import type { BugConfigOption } from "@/services/bugListService";
 import { useTheme } from "@/context/ThemeContext";
@@ -80,12 +84,12 @@ import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
-type EditorKind = "severity" | "type" | "priority";
+type EditorKind = "severity" | "type" | "priority" | "bug_type";
 type EditState =
   | { kind: EditorKind; option: BugConfigOption | null }
   | null;
 
-type SectionKey = "severity" | "type" | "priority";
+type SectionKey = "severity" | "type" | "priority" | "bug_type";
 
 /**
  * The Test Scope option lists, moved here from the Test Scope page so a
@@ -117,12 +121,12 @@ const SECTIONS: {
       icon: <ThunderboltFilled />,
     },
     {
-      key: "type",
-      title: "Type",
+      key: "bug_type",
+      title: "Bug Type",
       description:
         "Bug type taxonomy (UI / Functional / API by default — extend as needed).",
       shortDescription: "Categorize bugs by area",
-      icon: <AppstoreFilled />,
+      icon: <BugFilled />,
     },
     {
       key: "priority",
@@ -133,6 +137,23 @@ const SECTIONS: {
       icon: <StarFilled />,
     },
   ];
+
+const TEST_CASE_SECTIONS: {
+  key: SectionKey;
+  title: string;
+  description: string;
+  shortDescription: string;
+  icon: React.ReactNode;
+}[] = [
+    {
+      key: "type",
+      title: "Testing Types",
+      description:
+        "Testing type taxonomy (UI / Functional / API by default — extend as needed).",
+      shortDescription: "Categorize tests by area",
+      icon: <AppstoreFilled />,
+    },
+];
 
 export default function BugListConfigManager() {
   const { theme } = useTheme();
@@ -161,6 +182,7 @@ export default function BugListConfigManager() {
 
   const severities = useBugSeverityOptions();
   const types = useBugTypeOptions();
+  const bugTypes = useBugListTypeOptions();
 
   const createSeverity = useCreateBugSeverity();
   const updateSeverity = useUpdateBugSeverity();
@@ -169,6 +191,10 @@ export default function BugListConfigManager() {
   const createType = useCreateBugType();
   const updateType = useUpdateBugType();
   const deleteType = useDeleteBugType();
+
+  const createBugType = useCreateBugListType();
+  const updateBugType = useUpdateBugListType();
+  const deleteBugType = useDeleteBugListType();
 
   const priorities = useBugPriorityOptions();
   const createPriority = useCreateBugPriority();
@@ -229,16 +255,18 @@ export default function BugListConfigManager() {
   const counts: Record<SectionKey, number> = {
     severity: severities.data?.length ?? 0,
     type: types.data?.length ?? 0,
+    bug_type: bugTypes.data?.length ?? 0,
     priority: priorities.data?.length ?? 0,
   };
   const loadingMap: Record<SectionKey, boolean> = {
     severity: severities.isLoading,
     type: types.isLoading,
+    bug_type: bugTypes.isLoading,
     priority: priorities.isLoading,
   };
 
   const isRefreshing =
-    severities.isFetching || priorities.isFetching || types.isFetching || scopeSettings.loading || qaModules.loading;
+    severities.isFetching || priorities.isFetching || types.isFetching || bugTypes.isFetching || scopeSettings.loading || qaModules.loading;
 
   const handleRefresh = async () => {
     try {
@@ -250,6 +278,8 @@ export default function BugListConfigManager() {
         await severities.refetch();
       } else if (effectiveKey === "priority") {
         await priorities.refetch();
+      } else if (effectiveKey === "bug_type") {
+        await bugTypes.refetch();
       } else {
         await types.refetch();
       }
@@ -258,7 +288,7 @@ export default function BugListConfigManager() {
     }
   };
 
-  const activeSection = SECTIONS.find(s => s.key === effectiveKey) ?? SECTIONS[0];
+  const activeSection = [...SECTIONS, ...TEST_CASE_SECTIONS].find(s => s.key === effectiveKey) ?? SECTIONS[0];
   const activeScopeMeta = SCOPE_SETTING_CATEGORIES.find(c => c.key === scopeCategory)!;
 
   /** What the topbar names, whichever side of the sidebar is selected. */
@@ -307,7 +337,7 @@ export default function BugListConfigManager() {
               {canManageBugs && SECTIONS.map((s) => (
                 <button
                   key={s.key}
-                  data-tour={`settings-bug-${s.key}`}
+                  data-tour={s.key === "bug_type" ? "settings-bug-type" : `settings-bug-${s.key}`}
                   className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
                   onClick={() => handleNavClick(s.key as SectionKey)}
                 >
@@ -320,6 +350,18 @@ export default function BugListConfigManager() {
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {canManageQa && <span className="pp-nav-caption">Test Cases</span>}
+              {canManageQa && TEST_CASE_SECTIONS.map((s) => (
+                <button
+                  key={s.key}
+                  data-tour={`settings-cases-${s.key}`}
+                  className={`pp-nav-item ${effectiveKey === s.key ? 'is-active' : ''}`}
+                  onClick={() => handleNavClick(s.key as SectionKey)}
+                >
+                  {React.cloneElement(s.icon as React.ReactElement, { size: 15, className: "pp-nav-icon" })}
+                  <span className="pp-nav-label">{s.title}</span>
+                  <span className="pp-nav-count">{counts[s.key]}</span>
+                </button>
+              ))}
               {canManageQa && (
                 <button
                   data-tour="settings-cases-modules"
@@ -461,7 +503,9 @@ export default function BugListConfigManager() {
                   ? severities.data || []
                   : activeSection.key === "priority"
                     ? priorities.data || []
-                    : types.data || []
+                    : activeSection.key === "bug_type"
+                      ? bugTypes.data || []
+                      : types.data || []
               }
               showColor={activeSection.key === "severity" || activeSection.key === "priority"}
               onCreate={() => setEditing({ kind: activeSection.key as EditorKind, option: null })}
@@ -472,6 +516,8 @@ export default function BugListConfigManager() {
                     await deleteSeverity.mutateAsync(id);
                   } else if (activeSection.key === "priority") {
                     await deletePriority.mutateAsync(id);
+                  } else if (activeSection.key === "bug_type") {
+                    await deleteBugType.mutateAsync(id);
                   } else {
                     await deleteType.mutateAsync(id);
                   }
@@ -487,6 +533,11 @@ export default function BugListConfigManager() {
                   });
                 } else if (activeSection.key === "priority") {
                   updatePriority.mutate({
+                    id: o.id,
+                    input: { isActive: !o.isActive },
+                  });
+                } else if (activeSection.key === "bug_type") {
+                  updateBugType.mutate({
                     id: o.id,
                     input: { isActive: !o.isActive },
                   });
@@ -542,6 +593,15 @@ export default function BugListConfigManager() {
               } else {
                 await createPriority.mutateAsync(payload);
               }
+            } else if (kind === "bug_type") {
+              if (editing?.kind === "bug_type" && editing.option) {
+                await updateBugType.mutateAsync({
+                  id: editing.option.id,
+                  input: payload,
+                });
+              } else {
+                await createBugType.mutateAsync(payload);
+              }
             } else {
               if (editing?.kind === "type" && editing.option) {
                 await updateType.mutateAsync({
@@ -562,6 +622,8 @@ export default function BugListConfigManager() {
           updateSeverity.isPending ||
           createType.isPending ||
           updateType.isPending ||
+          createBugType.isPending ||
+          updateBugType.isPending ||
           createPriority.isPending ||
           updatePriority.isPending
         }
@@ -812,7 +874,7 @@ function OptionEditor({
     try {
       const values = await form.validateFields();
       await onSubmit(editing!.kind, {
-        ...(isEdit ? {} : { key: values.key?.trim() || undefined }),
+        key: values.key?.trim() || undefined,
         label: values.label.trim(),
         description: values.description?.trim() || null,
         color: showColor ? values.color || null : undefined,
@@ -945,7 +1007,18 @@ function OptionEditor({
               labelAlign="left"
               colon={false}
               requiredMark="optional"
-              onValuesChange={(_, all) => setLabelPreview(all.label || "")}
+              onValuesChange={(changed, all) => {
+                setLabelPreview(all.label || "");
+                if (changed.label !== undefined) {
+                  const newKey = changed.label
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9]+/g, "_")
+                    .replace(/^_+|_+$/g, "")
+                    .slice(0, 48);
+                  form.setFieldsValue({ key: newKey });
+                }
+              }}
               className="lead-drawer-form customer-drawer-form"
             >
               <SectionCard step="STEP 1" icon={<InfoCircleOutlined style={{ color: '#475569', fontSize: 13 }} />} title="Configuration Details" subtitle="Core metadata">
@@ -964,20 +1037,13 @@ function OptionEditor({
                   />
                 </Form.Item>
 
-                {!isEdit && (
-                  <Form.Item
-                    name="key"
-                    label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}
-                    extra="Lowercase slug stored on bugs (auto-generated if blank). Cannot change later."
-                  >
-                    <Input placeholder="auto" />
-                  </Form.Item>
-                )}
-                {isEdit && (
-                  <Form.Item label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}>
-                    <Tag>{editing.option?.key}</Tag>
-                  </Form.Item>
-                )}
+                <Form.Item
+                  name="key"
+                  label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Key</Text>}
+                  extra="Lowercase slug stored on bugs (auto-generated if blank)."
+                >
+                  <Input placeholder="auto" />
+                </Form.Item>
 
                 <Form.Item
                   name="description"

@@ -140,7 +140,7 @@ function QaSubmissionsContent() {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [total, setTotal] = useState(0);
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
@@ -992,7 +992,7 @@ function QaSubmissionsContent() {
                     setPageSize(v);
                     setPage(1);
                   }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

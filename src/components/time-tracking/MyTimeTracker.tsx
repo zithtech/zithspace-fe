@@ -44,7 +44,7 @@ export function MyTimeTracker({
   const { withAttendanceGuard, AttendanceGuardModal } = useAttendanceGuard();
 
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [totalRecords, setTotalRecords] = useState(0);
 
   const fetchEntries = async () => {

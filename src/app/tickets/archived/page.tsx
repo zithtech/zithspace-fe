@@ -66,7 +66,7 @@ export default function TicketsArchivedPage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: ticketsData, isLoading, refetch, isFetching } = useTickets({
@@ -445,7 +445,7 @@ export default function TicketsArchivedPage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

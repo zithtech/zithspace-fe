@@ -111,7 +111,7 @@ export default function ProjectTrashManagementPage() {
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 15 });
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [filters, setFilters] = useState<{
     projectId?: string;

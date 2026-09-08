@@ -42,7 +42,7 @@ export function useTrashTickets(params: {
   return useQuery({
     queryKey: trashKeys.list(restParams),
     queryFn: () => TrashService.getTrashTickets(restParams),
-    staleTime: 30 * 1000, // 30 seconds (trash changes frequently)
+    staleTime: 0,
     placeholderData: keepPreviousData,
     enabled,
   });

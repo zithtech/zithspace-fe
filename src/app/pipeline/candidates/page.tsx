@@ -282,7 +282,7 @@ export default function CandidatesPage() {
           </div>
           <button
             type="button"
-            className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md border border-slate-200 bg-white transition"
+            className="pl-refresh-btn"
             onClick={fetchCandidates}
             title="Refresh candidates"
             disabled={loading}

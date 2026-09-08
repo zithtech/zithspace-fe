@@ -483,7 +483,7 @@ function SprintReportContent({
 
   return (
     <SnapshotContext.Provider value={snapshot}>
-      <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A]">
+      <div className="min-h-screen bg-zinc-50 dark:bg-[#0B0F1A] overflow-x-hidden w-full max-w-full">
         <div
           ref={stickyRef}
           className="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/90 dark:bg-[#0B0F1A]/90 backdrop-blur-md w-full"
@@ -797,13 +797,13 @@ function ExportMenu({
         disabled={busy}
         onClick={() => onExport("pdf")}
       />
-      <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
+      {/* <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
       <ExportButton
         label="DOC"
         busy={exporting === "docx"}
         disabled={busy}
         onClick={() => onExport("docx")}
-      />
+      /> */}
     </div>
   );
 }
@@ -1149,14 +1149,14 @@ function Panel({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 break-inside-avoid">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 break-inside-avoid overflow-hidden w-full max-w-full">
       <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-5 py-3">
         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{title}</span>
         {hint ? (
           <span className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>
         ) : null}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-5 overflow-hidden w-full max-w-full">{children}</div>
     </div>
   );
 }
@@ -1845,7 +1845,7 @@ function AssigneeTable({ rows }: { rows: AssigneeRow[] }) {
   if (rows.length === 0) return <EmptyChart />;
   const maxTotal = Math.max(...rows.map((r) => r.total));
   return (
-    <div className="overflow-x-auto -mx-5">
+    <div className="overflow-x-auto w-full max-w-full">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">
@@ -1951,7 +1951,7 @@ function ContributionSection({ rows }: { rows: ContributorRow[] }) {
 function ContributorTable({ rows }: { rows: ContributorRow[] }) {
   if (rows.length === 0) return <EmptyChart />;
   return (
-    <div className="overflow-x-auto -mx-5">
+    <div className="overflow-x-auto w-full max-w-full">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="text-[11px] uppercase tracking-[0.12em] font-medium text-zinc-500 dark:text-zinc-400">

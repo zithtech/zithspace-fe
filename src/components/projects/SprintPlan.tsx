@@ -2512,11 +2512,39 @@ export default function SprintPlanComponent() {
           }
         >
           {drawerSprintPlan && (() => {
-            const pct = drawerSprintPlan?.progress || 0;
-            const done = drawerSprintPlan?.completedTickets || 0;
-            const total = drawerSprintPlan?.totalTickets || 0;
-            const inProgress = drawerSprintPlan?.inProgressTickets ?? Math.max(total - done - (drawerSprintPlan?.notStartedTickets || 0), 0);
-            const notStarted = drawerSprintPlan?.notStartedTickets ?? Math.max(total - done - inProgress, 0);
+            const ticketsList = drawerSprintPlan.tickets || [];
+
+            const isDoneStatus = (status?: string) => {
+              const s = (status || '').toLowerCase().trim().replace(/ /g, '_');
+              return s === 'completed' || s === 'done' || s === 'live';
+            };
+
+            const isTodoStatus = (status?: string) => {
+              const s = (status || '').toLowerCase().trim().replace(/ /g, '_');
+              return s === 'not_started' || s === 'todo' || s === 'to_do' || s === 'open' || s === 'pending' || s === 'planned' || s === '';
+            };
+
+            const isActiveStatus = (status?: string) => {
+              return !isDoneStatus(status) && !isTodoStatus(status);
+            };
+
+            const done = ticketsList.length > 0
+              ? ticketsList.filter(t => isDoneStatus(t.status)).length
+              : (drawerSprintPlan.completedTickets || 0);
+
+            const notStarted = ticketsList.length > 0
+              ? ticketsList.filter(t => isTodoStatus(t.status)).length
+              : (drawerSprintPlan.notStartedTickets || 0);
+
+            const inProgress = ticketsList.length > 0
+              ? ticketsList.filter(t => isActiveStatus(t.status)).length
+              : (drawerSprintPlan.inProgressTickets ?? Math.max((drawerSprintPlan.totalTickets || 0) - done - notStarted, 0));
+
+            const total = ticketsList.length > 0
+              ? ticketsList.length
+              : (drawerSprintPlan.totalTickets || 0);
+
+            const pct = total > 0 ? Math.round((done / total) * 100) : (drawerSprintPlan.progress || 0);
             const status = drawerSprintPlan?.status;
             const startDate = drawerSprintPlan?.startedAt || drawerSprintPlan?.startDate;
             const endDate = drawerSprintPlan?.endDate;
@@ -2561,7 +2589,7 @@ export default function SprintPlanComponent() {
             // Contributor aggregation
             type Contrib = { id: string; name: string; total: number; done: number; inProgress: number; notStarted: number; tickets: typeof drawerSprintPlan.tickets };
             const contribMap = new Map<string, Contrib>();
-            (drawerSprintPlan.tickets || []).forEach(t => {
+            ticketsList.forEach(t => {
               const a = t.assignee;
               const key = a?.id || '__unassigned__';
               const name = a?.name || 'Unassigned';
@@ -2571,9 +2599,8 @@ export default function SprintPlanComponent() {
               const c = contribMap.get(key)!;
               c.total += 1;
               c.tickets.push(t);
-              const s = (t.status || '').toLowerCase();
-              if (s === 'completed' || s === 'done') c.done += 1;
-              else if (s === 'in_progress' || s === 'active' || s === 'review') c.inProgress += 1;
+              if (isDoneStatus(t.status)) c.done += 1;
+              else if (isActiveStatus(t.status)) c.inProgress += 1;
               else c.notStarted += 1;
             });
             const contributors = Array.from(contribMap.values()).sort((a, b) => b.done - a.done || b.total - a.total);
@@ -2581,28 +2608,32 @@ export default function SprintPlanComponent() {
 
             // Priority breakdown
             const prioMap: Record<string, number> = { High: 0, Medium: 0, Low: 0, None: 0 };
-            (drawerSprintPlan.tickets || []).forEach((t: any) => {
+            ticketsList.forEach((t: any) => {
               const p = t.priority || 'None';
               prioMap[p] = (prioMap[p] || 0) + 1;
             });
 
             // Filtered tickets for board view
-            const visibleTickets = (drawerSprintPlan.tickets || []).filter(t => {
-              const s = (t.status || '').toLowerCase();
+            const visibleTickets = ticketsList.filter(t => {
               if (ticketBoardFilter === 'all') return true;
-              if (ticketBoardFilter === 'done') return s === 'completed' || s === 'done';
-              if (ticketBoardFilter === 'progress') return s === 'in_progress' || s === 'active' || s === 'review';
-              if (ticketBoardFilter === 'todo') return !(s === 'completed' || s === 'done' || s === 'in_progress' || s === 'active' || s === 'review');
+              if (ticketBoardFilter === 'done') return isDoneStatus(t.status);
+              if (ticketBoardFilter === 'progress') return isActiveStatus(t.status);
+              if (ticketBoardFilter === 'todo') return isTodoStatus(t.status);
               return true;
             });
 
             const tCfg = (s: string) => {
-              const k = (s || '').toLowerCase();
+              const raw = (s || '').trim();
+              const k = raw.toLowerCase().replace(/ /g, '_');
               if (k === 'completed' || k === 'done') return { c: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.22)', label: 'Done' };
+              if (k === 'live') return { c: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.22)', label: 'Live' };
               if (k === 'in_progress' || k === 'active') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.22)', label: 'In Progress' };
-              if (k === 'review') return { c: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.22)', label: 'Review' };
-              if (k === 'pending' || k === 'todo' || k === 'open') return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') };
-              return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') || '—' };
+              if (k === 'review' || k === 'in_review') return { c: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.22)', label: 'In Review' };
+              if (k === 'dev_complete') return { c: '#06b6d4', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.22)', label: 'Dev Complete' };
+              if (k === 'dev_testing' || k === 'live_testing' || k === 'testing') return { c: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', label: k.replace(/_/g, ' ') };
+              if (k === 'pause' || k === 'paused') return { c: '#eab308', bg: 'rgba(234,179,8,0.08)', border: 'rgba(234,179,8,0.22)', label: 'Paused' };
+              if (k === 'not_started' || k === 'todo' || k === 'to_do' || k === 'open' || k === 'pending' || k === 'planned') return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: k.replace(/_/g, ' ') };
+              return { c: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.22)', label: raw.replace(/_/g, ' ') || '—' };
             };
 
             const prioCfg = (p: string) => {

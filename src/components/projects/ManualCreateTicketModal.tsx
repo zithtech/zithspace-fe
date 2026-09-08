@@ -45,6 +45,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
   // });
   const [loading, setLoading] = useState(false);
   const [companyMembers, setCompanyMembers] = useState<any[]>([]);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
   const { data: projects = [] } = useUserProjects();
   const { data: ticketConfig } = useTicketConfig();
@@ -59,6 +60,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
 
   // Watch for platform changes
   const selectedPlatform = Form.useWatch("platform", form);
+  const selectedProject = Form.useWatch("project", form) || projectId;
   const tagsValue: string[] = Form.useWatch("tags", form) || [];
 
   const platformOptions: SearchableDropdownOption[] = platforms.map((p: any) => ({ value: p.value, label: p.label }));
@@ -83,15 +85,23 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
     label: m.label,
     avatarUrl: m.avatarUrl || undefined,
   }));
+  const projectMemberOptions: SearchableDropdownOption[] = projectMembers.map((m: any) => ({
+    value: m.value,
+    label: m.label,
+    avatarUrl: m.avatarUrl || undefined,
+  }));
 
   useEffect(() => {
     if (open) {
       loadCompanyMembers();
     }
-    if (open && projectId) {
+    if (open && selectedProject) {
+      loadProjectMembers(selectedProject);
+    }
+    if (open && projectId && !form.getFieldValue("project")) {
       form.setFieldsValue({ project: projectId });
     }
-  }, [open, projectId, form]);
+  }, [open, selectedProject, projectId, form]);
 
   const loadCompanyMembers = async () => {
     try {
@@ -99,6 +109,15 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
       setCompanyMembers(members || []);
     } catch (error) {
       console.error("Error loading company members:", error);
+    }
+  };
+
+  const loadProjectMembers = async (projId: string) => {
+    try {
+      const members = await ProjectService.getProjectMembers(projId);
+      setProjectMembers(members || []);
+    } catch (error) {
+      console.error("Error loading project members:", error);
     }
   };
 
@@ -273,7 +292,7 @@ export const ManualCreateTicketModal: React.FC<ManualCreateTicketModalProps> = (
             <SectionCard step="STEP 4" icon={<TeamOutlined style={{ color: '#10b981', fontSize: 13 }} />} title="Ownership & Timeline" subtitle="Assignments and schedule">
 
                   <Form.Item name="assignee" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Assignee</Text>}>
-                    <SearchableDropdown options={memberOptions} placeholder="Select assignee" allowClear />
+                    <SearchableDropdown options={projectMemberOptions} placeholder="Select assignee" allowClear />
                   </Form.Item>
                   <Form.Item name="reportTo" label={<Text strong className="premium-form-label" style={{ fontSize: 12, color: "#64748b" }}>Reporter</Text>}>
                     <SearchableDropdown options={memberOptions} placeholder="Select reporter" allowClear />

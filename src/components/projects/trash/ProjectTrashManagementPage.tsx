@@ -799,7 +799,7 @@ export default function ProjectTrashManagementPage() {
                   total={totalTrashItems}
                   onChange={(page, pageSize) => setPagination({ current: page, pageSize })}
                   showSizeChanger
-                  pageSizeOptions={[10, 20, 25, 50, 100]}
+                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                 />
               </div>
             )}

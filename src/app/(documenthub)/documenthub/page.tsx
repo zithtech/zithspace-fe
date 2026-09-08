@@ -2937,7 +2937,7 @@ const DocumentHubPage = () => {
                     className="pp-pagesize"
                     value={tablePageSize}
                     onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                    options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                    options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                     popupMatchSelectWidth={120}
                   />
                 </div>

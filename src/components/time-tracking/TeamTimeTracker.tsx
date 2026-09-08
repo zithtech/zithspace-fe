@@ -307,7 +307,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     return () => clearInterval(timer);
   }, []);
 
-  const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+  const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
   const [totalRecords, setTotalRecords] = useState(0);

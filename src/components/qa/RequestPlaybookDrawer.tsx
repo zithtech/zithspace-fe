@@ -203,7 +203,7 @@ export default function RequestPlaybookDrawer({ open, onClose, category, onSubmi
           {alreadyCovered ? (
             <a
               className="pb-ask__note"
-              href={`/qa-workspace/playbooks/${alreadyCovered.slug}`}
+              href={`/playbooks/${alreadyCovered.slug}`}
               target="_blank"
               rel="noreferrer"
             >

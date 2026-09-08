@@ -39,6 +39,103 @@ export interface PlaybookSummary {
   itemCount: number;
   levelCounts: Record<string, number>;
   categories: string[];
+  /** Collections this playbook sits in, as far as the viewer can see them. */
+  collections?: CollectionChip[];
+}
+
+/* ── Collections ─────────────────────────────────────────────────────────── */
+
+/**
+ * A curated, ordered bundle of playbooks — the "which of these apply to ME?"
+ * axis. Categories say what part of an app a playbook covers; a collection says
+ * who it is for. See migration 005 on the API.
+ *
+ * `kind` is NOT the industry list: "Fintech" is a collection's NAME, and its
+ * kind is 'industry'. That is what leaves room for compliance, platform,
+ * release-stage and editorial packs in the same shelf.
+ */
+export type CollectionKind = "industry" | "compliance" | "platform" | "stage" | "curated";
+
+export const COLLECTION_KIND_ORDER: CollectionKind[] = [
+  "curated",
+  "industry",
+  "compliance",
+  "platform",
+  "stage",
+];
+
+export const COLLECTION_KIND_LABELS: Record<CollectionKind, string> = {
+  industry: "Industry",
+  compliance: "Compliance",
+  platform: "Platform",
+  stage: "Release stage",
+  curated: "Curated",
+};
+
+/** The heading each kind gets on the shelf. */
+export const COLLECTION_KIND_HEADINGS: Record<CollectionKind, string> = {
+  curated: "Start with these",
+  industry: "By what you build",
+  compliance: "By standard",
+  platform: "By platform",
+  stage: "By release stage",
+};
+
+export interface CollectionChip {
+  slug: string;
+  name: string;
+  kind: CollectionKind;
+}
+
+export interface CollectionSummary {
+  id: string;
+  slug: string;
+  /** What the pack is CALLED. Free text — see migration 010. */
+  name: string;
+  kind: CollectionKind;
+  /** Who it is FOR. Open vocabulary, picked from a list or typed. */
+  industry: string | null;
+  summary: string | null;
+  icon: string | null;
+  visibility: PlaybookVisibility;
+  status: PlaybookStatus;
+  isOwn: boolean;
+  priceCredits: number | null;
+  priceAmount: string | null;
+  priceCurrency: string;
+  sortOrder: number;
+  /** Premium pack this workspace has not bought. It still LISTS — see 007. */
+  locked: boolean;
+  /** This workspace said "we build this". Reorders the shelf, never gates it. */
+  pinned: boolean;
+  /** Playbooks the VIEWER can see in it — not the raw membership count. */
+  playbookCount: number;
+  itemCount: number;
+  updatedAt: string;
+}
+
+/** A playbook as it appears inside a collection: its position, and why. */
+export interface CollectionMember {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  summary: string | null;
+  visibility: PlaybookVisibility;
+  status: PlaybookStatus;
+  isOwn: boolean;
+  locked: boolean;
+  itemCount: number;
+  sortOrder: number;
+  note: string | null;
+}
+
+export interface CollectionDetail extends CollectionSummary {
+  description: string | null;
+  playbooks: CollectionMember[];
+  /** Asked for, and nobody has decided yet. */
+  pendingRequest: boolean;
+  canCurate: boolean;
 }
 
 /** Where a recommendation points the reader next. See constants.ts on the API. */
@@ -347,6 +444,24 @@ export const PLAYBOOK_STYLES = `
 .pb-toolbar__actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
 @media (max-width: 700px) { .pb-toolbar__actions { margin-left: 0; } }
 
+/* ── The manage band ─────────────────────────────────────────────────────────
+   A third row under the reader's toolbar, holding the actions that WRITE.
+   Recessed rather than emphasised: it is the row you use occasionally, sitting
+   under the two you use every time. Ash only — nothing in here is an accent. */
+.pb-toolbar.is-manage {
+  background: var(--bg-slate-50);
+  padding-top: 8px; padding-bottom: 8px;
+}
+[data-theme='dark'] .pb-toolbar.is-manage { background: #0f1419; border-bottom-color: #1f2937; }
+.pb-toolbar__eyebrow {
+  flex-shrink: 0; margin-right: 2px;
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-slate-400);
+}
+/* The primary action anchors the right end, as it did before the row split. */
+.pb-toolbar__primary { margin-left: auto; }
+@media (max-width: 700px) { .pb-toolbar__primary { margin-left: 0; } }
+
 /* Buttons in the playbook surface: one height, one radius, and a hover that
    moves toward blue rather than antd's default grey. */
 .pb-btn.ant-btn {
@@ -365,7 +480,21 @@ export const PLAYBOOK_STYLES = `
 }
 [data-theme='dark'] .pb-btn.ant-btn-default { background: #0f1419; border-color: #1f2937; color: #94a3b8; }
 .pb-btn.is-sm.ant-btn { height: 28px; padding: 0 10px; font-size: 11.5px; }
-.pb-group__action { margin-left: auto; }
+/* Both header actions travel together at the right end. Each used to carry
+   margin-left:auto of its own, which pushed them apart and stranded the first
+   one in the middle of the header. */
+.pb-group__actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+/* The crumb back out of a category to the collection holding it. */
+.pb-group__crumb {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; letter-spacing: -.01em;
+  color: var(--text-slate-500);
+  transition: color .15s ease;
+}
+.pb-group__crumb:hover { color: #2563eb; }
+.pb-group__sep { font-size: 12px; color: var(--text-slate-300); }
+[data-theme='dark'] .pb-group__sep { color: #334155; }
 .pb-btn.ant-btn-primary { box-shadow: 0 1px 2px rgba(37,99,235,.28); }
 .pb-btn.ant-btn-primary:hover { box-shadow: 0 2px 8px rgba(37,99,235,.28); }
 
@@ -939,6 +1068,9 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
   padding-top: 10px; border-top: 1px solid var(--border-slate-200);
 }
 [data-theme='dark'] .pb-card__foot { border-top-color: #1f2937; }
+/* Tier, and the price when it is locked, held at the right end of the footer —
+   the space the per-level pills used to take. */
+.pb-card__state { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .pb-card__total {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-weight: 600; color: var(--text-slate-500);
@@ -1982,4 +2114,499 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
 .pb-gen .ant-input,
 .pb-gen .ant-input-affix-wrapper,
 .pb-gen .sd-trigger { border-radius: 9px !important; }
+
+/* ── Collections ─────────────────────────────────────────────────────────────
+   The shelf. A collection card is heavier than a playbook card on purpose: it
+   is the coarse choice a new customer makes first, and the playbook cards are
+   what they browse afterwards. Palette stays blue / green / ash — the kind tag
+   is ash, the count is blue, and nothing here is red. */
+.pbc-kind { margin: 0 0 18px; }
+.pbc-kind:last-child { margin-bottom: 4px; }
+.pbc-kind__head {
+  display: flex; align-items: baseline; gap: 9px; margin: 0 0 9px;
+}
+.pbc-kind__title {
+  font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-slate-500);
+}
+.pbc-kind__count { font-size: 11px; color: var(--text-slate-400); }
+
+.pbc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+
+.pbc-card {
+  position: relative; text-align: left; width: 100%; cursor: pointer;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 15px; border-radius: 12px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.pbc-card:hover {
+  border-color: rgba(59,130,246,.35);
+  box-shadow: 0 4px 16px rgba(15,23,42,.05);
+  transform: translateY(-1px);
+}
+[data-theme='dark'] .pbc-card { background: #0f1419; border-color: #1f2937; }
+[data-theme='dark'] .pbc-card:hover { border-color: rgba(59,130,246,.4); }
+
+.pbc-card__top { display: flex; align-items: flex-start; gap: 11px; }
+.pbc-card__av {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+}
+.pbc-card__id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pbc-card__name {
+  font-size: 13.5px; font-weight: 800; letter-spacing: -.015em; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pbc-card__name { color: #f1f5f9; }
+.pbc-card__tags { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pbc-tag {
+  height: 18px; padding: 0 7px; border-radius: 5px;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase;
+  color: var(--text-slate-500); background: var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbc-tag { background: #0b0f14; border-color: #1f2937; color: #94a3b8; }
+/* Draft is the curator's own state, never a customer's — green would claim it
+   is live, so it stays ash with a dotted edge. */
+.pbc-tag.is-draft { border-style: dashed; }
+.pbc-tag.is-live { color: #15803d; background: rgba(22,163,74,.09); border-color: rgba(22,163,74,.22); }
+[data-theme='dark'] .pbc-tag.is-live { color: #4ade80; background: rgba(22,163,74,.14); border-color: rgba(22,163,74,.3); }
+
+.pbc-card__go {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-slate-400); transition: color .15s ease, background .15s ease, transform .15s ease;
+}
+.pbc-card:hover .pbc-card__go { color: #2563eb; background: rgba(59,130,246,.1); transform: translateX(2px); }
+
+/* Who the pack is for. Ash and small — it places the card, it is not its
+   headline, and the name above already carries that weight. */
+.pbc-card__industry {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--text-slate-400);
+}
+.pbc-card__summary {
+  margin: 0; font-size: 12px; line-height: 1.55; color: var(--text-slate-500);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 37px;
+}
+.pbc-card__foot {
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbc-card__foot { border-top-color: #1f2937; }
+.pbc-card__stat {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
+}
+.pbc-card__stat b { font-weight: 800; color: var(--text-slate-900); }
+[data-theme='dark'] .pbc-card__stat b { color: #e2e8f0; }
+.pbc-card__stat + .pbc-card__stat { margin-left: 2px; }
+/* An empty pack is a dead end — say so on the card rather than after a click. */
+.pbc-card__empty { font-size: 11.5px; color: var(--text-slate-400); font-style: italic; }
+
+/* ── Collection chips on a playbook card ─────────────────────────────────── */
+.pbc-chips { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.pbc-chip {
+  height: 18px; padding: 0 7px; border-radius: 999px;
+  display: inline-flex; align-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: -.005em;
+  color: #2563eb; background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.18);
+  max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pbc-chip { color: #93c5fd; background: rgba(59,130,246,.14); border-color: rgba(59,130,246,.26); }
+
+/* ── The strip above the catalog rail ────────────────────────────────────── */
+.pbc-strip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; flex-shrink: 0;
+  background: var(--bg-pure-white); border-bottom: 1px solid var(--border-slate-200);
+  overflow-x: auto; scrollbar-width: none;
+}
+.pbc-strip::-webkit-scrollbar { display: none; }
+[data-theme='dark'] .pbc-strip { background: #0f1419; border-bottom-color: #1f2937; }
+.pbc-strip__label {
+  flex-shrink: 0; font-size: 10px; font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-slate-400);
+}
+.pbc-strip__item {
+  flex-shrink: 0; height: 26px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-500);
+  background: transparent; border: 1px solid var(--border-slate-200);
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.pbc-strip__item:hover { color: #2563eb; border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.06); }
+[data-theme='dark'] .pbc-strip__item { border-color: #1f2937; color: #94a3b8; }
+.pbc-strip__item b { font-weight: 800; color: var(--text-slate-400); }
+.pbc-strip__more {
+  flex-shrink: 0; margin-left: auto; padding-left: 10px;
+  font-size: 11.5px; font-weight: 700; color: #2563eb; cursor: pointer;
+  background: none; border: none;
+}
+
+/* ── The reading list on a collection's page ─────────────────────────────── */
+.pbc-list { display: flex; flex-direction: column; gap: 8px; }
+.pbc-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px; border-radius: 11px; cursor: pointer; text-align: left; width: 100%;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.pbc-row:hover { border-color: rgba(59,130,246,.35); box-shadow: 0 2px 10px rgba(15,23,42,.04); }
+[data-theme='dark'] .pbc-row { background: #0f1419; border-color: #1f2937; }
+/* The position in the reading order. It is the whole reason the list is
+   ordered, so it is the first thing on the row. */
+.pbc-row__no {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--text-slate-500); background: var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbc-row__no { background: #0b0f14; border-color: #1f2937; }
+.pbc-row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pbc-row__name {
+  font-size: 13px; font-weight: 700; letter-spacing: -.01em; color: var(--text-slate-900);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+[data-theme='dark'] .pbc-row__name { color: #f1f5f9; }
+.pbc-row__sub {
+  font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The curator's reason this playbook is in THIS pack. Blue rule on the left so
+   it reads as an editorial aside rather than as part of the summary. */
+.pbc-row__note {
+  font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500);
+  padding-left: 8px; border-left: 2px solid rgba(59,130,246,.35); margin-top: 3px;
+}
+.pbc-row__meta {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-slate-400);
+}
+
+/* ── Curation: mapping playbooks into a pack, in order ───────────────────── */
+.pbc-curate__head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border-slate-200);
+  background: var(--bg-slate-50);
+}
+[data-theme='dark'] .pbc-curate__head { background: #0f1419; border-bottom-color: #1f2937; }
+.pbc-curate__headtext { flex: 1; min-width: 0; }
+.pbc-curate__title { font-size: 13px; font-weight: 800; color: var(--text-slate-900); }
+[data-theme='dark'] .pbc-curate__title { color: #f1f5f9; }
+.pbc-curate__sub { font-size: 11.5px; color: var(--text-slate-500); }
+.pbc-curate__body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.pbc-curate__empty {
+  padding: 26px 16px; text-align: center; border-radius: 11px;
+  border: 1px dashed var(--border-slate-200);
+  font-size: 12px; color: var(--text-slate-400);
+}
+[data-theme='dark'] .pbc-curate__empty { border-color: #1f2937; }
+
+.pbc-pick {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; border-radius: 10px;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbc-pick { background: #0b0f14; border-color: #1f2937; }
+.pbc-pick.is-dragging { border-color: rgba(59,130,246,.5); box-shadow: 0 6px 18px rgba(15,23,42,.1); }
+.pbc-pick__grip {
+  flex-shrink: 0; cursor: grab; color: var(--text-slate-400);
+  display: inline-flex; align-items: center; padding: 2px;
+}
+.pbc-pick__grip:active { cursor: grabbing; }
+.pbc-pick__no {
+  flex-shrink: 0; width: 22px; text-align: center;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-slate-400);
+}
+.pbc-pick__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pbc-pick__name {
+  font-size: 12.5px; font-weight: 700; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pbc-pick__name { color: #e2e8f0; }
+.pbc-pick__note.ant-input { font-size: 11.5px; border-radius: 7px; }
+.pbc-pick__moves { flex-shrink: 0; display: inline-flex; align-items: center; gap: 2px; }
+
+/* ── "What do you build?" ────────────────────────────────────────────────── */
+.pbc-pick__title { display: inline-flex; align-items: center; gap: 9px; }
+.pbc-pick__titleav {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+}
+.pbc-pick__lede {
+  font-size: 12.5px; line-height: 1.6; color: var(--text-slate-500); margin: 0 0 12px;
+}
+
+/* Count on the left, Clear on the right. The count carries the ONE thing the
+   tiles cannot say on their own — that the order you pick in is the order the
+   shelf uses. */
+.pbc-pick__bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 11px; margin-bottom: 10px; border-radius: 9px;
+  background: var(--bg-slate-50); border: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbc-pick__bar { background: #0f1419; border-color: #1f2937; }
+.pbc-pick__count { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-slate-500); }
+.pbc-pick__count b { font-weight: 800; color: #15803d; }
+[data-theme='dark'] .pbc-pick__count b { color: #4ade80; }
+.pbc-pick__clear {
+  flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 11.5px; font-weight: 700; color: var(--text-slate-400);
+  transition: color .15s ease;
+}
+.pbc-pick__clear:hover { color: #2563eb; }
+
+.pbc-picklist {
+  max-height: 360px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 14px;
+  /* Room for the scrollbar so a hovered tile's border is never clipped. */
+  padding-right: 4px; margin-right: -4px;
+}
+.pbc-picksec__head {
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-slate-400); margin-bottom: 7px;
+}
+.pbc-picksec__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 620px) { .pbc-picksec__grid { grid-template-columns: 1fr; } }
+
+.pbc-picktile {
+  position: relative;
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 10px 11px; border-radius: 10px; cursor: pointer;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease,
+              transform .15s ease;
+}
+.pbc-picktile:hover {
+  border-color: rgba(59,130,246,.35);
+  box-shadow: 0 2px 10px rgba(15,23,42,.05);
+  transform: translateY(-1px);
+}
+/* Selected is green: it is a confirmed choice, not a navigation accent. */
+.pbc-picktile.is-on {
+  border-color: rgba(22,163,74,.45); background: rgba(22,163,74,.06);
+  box-shadow: 0 1px 0 rgba(22,163,74,.08);
+}
+.pbc-picktile.is-on:hover { border-color: rgba(22,163,74,.6); }
+[data-theme='dark'] .pbc-picktile { background: #0b0f14; border-color: #1f2937; }
+[data-theme='dark'] .pbc-picktile.is-on { background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.35); }
+.pbc-picktile__av {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.pbc-picktile.is-on .pbc-picktile__av {
+  color: #15803d; background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.24);
+}
+.pbc-picktile__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pbc-picktile__name {
+  font-size: 12.5px; font-weight: 700; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pbc-picktile__name { color: #e2e8f0; }
+.pbc-picktile__meta {
+  font-size: 11px; color: var(--text-slate-400);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Where this pack will sit, not merely that it is chosen — the green already
+   says chosen. Tabular figures so 1 and 10 are the same width. */
+.pbc-picktile__pos {
+  flex-shrink: 0; width: 21px; height: 21px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: #fff; background: #16a34a;
+}
+
+/* The band that asks the question when nobody has answered it yet. */
+.pbc-ask {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 15px; margin: 0 0 18px; border-radius: 12px;
+  background: linear-gradient(90deg, rgba(59,130,246,.07), rgba(59,130,246,0) 60%), var(--bg-slate-50);
+  border: 1px solid rgba(59,130,246,.2);
+}
+[data-theme='dark'] .pbc-ask {
+  background: linear-gradient(90deg, rgba(59,130,246,.12), rgba(59,130,246,0) 60%), #0f1419;
+  border-color: rgba(59,130,246,.26);
+}
+.pbc-ask__text { flex: 1; min-width: 0; }
+.pbc-ask__title { font-size: 13px; font-weight: 800; letter-spacing: -.01em; color: var(--text-slate-900); }
+[data-theme='dark'] .pbc-ask__title { color: #f1f5f9; }
+.pbc-ask__sub { font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500); margin-top: 2px; }
+
+/* A premium pack the workspace has not bought. Amber, never red — red is for
+   destruction, and this is an invitation. */
+.pbc-tag.is-locked {
+  color: #b45309; background: rgba(217,119,6,.1); border-color: rgba(217,119,6,.22);
+}
+[data-theme='dark'] .pbc-tag.is-locked { color: #fbbf24; background: rgba(217,119,6,.16); border-color: rgba(217,119,6,.3); }
+.pbc-tag.is-pinned { color: #15803d; background: rgba(22,163,74,.09); border-color: rgba(22,163,74,.22); }
+[data-theme='dark'] .pbc-tag.is-pinned { color: #4ade80; background: rgba(22,163,74,.14); border-color: rgba(22,163,74,.3); }
+
+/* ── The category step inside a collection ───────────────────────────────────
+   A collection is a bundle for an audience, and "School & College Management"
+   holding Login, Logout, Registration and Forgot Password is four cards that
+   are really one subject. These tiles say what the pack is MADE OF; the
+   playbooks are one click further in. Lighter than a playbook card on purpose —
+   this is a signpost, not a thing you read. */
+.pb-catgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.pb-catcard {
+  display: flex; align-items: center; gap: 11px; text-align: left; width: 100%;
+  padding: 13px 14px; border-radius: 11px; cursor: pointer;
+  background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.pb-catcard:hover {
+  border-color: rgba(59,130,246,.35);
+  box-shadow: 0 3px 12px rgba(15,23,42,.05);
+  transform: translateY(-1px);
+}
+[data-theme='dark'] .pb-catcard { background: #0f1419; border-color: #1f2937; }
+[data-theme='dark'] .pb-catcard:hover { border-color: rgba(59,130,246,.4); }
+.pb-catcard__av {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
+}
+.pb-catcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pb-catcard__name {
+  font-size: 13px; font-weight: 700; letter-spacing: -.01em; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pb-catcard__name { color: #f1f5f9; }
+.pb-catcard__meta { font-size: 11.5px; color: var(--text-slate-400); }
+.pb-catcard__go {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-slate-400);
+  transition: color .15s ease, background .15s ease, transform .15s ease;
+}
+.pb-catcard:hover .pb-catcard__go { color: #2563eb; background: rgba(59,130,246,.1); transform: translateX(2px); }
+
+/* ── The collection form ─────────────────────────────────────────────────────
+   Wider than a normal dialog because the name picker and the price row both
+   want horizontal room, and a cramped two-column form was making the name —
+   the field that actually matters — look like one of six equals. */
+.pbf-modal .ant-modal-body { padding-top: 4px; }
+
+/* A live card preview. It is also the only place the DERIVED icon shows
+   itself, now that there is no icon picker to set it. */
+.pbf-preview {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 15px; margin: 4px 0 16px; border-radius: 12px;
+  background: linear-gradient(90deg, rgba(59,130,246,.06), rgba(59,130,246,0) 60%),
+              var(--bg-slate-50);
+  border: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbf-preview {
+  background: linear-gradient(90deg, rgba(59,130,246,.1), rgba(59,130,246,0) 60%), #0f1419;
+  border-color: #1f2937;
+}
+.pbf-preview__av {
+  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+}
+.pbf-preview__body { flex: 1; min-width: 0; }
+.pbf-preview__name {
+  font-size: 14px; font-weight: 800; letter-spacing: -.015em; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .pbf-preview__name { color: #f1f5f9; }
+.pbf-preview__ghost { color: var(--text-slate-300); font-weight: 700; }
+[data-theme='dark'] .pbf-preview__ghost { color: #334155; }
+.pbf-preview__meta {
+  font-size: 11.5px; line-height: 1.5; color: var(--text-slate-500); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.pbf-form { display: flex; flex-direction: column; gap: 15px; }
+.pbf-field { display: flex; flex-direction: column; gap: 6px; }
+.pbf-field--narrow { max-width: 170px; }
+.pbf-label {
+  font-size: 11.5px; font-weight: 800; letter-spacing: -.005em; color: var(--text-slate-900);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+[data-theme='dark'] .pbf-label { color: #e2e8f0; }
+.pbf-req {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-slate-400);
+}
+.pbf-hint { font-size: 11.5px; line-height: 1.5; color: var(--text-slate-400); }
+/* Amber, not red: a name already on the shelf is something to redirect, not a
+   destructive act. */
+.pbf-hint.is-warn { color: #b45309; }
+[data-theme='dark'] .pbf-hint.is-warn { color: #fbbf24; }
+/* A suggestion that has already been used, marked in the picker rather than
+   silently missing from it. */
+.pbf-taken {
+  font-size: 10px; font-weight: 700; letter-spacing: -.005em; color: var(--text-slate-400);
+}
+
+/* Pricing sits in its own bordered block so the checkbox reads as a switch for
+   the row beneath it, not as one more field in the stack. */
+.pbf-sell {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 11px 13px; border-radius: 11px;
+  border: 1px solid var(--border-slate-200); background: var(--bg-pure-white);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pbf-sell.is-on { border-color: rgba(59,130,246,.32); background: rgba(59,130,246,.04); }
+[data-theme='dark'] .pbf-sell { background: #0b0f14; border-color: #1f2937; }
+[data-theme='dark'] .pbf-sell.is-on { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); }
+.pbf-sell__top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pbf-sell__label { font-size: 12.5px; font-weight: 700; }
+.pbf-sell__prices { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* The form's inputs match the rest of the drawer family. */
+.pbf-form .ant-input,
+.pbf-form .ant-input-affix-wrapper,
+.pbf-form .sd-trigger { border-radius: 9px !important; }
+
+/* ── "Where does this playbook belong?" ──────────────────────────────────── */
+.pbn-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; padding-right: 4px; margin-right: -4px; }
+
+/* The create row sits last, so the list reads "one of these, or a new one".
+   Dashed rather than solid: it is an action, not another thing to choose. */
+.pbn-new {
+  display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+  padding: 10px 11px; border-radius: 10px; cursor: pointer;
+  background: transparent; border: 1px dashed var(--border-slate-200);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pbn-new:hover { border-color: rgba(59,130,246,.45); background: rgba(59,130,246,.04); }
+[data-theme='dark'] .pbn-new { border-color: #1f2937; }
+[data-theme='dark'] .pbn-new:hover { background: rgba(59,130,246,.1); }
+.pbn-new__av {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.18);
+}
+
+/* The inline create form, in place of the list. */
+.pbn-create { display: flex; flex-direction: column; gap: 13px; }
+.pbn-create__head {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 11px; border-bottom: 1px solid var(--border-slate-200);
+}
+[data-theme='dark'] .pbn-create__head { border-bottom-color: #1f2937; }
+.pbn-create__title {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 800; letter-spacing: -.01em; color: var(--text-slate-900);
+}
+[data-theme='dark'] .pbn-create__title { color: #f1f5f9; }
+.pbn-create__cancel {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 11.5px; font-weight: 700; color: var(--text-slate-400);
+  transition: color .15s ease;
+}
+.pbn-create__cancel:hover { color: #2563eb; }
 `;

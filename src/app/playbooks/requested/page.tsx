@@ -198,7 +198,7 @@ export default function RequestedPlaybooksPage() {
               <Button
                 className="pb-btn"
                 icon={<Inbox size={14} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>
@@ -292,7 +292,7 @@ export default function RequestedPlaybooksPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(
-                                  `/qa-workspace/playbooks/${request.playbook_slug}`
+                                  `/playbooks/${request.playbook_slug}`
                                 );
                               }}
                             >
@@ -480,7 +480,7 @@ export default function RequestedPlaybooksPage() {
                 className="pb-btn"
                 icon={<ArrowUpRight size={14} />}
                 onClick={() =>
-                  router.push(`/qa-workspace/playbooks/${detail.playbook_slug}`)
+                  router.push(`/playbooks/${detail.playbook_slug}`)
                 }
               >
                 Open {detail.playbook_name}

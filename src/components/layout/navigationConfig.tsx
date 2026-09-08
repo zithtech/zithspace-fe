@@ -247,7 +247,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: I(Briefcase),
-    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/api-hub", "/escalations"],
+    pathPrefixes: ["/tickets", "/projects", "/documenthub", "/proposals", "/timesheet", "/daily-updates", "/leads", "/bidiq", "/squad", "/time-tracking", "/qa-workspace", "/playbooks", "/api-hub", "/escalations"],
     defaultPath: "/tickets/select",
     requiredSubscriptionFeature: ["work"],
     requiredAnyPermission: [
@@ -359,6 +359,46 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
+        // Playbooks is its own section rather than a page inside QA Space: it
+        // answers "what should I test?", which is a library question asked
+        // before — and often without — any scope, case or run. Same reasoning
+        // that puts API Hub alongside QA Space rather than inside it.
+        key: "playbooks",
+        label: "Playbooks",
+        icon: I(BookOpen),
+        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
+        requiredPermission: Permissions.QA_CASE_READ,
+        children: [
+          {
+            key: "/playbooks",
+            label: "QA Playbooks",
+            icon: I(BookOpen),
+            path: "/playbooks",
+            requiredPermission: Permissions.QA_CASE_READ,
+          },
+          {
+            // The other axis on the same library: categories say what part of an
+            // app a playbook covers, a collection says who it is for. It is the
+            // first stop for a customer who has just opened a library of
+            // hundreds and does not know which of them are theirs.
+            key: "/playbooks/collections",
+            label: "Collections",
+            icon: I(Layers),
+            path: "/playbooks/collections",
+            requiredPermission: Permissions.QA_CASE_READ,
+          },
+          {
+            // The other half of the catalog: what this workspace asked Testiez
+            // to write, and where each ask has got to.
+            key: "/playbooks/requested",
+            label: "Requested Playbooks",
+            icon: I(Sparkles),
+            path: "/playbooks/requested",
+            requiredPermission: Permissions.QA_CASE_READ,
+          },
+        ],
+      },
+      {
         key: "qa-workspace",
         label: "QA Space",
         icon: I(Bug),
@@ -376,24 +416,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.QA_ANALYTICS_READ,
         ],
         children: [
-          {
-            // First in the list on purpose: Playbooks answers "what should I
-            // test?", which comes before scoping and writing cases.
-            key: "/qa-workspace/playbooks",
-            label: "Playbooks",
-            icon: I(BookOpen),
-            path: "/qa-workspace/playbooks",
-            requiredPermission: Permissions.QA_CASE_READ,
-          },
-          {
-            // The other half of Playbooks: what this workspace asked Testiez to
-            // write, and where each ask has got to.
-            key: "/qa-workspace/playbooks/requested",
-            label: "Requested Playbooks",
-            icon: I(Sparkles),
-            path: "/qa-workspace/playbooks/requested",
-            requiredPermission: Permissions.QA_CASE_READ,
-          },
           {
             key: "/qa-workspace/test-scope",
             label: "Scope",

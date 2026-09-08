@@ -366,7 +366,7 @@ export default function PlaybookReaderPage() {
               <Button
                 type="text"
                 icon={<ArrowLeft size={17} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>
@@ -456,7 +456,7 @@ export default function PlaybookReaderPage() {
                       className="pb-btn is-sm"
                       icon={<Pencil size={14} />}
                       onClick={() =>
-                        router.push(`/qa-workspace/playbooks/${playbook.slug}/edit`)
+                        router.push(`/playbooks/${playbook.slug}/edit`)
                       }
                     >
                       Edit

@@ -109,6 +109,11 @@ interface Props {
   initial?: PlaybookDetail;
   /** Category to start a new playbook in, when the author came from one. */
   defaultCategory?: string;
+  /**
+   * A collection the author chose before the editor opened. The playbook is
+   * filed into it after it is created, because until then it has no id.
+   */
+  fileIntoCollectionId?: string;
   /** Vocabularies from GET /playbooks/meta, so nothing is hardcoded twice. */
   meta?: {
     levels: { value: string; label: string }[];
@@ -131,7 +136,13 @@ function sectionAt(sections: DraftSection[], path: number[]): DraftSection | und
   return node;
 }
 
-export default function PlaybookEditor({ mode, initial, meta, defaultCategory }: Props) {
+export default function PlaybookEditor({
+  mode,
+  initial,
+  meta,
+  defaultCategory,
+  fileIntoCollectionId,
+}: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -471,6 +482,26 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
 
       await axios.put(`/api/v2/qa/playbooks/${id}/content`, contentBody);
 
+      /* File it into the collection the author picked on the way in.
+         DELIBERATELY NOT FATAL: the playbook is written and saved by this
+         point, and losing that work over a filing step would be the worst
+         possible trade. A pack that did not take it is something to say out
+         loud and fix from the collection, not a reason to fail the save. */
+      if (mode === "create" && fileIntoCollectionId && id) {
+        try {
+          await axios.post(
+            `/api/v2/qa/playbooks/collections/${fileIntoCollectionId}/playbooks/${id}`,
+            {}
+          );
+          await queryClient.invalidateQueries({ queryKey: ["qa", "collections"] });
+        } catch (filingError: any) {
+          message.warning(
+            filingError?.response?.data?.error ||
+              "Playbook saved, but it could not be added to that collection."
+          );
+        }
+      }
+
       /* The catalog holds its list for five minutes, so without this a playbook
          you just created is missing from the page you land on next — the cache
          answers before the new row ever gets asked for. Everything under the
@@ -479,7 +510,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
       await queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
 
       message.success(mode === "create" ? "Playbook created" : "Playbook saved");
-      router.push(`/qa-workspace/playbooks/${slug}`);
+      router.push(`/playbooks/${slug}`);
     } catch (err: any) {
       const reason =
         err?.response?.data?.error ||
@@ -564,7 +595,7 @@ export default function PlaybookEditor({ mode, initial, meta, defaultCategory }:
               <Button
                 type="text"
                 icon={<ArrowLeft size={17} />}
-                onClick={() => router.push("/qa-workspace/playbooks")}
+                onClick={() => router.push("/playbooks")}
               >
                 Playbooks
               </Button>

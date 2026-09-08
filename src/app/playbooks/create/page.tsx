@@ -17,9 +17,13 @@ function CreatePlaybook() {
   useActivitySource({ section: "WORK", module: "QA", page: "CreatePlaybook" });
 
   const { canCreateCase } = usePermission();
+  const params = useSearchParams();
   /* Arriving from a category in the catalog: the new playbook is filed where
      the author was already standing, rather than making them retype it. */
-  const category = useSearchParams().get("category") ?? "";
+  const category = params.get("category") ?? "";
+  /* And the collection the author picked before the editor opened — filed into
+     it once the playbook actually exists and has an id. */
+  const collectionId = params.get("collection") ?? "";
 
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],
@@ -41,7 +45,12 @@ function CreatePlaybook() {
 
   return (
     <MainLayout noPadding>
-      <PlaybookEditor mode="create" meta={meta} defaultCategory={category} />
+      <PlaybookEditor
+        mode="create"
+        meta={meta}
+        defaultCategory={category}
+        fileIntoCollectionId={collectionId || undefined}
+      />
     </MainLayout>
   );
 }

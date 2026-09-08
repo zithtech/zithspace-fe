@@ -744,7 +744,7 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
                   className="pb-import__row is-ok"
                   onClick={() => {
                     close();
-                    router.push(`/qa-workspace/playbooks/${row.slug}`);
+                    router.push(`/playbooks/${row.slug}`);
                   }}
                 >
                   <span className="pb-import__cat">{row.category}</span>

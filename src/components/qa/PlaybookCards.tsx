@@ -29,7 +29,6 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 import {
   LEVEL_LABELS,
-  LEVEL_ORDER,
   REFERENCE_TYPES,
   RISK_LABELS,
   VISIBILITY_LABELS,
@@ -406,43 +405,58 @@ export function PlaybookCatalogCard({
 
       <p className="pb-card__summary">{playbook.summary}</p>
 
+      {/* The footer answers "how big is this, and may I read it?".
+          The per-level breakdown used to live on the right here; it was four
+          more numbers on a card that already carries one, and nobody chooses a
+          playbook by how many Senior-level checks it has. The tier — which
+          decides whether you can open it at all — earns that space instead. */}
       <div className="pb-card__foot">
         <span className="pb-card__total">
           <Layers size={13} />
           {playbook.itemCount} recommendations
         </span>
 
-        {playbook.locked ? (
-          <span className="pb-card__price">
-            <Lock size={12} />
-            {priceLabel(playbook)}
+        <span className="pb-card__state">
+          {playbook.locked && (
+            <span className="pb-card__price">
+              <Lock size={12} />
+              {priceLabel(playbook)}
+            </span>
+          )}
+          <span className={`pb-tier pb-tier--${playbook.visibility}`}>
+            {VISIBILITY_LABELS[playbook.visibility]}
           </span>
-        ) : (
-          <span className="pb-levels">
-            {LEVEL_ORDER.map((level) => {
-              const count = playbook.levelCounts?.[level] ?? 0;
-              if (!count) return null;
-              return (
-                <Tooltip key={level} title={`${count} ${LEVEL_LABELS[level]} recommendations`}>
-                  <span className={`pb-level pb-level--${level}`}>
-                    {LEVEL_LABELS[level].slice(0, 1)}
-                    <b>{count}</b>
-                  </span>
-                </Tooltip>
-              );
-            })}
-          </span>
-        )}
+          {playbook.status !== "published" && (
+            <span className="pb-tier pb-tier--draft">{playbook.status}</span>
+          )}
+        </span>
       </div>
 
-      <div className="pb-item__tags">
-        <span className={`pb-tier pb-tier--${playbook.visibility}`}>
-          {VISIBILITY_LABELS[playbook.visibility]}
-        </span>
-        {playbook.status !== "published" && (
-          <span className="pb-tier pb-tier--draft">{playbook.status}</span>
-        )}
-      </div>
+      {/* The packs this playbook belongs to, and nothing else — the tier moved
+          up into the footer. Two, then a count: the card answers "what is
+          this?", and a wall of chips buries that. The row disappears entirely
+          when no collection has claimed it, rather than leaving a gap. */}
+      {(playbook.collections?.length ?? 0) > 0 && (
+        <div className="pb-item__tags">
+          <span className="pbc-chips">
+            {playbook.collections!.slice(0, 2).map((collection) => (
+              <Tooltip key={collection.slug} title={`In the ${collection.name} collection`}>
+                <span className="pbc-chip">{collection.name}</span>
+              </Tooltip>
+            ))}
+            {playbook.collections!.length > 2 && (
+              <Tooltip
+                title={playbook
+                  .collections!.slice(2)
+                  .map((c) => c.name)
+                  .join(", ")}
+              >
+                <span className="pbc-chip">+{playbook.collections!.length - 2}</span>
+              </Tooltip>
+            )}
+          </span>
+        </div>
+      )}
     </Tag>
   );
 }

@@ -10,7 +10,7 @@ import {
   PlayCircleOutlined, ArrowLeftOutlined, SearchOutlined, CheckCircleOutlined,
   CloseCircleOutlined, StopOutlined, MinusCircleOutlined, FileTextOutlined, DownOutlined,
   PlusOutlined, CloseOutlined, InfoCircleOutlined, SnippetsOutlined, BugOutlined,
-  PaperClipOutlined, LinkOutlined, UploadOutlined,
+  PaperClipOutlined, LinkOutlined, UploadOutlined, EditOutlined, CheckOutlined
 } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
@@ -364,6 +364,24 @@ export default function TestRunExecutionPage() {
   const [addSaving, setAddSaving] = useState(false);
   const [newCase, setNewCase] = useState(EMPTY_CASE);
   const [stepDraft, setStepDraft] = useState("");
+  const [editingStepIdx, setEditingStepIdx] = useState<number | null>(null);
+  const [editingStepVal, setEditingStepVal] = useState<string>("");
+
+  const handleSaveStepEdit = () => {
+    if (editingStepIdx === null) return;
+    if (editingStepVal.trim()) {
+      const updated = [...newCase.steps];
+      updated[editingStepIdx] = editingStepVal.trim();
+      setNewCase(prev => ({ ...prev, steps: updated }));
+    }
+    setEditingStepIdx(null);
+    setEditingStepVal("");
+  };
+
+  const handleCancelStepEdit = () => {
+    setEditingStepIdx(null);
+    setEditingStepVal("");
+  };
 
   // "Create with Zai" — drafts the case from a plain-language description
   const [zaiOpen, setZaiOpen] = useState(true);
@@ -373,6 +391,8 @@ export default function TestRunExecutionPage() {
   const openAddCase = () => {
     setNewCase(EMPTY_CASE);
     setStepDraft("");
+    setEditingStepIdx(null);
+    setEditingStepVal("");
     setZaiPrompt("");
     setZaiGenerating(false);
     setZaiOpen(true);
@@ -432,16 +452,59 @@ export default function TestRunExecutionPage() {
     if (!newCase.name.trim() || addSaving) return;
     setAddSaving(true);
     try {
+      let finalSteps = [...newCase.steps];
+      if (editingStepIdx !== null && editingStepVal.trim()) {
+        finalSteps[editingStepIdx] = editingStepVal.trim();
+        setEditingStepIdx(null);
+        setEditingStepVal("");
+      }
+      if (stepDraft.trim()) {
+        finalSteps.push(stepDraft.trim());
+        setStepDraft("");
+      }
+      finalSteps = finalSteps.filter(s => s.trim() !== "");
+
+      let caseToSubmit = {
+        ...newCase,
+        steps: finalSteps
+      };
+
+      try {
+        const correctRes: any = await axios.post("/api/v2/qa/correct-spelling", {
+          testCase: {
+            name: newCase.name,
+            description: newCase.description,
+            preconditions: newCase.preconditions,
+            steps: finalSteps,
+            expected_result: newCase.expected_result
+          }
+        });
+        const correctedData = correctRes?.data?.data?.[0];
+        if (correctedData) {
+          const resSteps = Array.isArray(correctedData.steps) && correctedData.steps.length ? correctedData.steps : finalSteps;
+          caseToSubmit = {
+            ...caseToSubmit,
+            name: correctedData.name || caseToSubmit.name,
+            description: correctedData.description !== undefined ? correctedData.description : caseToSubmit.description,
+            preconditions: correctedData.preconditions !== undefined ? correctedData.preconditions : caseToSubmit.preconditions,
+            steps: resSteps,
+            expected_result: correctedData.expected_result !== undefined ? correctedData.expected_result : caseToSubmit.expected_result
+          };
+        }
+      } catch (e) {
+        // Continue gracefully if AI is offline
+      }
+
       const res: any = await axios.post(`/api/v2/qa/runs/${runId}/cases`, {
-        name: newCase.name.trim(),
-        description: newCase.description || null,
-        preconditions: newCase.preconditions || null,
-        expected_result: newCase.expected_result || null,
-        steps_to_reproduce: newCase.steps.length ? newCase.steps : null,
-        priority: newCase.priority,
-        severity: newCase.severity,
-        test_type: newCase.test_type,
-        automation: newCase.automation,
+        name: caseToSubmit.name.trim(),
+        description: caseToSubmit.description || null,
+        preconditions: caseToSubmit.preconditions || null,
+        expected_result: caseToSubmit.expected_result || null,
+        steps_to_reproduce: caseToSubmit.steps.length ? caseToSubmit.steps : null,
+        priority: caseToSubmit.priority,
+        severity: caseToSubmit.severity,
+        test_type: caseToSubmit.test_type,
+        automation: caseToSubmit.automation,
       });
       const created = res?.data?.data || res?.data || res;
       if (!created?.id) throw new Error("Malformed response");
@@ -2053,8 +2116,8 @@ export default function TestRunExecutionPage() {
                   : viewMode === "flows" && scenariosLoading
                     ? "Grouping…"
                     : viewMode === "flows"
-                    ? <>{runScenarios.length} {runScenarios.length === 1 ? "scenario" : "scenarios"} · <strong>{uncoveredCases.length}</strong> not covered</>
-                    : <>Showing <strong>{results.length}</strong> of {isFiltered ? `${totalMatching} matching` : counts.total}</>}
+                      ? <>{runScenarios.length} {runScenarios.length === 1 ? "scenario" : "scenarios"} · <strong>{uncoveredCases.length}</strong> not covered</>
+                      : <>Showing <strong>{results.length}</strong> of {isFiltered ? `${totalMatching} matching` : counts.total}</>}
               </span>
 
               <div className="ex-searchrow__acts">
@@ -2638,21 +2701,85 @@ export default function TestRunExecutionPage() {
                 <Form.Item label="Steps to Reproduce" style={{ marginBottom: 16 }}>
                   <div style={{ border: '1px solid var(--border-slate-300, #cbd5e1)', borderRadius: 8, padding: '12px 14px', background: 'var(--bg-pure-white, #ffffff)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {newCase.steps.map((step: string, idx: number) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                            {idx + 1}
+                      {newCase.steps.map((step: string, idx: number) => {
+                        const isEditing = editingStepIdx === idx;
+                        return (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 32 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                              {idx + 1}
+                            </div>
+                            {isEditing ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                                <Input
+                                  autoFocus
+                                  size="small"
+                                  value={editingStepVal}
+                                  onChange={(e) => setEditingStepVal(e.target.value)}
+                                  onPressEnter={(e) => {
+                                    e.preventDefault();
+                                    handleSaveStepEdit();
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Escape') {
+                                      e.preventDefault();
+                                      handleCancelStepEdit();
+                                    }
+                                  }}
+                                  style={{ flex: 1, borderRadius: 6, fontSize: 13 }}
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<CheckOutlined style={{ color: '#16a34a', fontSize: 13 }} />}
+                                  onClick={handleSaveStepEdit}
+                                  title="Save step"
+                                  style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<CloseOutlined style={{ color: '#dc2626', fontSize: 12 }} />}
+                                  onClick={handleCancelStepEdit}
+                                  title="Cancel"
+                                  style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<EditOutlined style={{ fontSize: 13, color: 'var(--text-slate-500)' }} />}
+                                    style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    onClick={() => {
+                                      setEditingStepIdx(idx);
+                                      setEditingStepVal(step);
+                                    }}
+                                    title="Edit step"
+                                  />
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    icon={<CloseOutlined style={{ fontSize: 12 }} />}
+                                    style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}
+                                    onClick={() => {
+                                      if (editingStepIdx === idx) {
+                                        setEditingStepIdx(null);
+                                        setEditingStepVal("");
+                                      }
+                                      setNewCase({ ...newCase, steps: newCase.steps.filter((_, i) => i !== idx) });
+                                    }}
+                                    title="Remove step"
+                                  />
+                                </div>
+                              </>
+                            )}
                           </div>
-                          <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
-                          <Button
-                            type="text"
-                            size="small"
-                            danger
-                            style={{ padding: '0 6px', fontSize: 15, lineHeight: 1, opacity: 0.8 }}
-                            onClick={() => setNewCase({ ...newCase, steps: newCase.steps.filter((_, i) => i !== idx) })}
-                          >×</Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: newCase.steps.length > 0 ? 4 : 0, paddingTop: newCase.steps.length > 0 ? 8 : 0, borderTop: newCase.steps.length > 0 ? '1px dashed var(--border-slate-300, #cbd5e1)' : 'none' }}>
                         <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
                           +

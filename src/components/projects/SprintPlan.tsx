@@ -670,7 +670,7 @@ export default function SprintPlanComponent() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   useEffect(() => { setCurrentPage(1); }, [tableFilters, sortBy]);
 
   async function loadTableData() {
@@ -2204,7 +2204,7 @@ export default function SprintPlanComponent() {
                   total={totalTablePlans}
                   onChange={(p, s) => { setCurrentPage(p); setPageSize(s); }}
                   showSizeChanger
-                  pageSizeOptions={[10, 20, 25, 50, 100]}
+                  pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                 />
               </div>
             )}
@@ -3513,12 +3513,15 @@ export default function SprintPlanComponent() {
           background: var(--bg-slate-50);
           border-bottom: 1px solid var(--border-slate-200);
           position: sticky;
-          top: 52px;
+          top: 0;
           z-index: 2;
         }
         [data-theme='dark'] .sp-tbl-head {
           background: #0f1419 !important;
           border-bottom-color: #1f2937 !important;
+        }
+        .sp-tbl-head .sp-tbl-col-name {
+          padding-left: 68px; /* Aligns "Sprint" text with the actual data name, skipping the expand arrow and avatar */
         }
         .sp-tbl-th {
           font-size: 10px;

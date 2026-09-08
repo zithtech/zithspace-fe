@@ -68,12 +68,12 @@ export const useBucket = (bucketId: string, enabled: boolean = true) => {
 export const useBucketTickets = (
   bucketId: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 15
 ) => {
   return useQuery({
     queryKey: bucketKeys.tickets(bucketId, page, limit),
     queryFn: () => BucketService.getBucketTickets(bucketId, page, limit),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0,
     enabled: !!bucketId,
     placeholderData: (previousData) => previousData, // Keep previous page while fetching
   });

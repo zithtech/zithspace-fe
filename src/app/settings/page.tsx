@@ -102,7 +102,7 @@ const COMPANY_ADDRESS_FIELDS: { name: string; label: string; placeholder: string
   { name: 'city', label: 'City', placeholder: 'e.g. Bengaluru', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
   { name: 'district', label: 'District', placeholder: 'e.g. Bengaluru Urban', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
   { name: 'state', label: 'State', placeholder: 'e.g. Karnataka', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
-  { name: 'pincode', label: 'Pincode', placeholder: 'e.g. 560038', rules: [{ pattern: /^[0-9]+$/, message: 'Only numbers allowed' }], normalize: (v) => (v || '').replace(/\D/g, '') },
+  { name: 'pincode', label: 'Pincode', placeholder: 'e.g. 560038', rules: [{ pattern: /^[0-9]{1,6}$/, message: 'Only up to 6 numbers allowed' }], normalize: (v) => (v || '').replace(/\D/g, '').slice(0, 6) },
   { name: 'country', label: 'Country', placeholder: 'e.g. India', rules: [{ pattern: /^[a-zA-Z\s]+$/, message: 'Only alphabets allowed' }], normalize: (v) => (v || '').replace(/[^a-zA-Z\s]/g, '') },
 ];
 
@@ -1653,9 +1653,11 @@ export default function SettingsPage() {
                       <Form.Item
                         name="primaryEmail"
                         label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
-                        normalize={(v) => (v || '').trim()}
+                        normalize={(v) => (v || '').replace(/[^a-zA-Z0-9@.]/g, '')}
                         rules={[
                           { required: true, message: 'Primary email is required' },
+                          { pattern: /^\S+$/, message: 'Spaces are not allowed in email' },
+                          { pattern: /^[a-zA-Z0-9@.]+$/, message: 'Email can only contain letters, numbers, @, and .' },
                           { type: 'email', message: 'Enter a valid email address' },
                         ]}
                       >
@@ -1668,9 +1670,9 @@ export default function SettingsPage() {
                         label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
                         rules={[
                           { required: true, whitespace: true, message: 'Primary phone is required' },
-                          { pattern: /^[0-9]+$/, message: 'Only numbers allowed' }
+                          { pattern: /^[0-9]{1,10}$/, message: 'Phone number cannot exceed 10 digits' }
                         ]}
-                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '')}
+                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
                       >
                         <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
                       </Form.Item>
@@ -1738,8 +1740,11 @@ export default function SettingsPage() {
                         <Form.Item
                           name="primaryEmail"
                           label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Company Email</Text>}
+                          normalize={(v) => (v || '').replace(/[^a-zA-Z0-9@.]/g, '')}
                           rules={[
                             { required: true, message: 'Primary email is required' },
+                            { pattern: /^\S+$/, message: 'Spaces are not allowed in email' },
+                            { pattern: /^[a-zA-Z0-9@.]+$/, message: 'Email can only contain letters, numbers, @, and .' },
                             { type: 'email', message: 'Enter a valid email address' },
                           ]}
                         >
@@ -1750,8 +1755,11 @@ export default function SettingsPage() {
                         <Form.Item
                           name="primaryPhone"
                           label={<Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>Primary Phone</Text>}
-                          rules={[{ required: true, whitespace: true, message: 'Primary phone is required' }]}
-                          getValueFromEvent={(e) => e.target.value.replace(/[^0-9+\-()\s]/g, '')}
+                          rules={[
+                            { required: true, whitespace: true, message: 'Primary phone is required' },
+                            { pattern: /^[0-9]{1,10}$/, message: 'Phone number cannot exceed 10 digits' }
+                          ]}
+                          getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
                         >
                           <Input placeholder="e.g. +91 98765 43210" prefix={<PhoneOutlined style={{ color: 'var(--text-slate-400)' }} />} />
                         </Form.Item>
@@ -2635,9 +2643,10 @@ export default function SettingsPage() {
                   <Form.Item
                     name="branchEmail"
                     label="Branch Email"
-                    normalize={(v) => (v || '').trim()}
+                    normalize={(v) => (v || '').replace(/[^a-zA-Z0-9@.]/g, '')}
                     rules={[
                       { required: true, message: 'Required' },
+                      { pattern: /^\S+$/, message: 'Spaces are not allowed in email' },
                       { type: 'email', message: 'Enter a valid email address' },
                     ]}
                     style={{ marginBottom: 14 }}
@@ -2650,8 +2659,8 @@ export default function SettingsPage() {
                   name="branchPhone"
                   label="Branch Phone"
                   style={{ marginBottom: 14 }}
-                  rules={[{ pattern: /^[0-9]+$/, message: 'Only numbers allowed' }]}
-                  getValueFromEvent={(e) => e.target.value.replace(/\D/g, '')}
+                  rules={[{ pattern: /^[0-9]{1,10}$/, message: 'Phone number cannot exceed 10 digits' }]}
+                  getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
                 >
                   <Input placeholder="e.g. 914412345678" />
                 </Form.Item>

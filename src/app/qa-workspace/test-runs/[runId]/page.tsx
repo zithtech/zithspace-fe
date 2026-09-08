@@ -14,7 +14,7 @@ import {
 } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { PlayCircle, SpellCheck, Loader2, Sparkles, Folder, User, Clock, Menu } from "lucide-react";
+import { PlayCircle, SpellCheck, Loader2, Sparkles, Menu } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
 import { SearchableDropdown } from "@/components/common/SearchableDropdown";
@@ -22,6 +22,7 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import { commonDrawerProps, SectionCard, drawerFormStyles as formStyles } from "@/components/common/DrawerSection";
 import BugListService from "@/services/bugListService";
 import { useQaOptions } from "@/hooks/useQaOptions";
+import { QaScenarioService, type TestScenario } from "@/services/qaScenarioService";
 import dayjs from "dayjs";
 
 const { TextArea } = Input;
@@ -51,25 +52,19 @@ const STATUS_TONE: Record<string, string> = {
   Blocked: "amber",
 };
 
-/* Product-standard stat tile */
-const StatTile = ({ label, value, icon: Icon, color, bgColor, sub }: { label: string; value: string | number; icon: any; color: string; bgColor: string; sub?: string; }) => (
-  <div className="pp-stat-card">
-    <div className="pp-stat-top">
-      <div className="pp-stat-left">
-        <span className="pp-stat-icon" style={{ background: bgColor, color }}>
-          <Icon size={14} style={{ fontSize: 14 }} />
-        </span>
-        <span className="pp-stat-label">{label}</span>
-      </div>
-    </div>
-    <div className="pp-stat-bottom">
-      <div className="pp-stat-value-wrap">
-        <span className="pp-stat-value">{value}</span>
-      </div>
-      {sub && <span className="pp-stat-period">{sub}</span>}
-    </div>
-  </div>
-);
+/** "4 Sep, 20:09 → now" as a run length a tester can read at a glance. */
+const fmtDuration = (from?: string, to?: string | null) => {
+  if (!from) return "—";
+  const startedAt = dayjs(from);
+  if (!startedAt.isValid()) return "—";
+  const endedAt = to ? dayjs(to) : dayjs();
+  const mins = Math.max(0, endedAt.diff(startedAt, "minute"));
+  if (mins < 1) return "just started";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ${mins % 60}m`;
+  return `${Math.floor(hrs / 24)}d ${hrs % 24}h`;
+};
 
 export default function TestRunExecutionPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "TestRunExecution" });
@@ -108,6 +103,17 @@ export default function TestRunExecutionPage() {
 
   // ── Server-side pagination ───────────────────────────────────────────────
   const [pageSize, setPageSize] = useState(10);
+
+  /* ── Test Scenarios over this run ────────────────────────────────────────
+     A run executes a suite, and the suite's cases may already be grouped into
+     flows on their module page ("Create User"). When they are, the tester can
+     read the run the same way: what the flows cover, in order, and what is not
+     covered by any of them. The toggle only appears when there is something to
+     group by — a run whose cases nobody has grouped never sees it. */
+  const [viewMode, setViewMode] = useState<"list" | "flows">("list");
+  const [runScenarios, setRunScenarios] = useState<TestScenario[]>([]);
+  const [scenariosLoading, setScenariosLoading] = useState(false);
+  const [collapsedFlows, setCollapsedFlows] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
   /** Paging should land at the top of the list, not mid-scroll. */
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
@@ -457,14 +463,310 @@ export default function TestRunExecutionPage() {
   /** Only the newest request may write to state — typing races otherwise. */
   const fetchSeq = React.useRef(0);
 
+  /**
+   * One executable case card.
+   *
+   * Pulled out of the list so the grouped view can draw the same row: a case
+   * inside a scenario must be executable exactly where it is read, not only in
+   * the flat list.
+   */
+  const renderCase = (result: any) => {
+    const tone = STATUS_TONE[result.status] || "";
+    const needsNote = NEEDS_NOTE.includes(result.status);
+    const draft = noteDrafts[result.id] ?? "";
+    const isSaving = savingId === result.id;
+    const isOpen = !!openDetails[result.id];
+    return (
+      <div key={result.id} className={`ex-case${tone ? ` is-${result.status.toLowerCase()}` : ""}`}>
+        <div className="ex-case__row">
+          <span className="ex-case__id">{result.tc_ref_id || "TC"}</span>
+          {/* The whole title block acts as the accordion header */}
+          <div
+            className="ex-case__body"
+            role="button"
+            tabIndex={0}
+            aria-expanded={isOpen}
+            onClick={() => toggleDetails(result.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDetails(result.id); }
+            }}
+          >
+            <div className="ex-case__name">{result.name || "Unnamed case"}</div>
+            <div className="ex-case__meta">
+              {result.priority && <span className="ex-chip">{result.priority}</span>}
+              {result.test_type && <span className="ex-chip">{result.test_type}</span>}
+              <span className="ex-chip">{result.status || "Not Executed"}</span>
+              {/* Already in the bug list — it won't be filed twice */}
+              {isBugLogged(result) && (
+                <span className="ex-chip ex-chip--bug">
+                  <BugOutlined /> {result.bug_number || "Filed"}
+                </span>
+              )}
+              {/* The note and its evidence live behind Details — say so here */}
+              {needsNote && !draft.trim() && (
+                <span className="ex-chip ex-chip--warn">Needs a note</span>
+              )}
+              {needsNote && !!draft.trim() && !isOpen && (
+                <span className="ex-chip ex-chip--note">
+                  <SnippetsOutlined /> Note
+                </span>
+              )}
+              {(result.attachments?.length || 0) > 0 && !isOpen && (
+                <span className="ex-chip ex-chip--note">
+                  <PaperClipOutlined /> {result.attachments.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="ex-actions">
+            <button
+              className={`ex-btn ex-btn--details${isOpen ? " is-open" : ""}`}
+              onClick={() => toggleDetails(result.id)}
+              aria-expanded={isOpen}
+            >
+              <DownOutlined className="ex-caret" /> Details
+            </button>
+            <span className="ex-divider" />
+            <button
+              className={`ex-btn${result.status === "Pass" ? " is-on--pass" : ""}`}
+              onClick={() => handleStatus(result, "Pass")}
+              disabled={isSaving}
+            >
+              <CheckCircleOutlined /> Pass
+            </button>
+            <button
+              className={`ex-btn${result.status === "Fail" ? " is-on--fail" : ""}`}
+              onClick={() => handleStatus(result, "Fail")}
+              disabled={isSaving}
+            >
+              <CloseCircleOutlined /> Fail
+            </button>
+            <button
+              className={`ex-btn${result.status === "Blocked" ? " is-on--blocked" : ""}`}
+              onClick={() => handleStatus(result, "Blocked")}
+              disabled={isSaving}
+            >
+              <StopOutlined /> Blocked
+            </button>
+            <Tooltip title="Reset to not executed">
+              <button
+                className="ex-btn ex-btn--reset"
+                onClick={() => saveResult(result.id, { status: "Not Executed" })}
+                disabled={isSaving || !result.status || result.status === "Not Executed"}
+                aria-label="Reset"
+              >
+                <MinusCircleOutlined />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+
+        {/* What the tester needs to know to run this case */}
+        {isOpen && (
+          <div className="ex-details">
+            <div className="ex-details__facts">
+              <div className="ex-fact">
+                <span className="ex-fact__key">Priority</span>
+                <span className="ex-fact__val">{result.priority || "—"}</span>
+              </div>
+              <div className="ex-fact">
+                <span className="ex-fact__key">Severity</span>
+                <span className="ex-fact__val">{result.severity || "—"}</span>
+              </div>
+              <div className="ex-fact">
+                <span className="ex-fact__key">Type</span>
+                <span className="ex-fact__val">{result.test_type || "—"}</span>
+              </div>
+              <div className="ex-fact">
+                <span className="ex-fact__key">Automation</span>
+                <span className="ex-fact__val">{result.automation || "Manual"}</span>
+              </div>
+            </div>
+
+            {result.description && (
+              <section className="ex-sec">
+                <h4 className="ex-sec__title"><span>Description</span><span className="ex-rule" /></h4>
+                <p className="ex-text">{result.description}</p>
+              </section>
+            )}
+
+            {result.preconditions && (
+              <section className="ex-sec">
+                <h4 className="ex-sec__title"><span>Preconditions</span><span className="ex-rule" /></h4>
+                <p className="ex-text">{result.preconditions}</p>
+              </section>
+            )}
+
+            <section className="ex-sec">
+              <h4 className="ex-sec__title">
+                <span>Steps to Reproduce</span>
+                {parseSteps(result.steps_to_reproduce).length > 0 && (
+                  <span className="ex-count">{parseSteps(result.steps_to_reproduce).length}</span>
+                )}
+                <span className="ex-rule" />
+              </h4>
+              {parseSteps(result.steps_to_reproduce).length === 0 ? (
+                <p className="ex-empty">No steps recorded on this case.</p>
+              ) : (
+                <ol className="ex-steps">
+                  {parseSteps(result.steps_to_reproduce).map((s, i) => (
+                    <li key={i}><span className="ex-step-n">{i + 1}</span><span>{s}</span></li>
+                  ))}
+                </ol>
+              )}
+            </section>
+
+            <section className="ex-sec" style={{ marginBottom: 0 }}>
+              <h4 className="ex-sec__title"><span>Expected Result</span><span className="ex-rule" /></h4>
+              {result.expected_result
+                ? <p className="ex-expected">{result.expected_result}</p>
+                : <p className="ex-empty">Not recorded.</p>}
+            </section>
+          </div>
+        )}
+
+        {/* Fail and Blocked need an explanation — inside the accordion */}
+        {isOpen && needsNote && (
+          <div className="ex-note">
+            <div className="ex-note__head">
+              <span className="ex-note__label">
+                What happened
+                {!draft.trim() && <span className="ex-note__req">*</span>}
+              </span>
+              <Tooltip title={!draft.trim() ? "Write something first" : "Fix grammar & typos — keeps your wording"}>
+                <button
+                  type="button"
+                  className="ex-note__mini"
+                  disabled={!draft.trim() || polishingId === result.id}
+                  onClick={() => polishNote(result)}
+                >
+                  {polishingId === result.id
+                    ? <><Loader2 size={11} className="spin" /> Polishing…</>
+                    : <><SpellCheck size={11} /> Grammar</>}
+                </button>
+              </Tooltip>
+            </div>
+
+            <TextArea
+              autoSize={{ minRows: 2 }}
+              placeholder={result.status === "Blocked"
+                ? "What blocked this case? Note the dependency, environment or data that wasn't ready."
+                : "What went wrong? Note the steps, the expected vs actual result and any error message."}
+              value={draft}
+              onChange={(e) => setNoteDrafts(prev => ({ ...prev, [result.id]: e.target.value }))}
+              onBlur={() => commitNote(result)}
+              onPaste={(e) => handleNotePaste(result, e)}
+            />
+
+            <div className="ex-note__foot">
+              <span className="ex-note__hint">
+                Saved automatically when you click away. Paste a screenshot straight into the box above.
+              </span>
+              {isSaving && <span className="ex-note__saving">Saving…</span>}
+            </div>
+
+            {/* Evidence */}
+            <div className="ex-att">
+              <div className="ex-att__head">
+                <span className="ex-note__label">
+                  <PaperClipOutlined /> Attachments
+                  {(result.attachments?.length || 0) > 0 && (
+                    <span className="ex-att__count">{result.attachments.length}</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="ex-note__mini"
+                  onClick={() => setAttachOpen(prev => ({ ...prev, [result.id]: !prev[result.id] }))}
+                >
+                  <PlusOutlined /> {attachOpen[result.id] ? "Close" : "Add attachment"}
+                </button>
+              </div>
+
+              {(result.attachments?.length || 0) > 0 && (
+                <div className="ex-att__list">
+                  {result.attachments.map((att: any) => (
+                    <span key={att.id} className={`ex-att__chip ex-att__chip--${att.kind}`}>
+                      {att.kind === "link" ? <LinkOutlined /> : <PaperClipOutlined />}
+                      <a href={att.url} target="_blank" rel="noreferrer" title={att.url}>{att.name}</a>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(result, att.id)}
+                        aria-label={`Remove ${att.name}`}
+                      >
+                        <CloseOutlined />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {attachOpen[result.id] && (
+                <div className="ex-att__panel">
+                  <div className="ex-att__row">
+                    <input
+                      type="file"
+                      id={`att-file-${result.id}`}
+                      className="ex-att__file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadAttachment(result, file);
+                        e.target.value = "";
+                      }}
+                    />
+                    <label htmlFor={`att-file-${result.id}`} className="ex-att__upload">
+                      {uploadingId === result.id
+                        ? <><Loader2 size={12} className="spin" /> Uploading…</>
+                        : <><UploadOutlined /> Choose a file</>}
+                    </label>
+                    <span className="ex-att__or">or paste an image with ⌘V</span>
+                  </div>
+
+                  <div className="ex-att__row">
+                    <Input
+                      placeholder="Paste a link (https://…)"
+                      value={linkDrafts[result.id]?.url || ""}
+                      onChange={(e) => setLinkDrafts(prev => ({
+                        ...prev, [result.id]: { ...(prev[result.id] || { name: "" }), url: e.target.value },
+                      }))}
+                      className="ex-att__url"
+                    />
+                    <Input
+                      placeholder="Name (optional)"
+                      value={linkDrafts[result.id]?.name || ""}
+                      onChange={(e) => setLinkDrafts(prev => ({
+                        ...prev, [result.id]: { ...(prev[result.id] || { url: "" }), name: e.target.value },
+                      }))}
+                      onPressEnter={() => addLinkAttachment(result)}
+                      className="ex-att__name"
+                    />
+                    <Button
+                      onClick={() => addLinkAttachment(result)}
+                      disabled={!(linkDrafts[result.id]?.url || "").trim()}
+                    >
+                      Add link
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const fetchRun = async () => {
     const seq = ++fetchSeq.current;
     try {
       setLoading(true);
       const res: any = await axios.get(`/api/v2/qa/runs/${runId}`, {
         params: {
-          page,
-          pageSize: pageSize,
+          // Grouping spans the run: page 1 of 10 cases cannot say what a flow
+          // covers. The flat list stays paged.
+          page: viewMode === "flows" ? 1 : page,
+          pageSize: viewMode === "flows" ? 500 : pageSize,
           ...(debouncedSearch ? { search: debouncedSearch } : {}),
           ...(statusFilter ? { status: statusFilter } : {}),
         },
@@ -497,12 +799,50 @@ export default function TestRunExecutionPage() {
   useEffect(() => {
     if (canReadRun && runId) fetchRun();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canReadRun, runId, page, pageSize, debouncedSearch, statusFilter]);
+  }, [canReadRun, runId, page, pageSize, debouncedSearch, statusFilter, viewMode]);
 
   // Paging past the end (the last case on a page got filtered away) — go back
   useEffect(() => {
     if (!loading && page > 1 && (run?.results || []).length === 0) setPage(1);
   }, [loading, page, run]);
+
+  /* ── Scenario grouping ───────────────────────────────────────────────────
+     These read `run` rather than the derived `results` below, because hooks
+     must sit above the permission gate — every render has to call them. */
+
+  /** Result rows keyed by the case they execute, so a flow's steps resolve. */
+  const resultByCase = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    (run?.results || []).forEach((r: any) => { if (r.test_case_id) map[r.test_case_id] = r; });
+    return map;
+  }, [run]);
+
+  /**
+   * Which flows the cases in this run belong to.
+   *
+   * Keyed off the case ids the run actually holds rather than a module, because
+   * a suite can draw from several module scenarios at once.
+   */
+  useEffect(() => {
+    const ids = (run?.results || []).map((r: any) => r.test_case_id).filter(Boolean);
+    if (!canReadRun || ids.length === 0) return;
+    let cancelled = false;
+    setScenariosLoading(true);
+    QaScenarioService.forCases(ids)
+      .then((res) => { if (!cancelled) setRunScenarios(res.scenarios || []); })
+      // The run is executable without its grouping; never block the list on it.
+      .catch(() => { if (!cancelled) setRunScenarios([]); })
+      .finally(() => { if (!cancelled) setScenariosLoading(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canReadRun, runId, run?.results?.length, viewMode]);
+
+  /** Cases in this run that no flow walks — the grouped view leads with them. */
+  const uncoveredCases = React.useMemo(() => {
+    const covered = new Set<string>();
+    runScenarios.forEach((f) => (f.steps || []).forEach((st) => covered.add(st.test_case_id)));
+    return (run?.results || []).filter((r: any) => !covered.has(r.test_case_id));
+  }, [run, runScenarios]);
 
   if (!canReadRun) return null;
 
@@ -520,6 +860,13 @@ export default function TestRunExecutionPage() {
   };
   const executed = counts.pass + counts.fail + counts.blocked;
   const percent = counts.total ? Math.round((executed / counts.total) * 100) : 0;
+
+  /* One tone for the run, used by the rail's dot and status pill. A run with
+     failures is not "green at 100%" — the palette says so before the numbers do. */
+  const runTone =
+    counts.fail > 0 ? "fail"
+      : percent === 100 ? "pass"
+        : executed > 0 ? "live" : "idle";
 
   const totalMatching = Number(run?.pagination?.total ?? 0);
   const isFiltered = !!debouncedSearch || !!statusFilter;
@@ -740,51 +1087,52 @@ export default function TestRunExecutionPage() {
           width: 3px; border-radius: 0 3px 3px 0; background: #3B82F6;
         }
 
-        /* Run summary card in the rail */
-        .cd-side {
-          margin: 2px 0 0; padding: 12px;
-          border: 1px solid var(--border-slate-200); border-radius: 12px;
-          background: transparent;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        /* ── Run facts in the rail ──────────────────────────────────
+           A list, not a card: label over value, one pair per row, divided by a
+           hairline. Nothing is boxed — the rail is narrow, and a border plus
+           its padding costs more width than the values it wraps. */
+        .rn-list { margin: 2px 0 0; display: flex; flex-direction: column; }
+        .rn-item { display: flex; flex-direction: column; gap: 3px; padding: 9px 2px; }
+        .rn-item + .rn-item { border-top: 1px solid var(--border-slate-100); }
+        [data-theme='dark'] .rn-item + .rn-item { border-top-color: #1f2937; }
+        .rn-item__label {
+          font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+          color: var(--text-slate-400); line-height: 1;
         }
-        .cd-meta { margin: 0; display: flex; flex-direction: column; gap: 8px; }
-        .cd-meta__row { 
-          display: flex; align-items: center; gap: 12px;
-          padding: 10px 12px; border-radius: 10px;
-          background: var(--bg-slate-50);
-          border: 1px solid var(--border-slate-100);
-          transition: all 0.2s ease;
-          width: 100%;
+        .rn-item__value {
+          display: flex; align-items: center; gap: 5px; margin: 0; min-width: 0;
+          font-size: 12.5px; font-weight: 600; color: var(--text-slate-800); line-height: 1.35;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .cd-meta__row:hover {
-          background: var(--bg-pure-white);
-          border-color: var(--border-slate-200);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-          transform: translateY(-1px);
+        [data-theme='dark'] .rn-item__value { color: #e2e8f0; }
+        .rn-item__value b { font-weight: 700; }
+        .rn-item__note { font-weight: 500; color: var(--text-slate-400); }
+
+        /* The run's tone, set once and read by the status dot. */
+        .rn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .rn-dot.is-pass { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.16); }
+        .rn-dot.is-fail { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.16); }
+        .rn-dot.is-live { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.16); }
+        .rn-dot.is-idle { background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,.16); }
+
+        .rn-prog__bar {
+          height: 4px; margin-top: 5px; border-radius: 999px; overflow: hidden; display: flex;
+          background: var(--border-slate-200);
         }
-        .cd-meta__icon-box {
-          width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center;
-          border: 1px solid;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .cd-meta__content {
-          display: flex; flex-direction: column; min-width: 0; flex: 1;
-        }
-        .cd-meta__row dt { 
-          font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; 
-          color: var(--text-slate-400); font-weight: 700; margin-bottom: 2px;
-        }
-        .cd-meta__row dd {
-          margin: 0; font-size: 13px; font-weight: 600; color: var(--text-slate-800);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;
-        }
+        [data-theme='dark'] .rn-prog__bar { background: #1f2937; }
+        .rn-prog__bar span { display: block; height: 100%; transition: width .3s ease; }
+        .rn-prog__bar .is-pass { background: #10b981; }
+        .rn-prog__bar .is-fail { background: #ef4444; }
+        .rn-prog__bar .is-blocked { background: #f59e0b; }
 
         .dh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: transparent; }
         .dh-main-topbar {
           min-height: 52px; padding: 8px 20px; border-bottom: 1px solid var(--border-slate-200);
           display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;
         }
+        /* The figures band below closes the header block, so the crumb row
+           gives up its rule — two hairlines would read as two headers. */
+        .sc-topbar--welded { border-bottom: 1px solid var(--border-slate-100); }
         .dh-main-scroll { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
 
         .sc-topbar__title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
@@ -800,68 +1148,93 @@ export default function TestRunExecutionPage() {
         .cd-title { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         @media (max-width: 900px) { .cd-crumb, .cd-sep, .sc-topbar__div { display: none; } }
 
-        /* ── Stat tiles ─────────────────────────────────────────────── */
-        .pp-stat-card {
-          background: transparent; border: 1px solid var(--border-slate-200);
-          border-radius: 0; padding: 10px 12px; min-height: 84px;
-          display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+        /* ── Run figures — one band, welded under the crumb row ──────
+           Four stat cards' worth of information in one row: the icon carries
+           the tone, the number carries the weight, and the hint sits beside
+           it in ash rather than on a line of its own. */
+        .ex-band {
+          display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex-shrink: 0;
+          padding: 9px 20px; background: var(--bg-slate-50);
+          border-bottom: 1px solid var(--border-slate-200);
         }
-        .pp-stat-top { display: flex; align-items: center; justify-content: space-between; }
-        .pp-stat-left { display: flex; align-items: center; gap: 8px; }
-        .pp-stat-icon { width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-        .pp-stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-slate-500); }
-        .pp-stat-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
-        .pp-stat-value-wrap { display: flex; align-items: baseline; gap: 6px; }
-        .pp-stat-value { font-size: 18px; font-weight: 800; color: var(--text-slate-900); letter-spacing: -0.02em; line-height: 1; }
-        .pp-stat-period { font-size: 10.5px; color: var(--text-slate-400); font-weight: 500; }
+        [data-theme='dark'] .ex-band { background: rgba(148,163,184,.04); border-bottom-color: #1f2937; }
+        .ex-band__stats { display: flex; align-items: center; gap: 0; flex-wrap: wrap; min-width: 0; }
+        .ex-band__div { width: 1px; height: 22px; background: var(--border-slate-200); margin: 0 14px; flex-shrink: 0; }
+        [data-theme='dark'] .ex-band__div { background: #1f2937; }
 
-        /* ── Search + result filters, all on one row ────────────────── */
-        .ex-searchrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .ex-search { width: 260px; flex-shrink: 0; }
+        .ex-band__stat { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+        .ex-band__ic {
+          font-size: 12px; color: var(--text-slate-400); flex-shrink: 0;
+          position: relative; top: 1px;
+        }
+        .ex-band__stat.is-pass .ex-band__ic { color: #10b981; }
+        .ex-band__stat.is-fail .ex-band__ic { color: #ef4444; }
+        .ex-band__stat.is-blocked .ex-band__ic { color: #f59e0b; }
+        .ex-band__val {
+          font-size: 16px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
+          color: var(--text-slate-900); font-variant-numeric: tabular-nums;
+        }
+        [data-theme='dark'] .ex-band__val { color: #f1f5f9; }
+        .ex-band__stat.is-pass .ex-band__val { color: #059669; }
+        .ex-band__stat.is-fail .ex-band__val { color: #dc2626; }
+        .ex-band__lbl { font-size: 12px; font-weight: 600; color: var(--text-slate-600); white-space: nowrap; }
+        [data-theme='dark'] .ex-band__lbl { color: #cbd5e1; }
+        /* The hint every stat card used to spend a line on. First to go when
+           the window narrows — the number and its label are the content. */
+        .ex-band__sub { font-size: 10.5px; color: var(--text-slate-400); white-space: nowrap; }
+
+        .ex-band__progress { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 220px; }
+
+        @media (max-width: 1180px) { .ex-band__sub { display: none; } }
+        @media (max-width: 900px) {
+          .ex-band { gap: 10px; padding: 8px 14px; }
+          .ex-band__div { margin: 0 10px; }
+          .ex-band__progress { min-width: 100%; }
+        }
+
+
+        /* ── Driving the list: search, result filter, expand-all ─────
+           These live on the topbar beside Add Case. Sized to that bar's 32px
+           controls, not to a row of their own. */
+        .ex-search { width: 232px; flex-shrink: 1; min-width: 132px; }
         .ex-search.ant-input-affix-wrapper {
-          height: 36px !important; border-radius: 9px; padding: 0 12px;
+          height: 32px !important; border-radius: 8px; padding: 0 11px;
           background: var(--bg-pure-white); transition: all .15s ease;
         }
         .ex-search.ant-input-affix-wrapper:hover { border-color: #bfdbfe; }
         .ex-search.ant-input-affix-wrapper-focused { border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
-        .ex-search .ant-input { font-size: 13px; }
-        .ex-search .ant-input-prefix { margin-inline-end: 9px; font-size: 14px; }
+        .ex-search .ant-input { font-size: 12.5px; }
+        .ex-search .ant-input-prefix { margin-inline-end: 8px; font-size: 13px; }
 
-        .ex-filters__field { min-width: 160px; flex-shrink: 0; }
-        .ex-searchrow .sd-trigger {
-          height: 36px !important; min-height: 36px !important;
-          border-radius: 9px !important; padding: 0 12px !important;
+        .ex-filters__field { min-width: 146px; flex-shrink: 0; }
+        .ex-topactions .sd-trigger {
+          height: 32px !important; min-height: 32px !important;
+          border-radius: 8px !important; padding: 0 11px !important;
         }
+        /* Reading controls, then a rule, then the one control that writes. */
+        .ex-topactions__div { width: 1px; height: 20px; background: var(--border-slate-200); flex-shrink: 0; }
+        [data-theme='dark'] .ex-topactions__div { background: #1f2937; }
 
-        .sc-count { margin-left: auto; font-size: 11.5px; color: var(--text-slate-500); white-space: nowrap; }
+        /* What stays below the bar: the count, and the run-wide action. */
+        .ex-searchrow {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+        }
+        .ex-searchrow__acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .sc-count { font-size: 11.5px; color: var(--text-slate-500); white-space: nowrap; }
         .sc-count strong { color: var(--text-slate-900); font-weight: 700; }
+        [data-theme='dark'] .sc-count strong { color: #f1f5f9; }
 
+        /* Expand / collapse every case on the page. Sized to the Buglist
+           button it now stands beside, not to the topbar it came from. */
         .ex-tab {
-          display: inline-flex; align-items: center; gap: 7px; cursor: pointer; flex-shrink: 0;
+          display: inline-flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0;
           height: 36px; padding: 0 12px; border-radius: 9px;
           font-size: 12.5px; font-weight: 600; color: var(--text-slate-600);
           background: var(--bg-pure-white); border: 1px solid var(--border-slate-200);
           transition: all .15s ease;
         }
         .ex-tab:hover { border-color: var(--text-slate-300); color: var(--text-slate-900); }
-        .ex-tab__dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
-        .ex-tab--pass .ex-tab__dot { background: #10b981; }
-        .ex-tab--fail .ex-tab__dot { background: #ef4444; }
-        .ex-tab__count {
-          min-width: 20px; padding: 1px 7px; border-radius: 999px;
-          font-size: 11px; font-weight: 700; text-align: center;
-          background: var(--bg-slate-50); color: var(--text-slate-500);
-          border: 1px solid var(--border-slate-100); transition: all .15s ease;
-        }
-        /* Active state takes the tone of the status it filters */
-        .ex-tab.is-active { color: #fff; }
-        .ex-tab.is-active .ex-tab__dot { background: rgba(255,255,255,.85); }
-        .ex-tab.is-active .ex-tab__count { background: rgba(255,255,255,.22); color: #fff; border-color: transparent; }
-        .ex-tab--pass.is-active { background: #10b981; border-color: #10b981; }
-        .ex-tab--fail.is-active { background: #ef4444; border-color: #ef4444; }
-
-        /* Expand / collapse every case on the page */
-        .ex-tab--toggle { gap: 6px; }
         .ex-tab--toggle:disabled { opacity: .5; cursor: not-allowed; }
         .ex-tab--toggle .ex-caret { transition: transform .18s ease; }
         .ex-tab--toggle.is-open { background: var(--bg-blue-50); border-color: #bfdbfe; color: #2563eb; }
@@ -1012,18 +1385,91 @@ export default function TestRunExecutionPage() {
         .bl__footactions { display: flex; gap: 8px; }
         .bl__foot .ant-btn { height: 34px; border-radius: 8px; font-size: 12.5px; font-weight: 600; padding: 0 16px; }
 
-        /* ── Execution progress strip ───────────────────────────────── */
-        .ex-progress {
-          display: flex; align-items: center; gap: 12px;
-          padding: 10px 14px; margin-bottom: 12px; border-radius: 10px;
-          background: var(--bg-slate-50); border: 1px solid var(--border-slate-100);
-        }
+        /* ── Execution progress — the band's right half ─────────────── */
         .ex-progress__bar { flex: 1; height: 6px; border-radius: 999px; background: var(--border-slate-200); overflow: hidden; display: flex; }
         .ex-progress__bar span { display: block; height: 100%; transition: width .3s ease; }
         .ex-progress__bar .is-pass { background: #10b981; }
         .ex-progress__bar .is-fail { background: #ef4444; }
         .ex-progress__bar .is-blocked { background: #f59e0b; }
         .ex-progress__label { font-size: 12px; font-weight: 600; color: var(--text-slate-700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+        /* ── Cases ⇄ Scenarios ──────────────────────────────────────
+           The same run read two ways: the flat execution list, or grouped into
+           the flows its cases were filed under on their module page. */
+        .ex-viewtoggle {
+          display: inline-flex; align-items: center; gap: 2px; padding: 2px; flex-shrink: 0;
+          border: 1px solid var(--border-slate-200); border-radius: 9px;
+        }
+        [data-theme='dark'] .ex-viewtoggle { border-color: #1f2937; }
+        .ex-viewtoggle__btn {
+          display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px;
+          border: none; background: transparent; border-radius: 7px; cursor: pointer;
+          font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-slate-500);
+          transition: background .15s ease, color .15s ease;
+        }
+        .ex-viewtoggle__btn:hover { background: var(--bg-slate-50); color: var(--text-slate-900); }
+        .ex-viewtoggle__btn.is-active { background: rgba(59,130,246,.1); color: #2563eb; }
+        .ex-viewtoggle__count {
+          min-width: 16px; padding: 0 5px; border-radius: 999px;
+          font-size: 10px; font-weight: 800; background: rgba(59,130,246,.16); color: #2563eb;
+        }
+
+        /* ── Grouped by scenario ────────────────────────────────────── */
+        .ex-groups { display: flex; flex-direction: column; gap: 10px; }
+        /* Same rule as the cases page: a column flex parent would otherwise
+           shrink each card and clip its last rows. */
+        .ex-groups > .fw-card { flex-shrink: 0; }
+        .ex-groups__blank { margin: 0; padding: 12px; font-size: 12px; color: var(--text-slate-400); }
+
+        .fw-card { border: 1px solid var(--border-slate-200); border-radius: 10px; overflow: hidden; }
+        [data-theme='dark'] .fw-card { border-color: #1f2937; }
+        /* What no flow covers is drawn as an open set, not a sequence. */
+        .fw-card--loose { border-style: dashed; }
+        .fw-card__head {
+          display: flex; align-items: center; gap: 9px; padding: 9px 11px;
+          background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .fw-card__head { background: #0f1419; border-bottom-color: #1f2937; }
+        .fw-card__toggle {
+          display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+          width: 22px; height: 22px; border: none; background: transparent; border-radius: 6px;
+          color: var(--text-slate-500); cursor: pointer; font-size: 11px;
+        }
+        .fw-card__toggle:hover { background: var(--bg-slate-100); color: var(--text-slate-800); }
+        .fw-card__idx {
+          width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 800; color: #2563eb; background: rgba(59,130,246,.12);
+        }
+        .fw-card__idx--ash { color: var(--text-slate-500); background: var(--bg-slate-100); }
+        .fw-card__titles { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+        .fw-card__name {
+          margin: 0; font-size: 13px; font-weight: 700; color: var(--text-slate-900);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        [data-theme='dark'] .fw-card__name { color: #f1f5f9; }
+        .fw-card__desc {
+          margin: 0; font-size: 11.5px; color: var(--text-slate-500);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .fw-card__count {
+          flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--text-slate-500);
+          padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-slate-200);
+          font-variant-numeric: tabular-nums;
+        }
+        /* Said only when true: the run holds part of the flow, not all of it. */
+        .fw-card__count--partial { color: #b45309; border-color: rgba(245,158,11,.32); }
+
+        .ex-list--grouped { padding: 9px; gap: 8px; }
+        /* A step keeps its number in the margin, so the flow reads in order
+           while the case itself stays the same executable card as the list. */
+        .ex-groupstep { display: flex; align-items: flex-start; gap: 9px; }
+        .ex-groupstep__n {
+          width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0; margin-top: 9px;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10.5px; font-weight: 800; color: #fff; background: #2563eb;
+        }
+        .ex-groupstep__case { flex: 1; min-width: 0; }
 
         /* ── Case rows ──────────────────────────────────────────────── */
         .ex-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1346,8 +1792,11 @@ export default function TestRunExecutionPage() {
 
           /* Execution search/filter row: full-width search on mobile */
           .ex-searchrow { gap: 6px; }
+          /* On the topbar the controls share the row with the crumb; let the
+             search give up width first, and drop the label off expand-all. */
           .ex-search { width: 100% !important; min-width: 0; flex: 1 1 auto; }
-          .ex-searchrow .sd-trigger { min-width: 120px; flex: 1 1 120px; }
+          .ex-topactions { flex-wrap: wrap; justify-content: flex-end; }
+          .ex-filters__field { min-width: 120px; }
 
           /* Table: horizontal scroll for execution list */
           .ex-list { overflow-x: auto !important; }
@@ -1397,43 +1846,66 @@ export default function TestRunExecutionPage() {
             </button>
 
             <span className="pp-nav-caption" style={{ marginTop: 18 }}>Run</span>
-            <div className="cd-side">
-              <dl className="cd-meta">
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.2)' }}>
-                    <Clock size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Started</dt>
-                    <dd>{run?.started_at ? dayjs(run.started_at).format("D MMM, HH:mm") : "—"}</dd>
-                  </div>
+
+            {/* No card: a plain list, each fact its own label over its value,
+                divided by a hairline. The rail is 220px wide — a bordered box
+                inside it spends a third of the width on chrome. */}
+            <dl className="rn-list">
+              <div className="rn-item">
+                <dt className="rn-item__label">Status</dt>
+                <dd className="rn-item__value">
+                  <span className={`rn-dot is-${runTone}`} />
+                  {run?.status || "Pending"}
+                  {run?.execution_type && <span className="rn-item__note">· {run.execution_type}</span>}
+                </dd>
+              </div>
+
+              <div className="rn-item">
+                <dt className="rn-item__label">Executed</dt>
+                <dd className="rn-item__value">
+                  <b>{executed}</b> of {counts.total}
+                  <span className="rn-item__note">· {percent}%</span>
+                </dd>
+                <div className="rn-prog__bar">
+                  <span className="is-pass" style={{ width: `${counts.total ? (counts.pass / counts.total) * 100 : 0}%` }} />
+                  <span className="is-fail" style={{ width: `${counts.total ? (counts.fail / counts.total) * 100 : 0}%` }} />
+                  <span className="is-blocked" style={{ width: `${counts.total ? (counts.blocked / counts.total) * 100 : 0}%` }} />
                 </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.2)' }}>
-                    <CheckCircleOutlined style={{ fontSize: 14 }} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Executed</dt>
-                    <dd>{executed} / {counts.total}</dd>
-                  </div>
+              </div>
+
+              <div className="rn-item">
+                <dt className="rn-item__label">Started</dt>
+                <dd
+                  className="rn-item__value"
+                  title={run?.started_at ? dayjs(run.started_at).format("D MMM YYYY, HH:mm") : undefined}
+                >
+                  {run?.started_at ? dayjs(run.started_at).format("D MMM, HH:mm") : "—"}
+                </dd>
+              </div>
+
+              <div className="rn-item">
+                <dt className="rn-item__label">{run?.completed_at ? "Took" : "Running for"}</dt>
+                <dd className="rn-item__value">{fmtDuration(run?.started_at, run?.completed_at)}</dd>
+              </div>
+
+              {run?.suite_name && (
+                <div className="rn-item">
+                  <dt className="rn-item__label">Suite</dt>
+                  <dd className="rn-item__value" title={run.suite_name}>{run.suite_name}</dd>
                 </div>
-                <div className="cd-meta__row">
-                  <div className="cd-meta__icon-box" style={{ color: '#64748b', background: 'rgba(100,116,139,0.1)', borderColor: 'rgba(100,116,139,0.2)' }}>
-                    <User size={14} />
-                  </div>
-                  <div className="cd-meta__content">
-                    <dt>Created By</dt>
-                    <dd>{run?.created_by_name || "—"}</dd>
-                  </div>
-                </div>
-              </dl>
-            </div>
+              )}
+
+              <div className="rn-item">
+                <dt className="rn-item__label">Created by</dt>
+                <dd className="rn-item__value" title={run?.created_by_name}>{run?.created_by_name || "—"}</dd>
+              </div>
+            </dl>
           </div>
         </aside>
 
         <main className="dh-main">
           {/* Back · breadcrumb · run name */}
-          <div className="dh-main-topbar sc-topbar">
+          <div className="dh-main-topbar sc-topbar sc-topbar--welded">
             <div className="sc-topbar__title" style={{ display: 'flex', alignItems: 'center' }}>
               <Button
                 className="dh-mobile-menu-btn"
@@ -1459,42 +1931,43 @@ export default function TestRunExecutionPage() {
               <h1 className="sc-topbar__h1 cd-title">{run?.run_name || "Loading run…"}</h1>
             </div>
 
+            {/* Searching and narrowing are how a tester drives the list — they
+                belong on the bar above it, not in a row of their own that
+                pushes the first case further down the page. */}
             <div className="ex-topactions">
-              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openAddCase}>
-                Add Case
-              </Button>
-            </div>
-          </div>
-
-          <div className="dh-main-scroll" ref={scrollRef}>
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              <StatTile label="Total Cases" value={counts.total} icon={FileTextOutlined} color="#3B82F6" bgColor="rgba(59,130,246,0.1)" sub={`${counts.total - executed} not executed`} />
-              <StatTile label="Passed" value={counts.pass} icon={CheckCircleOutlined} color="#10b981" bgColor="rgba(16,185,129,0.1)" sub={`${counts.total ? Math.round((counts.pass / counts.total) * 100) : 0}% of the run`} />
-              <StatTile label="Failed" value={counts.fail} icon={CloseCircleOutlined} color="#ef4444" bgColor="rgba(239,68,68,0.1)" sub="need a defect note" />
-              <StatTile label="Blocked" value={counts.blocked} icon={StopOutlined} color="#64748b" bgColor="rgba(100,116,139,0.1)" sub="could not be executed" />
-            </div>
-
-            {/* Progress */}
-            <div className="ex-progress">
-              <div className="ex-progress__bar">
-                <span className="is-pass" style={{ width: `${counts.total ? (counts.pass / counts.total) * 100 : 0}%` }} />
-                <span className="is-fail" style={{ width: `${counts.total ? (counts.fail / counts.total) * 100 : 0}%` }} />
-                <span className="is-blocked" style={{ width: `${counts.total ? (counts.blocked / counts.total) * 100 : 0}%` }} />
-              </div>
-              <span className="ex-progress__label">{percent}% executed · {executed}/{counts.total}</span>
-            </div>
-
-            {/* Search, result filter and the two most-used shortcuts — one row */}
-            <div className="ex-searchrow">
               <Input
                 className="ex-search"
-                placeholder="Search by case name, ID, type or note…"
+                placeholder="Search cases, IDs or notes…"
                 prefix={<SearchOutlined style={{ color: "var(--text-slate-400)" }} />}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 allowClear
               />
+
+              {/* Only a run whose cases somebody has grouped gets the choice. */}
+              {runScenarios.length > 0 && (
+                <div className="ex-viewtoggle" role="tablist" aria-label="View">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === "list"}
+                    className={`ex-viewtoggle__btn${viewMode === "list" ? " is-active" : ""}`}
+                    onClick={() => setViewMode("list")}
+                  >
+                    Cases
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === "flows"}
+                    className={`ex-viewtoggle__btn${viewMode === "flows" ? " is-active" : ""}`}
+                    onClick={() => setViewMode("flows")}
+                  >
+                    Scenarios
+                    <span className="ex-viewtoggle__count">{runScenarios.length}</span>
+                  </button>
+                </div>
+              )}
 
               <SearchableDropdown
                 options={[
@@ -1511,58 +1984,113 @@ export default function TestRunExecutionPage() {
                 className="ex-filters__field"
               />
 
-              {[
-                { key: "Pass", label: "Passed", count: counts.pass, tone: "pass" },
-                { key: "Fail", label: "Failed", count: counts.fail, tone: "fail" },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setStatusFilter(statusFilter === tab.key ? undefined : tab.key)}
-                  className={`ex-tab ex-tab--${tab.tone}${statusFilter === tab.key ? " is-active" : ""}`}
-                >
-                  <span className="ex-tab__dot" />
-                  <span>{tab.label}</span>
-                  <span className="ex-tab__count">{tab.count}</span>
-                </button>
-              ))}
+              <span className="ex-topactions__div" />
 
-              <Tooltip title={anyOpen ? "Hide every case's details" : "Show every case's details on this page"}>
-                <button
-                  type="button"
-                  className={`ex-tab ex-tab--toggle${anyOpen ? " is-open" : ""}`}
-                  onClick={toggleAllDetails}
-                  disabled={results.length === 0}
-                  aria-expanded={anyOpen}
-                >
-                  <DownOutlined className="ex-caret" />
-                  <span>{anyOpen ? "Collapse all" : "Expand all"}</span>
-                </button>
-              </Tooltip>
+              <Button type="primary" size="small" icon={<PlusOutlined />} onClick={openAddCase}>
+                Add Case
+              </Button>
+            </div>
+          </div>
 
+          {/* ── Run figures — one band welded to the topbar ───────────────
+               Four cards' worth of numbers in the height of a single row, and
+               pinned: how much of the run is done is the fact a tester checks
+               most, and it should not scroll away with the case list. */}
+          <div className="ex-band">
+            <div className="ex-band__stats">
+              <div className="ex-band__stat">
+                <span className="ex-band__ic"><FileTextOutlined /></span>
+                <b className="ex-band__val">{counts.total}</b>
+                <span className="ex-band__lbl">Cases</span>
+                <span className="ex-band__sub">{Math.max(0, counts.total - executed)} not executed</span>
+              </div>
+
+              <span className="ex-band__div" />
+
+              <div className="ex-band__stat is-pass">
+                <span className="ex-band__ic"><CheckCircleOutlined /></span>
+                <b className="ex-band__val">{counts.pass}</b>
+                <span className="ex-band__lbl">Passed</span>
+                <span className="ex-band__sub">{counts.total ? Math.round((counts.pass / counts.total) * 100) : 0}% of the run</span>
+              </div>
+
+              <span className="ex-band__div" />
+
+              <div className="ex-band__stat is-fail">
+                <span className="ex-band__ic"><CloseCircleOutlined /></span>
+                <b className="ex-band__val">{counts.fail}</b>
+                <span className="ex-band__lbl">Failed</span>
+                <span className="ex-band__sub">need a defect note</span>
+              </div>
+
+              <span className="ex-band__div" />
+
+              <div className="ex-band__stat is-blocked">
+                <span className="ex-band__ic"><StopOutlined /></span>
+                <b className="ex-band__val">{counts.blocked}</b>
+                <span className="ex-band__lbl">Blocked</span>
+                <span className="ex-band__sub">could not be executed</span>
+              </div>
+            </div>
+
+            <div className="ex-band__progress">
+              <div className="ex-progress__bar">
+                <span className="is-pass" style={{ width: `${counts.total ? (counts.pass / counts.total) * 100 : 0}%` }} />
+                <span className="is-fail" style={{ width: `${counts.total ? (counts.fail / counts.total) * 100 : 0}%` }} />
+                <span className="is-blocked" style={{ width: `${counts.total ? (counts.blocked / counts.total) * 100 : 0}%` }} />
+              </div>
+              <span className="ex-progress__label">{percent}% executed · {executed}/{counts.total}</span>
+            </div>
+          </div>
+
+          <div className="dh-main-scroll" ref={scrollRef}>
+            {/* What is left below the bar: how much is showing, and the one
+                action that acts on the whole run. */}
+            <div className="ex-searchrow">
               <span className="sc-count">
-                {loading ? "Loading…" : <>Showing <strong>{results.length}</strong> of {isFiltered ? `${totalMatching} matching` : counts.total}</>}
+                {loading
+                  ? "Loading…"
+                  : viewMode === "flows" && scenariosLoading
+                    ? "Grouping…"
+                    : viewMode === "flows"
+                    ? <>{runScenarios.length} {runScenarios.length === 1 ? "scenario" : "scenarios"} · <strong>{uncoveredCases.length}</strong> not covered</>
+                    : <>Showing <strong>{results.length}</strong> of {isFiltered ? `${totalMatching} matching` : counts.total}</>}
               </span>
 
-              <Tooltip
-                title={
-                  counts.fail === 0
-                    ? "No failed cases to log yet"
-                    : counts.failUnfiled === 0
-                      ? "Every failed case is already in the bug list"
-                      : `${counts.failUnfiled} failed case${counts.failUnfiled === 1 ? "" : "s"} not filed yet`
-                }
-              >
-                <Button
-                  icon={<BugOutlined />}
-                  onClick={openBugModal}
-                  disabled={counts.fail === 0}
-                  className="ex-buglist-btn"
+              <div className="ex-searchrow__acts">
+                <Tooltip title={anyOpen ? "Hide every case's details" : "Show every case's details on this page"}>
+                  <button
+                    type="button"
+                    className={`ex-tab ex-tab--toggle${anyOpen ? " is-open" : ""}`}
+                    onClick={toggleAllDetails}
+                    disabled={results.length === 0}
+                    aria-expanded={anyOpen}
+                  >
+                    <DownOutlined className="ex-caret" />
+                    <span>{anyOpen ? "Collapse all" : "Expand all"}</span>
+                  </button>
+                </Tooltip>
+
+                <Tooltip
+                  title={
+                    counts.fail === 0
+                      ? "No failed cases to log yet"
+                      : counts.failUnfiled === 0
+                        ? "Every failed case is already in the bug list"
+                        : `${counts.failUnfiled} failed case${counts.failUnfiled === 1 ? "" : "s"} not filed yet`
+                  }
                 >
-                  Add to Buglist
-                  {counts.failUnfiled > 0 && <span className="ex-buglist-btn__n">{counts.failUnfiled}</span>}
-                </Button>
-              </Tooltip>
+                  <Button
+                    icon={<BugOutlined />}
+                    onClick={openBugModal}
+                    disabled={counts.fail === 0}
+                    className="ex-buglist-btn"
+                  >
+                    Add to Buglist
+                    {counts.failUnfiled > 0 && <span className="ex-buglist-btn__n">{counts.failUnfiled}</span>}
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
 
             {/* Cases */}
@@ -1583,300 +2111,91 @@ export default function TestRunExecutionPage() {
                   <Button size="small" onClick={() => { setSearchTerm(""); setStatusFilter(undefined); }}>Clear filters</Button>
                 )}
               </div>
-            ) : (
-              <div className="ex-list">
-                {results.map((result) => {
-                  const tone = STATUS_TONE[result.status] || "";
-                  const needsNote = NEEDS_NOTE.includes(result.status);
-                  const draft = noteDrafts[result.id] ?? "";
-                  const isSaving = savingId === result.id;
-                  const isOpen = !!openDetails[result.id];
-                  return (
-                    <div key={result.id} className={`ex-case${tone ? ` is-${result.status.toLowerCase()}` : ""}`}>
-                      <div className="ex-case__row">
-                        <span className="ex-case__id">{result.tc_ref_id || "TC"}</span>
-                        {/* The whole title block acts as the accordion header */}
-                        <div
-                          className="ex-case__body"
-                          role="button"
-                          tabIndex={0}
-                          aria-expanded={isOpen}
-                          onClick={() => toggleDetails(result.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDetails(result.id); }
-                          }}
-                        >
-                          <div className="ex-case__name">{result.name || "Unnamed case"}</div>
-                          <div className="ex-case__meta">
-                            {result.priority && <span className="ex-chip">{result.priority}</span>}
-                            {result.test_type && <span className="ex-chip">{result.test_type}</span>}
-                            <span className="ex-chip">{result.status || "Not Executed"}</span>
-                            {/* Already in the bug list — it won't be filed twice */}
-                            {isBugLogged(result) && (
-                              <span className="ex-chip ex-chip--bug">
-                                <BugOutlined /> {result.bug_number || "Filed"}
-                              </span>
-                            )}
-                            {/* The note and its evidence live behind Details — say so here */}
-                            {needsNote && !draft.trim() && (
-                              <span className="ex-chip ex-chip--warn">Needs a note</span>
-                            )}
-                            {needsNote && !!draft.trim() && !isOpen && (
-                              <span className="ex-chip ex-chip--note">
-                                <SnippetsOutlined /> Note
-                              </span>
-                            )}
-                            {(result.attachments?.length || 0) > 0 && !isOpen && (
-                              <span className="ex-chip ex-chip--note">
-                                <PaperClipOutlined /> {result.attachments.length}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="ex-actions">
-                          <button
-                            className={`ex-btn ex-btn--details${isOpen ? " is-open" : ""}`}
-                            onClick={() => toggleDetails(result.id)}
-                            aria-expanded={isOpen}
-                          >
-                            <DownOutlined className="ex-caret" /> Details
-                          </button>
-                          <span className="ex-divider" />
-                          <button
-                            className={`ex-btn${result.status === "Pass" ? " is-on--pass" : ""}`}
-                            onClick={() => handleStatus(result, "Pass")}
-                            disabled={isSaving}
-                          >
-                            <CheckCircleOutlined /> Pass
-                          </button>
-                          <button
-                            className={`ex-btn${result.status === "Fail" ? " is-on--fail" : ""}`}
-                            onClick={() => handleStatus(result, "Fail")}
-                            disabled={isSaving}
-                          >
-                            <CloseCircleOutlined /> Fail
-                          </button>
-                          <button
-                            className={`ex-btn${result.status === "Blocked" ? " is-on--blocked" : ""}`}
-                            onClick={() => handleStatus(result, "Blocked")}
-                            disabled={isSaving}
-                          >
-                            <StopOutlined /> Blocked
-                          </button>
-                          <Tooltip title="Reset to not executed">
-                            <button
-                              className="ex-btn ex-btn--reset"
-                              onClick={() => saveResult(result.id, { status: "Not Executed" })}
-                              disabled={isSaving || !result.status || result.status === "Not Executed"}
-                              aria-label="Reset"
-                            >
-                              <MinusCircleOutlined />
-                            </button>
-                          </Tooltip>
-                        </div>
-                      </div>
-
-                      {/* What the tester needs to know to run this case */}
-                      {isOpen && (
-                        <div className="ex-details">
-                          <div className="ex-details__facts">
-                            <div className="ex-fact">
-                              <span className="ex-fact__key">Priority</span>
-                              <span className="ex-fact__val">{result.priority || "—"}</span>
-                            </div>
-                            <div className="ex-fact">
-                              <span className="ex-fact__key">Severity</span>
-                              <span className="ex-fact__val">{result.severity || "—"}</span>
-                            </div>
-                            <div className="ex-fact">
-                              <span className="ex-fact__key">Type</span>
-                              <span className="ex-fact__val">{result.test_type || "—"}</span>
-                            </div>
-                            <div className="ex-fact">
-                              <span className="ex-fact__key">Automation</span>
-                              <span className="ex-fact__val">{result.automation || "Manual"}</span>
-                            </div>
-                          </div>
-
-                          {result.description && (
-                            <section className="ex-sec">
-                              <h4 className="ex-sec__title"><span>Description</span><span className="ex-rule" /></h4>
-                              <p className="ex-text">{result.description}</p>
-                            </section>
-                          )}
-
-                          {result.preconditions && (
-                            <section className="ex-sec">
-                              <h4 className="ex-sec__title"><span>Preconditions</span><span className="ex-rule" /></h4>
-                              <p className="ex-text">{result.preconditions}</p>
-                            </section>
-                          )}
-
-                          <section className="ex-sec">
-                            <h4 className="ex-sec__title">
-                              <span>Steps to Reproduce</span>
-                              {parseSteps(result.steps_to_reproduce).length > 0 && (
-                                <span className="ex-count">{parseSteps(result.steps_to_reproduce).length}</span>
-                              )}
-                              <span className="ex-rule" />
-                            </h4>
-                            {parseSteps(result.steps_to_reproduce).length === 0 ? (
-                              <p className="ex-empty">No steps recorded on this case.</p>
-                            ) : (
-                              <ol className="ex-steps">
-                                {parseSteps(result.steps_to_reproduce).map((s, i) => (
-                                  <li key={i}><span className="ex-step-n">{i + 1}</span><span>{s}</span></li>
-                                ))}
-                              </ol>
-                            )}
-                          </section>
-
-                          <section className="ex-sec" style={{ marginBottom: 0 }}>
-                            <h4 className="ex-sec__title"><span>Expected Result</span><span className="ex-rule" /></h4>
-                            {result.expected_result
-                              ? <p className="ex-expected">{result.expected_result}</p>
-                              : <p className="ex-empty">Not recorded.</p>}
-                          </section>
-                        </div>
-                      )}
-
-                      {/* Fail and Blocked need an explanation — inside the accordion */}
-                      {isOpen && needsNote && (
-                        <div className="ex-note">
-                          <div className="ex-note__head">
-                            <span className="ex-note__label">
-                              What happened
-                              {!draft.trim() && <span className="ex-note__req">*</span>}
-                            </span>
-                            <Tooltip title={!draft.trim() ? "Write something first" : "Fix grammar & typos — keeps your wording"}>
-                              <button
-                                type="button"
-                                className="ex-note__mini"
-                                disabled={!draft.trim() || polishingId === result.id}
-                                onClick={() => polishNote(result)}
-                              >
-                                {polishingId === result.id
-                                  ? <><Loader2 size={11} className="spin" /> Polishing…</>
-                                  : <><SpellCheck size={11} /> Grammar</>}
-                              </button>
-                            </Tooltip>
-                          </div>
-
-                          <TextArea
-                            autoSize={{ minRows: 2 }}
-                            placeholder={result.status === "Blocked"
-                              ? "What blocked this case? Note the dependency, environment or data that wasn't ready."
-                              : "What went wrong? Note the steps, the expected vs actual result and any error message."}
-                            value={draft}
-                            onChange={(e) => setNoteDrafts(prev => ({ ...prev, [result.id]: e.target.value }))}
-                            onBlur={() => commitNote(result)}
-                            onPaste={(e) => handleNotePaste(result, e)}
-                          />
-
-                          <div className="ex-note__foot">
-                            <span className="ex-note__hint">
-                              Saved automatically when you click away. Paste a screenshot straight into the box above.
-                            </span>
-                            {isSaving && <span className="ex-note__saving">Saving…</span>}
-                          </div>
-
-                          {/* Evidence */}
-                          <div className="ex-att">
-                            <div className="ex-att__head">
-                              <span className="ex-note__label">
-                                <PaperClipOutlined /> Attachments
-                                {(result.attachments?.length || 0) > 0 && (
-                                  <span className="ex-att__count">{result.attachments.length}</span>
-                                )}
-                              </span>
-                              <button
-                                type="button"
-                                className="ex-note__mini"
-                                onClick={() => setAttachOpen(prev => ({ ...prev, [result.id]: !prev[result.id] }))}
-                              >
-                                <PlusOutlined /> {attachOpen[result.id] ? "Close" : "Add attachment"}
-                              </button>
-                            </div>
-
-                            {(result.attachments?.length || 0) > 0 && (
-                              <div className="ex-att__list">
-                                {result.attachments.map((att: any) => (
-                                  <span key={att.id} className={`ex-att__chip ex-att__chip--${att.kind}`}>
-                                    {att.kind === "link" ? <LinkOutlined /> : <PaperClipOutlined />}
-                                    <a href={att.url} target="_blank" rel="noreferrer" title={att.url}>{att.name}</a>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeAttachment(result, att.id)}
-                                      aria-label={`Remove ${att.name}`}
-                                    >
-                                      <CloseOutlined />
-                                    </button>
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {attachOpen[result.id] && (
-                              <div className="ex-att__panel">
-                                <div className="ex-att__row">
-                                  <input
-                                    type="file"
-                                    id={`att-file-${result.id}`}
-                                    className="ex-att__file"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) uploadAttachment(result, file);
-                                      e.target.value = "";
-                                    }}
-                                  />
-                                  <label htmlFor={`att-file-${result.id}`} className="ex-att__upload">
-                                    {uploadingId === result.id
-                                      ? <><Loader2 size={12} className="spin" /> Uploading…</>
-                                      : <><UploadOutlined /> Choose a file</>}
-                                  </label>
-                                  <span className="ex-att__or">or paste an image with ⌘V</span>
-                                </div>
-
-                                <div className="ex-att__row">
-                                  <Input
-                                    placeholder="Paste a link (https://…)"
-                                    value={linkDrafts[result.id]?.url || ""}
-                                    onChange={(e) => setLinkDrafts(prev => ({
-                                      ...prev, [result.id]: { ...(prev[result.id] || { name: "" }), url: e.target.value },
-                                    }))}
-                                    className="ex-att__url"
-                                  />
-                                  <Input
-                                    placeholder="Name (optional)"
-                                    value={linkDrafts[result.id]?.name || ""}
-                                    onChange={(e) => setLinkDrafts(prev => ({
-                                      ...prev, [result.id]: { ...(prev[result.id] || { url: "" }), name: e.target.value },
-                                    }))}
-                                    onPressEnter={() => addLinkAttachment(result)}
-                                    className="ex-att__name"
-                                  />
-                                  <Button
-                                    onClick={() => addLinkAttachment(result)}
-                                    disabled={!(linkDrafts[result.id]?.url || "").trim()}
-                                  >
-                                    Add link
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+            ) : viewMode === "flows" ? (
+              /* ── Grouped by Test Scenario ─────────────────────────────
+                 What is NOT covered by a flow comes first: it is the part of
+                 the run nobody has thought about as a sequence, and the part
+                 most likely to be executed out of order. */
+              <div className="ex-groups">
+                <section className="fw-card fw-card--loose">
+                  <header className="fw-card__head">
+                    <span className="fw-card__idx fw-card__idx--ash">—</span>
+                    <div className="fw-card__titles">
+                      <h3 className="fw-card__name">Not covered by a scenario</h3>
+                      <p className="fw-card__desc">Cases in this run that no test scenario walks.</p>
                     </div>
+                    <span className="fw-card__count">
+                      {uncoveredCases.length} {uncoveredCases.length === 1 ? "case" : "cases"}
+                    </span>
+                  </header>
+                  <div className="ex-list ex-list--grouped">
+                    {uncoveredCases.length === 0
+                      ? <p className="ex-groups__blank">Every case in this run belongs to a scenario.</p>
+                      : uncoveredCases.map(renderCase)}
+                  </div>
+                </section>
+
+                {runScenarios.map((flow, fi) => {
+                  /* A flow can be wider than the run: the suite may carry only
+                     some of its cases. Keep each step's own number so the
+                     sequence still reads against the module page, rather than
+                     renumbering 1,2,3 over what are really steps 1,3,5. */
+                  const steps = (flow.steps || [])
+                    .map((st) => ({ step: st.position + 1, result: resultByCase[st.test_case_id] }))
+                    .filter((x) => x.result);
+                  if (steps.length === 0) return null;
+                  const collapsed = collapsedFlows[flow.id];
+                  const done = steps.filter((x) => x.result.status && x.result.status !== "Not Executed").length;
+                  const partial = steps.length < (flow.case_count || steps.length);
+                  return (
+                    <section key={flow.id} className="fw-card">
+                      <header className="fw-card__head">
+                        <button
+                          type="button"
+                          className="fw-card__toggle"
+                          onClick={() => setCollapsedFlows(prev => ({ ...prev, [flow.id]: !prev[flow.id] }))}
+                          aria-label={collapsed ? "Expand scenario" : "Collapse scenario"}
+                        >
+                          <DownOutlined className="ex-caret" style={{ transform: collapsed ? "rotate(-90deg)" : undefined }} />
+                        </button>
+                        <span className="fw-card__idx">{fi + 1}</span>
+                        <div className="fw-card__titles">
+                          <h3 className="fw-card__name" title={flow.name}>{flow.name}</h3>
+                          {flow.description && <p className="fw-card__desc" title={flow.description}>{flow.description}</p>}
+                        </div>
+                        {partial && (
+                          <Tooltip title={`${flow.case_count - steps.length} more case(s) in this scenario are not part of this run`}>
+                            <span className="fw-card__count fw-card__count--partial">
+                              {steps.length} of {flow.case_count} in this run
+                            </span>
+                          </Tooltip>
+                        )}
+                        <span className="fw-card__count">{done} / {steps.length} executed</span>
+                      </header>
+                      {!collapsed && (
+                        <div className="ex-list ex-list--grouped">
+                          {steps.map(({ step, result }) => (
+                            <div className="ex-groupstep" key={result.id}>
+                              <span className="ex-groupstep__n">{step}</span>
+                              <div className="ex-groupstep__case">{renderCase(result)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
                   );
                 })}
+              </div>
+            ) : (
+              <div className="ex-list">
+                {results.map(renderCase)}
               </div>
             )}
           </div>
 
-          {/* Pinned to the bottom of the run — never scrolls with the cases */}
-          {totalMatching > 0 && (
+          {/* Pinned to the bottom of the run — never scrolls with the cases.
+              Grouped, there is nothing to page: the whole run is on screen. */}
+          {viewMode === "list" && totalMatching > 0 && (
             <div className="pp-footer">
               <div className="pp-footer-info">
                 Showing <strong>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalMatching)}</strong> of <strong>{totalMatching}</strong> {isFiltered ? "matching" : ""} case{totalMatching === 1 ? "" : "s"}

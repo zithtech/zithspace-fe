@@ -8131,6 +8131,62 @@ select:-webkit-autofill:focus {
    Tooltip.colorBgSpotlight), and antd's runtime CSS is injected after this file,
    so a hard-coded dark panel here loses and its pale text disappears onto white.
    Everything below therefore rides on theme tokens, which flip with the surface. */
+/* ═══ Tooltips ══════════════════════════════════════════════════════════
+   One look for every tooltip in the product. Antd's default is a soft grey
+   slab with a wide radius that reads like a toast; a tooltip is a label, so
+   it should be small, dense and high-contrast, and get out of the way.
+
+   Deliberately dark in both themes: a tooltip floats above whatever it is
+   describing, and only a surface that contrasts with BOTH a white table row
+   and a dark one reads as "above" rather than as another panel.
+
+   The rich `.zprd-tip` variant below overrides these — its selectors carry an
+   extra class, so it wins without !important. */
+.ant-tooltip {
+  --tip-bg: #0f172a;
+  /* Antd v5 paints the arrow from this variable. */
+  --antd-arrow-background-color: var(--tip-bg);
+  max-width: 264px;
+}
+.ant-tooltip .ant-tooltip-inner {
+  min-height: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--tip-bg);
+  color: #f1f5f9;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.005em;
+  text-align: left;
+  /* A hairline of light along the top edge is what stops a dark chip from
+     looking like a hole punched in the page. */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.18),
+    0 2px 6px rgba(15, 23, 42, 0.12);
+}
+/* Keyboard hints and code inside a tooltip stay legible on the dark chip. */
+.ant-tooltip .ant-tooltip-inner kbd,
+.ant-tooltip .ant-tooltip-inner code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+[data-theme='dark'] .ant-tooltip {
+  /* Lifted a step in dark mode so the chip still separates from the page. */
+  --tip-bg: #1e293b;
+}
+[data-theme='dark'] .ant-tooltip .ant-tooltip-inner {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
 .zprd-tip.ant-tooltip { max-width: 306px; }
 
 .zprd-tip.ant-tooltip .ant-tooltip-inner {

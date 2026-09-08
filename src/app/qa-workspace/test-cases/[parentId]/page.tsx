@@ -9,10 +9,10 @@ import ZukvoLoader from "@/components/common/ZukvoLoader";
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Table, Tag, Dropdown, Drawer, Input, Select, Row, Col, Typography, Form, Tooltip, Popover, Space, Divider  } from "antd";
-import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined, CopyOutlined } from "@ant-design/icons";
+import { PlusOutlined, EllipsisOutlined, ArrowLeftOutlined, SaveOutlined, InfoCircleOutlined, FileTextOutlined, BugOutlined, CheckCircleOutlined, LinkOutlined, SnippetsOutlined, CloseOutlined, SearchOutlined, SortAscendingOutlined, SortDescendingOutlined, FilterOutlined, ExpandAltOutlined, ReloadOutlined, ThunderboltOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter, useParams } from "next/navigation";
-import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug } from "lucide-react";
+import { Target, Trash2, Pencil, Folder, ShieldCheck, User, UserPlus, Zap, Activity, Layers, Sparkles, CalendarDays, RotateCw, Braces, ChevronDown, ChevronRight, Copy, Plug, ListOrdered, GripVertical, ArrowUp, ArrowDown, Route, Rows3 } from "lucide-react";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios, apiClient } from "@/lib/axios";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -23,6 +23,11 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useQaOptions } from "@/hooks/useQaOptions";
 import TicketFilterPill from "@/components/projects/TicketFilterPill";
 import ModuleCaseFilters from "./ModuleCaseFilters";
+import {
+  QaScenarioService,
+  type TestScenario,
+  type ScenarioMembership,
+} from "@/services/qaScenarioService";
 import {
   YapiezService,
   PAYLOAD_TYPES,
@@ -175,6 +180,41 @@ export default function ParentTestCaseDetailsPage() {
     setPage(1);
   }, [searchTerm, typeFilter, priorityFilter, statusFilter, sortOrder]);
 
+  /* ── Test Scenarios — the flow layer over this page's cases ──────────────
+     A module scenario collects a hundred cases in one flat list, and nothing
+     in that list says which eight of them are the "Create User" flow, nor the
+     order a tester walks them. A Test Scenario is that grouping: a name and an
+     ordered mapping. A case can sit in more than one flow, so this is a
+     mapping rather than a field on the case. */
+  const [viewMode, setViewMode] = useState<"list" | "flows">("list");
+  const [scenarios, setScenarios] = useState<TestScenario[]>([]);
+  const [memberships, setMemberships] = useState<ScenarioMembership[]>([]);
+  const [scenariosLoading, setScenariosLoading] = useState(false);
+  const [collapsedFlows, setCollapsedFlows] = useState<Record<string, boolean>>({});
+  /** The flow whose step order is being written, so only its card shows busy. */
+  const [flowBusyId, setFlowBusyId] = useState<string | null>(null);
+
+  /* Every case on this page, unpaged — the mapping picker and the "not in any
+     flow" list both need the whole set, not the ten rows currently shown. */
+  const [allCases, setAllCases] = useState<any[]>([]);
+  const [allCasesLoading, setAllCasesLoading] = useState(false);
+
+  /* Create / edit a flow */
+  const [flowDrawerOpen, setFlowDrawerOpen] = useState(false);
+  const [editingFlow, setEditingFlow] = useState<TestScenario | null>(null);
+  const [flowName, setFlowName] = useState("");
+  const [flowDesc, setFlowDesc] = useState("");
+  /** Selected cases IN FLOW ORDER — the array order is what gets saved. */
+  const [flowCaseIds, setFlowCaseIds] = useState<string[]>([]);
+  const [flowSaving, setFlowSaving] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  /** "unmapped" hides cases already claimed by another flow. */
+  const [pickerScope, setPickerScope] = useState<"all" | "unmapped">("all");
+  /** Index being dragged WITHIN the ordered list, or null. */
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  /** Case being dragged IN from the left pane, or null. */
+  const [dragCaseId, setDragCaseId] = useState<string | null>(null);
+
   // Drawer state for Create / Edit Child Test Case
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
@@ -295,6 +335,290 @@ export default function ParentTestCaseDetailsPage() {
       fetchData();
     }
   }, [canReadCase, parentId, page, pageSize, debouncedSearch, typeFilter, priorityFilter, statusFilter, sortOrder]);
+
+  /* ── Test Scenario data ──────────────────────────────────────────────── */
+
+  /** The flows on this page, with their ordered steps. */
+  const fetchScenarios = async () => {
+    if (!parentId) return;
+    try {
+      setScenariosLoading(true);
+      const res = await QaScenarioService.list(parentId);
+      setScenarios(res.scenarios || []);
+      setMemberships(res.memberships || []);
+    } catch (err: any) {
+      // The case list is the page; a failed flow read must not take it down.
+      setScenarios([]);
+      setMemberships([]);
+      if (err?.response?.status !== 403) {
+        message.error(err?.response?.data?.error || "Failed to load test scenarios");
+      }
+    } finally {
+      setScenariosLoading(false);
+    }
+  };
+
+  /**
+   * Every case on this page, unfiltered and unpaged.
+   *
+   * The mapping picker has to offer case 97 even though the table is showing
+   * the first ten, and "not in any flow" is only true against the whole set.
+   */
+  const fetchAllCases = async () => {
+    if (!parentId) return;
+    try {
+      setAllCasesLoading(true);
+      const res: any = await apiClient.get(`/api/v2/qa`, {
+        params: { parent_id: parentId, pageSize: 500, page: 1 },
+      });
+      setAllCases(res?.data?.data || []);
+    } catch {
+      setAllCases([]);
+    } finally {
+      setAllCasesLoading(false);
+    }
+  };
+
+  /** Re-read the flows, and the unpaged case list if the grouped view holds one. */
+  const refreshGroupingData = () => {
+    fetchScenarios();
+    if (allCases.length) fetchAllCases();
+  };
+
+  useEffect(() => {
+    if (canReadCase && parentId) fetchScenarios();
+  }, [canReadCase, parentId]);
+
+  // Pulled when the grouped view is first opened rather than on every page
+  // load — a tester who never leaves the list never pays for 500 rows.
+  useEffect(() => {
+    if (viewMode === "flows" && canReadCase && parentId && !allCases.length && !allCasesLoading) {
+      fetchAllCases();
+    }
+  }, [viewMode, canReadCase, parentId]);
+
+  /** case id → the flows it is a step of, for the list view's Scenario column. */
+  const flowsByCase = React.useMemo(() => {
+    const map: Record<string, Array<{ id: string; name: string; step: number }>> = {};
+    memberships.forEach((m) => {
+      (map[m.test_case_id] ||= []).push({ id: m.scenario_id, name: m.name, step: m.position + 1 });
+    });
+    return map;
+  }, [memberships]);
+
+  /** Cases no flow claims yet — the backlog the grouped view leads with. */
+  const ungroupedCases = React.useMemo(
+    () => allCases.filter((c) => !flowsByCase[c.id]?.length),
+    [allCases, flowsByCase]
+  );
+
+  /* ── Test Scenario handlers ──────────────────────────────────────────── */
+
+  /**
+   * `scope` is what the picker opens narrowed to.
+   *
+   * Reaching the drawer from "Not in any scenario" means the tester is filing
+   * exactly those cases, so the picker opens on Ungrouped rather than making
+   * them narrow it again by hand.
+   */
+  const openCreateFlow = (scope: "all" | "unmapped" = "all") => {
+    setEditingFlow(null);
+    setFlowName("");
+    setFlowDesc("");
+    setFlowCaseIds([]);
+    setPickerSearch("");
+    setPickerScope(scope);
+    setDragIndex(null);
+    setDragCaseId(null);
+    if (!allCases.length) fetchAllCases();
+    setFlowDrawerOpen(true);
+  };
+
+  const openEditFlow = (flow: TestScenario) => {
+    setEditingFlow(flow);
+    setFlowName(flow.name);
+    setFlowDesc(flow.description || "");
+    setFlowCaseIds((flow.steps || []).map((st) => st.test_case_id));
+    setPickerSearch("");
+    setPickerScope("all");
+    setDragIndex(null);
+    setDragCaseId(null);
+    if (!allCases.length) fetchAllCases();
+    setFlowDrawerOpen(true);
+  };
+
+  /**
+   * Write the flow. Name and mapping save together — a flow with no cases is
+   * allowed (it is how a tester blocks one out before filling it), but the
+   * order is never guessed: it is exactly the list on screen.
+   */
+  const saveFlow = async () => {
+    const name = flowName.trim();
+    if (!name) {
+      message.error("Give the test scenario a name — “Create User”, say");
+      return;
+    }
+    try {
+      setFlowSaving(true);
+      if (editingFlow) {
+        await QaScenarioService.update(editingFlow.id, { name, description: flowDesc.trim() || null });
+        await QaScenarioService.setCases(editingFlow.id, flowCaseIds);
+        message.success("Test scenario updated");
+      } else {
+        await QaScenarioService.create({
+          parent_test_case_id: parentId,
+          name,
+          description: flowDesc.trim() || null,
+          case_ids: flowCaseIds,
+        });
+        message.success("Test scenario created");
+      }
+      setFlowDrawerOpen(false);
+      setViewMode("flows");
+      await fetchScenarios();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to save the test scenario");
+    } finally {
+      setFlowSaving(false);
+    }
+  };
+
+  /** Ungroups. Every case it held stays exactly where it is in the list. */
+  const deleteFlow = async (id: string) => {
+    try {
+      await QaScenarioService.remove(id);
+      message.success("Test scenario removed — its cases are untouched");
+      fetchScenarios();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to remove the test scenario");
+    }
+  };
+
+  /** Move one step up or down inside a flow, saving the new order immediately. */
+  const moveStep = async (flow: TestScenario, index: number, delta: number) => {
+    const ids = (flow.steps || []).map((st) => st.test_case_id);
+    const target = index + delta;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    // Painted before the round trip: reordering is the one action a tester
+    // repeats, and a spinner between each click makes ordering ten steps a chore.
+    setScenarios((prev) =>
+      prev.map((f) =>
+        f.id === flow.id
+          ? { ...f, steps: ids.map((cid, i) => ({ ...f.steps.find((st) => st.test_case_id === cid)!, position: i })) }
+          : f
+      )
+    );
+    try {
+      setFlowBusyId(flow.id);
+      await QaScenarioService.setCases(flow.id, ids);
+      fetchScenarios();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to reorder the flow");
+      fetchScenarios();
+    } finally {
+      setFlowBusyId(null);
+    }
+  };
+
+  /** Move a whole flow up or down the page. */
+  const moveFlow = async (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= scenarios.length) return;
+    const next = [...scenarios];
+    [next[index], next[target]] = [next[target], next[index]];
+    setScenarios(next);
+    try {
+      await QaScenarioService.reorder(parentId, next.map((f) => f.id));
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to reorder the scenarios");
+      fetchScenarios();
+    }
+  };
+
+  /** Take a case out of a flow. The case itself is not deleted. */
+  const removeStep = async (flowId: string, testCaseId: string) => {
+    try {
+      setFlowBusyId(flowId);
+      await QaScenarioService.removeCase(flowId, testCaseId);
+      fetchScenarios();
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || "Failed to remove the case from this flow");
+    } finally {
+      setFlowBusyId(null);
+    }
+  };
+
+  /* ── Mapping picker helpers (drawer) ─────────────────────────────────── */
+
+  /** The left pane's rows: this page's cases, searched and optionally narrowed. */
+  const pickerCases = React.useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    return allCases.filter((c) => {
+      if (pickerScope === "unmapped") {
+        const others = (flowsByCase[c.id] || []).filter((f) => f.id !== editingFlow?.id);
+        // Already a step here still shows — unticking it is how you take it out.
+        if (others.length && !flowCaseIds.includes(c.id)) return false;
+      }
+      if (!q) return true;
+      return (
+        String(c.name || "").toLowerCase().includes(q) ||
+        String(c.test_case_id || "").toLowerCase().includes(q)
+      );
+    });
+  }, [allCases, pickerSearch, pickerScope, flowsByCase, editingFlow, flowCaseIds]);
+
+  /** Ticking a case appends it as the next step; unticking pulls it out. */
+  const togglePickedCase = (id: string) => {
+    setFlowCaseIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  /** Everything currently listed on the left, appended in the order shown. */
+  const addAllShown = () => {
+    setFlowCaseIds((prev) => {
+      const seen = new Set(prev);
+      return [...prev, ...pickerCases.map((c) => c.id).filter((id) => !seen.has(id))];
+    });
+  };
+
+  const movePicked = (index: number, delta: number) => {
+    setFlowCaseIds((prev) => {
+      const target = index + delta;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  /**
+   * Drop onto the flow at `index` — or at the end when `index` is the length.
+   *
+   * Two drags land here: a step being moved within the flow, and a case being
+   * dragged in from the left pane. The dropped item goes exactly where it was
+   * released, because a flow's order is the whole point of the panel.
+   */
+  const dropPickedAt = (index: number) => {
+    const from = dragIndex;
+    const incoming = dragCaseId;
+    setFlowCaseIds((prev) => {
+      if (from !== null) {
+        if (from === index || from + 1 === index) return prev;
+        const next = [...prev];
+        const [moved] = next.splice(from, 1);
+        next.splice(from < index ? index - 1 : index, 0, moved);
+        return next;
+      }
+      if (incoming && !prev.includes(incoming)) {
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, incoming);
+        return next;
+      }
+      return prev;
+    });
+    setDragIndex(null);
+    setDragCaseId(null);
+  };
 
   /**
    * Draft the case from the tester's description. Only fills fields the user
@@ -613,6 +937,8 @@ export default function ParentTestCaseDetailsPage() {
         }
       }
       fetchData();
+      // The grouped view reads its own copy of the cases; keep it honest.
+      refreshGroupingData();
     } catch (err: any) {
       message.error(err?.response?.data?.error || "Failed to save test case");
     } finally {
@@ -626,41 +952,19 @@ export default function ParentTestCaseDetailsPage() {
       await axios.delete(`/api/v2/qa/${id}`);
       message.success("Test case deleted successfully");
       fetchData();
+      // Deleting a case takes it out of every flow it was a step of.
+      refreshGroupingData();
     } catch (err: any) {
       message.error(err?.response?.data?.error || "Failed to delete test case");
     }
   };
 
 
-  /* Columns mirror the Ticket List: a copyable ID, the title, then the
-     one-glance attributes, with row actions pinned to the right. */
+  /* Columns mirror the Ticket List: the title, then the one-glance
+     attributes, with row actions pinned to the right. The case id has no
+     column of its own — it still reads on the case view, in the scenario
+     steps and in every picker that links this case. */
   const childColumns = [
-    {
-      title: "ID",
-      dataIndex: "test_case_id",
-      key: "test_case_id",
-      width: 118,
-      render: (t: string, record: any) => {
-        const label = t || String(record.id || '').slice(0, 8).toUpperCase();
-        return (
-          <span
-            className="pp-case-id"
-            onClick={(e) => { e.stopPropagation(); openCaseView(record); }}
-            title={label}
-          >
-            {label}
-            <CopyOutlined
-              style={{ fontSize: 10, opacity: 0.6 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigator.clipboard.writeText(label);
-                message.success("Case ID copied!");
-              }}
-            />
-          </span>
-        );
-      },
-    },
     {
       title: "Title",
       dataIndex: "name",
@@ -674,6 +978,43 @@ export default function ParentTestCaseDetailsPage() {
           <span className="pp-name-title">{t || 'Untitled case'}</span>
         </div>
       )
+    },
+    {
+      /* Which flow(s) a case is a step of. The one column that answers "is
+         this case already part of Create User, or still loose?" without
+         leaving the list. */
+      title: "Test Scenario",
+      key: "scenario",
+      width: 210,
+      render: (_: any, record: any) => {
+        const flows = flowsByCase[record.id] || [];
+        if (!flows.length) return <span className="sc-muted">Ungrouped</span>;
+        return (
+          <div className="tc-flowtags">
+            {flows.slice(0, 2).map((f) => (
+              <Tooltip key={f.id} title={`Step ${f.step} of ${f.name}`}>
+                <button
+                  type="button"
+                  className="tc-flowtag"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewMode("flows");
+                    setCollapsedFlows((prev) => ({ ...prev, [f.id]: false }));
+                  }}
+                >
+                  <span className="tc-flowtag__step">{f.step}</span>
+                  <span className="tc-flowtag__name">{f.name}</span>
+                </button>
+              </Tooltip>
+            ))}
+            {flows.length > 2 && (
+              <Tooltip title={flows.slice(2).map((f) => f.name).join(', ')}>
+                <span className="tc-flowtag tc-flowtag--more">+{flows.length - 2}</span>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
     },
     {
       title: "Status",
@@ -962,7 +1303,6 @@ export default function ParentTestCaseDetailsPage() {
         }
         .cd-crumb--strong { color: var(--text-slate-600); max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
         .cd-sep { color: var(--border-slate-200); flex-shrink: 0; }
-        .cd-title { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .sc-topbar .dh-main-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .sc-topbar .dh-main-controls .ant-btn { height: 32px !important; border-radius: 8px; }
         @media (max-width: 900px) { .cd-crumb, .cd-sep, .sc-topbar__div { display: none; } }
@@ -1522,8 +1862,10 @@ export default function ParentTestCaseDetailsPage() {
 
               <Divider type="vertical" style={{ height: 24, margin: 0, opacity: 0.5 }} />
 
-              {/* The scenario's place in the tree sits where the list pages put
-                  their project switcher. */}
+              {/* Where the list pages put their project switcher. The
+                  scenario's own title is NOT repeated here — it is the banner's
+                  headline two rows down, and a long one crowded the controls
+                  it shares this row with. */}
               <div className="cd-crumbs">
                 <button type="button" className="cd-crumb" onClick={() => router.push("/qa-workspace/test-cases")}>Cases</button>
                 {parentData?.module_name && (
@@ -1532,11 +1874,11 @@ export default function ParentTestCaseDetailsPage() {
                     <span className="cd-crumb cd-crumb--strong">{parentData.module_name}</span>
                   </>
                 )}
-                <span className="cd-sep">›</span>
-                <span className="cd-title" title={parentData?.title}>{parentData?.title || "Loading scenario…"}</span>
               </div>
 
-              <div className="sc-header-controls">
+              {/* Search and filters narrow the flat list. In the grouped view
+                  they would appear to do nothing, so they step aside. */}
+              <div className="sc-header-controls" style={{ visibility: viewMode === 'flows' ? 'hidden' : undefined }}>
                 <Input
                   placeholder="Quick search cases, steps, results..."
                   prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 12 }} />}
@@ -1588,9 +1930,36 @@ export default function ParentTestCaseDetailsPage() {
               </div>
 
               <Space size={10} className="sc-header-right">
+                {/* The same cases, read two ways: the flat list, or grouped
+                    into the flows a tester actually walks. */}
+                <div className="sc-viewtoggle" role="tablist" aria-label="View">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === 'list'}
+                    className={`sc-viewtoggle__btn${viewMode === 'list' ? ' is-active' : ''}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    <Rows3 size={13} />
+                    <span>All Cases</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === 'flows'}
+                    className={`sc-viewtoggle__btn${viewMode === 'flows' ? ' is-active' : ''}`}
+                    onClick={() => setViewMode('flows')}
+                  >
+                    <Route size={13} />
+                    <span>Test Scenarios</span>
+                    {scenarios.length > 0 && <span className="sc-viewtoggle__count">{scenarios.length}</span>}
+                  </button>
+                </div>
+
                 <Tooltip title={sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}>
                   <Button
                     icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                    disabled={viewMode === 'flows'}
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                     style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     aria-label="Toggle sort order"
@@ -1599,12 +1968,22 @@ export default function ParentTestCaseDetailsPage() {
 
                 <Tooltip title="Refresh view">
                   <Button
-                    icon={<ReloadOutlined spin={loading} />}
-                    onClick={fetchData}
-                    disabled={loading}
+                    icon={<ReloadOutlined spin={loading || scenariosLoading} />}
+                    onClick={() => { fetchData(); refreshGroupingData(); }}
+                    disabled={loading || scenariosLoading}
                     style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   />
                 </Tooltip>
+
+                {canCreateCase && (
+                  <Button
+                    icon={<ListOrdered size={14} />}
+                    onClick={() => openCreateFlow()}
+                    style={{ height: 36, borderRadius: 8, fontWeight: 600 }}
+                  >
+                    New Test Scenario
+                  </Button>
+                )}
 
                 {canCreateCase && (
                   <Button
@@ -1763,6 +2142,195 @@ export default function ParentTestCaseDetailsPage() {
               </div>
 
               <div className="tl-section-body">
+                {viewMode === 'flows' ? (
+                  /* ── Grouped view: the flows, in order, with their steps ──
+                     The list above answers "what cases exist"; this answers
+                     "what does Create User look like, end to end". */
+                  <ZukvoLoadingOverlay loading={scenariosLoading} message="Loading test scenarios…">
+                    <div className="fw-scroll">
+                      {scenarios.length === 0 && !scenariosLoading ? (
+                        /* Same illustration the case table falls back to, so an
+                           empty page reads the same whichever view you are in. */
+                        <NoData
+                          description={
+                            <div className="sc-empty">
+                              <p className="sc-empty__title">No test scenarios yet</p>
+                              <p className="sc-empty__desc">
+                                Group this module’s {totalItems || childCases.length} cases into the flows a tester
+                                actually walks — “Create User”, “Password Reset” — and set the order of the steps.
+                              </p>
+                              {canCreateCase && (
+                                <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openCreateFlow()}>
+                                  New Test Scenario
+                                </Button>
+                              )}
+                            </div>
+                          }
+                        />
+                      ) : (
+                        scenarios.map((flow, fi) => {
+                          const collapsed = collapsedFlows[flow.id];
+                          const steps = flow.steps || [];
+                          return (
+                            <section key={flow.id} className={`fw-card${flowBusyId === flow.id ? ' is-busy' : ''}`}>
+                              <header className="fw-card__head">
+                                <button
+                                  type="button"
+                                  className="fw-card__toggle"
+                                  onClick={() => setCollapsedFlows(prev => ({ ...prev, [flow.id]: !prev[flow.id] }))}
+                                  aria-label={collapsed ? 'Expand scenario' : 'Collapse scenario'}
+                                >
+                                  {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                                </button>
+                                <span className="fw-card__idx">{fi + 1}</span>
+                                <div className="fw-card__titles">
+                                  <h3 className="fw-card__name" title={flow.name}>{flow.name}</h3>
+                                  {flow.description && (
+                                    <p className="fw-card__desc" title={flow.description}>{flow.description}</p>
+                                  )}
+                                </div>
+                                <span className="fw-card__count">
+                                  {steps.length} {steps.length === 1 ? 'step' : 'steps'}
+                                </span>
+                                <div className="fw-card__actions">
+                                  <Tooltip title="Move scenario up">
+                                    <button type="button" onClick={() => moveFlow(fi, -1)} disabled={fi === 0} aria-label="Move scenario up">
+                                      <ArrowUp size={14} />
+                                    </button>
+                                  </Tooltip>
+                                  <Tooltip title="Move scenario down">
+                                    <button type="button" onClick={() => moveFlow(fi, 1)} disabled={fi === scenarios.length - 1} aria-label="Move scenario down">
+                                      <ArrowDown size={14} />
+                                    </button>
+                                  </Tooltip>
+                                  <Tooltip title="Map cases / rename">
+                                    <button type="button" onClick={() => openEditFlow(flow)} aria-label="Edit scenario">
+                                      <Pencil size={14} />
+                                    </button>
+                                  </Tooltip>
+                                  <ConfirmDialog
+                                    tone="danger"
+                                    title="Remove this test scenario?"
+                                    description={`"${flow.name}" will be ungrouped. The ${steps.length} case(s) in it are not deleted — they stay in this module's list.`}
+                                    confirmText="Remove"
+                                    onConfirm={() => deleteFlow(flow.id)}
+                                  >
+                                    <Tooltip title="Remove scenario">
+                                      <button type="button" className="is-danger" aria-label="Remove scenario">
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </Tooltip>
+                                  </ConfirmDialog>
+                                </div>
+                              </header>
+
+                              {!collapsed && (
+                                <ol className="fw-steps">
+                                  {steps.map((st, i) => (
+                                    <li key={st.id} className="fw-step">
+                                      <span className="fw-step__n">{i + 1}</span>
+                                      <span className="pp-case-id fw-step__code" title={st.case_code || ''}>
+                                        {st.case_code || st.test_case_id.slice(0, 8).toUpperCase()}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="fw-step__name"
+                                        title={st.name}
+                                        onClick={() => {
+                                          const record = allCases.find(c => c.id === st.test_case_id)
+                                            || childCases.find(c => c.id === st.test_case_id);
+                                          if (record) openCaseView(record);
+                                        }}
+                                      >
+                                        {st.name}
+                                      </button>
+                                      <span className="fw-step__meta">
+                                        <span className="pp-vis-pill pp-vis-pill--ash">{st.test_type || 'Functional'}</span>
+                                        <PriorityMeter priority={st.priority || 'Medium'} />
+                                      </span>
+                                      <span className="fw-step__acts">
+                                        <Tooltip title="Move up">
+                                          <button type="button" onClick={() => moveStep(flow, i, -1)} disabled={i === 0} aria-label="Move step up">
+                                            <ArrowUp size={13} />
+                                          </button>
+                                        </Tooltip>
+                                        <Tooltip title="Move down">
+                                          <button type="button" onClick={() => moveStep(flow, i, 1)} disabled={i === steps.length - 1} aria-label="Move step down">
+                                            <ArrowDown size={13} />
+                                          </button>
+                                        </Tooltip>
+                                        <Tooltip title="Remove from this scenario">
+                                          <button type="button" className="is-danger" onClick={() => removeStep(flow.id, st.test_case_id)} aria-label="Remove from scenario">
+                                            <CloseOutlined style={{ fontSize: 11 }} />
+                                          </button>
+                                        </Tooltip>
+                                      </span>
+                                    </li>
+                                  ))}
+
+                                  {steps.length === 0 && (
+                                    <li className="fw-step fw-step--blank">
+                                      No cases mapped yet.
+                                      <button type="button" className="fw-link" onClick={() => openEditFlow(flow)}>Map cases</button>
+                                    </li>
+                                  )}
+                                </ol>
+                              )}
+                            </section>
+                          );
+                        })
+                      )}
+
+                      {/* What is still loose. A tester's real question at this
+                          point is "what have I not filed yet?" */}
+                      {scenarios.length > 0 && (
+                        <section className="fw-card fw-card--loose">
+                          <header className="fw-card__head">
+                            <span className="fw-card__idx fw-card__idx--ash">—</span>
+                            <div className="fw-card__titles">
+                              <h3 className="fw-card__name">Not in any scenario</h3>
+                              <p className="fw-card__desc">Cases on this page that no flow claims yet.</p>
+                            </div>
+                            <span className="fw-card__count">
+                              {allCasesLoading ? '…' : `${ungroupedCases.length} ${ungroupedCases.length === 1 ? 'case' : 'cases'}`}
+                            </span>
+                            {canCreateCase && ungroupedCases.length > 0 && (
+                              <div className="fw-card__actions">
+                                <Button size="small" icon={<PlusOutlined />} onClick={() => openCreateFlow("unmapped")} style={{ height: 26, fontSize: 12 }}>
+                                  Group them
+                                </Button>
+                              </div>
+                            )}
+                          </header>
+                          <ol className="fw-steps fw-steps--loose">
+                            {ungroupedCases.slice(0, 12).map((c) => (
+                              <li key={c.id} className="fw-step">
+                                <span className="pp-case-id fw-step__code">{c.test_case_id || String(c.id).slice(0, 8).toUpperCase()}</span>
+                                <button type="button" className="fw-step__name" title={c.name} onClick={() => openCaseView(c)}>
+                                  {c.name || 'Untitled case'}
+                                </button>
+                                <span className="fw-step__meta">
+                                  <span className="pp-vis-pill pp-vis-pill--ash">{c.test_type || 'Functional'}</span>
+                                  <PriorityMeter priority={c.priority || 'Medium'} />
+                                </span>
+                              </li>
+                            ))}
+                            {ungroupedCases.length > 12 && (
+                              <li className="fw-step fw-step--blank">
+                                +{ungroupedCases.length - 12} more ungrouped — map them from a scenario’s
+                                <button type="button" className="fw-link" onClick={() => openCreateFlow("unmapped")}>case picker</button>
+                              </li>
+                            )}
+                            {!allCasesLoading && ungroupedCases.length === 0 && (
+                              <li className="fw-step fw-step--blank">Every case on this page belongs to a scenario.</li>
+                            )}
+                          </ol>
+                        </section>
+                      )}
+                    </div>
+                  </ZukvoLoadingOverlay>
+                ) : (
+                <>
                 {/* Only the results blur, so the filters above stay usable
                     while a search refetches. */}
                 <ZukvoLoadingOverlay loading={loading} message="Loading module cases…">
@@ -1816,11 +2384,420 @@ export default function ParentTestCaseDetailsPage() {
                     </div>
                   </div>
                 )}
+                </>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Test Scenario drawer — name the flow, then map cases in order ──
+           Left pane offers every case on this page; the right pane IS the
+           flow: whatever order it reads in is the order that gets saved. */}
+      <Drawer
+        {...commonDrawerProps}
+        open={flowDrawerOpen}
+        onClose={() => setFlowDrawerOpen(false)}
+        width={960}
+      >
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg-primary, #ffffff)" }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              borderBottom: "1px solid var(--border-color)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <div
+                style={{
+                  width: 44, height: 44, borderRadius: "12px",
+                  background: "rgba(37, 99, 235, 0.08)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#2563eb", flexShrink: 0, fontSize: 20,
+                }}
+              >
+                <ListOrdered size={20} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <div style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--text-primary, var(--text-slate-900))", letterSpacing: "-0.01em", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {editingFlow ? (flowName.trim() || "Edit Test Scenario") : (flowName.trim() || "New Test Scenario")}
+                  </div>
+                  {flowCaseIds.length > 0 && (
+                    <span className="fm-headpill">{flowCaseIds.length} {flowCaseIds.length === 1 ? 'step' : 'steps'}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary, var(--text-slate-500))", fontWeight: 500, marginTop: 2 }}>
+                  Name the flow, then map its cases in the order a tester walks them
+                </div>
+              </div>
+            </div>
+            <Button
+              type="text"
+              shape="circle"
+              icon={<CloseOutlined />}
+              onClick={() => setFlowDrawerOpen(false)}
+              style={{ color: "var(--text-slate-500)" }}
+            />
+          </div>
+
+          <div className="fm-body" style={{ padding: "14px 20px 16px" }}>
+            <Form layout="vertical" className="customer-drawer-form fm-form">
+              {/* Details are two fields and a row of chips — deliberately one
+                  band, not a card. The mapping below is the work; this is the
+                  label on it, and it must not eat the height. */}
+              <div className="fm-details">
+                <div className="fm-field">
+                  <label className="fm-label" htmlFor="fm-name">
+                    Test Scenario Name <span className="fm-req">*</span>
+                  </label>
+                  <Input
+                    id="fm-name"
+                    placeholder="e.g., Create User"
+                    value={flowName}
+                    onChange={(e) => setFlowName(e.target.value)}
+                    className="fm-input"
+                  />
+                  {/* The flows nearly every module needs, one click away.
+                      Naming is where a tester stalls; a prompt, not a rule. */}
+                  {!editingFlow && (
+                    <div className="fm-suggest">
+                      {['Create User', 'Edit User', 'Delete User', 'Password Reset', 'Login'].map((sug) => (
+                        <button
+                          key={sug}
+                          type="button"
+                          className={`fm-suggest__chip${flowName.trim() === sug ? ' is-on' : ''}`}
+                          onClick={() => setFlowName(sug)}
+                        >
+                          {sug}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="fm-field">
+                  <label className="fm-label" htmlFor="fm-desc">
+                    Description <span className="fm-opt">optional</span>
+                  </label>
+                  <Input
+                    id="fm-desc"
+                    placeholder="e.g., Admin creates a user, assigns a role and the user signs in"
+                    value={flowDesc}
+                    onChange={(e) => setFlowDesc(e.target.value)}
+                    className="fm-input"
+                  />
+                </div>
+              </div>
+
+              <div className="fm-boardlabel">
+                <span className="fm-boardlabel__ic"><ListOrdered size={13} /></span>
+                <span className="fm-boardlabel__title">Map cases &amp; order the flow</span>
+                <span className="fm-boardlabel__sub">
+                  Pick the cases this scenario walks, then put them in the order a tester runs them
+                </span>
+              </div>
+              <div className="fm-board">
+                  {/* ── Left: what the module has ────────────────────────── */}
+                  <section className="fm-col">
+                    <header className="fm-col__head">
+                      <span className="fm-col__ic"><FileTextOutlined /></span>
+                      <h4 className="fm-col__title">Module cases</h4>
+                      <span className="fm-col__n">{pickerCases.length}</span>
+                      <div className="fm-scopes" role="group" aria-label="Narrow cases">
+                        <button
+                          type="button"
+                          className={`fm-scope${pickerScope === 'all' ? ' is-on' : ''}`}
+                          onClick={() => setPickerScope('all')}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          className={`fm-scope${pickerScope === 'unmapped' ? ' is-on' : ''}`}
+                          onClick={() => setPickerScope('unmapped')}
+                        >
+                          Ungrouped
+                        </button>
+                      </div>
+                    </header>
+
+                    <div className="fm-col__body">
+                      {/* A plain input, not antd's: the drawer's form styles
+                          border the inner .ant-input as well as the affix
+                          wrapper, which is what drew the box-inside-a-box. */}
+                      <div className="fm-search">
+                        <SearchOutlined className="fm-search__ic" />
+                        <input
+                          type="text"
+                          className="fm-search__field"
+                          placeholder="Search cases by name or ID"
+                          value={pickerSearch}
+                          onChange={(e) => setPickerSearch(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setPickerSearch(''); } }}
+                          aria-label="Search module cases"
+                        />
+                        {pickerSearch && (
+                          <>
+                            <span className="fm-search__hits">
+                              {pickerCases.length} {pickerCases.length === 1 ? 'match' : 'matches'}
+                            </span>
+                            <button
+                              type="button"
+                              className="fm-search__clear"
+                              onClick={() => setPickerSearch('')}
+                              aria-label="Clear search"
+                            >
+                              <CloseOutlined style={{ fontSize: 9 }} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="fm-rows">
+                        {allCasesLoading && <div className="fm-note">Loading cases…</div>}
+
+                        {!allCasesLoading && allCases.length === 0 && (
+                          <div className="fm-note">This module scenario has no cases yet.</div>
+                        )}
+
+                        {!allCasesLoading && allCases.length > 0 && pickerCases.length === 0 && (
+                          <div className="fm-note">
+                            Nothing matches.{' '}
+                            <button type="button" className="fm-link" onClick={() => { setPickerSearch(''); setPickerScope('all'); }}>
+                              Clear the filters
+                            </button>
+                          </div>
+                        )}
+
+                        {pickerCases.map((c) => {
+                          const picked = flowCaseIds.includes(c.id);
+                          const step = picked ? flowCaseIds.indexOf(c.id) + 1 : 0;
+                          const other = (flowsByCase[c.id] || []).filter(f => f.id !== editingFlow?.id);
+                          return (
+                            <div
+                              key={c.id}
+                              role="button"
+                              tabIndex={0}
+                              className={`fm-row${picked ? ' is-picked' : ''}`}
+                              draggable={!picked}
+                              onDragStart={() => { setDragCaseId(c.id); setDragIndex(null); }}
+                              onDragEnd={() => setDragCaseId(null)}
+                              onClick={() => togglePickedCase(c.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePickedCase(c.id); }
+                              }}
+                            >
+                              <span className={`fm-row__box${picked ? ' is-on' : ''}`} aria-hidden>
+                                {picked && <CheckCircleOutlined style={{ fontSize: 10 }} />}
+                              </span>
+
+                              <span className="fm-row__body">
+                                <span className="fm-row__name" title={c.name}>{c.name || 'Untitled case'}</span>
+                                <span className="fm-row__meta">
+                                  <span className="fm-row__code">{c.test_case_id || String(c.id).slice(0, 8).toUpperCase()}</span>
+                                  <span className="fm-row__dot" />
+                                  <span className="fm-row__type">{c.test_type || 'Functional'}</span>
+                                  {other.length > 0 && (
+                                    <>
+                                      <span className="fm-row__dot" />
+                                      <span className="fm-row__in" title={other.map(f => f.name).join(', ')}>
+                                        in {other.length} other
+                                      </span>
+                                    </>
+                                  )}
+                                </span>
+                              </span>
+
+                              {picked
+                                ? <span className="fm-row__chip is-on">Step {step}</span>
+                                : <span className="fm-row__chip">Add</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="fm-addall"
+                        disabled={pickerCases.length === 0 || pickerCases.every(c => flowCaseIds.includes(c.id))}
+                        onClick={addAllShown}
+                      >
+                        <PlusOutlined style={{ fontSize: 10 }} />
+                        Add all {pickerCases.length} shown
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* The direction of the mapping, said once. */}
+                  <div className="fm-arrow" aria-hidden>
+                    <span className="fm-arrow__line" />
+                    <span className="fm-arrow__badge"><ChevronRight size={13} /></span>
+                    <span className="fm-arrow__line" />
+                  </div>
+
+                  {/* ── Right: the flow being built ──────────────────────── */}
+                  <section className="fm-col fm-col--flow">
+                    <header className="fm-col__head">
+                      <span className="fm-col__ic fm-col__ic--blue"><ListOrdered size={13} /></span>
+                      <h4 className="fm-col__title">Flow order</h4>
+                      <span className="fm-col__n is-blue">{flowCaseIds.length}</span>
+                      {flowCaseIds.length > 0 && (
+                        <button type="button" className="fm-link fm-link--danger fm-col__clear" onClick={() => setFlowCaseIds([])}>
+                          Clear all
+                        </button>
+                      )}
+                    </header>
+
+                    <div className="fm-col__body">
+                      <p className="fm-hint">
+                        <GripVertical size={11} />
+                        Drag to reorder — step 1 runs first.
+                      </p>
+
+                      <div
+                        className={`fm-rows fm-rows--flow${dragCaseId ? ' is-target' : ''}`}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => dropPickedAt(flowCaseIds.length)}
+                      >
+                        {flowCaseIds.length === 0 ? (
+                          /* Ghost steps rather than one line in a void: the shape
+                             of the answer is the clearest instruction. */
+                          <div className="fm-ghosts">
+                            <p className="fm-ghosts__msg">
+                              Tick a case on the left, or drag one over — it lands here as the next step.
+                            </p>
+                            {[1, 2, 3].map((n) => (
+                              <div className="fm-ghost" key={n}>
+                                <span className="fm-ghost__n">{n}</span>
+                                <span className="fm-ghost__bars">
+                                  <span className="fm-ghost__bar" style={{ width: `${[68, 54, 61][n - 1]}%` }} />
+                                  <span className="fm-ghost__bar fm-ghost__bar--sm" />
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            {flowCaseIds.map((id, i) => {
+                              const c = allCases.find((x) => x.id === id);
+                              return (
+                                <div
+                                  key={id}
+                                  className={`fm-step${dragIndex === i ? ' is-dragging' : ''}`}
+                                  draggable
+                                  onDragStart={() => { setDragIndex(i); setDragCaseId(null); }}
+                                  onDragOver={(e) => e.preventDefault()}
+                                  onDrop={(e) => { e.stopPropagation(); dropPickedAt(i); }}
+                                  onDragEnd={() => { setDragIndex(null); setDragCaseId(null); }}
+                                >
+                                  <span className="fm-step__grip"><GripVertical size={13} /></span>
+                                  <span className="fm-step__n">{i + 1}</span>
+                                  <span className="fm-step__body">
+                                    <span className="fm-step__name" title={c?.name}>
+                                      {c?.name || 'Case no longer on this page'}
+                                    </span>
+                                    <span className="fm-step__code">
+                                      {c?.test_case_id || String(id).slice(0, 8).toUpperCase()}
+                                    </span>
+                                  </span>
+                                  <span className="fm-step__acts">
+                                    <Tooltip title="Move up">
+                                      <button type="button" onClick={() => movePicked(i, -1)} disabled={i === 0} aria-label="Move up">
+                                        <ArrowUp size={12} />
+                                      </button>
+                                    </Tooltip>
+                                    <Tooltip title="Move down">
+                                      <button type="button" onClick={() => movePicked(i, 1)} disabled={i === flowCaseIds.length - 1} aria-label="Move down">
+                                        <ArrowDown size={12} />
+                                      </button>
+                                    </Tooltip>
+                                    <Tooltip title="Remove from flow">
+                                      <button type="button" className="is-danger" onClick={() => togglePickedCase(id)} aria-label="Remove from flow">
+                                        <CloseOutlined style={{ fontSize: 10 }} />
+                                      </button>
+                                    </Tooltip>
+                                  </span>
+                                </div>
+                              );
+                            })}
+
+                            {/* Releasing below the last step appends rather than doing nothing. */}
+                            {(dragIndex !== null || dragCaseId) && (
+                              <div
+                                className="fm-tail"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => { e.stopPropagation(); dropPickedAt(flowCaseIds.length); }}
+                              >
+                                Drop here to add to the end
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      {/* The flow in one line, the way it will read on the page. */}
+                      {flowCaseIds.length > 0 && (
+                        <div className="fm-ribbon" title="The order this scenario runs in">
+                          {flowCaseIds.slice(0, 6).map((id, i) => {
+                            const c = allCases.find((x) => x.id === id);
+                            return (
+                              <React.Fragment key={id}>
+                                {i > 0 && <ChevronRight size={11} className="fm-ribbon__sep" />}
+                                <span className="fm-ribbon__code">
+                                  {c?.test_case_id || String(id).slice(0, 6).toUpperCase()}
+                                </span>
+                              </React.Fragment>
+                            );
+                          })}
+                          {flowCaseIds.length > 6 && <span className="fm-ribbon__more">+{flowCaseIds.length - 6}</span>}
+                        </div>
+                      )}
+                    </div>
+                </section>
+              </div>
+            </Form>
+          </div>
+
+          <div
+            style={{
+              padding: "14px 24px",
+              borderTop: "1px solid var(--border-color)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              bottom: 0,
+              background: "var(--bg-primary, #fff)",
+              zIndex: 10,
+            }}
+          >
+            <span style={{ fontSize: 12, color: "var(--text-slate-400)", fontWeight: 500 }}>
+              {flowCaseIds.length
+                ? `${flowCaseIds.length} case${flowCaseIds.length === 1 ? '' : 's'} in this flow — mapping does not move or copy them`
+                : 'A scenario can be saved empty and filled in later'}
+            </span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button onClick={() => setFlowDrawerOpen(false)} style={{ borderRadius: 8, fontWeight: 600, padding: "0 18px", height: 36 }}>
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={saveFlow}
+                loading={flowSaving}
+                style={{ borderRadius: 8, fontWeight: 600, padding: "0 20px", height: 36, background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                {editingFlow ? 'Save Scenario' : 'Create Scenario'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Drawer>
 
       {/* Module Test Case Drawer */}
       <Drawer
@@ -3164,11 +4141,6 @@ const CASE_DETAIL_SHELL_STYLES = `
 button.cd-crumb:hover { color: #2563eb; text-decoration: underline; }
 .cd-crumb--strong { color: var(--text-slate-700); cursor: default; }
 .cd-sep { color: var(--text-slate-300); font-size: 11px; flex-shrink: 0; }
-.cd-title {
-  font-size: 13.5px; font-weight: 700; color: var(--text-slate-900); letter-spacing: -0.01em;
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-[data-theme='dark'] .cd-title { color: #f1f5f9; }
 [data-theme='dark'] .cd-crumb--strong { color: #cbd5e1; }
 
 /* Banner tag tones — the restricted palette, no new hues. */
@@ -3197,8 +4169,495 @@ button.cd-crumb:hover { color: #2563eb; text-decoration: underline; }
 
 @media (max-width: 900px) {
   .cd-crumbs { max-width: 100%; }
-  .cd-crumb, .cd-sep { display: none; }
-  .cd-title { display: block; }
+  /* The root crumb and separators go; the module the cases sit under stays. */
+  button.cd-crumb, .cd-sep { display: none; }
 }
-`;
 
+/* ══ Test Scenarios — the flow layer over a module's cases ═══════════════ */
+
+/* List ⇄ flows switch, in the header beside sort and refresh. */
+.sc-viewtoggle {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+  border: 1px solid var(--border-slate-200); border-radius: 9px; background: transparent;
+}
+.sc-viewtoggle__btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+  border: none; background: transparent; border-radius: 7px; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--text-slate-500); font-family: inherit;
+  transition: background .15s ease, color .15s ease;
+}
+.sc-viewtoggle__btn:hover { background: var(--bg-slate-50); color: var(--text-slate-800); }
+.sc-viewtoggle__btn.is-active { background: rgba(59,130,246,.1); color: #2563eb; }
+.sc-viewtoggle__count {
+  min-width: 17px; padding: 0 5px; border-radius: 999px; font-size: 10px; font-weight: 800;
+  background: rgba(59,130,246,.16); color: #2563eb;
+}
+[data-theme='dark'] .sc-viewtoggle__btn.is-active { color: #93c5fd; }
+
+/* The Scenario column of the flat list. */
+.tc-flowtags { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tc-flowtag {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 150px; height: 20px;
+  padding: 0 7px 0 3px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  border: 1px solid rgba(59,130,246,.28); background: transparent; color: #2563eb;
+  font-size: 10.5px; font-weight: 700;
+}
+.tc-flowtag:hover { background: rgba(59,130,246,.1); }
+.tc-flowtag__step {
+  width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(59,130,246,.16); font-size: 9px; font-weight: 800;
+}
+.tc-flowtag__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-flowtag--more { padding: 0 8px; cursor: default; color: var(--text-slate-500); border-color: var(--border-slate-200); }
+[data-theme='dark'] .tc-flowtag { color: #93c5fd; }
+
+/* ── Grouped view ───────────────────────────────────────────────────────── */
+.fw-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+
+/* flex-shrink:0 is load-bearing: .fw-scroll is a column flex container, so
+   without it every card is squeezed to fit the viewport and its own
+   overflow:hidden then cuts the last steps off mid-row. The scroller scrolls;
+   the cards keep their height. */
+.fw-card {
+  flex-shrink: 0;
+  border: 1px solid var(--border-slate-200); border-radius: 10px;
+  background: transparent; overflow: hidden;
+}
+.fw-card.is-busy { opacity: .6; pointer-events: none; }
+.fw-card--loose { border-style: dashed; }
+[data-theme='dark'] .fw-card { border-color: #1f2937; }
+
+.fw-card__head {
+  display: flex; align-items: center; gap: 9px; padding: 9px 11px; min-width: 0;
+  background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-100);
+}
+[data-theme='dark'] .fw-card__head { background: #0f1419; border-bottom-color: #1f2937; }
+.fw-card__toggle {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 22px; height: 22px; border: none; background: transparent; border-radius: 6px;
+  color: var(--text-slate-500); cursor: pointer;
+}
+.fw-card__toggle:hover { background: var(--bg-slate-100); color: var(--text-slate-800); }
+.fw-card__idx {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #2563eb; background: rgba(59,130,246,.12);
+}
+.fw-card__idx--ash { color: var(--text-slate-500); background: var(--bg-slate-100); }
+.fw-card__titles { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.fw-card__name {
+  margin: 0; font-size: 13px; font-weight: 700; color: var(--text-slate-900);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .fw-card__name { color: #f1f5f9; }
+.fw-card__desc {
+  margin: 0; font-size: 11.5px; color: var(--text-slate-500);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fw-card__count {
+  flex-shrink: 0; white-space: nowrap;
+  font-size: 10.5px; font-weight: 700; color: var(--text-slate-500);
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-slate-200);
+}
+.fw-card__actions { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+/* :not(.ant-btn) matters — the loose card's "Group them" is an antd Button in
+   this same slot, and a 26px square box cut its label off at the card edge.
+   Only the bare icon buttons are squares. */
+.fw-card__actions > button:not(.ant-btn),
+.fw-step__acts > button:not(.ant-btn) {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border: none; border-radius: 6px;
+  background: transparent; color: var(--text-slate-500); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.fw-card__actions > button:not(.ant-btn):hover:not(:disabled),
+.fw-step__acts > button:not(.ant-btn):hover:not(:disabled) { background: var(--bg-slate-100); color: #2563eb; }
+.fw-card__actions > button:not(.ant-btn):disabled,
+.fw-step__acts > button:not(.ant-btn):disabled { opacity: .35; cursor: not-allowed; }
+.fw-card__actions > button.is-danger:not(.ant-btn):hover,
+.fw-step__acts > button.is-danger:not(.ant-btn):hover { background: rgba(239,68,68,.1); color: #ef4444; }
+/* The text button keeps its own width and never collapses. */
+.fw-card__actions > .ant-btn { flex-shrink: 0; white-space: nowrap; }
+
+.fw-steps { list-style: none; margin: 0; padding: 0; }
+.fw-step {
+  display: flex; align-items: center; gap: 9px; padding: 7px 11px; min-width: 0;
+  border-bottom: 1px solid var(--border-slate-100); font-size: 12.5px;
+}
+[data-theme='dark'] .fw-step { border-bottom-color: #1f2937; }
+.fw-step:last-child { border-bottom: none; }
+.fw-step:hover { background: var(--bg-slate-50); }
+.fw-step__n {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: var(--text-slate-600);
+  background: var(--bg-slate-100); border: 1px solid var(--border-slate-200);
+}
+.fw-step__code { flex-shrink: 0; }
+.fw-step__name {
+  flex: 1; min-width: 0; text-align: left; border: none; background: none; padding: 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-slate-800);
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fw-step__name:hover { color: #2563eb; }
+[data-theme='dark'] .fw-step__name { color: #e2e8f0; }
+.fw-step__meta { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.fw-step__acts { display: inline-flex; align-items: center; gap: 1px; flex-shrink: 0; }
+.fw-step--blank {
+  gap: 6px; color: var(--text-slate-400); font-size: 12px; font-style: italic;
+}
+.fw-link {
+  border: none; background: none; padding: 0; font-family: inherit; font-size: 12px;
+  font-weight: 700; color: #2563eb; cursor: pointer; font-style: normal;
+}
+.fw-link:hover { text-decoration: underline; }
+.fw-steps--loose .fw-step { padding-left: 11px; }
+
+/* ══ Mapping board: what the module has → the flow being built ══════════ */
+
+/* Live step count in the drawer header. */
+.fm-headpill {
+  flex-shrink: 0; padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; color: #2563eb;
+  background: rgba(59,130,246,.12);
+}
+
+/* ── Details band: two fields and a chip row, one band deep ────────────── */
+.fm-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.fm-form { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
+
+.fm-details {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px; align-items: start; flex-shrink: 0;
+}
+@media (max-width: 860px) { .fm-details { grid-template-columns: 1fr; gap: 12px; } }
+.fm-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fm-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--text-slate-700);
+}
+[data-theme='dark'] .fm-label { color: #cbd5e1; }
+.fm-req { color: #ef4444; font-weight: 700; }
+.fm-opt {
+  font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-slate-400);
+}
+.fm-input.ant-input, .fm-input .ant-input { height: 34px; border-radius: 8px !important; font-size: 12.5px; }
+
+/* Common flows: chips sit under the name field, filling the row the
+   description's second line would otherwise have taken. */
+.fm-suggest { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 1px; }
+.fm-suggest__chip {
+  height: 22px; padding: 0 9px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border-slate-200); background: transparent;
+  font-size: 11px; font-weight: 600; color: var(--text-slate-500);
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.fm-suggest__chip:hover { border-color: #93c5fd; color: #2563eb; background: rgba(59,130,246,.06); }
+.fm-suggest__chip.is-on { border-color: #3b82f6; color: #2563eb; background: rgba(59,130,246,.1); }
+[data-theme='dark'] .fm-suggest__chip { border-color: #1f2937; color: #cbd5e1; }
+
+/* One line where a section card used to be. */
+.fm-boardlabel {
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0; min-width: 0;
+  padding-top: 10px; border-top: 1px solid var(--border-slate-100);
+}
+[data-theme='dark'] .fm-boardlabel { border-top-color: #1f2937; }
+.fm-boardlabel__ic {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.12);
+}
+.fm-boardlabel__title {
+  font-size: 12.5px; font-weight: 700; color: var(--text-slate-800); white-space: nowrap;
+}
+[data-theme='dark'] .fm-boardlabel__title { color: #e2e8f0; }
+.fm-boardlabel__sub {
+  font-size: 11.5px; color: var(--text-slate-400); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 700px) { .fm-boardlabel__sub { display: none; } }
+
+/* ── The board: two columns and the arrow that names their relationship ── */
+.fm-board {
+  display: grid; grid-template-columns: 1fr 26px 1fr; align-items: stretch;
+  gap: 10px; flex: 1; min-height: 0;
+}
+/* Stacked, the board scrolls rather than crushing both columns. */
+@media (max-width: 860px) {
+  .fm-board { grid-template-columns: 1fr; gap: 12px; flex: none; overflow-y: auto; }
+  .fm-arrow { display: none !important; }
+}
+
+.fm-arrow {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 26px 0;
+}
+.fm-arrow__line { flex: 1; width: 1px; background: var(--border-slate-200); }
+[data-theme='dark'] .fm-arrow__line { background: #1f2937; }
+.fm-arrow__badge {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #2563eb; background: rgba(59,130,246,.12);
+}
+
+.fm-col {
+  display: flex; flex-direction: column; min-width: 0; height: 100%; min-height: 260px;
+  border: 1px solid var(--border-slate-200); border-radius: 12px; overflow: hidden;
+  background: var(--bg-pure-white, #fff);
+}
+[data-theme='dark'] .fm-col { border-color: #1f2937; background: transparent; }
+/* The destination reads as its own surface, not a second copy of the source. */
+.fm-col--flow { background: var(--bg-slate-50); }
+[data-theme='dark'] .fm-col--flow { background: rgba(148,163,184,.04); }
+@media (max-width: 860px) { .fm-col { height: 340px; } }
+
+.fm-col__head {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 9px 11px; border-bottom: 1px solid var(--border-slate-100);
+  background: var(--bg-slate-50);
+}
+.fm-col--flow .fm-col__head { background: rgba(59,130,246,.05); border-bottom-color: rgba(59,130,246,.14); }
+[data-theme='dark'] .fm-col__head { background: rgba(148,163,184,.05); border-bottom-color: #1f2937; }
+.fm-col__ic {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--text-slate-500); background: var(--bg-slate-100);
+}
+.fm-col__ic--blue { color: #2563eb; background: rgba(59,130,246,.12); }
+.fm-col__title {
+  margin: 0; font-size: 12.5px; font-weight: 700; color: var(--text-slate-800);
+  letter-spacing: -.01em; white-space: nowrap;
+}
+[data-theme='dark'] .fm-col__title { color: #e2e8f0; }
+.fm-col__n {
+  min-width: 19px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  font-size: 10px; font-weight: 800; color: var(--text-slate-500); background: var(--bg-slate-100);
+}
+.fm-col__n.is-blue { color: #2563eb; background: rgba(59,130,246,.14); }
+.fm-col__clear { margin-left: auto; }
+
+/* All ⇄ Ungrouped — the one narrowing that matters while mapping. */
+.fm-scopes {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;
+  padding: 2px; border: 1px solid var(--border-slate-200); border-radius: 7px;
+  background: var(--bg-pure-white, #fff);
+}
+[data-theme='dark'] .fm-scopes { border-color: #1f2937; background: transparent; }
+.fm-scope {
+  height: 21px; padding: 0 9px; border: none; background: transparent; border-radius: 5px;
+  font-family: inherit; font-size: 11px; font-weight: 700; color: var(--text-slate-500); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.fm-scope:hover { color: var(--text-slate-800); }
+.fm-scope.is-on { background: rgba(59,130,246,.12); color: #2563eb; }
+.fm-col__body { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 9px; gap: 8px; }
+
+/* Search + hint line share the same slot height so both columns line up. */
+.fm-search {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 32px; padding: 0 9px; border-radius: 8px;
+  border: 1px solid transparent; background: var(--bg-slate-100);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.fm-search:hover { background: var(--bg-slate-50); border-color: var(--border-slate-200); }
+/* Recessed until it is being used, then it lifts to a white field. */
+.fm-search:focus-within {
+  background: var(--bg-pure-white, #fff); border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+[data-theme='dark'] .fm-search { background: rgba(148,163,184,.08); }
+[data-theme='dark'] .fm-search:hover { border-color: #1f2937; }
+[data-theme='dark'] .fm-search:focus-within { background: transparent; border-color: #3b82f6; }
+.fm-search__ic { color: var(--text-slate-400); font-size: 12px; flex-shrink: 0; }
+.fm-search__field {
+  flex: 1; min-width: 0; height: 100%;
+  border: none; outline: none; background: transparent; padding: 0;
+  font-family: inherit; font-size: 12.5px; color: var(--text-slate-800);
+}
+[data-theme='dark'] .fm-search__field { color: #e2e8f0; }
+.fm-search__field::placeholder { color: var(--text-slate-400); }
+.fm-search__hits {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--text-slate-400);
+  white-space: nowrap;
+}
+.fm-search__clear {
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-slate-500); background: var(--bg-slate-200, #e2e8f0);
+  transition: background .15s ease, color .15s ease;
+}
+.fm-search__clear:hover { background: var(--text-slate-400); color: #fff; }
+.fm-hint {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  height: 32px; margin: 0; padding: 0 2px;
+  font-size: 11.5px; color: var(--text-slate-400);
+}
+
+.fm-rows {
+  flex: 1; min-height: 0; overflow-y: auto;
+  border: 1px solid var(--border-slate-100); border-radius: 9px;
+  background: transparent;
+}
+[data-theme='dark'] .fm-rows { border-color: #1f2937; }
+.fm-rows--flow {
+  border-style: dashed; border-color: var(--border-slate-200);
+  transition: border-color .15s ease, background .15s ease;
+}
+.fm-rows--flow.is-target { border-color: #3b82f6; border-style: solid; background: rgba(59,130,246,.05); }
+.fm-note { padding: 18px 14px; font-size: 12px; color: var(--text-slate-400); text-align: center; line-height: 1.6; }
+
+/* ── Source rows ───────────────────────────────────────────────────────── */
+.fm-row {
+  position: relative;
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 9px;
+  border-bottom: 1px solid var(--border-slate-100);
+  cursor: pointer; outline: none; transition: background .12s ease;
+}
+[data-theme='dark'] .fm-row { border-bottom-color: #1f2937; }
+.fm-row:last-child { border-bottom: none; }
+.fm-row:hover { background: var(--bg-slate-50); }
+.fm-row:focus-visible { background: var(--bg-slate-50); box-shadow: inset 0 0 0 2px rgba(59,130,246,.3); }
+.fm-row.is-picked { background: rgba(59,130,246,.05); }
+/* A blue edge is the cheapest way to read "already in the flow" while scanning. */
+.fm-row.is-picked::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #3b82f6;
+}
+.fm-row__box {
+  width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--border-slate-300, #cbd5e1); color: transparent;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.fm-row:hover .fm-row__box { border-color: #3b82f6; }
+.fm-row__box.is-on { background: #2563eb; border-color: #2563eb; color: #fff; }
+.fm-row__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fm-row__name {
+  font-size: 12.5px; font-weight: 600; color: var(--text-slate-800); line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .fm-row__name { color: #e2e8f0; }
+.fm-row__meta { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.fm-row__code {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #3b82f6;
+}
+.fm-row__dot { width: 2px; height: 2px; border-radius: 50%; background: var(--text-slate-300); flex-shrink: 0; }
+.fm-row__type, .fm-row__in {
+  font-size: 10.5px; font-weight: 600; color: var(--text-slate-400);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* "Add" is a hover affordance; "Step n" is state, so it always shows. */
+.fm-row__chip {
+  flex-shrink: 0; height: 20px; padding: 0 8px; border-radius: 999px;
+  display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 700; color: var(--text-slate-500);
+  border: 1px solid var(--border-slate-200); background: transparent;
+  opacity: 0; transition: opacity .12s ease;
+}
+.fm-row:hover .fm-row__chip, .fm-row:focus-visible .fm-row__chip { opacity: 1; }
+.fm-row__chip.is-on {
+  opacity: 1; color: #2563eb; border-color: transparent; background: rgba(59,130,246,.12);
+}
+
+.fm-addall {
+  flex-shrink: 0; height: 30px; width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px dashed var(--border-slate-200); border-radius: 8px; background: transparent;
+  font-family: inherit; font-size: 11.5px; font-weight: 700; color: #2563eb; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.fm-addall:hover:not(:disabled) { background: rgba(59,130,246,.06); border-color: #93c5fd; }
+.fm-addall:disabled { color: var(--text-slate-300); cursor: not-allowed; }
+[data-theme='dark'] .fm-addall { border-color: #1f2937; }
+
+/* ── The flow: steps on a rail ─────────────────────────────────────────── */
+.fm-step {
+  position: relative;
+  display: flex; align-items: center; gap: 8px; padding: 8px 9px;
+  border-bottom: 1px solid var(--border-slate-100);
+}
+[data-theme='dark'] .fm-step { border-bottom-color: #1f2937; }
+.fm-step:last-of-type { border-bottom: none; }
+.fm-step:hover { background: rgba(255,255,255,.6); }
+[data-theme='dark'] .fm-step:hover { background: rgba(148,163,184,.06); }
+.fm-step.is-dragging { opacity: .4; }
+/* The rail: a hairline from one step number to the next, so the column reads
+   as a sequence rather than a list that happens to be numbered. */
+.fm-step:not(:last-of-type)::after {
+  content: ''; position: absolute; left: 30px; top: 31px; bottom: -1px;
+  width: 1px; background: rgba(59,130,246,.28);
+}
+.fm-step__grip { color: var(--text-slate-300); cursor: grab; display: inline-flex; flex-shrink: 0; }
+.fm-step__grip:active { cursor: grabbing; }
+.fm-step__n {
+  width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; color: #fff; background: #2563eb;
+}
+.fm-step__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fm-step__name {
+  font-size: 12.5px; font-weight: 600; color: var(--text-slate-800); line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-theme='dark'] .fm-step__name { color: #e2e8f0; }
+.fm-step__code {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: var(--text-slate-400);
+}
+.fm-step__acts { display: inline-flex; align-items: center; gap: 1px; flex-shrink: 0; }
+.fm-step__acts > button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: none; border-radius: 5px;
+  background: transparent; color: var(--text-slate-500); cursor: pointer;
+}
+.fm-step__acts > button:hover:not(:disabled) { background: var(--bg-slate-100); color: #2563eb; }
+.fm-step__acts > button:disabled { opacity: .3; cursor: not-allowed; }
+.fm-step__acts > button.is-danger:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+
+/* ── Empty flow: the shape of the answer, not a sentence in a void ─────── */
+.fm-ghosts { padding: 14px 12px; display: flex; flex-direction: column; gap: 9px; }
+.fm-ghosts__msg {
+  margin: 0 0 3px; font-size: 11.5px; line-height: 1.5; color: var(--text-slate-400); text-align: center;
+}
+.fm-ghost { display: flex; align-items: center; gap: 9px; opacity: .75; }
+.fm-ghost__n {
+  width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 800; color: var(--text-slate-300);
+  border: 1px dashed var(--border-slate-200);
+}
+.fm-ghost__bars { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.fm-ghost__bar { height: 7px; border-radius: 999px; background: var(--bg-slate-100); }
+.fm-ghost__bar--sm { width: 32px; height: 5px; }
+[data-theme='dark'] .fm-ghost__bar { background: rgba(148,163,184,.12); }
+
+.fm-tail {
+  margin: 6px; padding: 9px; border: 1px dashed rgba(59,130,246,.5); border-radius: 8px;
+  text-align: center; font-size: 11.5px; font-weight: 600; color: #2563eb;
+  background: rgba(59,130,246,.05);
+}
+
+/* The whole flow on one line — what the card will read like on the page. */
+.fm-ribbon {
+  flex-shrink: 0; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 7px 9px; border-radius: 8px;
+  background: rgba(59,130,246,.06); border: 1px solid rgba(59,130,246,.16);
+}
+.fm-ribbon__code {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #2563eb;
+}
+.fm-ribbon__sep { color: rgba(59,130,246,.5); flex-shrink: 0; }
+.fm-ribbon__more { font-size: 10px; font-weight: 700; color: var(--text-slate-400); }
+
+.fm-link {
+  border: none; background: none; padding: 0; font-family: inherit; font-size: 11.5px;
+  font-weight: 700; color: #2563eb; cursor: pointer;
+}
+.fm-link:hover:not(:disabled) { text-decoration: underline; }
+.fm-link:disabled { color: var(--text-slate-300); cursor: not-allowed; }
+.fm-link--danger { color: #ef4444; }
+`;

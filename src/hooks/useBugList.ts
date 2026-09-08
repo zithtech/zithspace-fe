@@ -673,6 +673,59 @@ export const useDeleteBugType = () => {
   });
 };
 
+// ==================== Config: Bug List Type options ====================
+export const bugListTypeKeys = {
+  all: ["bug-list", "config", "bug-types"] as const,
+};
+
+export const useBugListTypeOptions = () =>
+  useQuery({
+    queryKey: bugListTypeKeys.all,
+    queryFn: () => BugListService.listBugListTypeOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useCreateBugListType = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (input: BugConfigCreateInput) =>
+      BugListService.createBugListTypeOption(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugListTypeKeys.all });
+      message.success("Bug type created");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useUpdateBugListType = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: BugConfigUpdateInput }) =>
+      BugListService.updateBugListTypeOption(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugListTypeKeys.all });
+      message.success("Bug type updated");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
+export const useDeleteBugListType = () => {
+  const qc = useQueryClient();
+  const { message } = App.useApp();
+  return useMutation({
+    mutationFn: (id: string) => BugListService.deleteBugListTypeOption(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bugListTypeKeys.all });
+      message.success("Bug type deleted");
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+};
+
 // ==================== Config: Priority options ====================
 // Shared by the bug list and the QA workspace (test cases, runs).
 export const priorityKeys = {

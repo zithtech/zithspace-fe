@@ -104,6 +104,7 @@ import {
   useTrashedFolders,
   useProjectSheets,
   useBulkMoveBugs,
+  useBugListTypeOptions,
 } from "@/hooks/useBugList";
 
 import { useProjectQaModules } from "@/hooks/useQaOptions";
@@ -237,6 +238,7 @@ export default function BugListPage() {
     scope,
     projectId: selectedProjectId || undefined,
   });
+  const { data: bugTypesData } = useBugListTypeOptions();
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [isResizing, setIsResizing] = useState(false);
@@ -987,14 +989,7 @@ export default function BugListPage() {
                         { value: "pending", label: "Pending" },
                         { value: "completed", label: "Completed" }
                       ]}
-                      typeOptions={[
-                        { value: "functional", label: "Functional" },
-                        { value: "visual", label: "Visual" },
-                        { value: "crash", label: "Crash" },
-                        { value: "performance", label: "Performance" },
-                        { value: "security", label: "Security" },
-                        { value: "other", label: "Other" }
-                      ]}
+                      typeOptions={bugTypesData?.map(t => ({ value: t.key, label: t.label })) || []}
                       moduleOptions={formattedModuleOptions}
                       ticketStatusOptions={[
                         { value: "all", label: "All bugs" },

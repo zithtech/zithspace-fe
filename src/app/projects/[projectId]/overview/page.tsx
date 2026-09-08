@@ -121,7 +121,7 @@ const ProjectOverviewPage = () => {
     <MainLayout noPadding>
       <div className="po-shell">
         {/* ── Header row — back, breadcrumb, actions ─────────────────── */}
-        <div className="saas-header-container sc-header">
+        <div className="sc-header">
           <Tooltip title="Back to projects">
             <Button
               type="text"
@@ -318,11 +318,11 @@ const ProjectOverviewPage = () => {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          background: var(--bg-pure-white);
+          background: var(--bg-pure-white) !important;
           border-bottom: 1px solid var(--border-slate-200);
           flex-shrink: 0;
         }
-        [data-theme='dark'] .sc-header { background: #0f1419; border-bottom-color: #1f2937; }
+        [data-theme='dark'] .sc-header { background: #0f1419 !important; border-bottom-color: #1f2937 !important; }
         .sc-header-controls { flex: 1; min-width: 0; }
         .sc-header-right { flex-shrink: 0; }
 

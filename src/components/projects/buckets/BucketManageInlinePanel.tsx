@@ -101,7 +101,7 @@ export function BucketManageInlinePanel({
   const [activeTab, setActiveTab] = useState<TabKey>("tickets");
   const [memberManagerOpen, setMemberManagerOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
@@ -671,7 +671,7 @@ export function BucketManageInlinePanel({
                       setPageSize(s);
                     }}
                     showSizeChanger
-                    pageSizeOptions={[10, 20, 25, 50, 100]}
+                    pageSizeOptions={[10, 15, 20, 25, 50, 100]}
                     size="small"
                   />
                 </div>

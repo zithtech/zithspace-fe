@@ -49,9 +49,10 @@ export const clientPortalService = {
     );
   },
 
-  resetPassword(portalUserId: string) {
+  resetPassword(portalUserId: string, payload?: { portalUrl?: string }) {
     return api.post<{ temporaryPassword: string; emailSent: boolean }>(
       `/api/clients-v2/portal-users/${portalUserId}/reset-password`,
+      payload,
     );
   },
 

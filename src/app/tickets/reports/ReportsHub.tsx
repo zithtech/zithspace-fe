@@ -58,7 +58,7 @@ type ProjectOption = {
   description?: string;
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const initialsOf = (name: string) =>
   (name || "—")
@@ -125,7 +125,7 @@ export default function ReportsHub() {
   const [completionFilter, setCompletionFilter] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -919,12 +919,24 @@ export default function ReportsHub() {
           display: flex;
           margin: 0;
           height: 100%;
+          width: 100%;
+          max-width: 100%;
           overflow: hidden;
           background: var(--bg-pure-white);
         }
 
         /* ---------------- Main ---------------- */
-        .pp-main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; overflow-y: auto; }
+        .pp-main {
+          flex: 1;
+          min-width: 0;
+          width: 100%;
+          max-width: 100%;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          overflow-x: hidden;
+        }
 
         /* ── Header row, matched to the Ticket List ─────────────────────── */
         .sc-header {
@@ -1127,12 +1139,14 @@ export default function ReportsHub() {
         .pp-footer {
           display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
           padding: 0 14px; border-top: 1px solid var(--border-slate-200); height: 52px !important; box-sizing: border-box;
+          width: 100%; max-width: 100%;
         }
         .pp-footer--sticky {
-          position: sticky; bottom: 0; z-index: 30; margin: 8px -18px 0; padding: 0 18px;
+          position: sticky; bottom: 0; z-index: 30; margin: 0; padding: 0 16px;
           background: var(--bg-primary) !important;
           box-shadow: 0 -4px 14px rgba(15,23,42,0.05);
           height: 52px !important; box-sizing: border-box;
+          width: 100%; max-width: 100%;
         }
         .pp-footer-info { font-size: 12px; color: var(--text-slate-500); }
         .pp-footer-info strong { color: var(--text-slate-700); font-weight: 700; }

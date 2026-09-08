@@ -857,7 +857,7 @@ const DocumentHubPage = () => {
     { key: 'updatedAt', dir: 'descend' },
   );
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
   const [railVisibility, setRailVisibility] = useState<RailVisibility>(DEFAULT_RAILS);
   // Used by the "NEW" badge to re-render every minute so the pulse fades on schedule.
   const [, setTickNow] = useState(0);
@@ -2937,7 +2937,7 @@ const DocumentHubPage = () => {
                     className="pp-pagesize"
                     value={tablePageSize}
                     onChange={(v) => { setTablePageSize(v); setTablePage(1); }}
-                    options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                    options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                     popupMatchSelectWidth={120}
                   />
                 </div>
@@ -4300,21 +4300,21 @@ const DocumentHubPage = () => {
           }
           /* Sidebar becomes a slide-in drawer */
           .dh-sidebar {
-            position: fixed;
-            top: 54px; left: 0; bottom: 0;
-            height: calc(100vh - 54px);
-            width: 286px;
-            max-width: 86vw;
-            margin: 0;
-            border-radius: 0 18px 18px 0;
-            border-left: none;
-            transform: translateX(-103%);
-            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1200;
+            position: fixed !important;
+            top: 54px !important; left: 0 !important; bottom: 0 !important;
+            height: calc(100vh - 54px) !important;
+            width: 286px !important;
+            max-width: 86vw !important;
+            margin: 0 !important;
+            border-radius: 0 18px 18px 0 !important;
+            border-left: none !important;
+            transform: translateX(-105%) !important;
+            transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            z-index: 900 !important;
           }
           .dh-sidebar.is-mobile-open {
-            transform: translateX(0);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+            transform: translateX(0%) !important;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28) !important;
           }
           .dh-sidebar-backdrop {
             display: block;
@@ -4325,7 +4325,7 @@ const DocumentHubPage = () => {
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.26s ease;
-            z-index: 1150;
+            z-index: 850;
           }
           .dh-sidebar-backdrop.is-open { opacity: 1; pointer-events: auto; }
           .dh-main-topbar { flex-wrap: wrap; padding: 8px 14px; min-height: 0; }

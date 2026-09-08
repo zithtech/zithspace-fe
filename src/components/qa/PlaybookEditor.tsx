@@ -36,6 +36,7 @@ import {
   Lock,
   Plus,
   Save,
+  SlidersHorizontal,
   Tags,
   Sparkles,
   Target,
@@ -293,6 +294,44 @@ export default function PlaybookEditor({
     }),
     [metaState, itemCount, levelCounts, initial]
   );
+
+  const middleHeader = useMemo(() => {
+    if (selection.kind === "meta") {
+      const filled = [
+        metaState.name,
+        metaState.category,
+        metaState.summary,
+        metaState.overview,
+      ].filter((v) => v && v.trim().length > 0).length;
+      return {
+        icon: <BookOpen size={14} className="pb-col-header__icon" />,
+        title: "PLAYBOOK DETAILS",
+        meta: `${filled} of 4 fields`,
+      };
+    }
+    if (selection.kind === "section") {
+      const sec = sectionAt(sections, selection.path);
+      const isSub = selection.path.length > 1;
+      const count = sec?.items.length ?? 0;
+      return {
+        icon: <Layers size={14} className="pb-col-header__icon" />,
+        title: isSub ? "SUB-SECTION DETAILS" : "SECTION DETAILS",
+        meta: `${count} recommendation${count === 1 ? "" : "s"}`,
+      };
+    }
+    const sec = sectionAt(sections, selection.path);
+    const item = sec?.items[selection.index];
+    const filled = item
+      ? [item.title, item.what_to_test, item.expected, item.why_it_matters].filter(
+          (v) => v && v.trim().length > 0
+        ).length
+      : 0;
+    return {
+      icon: <FileText size={14} className="pb-col-header__icon" />,
+      title: "RECOMMENDATION",
+      meta: `${filled} of 4 fields`,
+    };
+  }, [selection, metaState, sections]);
 
   /**
    * Mutations rebuild only the nodes along the path they touch; every untouched
@@ -686,38 +725,58 @@ export default function PlaybookEditor({
           )}
 
           <div className="pb-edit">
-            <nav className="pb-edit__nav">
-              <div className="pb-tree__head">Outline</div>
-              <button
-                type="button"
-                className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
-                onClick={() => setSelection({ kind: "meta" })}
-              >
-                <BookOpen size={13} />
-                <span className="pb-tree__label">Playbook details</span>
-              </button>
-
-              {renderTree(sections)}
-
-              {/* The one structural act on this rail, so it does not look like a
-                  third "+" row: a section is the level a reader navigates by, and
-                  the copy says so rather than assuming the author knows. */}
-              <button type="button" className="pb-tree__addmain" onClick={addSection}>
-                <span className="pb-tree__addmain__badge">
-                  <Plus size={15} />
+            {/* Column 1: Outline */}
+            <div className="pb-edit-col pb-edit-col--outline">
+              <div className="pb-col-header">
+                <div className="pb-col-header__left">
+                  <SlidersHorizontal size={14} className="pb-col-header__icon" />
+                  <span className="pb-col-header__title">OUTLINE</span>
+                </div>
+                <span className="pb-col-header__meta">
+                  {sections.length} {sections.length === 1 ? "section" : "sections"}
                 </span>
-                <span className="pb-tree__addmain__text">
-                  <b>Add section</b>
-                  <em>
-                    A top-level group a reader jumps to — Basic Testing, Session &amp;
-                    Logout. Recommendations and sub-sections live inside one.
-                  </em>
-                </span>
-              </button>
-            </nav>
+              </div>
+              <nav className="pb-edit__nav">
+                <button
+                  type="button"
+                  className={`pb-tree__row ${isOn({ kind: "meta" }) ? "is-on" : ""}`}
+                  onClick={() => setSelection({ kind: "meta" })}
+                >
+                  <BookOpen size={13} />
+                  <span className="pb-tree__label">Playbook details</span>
+                </button>
 
-            <div className="pb-edit__body">
-              {selection.kind === "meta" && (
+                {renderTree(sections)}
+
+                {/* The one structural act on this rail, so it does not look like a
+                    third "+" row: a section is the level a reader navigates by, and
+                    the copy says so rather than assuming the author knows. */}
+                <button type="button" className="pb-tree__addmain" onClick={addSection}>
+                  <span className="pb-tree__addmain__badge">
+                    <Plus size={15} />
+                  </span>
+                  <span className="pb-tree__addmain__text">
+                    <b>Add section</b>
+                    <em>
+                      A top-level group a reader jumps to — Basic Testing, Session &amp;
+                      Logout. Recommendations and sub-sections live inside one.
+                    </em>
+                  </span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Column 2: Form Details */}
+            <div className="pb-edit-col pb-edit-col--form">
+              <div className="pb-col-header">
+                <div className="pb-col-header__left">
+                  {middleHeader.icon}
+                  <span className="pb-col-header__title">{middleHeader.title}</span>
+                </div>
+                <span className="pb-col-header__meta">{middleHeader.meta}</span>
+              </div>
+              <div className="pb-edit__body">
+                {selection.kind === "meta" && (
                 <div className="pb-form">
                   <BodyHeader
                     crumbs={["Playbook"]}
@@ -1397,25 +1456,30 @@ export default function PlaybookEditor({
                     </div>
                   );
                 })()}
+              </div>
             </div>
 
+            {/* Column 3: Live Preview */}
             {showPreview && (
-              <aside className="pb-preview">
-                <div className="pb-preview__head">
-                  <Eye size={13} />
-                  <span className="pb-preview__title">Live preview</span>
-                  <span className="pb-preview__what">
-                    {itemCount} recommendation{itemCount === 1 ? "" : "s"}
+              <aside className="pb-edit-col pb-edit-col--preview">
+                <div className="pb-col-header">
+                  <div className="pb-col-header__left">
+                    <Eye size={14} className="pb-col-header__icon" />
+                    <span className="pb-col-header__title">LIVE PREVIEW</span>
+                  </div>
+                  <span className="pb-col-header__meta">
+                    {itemCount} {itemCount === 1 ? "recommendation" : "recommendations"}
                   </span>
                 </div>
 
-                {/* The whole playbook as a reader gets it. The node being edited
-                    is ringed and scrolled to, so the author keeps the context of
-                    what sits either side of it. */}
-                <div
-                  ref={(el) => { nodeRefs.current["meta"] = el; }}
-                  className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
-                >
+                <div className="pb-preview">
+                  {/* The whole playbook as a reader gets it. The node being edited
+                      is ringed and scrolled to, so the author keeps the context of
+                      what sits either side of it. */}
+                  <div
+                    ref={(el) => { nodeRefs.current["meta"] = el; }}
+                    className={`pb-pnode ${selectionKey === "meta" ? "is-editing" : ""}`}
+                  >
                   <PlaybookCatalogCard playbook={previewSummary} />
                   {metaState.overview.trim() ? (
                     <div style={{ marginTop: 12 }}>
@@ -1516,6 +1580,7 @@ export default function PlaybookEditor({
                     </section>
                   );
                 })}
+                </div>
               </aside>
             )}
           </div>

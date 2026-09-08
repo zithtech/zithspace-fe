@@ -1433,19 +1433,118 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
 }
 [data-theme='dark'] .pb-ghost { border-color: #1f2937; }
 
-/* ── Author form ────────────────────────────────────────────────────────── */
-.pb-edit { display: flex; flex: 1; min-height: 0; }
-.pb-edit__nav {
-  width: 292px; flex-shrink: 0; overflow-y: auto;
-  /* 14px on all three columns: the outline, the form's title bar and the
-     preview's header start on the same line across the screen. */
-  padding: 14px 10px 24px;
+/* ── Author form: 3-column static card layout with aligned top headers ── */
+.pb-edit {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 54px - 64px);
+  background: var(--bg-pure-white);
+  overflow: hidden;
+}
+[data-theme='dark'] .pb-edit { background: #0b0f14; }
+
+.pb-edit-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.pb-edit-col--outline {
+  width: 290px;
+  flex-shrink: 0;
   border-right: 1px solid var(--border-slate-200);
   background: var(--bg-slate-50);
 }
-[data-theme='dark'] .pb-edit__nav { background: #0f1419; border-right-color: #1f2937; }
-.pb-edit__body { flex: 1; min-width: 0; overflow-y: auto; padding: 14px 18px 60px; }
-@media (max-width: 1000px) { .pb-edit { flex-direction: column; } .pb-edit__nav { width: 100%; border-right: none; border-bottom: 1px solid var(--border-slate-200); } }
+[data-theme='dark'] .pb-edit-col--outline { background: #0f1419; border-right-color: #1f2937; }
+
+.pb-edit-col--form {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-pure-white);
+}
+[data-theme='dark'] .pb-edit-col--form { background: #0b0f14; }
+
+.pb-edit-col--preview {
+  width: 460px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-slate-200);
+  background: var(--bg-slate-50);
+}
+[data-theme='dark'] .pb-edit-col--preview { background: #0f1419; border-left-color: #1f2937; }
+
+/* ── Uniform same-line header across all 3 columns ───────────────────────── */
+.pb-col-header {
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-slate-50);
+  border-bottom: 1px solid var(--border-slate-200);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+[data-theme='dark'] .pb-col-header { background: #0f1419; border-bottom-color: #1f2937; }
+
+.pb-col-header__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pb-col-header__icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+[data-theme='dark'] .pb-col-header__icon { color: #94a3b8; }
+
+.pb-col-header__title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-slate-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme='dark'] .pb-col-header__title { color: #cbd5e1; }
+
+.pb-col-header__meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-slate-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+[data-theme='dark'] .pb-col-header__meta { color: #64748b; }
+
+.pb-edit__nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 10px 24px;
+  background: transparent;
+}
+
+.pb-edit__body {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 18px 24px 60px;
+  background: transparent;
+}
+
+@media (max-width: 1000px) {
+  .pb-edit { flex-direction: column; height: auto; overflow: visible; }
+  .pb-edit-col--outline { width: 100%; border-right: none; border-bottom: 1px solid var(--border-slate-200); }
+}
 
 .pb-tree__head {
   padding: 0 8px 10px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em;
@@ -1538,32 +1637,13 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
 .pb-tree__group { margin-bottom: 8px; }
 
 /* ── Live preview column ────────────────────────────────────────────────── */
-/* Renders the real reader components, so the author is looking at the actual
-   card rather than an approximation of it. */
 .pb-preview {
-  width: 460px; flex-shrink: 0; overflow-y: auto;
-  padding: 14px 14px 60px;
-  border-left: 1px solid var(--border-slate-200);
-  background: var(--bg-slate-50);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 16px 60px;
+  background: transparent;
 }
-[data-theme='dark'] .pb-preview { background: #0f1419; border-left-color: #1f2937; }
-.pb-preview__head {
-  display: flex; align-items: center; gap: 7px;
-  position: sticky; top: 0; z-index: 2;
-  /* 22px of clearance below: the editing ring's badge sits 8px ABOVE its node,
-     and with a tighter gap the sticky header cropped it. */
-  margin: -14px -14px 22px; padding: 14px 14px 10px;
-  background: var(--bg-slate-50); border-bottom: 1px solid var(--border-slate-200);
-  box-shadow: 0 6px 12px -10px rgba(15,23,42,.35);
-}
-[data-theme='dark'] .pb-preview__head { background: #0f1419; border-bottom-color: #1f2937; }
-.pb-preview__head svg { color: #2563eb; }
-.pb-preview__title {
-  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--text-slate-500);
-}
-.pb-preview__what { margin-left: auto; font-size: 11px; color: var(--text-slate-400); }
-/* The preview shows one card at natural width; the catalog grid does not apply. */
 .pb-preview .pb-card { cursor: default; }
 .pb-preview .pb-card.is-static:hover { border-color: var(--border-slate-200); box-shadow: none; transform: none; }
 .pb-preview .pb-card.is-static .pb-card__go { display: none; }
@@ -1575,13 +1655,9 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
 }
 
 /* ── The node currently being edited ────────────────────────────────────── */
-/* Every previewable node is wrapped, so the ring can sit around a card, a
-   section heading or the catalog card without each of them needing its own
-   selected state. */
 .pb-pnode {
   position: relative; border-radius: 12px;
-  /* Keeps the ring clear of the sticky preview header when scrolled to. */
-  scroll-margin-top: 52px; scroll-margin-bottom: 16px;
+  scroll-margin-top: 16px; scroll-margin-bottom: 16px;
   transition: box-shadow .2s ease, background .2s ease;
 }
 .pb-pnode.is-editing {
@@ -1589,7 +1665,6 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
   background: rgba(59,130,246,.035);
 }
 [data-theme='dark'] .pb-pnode.is-editing { background: rgba(59,130,246,.07); }
-/* A small marker so the ring reads as "you are here" rather than an error. */
 .pb-pnode.is-editing::after {
   content: "Editing";
   position: absolute; top: -8px; right: 10px;
@@ -1598,8 +1673,8 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
   color: #fff; background: #2563eb;
 }
 [data-theme='dark'] .pb-preview__empty { border-color: #1f2937; }
-@media (max-width: 1400px) { .pb-preview { width: 380px; } }
-@media (max-width: 1180px) { .pb-preview { display: none; } }
+@media (max-width: 1400px) { .pb-edit-col--preview { width: 380px; } }
+@media (max-width: 1180px) { .pb-edit-col--preview { display: none; } }
 
 .pb-form { max-width: 880px; }
 .pb-form__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -1607,29 +1682,19 @@ button.pb-import__row:hover { border-color: rgba(59,130,246,.4); background: rgb
 .pb-form__hint { font-size: 11.5px; line-height: 1.55; color: var(--text-slate-400); margin: 4px 0 0; }
 
 /* ── Editor body header ─────────────────────────────────────────────────── */
-/* Sticky, so the author always knows which node they are editing and how much
-   of it is still blank while they scroll a long recommendation. */
 .pb-bhead {
-  position: sticky; top: 0; z-index: 3;
-  /* Sits a touch higher than the outline and preview eyebrows on purpose: this
-     bar is a title block, not a one-line label, so matching their text baseline
-     left it reading low against them.
-     20px of clearance below, so the first field-group card is not against it. */
-  margin: -14px -18px 20px; padding: 9px 18px 11px;
-  /* Same faint blue wash as the reader's hero, so the thing you are editing is
-     titled the way it will be read. */
-  background: linear-gradient(90deg, rgba(59,130,246,.05), rgba(59,130,246,0) 40%),
-              var(--bg-pure-white);
+  margin: 0 0 18px;
+  padding: 0 0 14px;
   border-bottom: 1px solid var(--border-slate-200);
-  box-shadow: 0 6px 12px -12px rgba(15,23,42,.4);
 }
-[data-theme='dark'] .pb-bhead { background: #0b0f14; border-bottom-color: #1f2937; }
+[data-theme='dark'] .pb-bhead { border-bottom-color: #1f2937; }
 .pb-bhead__crumb {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
   color: var(--text-slate-400); margin-bottom: 3px; line-height: 1;
 }
-.pb-bhead__crumb b { color: var(--text-slate-500); font-weight: 800; }
+.pb-bhead__crumb b { color: var(--text-slate-600); font-weight: 800; }
+[data-theme='dark'] .pb-bhead__crumb b { color: #94a3b8; }
 .pb-bhead__row { display: flex; align-items: center; gap: 12px; }
 .pb-bhead__title {
   font-size: 15px; font-weight: 800; letter-spacing: -.015em;

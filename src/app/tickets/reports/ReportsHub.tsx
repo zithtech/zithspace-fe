@@ -58,7 +58,7 @@ type ProjectOption = {
   description?: string;
 };
 
-const PAGE_SIZE_OPTIONS = [10, 20, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
 const initialsOf = (name: string) =>
   (name || "—")
@@ -125,7 +125,7 @@ export default function ReportsHub() {
   const [completionFilter, setCompletionFilter] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [tablePage, setTablePage] = useState(1);
-  const [tablePageSize, setTablePageSize] = useState(20);
+  const [tablePageSize, setTablePageSize] = useState(15);
 
   const searchRef = useRef<HTMLInputElement>(null);
 

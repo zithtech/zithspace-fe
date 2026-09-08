@@ -102,7 +102,7 @@ export default function TestRunExecutionPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
   // ── Server-side pagination ───────────────────────────────────────────────
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
 
   /* ── Test Scenarios over this run ────────────────────────────────────────
      A run executes a suite, and the suite's cases may already be grouped into
@@ -2212,7 +2212,7 @@ export default function TestRunExecutionPage() {
                   className="pp-pagesize"
                   value={pageSize}
                   onChange={(v) => { setPageSize(v); setPage(1); }}
-                  options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                  options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                   popupMatchSelectWidth={120}
                 />
               </div>

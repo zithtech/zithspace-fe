@@ -46,7 +46,7 @@ export default function CollectionDetailPage() {
   const router = useRouter();
   const params = useParams();
   const queryClient = useQueryClient();
-  const { canReadCase } = usePermission();
+  const { canReadPlaybook } = usePermission();
   const slug = String(params?.slug ?? "");
 
   const [curating, setCurating] = useState(false);
@@ -55,7 +55,7 @@ export default function CollectionDetailPage() {
   const { data, isLoading, isError } = useQuery<CollectionDetail>({
     queryKey: ["qa", "collections", "detail", slug],
     queryFn: () => axios.get(`/api/v2/qa/playbooks/collections/${slug}`),
-    enabled: canReadCase && Boolean(slug),
+    enabled: canReadPlaybook && Boolean(slug),
     staleTime: 60 * 1000,
   });
 
@@ -94,7 +94,7 @@ export default function CollectionDetailPage() {
   const remove = useMutation({
     mutationFn: () => axios.delete(`/api/v2/qa/playbooks/collections/${data?.id}`),
     onSuccess: () => {
-      message.success("Collection deleted");
+      message.success("Collection moved to Trash");
       queryClient.invalidateQueries({ queryKey: ["qa", "collections"] });
       router.push("/playbooks/collections");
     },
@@ -103,12 +103,12 @@ export default function CollectionDetailPage() {
     },
   });
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to collections"
-          description="You need test case read access to open the playbook library."
+          description="You need test playbook read access to open the playbook library."
         />
       </MainLayout>
     );

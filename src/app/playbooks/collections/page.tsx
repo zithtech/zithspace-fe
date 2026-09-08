@@ -18,11 +18,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { ArrowUpRight, BookOpen, Layers, Lock, Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, BookOpen, Layers, Lock, Search, Sparkles, Trash2 } from "lucide-react";
 
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -107,12 +108,18 @@ export default function CollectionsPage() {
   useActivitySource({ section: "WORK", module: "QA", page: "Playbook Collections" });
 
   const router = useRouter();
-  const { canReadCase, canCreateCase } = usePermission();
+  const { user } = useAuth();
+  const { canReadPlaybook, canCreatePlaybook, canReadPlaybookTrash } = usePermission();
 
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [pinning, setPinning] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
+
+  const hasNewCollectionFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections");
 
   const { data, isLoading } = useQuery<{
     collections: CollectionSummary[];
@@ -129,7 +136,7 @@ export default function CollectionsPage() {
       if (debouncedSearch) params.set("search", debouncedSearch);
       return axios.get(`/api/v2/qa/playbooks/collections?${params.toString()}`);
     },
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -165,12 +172,12 @@ export default function CollectionsPage() {
     };
   }, [data]);
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to collections"
-          description="You need test case read access to open the playbook library."
+          description="You need test playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -215,6 +222,14 @@ export default function CollectionsPage() {
             />
             <div style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>
               <Button onClick={() => router.push("/playbooks")}>All playbooks</Button>
+              {canReadPlaybookTrash && (
+                <Button
+                  icon={<Trash2 size={14} />}
+                  onClick={() => router.push("/playbooks/trash?tab=collections")}
+                >
+                  Trash
+                </Button>
+              )}
               <Button icon={<Sparkles size={14} />} onClick={() => setPinning(true)}>
                 What do you build?
               </Button>
@@ -222,7 +237,7 @@ export default function CollectionsPage() {
                   What the write MEANS is decided on the server from who is
                   asking: a curator's is published to the platform, a team's is
                   their workspace's alone. */}
-              {canCreateCase && (
+              {canCreatePlaybook && hasNewCollectionFeature && (
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
                   New collection
                 </Button>

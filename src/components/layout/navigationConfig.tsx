@@ -263,6 +263,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.BUG_READ,
       Permissions.QA_SCOPE_READ,
       Permissions.QA_CASE_READ,
+      Permissions.PLAYBOOK_READ,
+      Permissions.PLAYBOOK_TRASH_READ,
       Permissions.QA_SUITE_READ,
       Permissions.QA_RUN_READ,
       Permissions.QA_COVERAGE_MAP_READ,
@@ -366,15 +368,19 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "playbooks",
         label: "Playbooks",
         icon: I(BookOpen),
-        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
-        requiredPermission: Permissions.QA_CASE_READ,
+        requiredSubscriptionFeature: ["work_playbooks"],
+        requiredAnyPermission: [
+          Permissions.PLAYBOOK_READ,
+          Permissions.QA_CASE_READ,
+          Permissions.PLAYBOOK_TRASH_READ,
+        ],
         children: [
           {
             key: "/playbooks",
             label: "QA Playbooks",
             icon: I(BookOpen),
             path: "/playbooks",
-            requiredPermission: Permissions.QA_CASE_READ,
+            requiredAnyPermission: [Permissions.PLAYBOOK_READ],
           },
           {
             // The other axis on the same library: categories say what part of an
@@ -385,7 +391,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Collections",
             icon: I(Layers),
             path: "/playbooks/collections",
-            requiredPermission: Permissions.QA_CASE_READ,
+            requiredAnyPermission: [Permissions.PLAYBOOK_READ],
           },
           {
             // The other half of the catalog: what this workspace asked Testiez
@@ -394,7 +400,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Requested Playbooks",
             icon: I(Sparkles),
             path: "/playbooks/requested",
-            requiredPermission: Permissions.QA_CASE_READ,
+            requiredAnyPermission: [Permissions.PLAYBOOK_READ],
+          },
+          {
+            key: "/playbooks/trash",
+            label: "Trash",
+            icon: I(Trash2),
+            path: "/playbooks/trash",
+            requiredPermission: Permissions.PLAYBOOK_TRASH_READ,
           },
         ],
       },
@@ -402,7 +415,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "qa-workspace",
         label: "QA Space",
         icon: I(Bug),
-        requiredSubscriptionFeature: ["work_qa_space", "work_qa_workspace"],
+        requiredSubscriptionFeature: ["work_qa_space"],
         requiredAnyPermission: [
           Permissions.QA_SCOPE_READ,
           Permissions.QA_CASE_READ,

@@ -207,7 +207,27 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
   >([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [rejected, setRejected] = useState<ValidationDetail[] | null>(null);
+  const [targetCollectionId, setTargetCollectionId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const { data: collectionData } = useQuery<{
+    collections: { id: string; name: string; slug: string }[];
+  }>({
+    queryKey: ["qa", "collections", "for-import-modal"],
+    queryFn: () => axios.get("/api/v2/qa/playbooks/collections?all=true"),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+  const collections = collectionData?.collections ?? [];
+
+  const collectionOptions = useMemo(
+    () =>
+      collections.map((c) => ({
+        value: c.id,
+        label: c.name,
+      })),
+    [collections]
+  );
 
   /**
    * Parsed on every keystroke rather than behind a "Validate" button: the
@@ -489,6 +509,7 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
 
       try {
         const response: any = await axios.post("/api/v2/qa/playbooks/import", {
+          collection_id: targetCollectionId || undefined,
           playbooks: [playbook],
         });
 
@@ -527,7 +548,10 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
         }
         const reason =
           (Array.isArray(fields) && fields.length > 0
-            ? `${fields.length} field${fields.length === 1 ? "" : "s"} rejected`
+            ? fields
+                .map((f) => `${f.path.replace(/^playbooks\.0\./, "")}: ${f.message}`)
+                .slice(0, 2)
+                .join("; ")
             : null) ||
           err?.response?.data?.error ||
           err?.message ||
@@ -832,6 +856,34 @@ export default function ImportPlaybooksModal({ open, onClose }: Props) {
         </div>
       ) : (
         <div className="pb-import">
+          <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--text-secondary, #64748b)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Layers size={14} /> Add to collection:
+            </span>
+            <div style={{ flex: 1 }}>
+              <SearchableDropdown
+                value={targetCollectionId}
+                onChange={(val) => setTargetCollectionId((val as string) || null)}
+                options={collectionOptions}
+                placeholder="Optional: Pick a collection (e.g. HRMS, Fintech...)"
+                searchPlaceholder="Search collections…"
+                allowClear
+                width="100%"
+                style={{ width: "100%" }}
+              />
+            </div>
+          </div>
+
           {/* Two ways in: JSON someone already has, or a requirements document
               Zai reads into playbooks. */}
           {/* Describe first: it is the shortest path from "I have a feature" to

@@ -32,11 +32,13 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -87,11 +89,49 @@ export default function PlaybooksPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase, canCreateCase } = usePermission();
+  const { user } = useAuth();
+  const {
+    canReadPlaybook,
+    canCreatePlaybook,
+    canUpdatePlaybook,
+    canDeletePlaybook,
+    canRequestPlaybook,
+    canTemplatePlaybook,
+    canUploadPlaybook,
+    canManagePlaybook,
+    canReadPlaybookTrash,
+  } = usePermission();
 
   const [search, setSearch] = useState("");
   const [browseBy, setBrowseBy] = useState<BrowseBy>("collections");
   const [category, setCategory] = useState<string>(ALL_GROUP);
+
+  const hasRequestPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_request_playbook") ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_request_playbook");
+  const hasRequestedFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks_requested") ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_requested") ||
+    user.subscriptionFeatures.includes("work_playbooks_requested_playbooks");
+
+  const hasTemplateFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_template");
+  const hasUploadFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_upload");
+  const hasAccessFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_access");
+  const hasNewCollectionFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_collections_new_collections") ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_collections");
+  const hasNewPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
   /**
    * The second step INSIDE a collection.
    *
@@ -120,7 +160,7 @@ export default function PlaybooksPage() {
   }>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 60 * 60 * 1000,
   });
 
@@ -165,7 +205,7 @@ export default function PlaybooksPage() {
       if (debouncedSearch) params.set("search", debouncedSearch);
       return axios.get(`/api/v2/qa/playbooks?${params.toString()}`);
     },
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -184,7 +224,7 @@ export default function PlaybooksPage() {
   }>({
     queryKey: ["qa", "collections", "strip"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/collections?all=true"),
-    enabled: canReadCase,
+    enabled: canReadPlaybook,
     staleTime: 10 * 60 * 1000,
   });
 
@@ -200,6 +240,13 @@ export default function PlaybooksPage() {
   );
 
   const canPublish = data?.canPublish ?? false;
+
+  const canShowManage =
+    (hasTemplateFeature && canTemplatePlaybook) ||
+    (hasUploadFeature && canUploadPlaybook) ||
+    (hasAccessFeature && (canPublish || canManagePlaybook)) ||
+    (hasNewCollectionFeature && canCreatePlaybook) ||
+    (hasNewPlaybookFeature && canCreatePlaybook);
 
   /**
    * The rail on the left is the parent list: the two cross-cutting groups a QA
@@ -424,12 +471,14 @@ export default function PlaybooksPage() {
      super_admin the maintained library as well. Mirrors assertCanEdit on the
      server, so no card offers an action that would come back 403. */
   const canManage = (playbook: PlaybookSummary) =>
-    canCreateCase && (playbook.isOwn || canPublish);
+    (canUpdatePlaybook || canCreatePlaybook) &&
+    hasNewPlaybookFeature &&
+    (playbook.isOwn || canPublish || canManagePlaybook);
 
   const remove = useMutation({
     mutationFn: (id: string) => axios.delete(`/api/v2/qa/playbooks/${id}`),
     onSuccess: () => {
-      message.success("Playbook deleted");
+      message.success("Playbook moved to Trash");
       queryClient.invalidateQueries({ queryKey: ["qa", "playbooks"] });
     },
     onError: (err: any) => {
@@ -439,12 +488,12 @@ export default function PlaybooksPage() {
     },
   });
 
-  if (!canReadCase) {
+  if (!canReadPlaybook) {
     return (
       <MainLayout>
         <NoData
           title="No access to QA Playbooks"
-          description="You need test case read access to open the playbook library."
+          description="You need test playbook read access to open the playbook library."
         />
       </MainLayout>
     );
@@ -537,25 +586,45 @@ export default function PlaybooksPage() {
               />
             </div>
 
-            <div className="pb-toolbar__actions">
-              <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
-                <Button
-                  className="pb-btn"
-                  icon={<Sparkles size={14} />}
-                  onClick={() => setRequestOpen(true)}
-                >
-                  Request playbook
-                </Button>
-              </Tooltip>
+            {((hasRequestPlaybookFeature && canRequestPlaybook) ||
+              (hasRequestedFeature && canReadPlaybook) ||
+              canReadPlaybookTrash) && (
+              <div className="pb-toolbar__actions">
+                {hasRequestPlaybookFeature && canRequestPlaybook && (
+                  <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
+                    <Button
+                      className="pb-btn"
+                      icon={<Sparkles size={14} />}
+                      onClick={() => setRequestOpen(true)}
+                    >
+                      Request playbook
+                    </Button>
+                  </Tooltip>
+                )}
 
-              <Button
-                className="pb-btn"
-                icon={<Inbox size={14} />}
-                onClick={() => router.push("/playbooks/requested")}
-              >
-                Requested
-              </Button>
-            </div>
+                {hasRequestedFeature && canReadPlaybook && (
+                  <Button
+                    className="pb-btn"
+                    icon={<Inbox size={14} />}
+                    onClick={() => router.push("/playbooks/requested")}
+                  >
+                    Requested
+                  </Button>
+                )}
+
+                {canReadPlaybookTrash && (
+                  <Tooltip title="View and restore deleted playbooks, collections, and categories">
+                    <Button
+                      className="pb-btn"
+                      icon={<Trash2 size={14} />}
+                      onClick={() => router.push("/playbooks/trash")}
+                    >
+                      Trash
+                    </Button>
+                  </Tooltip>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── Layer three: acting ON the library, rather than reading it ──
@@ -569,40 +638,42 @@ export default function PlaybooksPage() {
               so a reader gets two layers rather than an empty band. Each button
               keeps the permission it already had — the row is a grouping, not a
               new gate. */}
-          {(canCreateCase || canPublish) && (
+          {canShowManage && (
             <div className="pb-toolbar is-manage">
               <span className="pb-toolbar__eyebrow">Manage</span>
               {/* Writing a playbook in the app costs tokens per recommendation.
                   The template lets a QA do the writing on an AI platform they
                   already pay for, and bring the result back through Import. */}
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    {
-                      key: "prompt",
-                      icon: <Copy size={14} />,
-                      label: "Copy the AI prompt",
-                      onClick: copyPrompt,
-                    },
-                    {
-                      key: "file",
-                      icon: <Download size={14} />,
-                      label: "Download template (.json)",
-                      onClick: () => {
-                        downloadTemplate();
-                        message.success("Template downloaded");
+              {hasTemplateFeature && canTemplatePlaybook && (
+                <Dropdown
+                  trigger={["click"]}
+                  menu={{
+                    items: [
+                      {
+                        key: "prompt",
+                        icon: <Copy size={14} />,
+                        label: "Copy the AI prompt",
+                        onClick: copyPrompt,
                       },
-                    },
-                  ],
-                }}
-              >
-                <Button className="pb-btn" icon={<Download size={14} />}>
-                  Template
-                </Button>
-              </Dropdown>
+                      {
+                        key: "file",
+                        icon: <Download size={14} />,
+                        label: "Download template (.json)",
+                        onClick: () => {
+                          downloadTemplate();
+                          message.success("Template downloaded");
+                        },
+                      },
+                    ],
+                  }}
+                >
+                  <Button className="pb-btn" icon={<Download size={14} />}>
+                    Template
+                  </Button>
+                </Dropdown>
+              )}
 
-              {canCreateCase && (
+              {hasUploadFeature && canUploadPlaybook && (
                 <Tooltip title="Paste back what an AI platform wrote from the template">
                   <Button
                     className="pb-btn"
@@ -616,7 +687,7 @@ export default function PlaybooksPage() {
 
               {/* The premium ACCESS queue is a different job, and Testiez's
                   alone — it only appears for them. */}
-              {canPublish && (
+              {hasAccessFeature && (canPublish || canManagePlaybook) && (
                 <Tooltip title="Workspaces asking for access to premium playbooks">
                   <Button
                     className="pb-btn"
@@ -634,7 +705,7 @@ export default function PlaybooksPage() {
                   only the seed data can have. Saving lands on the new
                   collection so the next step — mapping playbooks into it, in
                   order — is where you already are. */}
-              {canCreateCase && (
+              {hasNewCollectionFeature && canCreatePlaybook && (
                 <Tooltip title="Bundle playbooks for an audience — an industry, a standard, a release">
                   <Button
                     className="pb-btn pb-toolbar__primary"
@@ -646,7 +717,7 @@ export default function PlaybooksPage() {
                 </Tooltip>
               )}
 
-              {canCreateCase && (
+              {hasNewPlaybookFeature && canCreatePlaybook && (
                 <Button
                   type="primary"
                   className="pb-btn"
@@ -795,27 +866,29 @@ export default function PlaybooksPage() {
 
                     {/* The same action as the tile at the end of the grid, kept
                         at the top for a group long enough that the tile is a
-                        scroll away. */}
-                    {canCreateCase ? (
-                      <Button
-                        className="pb-btn is-sm"
-                        icon={<Plus size={13} />}
-                        onClick={startNewPlaybook}
-                      >
-                        {drillCategory
-                          ? `New in ${drillCategory}`
-                          : activeGroup.kind === "category"
-                          ? `New in ${activeGroup.label}`
-                          : "New playbook"}
-                      </Button>
-                    ) : (
-                      <Button
-                        className="pb-btn is-sm"
-                        icon={<Sparkles size={13} />}
-                        onClick={() => setRequestOpen(true)}
-                      >
-                        Request a playbook
-                      </Button>
+                        scroll away. Shown in collections/categories, hidden in All Playbooks */}
+                    {activeGroup.key !== ALL_GROUP && (
+                      hasNewPlaybookFeature && canCreatePlaybook ? (
+                        <Button
+                          className="pb-btn is-sm"
+                          icon={<Plus size={13} />}
+                          onClick={startNewPlaybook}
+                        >
+                          {drillCategory
+                            ? `New in ${drillCategory}`
+                            : activeGroup.kind === "category"
+                            ? `New in ${activeGroup.label}`
+                            : "New playbook"}
+                        </Button>
+                      ) : hasRequestPlaybookFeature && canRequestPlaybook ? (
+                        <Button
+                          className="pb-btn is-sm"
+                          icon={<Sparkles size={13} />}
+                          onClick={() => setRequestOpen(true)}
+                        >
+                          Request a playbook
+                        </Button>
+                      ) : null
                     )}
                   </div>
                 </div>
@@ -890,7 +963,7 @@ export default function PlaybooksPage() {
                                 router.push(
                                   `/playbooks/${playbook.slug}/edit`
                                 )
-                            : undefined
+                          : undefined
                         }
                         /* mutateAsync, so the confirmation card keeps spinning
                            until the row is actually gone. */
@@ -903,42 +976,44 @@ export default function PlaybooksPage() {
                       />
                     ))}
 
-                    {canCreateCase ? (
-                      /* Same route as the header button, so the tile cannot
-                         quietly skip the "which collection?" step. */
-                      <button
-                        type="button"
-                        className="pb-card pb-card--add"
-                        onClick={startNewPlaybook}
-                      >
-                        <span className="pb-card--add__badge">
-                          <Plus size={18} />
-                        </span>
-                        <span className="pb-card--add__title">New playbook</span>
-                        <span className="pb-card--add__sub">
-                          {activeGroup.kind === "category"
-                            ? `Write one for ${activeGroup.label}`
-                            : "Write one for a feature your team tests"}
-                        </span>
-                      </button>
-                    ) : (
-                      /* No authoring rights: the same gap, asked for instead of
-                         written. */
-                      <button
-                        type="button"
-                        className="pb-card pb-card--add"
-                        onClick={() => setRequestOpen(true)}
-                      >
-                        <span className="pb-card--add__badge">
-                          <Sparkles size={17} />
-                        </span>
-                        <span className="pb-card--add__title">Request a playbook</span>
-                        <span className="pb-card--add__sub">
-                          {activeGroup.kind === "category"
-                            ? `Ask Testiez to cover more of ${activeGroup.label}`
-                            : "Ask Testiez to cover what you are testing"}
-                        </span>
-                      </button>
+                    {activeGroup.key !== ALL_GROUP && (
+                      hasNewPlaybookFeature && canCreatePlaybook ? (
+                        /* Same route as the header button, so the tile cannot
+                           quietly skip the "which collection?" step. */
+                        <button
+                          type="button"
+                          className="pb-card pb-card--add"
+                          onClick={startNewPlaybook}
+                        >
+                          <span className="pb-card--add__badge">
+                            <Plus size={18} />
+                          </span>
+                          <span className="pb-card--add__title">New playbook</span>
+                          <span className="pb-card--add__sub">
+                            {activeGroup.kind === "category"
+                              ? `Write one for ${activeGroup.label}`
+                              : "Write one for a feature your team tests"}
+                          </span>
+                        </button>
+                      ) : hasRequestPlaybookFeature && canRequestPlaybook ? (
+                        /* No authoring rights: the same gap, asked for instead of
+                           written. */
+                        <button
+                          type="button"
+                          className="pb-card pb-card--add"
+                          onClick={() => setRequestOpen(true)}
+                        >
+                          <span className="pb-card--add__badge">
+                            <Sparkles size={17} />
+                          </span>
+                          <span className="pb-card--add__title">Request a playbook</span>
+                          <span className="pb-card--add__sub">
+                            {activeGroup.kind === "category"
+                              ? `Ask Testiez to cover more of ${activeGroup.label}`
+                              : "Ask Testiez to cover what you are testing"}
+                          </span>
+                        </button>
+                      ) : null
                     )}
                   </div>
                 )}

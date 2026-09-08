@@ -92,7 +92,7 @@ export default function PlaybookRequestsPage() {
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { canReadCase } = usePermission();
+  const { canReadPlaybook } = usePermission();
 
   const [scope, setScope] = useState<Scope>("playbooks");
   const [status, setStatus] = useState("pending");
@@ -102,7 +102,7 @@ export default function PlaybookRequestsPage() {
   const { data, isLoading, error } = useQuery<UnlockRequest[]>({
     queryKey: ["qa", "playbooks", "requests", "access", status],
     queryFn: () => axios.get(`/api/v2/qa/playbooks/admin/unlock-requests?status=${status}`),
-    enabled: canReadCase && scope === "playbooks",
+    enabled: canReadPlaybook && scope === "playbooks",
   });
 
   const {
@@ -113,7 +113,7 @@ export default function PlaybookRequestsPage() {
     queryKey: ["qa", "collections", "requests", "access", status],
     queryFn: () =>
       axios.get(`/api/v2/qa/playbooks/collections/admin/unlock-requests?status=${status}`),
-    enabled: canReadCase && scope === "collections",
+    enabled: canReadPlaybook && scope === "collections",
   });
 
   const decideCollection = async (id: string, decision: "approved" | "declined") => {

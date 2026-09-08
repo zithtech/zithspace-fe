@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
+import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
 import { api as axios } from "@/lib/axios";
@@ -16,7 +17,8 @@ import PlaybookEditor from "@/components/qa/PlaybookEditor";
 function CreatePlaybook() {
   useActivitySource({ section: "WORK", module: "QA", page: "CreatePlaybook" });
 
-  const { canCreateCase } = usePermission();
+  const { user } = useAuth();
+  const { canCreatePlaybook } = usePermission();
   const params = useSearchParams();
   /* Arriving from a category in the catalog: the new playbook is filed where
      the author was already standing, rather than making them retype it. */
@@ -25,19 +27,23 @@ function CreatePlaybook() {
      it once the playbook actually exists and has an id. */
   const collectionId = params.get("collection") ?? "";
 
+  const hasNewPlaybookFeature =
+    !user?.subscriptionFeatures ||
+    user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+
   const { data: meta } = useQuery<any>({
     queryKey: ["qa", "playbooks", "meta"],
     queryFn: () => axios.get("/api/v2/qa/playbooks/meta"),
-    enabled: canCreateCase,
+    enabled: canCreatePlaybook && hasNewPlaybookFeature,
     staleTime: 60 * 60 * 1000,
   });
 
-  if (!canCreateCase) {
+  if (!canCreatePlaybook || !hasNewPlaybookFeature) {
     return (
       <MainLayout>
         <NoData
           title="No access"
-          description="You need permission to create test cases before you can author a playbook."
+          description="You do not have permission or subscription access to create playbooks."
         />
       </MainLayout>
     );

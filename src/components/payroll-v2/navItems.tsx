@@ -32,6 +32,7 @@ export interface PayrollNavItem {
   anyPerm: string[];
   comingSoon?: boolean;
   selfService?: boolean; // visible to every authenticated user (own data only)
+  requiredSubscriptionFeature?: string[];
 }
 
 export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
@@ -42,6 +43,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <SlidersHorizontal size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadPayrollSettings'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_settings', 'finance_payroll_v2'],
   },
   {
     key: 'components',
@@ -50,6 +52,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <PieChart size={16} />,
     color: '#10B981',
     anyPerm: ['canReadPayrollComponents'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_components', 'finance_payroll_v2_structures'],
   },
   {
     key: 'structures',
@@ -58,6 +61,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <Layers size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canReadPayrollStructures'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_structures'],
   },
   {
     key: 'schedules',
@@ -66,6 +70,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <CalendarClock size={16} />,
     color: '#F59E0B',
     anyPerm: ['canReadPayrollSchedules'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_schedules'],
   },
   {
     key: 'statutory',
@@ -74,6 +79,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <Landmark size={16} />,
     color: '#EF4444',
     anyPerm: ['canReadPayrollStatutory'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_statutory'],
   },
   {
     key: 'state-statutory',
@@ -82,6 +88,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <Scale size={16} />,
     color: '#06B6D4',
     anyPerm: ['canReadPayrollStateStatutory'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_state_statutory', 'finance_payroll_v2_statutory'],
   },
   {
     key: 'workflows',
@@ -90,6 +97,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <BadgeCheck size={16} />,
     color: '#0EA5E9',
     anyPerm: ['canReadPayrollWorkflows'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_workflows', 'finance_payroll_v2'],
   },
   {
     key: 'payslip-template',
@@ -98,6 +106,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <FileCog size={16} />,
     color: '#EC4899',
     anyPerm: ['canReadPayrollPayslipBank'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_payslip_template', 'finance_payroll_v2'],
   },
   {
     key: 'employees',
@@ -106,6 +115,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <UsersIcon size={16} />,
     color: '#64748B',
     anyPerm: ['canReadPayrollEmployees'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_employees'],
   },
   {
     key: 'run-payroll',
@@ -114,6 +124,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <PlayCircle size={16} />,
     color: '#10B981',
     anyPerm: ['canReadPayrollRun'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_run_payroll'],
   },
   {
     key: 'reports',
@@ -122,6 +133,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     icon: <FileBarChart size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canReadPayrollReports'],
+    requiredSubscriptionFeature: ['finance_payroll_v2_reports'],
   },
   {
     key: 'my-payslips',
@@ -131,6 +143,7 @@ export const PAYROLL_NAV_ITEMS: PayrollNavItem[] = [
     color: '#06B6D4',
     anyPerm: [],
     selfService: true,
+    requiredSubscriptionFeature: ['finance_payroll_v2_my_payslips', 'my_hub'],
   },
 ];
 
@@ -141,7 +154,14 @@ export function getPayrollNavItem(key: string): PayrollNavItem | undefined {
 /** True if the permission map grants access to a nav item. Self-service items
  *  (e.g. My Payslips) are visible to every authenticated user — the backend
  *  scopes the data to the requester. */
-export function canAccessPayrollItem(perms: Record<string, any>, item: PayrollNavItem): boolean {
-  if (item.selfService) return true;
-  return !!perms.canManagePayroll || item.anyPerm.some((p) => !!perms[p]);
+export function canAccessPayrollItem(
+  perms: Record<string, any>,
+  item: PayrollNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
+): boolean {
+  const hasPerm = item.selfService || !!perms.canManagePayroll || item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

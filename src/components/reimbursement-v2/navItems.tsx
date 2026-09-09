@@ -22,6 +22,7 @@ export interface ReimbursementNavItem {
   icon: React.ReactNode;
   color: string;
   anyPerm: string[];
+  requiredSubscriptionFeature?: string[];
 }
 
 export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
@@ -32,6 +33,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <LayoutDashboard size={16} />,
     color: '#3B82F6',
     anyPerm: ['canReadReimbursementDashboard', 'canReadReimbursement'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_dashboard', 'finance_reimbursement_v2'],
   },
   {
     key: 'claims',
@@ -40,6 +42,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <ReceiptText size={16} />,
     color: '#10B981',
     anyPerm: ['canReadReimbursement', 'canReadMyHubClaims'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_claims'],
   },
   {
     key: 'advances',
@@ -48,6 +51,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Wallet size={16} />,
     color: '#06B6D4',
     anyPerm: ['canReadReimbursement'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_advances'],
   },
   {
     key: 'approvals',
@@ -56,6 +60,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <BadgeCheck size={16} />,
     color: '#F59E0B',
     anyPerm: ['canApproveReimbursement'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_approvals'],
   },
   {
     key: 'finance',
@@ -64,6 +69,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Banknote size={16} />,
     color: '#8B5CF6',
     anyPerm: ['canPayReimbursement'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_finance'],
   },
   {
     key: 'categories',
@@ -72,6 +78,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Tags size={16} />,
     color: '#EC4899',
     anyPerm: ['canReadReimbursementPolicy'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_categories'],
   },
   {
     key: 'policies',
@@ -80,6 +87,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <ScrollText size={16} />,
     color: '#F97316',
     anyPerm: ['canReadReimbursementConfig'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_policies'],
   },
   {
     key: 'budgets',
@@ -88,6 +96,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Target size={16} />,
     color: '#EF4444',
     anyPerm: ['canReadReimbursementConfig', 'canReadReimbursementDashboard'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_budgets'],
   },
   {
     key: 'settings',
@@ -96,6 +105,7 @@ export const REIMBURSEMENT_NAV_ITEMS: ReimbursementNavItem[] = [
     icon: <Settings size={16} />,
     color: '#64748B',
     anyPerm: ['canReadReimbursementConfig'],
+    requiredSubscriptionFeature: ['finance_reimbursement_v2_settings'],
   },
 ];
 
@@ -106,7 +116,12 @@ export function getReimbursementNavItem(key: string): ReimbursementNavItem | und
 /** True if the permission map grants access to a nav item. */
 export function canAccessReimbursementItem(
   perms: Record<string, any>,
-  item: ReimbursementNavItem
+  item: ReimbursementNavItem,
+  hasAnySubscriptionFeature?: (...features: string[]) => boolean
 ): boolean {
-  return !!perms.canManageReimbursements || item.anyPerm.some((p) => !!perms[p]);
+  const hasPerm = !!perms.canManageReimbursements || item.anyPerm.some((p) => !!perms[p]);
+  const hasSub = hasAnySubscriptionFeature && item.requiredSubscriptionFeature
+    ? hasAnySubscriptionFeature(...item.requiredSubscriptionFeature)
+    : true;
+  return hasPerm && hasSub;
 }

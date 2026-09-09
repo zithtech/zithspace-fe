@@ -15,14 +15,14 @@ import { ONBOARDING_NAV_ITEMS, canAccessOnboardingItem } from '@/components/onbo
 // derived from the URL (not local state), and items are filtered by permission.
 // Mirrors the Leaves 2.0 layout.
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
 
   const visibleItems = useMemo(
-    () => ONBOARDING_NAV_ITEMS.filter((item) => canAccessOnboardingItem(perms, item)),
-    [perms]
+    () => ONBOARDING_NAV_ITEMS.filter((item) => canAccessOnboardingItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -38,12 +38,22 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     return () => window.removeEventListener('open-ob-sidebar', handleOpenSidebar);
   }, []);
 
-  // Base guard: must be able to read or create onboarding at all.
+  // Base guard: must be able to read or create onboarding at all, and have visible items.
   useEffect(() => {
-    if (!isLoading && !perms.canReadOnboarding && !perms.canCreateOnboarding) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if ((!perms.canReadOnboarding && !perms.canCreateOnboarding) || visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, perms.canReadOnboarding, perms.canCreateOnboarding, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, perms.canReadOnboarding, perms.canCreateOnboarding, visibleItems, router]);
 
   return (
     <ProtectedRoute>

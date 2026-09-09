@@ -8,15 +8,50 @@ import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { usePermission } from '@/hooks/usePermission';
 
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
 export default function PipelineLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { canReadRecruitmentSetting } = usePermission();
+  const { hasAnySubscriptionFeature, isLoading } = useAuth();
 
   const NAV_ITEMS = [
-    { key: 'candidates', label: 'Candidates', href: '/pipeline/candidates', icon: <Users size={16} /> },
-    ...(canReadRecruitmentSetting ? [{ key: 'configs', label: 'Configurations', href: '/pipeline/configurations', icon: <Settings size={16} /> }] : []),
-  ];
+    {
+      key: 'candidates',
+      label: 'Candidates',
+      href: '/pipeline/candidates',
+      icon: <Users size={16} />,
+      requiredSubscriptionFeature: ['hrms_candidate_pipeline_candidates', 'hrms_candidate_pipeline'],
+    },
+    ...(canReadRecruitmentSetting
+      ? [{
+          key: 'configs',
+          label: 'Configurations',
+          href: '/pipeline/configurations',
+          icon: <Settings size={16} />,
+          requiredSubscriptionFeature: ['hrms_candidate_pipeline_configurations', 'hrms_candidate_pipeline'],
+        }]
+      : []),
+  ].filter((item) => hasAnySubscriptionFeature(...item.requiredSubscriptionFeature));
+
+  React.useEffect(() => {
+    if (isLoading || !pathname) return;
+
+    if (NAV_ITEMS.length === 0) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    const currentAllowed = NAV_ITEMS.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(NAV_ITEMS[0].href);
+    }
+  }, [isLoading, pathname, NAV_ITEMS, router]);
 
   return (
     <ProtectedRoute>

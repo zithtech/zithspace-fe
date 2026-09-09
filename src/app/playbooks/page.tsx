@@ -38,6 +38,7 @@ import {
 import MainLayout from "@/components/layout/MainLayout";
 import NoData from "@/components/common/NoData";
 import { ZukvoLoadingOverlay } from "@/components/common/ZukvoLoader";
+import { useSubscriptionFeature } from "@/hooks/useSubscriptionFeature";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useActivitySource } from "@/hooks/useActivitySource";
@@ -135,6 +136,7 @@ export default function PlaybooksPage() {
   const hasNewPlaybookFeature =
     !user?.subscriptionFeatures ||
     user.subscriptionFeatures.includes("work_playbooks_qa_playbooks_new_playbook");
+  const hasTrashFeature = useSubscriptionFeature("work_playbooks_playbook_trash");
   /**
    * The second step INSIDE a collection.
    *
@@ -618,7 +620,7 @@ export default function PlaybooksPage() {
 
             {((hasRequestPlaybookFeature && canRequestPlaybook) ||
               (hasRequestedFeature && canReadPlaybook) ||
-              canReadPlaybookTrash) && (
+              (hasTrashFeature && canReadPlaybookTrash)) && (
               <div className="pb-toolbar__actions">
                 {hasRequestPlaybookFeature && canRequestPlaybook && (
                   <Tooltip title="Nothing in the library for the feature you are testing? Ask for it.">
@@ -642,7 +644,7 @@ export default function PlaybooksPage() {
                   </Button>
                 )}
 
-                {canReadPlaybookTrash && (
+                {hasTrashFeature && canReadPlaybookTrash && (
                   <Tooltip title="View and restore deleted playbooks, collections, and categories">
                     <Button
                       className="pb-btn"
@@ -998,7 +1000,7 @@ export default function PlaybooksPage() {
                         /* mutateAsync, so the confirmation card keeps spinning
                            until the row is actually gone. */
                         onDelete={
-                          canManage(playbook)
+                          canManage(playbook) && hasTrashFeature
                             ? () => remove.mutateAsync(playbook.id).catch(() => {})
                             : undefined
                         }

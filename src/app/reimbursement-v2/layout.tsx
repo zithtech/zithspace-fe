@@ -17,23 +17,33 @@ import {
 // is rendered here once; sub-route pages render into {children}. Active state is
 // derived from the URL, and items are filtered by permission.
 export default function ReimbursementV2Layout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
-    () => REIMBURSEMENT_NAV_ITEMS.filter((item) => canAccessReimbursementItem(perms, item)),
-    [perms]
+    () => REIMBURSEMENT_NAV_ITEMS.filter((item) => canAccessReimbursementItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
-  // Base guard: must be able to read or manage reimbursements at all.
+  // Base guard: must be able to read or manage reimbursements at all, and have at least one visible item.
   useEffect(() => {
-    if (!isLoading && !perms.canReadReimbursement && !perms.canManageReimbursements) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if ((!perms.canReadReimbursement && !perms.canManageReimbursements) || visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, perms.canReadReimbursement, perms.canManageReimbursements, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, perms.canReadReimbursement, perms.canManageReimbursements, visibleItems, router]);
 
   useEffect(() => {
     const handler = () => setIsMobileOpen(true);

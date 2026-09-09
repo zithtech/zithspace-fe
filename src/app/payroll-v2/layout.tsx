@@ -15,15 +15,15 @@ import { PAYROLL_NAV_ITEMS, canAccessPayrollItem } from '@/components/payroll-v2
 // derived from the URL (not local state), and items are filtered by permission.
 // Mirrors the Leaves 2.0 shell so the two modules feel identical.
 export default function PayrollV2Layout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useAuth();
+  const { isLoading, hasAnySubscriptionFeature } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const perms = usePermission() as unknown as Record<string, any>;
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const visibleItems = useMemo(
-    () => PAYROLL_NAV_ITEMS.filter((item) => canAccessPayrollItem(perms, item)),
-    [perms]
+    () => PAYROLL_NAV_ITEMS.filter((item) => canAccessPayrollItem(perms, item, hasAnySubscriptionFeature)),
+    [perms, hasAnySubscriptionFeature]
   );
 
   // Close sidebar on navigation
@@ -37,14 +37,22 @@ export default function PayrollV2Layout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('open-pv-sidebar', handleOpenSidebar);
   }, []);
 
-  // Base guard: redirect only if there's nothing the user can access. Self-
-  // service items (My Payslips) are always visible, so any authenticated user
-  // can reach the module; admin pages remain individually permission-gated.
+  // Base guard: redirect if there's nothing the user can access or if current tab is invalid.
   useEffect(() => {
-    if (!isLoading && visibleItems.length === 0) {
-      router.push('/dashboard');
+    if (isLoading || !pathname) return;
+
+    if (visibleItems.length === 0) {
+      router.replace('/dashboard');
+      return;
     }
-  }, [isLoading, visibleItems.length, router]);
+
+    const currentAllowed = visibleItems.some((item) =>
+      pathname === item.href || pathname.startsWith(item.href + '/')
+    );
+    if (!currentAllowed) {
+      router.replace(visibleItems[0].href);
+    }
+  }, [isLoading, pathname, visibleItems, router]);
 
   return (
     <ProtectedRoute>

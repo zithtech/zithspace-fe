@@ -41,7 +41,8 @@ dayjs.extend(isBetween);
 export default function DashboardPage() {
   const router = useRouter();
   const { canReadInvoice, canCreateInvoice, canReadInvoiceDashboard, canReadInvoiceHistory } = usePermission();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, hasAnySubscriptionFeature } = useAuth();
+  const canUseNewInvoice = hasAnySubscriptionFeature("finance_invoice_newinvoice");
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -602,7 +603,7 @@ export default function DashboardPage() {
                   <span>Email history</span>
                 </Button>
               )}
-              {canCreateInvoice && (
+              {canCreateInvoice && canUseNewInvoice && (
                 <Button
                   type="primary"
                   icon={<Plus size={13} />}

@@ -87,7 +87,7 @@ export default function TicketsTrashPage() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(15);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isManualRefresh, setIsManualRefresh] = useState(false);
 
@@ -547,7 +547,7 @@ export default function TicketsTrashPage() {
                 className="trs2-pagesize"
                 value={pageSize}
                 onChange={(v) => { setPageSize(v); setPage(1); }}
-                options={[10, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
+                options={[10, 15, 20, 25, 50, 100].map((n) => ({ value: n, label: `${n} / page` }))}
                 popupMatchSelectWidth={120}
               />
             </div>

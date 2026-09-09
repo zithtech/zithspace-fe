@@ -33,8 +33,11 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function AiCreateTemplateModal({ open, onClose, onCreated, categories }: AiCreateTemplateModalProps) {
   const { user } = useAuth();
-  const hasPrime = !user?.subscriptionFeatures ? true : user.subscriptionFeatures.includes('work_doc_suite_templates_prime');
-  
+  const hasPrime = !user?.subscriptionFeatures
+    ? true
+    : (user.subscriptionFeatures.includes('hrms_doc_suite_templates_prime') ||
+      user.subscriptionFeatures.some((f: string) => f.includes('doc_suite') && f.includes('prime')));
+
   if (!hasPrime) return null;
 
   const [step, setStep] = useState<"input" | "generating">("input");

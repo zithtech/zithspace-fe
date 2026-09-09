@@ -6,7 +6,7 @@ import React, { useState, useEffect } from "react";
 
 import MainLayout from "@/components/layout/MainLayout";
 import { Button, Input, Row, Col } from "antd";
-import { ArrowLeftOutlined, CloseOutlined, PlusOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CloseOutlined, PlusOutlined, EditOutlined, CheckOutlined } from "@ant-design/icons";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import { api as axios } from "@/lib/axios";
@@ -56,6 +56,7 @@ export default function CreateTestCasePage() {
 
   // Array of test cases
   const [testCases, setTestCases] = useState<TestCaseForm[]>([{ ...defaultTestCase }]);
+  const [editingStep, setEditingStep] = useState<{ tcIndex: number; stepIndex: number; text: string } | null>(null);
 
   useEffect(() => {
     if (canCreateCase) {
@@ -84,6 +85,21 @@ export default function CreateTestCasePage() {
     const updated = [...testCases];
     updated[tcIndex].stepsList[stepIndex] = val;
     setTestCases(updated);
+  };
+
+  const handleSaveStepEdit = () => {
+    if (!editingStep) return;
+    const { tcIndex, stepIndex, text } = editingStep;
+    if (text.trim()) {
+      const updated = [...testCases];
+      updated[tcIndex].stepsList[stepIndex] = text.trim();
+      setTestCases(updated);
+    }
+    setEditingStep(null);
+  };
+
+  const handleCancelStepEdit = () => {
+    setEditingStep(null);
   };
 
   const addStep = (tcIndex: number) => {
@@ -120,8 +136,50 @@ export default function CreateTestCasePage() {
 
     try {
       setSubmitting(true);
+
+      // Prepare current steps including any uncommitted input
+      const preparedTestCases = testCases.map((tc, tcIdx) => {
+        let currentSteps = [...tc.stepsList];
+        if (editingStep && editingStep.tcIndex === tcIdx && editingStep.text.trim()) {
+          currentSteps[editingStep.stepIndex] = editingStep.text.trim();
+        }
+        if (tc.newStepInput?.trim()) {
+          currentSteps.push(tc.newStepInput.trim());
+        }
+        return {
+          ...tc,
+          stepsList: currentSteps.filter(s => s.trim() !== "")
+        };
+      });
+
+      // Auto-correct spelling/typos across all test cases in ONE single batch AI call
+      let processedCases = preparedTestCases;
+      try {
+        const correctRes: any = await axios.post("/api/v2/qa/correct-spelling", {
+          testCases: preparedTestCases.map(tc => ({
+            name: tc.name,
+            description: tc.description,
+            preconditions: tc.preconditions,
+            steps: tc.stepsList,
+            expected_result: tc.expected_result
+          }))
+        });
+        const correctedData = correctRes?.data?.data;
+        if (Array.isArray(correctedData) && correctedData.length === preparedTestCases.length) {
+          processedCases = preparedTestCases.map((tc, idx) => ({
+            ...tc,
+            name: correctedData[idx].name || tc.name,
+            description: correctedData[idx].description !== undefined ? correctedData[idx].description : tc.description,
+            preconditions: correctedData[idx].preconditions !== undefined ? correctedData[idx].preconditions : tc.preconditions,
+            stepsList: Array.isArray(correctedData[idx].steps) && correctedData[idx].steps.length ? correctedData[idx].steps : tc.stepsList,
+            expected_result: correctedData[idx].expected_result !== undefined ? correctedData[idx].expected_result : tc.expected_result,
+          }));
+        }
+      } catch (e) {
+        // Continue gracefully if AI service is offline
+      }
       
-      const promises = testCases.map(tc => {
+      const promises = processedCases.map(tc => {
         const payload = {
           name: tc.name,
           module_id: moduleId,
@@ -293,21 +351,81 @@ export default function CreateTestCasePage() {
                 <Col span={24}>
                   <span className="form-label">Steps To Reproduce</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {tc.stepsList.map((step, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
-                          {idx + 1}
+                    {tc.stepsList.map((step, idx) => {
+                      const isEditing = editingStep?.tcIndex === tcIndex && editingStep?.stepIndex === idx;
+                      return (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 32 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--brand-50)', color: 'var(--brand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
+                            {idx + 1}
+                          </div>
+                          {isEditing ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                              <Input
+                                autoFocus
+                                size="small"
+                                value={editingStep.text}
+                                onChange={(e) => setEditingStep({ ...editingStep, text: e.target.value })}
+                                onPressEnter={(e) => {
+                                  e.preventDefault();
+                                  handleSaveStepEdit();
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    handleCancelStepEdit();
+                                  }
+                                }}
+                                style={{ flex: 1, borderRadius: 6, fontSize: 13 }}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CheckOutlined style={{ color: '#16a34a', fontSize: 13 }} />}
+                                onClick={handleSaveStepEdit}
+                                title="Save step"
+                                style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<CloseOutlined style={{ color: '#dc2626', fontSize: 12 }} />}
+                                onClick={handleCancelStepEdit}
+                                title="Cancel"
+                                style={{ width: 24, height: 24, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EditOutlined style={{ fontSize: 13, color: 'var(--text-slate-500)' }} />}
+                                  style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  onClick={() => setEditingStep({ tcIndex, stepIndex: idx, text: step })}
+                                  title="Edit step"
+                                />
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<CloseOutlined style={{ fontSize: 12 }} />}
+                                  style={{ padding: 0, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}
+                                  onClick={() => {
+                                    if (editingStep?.tcIndex === tcIndex && editingStep?.stepIndex === idx) {
+                                      setEditingStep(null);
+                                    }
+                                    removeStep(tcIndex, idx);
+                                  }}
+                                  title="Remove step"
+                                />
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <span style={{ fontSize: 13, color: 'var(--text-slate-800)', flex: 1, wordBreak: 'break-word' }}>{step}</span>
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          style={{ padding: '0 6px', fontSize: 15, lineHeight: 1, opacity: 0.5 }}
-                          onClick={() => removeStep(tcIndex, idx)}
-                        >×</Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingTop: tc.stepsList.length > 0 ? 8 : 0, borderTop: tc.stepsList.length > 0 ? '1px dashed var(--border-slate-200)' : 'none' }}>
                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-slate-100)', color: 'var(--text-slate-400)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600 }}>
                         {tc.stepsList.length + 1}
